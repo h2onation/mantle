@@ -288,6 +288,8 @@ export function useChat() {
       // If conversation exists but has no messages, trigger Sage's opener
       const nonSystemMessages = dbMessages?.filter((m) => m.role !== "system") || [];
       if (nonSystemMessages.length === 0) {
+        // Show the chat UI immediately, let opener stream in live
+        setInitialized(true);
         await triggerSageOpener(convId);
       } else {
         // Check if last message is older than 30 minutes — refresh summary if so
@@ -303,13 +305,13 @@ export function useChat() {
             body: JSON.stringify({ conversationId: convId }),
           }).catch(() => {});
         }
+        setInitialized(true);
       }
     } else {
-      // Brand new user — trigger Sage's opener via SSE
+      // Brand new user — show chat UI immediately, let opener stream in live
+      setInitialized(true);
       await triggerSageOpener(null);
     }
-
-    setInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

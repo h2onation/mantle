@@ -65,19 +65,51 @@ export default function MainApp() {
           height: "100vh",
           backgroundColor: "var(--color-bg-primary)",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: "24px",
         }}
       >
+        <div style={{ position: "relative", width: "40px", height: "40px" }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                border: "1.5px solid transparent",
+                borderTopColor: i === 0 ? "#5C6B5E" : i === 1 ? "#B5AFA6" : "#E5DFD5",
+                animation: `mantleSpinner ${1.2 + i * 0.3}s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite`,
+                animationDirection: i === 1 ? "reverse" : "normal",
+                transform: `scale(${1 - i * 0.2})`,
+              }}
+            />
+          ))}
+        </div>
         <p
           style={{
-            fontFamily: "var(--font-sans)",
-            color: "var(--color-text-muted)",
+            fontFamily: "var(--font-serif)",
+            fontStyle: "italic",
             fontSize: "14px",
+            color: "var(--color-text-muted)",
+            margin: 0,
+            animation: "mantleFadeIn 0.8s ease-out",
           }}
         >
-          Loading...
+          Forming...
         </p>
+        <style>{`
+          @keyframes mantleSpinner {
+            0% { transform: scale(${1}) rotate(0deg); }
+            100% { transform: scale(${1}) rotate(360deg); }
+          }
+          @keyframes mantleFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </div>
     );
   }

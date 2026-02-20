@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -36,8 +37,10 @@ export default function LoginPage() {
         });
         if (error) throw error;
       }
+      setTransitioning(true);
       router.push("/");
       router.refresh();
+      return;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -58,6 +61,62 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     }
+  }
+
+  if (transitioning) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "#F5F0E8",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "24px",
+          animation: "mantleFadeIn 0.4s ease-out",
+        }}
+      >
+        <div style={{ position: "relative", width: "40px", height: "40px" }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                border: "1.5px solid transparent",
+                borderTopColor: i === 0 ? "#5C6B5E" : i === 1 ? "#B5AFA6" : "#E5DFD5",
+                animation: `mantleSpinner ${1.2 + i * 0.3}s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite`,
+                animationDirection: i === 1 ? "reverse" : "normal",
+                transform: `scale(${1 - i * 0.2})`,
+              }}
+            />
+          ))}
+        </div>
+        <p
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontStyle: "italic",
+            fontSize: "14px",
+            color: "#B5AFA6",
+            margin: 0,
+          }}
+        >
+          Forming...
+        </p>
+        <style>{`
+          @keyframes mantleSpinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes mantleFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
