@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import ChatPage from "@/components/ChatPage";
+import MainApp from "@/components/MainApp";
 
 export default async function Home() {
   const supabase = createClient();
@@ -12,5 +12,5 @@ export default async function Home() {
     redirect("/login");
   }
 
-  return <ChatPage />;
+  return <MainApp />;
 }

@@ -22,9 +22,7 @@ function renderMarkdown(text: string) {
       if (match.index > lastIndex) {
         parts.push(para.slice(lastIndex, match.index));
       }
-      parts.push(
-        <strong key={keyIdx++}>{match[1]}</strong>
-      );
+      parts.push(<strong key={keyIdx++}>{match[1]}</strong>);
       lastIndex = regex.lastIndex;
     }
     if (lastIndex < para.length) {
@@ -51,12 +49,57 @@ function renderMarkdown(text: string) {
   });
 }
 
+async function readStream(
+  response: Response,
+  onDelta: (text: string) => void,
+  onComplete: (data: {
+    messageId: string;
+    conversationId: string;
+    checkpoint: {
+      isCheckpoint: boolean;
+      layer: number;
+      type: string;
+      name: string | null;
+    } | null;
+    processingText: string;
+  }) => void
+) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6);
+      try {
+        const event = JSON.parse(jsonStr);
+        if (event.type === "text_delta") {
+          onDelta(event.text);
+        } else if (event.type === "message_complete") {
+          onComplete(event);
+        }
+      } catch {
+        // Skip malformed JSON
+      }
+    }
+  }
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [processingText, setProcessingText] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
@@ -69,6 +112,59 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  async function streamChat(
+    body: { message: string | null; conversationId: string | null },
+    onStreamStart?: () => void
+  ) {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) return;
+
+    onStreamStart?.();
+
+    // Add placeholder assistant message
+    const placeholderIdx = { current: -1 };
+    setMessages((prev) => {
+      placeholderIdx.current = prev.length;
+      return [...prev, { role: "assistant", content: "" }];
+    });
+
+    await readStream(
+      res,
+      (text) => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const idx = placeholderIdx.current;
+          if (idx >= 0 && updated[idx]) {
+            updated[idx] = {
+              ...updated[idx],
+              content: updated[idx].content + text,
+            };
+          }
+          return updated;
+        });
+      },
+      (data) => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const idx = placeholderIdx.current;
+          if (idx >= 0 && updated[idx]) {
+            updated[idx] = { ...updated[idx], id: data.messageId };
+          }
+          return updated;
+        });
+        if (!conversationId && data.conversationId) {
+          setConversationId(data.conversationId);
+        }
+        setProcessingText(data.processingText || null);
+      }
+    );
+  }
 
   useEffect(() => {
     async function init() {
@@ -105,29 +201,21 @@ export default function ChatPage() {
             dbMessages.filter((m) => m.role !== "system") as Message[]
           );
         }
+        setInitialized(true);
       } else {
-        // Brand new user — trigger Sage's opener
+        // Brand new user — trigger Sage's opener via streaming
         setIsLoading(true);
+        setInitialized(true);
         try {
-          const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: null, conversationId: null }),
-          });
-          const data = await res.json();
-          if (data.message) {
-            setConversationId(data.conversationId);
-            setMessages([
-              { id: data.messageId, role: "assistant", content: data.message },
-            ]);
-          }
+          await streamChat(
+            { message: null, conversationId: null },
+          );
         } catch {
           // Initialization failed silently
         } finally {
           setIsLoading(false);
         }
       }
-      setInitialized(true);
     }
 
     init();
@@ -144,26 +232,11 @@ export default function ChatPage() {
     }
 
     // Optimistically add user message
-    const userMsg: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, conversationId }),
-      });
-      const data = await res.json();
-      if (data.message) {
-        if (!conversationId) {
-          setConversationId(data.conversationId);
-        }
-        setMessages((prev) => [
-          ...prev,
-          { id: data.messageId, role: "assistant", content: data.message },
-        ]);
-      }
+      await streamChat({ message: text, conversationId });
     } catch {
       // Failed to send
     } finally {
@@ -231,17 +304,30 @@ export default function ChatPage() {
           borderBottom: "1px solid var(--color-border)",
         }}
       >
-        <h1
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "22px",
-            color: "var(--color-text-primary)",
-            fontWeight: 400,
-            margin: 0,
-          }}
-        >
-          Mantle
-        </h1>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "22px",
+              color: "var(--color-text-primary)",
+              fontWeight: 400,
+              margin: 0,
+            }}
+          >
+            Mantle
+          </h1>
+          {processingText && (
+            <span
+              style={{
+                fontSize: "13px",
+                color: "var(--color-text-muted)",
+                fontStyle: "italic",
+              }}
+            >
+              {processingText}
+            </span>
+          )}
+        </div>
         <button
           onClick={async () => {
             await supabase.auth.signOut();
@@ -287,7 +373,7 @@ export default function ChatPage() {
 
             return (
               <div
-                key={msg.id || i}
+                key={msg.id || `msg-${i}`}
                 style={{
                   display: "flex",
                   justifyContent: isUser ? "flex-end" : "flex-start",
@@ -312,19 +398,21 @@ export default function ChatPage() {
             );
           })}
 
-          {isLoading && (
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div
-                style={{
-                  color: "var(--color-text-muted)",
-                  fontSize: "15px",
-                  lineHeight: "1.6",
-                }}
-              >
-                <span className="loading-dots">...</span>
+          {isLoading &&
+            messages.length > 0 &&
+            messages[messages.length - 1].role === "user" && (
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div
+                  style={{
+                    color: "var(--color-text-muted)",
+                    fontSize: "15px",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  ...
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -380,8 +468,7 @@ export default function ChatPage() {
               borderRadius: "8px",
               border: "none",
               backgroundColor: "transparent",
-              cursor:
-                !input.trim() || isLoading ? "default" : "pointer",
+              cursor: !input.trim() || isLoading ? "default" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
