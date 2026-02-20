@@ -26,6 +26,7 @@ interface ContextPaneProps {
   onCheckpointConfirm?: () => void;
   onCheckpointRefine?: () => void;
   onCheckpointReject?: () => void;
+  checkpointError?: string | null;
 }
 
 export default function ContextPane({
@@ -35,6 +36,7 @@ export default function ContextPane({
   onCheckpointConfirm,
   onCheckpointRefine,
   onCheckpointReject,
+  checkpointError,
 }: ContextPaneProps) {
   const hasComponents = manualComponents.length > 0;
 
@@ -131,6 +133,7 @@ export default function ContextPane({
             onConfirm={onCheckpointConfirm || (() => {})}
             onRefine={onCheckpointRefine || (() => {})}
             onReject={onCheckpointReject || (() => {})}
+            error={checkpointError}
           />
         )}
       </div>

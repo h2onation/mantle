@@ -8,6 +8,7 @@ interface CheckpointCardProps {
   onConfirm: () => void;
   onRefine: () => void;
   onReject: () => void;
+  error?: string | null;
 }
 
 export default function CheckpointCard({
@@ -16,6 +17,7 @@ export default function CheckpointCard({
   onConfirm,
   onRefine,
   onReject,
+  error,
 }: CheckpointCardProps) {
   const [confirmed, setConfirmed] = useState(false);
   const [fading, setFading] = useState(false);
@@ -143,6 +145,19 @@ export default function CheckpointCard({
             That&apos;s off
           </button>
         </div>
+      )}
+
+      {error && (
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "12px",
+            color: "var(--color-text-muted)",
+            margin: "12px 0 0 0",
+          }}
+        >
+          {error}
+        </p>
       )}
     </div>
   );

@@ -18,7 +18,10 @@ export default function MainApp() {
     confirmedComponents,
     initialized,
     displayName,
+    errorMessage,
+    checkpointError,
     sendMessage,
+    retryLastMessage,
     confirmCheckpoint,
     loadConversation,
     startNewConversation,
@@ -106,6 +109,8 @@ export default function MainApp() {
             onPromptSelect={handlePromptSelect}
             showPromptCards={showPromptCards}
             onHistoryToggle={() => setHistoryOpen(true)}
+            errorMessage={errorMessage}
+            onRetry={retryLastMessage}
           />
         }
         contextPane={
@@ -116,6 +121,7 @@ export default function MainApp() {
             onCheckpointConfirm={() => confirmCheckpoint("confirmed")}
             onCheckpointRefine={() => confirmCheckpoint("refined")}
             onCheckpointReject={() => confirmCheckpoint("rejected")}
+            checkpointError={checkpointError}
           />
         }
       />

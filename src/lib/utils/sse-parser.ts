@@ -42,7 +42,7 @@ export async function parseSSEStream(
         } else if (event.type === "message_complete") {
           callbacks.onMessageComplete(event);
         } else if (event.type === "error") {
-          callbacks.onError?.(event.error);
+          callbacks.onError?.(event.message || event.error || "Something went wrong.");
         }
       } catch {
         // Skip malformed JSON

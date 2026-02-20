@@ -1,8 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { anthropicFetch } from "@/lib/anthropic";
 
 interface ClassificationResult {
   isCheckpoint: boolean;
@@ -12,20 +8,20 @@ interface ClassificationResult {
   processingText: string;
 }
 
+const FALLBACK: ClassificationResult = {
+  isCheckpoint: false,
+  layer: null,
+  type: null,
+  name: null,
+  processingText: "listening...",
+};
+
 export async function classifyResponse(
   sageResponse: string,
   recentMessages: string
 ): Promise<ClassificationResult> {
-  const fallback: ClassificationResult = {
-    isCheckpoint: false,
-    layer: null,
-    type: null,
-    name: null,
-    processingText: "listening...",
-  };
-
   try {
-    const response = await anthropic.messages.create({
+    const response = await anthropicFetch({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       system: `You analyze messages from a conversational AI called Sage that builds behavioral models. Two jobs:
@@ -60,7 +56,18 @@ If checkpoint: pick strongest layer. Recurring loop (trigger → response → co
       .replace(/```\s*/g, "")
       .trim();
 
-    const parsed = JSON.parse(cleaned);
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error(
+        "[classifier] JSON parse failed. Raw text:",
+        rawText,
+        "Error:",
+        parseErr
+      );
+      return FALLBACK;
+    }
 
     const result: ClassificationResult = {
       isCheckpoint: Boolean(parsed.is_checkpoint),
@@ -76,7 +83,8 @@ If checkpoint: pick strongest layer. Recurring loop (trigger → response → co
     }
 
     return result;
-  } catch {
-    return fallback;
+  } catch (err) {
+    console.error("[classifier] API call failed:", err);
+    return FALLBACK;
   }
 }

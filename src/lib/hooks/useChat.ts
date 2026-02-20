@@ -50,8 +50,11 @@ export function useChat() {
   const [gateReached, setGateReached] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [checkpointError, setCheckpointError] = useState<string | null>(null);
 
   const initStarted = useRef(false);
+  const lastUserMessage = useRef<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -74,6 +77,7 @@ export function useChat() {
   }> {
     let fullText = "";
     let completeEvent: MessageCompleteEvent | null = null;
+    let sseError: string | null = null;
 
     // Add placeholder assistant message
     const placeholderIdx = { current: -1 };
@@ -103,10 +107,26 @@ export function useChat() {
       onMessageComplete: (data) => {
         completeEvent = data;
       },
+      onError: (error) => {
+        sseError = error;
+      },
     });
 
     setIsStreaming(false);
     setCurrentStreamText("");
+
+    // If SSE emitted an error, remove the placeholder and surface it
+    if (sseError) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        const idx = placeholderIdx.current;
+        if (idx >= 0 && updated[idx] && !updated[idx].content) {
+          updated.splice(idx, 1);
+        }
+        return updated;
+      });
+      setErrorMessage(sseError);
+    }
 
     return { fullText, completeEvent };
   }
@@ -300,6 +320,10 @@ export function useChat() {
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading || isStreaming) return;
 
+    // Clear previous error and track for retry
+    setErrorMessage(null);
+    lastUserMessage.current = text;
+
     // Optimistically add user message
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setIsLoading(true);
@@ -311,7 +335,15 @@ export function useChat() {
         body: JSON.stringify({ message: text, conversationId }),
       });
 
-      if (!res.ok) return;
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        setErrorMessage("Something went wrong. Try again.");
+        return;
+      }
 
       // Track where the placeholder will be inserted
       // (messages length after adding user msg = current + 1, placeholder goes at current + 1)
@@ -320,16 +352,31 @@ export function useChat() {
       const { fullText, completeEvent } = await streamFromResponse(res);
       finalizeMessage(fullText, completeEvent, msgCountBeforeStream);
     } catch {
-      // Failed to send
+      setErrorMessage("Connection lost. Try again.");
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function retryLastMessage() {
+    if (!lastUserMessage.current) return;
+    // Remove the last user message (it will be re-added by sendMessage)
+    setMessages((prev) => {
+      const lastIdx = prev.length - 1;
+      if (lastIdx >= 0 && prev[lastIdx].role === "user") {
+        return prev.slice(0, lastIdx);
+      }
+      return prev;
+    });
+    setErrorMessage(null);
+    sendMessage(lastUserMessage.current);
   }
 
   async function confirmCheckpoint(action: "confirmed" | "rejected" | "refined") {
     if (!activeCheckpoint) return;
 
     setIsLoading(true);
+    setCheckpointError(null);
 
     try {
       const res = await fetch("/api/checkpoint/confirm", {
@@ -342,7 +389,15 @@ export function useChat() {
         }),
       });
 
-      if (!res.ok) return;
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        setCheckpointError("Something went wrong saving that. Try again.");
+        return;
+      }
 
       if (action === "confirmed") {
         // Add to confirmed components locally
@@ -369,7 +424,7 @@ export function useChat() {
       // Refresh manual from server
       await loadManual();
     } catch {
-      // Failed to confirm
+      setCheckpointError("Something went wrong saving that. Try again.");
     } finally {
       setIsLoading(false);
     }
@@ -457,7 +512,10 @@ export function useChat() {
     gateReached,
     initialized,
     displayName,
+    errorMessage,
+    checkpointError,
     sendMessage,
+    retryLastMessage,
     confirmCheckpoint,
     loadConversation,
     startNewConversation,

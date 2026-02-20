@@ -57,6 +57,8 @@ interface ChatPaneProps {
   onPromptSelect?: (text: string) => void;
   showPromptCards?: boolean;
   onHistoryToggle?: () => void;
+  errorMessage?: string | null;
+  onRetry?: () => void;
 }
 
 export default function ChatPane({
@@ -68,6 +70,8 @@ export default function ChatPane({
   onPromptSelect,
   showPromptCards,
   onHistoryToggle,
+  errorMessage,
+  onRetry,
 }: ChatPaneProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -224,6 +228,53 @@ export default function ChatPane({
                 </div>
               </div>
             )}
+
+          {errorMessage && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "12px 0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  {errorMessage}
+                </span>
+                {onRetry && (
+                  <button
+                    onClick={onRetry}
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--color-accent)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                    }}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>

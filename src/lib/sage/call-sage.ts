@@ -1,11 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 interface CallSageOptions {
   conversationId: string;
@@ -22,6 +18,15 @@ export function callSage({
   const convId = conversationId;
 
   const encoder = new TextEncoder();
+
+  function emitError(controller: ReadableStreamDefaultController, msg: string) {
+    controller.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({ type: "error", message: msg })}\n\n`
+      )
+    );
+    controller.close();
+  }
 
   return new ReadableStream({
     async start(controller) {
@@ -40,12 +45,7 @@ export function callSage({
             .single();
 
           if (msgError || !savedMsg) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "error", error: "Failed to save message" })}\n\n`
-              )
-            );
-            controller.close();
+            emitError(controller, "Failed to save message. Try again.");
             return;
           }
           savedUserMessageId = savedMsg.id;
@@ -138,29 +138,59 @@ export function callSage({
           calibrationRatings
         );
 
-        // 7. Stream Anthropic response
+        // 7. Stream Anthropic response (60s timeout)
         let fullText = "";
 
-        const stream = anthropic.messages.stream({
+        const rawStream = await anthropicStream({
           model: "claude-sonnet-4-6",
           max_tokens: 2048,
           system: systemPrompt,
           messages,
         });
 
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            const text = event.delta.text;
-            fullText += text;
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "text_delta", text })}\n\n`
-              )
-            );
+        const reader = rawStream.getReader();
+        const decoder = new TextDecoder();
+        let streamBuffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          streamBuffer += decoder.decode(value, { stream: true });
+          const lines = streamBuffer.split("\n");
+          streamBuffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6);
+            if (data === "[DONE]") continue;
+
+            try {
+              const event = JSON.parse(data);
+              if (
+                event.type === "content_block_delta" &&
+                event.delta?.type === "text_delta"
+              ) {
+                const text = event.delta.text;
+                fullText += text;
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "text_delta", text })}\n\n`
+                  )
+                );
+              }
+            } catch {
+              // Skip malformed SSE lines
+            }
           }
+        }
+
+        if (!fullText) {
+          emitError(
+            controller,
+            "Sage lost the thread. Try sending that again."
+          );
+          return;
         }
 
         // 8. Save Sage's response
@@ -243,15 +273,13 @@ export function callSage({
 
         controller.close();
       } catch (err) {
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "error",
-              error: err instanceof Error ? err.message : "Unknown error",
-            })}\n\n`
-          )
-        );
-        controller.close();
+        const isTimeout =
+          err instanceof Error && err.name === "AbortError";
+        const msg = isTimeout
+          ? "Sage took too long to respond. Try again."
+          : "Sage lost the thread. Try sending that again.";
+        console.error("[callSage] Error:", err);
+        emitError(controller, msg);
       }
     },
   });

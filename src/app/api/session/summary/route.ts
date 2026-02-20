@@ -1,12 +1,8 @@
 export const runtime = "edge";
 
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropicFetch } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -55,23 +51,25 @@ export async function POST(request: Request) {
     })
     .join("\n\n");
 
-  // Generate summary via Haiku
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    system:
-      "Summarize this conversation between a user and Sage (an AI building behavioral models). Focus on: topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into Sage's context next session.",
-    messages: [{ role: "user", content: transcript }],
-  });
+  try {
+    const response = await anthropicFetch({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      system:
+        "Summarize this conversation between a user and Sage (an AI building behavioral models). Focus on: topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into Sage's context next session.",
+      messages: [{ role: "user", content: transcript }],
+    });
 
-  const summary =
-    response.content[0].type === "text" ? response.content[0].text : "";
+    const summary =
+      response.content[0].type === "text" ? response.content[0].text : "";
 
-  // Save to conversation
-  await admin
-    .from("conversations")
-    .update({ summary })
-    .eq("id", conversationId);
+    await admin
+      .from("conversations")
+      .update({ summary })
+      .eq("id", conversationId);
 
-  return Response.json({ summary });
+    return Response.json({ summary });
+  } catch {
+    return Response.json({ error: "Failed to generate summary" }, { status: 500 });
+  }
 }
