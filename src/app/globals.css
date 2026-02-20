@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg-primary: #F5F0E8;
+  --color-bg-secondary: #EDE8DF;
+  --color-bg-input: #FAF7F2;
+  --color-text-primary: #2C2C2C;
+  --color-text-secondary: #8C8478;
+  --color-text-muted: #B5AFA6;
+  --color-border: #E5DFD5;
+  --color-accent: #5C6B5E;
+  --color-accent-hover: #4A5C4F;
+  --color-checkpoint-bg: rgba(201, 149, 90, 0.08);
+  --color-error: #B5756A;
+}
+
 body {
   margin: 0;
 }
