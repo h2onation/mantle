@@ -221,15 +221,14 @@ export function useChat() {
     }
 
     // Get display name
+    const fallbackName = session.user.email?.split("@")[0] || "User";
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name")
       .eq("id", session.user.id)
       .single();
 
-    setDisplayName(
-      profile?.display_name || session.user.email?.split("@")[0] || "User"
-    );
+    setDisplayName(profile?.display_name || fallbackName);
 
     // Check for existing conversations
     const { data: conversations } = await supabase

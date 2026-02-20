@@ -72,38 +72,40 @@ export async function POST(request: Request) {
     // Normalize name
     const normalizedName = name ? name.toLowerCase().trim() : null;
 
-    // Upsert into manual_components
-    if (type === "component") {
-      await admin.from("manual_components").upsert(
-        {
-          user_id: user.id,
-          layer,
-          type: "component",
-          name: normalizedName,
+    // Save to manual_components (select-then-insert/update for partial indexes)
+    const componentType = type === "component" ? "component" : "pattern";
+
+    let existingQuery = admin
+      .from("manual_components")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("layer", layer)
+      .eq("type", componentType);
+
+    if (componentType === "pattern") {
+      existingQuery = existingQuery.eq("name", normalizedName);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (existing) {
+      await admin
+        .from("manual_components")
+        .update({
           content: msg.content,
           source_message_id: messageId,
-        },
-        {
-          onConflict: "user_id,layer",
-          ignoreDuplicates: false,
-        }
-      );
+          name: normalizedName,
+        })
+        .eq("id", existing.id);
     } else {
-      // Pattern — upsert on user_id, layer, name
-      await admin.from("manual_components").upsert(
-        {
-          user_id: user.id,
-          layer,
-          type: "pattern",
-          name: normalizedName,
-          content: msg.content,
-          source_message_id: messageId,
-        },
-        {
-          onConflict: "user_id,layer,name",
-          ignoreDuplicates: false,
-        }
-      );
+      await admin.from("manual_components").insert({
+        user_id: user.id,
+        layer,
+        type: componentType,
+        name: normalizedName,
+        content: msg.content,
+        source_message_id: messageId,
+      });
     }
 
     systemContent = "[User confirmed the checkpoint]";
