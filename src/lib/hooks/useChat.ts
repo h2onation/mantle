@@ -245,7 +245,7 @@ export function useChat() {
       // Load messages
       const { data: dbMessages } = await supabase
         .from("messages")
-        .select("id, role, content, is_checkpoint, checkpoint_meta")
+        .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
         .eq("conversation_id", convId)
         .order("created_at", { ascending: true });
 
@@ -262,12 +262,27 @@ export function useChat() {
         setMessages(chatMessages);
       }
 
-      // Load manual
+      // Load manual components (determines returning user status)
       await loadManual();
 
       // If conversation exists but has no messages, trigger Sage's opener
-      if (!dbMessages || dbMessages.filter((m) => m.role !== "system").length === 0) {
+      const nonSystemMessages = dbMessages?.filter((m) => m.role !== "system") || [];
+      if (nonSystemMessages.length === 0) {
         await triggerSageOpener(convId);
+      } else {
+        // Check if last message is older than 30 minutes — refresh summary if so
+        const lastMsg = dbMessages![dbMessages!.length - 1];
+        const lastMsgTime = new Date(lastMsg.created_at).getTime();
+        const thirtyMinutes = 30 * 60 * 1000;
+
+        if (Date.now() - lastMsgTime > thirtyMinutes) {
+          // Fire and forget — don't block initialization
+          fetch("/api/session/summary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ conversationId: convId }),
+          }).catch(() => {});
+        }
       }
     } else {
       // Brand new user — trigger Sage's opener via SSE
@@ -360,6 +375,77 @@ export function useChat() {
     }
   }
 
+  async function loadConversation(convId: string) {
+    setIsLoading(true);
+    setActiveCheckpoint(null);
+
+    try {
+      setConversationId(convId);
+
+      const { data: dbMessages } = await supabase
+        .from("messages")
+        .select("id, role, content, is_checkpoint, checkpoint_meta")
+        .eq("conversation_id", convId)
+        .order("created_at", { ascending: true });
+
+      if (dbMessages) {
+        const chatMessages: ChatMessage[] = dbMessages
+          .filter((m) => m.role !== "system")
+          .map((m) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.is_checkpoint ? CHECKPOINT_REDIRECT : m.content,
+            isCheckpoint: m.is_checkpoint || false,
+            checkpointMeta: m.checkpoint_meta || null,
+          }));
+        setMessages(chatMessages);
+      } else {
+        setMessages([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function startNewConversation() {
+    setIsLoading(true);
+    setActiveCheckpoint(null);
+    setMessages([]);
+    setConversationId(null);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: null, conversationId: null }),
+      });
+
+      if (res.ok) {
+        const { fullText, completeEvent } = await streamFromResponse(res);
+
+        if (completeEvent) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            if (lastIdx >= 0) {
+              updated[lastIdx] = {
+                ...updated[lastIdx],
+                id: completeEvent!.messageId,
+                content: fullText,
+              };
+            }
+            return updated;
+          });
+          setConversationId(completeEvent.conversationId);
+        }
+      }
+    } catch {
+      // Failed to create
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return {
     messages,
     conversationId,
@@ -373,5 +459,8 @@ export function useChat() {
     displayName,
     sendMessage,
     confirmCheckpoint,
+    loadConversation,
+    startNewConversation,
+    supabase,
   };
 }

@@ -6,10 +6,12 @@ import AppLayout from "@/components/layout/AppLayout";
 import LeftNav from "@/components/layout/LeftNav";
 import ChatPane from "@/components/layout/ChatPane";
 import ContextPane from "@/components/context/ContextPane";
+import ConversationHistory from "@/components/chat/ConversationHistory";
 
 export default function MainApp() {
   const {
     messages,
+    conversationId,
     isLoading,
     isStreaming,
     activeCheckpoint,
@@ -18,9 +20,13 @@ export default function MainApp() {
     displayName,
     sendMessage,
     confirmCheckpoint,
+    loadConversation,
+    startNewConversation,
+    supabase,
   } = useChat();
 
   const [input, setInput] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   function handleSend() {
     const text = input.trim();
@@ -74,34 +80,45 @@ export default function MainApp() {
   }
 
   return (
-    <AppLayout
-      leftNav={
-        <LeftNav
-          displayName={displayName}
-          hasManualComponents={confirmedComponents.length > 0}
-        />
-      }
-      chatPane={
-        <ChatPane
-          messages={messages}
-          isLoading={isLoading}
-          input={input}
-          onInputChange={setInput}
-          onSend={handleSend}
-          onPromptSelect={handlePromptSelect}
-          showPromptCards={showPromptCards}
-        />
-      }
-      contextPane={
-        <ContextPane
-          userInitials={userInitials}
-          manualComponents={confirmedComponents}
-          activeCheckpoint={activeCheckpoint}
-          onCheckpointConfirm={() => confirmCheckpoint("confirmed")}
-          onCheckpointRefine={() => confirmCheckpoint("refined")}
-          onCheckpointReject={() => confirmCheckpoint("rejected")}
-        />
-      }
-    />
+    <>
+      <ConversationHistory
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onSelect={(convId) => loadConversation(convId)}
+        onNewConversation={() => startNewConversation()}
+        activeConversationId={conversationId}
+        supabase={supabase}
+      />
+      <AppLayout
+        leftNav={
+          <LeftNav
+            displayName={displayName}
+            hasManualComponents={confirmedComponents.length > 0}
+          />
+        }
+        chatPane={
+          <ChatPane
+            messages={messages}
+            isLoading={isLoading}
+            input={input}
+            onInputChange={setInput}
+            onSend={handleSend}
+            onPromptSelect={handlePromptSelect}
+            showPromptCards={showPromptCards}
+            onHistoryToggle={() => setHistoryOpen(true)}
+          />
+        }
+        contextPane={
+          <ContextPane
+            userInitials={userInitials}
+            manualComponents={confirmedComponents}
+            activeCheckpoint={activeCheckpoint}
+            onCheckpointConfirm={() => confirmCheckpoint("confirmed")}
+            onCheckpointRefine={() => confirmCheckpoint("refined")}
+            onCheckpointReject={() => confirmCheckpoint("rejected")}
+          />
+        }
+      />
+    </>
   );
 }

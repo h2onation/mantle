@@ -1,6 +1,7 @@
 "use client";
 
 import CheckpointCard from "./CheckpointCard";
+import ManualView from "./ManualView";
 
 interface ManualComponent {
   id: string;
@@ -26,12 +27,6 @@ interface ContextPaneProps {
   onCheckpointRefine?: () => void;
   onCheckpointReject?: () => void;
 }
-
-const layerNames: Record<number, string> = {
-  1: "What Drives You",
-  2: "How You React",
-  3: "How You Relate",
-};
 
 export default function ContextPane({
   userInitials,
@@ -175,62 +170,7 @@ export default function ContextPane({
             </p>
           </div>
         ) : (
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            {manualComponents.map((comp) => (
-              <div key={comp.id}>
-                <p
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 600,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: "var(--color-text-muted)",
-                    margin: "0 0 6px 0",
-                  }}
-                >
-                  Layer {comp.layer}: {layerNames[comp.layer]}
-                  {comp.name && (
-                    <span
-                      style={{
-                        textTransform: "none",
-                        fontWeight: 500,
-                        letterSpacing: "normal",
-                      }}
-                    >
-                      {" "}
-                      — {comp.name}
-                    </span>
-                  )}
-                </p>
-                <div
-                  style={{
-                    borderLeft: "3px solid rgba(92, 107, 94, 0.4)",
-                    paddingLeft: "16px",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "var(--font-serif)",
-                      fontWeight: 400,
-                      fontSize: "14px",
-                      lineHeight: 1.6,
-                      color: "var(--color-text-secondary)",
-                      margin: 0,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 4,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {comp.content}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ManualView components={manualComponents} />
         )}
       </div>
     </div>

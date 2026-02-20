@@ -56,6 +56,7 @@ interface ChatPaneProps {
   onSend: () => void;
   onPromptSelect?: (text: string) => void;
   showPromptCards?: boolean;
+  onHistoryToggle?: () => void;
 }
 
 export default function ChatPane({
@@ -66,6 +67,7 @@ export default function ChatPane({
   onSend,
   onPromptSelect,
   showPromptCards,
+  onHistoryToggle,
 }: ChatPaneProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -107,6 +109,9 @@ export default function ChatPane({
         style={{
           padding: "12px 24px",
           borderBottom: "1px solid var(--color-border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
         <span
@@ -121,6 +126,36 @@ export default function ChatPane({
         >
           Sage
         </span>
+        {onHistoryToggle && (
+          <button
+            onClick={onHistoryToggle}
+            title="Conversation history"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "4px",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-text-muted)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Messages */}
