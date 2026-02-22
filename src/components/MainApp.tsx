@@ -14,7 +14,6 @@ export default function MainApp() {
     messages,
     conversationId,
     isLoading,
-    isStreaming,
     activeCheckpoint,
     confirmedComponents,
     initialized,
@@ -92,19 +91,6 @@ export default function MainApp() {
     setInput("");
     sendMessage(text);
   }
-
-  function handlePromptSelect(text: string) {
-    sendMessage(text);
-  }
-
-  // PromptCards timing: show after Sage's mirror message (Turn 3)
-  // assistant count >= 2 AND user count === 1
-  const assistantCount = messages.filter(
-    (m) => m.role === "assistant"
-  ).length;
-  const userCount = messages.filter((m) => m.role === "user").length;
-  const showPromptCards =
-    assistantCount >= 2 && userCount === 1 && !isLoading && !isStreaming;
 
   const userInitials = displayName
     .split(" ")
@@ -194,8 +180,6 @@ export default function MainApp() {
             input={input}
             onInputChange={setInput}
             onSend={handleSend}
-            onPromptSelect={handlePromptSelect}
-            showPromptCards={showPromptCards}
             onHistoryToggle={() => setHistoryOpen(true)}
             errorMessage={errorMessage}
             onRetry={retryLastMessage}

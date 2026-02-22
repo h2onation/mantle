@@ -85,19 +85,12 @@ export function callSage({
           }
         }
 
-        // 3. Apply sliding window: keep first 4 + last 46 if over 50
+        // 3. Apply sliding window: keep first 2 + last 48 if over 50
         let messages = history;
         if (messages.length > 50) {
-          const first4 = messages.slice(0, 4);
-          const last46 = messages.slice(-46);
-          messages = [...first4, ...last46];
-        }
-
-        // If no messages (Sage speaks first), send synthetic opener
-        if (messages.length === 0) {
-          messages = [
-            { role: "user", content: "[New session — deliver entry sequence]" },
-          ];
+          const first2 = messages.slice(0, 2);
+          const last48 = messages.slice(-48);
+          messages = [...first2, ...last48];
         }
 
         // 4. Load manual components (user-level)

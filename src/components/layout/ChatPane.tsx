@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import React from "react";
-import PromptCards from "@/components/chat/PromptCards";
+
 
 interface Message {
   id?: string;
@@ -54,8 +54,6 @@ interface ChatPaneProps {
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
-  onPromptSelect?: (text: string) => void;
-  showPromptCards?: boolean;
   onHistoryToggle?: () => void;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -68,8 +66,6 @@ export default function ChatPane({
   input,
   onInputChange,
   onSend,
-  onPromptSelect,
-  showPromptCards,
   onHistoryToggle,
   errorMessage,
   onRetry,
@@ -210,10 +206,6 @@ export default function ChatPane({
               </div>
             );
           })}
-
-          {showPromptCards && onPromptSelect && (
-            <PromptCards onSelect={onPromptSelect} />
-          )}
 
           {isLoading &&
             messages.length > 0 &&

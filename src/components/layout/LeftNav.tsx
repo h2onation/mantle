@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAudio } from "@/components/providers/AudioProvider";
 
 interface LeftNavProps {
   displayName: string;
@@ -18,6 +19,7 @@ export default function LeftNav({
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { isPlaying, currentTrack, pause, resume } = useAudio();
 
   const initials = displayName
     .split(" ")
@@ -228,6 +230,48 @@ export default function LeftNav({
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
+      {/* Sound toggle */}
+      {currentTrack !== null && (
+        <button
+          onClick={() => (isPlaying ? pause() : resume())}
+          title={isPlaying ? "Sound off" : "Sound on"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+            marginBottom: "12px",
+            padding: 0,
+            border: "none",
+            backgroundColor: "transparent",
+            cursor: "pointer",
+            borderRadius: "6px",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={isPlaying ? "var(--color-accent)" : "var(--color-text-muted)"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            {isPlaying ? (
+              <>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </>
+            ) : (
+              <line x1="23" y1="9" x2="17" y2="15" />
+            )}
+          </svg>
+        </button>
+      )}
+
       {/* SETTINGS section */}
       <div>
         <p
@@ -381,31 +425,39 @@ export default function LeftNav({
               >
                 Log Out
               </button>
+              {typeof window !== "undefined" &&
+                window.location.hostname === "localhost" && (
+                  <button
+                    onClick={async () => {
+                      await fetch("/api/dev-reset", { method: "POST" });
+                      localStorage.clear();
+                      window.location.reload();
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13px",
+                      color: "#B5756A",
+                      textAlign: "left",
+                      borderRadius: "6px",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-input)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
+                  >
+                    Reset
+                  </button>
+                )}
             </div>
           )}
-
-          {typeof window !== "undefined" &&
-            window.location.hostname === "localhost" && (
-              <button
-                onClick={async () => {
-                  await fetch("/api/dev-reset", { method: "POST" });
-                  localStorage.clear();
-                  window.location.reload();
-                }}
-                style={{
-                  marginTop: "8px",
-                  padding: 0,
-                  border: "none",
-                  backgroundColor: "transparent",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "11px",
-                  color: "#B5756A",
-                }}
-              >
-                Reset
-              </button>
-            )}
         </div>
       </div>
     </div>
