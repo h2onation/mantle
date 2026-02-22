@@ -58,6 +58,8 @@ interface ChatPaneProps {
   errorMessage?: string | null;
   onRetry?: () => void;
   onInputFocus?: () => void;
+  autoplayBlocked?: boolean;
+  onResumeAudio?: () => void;
 }
 
 export default function ChatPane({
@@ -70,6 +72,8 @@ export default function ChatPane({
   errorMessage,
   onRetry,
   onInputFocus,
+  autoplayBlocked,
+  onResumeAudio,
 }: ChatPaneProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -168,6 +172,47 @@ export default function ChatPane({
           padding: "24px 24px",
         }}
       >
+        {autoplayBlocked && onResumeAudio && (
+          <button
+            onClick={onResumeAudio}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              margin: "0 0 16px 0",
+              padding: "8px 14px",
+              backgroundColor: "rgba(92, 107, 94, 0.06)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-text-muted)",
+              transition: "background-color 0.15s ease",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(92, 107, 94, 0.1)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(92, 107, 94, 0.06)")
+            }
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-text-muted)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+            </svg>
+            Resume music?
+          </button>
+        )}
         <div
           style={{
             display: "flex",

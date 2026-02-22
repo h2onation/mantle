@@ -11,15 +11,23 @@ interface LeftNavProps {
   onManualClick?: () => void;
 }
 
+const SOUND_OPTIONS: { label: string; value: string | null }[] = [
+  { label: "Water", value: "water" },
+  { label: "Piano", value: "piano" },
+  { label: "Birdsong", value: "birds" },
+  { label: "Off", value: null },
+];
+
 export default function LeftNav({
   displayName,
   hasManualComponents,
   onManualClick,
 }: LeftNavProps) {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSoundMenu, setShowSoundMenu] = useState(false);
   const router = useRouter();
   const supabase = createClient();
-  const { isPlaying, currentTrack, pause, resume } = useAudio();
+  const { isPlaying, currentTrack, play, stop } = useAudio();
 
   const initials = displayName
     .split(" ")
@@ -32,6 +40,15 @@ export default function LeftNav({
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  async function handleSoundSelect(value: string | null) {
+    if (value === null) {
+      await stop();
+    } else {
+      await play(value);
+    }
+    setShowSoundMenu(false);
   }
 
   return (
@@ -230,25 +247,24 @@ export default function LeftNav({
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Sound toggle */}
-      {currentTrack !== null && (
+      {/* Sound menu */}
+      <div style={{ position: "relative", marginBottom: "12px" }}>
         <button
-          onClick={() => (isPlaying ? pause() : resume())}
-          title={isPlaying ? "Sound off" : "Sound on"}
+          onClick={() => setShowSoundMenu(!showSoundMenu)}
+          title="Background music"
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            width: "32px",
-            height: "32px",
-            marginBottom: "12px",
-            padding: 0,
+            gap: "8px",
+            padding: "8px 10px",
             border: "none",
             backgroundColor: "transparent",
             cursor: "pointer",
-            borderRadius: "6px",
+            borderRadius: "8px",
+            width: "100%",
           }}
         >
+          {/* Headphones icon */}
           <svg
             width="16"
             height="16"
@@ -259,18 +275,101 @@ export default function LeftNav({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            {isPlaying ? (
-              <>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-              </>
-            ) : (
-              <line x1="23" y1="9" x2="17" y2="15" />
-            )}
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
           </svg>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 500,
+              fontSize: "14px",
+              color: isPlaying ? "var(--color-accent)" : "var(--color-text-muted)",
+            }}
+          >
+            {isPlaying && currentTrack
+              ? SOUND_OPTIONS.find((o) => o.value === currentTrack)?.label || "Music"
+              : "Music"}
+          </span>
         </button>
-      )}
+
+        {showSoundMenu && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "100%",
+              left: 0,
+              marginBottom: "4px",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+              padding: "4px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              minWidth: "140px",
+              zIndex: 10,
+            }}
+          >
+            {SOUND_OPTIONS.map((option) => {
+              const isActive =
+                option.value === null
+                  ? !isPlaying && currentTrack === null
+                  : isPlaying && currentTrack === option.value;
+
+              return (
+                <button
+                  key={option.label}
+                  onClick={() => handleSoundSelect(option.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "none",
+                    backgroundColor: isActive
+                      ? "rgba(92, 107, 94, 0.08)"
+                      : "transparent",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive
+                      ? "var(--color-accent)"
+                      : "var(--color-text-primary)",
+                    textAlign: "left",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive)
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-input)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isActive
+                      ? "rgba(92, 107, 94, 0.08)"
+                      : "transparent";
+                  }}
+                >
+                  {option.label}
+                  {isActive && (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--color-accent)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* SETTINGS section */}
       <div>

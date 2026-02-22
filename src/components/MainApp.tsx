@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@/lib/hooks/useChat";
+import { useAudio } from "@/components/providers/AudioProvider";
 import AppLayout from "@/components/layout/AppLayout";
 import LeftNav from "@/components/layout/LeftNav";
 import ChatPane from "@/components/layout/ChatPane";
@@ -29,6 +30,8 @@ export default function MainApp() {
     supabase,
   } = useChat();
 
+  const { autoplayBlocked, resumeAutoplay } = useAudio();
+
   const [input, setInput] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -55,7 +58,11 @@ export default function MainApp() {
 
   const handleOnboardingComplete = useCallback(
     (focusText: string, selectedSound: string | null) => {
-      localStorage.setItem("mantle_session_sound", selectedSound || "");
+      // Sound is already saved to localStorage by AudioProvider.play()
+      // If no sound selected, clear any existing preference
+      if (!selectedSound) {
+        localStorage.removeItem("mantle_session_sound");
+      }
       localStorage.setItem("mantle_onboarding_completed", "true");
 
       setShowOnboarding(false);
@@ -184,6 +191,8 @@ export default function MainApp() {
             errorMessage={errorMessage}
             onRetry={retryLastMessage}
             onInputFocus={handleInputFocus}
+            autoplayBlocked={autoplayBlocked}
+            onResumeAudio={resumeAutoplay}
           />
         }
         contextPane={

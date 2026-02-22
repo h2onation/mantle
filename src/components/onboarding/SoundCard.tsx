@@ -50,7 +50,7 @@ export default function SoundCard({ onSelect }: SoundCardProps) {
           margin: "0 0 24px 0",
         }}
       >
-        Set your environment.
+        Choose background music for your session.
       </p>
 
       <div
