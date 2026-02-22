@@ -524,8 +524,7 @@ export default function LeftNav({
               >
                 Log Out
               </button>
-              {typeof window !== "undefined" &&
-                window.location.hostname === "localhost" && (
+              {typeof window !== "undefined" && (
                   <button
                     onClick={async () => {
                       await fetch("/api/dev-reset", { method: "POST" });
