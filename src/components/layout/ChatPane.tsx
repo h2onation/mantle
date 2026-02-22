@@ -59,6 +59,7 @@ interface ChatPaneProps {
   onHistoryToggle?: () => void;
   errorMessage?: string | null;
   onRetry?: () => void;
+  onInputFocus?: () => void;
 }
 
 export default function ChatPane({
@@ -72,6 +73,7 @@ export default function ChatPane({
   onHistoryToggle,
   errorMessage,
   onRetry,
+  onInputFocus,
 }: ChatPaneProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -303,6 +305,7 @@ export default function ChatPane({
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
+            onFocus={onInputFocus}
             placeholder="Begin anywhere. You don't need to have it fully formed."
             rows={1}
             style={{

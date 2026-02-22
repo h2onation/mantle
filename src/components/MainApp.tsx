@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import AppLayout from "@/components/layout/AppLayout";
 import LeftNav from "@/components/layout/LeftNav";
 import ChatPane from "@/components/layout/ChatPane";
 import ContextPane from "@/components/context/ContextPane";
 import ConversationHistory from "@/components/chat/ConversationHistory";
+import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 
 export default function MainApp() {
   const {
@@ -17,6 +18,7 @@ export default function MainApp() {
     activeCheckpoint,
     confirmedComponents,
     initialized,
+    isNewUser,
     displayName,
     errorMessage,
     checkpointError,
@@ -30,6 +32,59 @@ export default function MainApp() {
 
   const [input, setInput] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isBlurred, setIsBlurred] = useState(false);
+  const [skipWelcome, setSkipWelcome] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const dismissReopenRef = useRef(false);
+
+  // Determine onboarding state once useChat signals isNewUser
+  useEffect(() => {
+    if (!initialized || !isNewUser) return;
+
+    const completed = localStorage.getItem("mantle_onboarding_completed");
+    if (completed === "true") return;
+
+    const wasDismissed = localStorage.getItem("mantle_onboarding_dismissed");
+    if (wasDismissed === "true") {
+      setSkipWelcome(true);
+    }
+
+    setShowOnboarding(true);
+    setIsBlurred(true);
+  }, [initialized, isNewUser]);
+
+  const handleOnboardingComplete = useCallback(
+    (focusText: string, selectedSound: string | null) => {
+      localStorage.setItem("mantle_session_sound", selectedSound || "");
+      localStorage.setItem("mantle_onboarding_completed", "true");
+
+      setShowOnboarding(false);
+      setIsBlurred(false);
+
+      // Send the user's focus text as their first message
+      sendMessage(focusText);
+    },
+    [sendMessage]
+  );
+
+  const handleOnboardingDismiss = useCallback(() => {
+    localStorage.setItem("mantle_onboarding_dismissed", "true");
+    setShowOnboarding(false);
+    setIsBlurred(false);
+    setDismissed(true);
+  }, []);
+
+  // After dismissal, re-open onboarding (at sound card) on first input interaction
+  const handleInputFocus = useCallback(() => {
+    if (dismissed && !dismissReopenRef.current) {
+      dismissReopenRef.current = true;
+      setSkipWelcome(true);
+      setShowOnboarding(true);
+      setIsBlurred(true);
+      setDismissed(false);
+    }
+  }, [dismissed]);
 
   function handleSend() {
     const text = input.trim();
@@ -125,6 +180,7 @@ export default function MainApp() {
         supabase={supabase}
       />
       <AppLayout
+        isBlurred={isBlurred}
         leftNav={
           <LeftNav
             displayName={displayName}
@@ -143,6 +199,7 @@ export default function MainApp() {
             onHistoryToggle={() => setHistoryOpen(true)}
             errorMessage={errorMessage}
             onRetry={retryLastMessage}
+            onInputFocus={handleInputFocus}
           />
         }
         contextPane={
@@ -157,6 +214,13 @@ export default function MainApp() {
           />
         }
       />
+      {showOnboarding && (
+        <OnboardingOverlay
+          onComplete={handleOnboardingComplete}
+          onDismiss={handleOnboardingDismiss}
+          skipWelcome={skipWelcome}
+        />
+      )}
     </>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, DM_Sans } from "next/font/google";
+import { AudioProvider } from "@/components/providers/AudioProvider";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable}`}>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
-        {children}
+        <AudioProvider>{children}</AudioProvider>
       </body>
     </html>
   );

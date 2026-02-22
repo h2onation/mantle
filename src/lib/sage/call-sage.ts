@@ -32,23 +32,19 @@ export function callSage({
     async start(controller) {
       try {
         // 1. Save user message if present
-        let savedUserMessageId: string | null = null;
         if (message !== null) {
-          const { data: savedMsg, error: msgError } = await admin
+          const { error: msgError } = await admin
             .from("messages")
             .insert({
               conversation_id: convId,
               role: "user",
               content: message,
-            })
-            .select("id")
-            .single();
+            });
 
-          if (msgError || !savedMsg) {
+          if (msgError) {
             emitError(controller, "Failed to save message. Try again.");
             return;
           }
-          savedUserMessageId = savedMsg.id;
         }
 
         // 2. Load conversation history
@@ -115,18 +111,16 @@ export function callSage({
           (manualComponents && manualComponents.length > 0) || false;
 
         let sessionSummary: string | null = null;
-        let calibrationRatings: string | null = null;
 
         if (isReturningUser) {
           const { data: conv } = await admin
             .from("conversations")
-            .select("summary, calibration_ratings")
+            .select("summary")
             .eq("id", convId)
             .single();
 
           if (conv) {
             sessionSummary = conv.summary;
-            calibrationRatings = conv.calibration_ratings;
           }
         }
 
@@ -134,8 +128,7 @@ export function callSage({
         const systemPrompt = buildSystemPrompt(
           manualComponents || [],
           isReturningUser,
-          sessionSummary,
-          calibrationRatings
+          sessionSummary
         );
 
         // 7. Stream Anthropic response (60s timeout)
@@ -233,23 +226,7 @@ export function callSage({
           await admin.from("messages").update(updateData).eq("id", messageId);
         }
 
-        // 11. Check calibration ratings (user's first message)
-        if (savedUserMessageId) {
-          const { count } = await admin
-            .from("messages")
-            .select("id", { count: "exact", head: true })
-            .eq("conversation_id", convId)
-            .eq("role", "user");
-
-          if (count === 1) {
-            await admin
-              .from("conversations")
-              .update({ calibration_ratings: message })
-              .eq("id", convId);
-          }
-        }
-
-        // 12. Emit final event
+        // 11. Emit final event
         const checkpoint = classification.isCheckpoint
           ? {
               isCheckpoint: true,

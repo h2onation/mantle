@@ -50,6 +50,7 @@ export function useChat() {
   const [gateReached, setGateReached] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [isNewUser, setIsNewUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
 
@@ -308,9 +309,9 @@ export function useChat() {
         setInitialized(true);
       }
     } else {
-      // Brand new user — show chat UI immediately, let opener stream in live
+      // Brand new user — let MainApp decide whether to show onboarding
+      setIsNewUser(true);
       setInitialized(true);
-      await triggerSageOpener(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -513,6 +514,7 @@ export function useChat() {
     confirmedComponents,
     gateReached,
     initialized,
+    isNewUser,
     displayName,
     errorMessage,
     checkpointError,

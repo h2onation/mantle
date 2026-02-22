@@ -383,6 +383,29 @@ export default function LeftNav({
               </button>
             </div>
           )}
+
+          {typeof window !== "undefined" &&
+            window.location.hostname === "localhost" && (
+              <button
+                onClick={async () => {
+                  await fetch("/api/dev-reset", { method: "POST" });
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+                style={{
+                  marginTop: "8px",
+                  padding: 0,
+                  border: "none",
+                  backgroundColor: "transparent",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "11px",
+                  color: "#B5756A",
+                }}
+              >
+                Reset
+              </button>
+            )}
         </div>
       </div>
     </div>
