@@ -104,6 +104,7 @@ export function callSage({
           (manualComponents && manualComponents.length > 0) || false;
 
         let sessionSummary: string | null = null;
+        let sessionCount = 1;
 
         if (isReturningUser) {
           const { data: conv } = await admin
@@ -115,13 +116,22 @@ export function callSage({
           if (conv) {
             sessionSummary = conv.summary;
           }
+
+          // Count total conversations for this user
+          const { count } = await admin
+            .from("conversations")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId);
+
+          sessionCount = count || 1;
         }
 
         // 6. Build system prompt
         const systemPrompt = buildSystemPrompt(
           manualComponents || [],
           isReturningUser,
-          sessionSummary
+          sessionSummary,
+          sessionCount
         );
 
         // 7. Stream Anthropic response (60s timeout)

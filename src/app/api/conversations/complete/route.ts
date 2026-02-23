@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   // Verify conversation belongs to this user
   const { data: conv } = await admin
     .from("conversations")
-    .select("id, user_id")
+    .select("id, user_id, summary")
     .eq("id", conversationId)
     .single();
 
@@ -31,11 +31,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const summary = await generateSessionSummary(conversationId, admin);
+  // Mark as completed
+  await admin
+    .from("conversations")
+    .update({ status: "completed" })
+    .eq("id", conversationId);
 
-  if (summary === null) {
-    return Response.json({ error: "Failed to generate summary" }, { status: 500 });
+  // Generate summary if missing
+  if (!conv.summary) {
+    await generateSessionSummary(conversationId, admin);
   }
 
-  return Response.json({ summary });
+  return Response.json({ ok: true });
 }

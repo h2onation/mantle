@@ -8,7 +8,8 @@ interface ManualComponent {
 export function buildSystemPrompt(
   manualComponents: ManualComponent[],
   isReturningUser: boolean,
-  sessionSummary: string | null
+  sessionSummary: string | null,
+  sessionCount?: number
 ): string {
   let dynamicContext = "";
 
@@ -29,6 +30,9 @@ export function buildSystemPrompt(
 
   if (isReturningUser) {
     dynamicContext += "\nSESSION CONTEXT\n";
+    if (sessionCount && sessionCount > 1) {
+      dynamicContext += `This is session ${sessionCount} for this user.\n`;
+    }
     dynamicContext +=
       "The user is returning. They have been through at least one session before.\n";
     dynamicContext +=

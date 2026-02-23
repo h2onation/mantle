@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
+import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 
 interface ChatMessage {
   id?: string;
@@ -46,9 +47,13 @@ interface MobileSessionProps {
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
+  conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (action: "confirmed" | "rejected" | "refined") => void;
+  switchConversation: (id: string) => Promise<void>;
+  startNewSession: () => Promise<void>;
+  refreshConversations: () => Promise<void>;
   onInputFocus: () => void;
 }
 
@@ -99,6 +104,12 @@ function formatDaysSince(dateStr: string | null): string {
   return `${days} DAYS SINCE LAST SESSION`;
 }
 
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
 export default function MobileSession({
   messages,
   isLoading,
@@ -110,17 +121,24 @@ export default function MobileSession({
   activeCheckpoint,
   checkpointError,
   errorMessage,
+  conversations,
   sendMessage,
   retryLastMessage,
   confirmCheckpoint,
+  switchConversation,
+  startNewSession,
+  refreshConversations,
   onInputFocus,
 }: MobileSessionProps) {
   const [sessionActive, setSessionActive] = useState(false);
   const [input, setInput] = useState("");
+  const [newSessionInput, setNewSessionInput] = useState("");
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [newSessionFocused, setNewSessionFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const newSessionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-activate when streaming starts
   useEffect(() => {
@@ -206,23 +224,53 @@ export default function MobileSession({
     ? Math.max(...confirmedComponents.map((c) => c.layer))
     : 1;
 
+  // Older sessions (exclude the current/most recent conversation)
+  const olderSessions = conversations.slice(1);
+  const hasConversations = conversations.length > 0;
+  const hasHistory = !isNewUser && messages.length > 0;
+
+  async function handleNewSessionSend() {
+    const text = newSessionInput.trim();
+    if (!text) return;
+    setNewSessionInput("");
+    setNewSessionFocused(false);
+    if (newSessionTextareaRef.current) {
+      newSessionTextareaRef.current.style.height = "44px";
+    }
+    await startNewSession();
+    setSessionActive(true);
+    sendMessage(text);
+  }
+
+  function handleNewSessionKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleNewSessionSend();
+    }
+  }
+
+  async function handleSessionTap(convId: string) {
+    await switchConversation(convId);
+    setSessionActive(true);
+  }
+
+  async function handleReturnToIdle() {
+    setSessionActive(false);
+    await refreshConversations();
+  }
+
   // ─── IDLE STATE ───
   if (!sessionActive) {
-    const hasHistory = !isNewUser && messages.length > 0;
-    const placeholder = hasHistory ? "Continue where you left off_" : "Begin anywhere_";
-
     return (
       <div
         style={{
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
           position: "relative",
-          padding: "0 24px 16px",
         }}
       >
-        {/* Faint particles at top */}
+        {/* Faint particles */}
         <div
           style={{
             position: "absolute",
@@ -234,6 +282,7 @@ export default function MobileSession({
             backgroundColor: "var(--color-accent-glow)",
             opacity: 0.5,
             animation: "sagePulse 4s ease-in-out infinite",
+            pointerEvents: "none",
           }}
         />
         <div
@@ -247,20 +296,30 @@ export default function MobileSession({
             backgroundColor: "var(--color-accent-glow)",
             opacity: 0.3,
             animation: "sagePulse 5s ease-in-out infinite 1s",
+            pointerEvents: "none",
           }}
         />
 
         {/* Sound indicator */}
-        <div style={{ position: "absolute", top: "16px", right: "24px" }}>
+        <div style={{ position: "absolute", top: "16px", right: "24px", zIndex: 10 }}>
           <SoundIndicator onTap={() => setShowSoundMenu(!showSoundMenu)} />
           <MobileSoundSelector open={showSoundMenu} onClose={handleCloseSoundMenu} />
         </div>
 
-        {/* Content pushed to bottom */}
-        <div style={{ marginBottom: "12px" }}>
+        {/* Scrollable content area */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: hasConversations ? "flex-end" : "flex-end",
+            padding: "48px 24px 0",
+          }}
+        >
+          {/* Hero card: most recent session */}
           {hasHistory && (
-            <>
-              {/* Status line */}
+            <div style={{ marginBottom: "12px" }}>
               {lastSessionDate && (
                 <p
                   style={{
@@ -276,7 +335,6 @@ export default function MobileSession({
                 </p>
               )}
 
-              {/* Session summary */}
               <p
                 style={{
                   fontFamily: "var(--font-serif)",
@@ -290,82 +348,231 @@ export default function MobileSession({
                 {sessionSummary || "Ready when you are."}
               </p>
 
-              {/* Progress */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingBottom: "12px",
+                  borderBottom: "1px solid var(--color-accent-ghost)",
+                  margin: "0 0 8px 0",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    color: "var(--color-accent-dim)",
+                    letterSpacing: "1px",
+                    margin: 0,
+                  }}
+                >
+                  {componentCount} component{componentCount !== 1 ? "s" : ""} confirmed
+                  {" · "}Layer {activeLayer} active
+                </p>
+                <button
+                  onClick={() => setSessionActive(true)}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "8px",
+                    color: "var(--color-accent)",
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 0",
+                  }}
+                >
+                  CONTINUE
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state for brand new users */}
+          {!hasHistory && !hasConversations && (
+            <p
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "22px",
+                color: "var(--color-text)",
+                lineHeight: 1.5,
+                letterSpacing: "-0.3px",
+                margin: "0 0 24px 0",
+              }}
+            >
+              Ready when you are.
+            </p>
+          )}
+
+          {/* Older sessions */}
+          {olderSessions.length > 0 && (
+            <div style={{ marginTop: "16px" }}>
               <p
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
-                  color: "var(--color-accent-dim)",
-                  letterSpacing: "1px",
-                  margin: "0 0 24px 0",
-                  paddingBottom: "12px",
-                  borderBottom: "1px solid var(--color-accent-ghost)",
+                  fontSize: "8px",
+                  color: "var(--color-text-ghost)",
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  margin: "0 0 12px 0",
                 }}
               >
-                {componentCount} component{componentCount !== 1 ? "s" : ""} confirmed
-                {" · "}Layer {activeLayer} active
+                PREVIOUS SESSIONS
               </p>
-            </>
+              {olderSessions.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => handleSessionTap(conv.id)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    borderBottom: "1px solid var(--color-divider)",
+                    padding: "14px 0",
+                    cursor: "pointer",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontSize: "14px",
+                      color: "var(--color-text-dim)",
+                      lineHeight: 1.4,
+                      margin: "0 0 6px 0",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {conv.summary || "Untitled session"}
+                  </p>
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        color: "var(--color-text-ghost)",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {formatShortDate(conv.updated_at)}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        color: "var(--color-text-ghost)",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {conv.message_count} MESSAGE{conv.message_count !== 1 ? "S" : ""}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Input */}
+        {/* New session input — pinned at bottom */}
         <div
           style={{
+            padding: "12px 24px 16px",
             borderTop: "1px solid var(--color-divider)",
-            paddingTop: "12px",
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "8px",
           }}
         >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            rows={1}
+          {hasConversations && (
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "8px",
+                color: "var(--color-text-ghost)",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                margin: "0 0 8px 0",
+              }}
+            >
+              NEW SESSION
+            </p>
+          )}
+          <div
             style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              resize: "none",
-              backgroundColor: "transparent",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              lineHeight: "24px",
-              color: "var(--color-text)",
-              padding: "10px 0",
-              height: "44px",
-              maxHeight: focused ? "40vh" : "44px",
-              transition: "height 0.3s ease",
-              overflow: focused ? "auto" : "hidden",
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              border: `1px solid ${input.trim() ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
-              backgroundColor: "transparent",
-              cursor: !input.trim() || isLoading ? "default" : "pointer",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              marginBottom: "2px",
+              alignItems: "flex-end",
+              gap: "8px",
             }}
           >
-            <svg width="8" height="8" viewBox="0 0 10 10" fill={input.trim() ? "var(--color-accent)" : "var(--color-text-ghost)"}>
-              <polygon points="5,1 9,8 1,8" />
-            </svg>
-          </button>
+            <textarea
+              ref={hasConversations ? newSessionTextareaRef : textareaRef}
+              value={hasConversations ? newSessionInput : input}
+              onChange={hasConversations ? (e) => {
+                setNewSessionInput(e.target.value);
+                const el = e.target;
+                el.style.height = "120px";
+                const maxHeight = window.innerHeight * 0.4;
+                el.style.height = Math.max(120, Math.min(el.scrollHeight, maxHeight)) + "px";
+              } : handleInput}
+              onKeyDown={hasConversations ? handleNewSessionKeyDown : handleKeyDown}
+              onFocus={hasConversations ? () => {
+                setNewSessionFocused(true);
+                onInputFocus();
+                if (newSessionTextareaRef.current) {
+                  newSessionTextareaRef.current.style.height = "120px";
+                }
+              } : handleFocus}
+              onBlur={hasConversations ? () => {
+                if (!newSessionInput.trim()) {
+                  setNewSessionFocused(false);
+                  if (newSessionTextareaRef.current) {
+                    newSessionTextareaRef.current.style.height = "44px";
+                  }
+                }
+              } : handleBlur}
+              placeholder={hasConversations ? "Begin a new session_" : "Begin anywhere_"}
+              rows={1}
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                resize: "none",
+                backgroundColor: "transparent",
+                fontFamily: "var(--font-sans)",
+                fontSize: "13px",
+                lineHeight: "24px",
+                color: "var(--color-text)",
+                padding: "10px 0",
+                height: "44px",
+                maxHeight: (hasConversations ? newSessionFocused : focused) ? "40vh" : "44px",
+                transition: "height 0.3s ease",
+                overflow: (hasConversations ? newSessionFocused : focused) ? "auto" : "hidden",
+              }}
+            />
+            <button
+              onClick={hasConversations ? handleNewSessionSend : handleSend}
+              disabled={hasConversations ? !newSessionInput.trim() || isLoading : !input.trim() || isLoading}
+              style={{
+                width: "20px",
+                height: "20px",
+                borderRadius: "50%",
+                border: `1px solid ${(hasConversations ? newSessionInput.trim() : input.trim()) ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
+                backgroundColor: "transparent",
+                cursor: (hasConversations ? !newSessionInput.trim() : !input.trim()) || isLoading ? "default" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                marginBottom: "2px",
+              }}
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" fill={(hasConversations ? newSessionInput.trim() : input.trim()) ? "var(--color-accent)" : "var(--color-text-ghost)"}>
+                <polygon points="5,1 9,8 1,8" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -381,6 +588,39 @@ export default function MobileSession({
         position: "relative",
       }}
     >
+      {/* Back to sessions */}
+      <button
+        onClick={handleReturnToIdle}
+        style={{
+          position: "absolute",
+          top: "12px",
+          left: "16px",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "4px 0",
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--color-text-ghost)" strokeWidth="1.5">
+          <polyline points="7,2 3,6 7,10" />
+        </svg>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "8px",
+            color: "var(--color-text-ghost)",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+          }}
+        >
+          SESSIONS
+        </span>
+      </button>
+
       {/* Sound indicator */}
       <div style={{ position: "absolute", top: "12px", right: "16px", zIndex: 10 }}>
         <SoundIndicator compact onTap={() => setShowSoundMenu(!showSoundMenu)} />

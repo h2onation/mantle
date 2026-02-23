@@ -114,9 +114,18 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 - **Returns**: `{ components: ManualComponent[] }`
 - Returns all `manual_components` for the authenticated user.
 
+### GET /api/conversations — Node.js Runtime
+- **Returns**: `{ conversations: Array<{ id, status, summary, created_at, updated_at, message_count }> }`
+- Lists all conversations for the authenticated user, ordered by `updated_at desc`. Message counts exclude system messages.
+
+### POST /api/conversations/complete — Edge Runtime
+- **Body**: `{ conversationId: string }`
+- **Returns**: `{ ok: true }`
+- Marks a conversation as `'completed'`. Generates summary via shared `generateSessionSummary()` utility if none exists.
+
 ### POST /api/session/summary — Edge Runtime
 - **Body**: `{ conversationId: string }`
-- Generates summary via Haiku, stores on conversation record.
+- Generates summary via shared `generateSessionSummary()` utility, stores on conversation record.
 
 ### POST /api/dev-reset — Edge Runtime
 - Deletes messages (FK first), then conversations, then manual_components for the user.
@@ -233,23 +242,27 @@ Four tabs: session, manual, guidance, settings
 
 **Active**: `color: var(--color-accent)`. **Inactive**: `color: var(--color-text-ghost)`. **Transition**: `color 0.4s ease`. Both icon and label inherit color.
 
-### Session — Idle State (`sessionActive=false`)
+### Session — Idle State / Session Hub (`sessionActive=false`)
 
-Bottom-aligned layout (`justifyContent: flex-end`), padding `0 24px 16px`.
+Flex column layout, full height. Sound indicator top-right. Scrollable middle section with pinned bottom input.
 
 | Element | Font | Size | Color | Notes |
 |---------|------|------|-------|-------|
-| Decorative particles (2) | — | 3px, 2px circles | `var(--color-accent-glow)` | Absolute positioned, `sagePulse` animation |
 | Sound indicator | — | — | — | Top-right (16px, 24px), SoundIndicator + dropdown |
+| Hero card (latest session) | — | — | — | Tappable card for most recent conversation. Contains days-since label, summary, progress line, "CONTINUE" button |
 | Days-since label | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. "TODAY" or "N DAYS SINCE LAST SESSION" |
 | Session summary | `--font-serif` | 22px | `--color-text` | line-height 1.5, letter-spacing -0.3px. Falls back to "Ready when you are." |
-| Progress line | `--font-mono` | 9px | `--color-accent-dim` | letter-spacing 1px. "N components confirmed . Layer X active". Border-bottom `1px solid var(--color-accent-ghost)` |
-| Input textarea | `--font-sans` | 13px | `--color-text` | Height 44px collapsed, max 40vh focused, transition 0.3s. Placeholder: "Continue where you left off_" or "Begin anywhere_" |
+| Progress line | `--font-mono` | 9px | `--color-accent-dim` | letter-spacing 1px. "N components confirmed . Layer X active" |
+| "CONTINUE" label | `--font-mono` | 8px | `--color-accent` | letter-spacing 3px, uppercase. margin-top 24px |
+| "PREVIOUS SESSIONS" header | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. Shows when >1 conversation |
+| Session list row | `--font-serif` / `--font-mono` | 14px / 8px | `--color-text-dim` / `--color-text-ghost` | Summary snippet (truncated 2 lines), date "MMM D", message count. Tap to switch + activate. Divider between rows |
+| "NEW SESSION" label | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. Pinned at bottom |
+| New session textarea | `--font-sans` | 13px | `--color-text` | Placeholder "Begin a new session_". Enter sends. Calls `startNewSession()` then `sendMessage()` |
 | Send button | — | 20x20px circle | border `--color-accent` or `--color-text-ghost` | SVG triangle 8x8, same conditional fill |
 
 ### Session — Active State (`sessionActive=true`)
 
-Full height flex column. Sound indicator compact at top-right.
+Full height flex column. Sound indicator compact at top-right. Back button at top-left: `< SESSIONS` (mono 8px, ghost) returns to idle hub and refreshes conversations.
 
 | Element | Font | Size | Color | Notes |
 |---------|------|------|-------|-------|
@@ -263,7 +276,7 @@ Full height flex column. Sound indicator compact at top-right.
 | Error text | `--font-sans` | 13px | `--color-text-ghost` | Centered with Retry button (`--color-accent`, weight 500) |
 | Input textarea | `--font-sans` | 13px | `--color-text` | Placeholder "_". Same expand behavior. Enter sends, Shift+Enter newline. Auto-grows from 120px min to 40vh max. |
 
-**Transition**: Auto-activates when `isStreaming` becomes true. No return to idle within session.
+**Transition**: Auto-activates when `isStreaming` becomes true. Can return to idle via back button (top-left `< SESSIONS`).
 
 ### Manual (`MobileManual.tsx`)
 
@@ -296,7 +309,7 @@ Header "SETTINGS" (`--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px).
 | Theme | Functional | Toggle Sage/Ember. Shows 12px color dot + name. |
 | Sound | Functional | Opens MobileSoundSelector dropdown. Shows "Water"/"Piano"/"Birdsong"/"Off". |
 | Account | Display-only | Shows email. No logout. |
-| Session history | Display-only | Shows "N sessions" (always 0 or 1 — bug). |
+| Session history | Display-only | Shows "N sessions" (correct count from conversations list). |
 | Export manual | Display-only | Shows "PDF or text". No handler. |
 | Delete everything | Functional | Red text `#B5564D`. Confirmation modal. Calls `/api/dev-reset` + `localStorage.clear()` + reload. |
 
@@ -312,7 +325,7 @@ Haiku runs post-stream on **every** Sage response (not just suspected checkpoint
 `isReturningUser` in `call-sage.ts` is determined by having `manual_components` (not by conversation count). Controls whether system prompt includes "RETURN SESSION ENTRY" instructions.
 
 ### Session Summary
-Generated fire-and-forget when `useChat` initializes and the last message is >30 minutes old. Uses Haiku. Stored on conversation `summary` column.
+Generated fire-and-forget when `useChat` initializes and the last message is >30 minutes old. Also generated when a conversation is marked completed via `/api/conversations/complete`. Uses shared `generateSessionSummary()` utility in `src/lib/sage/generate-summary.ts` (Haiku). Stored on conversation `summary` column.
 
 ## Dead Features — Full Kill List
 
@@ -373,9 +386,11 @@ src/
     api/
       chat/route.ts                   POST Edge — streams Sage response
       checkpoint/confirm/route.ts     POST Edge — confirm checkpoint + stream follow-up
+      conversations/route.ts          GET Node — list conversations with metadata
+      conversations/complete/route.ts POST Edge — mark conversation completed + summarize
       dev-reset/route.ts              POST Edge — delete all user data
       manual/route.ts                 GET Node — return manual components
-      session/summary/route.ts        POST Edge — generate summary via Haiku
+      session/summary/route.ts        POST Edge — generate summary via shared utility
     auth/callback/route.ts            GET Node — OAuth callback
     globals.css                       Tokens, themes, scrollbar, keyframes
     layout.tsx                        Root: fonts, AudioProvider, theme script
@@ -387,7 +402,7 @@ src/
       MobileLayout.tsx                Fixed shell: 4 tab panels + MobileNav (bottom 68px)
       MobileNav.tsx                   Bottom tab bar with icons + labels
     mobile/
-      MobileSession.tsx               Chat: idle + active states, checkpoint cards
+      MobileSession.tsx               Session hub (idle) + chat (active), session history, checkpoint cards
       MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
       MobileGuidance.tsx              Locked until 5 confirmed, progress bars
       MobileSettings.tsx              Theme, sound, account, history, export, delete
@@ -403,11 +418,12 @@ src/
     anthropic.ts                      Raw fetch: anthropicFetch (sync), anthropicStream (SSE)
     audio/ambient-player.ts           Audio singleton, fade in/out, 3 tracks
     hooks/
-      useChat.ts                      Core state: messages, streaming, checkpoints, init
+      useChat.ts                      Core state: messages, streaming, checkpoints, conversations, init
       useOnboarding.ts                Onboarding state machine
     sage/
       call-sage.ts                    Pipeline: history -> window -> prompt -> stream -> classify
       classifier.ts                   Haiku checkpoint detection + processing text
+      generate-summary.ts             Shared Haiku summary generation utility
       system-prompt.ts                Sage system prompt with dynamic context injection
     supabase/
       admin.ts                        Service role client (bypasses RLS)
@@ -429,27 +445,35 @@ src/
 - Bottom nav: 4 tabs, SVG icons + labels, accent color active state, 0.4s transition
 - Delete everything: dev-reset API + localStorage.clear + reload
 - Session summary: Haiku, fire-and-forget on stale sessions (>30 min)
+- Session history: browse past sessions, continue any session, start new session (marks previous as completed + generates summary)
 
 ## Not Yet Functional
 
 - **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
-- **Session history**: Shows count in Settings, no browsing/viewing
 - **Guidance tab**: Locked until 5 confirmed. Unlocked state is placeholder only.
 - **Logout**: No UI anywhere
 - **"Still true?"**: Label on manual components has no click handler
 
 ## Drift Log
 
-This file was written from a full codebase audit on 2026-02-23. No drift exists at time of writing — every claim was verified against actual code. If you modify the codebase, update this file. Key areas that drift:
+This file was written from a full codebase audit on 2026-02-23. If you modify the codebase, update this file. Key areas that drift:
 - API route contracts (new params, changed responses)
 - Color tokens or font sizes in components vs what's documented here
 - New localStorage keys
 - Dead feature cleanup (e.g. removing `calibration_ratings` from schema)
 
+**2026-02-23 — Session History feature**
+- Added `GET /api/conversations` and `POST /api/conversations/complete` routes
+- Added `src/lib/sage/generate-summary.ts` (shared Haiku summary utility, extracted from `session/summary/route.ts`)
+- `useChat.ts` now manages `conversations[]` state, exports `switchConversation`, `startNewSession`, `refreshConversations`
+- `MobileSession.tsx` idle state redesigned as session hub: hero card for latest session, older sessions list, new session input, back button in active state
+- `call-sage.ts` and `system-prompt.ts` now pass/render `sessionCount` for Sage context
+- `MainApp.tsx` passes `conversations.length` to fix session count bug in Settings
+- Session history moved from "Not Yet Functional" to "What Works End-to-End"
+
 ## Known Issues
 
 - **Hydration warning**: `data-theme` set by blocking script before React hydrates. Benign — prevents theme flash.
-- **Session count bug**: `MobileSettings` receives `sessionCount` as `conversationId ? 1 : 0` — always 0 or 1, never counts historical sessions.
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The 100+ word heuristic is in the classifier's system prompt but not enforced in code — if Haiku returns `isCheckpoint: true` with a layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling `getUser()` on each page request (which refreshes cookies). If user stays on the SPA without page navigation, token could expire. API routes return 401 -> redirect to `/login` as fallback.
 - **Ghost conversation rows**: If `useChat` init sends `conversationId: null` to `/api/chat` and the user somehow also sends a message before state updates, a second conversation could be created. Mitigated by `initStarted.current` ref guard and `isLoading`/`isStreaming` checks, but not impossible.

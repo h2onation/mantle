@@ -24,9 +24,13 @@ export default function MainApp() {
     userEmail,
     errorMessage,
     checkpointError,
+    conversations,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
+    switchConversation,
+    startNewSession,
+    refreshConversations,
   } = useChat();
 
   const {
@@ -116,9 +120,13 @@ export default function MainApp() {
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
             errorMessage={errorMessage}
+            conversations={conversations}
             sendMessage={sendMessage}
             retryLastMessage={retryLastMessage}
             confirmCheckpoint={confirmCheckpoint}
+            switchConversation={switchConversation}
+            startNewSession={startNewSession}
+            refreshConversations={refreshConversations}
             onInputFocus={handleInputFocus}
           />
         }
@@ -131,7 +139,7 @@ export default function MainApp() {
         settingsContent={
           <MobileSettings
             userEmail={userEmail}
-            sessionCount={conversationId ? 1 : 0}
+            sessionCount={conversations.length}
           />
         }
       />

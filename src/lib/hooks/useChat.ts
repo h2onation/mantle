@@ -35,7 +35,14 @@ interface ActiveCheckpoint {
   content: string;
 }
 
-// Checkpoints now render inline in the chat — no redirect needed
+export interface ConversationSummaryItem {
+  id: string;
+  status: string;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -54,6 +61,7 @@ export function useChat() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -242,19 +250,25 @@ export function useChat() {
 
     setUserEmail(session.user.email || "");
 
-    // Check for existing conversations
-    const { data: conversations } = await supabase
-      .from("conversations")
-      .select("id, summary, updated_at")
-      .eq("user_id", session.user.id)
-      .order("updated_at", { ascending: false })
-      .limit(1);
+    // Load all conversations via API
+    let allConversations: ConversationSummaryItem[] = [];
+    try {
+      const convRes = await fetch("/api/conversations");
+      if (convRes.ok) {
+        const convData = await convRes.json();
+        allConversations = convData.conversations || [];
+        setConversations(allConversations);
+      }
+    } catch {
+      // Fall back to empty
+    }
 
-    if (conversations && conversations.length > 0) {
-      const convId = conversations[0].id;
-      setConversationId(convId);
-      setSessionSummary(conversations[0].summary || null);
-      setLastSessionDate(conversations[0].updated_at || null);
+    if (allConversations.length > 0) {
+      const latest = allConversations[0];
+      setConversationId(latest.id);
+      setSessionSummary(latest.summary || null);
+      setLastSessionDate(latest.updated_at || null);
+      const convId = latest.id;
 
       // Load messages
       const { data: dbMessages } = await supabase
@@ -343,6 +357,11 @@ export function useChat() {
 
       const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
       finalizeMessage(fullText, completeEvent, placeholderIdx);
+
+      // If a new conversation was created, refresh the list
+      if (completeEvent?.conversationId && !conversationId) {
+        refreshConversations();
+      }
     } catch {
       setErrorMessage("Connection lost. Try again.");
     } finally {
@@ -429,6 +448,87 @@ export function useChat() {
     }
   }
 
+  async function refreshConversations() {
+    try {
+      const res = await fetch("/api/conversations");
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data.conversations || []);
+      }
+    } catch {
+      // Silent fail
+    }
+  }
+
+  async function switchConversation(targetConversationId: string) {
+    if (targetConversationId === conversationId) return;
+    if (isLoading || isStreaming) return;
+
+    // Reset current state
+    setMessages([]);
+    setActiveCheckpoint(null);
+    setErrorMessage(null);
+    setCheckpointError(null);
+
+    // Load messages for target conversation
+    const { data: dbMessages } = await supabase
+      .from("messages")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
+      .eq("conversation_id", targetConversationId)
+      .order("created_at", { ascending: true });
+
+    if (dbMessages) {
+      const chatMessages: ChatMessage[] = dbMessages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          isCheckpoint: m.is_checkpoint || false,
+          checkpointMeta: m.checkpoint_meta || null,
+        }));
+      setMessages(chatMessages);
+    }
+
+    setConversationId(targetConversationId);
+
+    // Update summary context from conversations list
+    const targetConv = conversations.find((c) => c.id === targetConversationId);
+    if (targetConv) {
+      setSessionSummary(targetConv.summary);
+      setLastSessionDate(targetConv.updated_at);
+    }
+  }
+
+  async function startNewSession() {
+    if (isLoading || isStreaming) return;
+
+    // Complete current conversation if one exists
+    if (conversationId) {
+      try {
+        await fetch("/api/conversations/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId }),
+        });
+      } catch {
+        // Continue anyway
+      }
+    }
+
+    // Reset state for new session
+    setConversationId(null);
+    setMessages([]);
+    setSessionSummary(null);
+    setLastSessionDate(null);
+    setActiveCheckpoint(null);
+    setErrorMessage(null);
+    setCheckpointError(null);
+
+    // Refresh conversation list
+    await refreshConversations();
+  }
+
   return {
     messages,
     conversationId,
@@ -443,8 +543,12 @@ export function useChat() {
     lastSessionDate,
     errorMessage,
     checkpointError,
+    conversations,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
+    switchConversation,
+    startNewSession,
+    refreshConversations,
   };
 }
