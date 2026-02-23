@@ -39,6 +39,7 @@ export interface ConversationSummaryItem {
   id: string;
   status: string;
   summary: string | null;
+  preview: string | null;
   created_at: string;
   updated_at: string;
   message_count: number;

@@ -242,27 +242,18 @@ Four tabs: session, manual, guidance, settings
 
 **Active**: `color: var(--color-accent)`. **Inactive**: `color: var(--color-text-ghost)`. **Transition**: `color 0.4s ease`. Both icon and label inherit color.
 
-### Session — Idle State / Session Hub (`sessionActive=false`)
+### Session (`MobileSession.tsx`)
 
-Flex column layout, full height. Sound indicator top-right. Scrollable middle section with pinned bottom input.
+Always-on chat view with a side drawer for session management. No idle/active state toggle — the chat is always visible.
 
-| Element | Font | Size | Color | Notes |
-|---------|------|------|-------|-------|
-| Sound indicator | — | — | — | Top-right (16px, 24px), SoundIndicator + dropdown |
-| Hero card (latest session) | — | — | — | Tappable card for most recent conversation. Contains days-since label, summary, progress line, "CONTINUE" button |
-| Days-since label | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. "TODAY" or "N DAYS SINCE LAST SESSION" |
-| Session summary | `--font-serif` | 22px | `--color-text` | line-height 1.5, letter-spacing -0.3px. Falls back to "Ready when you are." |
-| Progress line | `--font-mono` | 9px | `--color-accent-dim` | letter-spacing 1px. "N components confirmed . Layer X active" |
-| "CONTINUE" label | `--font-mono` | 8px | `--color-accent` | letter-spacing 3px, uppercase. margin-top 24px |
-| "PREVIOUS SESSIONS" header | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. Shows when >1 conversation |
-| Session list row | `--font-serif` / `--font-mono` | 14px / 8px | `--color-text-dim` / `--color-text-ghost` | Summary snippet (truncated 2 lines), date "MMM D", message count. Tap to switch + activate. Divider between rows |
-| "NEW SESSION" label | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. Pinned at bottom |
-| New session textarea | `--font-sans` | 13px | `--color-text` | Placeholder "Begin a new session_". Enter sends. Calls `startNewSession()` then `sendMessage()` |
-| Send button | — | 20x20px circle | border `--color-accent` or `--color-text-ghost` | SVG triangle 8x8, same conditional fill |
+**Header bar**: Flex row, `padding: 12px 16px`, `flexShrink: 0`. Three items justified space-between:
+- **Left**: Menu button (hamburger, 3 lines 16px wide, 44x44 touch target, `--color-text-ghost`). Taps open the side drawer and refresh the conversations list.
+- **Center**: "MANTLE" wordmark (`--font-mono`, 9px, `--color-text-ghost`, letter-spacing 4px, uppercase).
+- **Right**: `SoundIndicator` compact + `MobileSoundSelector` dropdown (44x44 touch target).
 
-### Session — Active State (`sessionActive=true`)
+**Empty state**: When no messages, a centered placeholder below header: "Ready when you are." (`--font-serif`, 22px, `--color-text-ghost`, line-height 1.5, letter-spacing -0.3px).
 
-Full height flex column. Sound indicator compact at top-right. Back button at top-left: `< SESSIONS` (mono 8px, ghost) returns to idle hub and refreshes conversations.
+**Messages**:
 
 | Element | Font | Size | Color | Notes |
 |---------|------|------|-------|-------|
@@ -274,9 +265,18 @@ Full height flex column. Sound indicator compact at top-right. Back button at to
 | "Refine it" / "Skip" buttons | `--font-sans` | 12px, weight 500 | `--color-text-ghost` | border `1px solid var(--color-divider)`, same radius/padding |
 | Typing indicator | — | 12x12px circle | `--color-accent-glow` | `sagePulse 2.5s`. Shows when isLoading and last msg is user. |
 | Error text | `--font-sans` | 13px | `--color-text-ghost` | Centered with Retry button (`--color-accent`, weight 500) |
-| Input textarea | `--font-sans` | 13px | `--color-text` | Placeholder "_". Same expand behavior. Enter sends, Shift+Enter newline. Auto-grows from 120px min to 40vh max. |
+| Input textarea | `--font-sans` | 13px | `--color-text` | Placeholder `"_"` when messages exist, `"Begin anywhere_"` when empty. Enter sends, Shift+Enter newline. Height 44px collapsed, 120px min when focused, max 40vh. |
 
-**Transition**: Auto-activates when `isStreaming` becomes true. Can return to idle via back button (top-left `< SESSIONS`).
+**Side drawer** (session list):
+
+| Element | Style | Notes |
+|---------|-------|-------|
+| Backdrop | `position: fixed, inset: 0`, `rgba(0,0,0,0.5)`, zIndex 200 | Tap closes drawer. Opacity 0→1 transition 0.3s |
+| Panel | `position: fixed, left: 0, top: 0, bottom: 0`, width `80vw` max `320px`, `--color-surface` bg, zIndex 201 | `translateX(-100%)` → `translateX(0)` transition 0.3s |
+| "SESSIONS" header | `--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px | Left-aligned with close X button right-aligned |
+| "New session" button | `--font-sans` 13px, `--color-accent` | Full width, border `1px solid var(--color-accent-ghost)`, border-radius 8px, padding 12px 16px. Taps: `startNewSession()` + close drawer |
+| Session row | `--font-sans` 13px summary (2-line clamp), `--font-mono` 8px date + count | Active: `borderLeft: 2px solid var(--color-accent)`, text `--color-text`. Inactive: transparent border, text `--color-text-dim`. No summary fallback: "Untitled session" |
+| Empty list | `--font-sans` 13px, `--color-text-ghost` | "No sessions yet" centered |
 
 ### Manual (`MobileManual.tsx`)
 
@@ -343,6 +343,7 @@ These features were designed, partially built, or referenced, and have been remo
 | ENTRY SEQUENCE (as formal flow) | Removed as UI | The system prompt still references "Do NOT run the entry sequence" as instructions to Sage. No UI or code flow by that name exists. |
 | Insights page | Removed | Nothing replaced it. |
 | Reactive orb | Removed | Nothing replaced it. Typing indicator is now a simple pulsing dot. |
+| Session hub idle state | Removed | Replaced by always-on chat + side drawer for session management. No idle/active toggle. |
 
 **Dead feature residue grep results (last verified):**
 - `calibration` — 1 hit: `schema.sql` line 41 (dead column)
@@ -402,7 +403,7 @@ src/
       MobileLayout.tsx                Fixed shell: 4 tab panels + MobileNav (bottom 68px)
       MobileNav.tsx                   Bottom tab bar with icons + labels
     mobile/
-      MobileSession.tsx               Session hub (idle) + chat (active), session history, checkpoint cards
+      MobileSession.tsx               Always-on chat + side drawer for session history, checkpoint cards
       MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
       MobileGuidance.tsx              Locked until 5 confirmed, progress bars
       MobileSettings.tsx              Theme, sound, account, history, export, delete
@@ -445,7 +446,7 @@ src/
 - Bottom nav: 4 tabs, SVG icons + labels, accent color active state, 0.4s transition
 - Delete everything: dev-reset API + localStorage.clear + reload
 - Session summary: Haiku, fire-and-forget on stale sessions (>30 min)
-- Session history: browse past sessions, continue any session, start new session (marks previous as completed + generates summary)
+- Session history: side drawer from menu button, browse/switch past sessions, start new session (marks previous as completed + generates summary)
 
 ## Not Yet Functional
 
@@ -466,8 +467,14 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - Added `GET /api/conversations` and `POST /api/conversations/complete` routes
 - Added `src/lib/sage/generate-summary.ts` (shared Haiku summary utility, extracted from `session/summary/route.ts`)
 - `useChat.ts` now manages `conversations[]` state, exports `switchConversation`, `startNewSession`, `refreshConversations`
-- `MobileSession.tsx` idle state redesigned as session hub: hero card for latest session, older sessions list, new session input, back button in active state
 - `call-sage.ts` and `system-prompt.ts` now pass/render `sessionCount` for Sage context
+
+**2026-02-23 — Session drawer redesign**
+- `MobileSession.tsx` rewritten: removed idle/active state toggle, replaced with always-on chat + side drawer
+- Removed: `sessionActive` state, hero card, older sessions list, new session input, `formatDaysSince`, particles, back button
+- Added: `drawerOpen` state, hamburger menu button (top-left), fixed-position side drawer with session list, backdrop overlay
+- Drawer pattern: menu button → slide-from-left drawer (80vw, max 320px) → "New session" button + session list with active indicator
+- Dead features: session hub idle state (replaced by drawer)
 - `MainApp.tsx` passes `conversations.length` to fix session count bug in Settings
 - Session history moved from "Not Yet Functional" to "What Works End-to-End"
 

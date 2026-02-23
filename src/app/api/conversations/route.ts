@@ -24,19 +24,24 @@ export async function GET() {
     return Response.json({ conversations: [] });
   }
 
-  // Get message counts per conversation (exclude system messages)
+  // Get message counts and first user message per conversation
   const convIds = conversations.map((c) => c.id);
-  const { data: messageCounts } = await admin
+  const { data: allMessages } = await admin
     .from("messages")
-    .select("conversation_id")
+    .select("conversation_id, role, content")
     .in("conversation_id", convIds)
-    .neq("role", "system");
+    .neq("role", "system")
+    .order("created_at", { ascending: true });
 
-  // Count messages per conversation
+  // Count messages and find first user message per conversation
   const countMap: Record<string, number> = {};
-  if (messageCounts) {
-    for (const m of messageCounts) {
+  const previewMap: Record<string, string> = {};
+  if (allMessages) {
+    for (const m of allMessages) {
       countMap[m.conversation_id] = (countMap[m.conversation_id] || 0) + 1;
+      if (m.role === "user" && !previewMap[m.conversation_id]) {
+        previewMap[m.conversation_id] = m.content;
+      }
     }
   }
 
@@ -44,6 +49,7 @@ export async function GET() {
     id: c.id,
     status: c.status || "active",
     summary: c.summary,
+    preview: previewMap[c.id] || null,
     created_at: c.created_at,
     updated_at: c.updated_at,
     message_count: countMap[c.id] || 0,
