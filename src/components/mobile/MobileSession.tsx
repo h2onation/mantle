@@ -40,9 +40,9 @@ interface MobileSessionProps {
   conversationId: string | null;
   isLoading: boolean;
   isStreaming: boolean;
-  isNewUser: boolean;
-  sessionSummary: string | null;
-  lastSessionDate: string | null;
+  isNewUser?: boolean;
+  sessionSummary?: string | null;
+  lastSessionDate?: string | null;
   confirmedComponents: ManualComponent[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
@@ -114,9 +114,7 @@ export default function MobileSession({
   messages,
   isLoading,
   isStreaming,
-  isNewUser,
-  sessionSummary,
-  lastSessionDate,
+  // isNewUser, sessionSummary, lastSessionDate — now derived from conversations[]
   confirmedComponents,
   activeCheckpoint,
   checkpointError,
@@ -225,9 +223,9 @@ export default function MobileSession({
     : 1;
 
   // Older sessions (exclude the current/most recent conversation)
+  const latestConversation = conversations.length > 0 ? conversations[0] : null;
   const olderSessions = conversations.slice(1);
   const hasConversations = conversations.length > 0;
-  const hasHistory = !isNewUser && messages.length > 0;
 
   async function handleNewSessionSend() {
     const text = newSessionInput.trim();
@@ -318,9 +316,9 @@ export default function MobileSession({
           }}
         >
           {/* Hero card: most recent session */}
-          {hasHistory && (
+          {latestConversation && (
             <div style={{ marginBottom: "12px" }}>
-              {lastSessionDate && (
+              {latestConversation.updated_at && (
                 <p
                   style={{
                     fontFamily: "var(--font-mono)",
@@ -331,7 +329,7 @@ export default function MobileSession({
                     margin: "0 0 24px 0",
                   }}
                 >
-                  {formatDaysSince(lastSessionDate)}
+                  {formatDaysSince(latestConversation.updated_at)}
                 </p>
               )}
 
@@ -345,7 +343,7 @@ export default function MobileSession({
                   margin: "0 0 24px 0",
                 }}
               >
-                {sessionSummary || "Ready when you are."}
+                {latestConversation.summary || "Ready when you are."}
               </p>
 
               <div
@@ -371,7 +369,7 @@ export default function MobileSession({
                   {" · "}Layer {activeLayer} active
                 </p>
                 <button
-                  onClick={() => setSessionActive(true)}
+                  onClick={() => handleSessionTap(latestConversation.id)}
                   style={{
                     fontFamily: "var(--font-mono)",
                     fontSize: "8px",
@@ -391,7 +389,7 @@ export default function MobileSession({
           )}
 
           {/* Empty state for brand new users */}
-          {!hasHistory && !hasConversations && (
+          {!latestConversation && (
             <p
               style={{
                 fontFamily: "var(--font-serif)",
