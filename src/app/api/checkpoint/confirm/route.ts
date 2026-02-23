@@ -83,7 +83,9 @@ export async function POST(request: Request) {
       .eq("type", componentType);
 
     if (componentType === "pattern") {
-      existingQuery = existingQuery.eq("name", normalizedName);
+      existingQuery = normalizedName
+        ? existingQuery.eq("name", normalizedName)
+        : existingQuery.is("name", null);
     }
 
     const { data: existing } = await existingQuery.maybeSingle();

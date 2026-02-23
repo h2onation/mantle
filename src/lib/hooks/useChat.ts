@@ -42,14 +42,12 @@ export function useChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [currentStreamText, setCurrentStreamText] = useState("");
   const [activeCheckpoint, setActiveCheckpoint] =
     useState<ActiveCheckpoint | null>(null);
   const [confirmedComponents, setConfirmedComponents] = useState<
     ManualComponent[]
   >([]);
   const [initialized, setInitialized] = useState(false);
-  const [displayName, setDisplayName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [sessionSummary, setSessionSummary] = useState<string | null>(null);
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
@@ -77,46 +75,46 @@ export function useChat() {
   async function streamFromResponse(response: Response): Promise<{
     fullText: string;
     completeEvent: MessageCompleteEvent | null;
+    placeholderIdx: number;
   }> {
     let fullText = "";
     let completeEvent: MessageCompleteEvent | null = null;
     let sseError: string | null = null;
 
-    // Add placeholder assistant message
+    // Add placeholder assistant message — capture index atomically via setState callback
     const placeholderIdx = { current: -1 };
     setMessages((prev) => {
       placeholderIdx.current = prev.length;
       return [...prev, { role: "assistant" as const, content: "" }];
     });
     setIsStreaming(true);
-    setCurrentStreamText("");
 
-    await parseSSEStream(response, {
-      onTextDelta: (text) => {
-        fullText += text;
-        setCurrentStreamText((prev) => prev + text);
-        setMessages((prev) => {
-          const updated = [...prev];
-          const idx = placeholderIdx.current;
-          if (idx >= 0 && updated[idx]) {
-            updated[idx] = {
-              ...updated[idx],
-              content: updated[idx].content + text,
-            };
-          }
-          return updated;
-        });
-      },
-      onMessageComplete: (data) => {
-        completeEvent = data;
-      },
-      onError: (error) => {
-        sseError = error;
-      },
-    });
-
-    setIsStreaming(false);
-    setCurrentStreamText("");
+    try {
+      await parseSSEStream(response, {
+        onTextDelta: (text) => {
+          fullText += text;
+          setMessages((prev) => {
+            const updated = [...prev];
+            const idx = placeholderIdx.current;
+            if (idx >= 0 && updated[idx]) {
+              updated[idx] = {
+                ...updated[idx],
+                content: updated[idx].content + text,
+              };
+            }
+            return updated;
+          });
+        },
+        onMessageComplete: (data) => {
+          completeEvent = data;
+        },
+        onError: (error) => {
+          sseError = error;
+        },
+      });
+    } finally {
+      setIsStreaming(false);
+    }
 
     // If SSE emitted an error, remove the placeholder and surface it
     if (sseError) {
@@ -131,7 +129,7 @@ export function useChat() {
       setErrorMessage(sseError);
     }
 
-    return { fullText, completeEvent };
+    return { fullText, completeEvent, placeholderIdx: placeholderIdx.current };
   }
 
   function finalizeMessage(
@@ -209,15 +207,14 @@ export function useChat() {
         });
 
         if (res.ok) {
-          const { fullText, completeEvent } = await streamFromResponse(res);
+          const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
 
           if (completeEvent) {
             setMessages((prev) => {
               const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              if (lastIdx >= 0) {
-                updated[lastIdx] = {
-                  ...updated[lastIdx],
+              if (placeholderIdx >= 0 && updated[placeholderIdx]) {
+                updated[placeholderIdx] = {
+                  ...updated[placeholderIdx],
                   id: completeEvent!.messageId,
                   content: fullText,
                 };
@@ -243,15 +240,6 @@ export function useChat() {
       return;
     }
 
-    // Get display name
-    const fallbackName = session.user.email?.split("@")[0] || "User";
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", session.user.id)
-      .single();
-
-    setDisplayName(profile?.display_name || fallbackName);
     setUserEmail(session.user.email || "");
 
     // Check for existing conversations
@@ -353,12 +341,8 @@ export function useChat() {
         return;
       }
 
-      // Track where the placeholder will be inserted
-      // (messages length after adding user msg = current + 1, placeholder goes at current + 1)
-      const msgCountBeforeStream = messages.length + 1; // +1 for user msg we just added
-
-      const { fullText, completeEvent } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent, msgCountBeforeStream);
+      const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
+      finalizeMessage(fullText, completeEvent, placeholderIdx);
     } catch {
       setErrorMessage("Connection lost. Try again.");
     } finally {
@@ -368,13 +352,20 @@ export function useChat() {
 
   function retryLastMessage() {
     if (!lastUserMessage.current) return;
-    // Remove the last user message (it will be re-added by sendMessage)
+    // Remove trailing partial assistant message (no id = not finalized) and the user message
     setMessages((prev) => {
-      const lastIdx = prev.length - 1;
-      if (lastIdx >= 0 && prev[lastIdx].role === "user") {
-        return prev.slice(0, lastIdx);
+      const updated = [...prev];
+      while (
+        updated.length > 0 &&
+        updated[updated.length - 1].role === "assistant" &&
+        !updated[updated.length - 1].id
+      ) {
+        updated.pop();
       }
-      return prev;
+      if (updated.length > 0 && updated[updated.length - 1].role === "user") {
+        updated.pop();
+      }
+      return updated;
     });
     setErrorMessage(null);
     sendMessage(lastUserMessage.current);
@@ -426,9 +417,8 @@ export function useChat() {
       setActiveCheckpoint(null);
 
       // Stream Sage's follow-up response
-      const msgCountBeforeStream = messages.length;
-      const { fullText, completeEvent } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent, msgCountBeforeStream);
+      const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
+      finalizeMessage(fullText, completeEvent, placeholderIdx);
 
       // Refresh manual from server
       await loadManual();
@@ -439,88 +429,15 @@ export function useChat() {
     }
   }
 
-  async function loadConversation(convId: string) {
-    setIsLoading(true);
-    setActiveCheckpoint(null);
-
-    try {
-      setConversationId(convId);
-
-      const { data: dbMessages } = await supabase
-        .from("messages")
-        .select("id, role, content, is_checkpoint, checkpoint_meta")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: true });
-
-      if (dbMessages) {
-        const chatMessages: ChatMessage[] = dbMessages
-          .filter((m) => m.role !== "system")
-          .map((m) => ({
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            isCheckpoint: m.is_checkpoint || false,
-            checkpointMeta: m.checkpoint_meta || null,
-          }));
-        setMessages(chatMessages);
-      } else {
-        setMessages([]);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function startNewConversation() {
-    setIsLoading(true);
-    setActiveCheckpoint(null);
-    setMessages([]);
-    setConversationId(null);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: null, conversationId: null }),
-      });
-
-      if (res.ok) {
-        const { fullText, completeEvent } = await streamFromResponse(res);
-
-        if (completeEvent) {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const lastIdx = updated.length - 1;
-            if (lastIdx >= 0) {
-              updated[lastIdx] = {
-                ...updated[lastIdx],
-                id: completeEvent!.messageId,
-                content: fullText,
-              };
-            }
-            return updated;
-          });
-          setConversationId(completeEvent.conversationId);
-        }
-      }
-    } catch {
-      // Failed to create
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   return {
     messages,
     conversationId,
     isLoading,
     isStreaming,
-    currentStreamText,
     activeCheckpoint,
     confirmedComponents,
     initialized,
     isNewUser,
-    displayName,
     userEmail,
     sessionSummary,
     lastSessionDate,
@@ -529,8 +446,5 @@ export function useChat() {
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
-    loadConversation,
-    startNewConversation,
-    supabase,
   };
 }

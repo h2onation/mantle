@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface WelcomeCardProps {
   onReady: () => void;
@@ -10,13 +10,22 @@ interface WelcomeCardProps {
 export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
   const [dismissed, setDismissed] = useState(false);
   const [dismissFading, setDismissFading] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   function handleDismiss() {
     setDismissed(true);
-    setTimeout(() => {
+    const t1 = setTimeout(() => {
       setDismissFading(true);
-      setTimeout(() => onDismiss(), 300);
+      const t2 = setTimeout(() => onDismiss(), 300);
+      timersRef.current.push(t2);
     }, 2500);
+    timersRef.current.push(t1);
   }
 
   if (dismissed) {

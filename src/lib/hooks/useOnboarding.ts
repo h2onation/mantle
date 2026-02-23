@@ -54,6 +54,7 @@ export function useOnboarding({
     setShowOnboarding(false);
     setIsBlurred(false);
     setDismissed(true);
+    dismissReopenRef.current = false;
   }, []);
 
   const handleInputFocus = useCallback(() => {

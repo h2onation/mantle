@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAudio } from "@/components/providers/AudioProvider";
 import MobileSoundSelector from "./MobileSoundSelector";
 
@@ -19,12 +19,12 @@ export default function MobileSettings({
   userEmail,
   sessionCount,
 }: MobileSettingsProps) {
-  const [theme, setTheme] = useState<"sage" | "ember">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("mantle_theme") as "sage" | "ember") || "sage";
-    }
-    return "sage";
-  });
+  const [theme, setTheme] = useState<"sage" | "ember">("sage");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("mantle_theme") as "sage" | "ember" | null;
+    if (saved) setTheme(saved);
+  }, []);
   const [showSoundSelector, setShowSoundSelector] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { isPlaying, currentTrack } = useAudio();

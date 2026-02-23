@@ -25,7 +25,9 @@ export default function SoundCard({ onSelect }: SoundCardProps) {
     setSelected(value);
 
     if (value !== null) {
-      play(value);
+      play(value).catch(() => {
+        // Autoplay blocked — sound state is still set via localStorage
+      });
     }
 
     setTimeout(() => onSelect(value), 500);

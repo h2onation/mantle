@@ -24,13 +24,17 @@ export default function MobileSoundSelector({
 
   useEffect(() => {
     if (!open) return;
-    function handleTap(e: MouseEvent) {
+    function handleTap(e: MouseEvent | TouchEvent) {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
         onClose();
       }
     }
     document.addEventListener("mousedown", handleTap);
-    return () => document.removeEventListener("mousedown", handleTap);
+    document.addEventListener("touchstart", handleTap);
+    return () => {
+      document.removeEventListener("mousedown", handleTap);
+      document.removeEventListener("touchstart", handleTap);
+    };
   }, [open, onClose]);
 
   if (!open) return null;

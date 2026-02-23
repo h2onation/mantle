@@ -204,7 +204,6 @@ export default function MobileManual({ components }: MobileManualProps) {
                 fontSize: "8px",
                 color: "var(--color-accent-dim)",
                 letterSpacing: "1px",
-                cursor: "pointer",
               }}
             >
               Still true?

@@ -71,12 +71,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // Set the track name so the UI shows correctly
     setCurrentTrack(saved);
 
+    let mounted = true;
     ambientPlayer.play(saved).then(() => {
-      setIsPlaying(true);
+      if (mounted) setIsPlaying(true);
     }).catch(() => {
       // Autoplay was blocked by the browser
-      setAutoplayBlocked(true);
+      if (mounted) setAutoplayBlocked(true);
     });
+
+    return () => { mounted = false; };
   }, []);
 
   return (
