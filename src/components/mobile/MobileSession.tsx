@@ -296,6 +296,7 @@ export default function MobileSession({
                   fontFamily: "var(--font-mono)",
                   fontSize: "9px",
                   color: "var(--color-accent-dim)",
+                  letterSpacing: "1px",
                   margin: "0 0 24px 0",
                   paddingBottom: "12px",
                   borderBottom: "1px solid var(--color-accent-ghost)",

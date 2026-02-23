@@ -117,7 +117,7 @@ export default function MobileManual({ components }: MobileManualProps) {
           margin: "0 0 40px 0",
         }}
       >
-        MANUAL{hasComponents ? ` · ${components.length} CONFIRMED` : ""}
+        MANUAL · {components.length} CONFIRMED
       </p>
 
       {/* Empty state */}

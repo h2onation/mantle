@@ -13,8 +13,9 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach(clearTimeout);
+      timers.forEach(clearTimeout);
     };
   }, []);
 
