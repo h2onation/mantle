@@ -24,6 +24,7 @@ interface ManualComponent {
   type: string;
   name: string | null;
   content: string;
+  created_at?: string;
 }
 
 interface ActiveCheckpoint {
@@ -34,7 +35,7 @@ interface ActiveCheckpoint {
   content: string;
 }
 
-const CHECKPOINT_REDIRECT = "I want to show you something — take a look at what's forming on the right. →";
+// Checkpoints now render inline in the chat — no redirect needed
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -47,9 +48,11 @@ export function useChat() {
   const [confirmedComponents, setConfirmedComponents] = useState<
     ManualComponent[]
   >([]);
-  const [gateReached, setGateReached] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [sessionSummary, setSessionSummary] = useState<string | null>(null);
+  const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
@@ -65,7 +68,6 @@ export function useChat() {
       if (res.ok) {
         const data = await res.json();
         setConfirmedComponents(data.components || []);
-        setGateReached(data.gateReached || false);
       }
     } catch {
       // Silent fail
@@ -151,14 +153,14 @@ export function useChat() {
         content: fullText,
       });
 
-      // Replace streamed message with redirect
+      // Keep full checkpoint text inline with checkpoint metadata
       setMessages((prev) => {
         const updated = [...prev];
         if (idx >= 0 && updated[idx]) {
           updated[idx] = {
             ...updated[idx],
             id: completeEvent!.messageId,
-            content: CHECKPOINT_REDIRECT,
+            content: fullText,
             isCheckpoint: true,
             checkpointMeta: {
               layer: completeEvent!.checkpoint!.layer,
@@ -250,11 +252,12 @@ export function useChat() {
       .single();
 
     setDisplayName(profile?.display_name || fallbackName);
+    setUserEmail(session.user.email || "");
 
     // Check for existing conversations
     const { data: conversations } = await supabase
       .from("conversations")
-      .select("id")
+      .select("id, summary, updated_at")
       .eq("user_id", session.user.id)
       .order("updated_at", { ascending: false })
       .limit(1);
@@ -262,6 +265,8 @@ export function useChat() {
     if (conversations && conversations.length > 0) {
       const convId = conversations[0].id;
       setConversationId(convId);
+      setSessionSummary(conversations[0].summary || null);
+      setLastSessionDate(conversations[0].updated_at || null);
 
       // Load messages
       const { data: dbMessages } = await supabase
@@ -276,7 +281,7 @@ export function useChat() {
           .map((m) => ({
             id: m.id,
             role: m.role as "user" | "assistant",
-            content: m.is_checkpoint ? CHECKPOINT_REDIRECT : m.content,
+            content: m.content,
             isCheckpoint: m.is_checkpoint || false,
             checkpointMeta: m.checkpoint_meta || null,
           }));
@@ -403,7 +408,7 @@ export function useChat() {
       }
 
       if (action === "confirmed") {
-        // Add to confirmed components locally
+        // Add to confirmed components locally (optimistic update)
         setConfirmedComponents((prev) => [
           ...prev,
           {
@@ -412,6 +417,7 @@ export function useChat() {
             type: activeCheckpoint.type,
             name: activeCheckpoint.name,
             content: activeCheckpoint.content,
+            created_at: new Date().toISOString(),
           },
         ]);
       }
@@ -452,7 +458,7 @@ export function useChat() {
           .map((m) => ({
             id: m.id,
             role: m.role as "user" | "assistant",
-            content: m.is_checkpoint ? CHECKPOINT_REDIRECT : m.content,
+            content: m.content,
             isCheckpoint: m.is_checkpoint || false,
             checkpointMeta: m.checkpoint_meta || null,
           }));
@@ -512,10 +518,12 @@ export function useChat() {
     currentStreamText,
     activeCheckpoint,
     confirmedComponents,
-    gateReached,
     initialized,
     isNewUser,
     displayName,
+    userEmail,
+    sessionSummary,
+    lastSessionDate,
     errorMessage,
     checkpointError,
     sendMessage,

@@ -23,12 +23,12 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
     return (
       <div
         style={{
-          maxWidth: "520px",
+          maxWidth: "calc(100vw - 48px)",
           width: "100%",
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "var(--color-surface)",
           borderRadius: "16px",
-          padding: "48px",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+          padding: "32px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -42,7 +42,7 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
             fontFamily: "var(--font-serif)",
             fontSize: "18px",
             lineHeight: 1.75,
-            color: "var(--color-text-primary)",
+            color: "var(--color-text)",
             margin: 0,
             textAlign: "center",
           }}
@@ -56,12 +56,12 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
   return (
     <div
       style={{
-        maxWidth: "520px",
+        maxWidth: "calc(100vw - 48px)",
         width: "100%",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "var(--color-surface)",
         borderRadius: "16px",
-        padding: "48px",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+        padding: "32px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -70,7 +70,7 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
             fontFamily: "var(--font-serif)",
             fontSize: "18px",
             lineHeight: 1.75,
-            color: "var(--color-text-primary)",
+            color: "var(--color-text)",
             margin: 0,
           }}
         >
@@ -82,7 +82,7 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
             fontFamily: "var(--font-serif)",
             fontSize: "18px",
             lineHeight: 1.75,
-            color: "var(--color-text-primary)",
+            color: "var(--color-text)",
             margin: 0,
           }}
         >
@@ -94,7 +94,7 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
             fontFamily: "var(--font-serif)",
             fontSize: "18px",
             lineHeight: 1.75,
-            color: "var(--color-text-primary)",
+            color: "var(--color-text)",
             margin: 0,
           }}
         >
@@ -106,6 +106,7 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
           justifyContent: "center",
           gap: "12px",
           marginTop: "32px",
@@ -116,8 +117,8 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
           style={{
             padding: "12px 28px",
             backgroundColor: "transparent",
-            color: "var(--color-text-secondary)",
-            border: "1px solid var(--color-border)",
+            color: "var(--color-text-ghost)",
+            border: "1px solid var(--color-divider)",
             borderRadius: "8px",
             fontFamily: "var(--font-sans)",
             fontWeight: 500,
@@ -132,8 +133,8 @@ export default function WelcomeCard({ onReady, onDismiss }: WelcomeCardProps) {
           style={{
             padding: "12px 28px",
             backgroundColor: "transparent",
-            color: "var(--color-text-primary)",
-            border: "1px solid var(--color-border)",
+            color: "var(--color-text)",
+            border: "1px solid var(--color-divider)",
             borderRadius: "8px",
             fontFamily: "var(--font-sans)",
             fontWeight: 500,

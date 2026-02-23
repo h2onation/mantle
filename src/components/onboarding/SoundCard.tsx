@@ -34,19 +34,20 @@ export default function SoundCard({ onSelect }: SoundCardProps) {
   return (
     <div
       style={{
-        maxWidth: "520px",
+        maxWidth: "calc(100vw - 48px)",
         width: "100%",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "var(--color-surface)",
         borderRadius: "16px",
-        padding: "48px",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+        padding: "32px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        border: "1px solid var(--color-divider)",
       }}
     >
       <p
         style={{
           fontFamily: "var(--font-serif)",
           fontSize: "20px",
-          color: "var(--color-text-primary)",
+          color: "var(--color-text)",
           margin: "0 0 24px 0",
         }}
       >
@@ -57,7 +58,7 @@ export default function SoundCard({ onSelect }: SoundCardProps) {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "12px",
+          gap: "10px",
         }}
       >
         {OPTIONS.map((option) => {
@@ -76,21 +77,21 @@ export default function SoundCard({ onSelect }: SoundCardProps) {
               disabled={selected !== undefined}
               style={{
                 backgroundColor: isSelected
-                  ? "rgba(92, 107, 94, 0.1)"
-                  : "var(--color-bg-input)",
+                  ? "var(--color-accent-ghost)"
+                  : "var(--color-void)",
                 border: `1px solid ${
                   isSelected
                     ? "var(--color-accent)"
                     : isHovered
-                    ? "var(--color-text-muted)"
-                    : "var(--color-border)"
+                    ? "var(--color-text-ghost)"
+                    : "var(--color-divider)"
                 }`,
                 borderRadius: "12px",
                 padding: "16px 24px",
                 fontFamily: "var(--font-sans)",
                 fontWeight: 500,
                 fontSize: "15px",
-                color: "var(--color-text-primary)",
+                color: "var(--color-text)",
                 cursor: selected !== undefined ? "default" : "pointer",
                 transition: "border-color 0.15s ease, background-color 0.15s ease",
                 textAlign: "left",

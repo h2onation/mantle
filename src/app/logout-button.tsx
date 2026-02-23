@@ -19,8 +19,8 @@ export default function LogoutButton() {
       style={{
         padding: "10px 24px",
         backgroundColor: "transparent",
-        color: "#2C2C2C",
-        border: "1px solid #2C2C2C",
+        color: "var(--color-text)",
+        border: "1px solid var(--color-divider)",
         borderRadius: "8px",
         fontSize: "14px",
         fontWeight: 500,

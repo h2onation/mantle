@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div
         style={{
           minHeight: "100vh",
-          backgroundColor: "#F5F0E8",
+          backgroundColor: "var(--color-void)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -86,7 +86,7 @@ export default function LoginPage() {
                 inset: 0,
                 borderRadius: "50%",
                 border: "1.5px solid transparent",
-                borderTopColor: i === 0 ? "#5C6B5E" : i === 1 ? "#B5AFA6" : "#E5DFD5",
+                borderTopColor: i === 0 ? "var(--color-accent)" : i === 1 ? "var(--color-text-ghost)" : "var(--color-divider)",
                 animation: `mantleSpinner ${1.2 + i * 0.3}s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite`,
                 animationDirection: i === 1 ? "reverse" : "normal",
                 transform: `scale(${1 - i * 0.2})`,
@@ -99,7 +99,7 @@ export default function LoginPage() {
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",
             fontSize: "14px",
-            color: "#B5AFA6",
+            color: "var(--color-text-ghost)",
             margin: 0,
           }}
         >
@@ -123,7 +123,7 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#F5F0E8",
+        backgroundColor: "var(--color-void)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -134,10 +134,11 @@ export default function LoginPage() {
         style={{
           width: "100%",
           maxWidth: "420px",
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "var(--color-surface)",
           borderRadius: "16px",
           padding: "40px 32px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          border: "1px solid var(--color-divider)",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
@@ -145,7 +146,7 @@ export default function LoginPage() {
             style={{
               fontFamily: "var(--font-serif)",
               fontSize: "32px",
-              color: "#2C2C2C",
+              color: "var(--color-text)",
               margin: "0 0 8px 0",
               fontWeight: 400,
             }}
@@ -156,7 +157,7 @@ export default function LoginPage() {
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "16px",
-              color: "#8C8478",
+              color: "var(--color-text-dim)",
               margin: 0,
             }}
           >
@@ -170,7 +171,7 @@ export default function LoginPage() {
             marginBottom: "24px",
             borderRadius: "8px",
             overflow: "hidden",
-            border: "1px solid #E5DFD5",
+            border: "1px solid var(--color-divider)",
           }}
         >
           <button
@@ -184,8 +185,8 @@ export default function LoginPage() {
               fontFamily: "var(--font-sans)",
               fontSize: "14px",
               fontWeight: 500,
-              backgroundColor: !isSignUp ? "#5C6B5E" : "#FAF7F2",
-              color: !isSignUp ? "#FFFFFF" : "#8C8478",
+              backgroundColor: !isSignUp ? "var(--color-accent)" : "var(--color-void)",
+              color: !isSignUp ? "var(--color-void)" : "var(--color-text-dim)",
               transition: "all 0.2s",
             }}
           >
@@ -198,13 +199,13 @@ export default function LoginPage() {
               flex: 1,
               padding: "10px",
               border: "none",
-              borderLeft: "1px solid #E5DFD5",
+              borderLeft: "1px solid var(--color-divider)",
               cursor: "pointer",
               fontFamily: "var(--font-sans)",
               fontSize: "14px",
               fontWeight: 500,
-              backgroundColor: isSignUp ? "#5C6B5E" : "#FAF7F2",
-              color: isSignUp ? "#FFFFFF" : "#8C8478",
+              backgroundColor: isSignUp ? "var(--color-accent)" : "var(--color-void)",
+              color: isSignUp ? "var(--color-void)" : "var(--color-text-dim)",
               transition: "all 0.2s",
             }}
           >
@@ -215,7 +216,7 @@ export default function LoginPage() {
         {error && (
           <p
             style={{
-              color: "#B5756A",
+              color: "#B5564D",
               fontSize: "14px",
               fontFamily: "var(--font-sans)",
               margin: "0 0 16px 0",
@@ -237,12 +238,12 @@ export default function LoginPage() {
                 width: "100%",
                 padding: "12px 16px",
                 marginBottom: "12px",
-                backgroundColor: "#FAF7F2",
-                border: "1px solid #E5DFD5",
+                backgroundColor: "var(--color-void)",
+                border: "1px solid var(--color-divider)",
                 borderRadius: "8px",
                 fontSize: "14px",
                 fontFamily: "var(--font-sans)",
-                color: "#2C2C2C",
+                color: "var(--color-text)",
                 outline: "none",
                 boxSizing: "border-box",
               }}
@@ -258,12 +259,12 @@ export default function LoginPage() {
               width: "100%",
               padding: "12px 16px",
               marginBottom: "12px",
-              backgroundColor: "#FAF7F2",
-              border: "1px solid #E5DFD5",
+              backgroundColor: "var(--color-void)",
+              border: "1px solid var(--color-divider)",
               borderRadius: "8px",
               fontSize: "14px",
               fontFamily: "var(--font-sans)",
-              color: "#2C2C2C",
+              color: "var(--color-text)",
               outline: "none",
               boxSizing: "border-box",
             }}
@@ -278,12 +279,12 @@ export default function LoginPage() {
               width: "100%",
               padding: "12px 16px",
               marginBottom: "20px",
-              backgroundColor: "#FAF7F2",
-              border: "1px solid #E5DFD5",
+              backgroundColor: "var(--color-void)",
+              border: "1px solid var(--color-divider)",
               borderRadius: "8px",
               fontSize: "14px",
               fontFamily: "var(--font-sans)",
-              color: "#2C2C2C",
+              color: "var(--color-text)",
               outline: "none",
               boxSizing: "border-box",
             }}
@@ -294,8 +295,8 @@ export default function LoginPage() {
             style={{
               width: "100%",
               padding: "12px",
-              backgroundColor: "#5C6B5E",
-              color: "#FFFFFF",
+              backgroundColor: "var(--color-accent)",
+              color: "var(--color-void)",
               border: "none",
               borderRadius: "8px",
               fontSize: "14px",
@@ -322,17 +323,17 @@ export default function LoginPage() {
             gap: "12px",
           }}
         >
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#E5DFD5" }} />
+          <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-divider)" }} />
           <span
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: "#8C8478",
+              color: "var(--color-text-ghost)",
             }}
           >
             or
           </span>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#E5DFD5" }} />
+          <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-divider)" }} />
         </div>
 
         <button
@@ -343,8 +344,8 @@ export default function LoginPage() {
             width: "100%",
             padding: "12px",
             backgroundColor: "transparent",
-            color: "#2C2C2C",
-            border: "1px solid #2C2C2C",
+            color: "var(--color-text)",
+            border: "1px solid var(--color-divider)",
             borderRadius: "8px",
             fontSize: "14px",
             fontWeight: 500,

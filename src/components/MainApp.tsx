@@ -1,117 +1,49 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@/lib/hooks/useChat";
-import { useAudio } from "@/components/providers/AudioProvider";
-import AppLayout from "@/components/layout/AppLayout";
-import LeftNav from "@/components/layout/LeftNav";
-import ChatPane from "@/components/layout/ChatPane";
-import ContextPane from "@/components/context/ContextPane";
-import ConversationHistory from "@/components/chat/ConversationHistory";
+import { useOnboarding } from "@/lib/hooks/useOnboarding";
+import MobileLayout from "@/components/layout/MobileLayout";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
+import MobileSession from "@/components/mobile/MobileSession";
+import MobileManual from "@/components/mobile/MobileManual";
+import MobileGuidance from "@/components/mobile/MobileGuidance";
+import MobileSettings from "@/components/mobile/MobileSettings";
 
 export default function MainApp() {
   const {
     messages,
     conversationId,
     isLoading,
+    isStreaming,
     activeCheckpoint,
     confirmedComponents,
     initialized,
     isNewUser,
-    displayName,
+    sessionSummary,
+    lastSessionDate,
+    userEmail,
     errorMessage,
     checkpointError,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
-    loadConversation,
-    startNewConversation,
-    supabase,
   } = useChat();
 
-  const { autoplayBlocked, resumeAutoplay } = useAudio();
-
-  const [input, setInput] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isBlurred, setIsBlurred] = useState(false);
-  const [skipWelcome, setSkipWelcome] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const dismissReopenRef = useRef(false);
-
-  // Determine onboarding state once useChat signals isNewUser
-  useEffect(() => {
-    if (!initialized || !isNewUser) return;
-
-    const completed = localStorage.getItem("mantle_onboarding_completed");
-    if (completed === "true") return;
-
-    const wasDismissed = localStorage.getItem("mantle_onboarding_dismissed");
-    if (wasDismissed === "true") {
-      setSkipWelcome(true);
-    }
-
-    setShowOnboarding(true);
-    setIsBlurred(true);
-  }, [initialized, isNewUser]);
-
-  const handleOnboardingComplete = useCallback(
-    (focusText: string, selectedSound: string | null) => {
-      // Sound is already saved to localStorage by AudioProvider.play()
-      // If no sound selected, clear any existing preference
-      if (!selectedSound) {
-        localStorage.removeItem("mantle_session_sound");
-      }
-      localStorage.setItem("mantle_onboarding_completed", "true");
-
-      setShowOnboarding(false);
-      setIsBlurred(false);
-
-      // Send the user's focus text as their first message
-      sendMessage(focusText);
-    },
-    [sendMessage]
-  );
-
-  const handleOnboardingDismiss = useCallback(() => {
-    localStorage.setItem("mantle_onboarding_dismissed", "true");
-    setShowOnboarding(false);
-    setIsBlurred(false);
-    setDismissed(true);
-  }, []);
-
-  // After dismissal, re-open onboarding (at sound card) on first input interaction
-  const handleInputFocus = useCallback(() => {
-    if (dismissed && !dismissReopenRef.current) {
-      dismissReopenRef.current = true;
-      setSkipWelcome(true);
-      setShowOnboarding(true);
-      setIsBlurred(true);
-      setDismissed(false);
-    }
-  }, [dismissed]);
-
-  function handleSend() {
-    const text = input.trim();
-    if (!text) return;
-    setInput("");
-    sendMessage(text);
-  }
-
-  const userInitials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const {
+    showOnboarding,
+    isBlurred,
+    skipWelcome,
+    handleComplete,
+    handleDismiss,
+    handleInputFocus,
+  } = useOnboarding({ initialized, isNewUser, sendMessage });
 
   if (!initialized) {
     return (
       <div
         style={{
           height: "100vh",
-          backgroundColor: "var(--color-bg-primary)",
+          backgroundColor: "var(--color-void)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -128,7 +60,12 @@ export default function MainApp() {
                 inset: 0,
                 borderRadius: "50%",
                 border: "1.5px solid transparent",
-                borderTopColor: i === 0 ? "#5C6B5E" : i === 1 ? "#B5AFA6" : "#E5DFD5",
+                borderTopColor:
+                  i === 0
+                    ? "var(--color-accent)"
+                    : i === 1
+                      ? "var(--color-text-ghost)"
+                      : "var(--color-divider)",
                 animation: `mantleSpinner ${1.2 + i * 0.3}s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite`,
                 animationDirection: i === 1 ? "reverse" : "normal",
                 transform: `scale(${1 - i * 0.2})`,
@@ -141,7 +78,7 @@ export default function MainApp() {
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",
             fontSize: "14px",
-            color: "var(--color-text-muted)",
+            color: "var(--color-text-ghost)",
             margin: 0,
             animation: "mantleFadeIn 0.8s ease-out",
           }}
@@ -164,53 +101,44 @@ export default function MainApp() {
 
   return (
     <>
-      <ConversationHistory
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        onSelect={(convId) => loadConversation(convId)}
-        onNewConversation={() => startNewConversation()}
-        activeConversationId={conversationId}
-        supabase={supabase}
-      />
-      <AppLayout
+      <MobileLayout
         isBlurred={isBlurred}
-        leftNav={
-          <LeftNav
-            displayName={displayName}
-            hasManualComponents={confirmedComponents.length > 0}
-          />
-        }
-        chatPane={
-          <ChatPane
+        sessionContent={
+          <MobileSession
             messages={messages}
+            conversationId={conversationId}
             isLoading={isLoading}
-            input={input}
-            onInputChange={setInput}
-            onSend={handleSend}
-            onHistoryToggle={() => setHistoryOpen(true)}
+            isStreaming={isStreaming}
+            isNewUser={isNewUser}
+            sessionSummary={sessionSummary}
+            lastSessionDate={lastSessionDate}
+            confirmedComponents={confirmedComponents}
+            activeCheckpoint={activeCheckpoint}
+            checkpointError={checkpointError}
             errorMessage={errorMessage}
-            onRetry={retryLastMessage}
+            sendMessage={sendMessage}
+            retryLastMessage={retryLastMessage}
+            confirmCheckpoint={confirmCheckpoint}
             onInputFocus={handleInputFocus}
-            autoplayBlocked={autoplayBlocked}
-            onResumeAudio={resumeAutoplay}
           />
         }
-        contextPane={
-          <ContextPane
-            userInitials={userInitials}
-            manualComponents={confirmedComponents}
-            activeCheckpoint={activeCheckpoint}
-            onCheckpointConfirm={() => confirmCheckpoint("confirmed")}
-            onCheckpointRefine={() => confirmCheckpoint("refined")}
-            onCheckpointReject={() => confirmCheckpoint("rejected")}
-            checkpointError={checkpointError}
+        manualContent={
+          <MobileManual components={confirmedComponents} />
+        }
+        guidanceContent={
+          <MobileGuidance confirmedCount={confirmedComponents.length} />
+        }
+        settingsContent={
+          <MobileSettings
+            userEmail={userEmail}
+            sessionCount={conversationId ? 1 : 0}
           />
         }
       />
       {showOnboarding && (
         <OnboardingOverlay
-          onComplete={handleOnboardingComplete}
-          onDismiss={handleOnboardingDismiss}
+          onComplete={handleComplete}
+          onDismiss={handleDismiss}
           skipWelcome={skipWelcome}
         />
       )}

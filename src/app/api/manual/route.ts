@@ -20,12 +20,5 @@ export async function GET() {
     .order("layer", { ascending: true })
     .order("type", { ascending: true });
 
-  const items = components || [];
-
-  const gateReached =
-    [1, 2, 3].every((layer) =>
-      items.some((c) => c.layer === layer && c.type === "component")
-    );
-
-  return Response.json({ components: items, gateReached });
+  return Response.json({ components: components || [] });
 }

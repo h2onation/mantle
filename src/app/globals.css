@@ -3,19 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-primary: #F5F0E8;
-  --color-bg-secondary: #EDE8DF;
-  --color-bg-input: #FAF7F2;
-  --color-text-primary: #2C2C2C;
-  --color-text-secondary: #8C8478;
-  --color-text-muted: #B5AFA6;
-  --color-border: #E5DFD5;
-  --color-accent: #5C6B5E;
-  --color-accent-hover: #4A5C4F;
-  --color-checkpoint-bg: rgba(201, 149, 90, 0.08);
-  --color-error: #B5756A;
+  /* Base */
+  --color-void: #0C0B0A;
+  --color-surface: #161513;
+  --color-text: #E2E0DB;
+  --color-text-dim: rgba(226, 224, 219, 0.55);
+  --color-text-ghost: rgba(226, 224, 219, 0.25);
+  --color-divider: rgba(226, 224, 219, 0.06);
+
+  /* Sage theme (default) */
+  --color-accent: #8BA888;
+  --color-accent-dim: rgba(139, 168, 136, 0.4);
+  --color-accent-ghost: rgba(139, 168, 136, 0.08);
+  --color-accent-glow: rgba(139, 168, 136, 0.12);
+  --color-warm: #141816;
+
+  /* Font variables */
+  --font-serif: var(--font-instrument-serif);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+[data-theme="ember"] {
+  --color-accent: #D4A574;
+  --color-accent-dim: rgba(212, 165, 116, 0.4);
+  --color-accent-ghost: rgba(212, 165, 116, 0.08);
+  --color-accent-glow: rgba(212, 165, 116, 0.12);
+  --color-warm: #1E1B18;
 }
 
 body {
   margin: 0;
+  background-color: var(--color-void);
+  color: var(--color-text);
+}
+
+/* Thin dark scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-divider);
+  border-radius: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-divider) transparent;
+}
+
+/* Checkpoint fade-in */
+@keyframes checkpointFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sage thinking pulse */
+@keyframes sagePulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
