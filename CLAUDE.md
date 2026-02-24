@@ -1,6 +1,6 @@
 # Mantle
 
-Mantle is a mobile-first web app where an AI conversationalist called Sage builds a three-layer behavioral model ("User Manual") through deep conversation — nothing enters the manual unless the user confirms it.
+Mantle is a mobile-first web app where an AI conversationalist called Sage builds a five-layer behavioral model ("User Manual") through deep conversation — nothing enters the manual unless the user confirms it.
 
 - **Repo**: https://github.com/h2onation/mantle.git
 - **Live URL**: Not yet deployed (or configured entirely via Vercel dashboard — no project-level config files exist)
@@ -72,7 +72,7 @@ Auto-created via trigger `on_auth_user_created`.
 **`checkpoint_meta` JSON shape:**
 ```json
 {
-  "layer": 1 | 2 | 3,
+  "layer": 1 | 2 | 3 | 4 | 5,
   "type": "component" | "pattern",
   "name": "The Proposed Name" | null,
   "status": "pending" | "confirmed" | "rejected" | "refined"
@@ -85,7 +85,7 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 |--------|------|-------|
 | `id` | uuid PK | |
 | `user_id` | uuid FK | to profiles. **User-level, NOT conversation-level.** |
-| `layer` | integer | 1, 2, or 3 |
+| `layer` | integer | 1 through 5 |
 | `type` | text | 'component' or 'pattern' |
 | `name` | text | Nullable. Normalized to lowercase. |
 | `content` | text | Full checkpoint text |
@@ -94,7 +94,7 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 | `updated_at` | timestamptz | Auto-updated via trigger |
 
 **Accumulation rules:**
-- **Components**: Exactly 1 per layer per user (max 3 total). Upserting replaces. Enforced by partial unique index `unique_component_per_layer` on `(user_id, layer) WHERE type = 'component'`.
+- **Components**: Exactly 1 per layer per user (max 5 total). Upserting replaces. Enforced by partial unique index `unique_component_per_layer` on `(user_id, layer) WHERE type = 'component'`.
 - **Patterns**: Unlimited per layer, unique by name. Same name in same layer = replace. New name = new row. Enforced by partial unique index `unique_pattern_name_per_layer` on `(user_id, layer, name) WHERE type = 'pattern'`.
 - Upsert uses select-then-insert/update (not Postgres `ON CONFLICT`) because partial unique indexes make standard upsert tricky.
 
@@ -282,23 +282,25 @@ Always-on chat view with a side drawer for session management. No idle/active st
 
 Full height, `overflowY: auto`, padding `40px 24px 56px`. Faint decorative glow (fixed, top 5%, right 20%, 120px circle, `--color-accent-glow` opacity 0.03).
 
+Renders all 5 layers in order. Each layer shows its header, then its component and patterns (if confirmed), or "Forming..." if empty. Patterns are nested within their parent layer, not shown as separate top-level items.
+
 | Element | Font | Size | Color | Notes |
 |---------|------|------|-------|-------|
 | Header | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. "MANUAL . N CONFIRMED" |
-| Empty state | `--font-serif` italic | 16px | `--color-text-ghost` | "Your manual will form as you go." |
-| Component label | `--font-mono` | 8px | `--color-accent` opacity 0.7 | letter-spacing 2px, uppercase. "01 -- COMPONENT" or "01 -- PATTERN" |
+| Empty state | `--font-serif` italic | 16px | `--color-text-ghost` | "Your manual will form as you go." Shows when no components exist. |
+| Layer header | `--font-mono` | 8px | `--color-accent` opacity 0.7 | letter-spacing 2px, uppercase. "01 — WHAT DRIVES YOU" through "05 — YOUR RELATIONSHIP TO OTHERS" |
+| Pattern sub-label | `--font-mono` | 8px | `--color-accent` opacity 0.5 | "PATTERN — NAME" within a layer |
 | Passage text | `--font-serif` | 16px | `--color-text` | line-height 1.8, letter-spacing -0.1px. Rendered via `renderMarkdown()` |
 | Date | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 1px. Format "MMM D" |
 | "Still true?" | `--font-mono` | 8px | `--color-accent-dim` | letter-spacing 1px. No click handler (display only). |
-| Divider | — | 1px height | `linear-gradient(90deg, var(--color-accent-ghost), transparent)` | margin-bottom 40px |
-| Upcoming layer label | `--font-mono` | 8px | `--color-accent` opacity 0.7 | Entire block at opacity 0.3. Uses LAYER_TYPES: 1=DRIVE, 2=PATTERN, 3=ATTACHMENT |
-| Upcoming placeholder | `--font-serif` italic | 14px | `--color-text-ghost` | "Forming..." |
+| Divider | — | 1px height | `linear-gradient(90deg, var(--color-accent-ghost), transparent)` | Between layers, margin-bottom 40px |
+| Empty layer | opacity 0.3 | — | — | Layer header + "Forming..." placeholder (`--font-serif` italic 14px `--color-text-ghost`) |
 
 ### Guidance (`MobileGuidance.tsx`)
 
-**Locked** (confirmedCount < 5): Centered layout. "Guidance becomes available as your manual develops." (`--font-serif` 20px, `--color-text`). 5 progress bars (24x2px each, gap 4px): filled = `--color-accent` opacity 0.6, empty = `--color-text-ghost` opacity 0.2. Counter "N OF 5" (`--font-mono` 8px, `--color-text-ghost`). Background 200px radial glow.
+**Locked** (confirmedCount < 1): Centered layout. "Guidance becomes available as your manual develops." (`--font-serif` 20px, `--color-text`). 5 progress bars (24x2px each, gap 4px): filled = `--color-accent` opacity 0.6, empty = `--color-text-ghost` opacity 0.2. Counter "N OF 5" (`--font-mono` 8px, `--color-text-ghost`). Background 200px radial glow.
 
-**Unlocked** (confirmedCount >= 5): Header "GUIDANCE" + placeholder "Guidance is available. This feature is coming soon." (`--font-serif` 16px, `--color-text-dim`).
+**Unlocked** (confirmedCount >= 1): Header "GUIDANCE" + placeholder "Guidance is available. This feature is coming soon." (`--font-serif` 16px, `--color-text-dim`).
 
 ### Settings (`MobileSettings.tsx`)
 
@@ -358,9 +360,9 @@ These features were designed, partially built, or referenced, and have been remo
 Sage manages its own mode transitions:
 1. **Mode 1 (Situation-Led)**: Start here. Deepen user's topic vertically.
 2. **Mode 2 (Direct Exploration)**: After 2+ confirmed checkpoints. Targeted questions referencing user's own language.
-3. **Mode 3 (Synthesis)**: When all 3 layers have at least one component. Cross-layer narrative.
+3. **Mode 3 (Synthesis)**: When all 5 layers have at least one component. Cross-layer narrative.
 
-**Readiness Gate**: When all 3 layers confirmed, Sage delivers synthesis and offers "see your manual or keep building." No Advisor mode — removed entirely.
+**Readiness Gate**: When all 5 layers confirmed, Sage delivers synthesis and offers "see your manual or keep building." No Advisor mode — removed entirely.
 
 ## Middleware
 
@@ -405,7 +407,7 @@ src/
     mobile/
       MobileSession.tsx               Always-on chat + side drawer for session history, checkpoint cards
       MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
-      MobileGuidance.tsx              Locked until 5 confirmed, progress bars
+      MobileGuidance.tsx              Locked until 1 confirmed, progress bars
       MobileSettings.tsx              Theme, sound, account, history, export, delete
       MobileSoundSelector.tsx         Sound picker dropdown + SoundIndicator export
     onboarding/
@@ -451,7 +453,7 @@ src/
 ## Not Yet Functional
 
 - **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
-- **Guidance tab**: Locked until 5 confirmed. Unlocked state is placeholder only.
+- **Guidance tab**: Locked until 1 confirmed. Unlocked state is placeholder only.
 - **Logout**: No UI anywhere
 - **"Still true?"**: Label on manual components has no click handler
 
@@ -477,6 +479,14 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - Dead features: session hub idle state (replaced by drawer)
 - `MainApp.tsx` passes `conversations.length` to fix session count bug in Settings
 - Session history moved from "Not Yet Functional" to "What Works End-to-End"
+
+**2026-02-23 — 5-layer model migration**
+- Migrated from legacy 3-layer model to 5-layer model per Product Brief v1.3
+- Old layers: 1=What Drives You, 2=How You React, 3=How You Relate
+- New layers: 1=What Drives You, 2=Your Self Perception, 3=Your Reaction System, 4=How You Operate, 5=Your Relationship to Others
+- Updated: `schema.sql` CHECK constraint, `system-prompt.ts` (layerNames, descriptions, mode triggers, readiness gate), `classifier.ts` (JSON schema, layer guide), `MobileManual.tsx` (LAYER_TYPES, upcoming layers array, empty state check)
+- `MobileGuidance.tsx` gate lowered from `>= 5` to `>= 1` (guidance available with any confirmed content)
+- DB migration required: `ALTER TABLE manual_components DROP CONSTRAINT ...; ALTER TABLE manual_components ADD CONSTRAINT ... CHECK (layer in (1, 2, 3, 4, 5));`
 
 ## Known Issues
 

@@ -80,7 +80,7 @@ create policy "Users can update own messages"
 create table public.manual_components (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
-  layer integer not null check (layer in (1, 2, 3)),
+  layer integer not null check (layer in (1, 2, 3, 4, 5)),
   type text not null check (type in ('component', 'pattern')),
   name text,
   content text not null,

@@ -31,12 +31,14 @@ export async function classifyResponse(
 2. PROCESSING TEXT: Generate a short phrase (5-12 words) representing what Sage is currently tracking. Should sound like internal notes. Examples: "trust patterns... conditional, earned not given" or "the shutdown is protection, not avoidance" or "seeing a loop forming around control and withdrawal"
 
 Respond with ONLY this JSON, no markdown, no backticks:
-{"is_checkpoint":true/false,"layer":null or 1 or 2 or 3,"type":null or "component" or "pattern","name":null or "The Proposed Name","processing_text":"short tracking phrase"}
+{"is_checkpoint":true/false,"layer":null or 1 or 2 or 3 or 4 or 5,"type":null or "component" or "pattern","name":null or "The Proposed Name","processing_text":"short tracking phrase"}
 
 Layer guide:
-Layer 1 (What Drives You): needs, values, motivation, what they protect
-Layer 2 (How You React): beliefs, emotional processing, coping, pressure responses
-Layer 3 (How You Relate): communication, trust, conflict, relational patterns
+Layer 1 (What Drives You): needs, values, motivation, what they protect, what they compete for under pressure
+Layer 2 (Your Self Perception): beliefs about self, identity, emotional processing, how self-image shapes decisions
+Layer 3 (Your Reaction System): internal operating system under pressure, beliefs about the world, protective strategies, coping responses
+Layer 4 (How You Operate): thinking style, decision-making, energy management, handling complexity, operational defaults
+Layer 5 (Your Relationship to Others): communication, trust, repair, conflict patterns, how others actually experience them
 
 If checkpoint: pick strongest layer. Recurring loop (trigger → response → cost) = "pattern". Broader narrative = "component". Extract headline if present.`,
       messages: [
