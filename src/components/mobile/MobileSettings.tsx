@@ -7,6 +7,7 @@ import MobileSoundSelector from "./MobileSoundSelector";
 interface MobileSettingsProps {
   userEmail: string;
   sessionCount: number;
+  onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
 }
 
 const SOUND_LABELS: Record<string, string> = {
@@ -18,6 +19,7 @@ const SOUND_LABELS: Record<string, string> = {
 export default function MobileSettings({
   userEmail,
   sessionCount,
+  onSimulationEvent,
 }: MobileSettingsProps) {
   const [theme, setTheme] = useState<"sage" | "ember">("sage");
 
@@ -27,6 +29,8 @@ export default function MobileSettings({
   }, []);
   const [showSoundSelector, setShowSoundSelector] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
   const { isPlaying, currentTrack } = useAudio();
 
   function handleThemeToggle() {
@@ -44,6 +48,78 @@ export default function MobileSettings({
     await fetch("/api/dev-reset", { method: "POST" });
     localStorage.clear();
     window.location.reload();
+  }
+
+  async function handleSimulate() {
+    setSimulating(true);
+    setSimStatus("Starting simulation...");
+
+    let simConversationId: string | null = null;
+
+    try {
+      const res = await fetch("/api/dev-simulate", { method: "POST" });
+      if (!res.ok) {
+        setSimStatus("Failed to start simulation");
+        setSimulating(false);
+        return;
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === "started") {
+              // Switch to session tab immediately
+              simConversationId = event.conversationId;
+              if (onSimulationEvent) {
+                onSimulationEvent("start", event.conversationId);
+              }
+            } else if (event.type === "turn") {
+              setSimStatus(`Turn ${event.turn}...`);
+            } else if (event.type === "turn_complete") {
+              if (event.conversationId) simConversationId = event.conversationId;
+              setSimStatus(`Turn ${event.turn} complete`);
+
+              // Reload messages to show new turn
+              if (simConversationId && onSimulationEvent) {
+                onSimulationEvent("turn", simConversationId);
+              }
+            } else if (event.type === "checkpoint") {
+              if (event.conversationId) simConversationId = event.conversationId;
+              setSimStatus(`Checkpoint at turn ${event.turn}!`);
+
+              if (simConversationId && onSimulationEvent) {
+                onSimulationEvent("checkpoint", simConversationId);
+              }
+            } else if (event.type === "complete") {
+              setSimStatus(
+                `Done — ${event.totalTurns} turns${event.totalTurns >= 10 ? ", no checkpoint detected" : ""}`
+              );
+            } else if (event.type === "error") {
+              setSimStatus("Simulation failed");
+            }
+          } catch {
+            // skip malformed SSE
+          }
+        }
+      }
+    } catch {
+      setSimStatus("Simulation failed");
+    } finally {
+      setSimulating(false);
+    }
   }
 
   const soundLabel =
@@ -270,6 +346,52 @@ export default function MobileSettings({
         >
           PDF or text
         </p>
+      </div>
+
+      {/* Simulate user */}
+      <div
+        style={{
+          padding: "18px 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <button
+          onClick={handleSimulate}
+          disabled={simulating}
+          style={{
+            width: "100%",
+            background: "none",
+            border: "none",
+            cursor: simulating ? "default" : "pointer",
+            textAlign: "left",
+            padding: 0,
+            opacity: simulating ? 0.5 : 1,
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-accent)",
+              letterSpacing: "0.2px",
+              margin: 0,
+            }}
+          >
+            {simulating ? "Simulating..." : "Simulate user"}
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              color: "var(--color-text-ghost)",
+              letterSpacing: "0.5px",
+              margin: "3px 0 0 0",
+            }}
+          >
+            {simStatus}
+          </p>
+        </button>
       </div>
 
       {/* Delete everything */}

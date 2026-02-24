@@ -208,7 +208,8 @@ export function callSage({
           .map((m) => `${m.role}: ${m.content}`)
           .join("\n\n");
 
-        const classification = await classifyResponse(fullText, recentText);
+        const isFirstSession = !manualComponents || manualComponents.length === 0;
+        const classification = await classifyResponse(fullText, recentText, isFirstSession);
 
         // 10. Update message with checkpoint and processing text
         if (messageId) {

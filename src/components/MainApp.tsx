@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import { useOnboarding } from "@/lib/hooks/useOnboarding";
 import MobileLayout from "@/components/layout/MobileLayout";
+import type { MobileTab } from "@/components/layout/MobileNav";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
@@ -10,6 +12,8 @@ import MobileGuidance from "@/components/mobile/MobileGuidance";
 import MobileSettings from "@/components/mobile/MobileSettings";
 
 export default function MainApp() {
+  const [activeTab, setActiveTab] = useState<MobileTab>("session");
+
   const {
     messages,
     conversationId,
@@ -24,11 +28,13 @@ export default function MainApp() {
     userEmail,
     errorMessage,
     checkpointError,
+    processingText,
     conversations,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,
+    loadConversation,
     startNewSession,
     refreshConversations,
   } = useChat();
@@ -41,6 +47,13 @@ export default function MainApp() {
     handleDismiss,
     handleInputFocus,
   } = useOnboarding({ initialized, isNewUser, sendMessage });
+
+  const handleSimulationEvent = useCallback((type: string, conversationId: string) => {
+    loadConversation(conversationId);
+    if (type === "start") {
+      setActiveTab("session");
+    }
+  }, [loadConversation]);
 
   if (!initialized) {
     return (
@@ -107,6 +120,8 @@ export default function MainApp() {
     <>
       <MobileLayout
         isBlurred={isBlurred}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         sessionContent={
           <MobileSession
             messages={messages}
@@ -119,6 +134,7 @@ export default function MainApp() {
             confirmedComponents={confirmedComponents}
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
+            processingText={processingText}
             errorMessage={errorMessage}
             conversations={conversations}
             sendMessage={sendMessage}
@@ -140,6 +156,7 @@ export default function MainApp() {
           <MobileSettings
             userEmail={userEmail}
             sessionCount={conversations.length}
+            onSimulationEvent={handleSimulationEvent}
           />
         }
       />
