@@ -62,6 +62,7 @@ export function useChat() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
+  const [processingText, setProcessingText] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
 
   const initStarted = useRef(false);
@@ -192,6 +193,10 @@ export function useChat() {
         }
         return updated;
       });
+    }
+
+    if (completeEvent.processingText) {
+      setProcessingText(completeEvent.processingText);
     }
 
     if (completeEvent.conversationId && !conversationId) {
@@ -501,6 +506,55 @@ export function useChat() {
     }
   }
 
+  /**
+   * Load (or reload) a conversation's messages from DB.
+   * No guards — always fetches. Detects pending checkpoints.
+   */
+  async function loadConversation(targetConversationId: string) {
+    if (targetConversationId !== conversationId) {
+      setConversationId(targetConversationId);
+      setErrorMessage(null);
+      setCheckpointError(null);
+    }
+
+    // Reset checkpoint before reloading
+    setActiveCheckpoint(null);
+
+    const { data: dbMessages } = await supabase
+      .from("messages")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
+      .eq("conversation_id", targetConversationId)
+      .order("created_at", { ascending: true });
+
+    if (dbMessages) {
+      const chatMessages: ChatMessage[] = dbMessages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          isCheckpoint: m.is_checkpoint || false,
+          checkpointMeta: m.checkpoint_meta || null,
+        }));
+      setMessages(chatMessages);
+
+      // Detect pending checkpoint in the last message
+      const lastMsg = dbMessages[dbMessages.length - 1];
+      if (
+        lastMsg?.is_checkpoint &&
+        lastMsg.checkpoint_meta?.status === "pending"
+      ) {
+        setActiveCheckpoint({
+          messageId: lastMsg.id,
+          layer: lastMsg.checkpoint_meta.layer,
+          type: lastMsg.checkpoint_meta.type,
+          name: lastMsg.checkpoint_meta.name,
+          content: lastMsg.content,
+        });
+      }
+    }
+  }
+
   async function startNewSession() {
     if (isLoading || isStreaming) return;
 
@@ -544,11 +598,13 @@ export function useChat() {
     lastSessionDate,
     errorMessage,
     checkpointError,
+    processingText,
     conversations,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,
+    loadConversation,
     startNewSession,
     refreshConversations,
   };

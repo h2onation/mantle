@@ -29,7 +29,7 @@ export async function generateSessionSummary(
 
   try {
     const response = await anthropicFetch({
-      model: "claude-haiku-4-5-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       system:
         "Summarize this conversation between a user and Sage (an AI building behavioral models). Focus on: topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into Sage's context next session.",

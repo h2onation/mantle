@@ -20,7 +20,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Supabase**: Postgres + Auth (magic link + Google OAuth). RLS on all tables. Supabase project ref `nkmperzwcmttdkxwhbiv`.
 - **Anthropic API** via raw `fetch` (no SDK, `@anthropic-ai/sdk` was removed). Two models:
   - `claude-sonnet-4-6` — Sage conversation (in `call-sage.ts`)
-  - `claude-haiku-4-5-20241022` — classifier (in `classifier.ts`) and session summary (in `session/summary/route.ts`)
+  - `claude-haiku-4-5-20251001` — classifier (in `classifier.ts`) and session summary (in `generate-summary.ts`)
 - **Styling**: All inline `style={{}}`. No CSS classes in components. CSS custom properties in `globals.css`. Tailwind is installed but only its `@tailwind base/components/utilities` directives are used.
 - **Fonts**: Instrument Serif, DM Sans, JetBrains Mono via `next/font/google`
 - **No Vercel config files** in repo — no `vercel.json`, no `.vercel/` directory
@@ -126,6 +126,13 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 ### POST /api/session/summary — Edge Runtime
 - **Body**: `{ conversationId: string }`
 - Generates summary via shared `generateSessionSummary()` utility, stores on conversation record.
+
+### POST /api/dev-simulate — Edge Runtime
+- **Body**: none
+- **Returns**: SSE stream
+- Runs a simulated conversation with Sage using Haiku-generated user responses. Creates a conversation, sends a pre-scripted opening message about conflict avoidance, then loops (max 15 turns) generating contextual user responses via Haiku (`claude-haiku-4-5-20251001`) and calling `callSage()` for each turn. Stops when a checkpoint is detected. Streams progress events to the client.
+- **SSE events**: `status` (progress text), `turn` (user message preview), `turn_complete` (with conversationId, processingText, hasCheckpoint), `checkpoint` (layer, name, conversationId), `complete` (totalTurns), `error`.
+- Haiku role-swap: conversation history roles are swapped before passing to Haiku (Sage's messages become "user" input, simulated user's become "assistant") so Haiku generates contextual responses to Sage's questions.
 
 ### POST /api/dev-reset — Edge Runtime
 - Deletes messages (FK first), then conversations, then manual_components for the user.
@@ -263,7 +270,7 @@ Always-on chat view with a side drawer for session management. No idle/active st
 | "Does this feel right?" | `--font-serif` italic | 14px | `--color-text-ghost` | Below checkpoint text |
 | "Yes, save this" button | `--font-sans` | 12px, weight 500 | `--color-accent` | border `1px solid var(--color-accent-dim)`, border-radius 20px, padding 6px 16px |
 | "Refine it" / "Skip" buttons | `--font-sans` | 12px, weight 500 | `--color-text-ghost` | border `1px solid var(--color-divider)`, same radius/padding |
-| Typing indicator | — | 12x12px circle | `--color-accent-glow` | `sagePulse 2.5s`. Shows when isLoading and last msg is user. |
+| Typing indicator | — | 12x12px circle | `--color-accent-glow` | `sagePulse 2.5s`. Shows when isLoading and last msg is user. Below dot: `processingText` from previous classifier run (mono 8px, `--color-text-ghost`, 0.5 opacity, `processingTextFadeIn 0.8s`). |
 | Error text | `--font-sans` | 13px | `--color-text-ghost` | Centered with Retry button (`--color-accent`, weight 500) |
 | Input textarea | `--font-sans` | 13px | `--color-text` | Placeholder `"_"` when messages exist, `"Begin anywhere_"` when empty. Enter sends, Shift+Enter newline. Height 44px collapsed, 120px min when focused, max 40vh. |
 
@@ -313,6 +320,7 @@ Header "SETTINGS" (`--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px).
 | Account | Display-only | Shows email. No logout. |
 | Session history | Display-only | Shows "N sessions" (correct count from conversations list). |
 | Export manual | Display-only | Shows "PDF or text". No handler. |
+| Simulate user | Functional | Accent color text. Calls `/api/dev-simulate`, streams SSE. Switches to Session tab on first turn, reloads messages after each turn. Stops at checkpoint. Log panel shows turn progress (mono 8px, ghost). |
 | Delete everything | Functional | Red text `#B5564D`. Confirmation modal. Calls `/api/dev-reset` + `localStorage.clear()` + reload. |
 
 ## Architecture Rules
@@ -392,6 +400,7 @@ src/
       conversations/route.ts          GET Node — list conversations with metadata
       conversations/complete/route.ts POST Edge — mark conversation completed + summarize
       dev-reset/route.ts              POST Edge — delete all user data
+      dev-simulate/route.ts           POST Edge — run simulated conversation until checkpoint
       manual/route.ts                 GET Node — return manual components
       session/summary/route.ts        POST Edge — generate summary via shared utility
     auth/callback/route.ts            GET Node — OAuth callback
@@ -406,6 +415,7 @@ src/
       MobileNav.tsx                   Bottom tab bar with icons + labels
     mobile/
       MobileSession.tsx               Always-on chat + side drawer for session history, checkpoint cards
+      SessionParticles.tsx            Ambient particles: drift during conversation, converge at checkpoint
       MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
       MobileGuidance.tsx              Locked until 1 confirmed, progress bars
       MobileSettings.tsx              Theme, sound, account, history, export, delete
@@ -449,6 +459,7 @@ src/
 - Delete everything: dev-reset API + localStorage.clear + reload
 - Session summary: Haiku, fire-and-forget on stale sessions (>30 min)
 - Session history: side drawer from menu button, browse/switch past sessions, start new session (marks previous as completed + generates summary)
+- Dev simulate: Settings → "Simulate user" → auto-switches to Session tab, messages populate in real-time, stops at checkpoint for manual action
 
 ## Not Yet Functional
 
@@ -488,10 +499,26 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - `MobileGuidance.tsx` gate lowered from `>= 5` to `>= 1` (guidance available with any confirmed content)
 - DB migration required: `ALTER TABLE manual_components DROP CONSTRAINT ...; ALTER TABLE manual_components ADD CONSTRAINT ... CHECK (layer in (1, 2, 3, 4, 5));`
 
+**2026-02-24 — Checkpoint optimization**
+- **First-session acceleration**: `system-prompt.ts` injects conditional FIRST-SESSION ACCELERATION block when `manualComponents.length === 0`, targeting first checkpoint at 4-5 turns instead of 8-15. Also adds a checkpoint explanation message for Sage to weave into 2nd-3rd response.
+- **Classifier threshold**: `classifier.ts` now accepts `isFirstSession` param; lowers word threshold from 100+ to 60+ for first-session users. `call-sage.ts` computes and passes the flag.
+- **processingText visible**: `useChat.ts` now stores `processingText` from `message_complete` SSE events. `MobileSession.tsx` renders it below the typing indicator pulsing dot (mono 8px, ghost color, 0.5 opacity, fade-in animation).
+- **Ambient particles**: New `SessionParticles.tsx` component — 16 pre-defined CSS-only particles using `var(--color-accent)`. Particles appear based on `messageCount` thresholds, increasing in number and opacity as conversation progresses. When a checkpoint arrives, particles converge toward center via `particleConverge` keyframe (1.5s).
+- **CSS keyframes added** to `globals.css`: `processingTextFadeIn`, `particleDrift1-4`, `particleConverge`.
+- **Haiku model ID fix**: Updated from `claude-haiku-4-5-20241022` (404) to `claude-haiku-4-5-20251001` in `classifier.ts` and `generate-summary.ts`.
+
+**2026-02-24 — Dev simulate feature**
+- Added `POST /api/dev-simulate` route (Edge Runtime). Runs a simulated conversation with Sage using Haiku-generated contextual user responses. Stops at first checkpoint. Streams SSE events (status, turn, turn_complete, checkpoint, complete, error).
+- Key design: Haiku role-swap — conversation history roles are swapped before passing to Haiku so it generates contextual responses *to* Sage's questions rather than empty/confused output.
+- `MobileSettings.tsx` gains "Simulate user" button with `onSimulationEvent` callback prop (replaces earlier `onSimulationComplete`). Calls event handler at each stage: `"start"` (first turn), `"turn"` (each subsequent turn), `"checkpoint"` (when checkpoint fires).
+- `MainApp.tsx` lifts `activeTab` state (was previously internal to `MobileLayout`). `handleSimulationEvent` callback calls `loadConversation(id)` on every event and `setActiveTab("session")` on start — user sees messages populate in real-time.
+- `MobileLayout.tsx` now accepts `activeTab` and `onTabChange` as props (no longer manages own tab state).
+- `useChat.ts` gains `loadConversation(id)` — loads messages from DB without guards (unlike `switchConversation` which has same-id and isLoading guards). Detects pending checkpoints in the last message and sets `activeCheckpoint` state so checkpoint cards render from DB-loaded messages.
+
 ## Known Issues
 
 - **Hydration warning**: `data-theme` set by blocking script before React hydrates. Benign — prevents theme flash.
-- **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The 100+ word heuristic is in the classifier's system prompt but not enforced in code — if Haiku returns `isCheckpoint: true` with a layer, it's accepted.
+- **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word heuristic (100+ for returning users, 60+ for first-session) is in the classifier's system prompt but not enforced in code — if Haiku returns `isCheckpoint: true` with a layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling `getUser()` on each page request (which refreshes cookies). If user stays on the SPA without page navigation, token could expire. API routes return 401 -> redirect to `/login` as fallback.
 - **Ghost conversation rows**: If `useChat` init sends `conversationId: null` to `/api/chat` and the user somehow also sends a message before state updates, a second conversation could be created. Mitigated by `initStarted.current` ref guard and `isLoading`/`isStreaming` checks, but not impossible.
 - **OAuth redirect config**: Redirect URL is built dynamically (`window.location.origin + "/auth/callback"`). Supabase dashboard must have each environment's URL (localhost:3000, production domain) in the allowed redirect URLs. No `.env` variable for this.

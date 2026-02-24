@@ -18,15 +18,20 @@ const FALLBACK: ClassificationResult = {
 
 export async function classifyResponse(
   sageResponse: string,
-  recentMessages: string
+  recentMessages: string,
+  isFirstSession?: boolean
 ): Promise<ClassificationResult> {
   try {
+    const checkpointThreshold = isFirstSession
+      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where Sage proposes a component or pattern of the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single-thread observation with one concrete example qualifies as a checkpoint. Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`
+      : `A checkpoint is a sustained reflection (usually 100+ words) where Sage proposes a component or pattern of the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`;
+
     const response = await anthropicFetch({
-      model: "claude-haiku-4-5-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       system: `You analyze messages from a conversational AI called Sage that builds behavioral models. Two jobs:
 
-1. CHECKPOINT DETECTION: Is this message a checkpoint? A checkpoint is a sustained reflection (usually 100+ words) where Sage proposes a component or pattern of the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.
+1. CHECKPOINT DETECTION: Is this message a checkpoint? ${checkpointThreshold}
 
 2. PROCESSING TEXT: Generate a short phrase (5-12 words) representing what Sage is currently tracking. Should sound like internal notes. Examples: "trust patterns... conditional, earned not given" or "the shutdown is protection, not avoidance" or "seeing a loop forming around control and withdrawal"
 

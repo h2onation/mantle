@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
+import SessionParticles from "./SessionParticles";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 
 interface ChatMessage {
@@ -46,6 +47,7 @@ interface MobileSessionProps {
   confirmedComponents: ManualComponent[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
+  processingText: string | null;
   errorMessage: string | null;
   conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
@@ -108,6 +110,7 @@ export default function MobileSession({
   isStreaming,
   activeCheckpoint,
   checkpointError,
+  processingText,
   errorMessage,
   conversations,
   sendMessage,
@@ -122,8 +125,11 @@ export default function MobileSession({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [isConverging, setIsConverging] = useState(false);
+  const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -132,6 +138,17 @@ export default function MobileSession({
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Trigger particle convergence when a checkpoint arrives
+  useEffect(() => {
+    if (activeCheckpoint && !prevCheckpointRef.current) {
+      setIsConverging(true);
+      setCheckpointActionState(null);
+      const timer = setTimeout(() => setIsConverging(false), 1500);
+      return () => clearTimeout(timer);
+    }
+    prevCheckpointRef.current = activeCheckpoint;
+  }, [activeCheckpoint]);
 
   function handleSend() {
     const text = input.trim();
@@ -293,11 +310,13 @@ export default function MobileSession({
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "0 24px 16px",
+          padding: "0 16px 16px",
           display: "flex",
           flexDirection: "column",
+          position: "relative",
         }}
       >
+        <SessionParticles messageCount={messages.length} converge={isConverging} />
         {/* Empty state placeholder */}
         {!hasMessages && (
           <div
@@ -330,9 +349,33 @@ export default function MobileSession({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "20px",
+              gap: "28px",
+              alignItems: "flex-start",
             }}
           >
+            {/* Session label */}
+            {conversations.length > 0 && conversationId && (() => {
+              const currentConv = conversations.find(c => c.id === conversationId);
+              const dateStr = currentConv?.created_at
+                ? formatShortDate(currentConv.created_at)
+                : formatShortDate(new Date().toISOString());
+              return (
+                <div
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: "9px",
+                    letterSpacing: "3px",
+                    textTransform: "uppercase",
+                    color: "rgba(226, 224, 219, 0.15)",
+                    textAlign: "center",
+                    paddingBottom: "36px",
+                  }}
+                >
+                  Session · {dateStr}
+                </div>
+              );
+            })()}
+
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
 
@@ -348,144 +391,194 @@ export default function MobileSession({
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
-                      margin: "40px 0",
-                      padding: "0 28px",
-                      textAlign: "center",
+                      padding: "32px 8px 32px 20px",
+                      borderLeft: "1px solid rgba(180, 145, 75, 0.2)",
                       animation: "checkpointFadeIn 2s ease-out",
                     }}
                   >
-                    <div style={{ position: "relative", padding: "32px 0" }}>
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background:
-                            "radial-gradient(ellipse at center, var(--color-accent-glow) 0%, transparent 70%)",
-                          borderRadius: "50%",
-                          pointerEvents: "none",
-                        }}
-                      />
-                      <div
-                        style={{
-                          position: "relative",
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "19px",
-                          lineHeight: "1.75",
-                          letterSpacing: "-0.2px",
-                          color: "var(--color-text)",
-                        }}
-                      >
-                        {renderMarkdown(msg.content)}
-                      </div>
+                    {/* Header */}
+                    <div
+                      style={{
+                        fontFamily: "Georgia, serif",
+                        fontSize: "13px",
+                        fontStyle: "italic",
+                        color: "rgba(180, 145, 75, 0.45)",
+                        marginBottom: "18px",
+                      }}
+                    >
+                      What I&apos;m noticing —
                     </div>
 
-                    {isPendingCheckpoint && (
+                    {/* Body */}
+                    <div
+                      style={{
+                        fontFamily: "Georgia, serif",
+                        fontSize: "15px",
+                        fontStyle: "normal",
+                        lineHeight: "1.9",
+                        letterSpacing: "0.2px",
+                        color: "rgba(226, 224, 219, 0.82)",
+                        maxWidth: "320px",
+                      }}
+                    >
+                      {renderMarkdown(msg.content)}
+                    </div>
+
+                    {/* Action buttons */}
+                    {isPendingCheckpoint && !checkpointActionState && (
                       <div
                         style={{
-                          marginTop: "20px",
                           display: "flex",
-                          flexDirection: "column",
                           alignItems: "center",
-                          gap: "12px",
+                          marginTop: "28px",
                         }}
                       >
-                        <span
+                        <button
+                          onClick={() => {
+                            setCheckpointActionState("confirmed");
+                            confirmCheckpoint("confirmed");
+                          }}
                           style={{
-                            fontFamily: "var(--font-serif)",
-                            fontStyle: "italic",
-                            fontSize: "14px",
-                            color: "var(--color-text-ghost)",
+                            fontFamily: "monospace",
+                            fontSize: "11px",
+                            letterSpacing: "1.5px",
+                            textTransform: "uppercase",
+                            color: "rgba(139, 168, 136, 0.8)",
+                            background: "none",
+                            border: "none",
+                            borderBottom: "1px solid rgba(139, 168, 136, 0.3)",
+                            padding: "8px 14px 8px 0",
+                            cursor: "pointer",
                           }}
                         >
-                          Does this feel right?
-                        </span>
-                        <div style={{ display: "flex", gap: "12px" }}>
-                          <button
-                            onClick={() => confirmCheckpoint("confirmed")}
-                            style={{
-                              fontFamily: "var(--font-sans)",
-                              fontSize: "12px",
-                              fontWeight: 500,
-                              color: "var(--color-accent)",
-                              background: "none",
-                              border: "1px solid var(--color-accent-dim)",
-                              borderRadius: "20px",
-                              padding: "6px 16px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Yes, save this
-                          </button>
-                          <button
-                            onClick={() => confirmCheckpoint("refined")}
-                            style={{
-                              fontFamily: "var(--font-sans)",
-                              fontSize: "12px",
-                              fontWeight: 500,
-                              color: "var(--color-text-ghost)",
-                              background: "none",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "20px",
-                              padding: "6px 16px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Refine it
-                          </button>
-                          <button
-                            onClick={() => confirmCheckpoint("rejected")}
-                            style={{
-                              fontFamily: "var(--font-sans)",
-                              fontSize: "12px",
-                              fontWeight: 500,
-                              color: "var(--color-text-ghost)",
-                              background: "none",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "20px",
-                              padding: "6px 16px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Skip
-                          </button>
-                        </div>
-                        {checkpointError && (
-                          <span
-                            style={{
-                              fontFamily: "var(--font-sans)",
-                              fontSize: "12px",
-                              color: "var(--color-text-ghost)",
-                            }}
-                          >
-                            {checkpointError}
-                          </span>
-                        )}
+                          Yes, this resonates
+                        </button>
+                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
+                        <button
+                          onClick={() => {
+                            setCheckpointActionState("refined");
+                            confirmCheckpoint("refined");
+                          }}
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "11px",
+                            letterSpacing: "1.5px",
+                            textTransform: "uppercase",
+                            color: "rgba(226, 224, 219, 0.3)",
+                            background: "none",
+                            border: "none",
+                            padding: "8px 14px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Refine
+                        </button>
+                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
+                        <button
+                          onClick={() => {
+                            setCheckpointActionState("rejected");
+                            confirmCheckpoint("rejected");
+                          }}
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "11px",
+                            letterSpacing: "1.5px",
+                            textTransform: "uppercase",
+                            color: "rgba(226, 224, 219, 0.18)",
+                            background: "none",
+                            border: "none",
+                            padding: "8px 14px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Not quite
+                        </button>
                       </div>
+                    )}
+
+                    {/* Post-action states */}
+                    {isPendingCheckpoint && checkpointActionState === "confirmed" && (
+                      <div
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "10px",
+                          letterSpacing: "2px",
+                          textTransform: "uppercase",
+                          color: "rgba(139, 168, 136, 0.55)",
+                          marginTop: "28px",
+                        }}
+                      >
+                        Added to your manual
+                      </div>
+                    )}
+                    {isPendingCheckpoint && checkpointActionState === "refined" && (
+                      <div
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "10px",
+                          letterSpacing: "2px",
+                          textTransform: "uppercase",
+                          color: "rgba(226, 224, 219, 0.35)",
+                          marginTop: "28px",
+                        }}
+                      >
+                        Tell Sage what to adjust ↓
+                      </div>
+                    )}
+                    {isPendingCheckpoint && checkpointActionState === "rejected" && (
+                      <div
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "10px",
+                          letterSpacing: "2px",
+                          textTransform: "uppercase",
+                          color: "rgba(226, 224, 219, 0.25)",
+                          marginTop: "28px",
+                        }}
+                      >
+                        Noted — Sage will keep listening
+                      </div>
+                    )}
+
+                    {checkpointError && (
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "10px",
+                          color: "var(--color-text-ghost)",
+                          marginTop: "12px",
+                          display: "block",
+                        }}
+                      >
+                        {checkpointError}
+                      </span>
                     )}
                   </div>
                 );
               }
 
-              let userOpacity = 1;
-              if (isUser) {
-                const userMsgIndices = messages
-                  .map((m, idx) => (m.role === "user" ? idx : -1))
-                  .filter((idx) => idx !== -1);
-                const lastUserIdx = userMsgIndices[userMsgIndices.length - 1];
-                userOpacity = i === lastUserIdx ? 0.75 : 0.5;
-              }
-
               return (
                 <div
                   key={msg.id || `msg-${i}`}
-                  style={{
-                    paddingRight: "32px",
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "13px",
-                    fontWeight: 400,
+                  style={isUser ? {
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                    fontSize: "14px",
                     lineHeight: "1.65",
-                    color: isUser ? "var(--color-text)" : "var(--color-text-dim)",
-                    opacity: isUser ? userOpacity : 1,
+                    letterSpacing: "0.1px",
+                    color: "rgba(226, 224, 219, 0.38)",
+                    textAlign: "right",
+                    maxWidth: "78%",
+                    marginLeft: "auto",
+                    alignSelf: "flex-end",
+                  } : {
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                    fontSize: "15px",
+                    lineHeight: "1.7",
+                    letterSpacing: "0.1px",
+                    color: "rgba(226, 224, 219, 0.78)",
+                    textAlign: "left",
+                    maxWidth: "82%",
+                    marginRight: "auto",
                   }}
                 >
                   {isUser ? msg.content : renderMarkdown(msg.content)}
@@ -493,11 +586,11 @@ export default function MobileSession({
               );
             })}
 
-            {/* Typing indicator */}
+            {/* Typing indicator with processing text */}
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
-                <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
                   <div
                     style={{
                       width: "12px",
@@ -507,6 +600,21 @@ export default function MobileSession({
                       animation: "sagePulse 2.5s ease-in-out infinite",
                     }}
                   />
+                  {processingText && processingText !== "listening..." && (
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        letterSpacing: "1.5px",
+                        textTransform: "lowercase",
+                        color: "var(--color-text-ghost)",
+                        opacity: 0.5,
+                        animation: "processingTextFadeIn 0.8s ease-out",
+                      }}
+                    >
+                      {processingText}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -563,7 +671,7 @@ export default function MobileSession({
       {/* Input */}
       <div
         style={{
-          padding: "12px 24px 16px",
+          padding: "12px 16px 16px",
           borderTop: "1px solid var(--color-divider)",
         }}
       >
@@ -581,7 +689,7 @@ export default function MobileSession({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            placeholder={hasMessages ? "_" : "Begin anywhere_"}
+            placeholder="Say something_"
             rows={1}
             style={{
               flex: 1,
@@ -589,10 +697,10 @@ export default function MobileSession({
               outline: "none",
               resize: "none",
               backgroundColor: "transparent",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              fontSize: "15px",
               lineHeight: "24px",
-              color: "var(--color-text)",
+              color: "#E2E0DB",
               padding: "10px 0",
               height: "44px",
               maxHeight: focused ? "40vh" : "44px",
@@ -604,10 +712,10 @@ export default function MobileSession({
             onClick={handleSend}
             disabled={!input.trim() || isLoading || isStreaming}
             style={{
-              width: "20px",
-              height: "20px",
+              width: "34px",
+              height: "34px",
               borderRadius: "50%",
-              border: `1px solid ${input.trim() ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
+              border: `1px solid ${input.trim() ? "rgba(139, 168, 136, 0.45)" : "rgba(226, 224, 219, 0.08)"}`,
               backgroundColor: "transparent",
               cursor: !input.trim() || isLoading || isStreaming ? "default" : "pointer",
               display: "flex",
@@ -615,11 +723,19 @@ export default function MobileSession({
               justifyContent: "center",
               flexShrink: 0,
               marginBottom: "2px",
+              transition: "border-color 0.2s ease",
             }}
           >
-            <svg width="8" height="8" viewBox="0 0 10 10" fill={input.trim() ? "var(--color-accent)" : "var(--color-text-ghost)"}>
-              <polygon points="5,1 9,8 1,8" />
-            </svg>
+            <span
+              style={{
+                fontSize: "16px",
+                lineHeight: 1,
+                color: input.trim() ? "rgba(139, 168, 136, 0.75)" : "rgba(226, 224, 219, 0.15)",
+                transition: "color 0.2s ease",
+              }}
+            >
+              ↑
+            </span>
           </button>
         </div>
       </div>

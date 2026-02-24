@@ -53,10 +53,14 @@ export async function POST(request: Request) {
 
   // 3. Update checkpoint_meta.status
   const updatedMeta = { ...msg.checkpoint_meta, status: action };
-  await admin
+  const { error: metaUpdateError } = await admin
     .from("messages")
     .update({ checkpoint_meta: updatedMeta })
     .eq("id", messageId);
+
+  if (metaUpdateError) {
+    console.error("[confirm] Error updating checkpoint_meta:", metaUpdateError);
+  }
 
   // 4. Handle action
   let systemContent: string;
@@ -88,10 +92,14 @@ export async function POST(request: Request) {
         : existingQuery.is("name", null);
     }
 
-    const { data: existing } = await existingQuery.maybeSingle();
+    const { data: existing, error: existingError } = await existingQuery.maybeSingle();
+
+    if (existingError) {
+      console.error("[confirm] Error checking existing component:", existingError);
+    }
 
     if (existing) {
-      await admin
+      const { error: updateError } = await admin
         .from("manual_components")
         .update({
           content: msg.content,
@@ -99,8 +107,12 @@ export async function POST(request: Request) {
           name: normalizedName,
         })
         .eq("id", existing.id);
+
+      if (updateError) {
+        console.error("[confirm] Error updating manual_components:", updateError);
+      }
     } else {
-      await admin.from("manual_components").insert({
+      const { error: insertError } = await admin.from("manual_components").insert({
         user_id: user.id,
         layer,
         type: componentType,
@@ -108,6 +120,10 @@ export async function POST(request: Request) {
         content: msg.content,
         source_message_id: messageId,
       });
+
+      if (insertError) {
+        console.error("[confirm] Error inserting manual_components:", insertError);
+      }
     }
 
     systemContent = "[User confirmed the checkpoint]";

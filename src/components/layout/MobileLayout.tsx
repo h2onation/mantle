@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import MobileNav, { type MobileTab } from "./MobileNav";
 
 interface MobileLayoutProps {
@@ -9,6 +8,8 @@ interface MobileLayoutProps {
   guidanceContent: React.ReactNode;
   settingsContent: React.ReactNode;
   isBlurred?: boolean;
+  activeTab: MobileTab;
+  onTabChange: (tab: MobileTab) => void;
 }
 
 export default function MobileLayout({
@@ -17,8 +18,9 @@ export default function MobileLayout({
   guidanceContent,
   settingsContent,
   isBlurred,
+  activeTab,
+  onTabChange,
 }: MobileLayoutProps) {
-  const [activeTab, setActiveTab] = useState<MobileTab>("session");
 
   return (
     <div
@@ -52,7 +54,7 @@ export default function MobileLayout({
           {content}
         </div>
       ))}
-      <MobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <MobileNav activeTab={activeTab} onTabChange={onTabChange} />
     </div>
   );
 }
