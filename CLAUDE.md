@@ -21,6 +21,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Anthropic model IDs**: Always verify exact model version strings. Current models: `claude-sonnet-4-6` (Sage), `claude-haiku-4-5-20251001` (classifier/summary). Do not guess date suffixes.
 - **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 - **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
+- **Non-interactive CLIs**: When using `create-next-app` or similar scaffolding CLIs, always use non-interactive flags (e.g., `--yes`, `--typescript`, `--tailwind`, `--app`, `--no-git`) to prevent commands from hanging.
 
 ## Stack
 
@@ -31,6 +32,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
   - `claude-haiku-4-5-20251001` — classifier (in `classifier.ts`) and session summary (in `generate-summary.ts`)
 - **Styling**: All inline `style={{}}`. No CSS classes in components. CSS custom properties in `globals.css`. Tailwind is installed but only its `@tailwind base/components/utilities` directives are used.
 - **Fonts**: Instrument Serif, DM Sans, JetBrains Mono via `next/font/google`
+- **TypeScript** everywhere — all new files must be `.ts`/`.tsx` with proper types.
 - **No Vercel config files** in repo — no `vercel.json`, no `.vercel/` directory
 
 ## Design Conventions
@@ -40,6 +42,10 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Font usage**: Mono 7-9px uppercase with letter-spacing for labels/meta. Serif 16-22px for body text, headlines, emotional content. Sans 13px for UI elements, conversational messages, buttons.
 - **Color usage**: `--color-text` for primary, `--color-text-dim` for secondary, `--color-text-ghost` for tertiary/labels, `--color-divider` for borders.
 - **Animations**: `sagePulse` for typing indicator, `checkpointFadeIn` for checkpoint cards. Both defined in `globals.css`.
+
+## UI Verification
+
+After making UI changes, take a preview screenshot to verify the result visually before reporting completion. When clicking UI elements in preview, prefer using CSS selectors or text content to identify elements rather than guessing pixel positions.
 
 ## Database Schema
 
