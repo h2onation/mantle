@@ -5,7 +5,7 @@ interface MobileGuidanceProps {
 }
 
 export default function MobileGuidance({ confirmedCount }: MobileGuidanceProps) {
-  const unlocked = confirmedCount >= 5;
+  const unlocked = confirmedCount >= 1;
 
   if (unlocked) {
     return (

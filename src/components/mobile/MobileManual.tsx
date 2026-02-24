@@ -59,28 +59,38 @@ function renderMarkdown(text: string) {
   });
 }
 
-// Layer types that might appear
-const LAYER_TYPES: Record<number, string> = {
-  1: "DRIVE",
-  2: "PATTERN",
-  3: "ATTACHMENT",
+const LAYER_NAMES: Record<number, string> = {
+  1: "WHAT DRIVES YOU",
+  2: "YOUR SELF PERCEPTION",
+  3: "YOUR REACTION SYSTEM",
+  4: "HOW YOU OPERATE",
+  5: "YOUR RELATIONSHIP TO OTHERS",
 };
+
+const ALL_LAYERS = [1, 2, 3, 4, 5];
 
 export default function MobileManual({ components }: MobileManualProps) {
   const hasComponents = components.length > 0;
 
-  // Sort: layer ascending, then by created_at
-  const sorted = [...components].sort((a, b) => {
-    if (a.layer !== b.layer) return a.layer - b.layer;
-    if (a.created_at && b.created_at) {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-    }
-    return 0;
-  });
+  // Group components by layer
+  const byLayer = new Map<number, ManualComponent[]>();
+  for (const comp of components) {
+    const existing = byLayer.get(comp.layer) || [];
+    existing.push(comp);
+    byLayer.set(comp.layer, existing);
+  }
 
-  // Find layers that don't have any components yet
-  const existingLayers = new Set(components.map((c) => c.layer));
-  const upcomingLayers = [1, 2, 3].filter((l) => !existingLayers.has(l));
+  // Within each layer, sort: component first, then patterns by created_at
+  byLayer.forEach((items) => {
+    items.sort((a: ManualComponent, b: ManualComponent) => {
+      if (a.type === "component" && b.type !== "component") return -1;
+      if (a.type !== "component" && b.type === "component") return 1;
+      if (a.created_at && b.created_at) {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      return 0;
+    });
+  });
 
   return (
     <div
@@ -121,7 +131,7 @@ export default function MobileManual({ components }: MobileManualProps) {
       </p>
 
       {/* Empty state */}
-      {!hasComponents && upcomingLayers.length === 3 && (
+      {!hasComponents && (
         <p
           style={{
             fontFamily: "var(--font-serif)",
@@ -135,121 +145,140 @@ export default function MobileManual({ components }: MobileManualProps) {
         </p>
       )}
 
-      {/* Confirmed components */}
-      {sorted.map((comp, i) => (
-        <div key={comp.id}>
-          {/* Divider between components */}
-          {i > 0 && (
-            <div
-              style={{
-                height: "1px",
-                background: "linear-gradient(90deg, var(--color-accent-ghost), transparent)",
-                marginBottom: "40px",
-              }}
-            />
-          )}
+      {/* All 5 layers */}
+      {ALL_LAYERS.map((layer, layerIdx) => {
+        const layerItems = byLayer.get(layer) || [];
+        const hasContent = layerItems.length > 0;
 
-          {/* Label */}
-          <p
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "8px",
-              color: "var(--color-accent)",
-              opacity: 0.7,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              margin: "0 0 14px 0",
-            }}
-          >
-            {String(i + 1).padStart(2, "0")} — {comp.type?.toUpperCase() || "COMPONENT"}
-          </p>
-
-          {/* Passage */}
-          <div
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "16px",
-              color: "var(--color-text)",
-              lineHeight: 1.8,
-              letterSpacing: "-0.1px",
-            }}
-          >
-            {renderMarkdown(comp.content)}
-          </div>
-
-          {/* Date + "Still true?" */}
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              marginTop: "10px",
-              marginBottom: "40px",
-            }}
-          >
-            {comp.created_at && (
-              <span
+        return (
+          <div key={layer} style={!hasContent ? { opacity: 0.3 } : undefined}>
+            {/* Divider between layers */}
+            {layerIdx > 0 && (
+              <div
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "8px",
-                  color: "var(--color-text-ghost)",
-                  letterSpacing: "1px",
+                  height: "1px",
+                  background: "linear-gradient(90deg, var(--color-accent-ghost), transparent)",
+                  marginBottom: "40px",
                 }}
-              >
-                {formatDate(comp.created_at)}
-              </span>
+              />
             )}
-            <span
+
+            {/* Layer header */}
+            <p
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "8px",
-                color: "var(--color-accent-dim)",
-                letterSpacing: "1px",
+                color: "var(--color-accent)",
+                opacity: 0.7,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                margin: "0 0 14px 0",
               }}
             >
-              Still true?
-            </span>
-          </div>
-        </div>
-      ))}
+              {String(layer).padStart(2, "0")} — {LAYER_NAMES[layer]}
+            </p>
 
-      {/* Upcoming layers */}
-      {upcomingLayers.map((layer) => (
-        <div key={`upcoming-${layer}`} style={{ opacity: 0.3 }}>
-          {(hasComponents || upcomingLayers[0] !== layer) && (
-            <div
-              style={{
-                height: "1px",
-                background: "linear-gradient(90deg, var(--color-accent-ghost), transparent)",
-                marginBottom: "40px",
-              }}
-            />
-          )}
-          <p
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "8px",
-              color: "var(--color-accent)",
-              opacity: 0.7,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              margin: "0 0 14px 0",
-            }}
-          >
-            {String(components.length + upcomingLayers.indexOf(layer) + 1).padStart(2, "0")} — {LAYER_TYPES[layer] || "COMPONENT"}
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "14px",
-              color: "var(--color-text-ghost)",
-              fontStyle: "italic",
-              margin: "0 0 40px 0",
-            }}
-          >
-            Forming...
-          </p>
-        </div>
-      ))}
+            {/* Layer content or forming placeholder */}
+            {!hasContent && (
+              <p
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "14px",
+                  color: "var(--color-text-ghost)",
+                  fontStyle: "italic",
+                  margin: "0 0 40px 0",
+                }}
+              >
+                Forming...
+              </p>
+            )}
+
+            {/* Confirmed items within this layer */}
+            {layerItems.map((comp, itemIdx) => (
+              <div key={comp.id}>
+                {/* Pattern sub-label (patterns show their name) */}
+                {comp.type === "pattern" && comp.name && (
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "8px",
+                      color: "var(--color-accent)",
+                      opacity: 0.5,
+                      letterSpacing: "2px",
+                      textTransform: "uppercase",
+                      margin: itemIdx > 0 ? "24px 0 10px 0" : "0 0 10px 0",
+                    }}
+                  >
+                    PATTERN — {comp.name.toUpperCase()}
+                  </p>
+                )}
+
+                {comp.type === "pattern" && !comp.name && (
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "8px",
+                      color: "var(--color-accent)",
+                      opacity: 0.5,
+                      letterSpacing: "2px",
+                      textTransform: "uppercase",
+                      margin: itemIdx > 0 ? "24px 0 10px 0" : "0 0 10px 0",
+                    }}
+                  >
+                    PATTERN
+                  </p>
+                )}
+
+                {/* Passage */}
+                <div
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: "16px",
+                    color: "var(--color-text)",
+                    lineHeight: 1.8,
+                    letterSpacing: "-0.1px",
+                  }}
+                >
+                  {renderMarkdown(comp.content)}
+                </div>
+
+                {/* Date + "Still true?" */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    marginTop: "10px",
+                    marginBottom: itemIdx === layerItems.length - 1 ? "40px" : "0",
+                  }}
+                >
+                  {comp.created_at && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        color: "var(--color-text-ghost)",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {formatDate(comp.created_at)}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "8px",
+                      color: "var(--color-accent-dim)",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    Still true?
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
