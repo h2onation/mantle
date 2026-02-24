@@ -18,6 +18,11 @@
   --color-accent-glow: rgba(139, 168, 136, 0.12);
   --color-warm: #141816;
 
+  /* Processing orb depth colors */
+  --color-orb-normal: #8BA888;
+  --color-orb-deeper: #A89F7A;
+  --color-orb-heavy: #C4956A;
+
   /* Font variables */
   --font-serif: var(--font-instrument-serif);
   --font-sans: var(--font-dm-sans);
@@ -30,6 +35,11 @@
   --color-accent-ghost: rgba(212, 165, 116, 0.08);
   --color-accent-glow: rgba(212, 165, 116, 0.12);
   --color-warm: #1E1B18;
+
+  /* Processing orb depth colors */
+  --color-orb-normal: #D4A574;
+  --color-orb-deeper: #D48F6A;
+  --color-orb-heavy: #D47A6A;
 }
 
 body {
@@ -63,16 +73,31 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Sage thinking pulse */
-@keyframes sagePulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
+/* Processing orb: normal breathing */
+@keyframes sageBreathNormal {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.15); opacity: 0.6; }
 }
 
-/* Processing text fade in */
-@keyframes processingTextFadeIn {
-  from { opacity: 0; transform: translateY(2px); }
-  to { opacity: 0.5; transform: translateY(0); }
+/* Processing orb: deeper breathing */
+@keyframes sageBreathDeeper {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+
+/* Processing orb: heavy (pause, then one deliberate pulse) */
+@keyframes sageBreathHeavy {
+  0% { transform: scale(1); opacity: 0.4; }
+  35% { transform: scale(1); opacity: 0.25; }
+  55% { transform: scale(1); opacity: 0.25; }
+  75% { transform: scale(1.35); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0.4; }
+}
+
+/* Processing indicator text fade */
+@keyframes sageTextFadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Particle drift animations */
