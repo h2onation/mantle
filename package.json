@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run build",
+    "autofix": "claude -p 'Run npm run build. If there are TypeScript errors, fix them. If there are missing dependencies, install them. Then run the build again to confirm it passes.' --allowedTools 'Edit,Read,Bash,Write'"
   },
   "dependencies": {
     "@supabase/ssr": "^0.1.0",
