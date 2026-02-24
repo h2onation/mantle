@@ -5,7 +5,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Repo**: https://github.com/h2onation/mantle.git
 - **Live URL**: Not yet deployed (or configured entirely via Vercel dashboard — no project-level config files exist)
 - **Supabase project ref**: `nkmperzwcmttdkxwhbiv`
-- **Last verified**: 2026-02-24
+- **Last verified**: 2026-02-25
 
 ## Commands
 
@@ -13,6 +13,14 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - `npm run build` — production build (zero errors as of last verification)
 - `npx tsc --noEmit` — type check (zero errors)
 - `POST /api/dev-reset` — delete all user data (conversations, messages, manual_components). Does NOT delete profile or auth user. Client calls this then `localStorage.clear()` + `window.location.reload()`.
+
+## Development Workflow
+
+- **Always type-check after edits**: Run `npx tsc --noEmit` after any code changes to catch errors early. Run `npm run build` before committing to verify the production build passes.
+- **Commit incrementally**: Commit working changes after each verified feature or fix — don't batch everything at the end of a session.
+- **Anthropic model IDs**: Always verify exact model version strings. Current models: `claude-sonnet-4-6` (Sage), `claude-haiku-4-5-20251001` (classifier/summary). Do not guess date suffixes.
+- **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
+- **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
 
 ## Stack
 
@@ -130,9 +138,8 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 ### POST /api/dev-simulate — Edge Runtime
 - **Body**: none
 - **Returns**: SSE stream
-- Runs a simulated conversation with Sage using Haiku-generated user responses. Creates a conversation, sends a pre-scripted opening message about conflict avoidance, then loops (max 15 turns) generating contextual user responses via Haiku (`claude-haiku-4-5-20251001`) and calling `callSage()` for each turn. Stops when a checkpoint is detected. Streams progress events to the client.
-- **SSE events**: `status` (progress text), `turn` (user message preview), `turn_complete` (with conversationId, processingText, hasCheckpoint), `checkpoint` (layer, name, conversationId), `complete` (totalTurns), `error`.
-- Haiku role-swap: conversation history roles are swapped before passing to Haiku (Sage's messages become "user" input, simulated user's become "assistant") so Haiku generates contextual responses to Sage's questions.
+- Runs a simulated conversation with Sage using 10 pre-scripted user messages about conflict avoidance. Creates a conversation, loops through messages calling `callSage()` for each turn. Stops when a checkpoint is detected or all messages are exhausted. Streams progress events to the client.
+- **SSE events**: `started` (with conversationId, emitted immediately after conversation creation), `turn` (user message preview), `turn_complete` (with conversationId, processingText, hasCheckpoint, turn number), `checkpoint` (layer, name, conversationId, turn number), `complete` (totalTurns), `error`.
 
 ### POST /api/dev-reset — Edge Runtime
 - Deletes messages (FK first), then conversations, then manual_components for the user.
@@ -320,7 +327,7 @@ Header "SETTINGS" (`--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px).
 | Account | Display-only | Shows email. No logout. |
 | Session history | Display-only | Shows "N sessions" (correct count from conversations list). |
 | Export manual | Display-only | Shows "PDF or text". No handler. |
-| Simulate user | Functional | Accent color text. Calls `/api/dev-simulate`, streams SSE. Switches to Session tab on first turn, reloads messages after each turn. Stops at checkpoint. Log panel shows turn progress (mono 8px, ghost). |
+| Simulate user | Functional | Accent color text. Calls `/api/dev-simulate`, streams SSE. Instantly switches to Session tab via `started` event, reloads messages after each turn. Stops at checkpoint for manual action. |
 | Delete everything | Functional | Red text `#B5564D`. Confirmation modal. Calls `/api/dev-reset` + `localStorage.clear()` + reload. |
 
 ## Architecture Rules
@@ -506,7 +513,6 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - **Ambient particles**: New `SessionParticles.tsx` component — 16 pre-defined CSS-only particles using `var(--color-accent)`. Particles appear based on `messageCount` thresholds, increasing in number and opacity as conversation progresses. When a checkpoint arrives, particles converge toward center via `particleConverge` keyframe (1.5s).
 - **CSS keyframes added** to `globals.css`: `processingTextFadeIn`, `particleDrift1-4`, `particleConverge`.
 - **Haiku model ID fix**: Updated from `claude-haiku-4-5-20241022` (404) to `claude-haiku-4-5-20251001` in `classifier.ts` and `generate-summary.ts`. Removed debug logging from `anthropic.ts`.
-- Known issue: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: explicitly export the env var before starting dev server: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 
 **2026-02-24 — Dev simulate feature**
 - Added `POST /api/dev-simulate` route (Edge Runtime). Runs a simulated conversation with Sage using pre-scripted user messages. Stops at first checkpoint. Streams SSE events (started, turn, turn_complete, checkpoint, complete, error).
