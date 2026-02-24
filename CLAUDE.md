@@ -5,7 +5,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Repo**: https://github.com/h2onation/mantle.git
 - **Live URL**: Not yet deployed (or configured entirely via Vercel dashboard — no project-level config files exist)
 - **Supabase project ref**: `nkmperzwcmttdkxwhbiv`
-- **Last verified**: 2026-02-23
+- **Last verified**: 2026-02-24
 
 ## Commands
 
@@ -20,7 +20,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Supabase**: Postgres + Auth (magic link + Google OAuth). RLS on all tables. Supabase project ref `nkmperzwcmttdkxwhbiv`.
 - **Anthropic API** via raw `fetch` (no SDK, `@anthropic-ai/sdk` was removed). Two models:
   - `claude-sonnet-4-6` — Sage conversation (in `call-sage.ts`)
-  - `claude-haiku-4-5-20241022` — classifier (in `classifier.ts`) and session summary (in `session/summary/route.ts`)
+  - `claude-haiku-4-5-20251001` — classifier (in `classifier.ts`) and session summary (in `generate-summary.ts`)
 - **Styling**: All inline `style={{}}`. No CSS classes in components. CSS custom properties in `globals.css`. Tailwind is installed but only its `@tailwind base/components/utilities` directives are used.
 - **Fonts**: Instrument Serif, DM Sans, JetBrains Mono via `next/font/google`
 - **No Vercel config files** in repo — no `vercel.json`, no `.vercel/` directory
@@ -487,6 +487,12 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - Updated: `schema.sql` CHECK constraint, `system-prompt.ts` (layerNames, descriptions, mode triggers, readiness gate), `classifier.ts` (JSON schema, layer guide), `MobileManual.tsx` (LAYER_TYPES, upcoming layers array, empty state check)
 - `MobileGuidance.tsx` gate lowered from `>= 5` to `>= 1` (guidance available with any confirmed content)
 - DB migration required: `ALTER TABLE manual_components DROP CONSTRAINT ...; ALTER TABLE manual_components ADD CONSTRAINT ... CHECK (layer in (1, 2, 3, 4, 5));`
+
+**2026-02-24 — Haiku model ID fix**
+- Fixed classifier and summary model ID from `claude-haiku-4-5-20241022` (404) to `claude-haiku-4-5-20251001`
+- Affected files: `classifier.ts`, `generate-summary.ts`
+- Removed debug logging from `anthropic.ts` (was added during troubleshooting)
+- Known issue: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: explicitly export the env var before starting dev server: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 
 ## Known Issues
 

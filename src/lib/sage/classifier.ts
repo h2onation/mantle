@@ -22,7 +22,7 @@ export async function classifyResponse(
 ): Promise<ClassificationResult> {
   try {
     const response = await anthropicFetch({
-      model: "claude-haiku-4-5-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       system: `You analyze messages from a conversational AI called Sage that builds behavioral models. Two jobs:
 
