@@ -5,7 +5,7 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Repo**: https://github.com/h2onation/mantle.git
 - **Live URL**: Not yet deployed (or configured entirely via Vercel dashboard — no project-level config files exist)
 - **Supabase project ref**: `nkmperzwcmttdkxwhbiv`
-- **Last verified**: 2026-02-23
+- **Last verified**: 2026-02-24
 
 ## Commands
 
@@ -505,12 +505,12 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - **processingText visible**: `useChat.ts` now stores `processingText` from `message_complete` SSE events. `MobileSession.tsx` renders it below the typing indicator pulsing dot (mono 8px, ghost color, 0.5 opacity, fade-in animation).
 - **Ambient particles**: New `SessionParticles.tsx` component — 16 pre-defined CSS-only particles using `var(--color-accent)`. Particles appear based on `messageCount` thresholds, increasing in number and opacity as conversation progresses. When a checkpoint arrives, particles converge toward center via `particleConverge` keyframe (1.5s).
 - **CSS keyframes added** to `globals.css`: `processingTextFadeIn`, `particleDrift1-4`, `particleConverge`.
-- **Haiku model ID fix**: Updated from `claude-haiku-4-5-20241022` (404) to `claude-haiku-4-5-20251001` in `classifier.ts` and `generate-summary.ts`.
+- **Haiku model ID fix**: Updated from `claude-haiku-4-5-20241022` (404) to `claude-haiku-4-5-20251001` in `classifier.ts` and `generate-summary.ts`. Removed debug logging from `anthropic.ts`.
+- Known issue: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: explicitly export the env var before starting dev server: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 
 **2026-02-24 — Dev simulate feature**
-- Added `POST /api/dev-simulate` route (Edge Runtime). Runs a simulated conversation with Sage using Haiku-generated contextual user responses. Stops at first checkpoint. Streams SSE events (status, turn, turn_complete, checkpoint, complete, error).
-- Key design: Haiku role-swap — conversation history roles are swapped before passing to Haiku so it generates contextual responses *to* Sage's questions rather than empty/confused output.
-- `MobileSettings.tsx` gains "Simulate user" button with `onSimulationEvent` callback prop (replaces earlier `onSimulationComplete`). Calls event handler at each stage: `"start"` (first turn), `"turn"` (each subsequent turn), `"checkpoint"` (when checkpoint fires).
+- Added `POST /api/dev-simulate` route (Edge Runtime). Runs a simulated conversation with Sage using pre-scripted user messages. Stops at first checkpoint. Streams SSE events (started, turn, turn_complete, checkpoint, complete, error).
+- `MobileSettings.tsx` gains "Simulate user" button with `onSimulationEvent` callback prop. Calls event handler at each stage: `"start"` (first turn), `"turn"` (each subsequent turn), `"checkpoint"` (when checkpoint fires).
 - `MainApp.tsx` lifts `activeTab` state (was previously internal to `MobileLayout`). `handleSimulationEvent` callback calls `loadConversation(id)` on every event and `setActiveTab("session")` on start — user sees messages populate in real-time.
 - `MobileLayout.tsx` now accepts `activeTab` and `onTabChange` as props (no longer manages own tab state).
 - `useChat.ts` gains `loadConversation(id)` — loads messages from DB without guards (unlike `switchConversation` which has same-id and isLoading guards). Detects pending checkpoints in the last message and sets `activeCheckpoint` state so checkpoint cards render from DB-loaded messages.
