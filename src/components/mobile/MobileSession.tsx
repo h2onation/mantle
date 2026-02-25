@@ -124,6 +124,7 @@ export default function MobileSession({
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -190,11 +191,11 @@ export default function MobileSession({
   }
 
   function handleFocus() {
-    // no-op, kept for onFocus binding
+    setInputFocused(true);
   }
 
   function handleBlur() {
-    // no-op, kept for onBlur binding
+    setInputFocused(false);
   }
 
   const handleCloseSoundMenu = useCallback(() => {
@@ -777,7 +778,7 @@ export default function MobileSession({
             position: "relative",
             backgroundColor: "#242120",
             borderRadius: "14px",
-            border: "1px solid rgba(122, 139, 114, 0.15)",
+            border: `1px solid ${inputFocused ? "rgba(122, 139, 114, 0.4)" : "rgba(122, 139, 114, 0.15)"}`,
             transition: "all 0.4s ease",
             display: "flex",
             alignItems: "flex-end",
@@ -799,7 +800,7 @@ export default function MobileSession({
               outline: "none",
               resize: "none",
               color: "#C8BFB4",
-              fontFamily: "var(--font-sans)",
+              fontFamily: "'Outfit', sans-serif",
               fontSize: "14.5px",
               fontWeight: 400,
               lineHeight: 1.6,
