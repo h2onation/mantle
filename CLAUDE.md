@@ -7,6 +7,10 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - **Supabase project ref**: `nkmperzwcmttdkxwhbiv`
 - **Last verified**: 2026-02-25
 
+## Worktree Setup
+
+Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantle/.env.local .env.local` when creating a new worktree. This is the first step before anything else.
+
 ## Commands
 
 - `npm run dev` — start dev server (localhost:3000)
