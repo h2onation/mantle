@@ -152,6 +152,11 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 - Does NOT delete the profiles row or auth user.
 - Returns `{ ok: true }`.
 
+### POST /api/auth/logout — Node.js Runtime
+- **Body**: none
+- **Returns**: `{ ok: true }`
+- Signs out the user via server-side Supabase client (properly clears HttpOnly auth cookies). Called by MobileSettings logout button, which then redirects to `/login`.
+
 ### GET /auth/callback — Node.js Runtime (no Edge declaration)
 - OAuth callback. Exchanges code for session, redirects to origin.
 
@@ -192,12 +197,21 @@ Full cycle spans 4 files:
 
 ## Onboarding Flow
 
-State machine in `useOnboarding.ts`. Three steps: WelcomeCard -> SoundCard -> FocusCard.
+Phase-based state machine in `useOnboarding.ts`. Five editorial screens: Brand → Time Investment → How It Works → Honesty Contract → Seed Input.
 
-- **New users** (`isNewUser && !localStorage mantle_onboarding_completed`): full flow with blur overlay over MobileLayout
-- **Dismissed users**: WelcomeCard dismiss sets `mantle_onboarding_dismissed`. If they later tap the input field, onboarding reopens with `skipWelcome=true` (skips to SoundCard). Only reopens once per session (`dismissReopenRef`).
-- **Completing onboarding**: FocusCard collects a topic + first message. `handleComplete` sends it via `sendMessage`, sets `mantle_onboarding_completed`, lifts blur.
-- **Returning users** (have existing conversations): onboarding does not show.
+**Phases**: `"hidden" | "onboarding" | "dissolving" | "complete"`
+- `"hidden"` — returning user or already completed, no onboarding
+- `"onboarding"` — overlay visible, MobileLayout invisible
+- `"dissolving"` — overlay fading out (500ms) + dark pause (300ms)
+- `"complete"` — overlay unmounted, MobileLayout fading in (500ms)
+
+**New users** (`isNewUser && !localStorage mantle_onboarding_completed`): full 5-screen flow. Screens 0–3 are info screens (`OnboardingInfoScreen.tsx`) with icon + label + headline + body, staggered entrance animations. Screen 4 is a seed input (`OnboardingSeedScreen.tsx`) with textarea + "Let's go →" button.
+
+**Completing onboarding**: User types in seed screen textarea and taps "Let's go →". `handleComplete(text)` sets phase to `"dissolving"`, waits 800ms, then sets localStorage, calls `sendMessage(text)`, sets phase to `"complete"`. MobileLayout fades in.
+
+**Returning users** (have existing conversations): onboarding does not show.
+
+**Visual features**: Ambient radial gradient glow (shifts position/size per screen using `--color-accent-glow`), dash pagination (5 dashes), Back/Continue navigation, crossfade transitions between screens (250ms out, 100ms in).
 
 ## Themes and Color System
 
@@ -330,7 +344,8 @@ Header "SETTINGS" (`--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px).
 |------|-------|---------|
 | Theme | Functional | Toggle Sage/Ember. Shows 12px color dot + name. |
 | Sound | Functional | Opens MobileSoundSelector dropdown. Shows "Water"/"Piano"/"Birdsong"/"Off". |
-| Account | Display-only | Shows email. No logout. |
+| Account | Display-only | Shows email. |
+| Log out | Functional | Shows email as subtitle. Calls `POST /api/auth/logout` (server-side cookie clearing) then redirects to `/login`. |
 | Session history | Display-only | Shows "N sessions" (correct count from conversations list). |
 | Export manual | Display-only | Shows "PDF or text". No handler. |
 | Simulate user | Functional | Accent color text. Calls `/api/dev-simulate`, streams SSE. Instantly switches to Session tab via `started` event, reloads messages after each turn. Stops at checkpoint for manual action. |
@@ -395,8 +410,7 @@ Sage manages its own mode transitions:
 |-----|--------|---------|
 | `mantle_theme` | MobileSettings | "sage" or "ember" |
 | `mantle_onboarding_completed` | useOnboarding | Prevents re-showing onboarding |
-| `mantle_onboarding_dismissed` | useOnboarding | Tracks WelcomeCard dismissal for skip-to-sound reopen |
-| `mantle_session_sound` | AudioProvider / SoundCard | "water", "piano", "birds", or absent |
+| `mantle_session_sound` | AudioProvider / MobileSoundSelector | "water", "piano", "birds", or absent |
 
 ## File Tree
 
@@ -416,6 +430,7 @@ src/
       dev-simulate/route.ts           POST Edge — run simulated conversation until checkpoint
       manual/route.ts                 GET Node — return manual components
       session/summary/route.ts        POST Edge — generate summary via shared utility
+      auth/logout/route.ts            POST Node — server-side logout (clears HttpOnly cookies)
     auth/callback/route.ts            GET Node — OAuth callback
     globals.css                       Tokens, themes, scrollbar, keyframes
     layout.tsx                        Root: fonts, AudioProvider, theme script
@@ -431,13 +446,12 @@ src/
       SessionParticles.tsx            Ambient particles: drift during conversation, converge at checkpoint
       MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
       MobileGuidance.tsx              Locked until 1 confirmed, progress bars
-      MobileSettings.tsx              Theme, sound, account, history, export, delete
+      MobileSettings.tsx              Theme, sound, account, logout, history, export, delete
       MobileSoundSelector.tsx         Sound picker dropdown + SoundIndicator export
     onboarding/
-      OnboardingOverlay.tsx           Three-step overlay with blur
-      WelcomeCard.tsx                 Ready/dismiss with fade
-      SoundCard.tsx                   Ambient sound selection
-      FocusCard.tsx                   Topic prompt + first message
+      OnboardingOverlay.tsx           5-screen orchestrator with glow, pagination, transitions
+      OnboardingInfoScreen.tsx        Shared info screen (icon + label + headline + body + stagger)
+      OnboardingSeedScreen.tsx        Seed input screen (textarea + submit button)
     providers/AudioProvider.tsx       React context for ambient audio
     MainApp.tsx                       Wires useChat + useOnboarding + MobileLayout
   lib/
@@ -461,7 +475,8 @@ src/
 ## What Works End-to-End
 
 - Auth: magic link + Google OAuth, middleware redirect, session refresh via middleware cookie handlers
-- Onboarding: welcome -> sound -> focus, dismiss/reopen on input focus, skip for returning users
+- Onboarding: 5-screen editorial flow (Brand → Time → How → Honesty → Seed), dissolve transition into chat, skip for returning users
+- Logout: Settings → Log out → server-side cookie clear → redirect to login
 - Streaming chat with Sage: SSE, optimistic UI, placeholder message with atomic index capture, retry on error
 - Sliding window: first 2 + last 48 when >50 messages
 - Checkpoint detection (Haiku, every response), inline cards, confirm/reject/refine
@@ -478,7 +493,6 @@ src/
 
 - **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
 - **Guidance tab**: Locked until 1 confirmed. Unlocked state is placeholder only.
-- **Logout**: No UI anywhere
 - **"Still true?"**: Label on manual components has no click handler
 
 ## Drift Log
@@ -526,6 +540,26 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - `MainApp.tsx` lifts `activeTab` state (was previously internal to `MobileLayout`). `handleSimulationEvent` callback calls `loadConversation(id)` on every event and `setActiveTab("session")` on start — user sees messages populate in real-time.
 - `MobileLayout.tsx` now accepts `activeTab` and `onTabChange` as props (no longer manages own tab state).
 - `useChat.ts` gains `loadConversation(id)` — loads messages from DB without guards (unlike `switchConversation` which has same-id and isLoading guards). Detects pending checkpoints in the last message and sets `activeCheckpoint` state so checkpoint cards render from DB-loaded messages.
+
+**2026-02-25 — Onboarding flow replacement**
+- Replaced 3-step onboarding (WelcomeCard → SoundCard → FocusCard) with 5-screen editorial flow (Brand → Time Investment → How It Works → Honesty Contract → Seed Input).
+- New files: `OnboardingInfoScreen.tsx` (shared info screen with inline SVG icons + stagger animations), `OnboardingSeedScreen.tsx` (textarea + submit).
+- Rewrote `OnboardingOverlay.tsx`: 5 screens, ambient radial glow, dash pagination, crossfade transitions, dissolve-to-chat sequence.
+- Rewrote `useOnboarding.ts`: simplified to phase-based state machine (`hidden → onboarding → dissolving → complete`), removed blur/dismiss logic.
+- `MainApp.tsx`: replaced blur overlay approach with visibility wrapper div + opacity transitions.
+- `MobileLayout.tsx`: removed `isBlurred` prop.
+- `MobileSession.tsx`: removed `onInputFocus` prop, removed `focused` state.
+- Deleted: `WelcomeCard.tsx`, `SoundCard.tsx`, `FocusCard.tsx`.
+- Removed `mantle_onboarding_dismissed` localStorage key (no longer used).
+
+**2026-02-25 — Logout**
+- Added `POST /api/auth/logout` route — uses server-side Supabase client to clear HttpOnly auth cookies (browser client cannot clear these).
+- Added "Log out" button in `MobileSettings.tsx` between Account and Session history. Calls the API route then redirects to `/login`.
+- Logout moved from "Not Yet Functional" to "What Works End-to-End".
+
+**2026-02-25 — Chat UI fixes**
+- Restored `alignSelf: "flex-end"` on user messages (accidentally removed in prior session's padding fix).
+- Checkpoint card padding aligned with chat messages: removed extra right padding and `maxWidth: 320px` from checkpoint body.
 
 ## Known Issues
 

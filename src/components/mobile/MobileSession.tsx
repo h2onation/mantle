@@ -454,7 +454,7 @@ export default function MobileSession({
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
-                      padding: "32px 8px 32px 20px",
+                      padding: "32px 0 32px 20px",
                       borderLeft: "1px solid rgba(180, 145, 75, 0.2)",
                       animation: "checkpointFadeIn 2s ease-out",
                     }}
@@ -481,7 +481,6 @@ export default function MobileSession({
                         lineHeight: "1.9",
                         letterSpacing: "0.2px",
                         color: "rgba(226, 224, 219, 0.82)",
-                        maxWidth: "320px",
                       }}
                     >
                       {renderMarkdown(msg.content)}
