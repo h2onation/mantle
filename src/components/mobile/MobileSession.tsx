@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import SessionParticles from "./SessionParticles";
-import ProcessingIndicator from "./ProcessingIndicator";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 
 interface ChatMessage {
@@ -103,30 +102,11 @@ function formatShortDate(dateStr: string): string {
   return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
-const DEEPER_TEXTS = [
-  "Sitting with that.",
-  "Pulling something together.",
-  "Let me think about this one.",
-  "Working through what you said.",
-  "Following that thread.",
-  "Holding that for a moment.",
-];
-
-const HEAVY_TEXTS = [
-  "That one's going to change what I ask next.",
-  "Give me a second with that.",
-  "There's a lot in what you just said.",
-  "Something just shifted.",
-  "That's worth staying with.",
-  "I need to sit with this one.",
-];
-
 export default function MobileSession({
   messages,
   conversationId,
   isLoading,
   isStreaming,
-  confirmedComponents,
   activeCheckpoint,
   checkpointError,
   processingText,
@@ -144,63 +124,9 @@ export default function MobileSession({
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
-  const [indicatorTier, setIndicatorTier] = useState<"normal" | "deeper" | "heavy">("normal");
-  const [indicatorText, setIndicatorText] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
-  const lastShowedTextRef = useRef(false);
-
-  // Determine processing tier when loading starts
-  useEffect(() => {
-    if (!isLoading) return;
-    if (messages.length === 0) return;
-    if (messages[messages.length - 1].role !== "user") return;
-
-    const lastUserMsg = messages[messages.length - 1].content;
-    const msgCharCount = lastUserMsg.length;
-    const totalMessages = messages.filter((m) => m.role !== "system").length;
-    const componentCount = confirmedComponents.length;
-
-    const recentMessages = messages.slice(-3);
-    const hasRecentCheckpointAction = recentMessages.some(
-      (m) => m.checkpointMeta && m.checkpointMeta.status !== "pending"
-    );
-
-    let tier: "normal" | "deeper" | "heavy" = "normal";
-
-    const heavyQualifies =
-      hasRecentCheckpointAction ||
-      (totalMessages >= 12 && msgCharCount >= 150);
-
-    if (heavyQualifies && Math.random() < 0.3) {
-      tier = "heavy";
-    } else {
-      const deeperQualifies =
-        totalMessages >= 6 || msgCharCount >= 100 || componentCount >= 1;
-      if (deeperQualifies && Math.random() < 0.6) {
-        tier = "deeper";
-      }
-    }
-
-    let text: string | null = null;
-    if (tier !== "normal") {
-      const shouldShowText = !lastShowedTextRef.current && Math.random() < 0.5;
-      if (shouldShowText) {
-        const pool = tier === "heavy" ? HEAVY_TEXTS : DEEPER_TEXTS;
-        text = pool[Math.floor(Math.random() * pool.length)];
-        lastShowedTextRef.current = true;
-      } else {
-        lastShowedTextRef.current = false;
-      }
-    } else {
-      lastShowedTextRef.current = false;
-    }
-
-    setIndicatorTier(tier);
-    setIndicatorText(text);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -644,12 +570,35 @@ export default function MobileSession({
               );
             })}
 
-            {/* Processing indicator */}
+            {/* Typing indicator with processing text */}
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
-                <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                  <ProcessingIndicator tier={indicatorTier} text={indicatorText} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
+                  <div
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "50%",
+                      backgroundColor: "var(--color-accent-glow)",
+                      animation: "sagePulse 2.5s ease-in-out infinite",
+                    }}
+                  />
+                  {processingText && processingText !== "listening..." && (
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        letterSpacing: "1.5px",
+                        textTransform: "lowercase",
+                        color: "var(--color-text-ghost)",
+                        opacity: 0.5,
+                        animation: "processingTextFadeIn 0.8s ease-out",
+                      }}
+                    >
+                      {processingText}
+                    </div>
+                  )}
                 </div>
               )}
 
