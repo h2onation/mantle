@@ -14,6 +14,18 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 - `npx tsc --noEmit` — type check (zero errors)
 - `POST /api/dev-reset` — delete all user data (conversations, messages, manual_components). Does NOT delete profile or auth user. Client calls this then `localStorage.clear()` + `window.location.reload()`.
 
+## Worktree Setup
+
+Git worktrees do not include gitignored files. After creating any worktree, immediately run:
+
+```
+cp /Users/jeffwaters/mantle/.env.local ./.env.local
+```
+
+## Test Credentials
+
+Dev login: `test@test.com` / `testtest`
+
 ## Development Workflow
 
 - **Always type-check after edits**: Run `npx tsc --noEmit` after any code changes to catch errors early. Run `npm run build` before committing to verify the production build passes.
