@@ -63,10 +63,12 @@ export function useChat() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
   const [processingText, setProcessingText] = useState<string | null>(null);
+  const [placeholder, setPlaceholder] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
+  const placeholderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -199,6 +201,16 @@ export function useChat() {
       setProcessingText(completeEvent.processingText);
     }
 
+    // Set placeholder with delay so user has a beat to read the response
+    if (placeholderTimeoutRef.current) {
+      clearTimeout(placeholderTimeoutRef.current);
+    }
+    if (completeEvent.placeholder) {
+      placeholderTimeoutRef.current = setTimeout(() => {
+        setPlaceholder(completeEvent!.placeholder || null);
+      }, 400);
+    }
+
     if (completeEvent.conversationId && !conversationId) {
       setConversationId(completeEvent.conversationId);
     }
@@ -236,6 +248,16 @@ export function useChat() {
               return updated;
             });
             setConversationId(completeEvent.conversationId);
+
+            // Set placeholder with delay
+            if (completeEvent.placeholder) {
+              if (placeholderTimeoutRef.current) {
+                clearTimeout(placeholderTimeoutRef.current);
+              }
+              placeholderTimeoutRef.current = setTimeout(() => {
+                setPlaceholder(completeEvent!.placeholder || null);
+              }, 400);
+            }
           }
         }
       } catch {
@@ -339,6 +361,11 @@ export function useChat() {
     // Clear previous error and track for retry
     setErrorMessage(null);
     lastUserMessage.current = text;
+
+    // Clear any pending placeholder timeout
+    if (placeholderTimeoutRef.current) {
+      clearTimeout(placeholderTimeoutRef.current);
+    }
 
     // Optimistically add user message
     setMessages((prev) => [...prev, { role: "user", content: text }]);
@@ -475,6 +502,10 @@ export function useChat() {
     setActiveCheckpoint(null);
     setErrorMessage(null);
     setCheckpointError(null);
+    setPlaceholder(null);
+    if (placeholderTimeoutRef.current) {
+      clearTimeout(placeholderTimeoutRef.current);
+    }
 
     // Load messages for target conversation
     const { data: dbMessages } = await supabase
@@ -579,6 +610,10 @@ export function useChat() {
     setActiveCheckpoint(null);
     setErrorMessage(null);
     setCheckpointError(null);
+    setPlaceholder(null);
+    if (placeholderTimeoutRef.current) {
+      clearTimeout(placeholderTimeoutRef.current);
+    }
 
     // Refresh conversation list
     await refreshConversations();
@@ -599,6 +634,7 @@ export function useChat() {
     errorMessage,
     checkpointError,
     processingText,
+    placeholder,
     conversations,
     sendMessage,
     retryLastMessage,

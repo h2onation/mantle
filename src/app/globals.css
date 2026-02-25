@@ -139,3 +139,14 @@ textarea::placeholder {
   60% { opacity: calc(var(--particle-opacity) * 2.5); }
   100% { transform: translate(var(--converge-x), var(--converge-y)) scale(0); opacity: 0; }
 }
+
+/* Placeholder fragment animations */
+@keyframes placeholderFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ellipsisDot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}

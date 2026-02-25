@@ -48,6 +48,7 @@ interface MobileSessionProps {
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   processingText: string | null;
+  placeholder: string | null;
   errorMessage: string | null;
   conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
@@ -110,6 +111,7 @@ export default function MobileSession({
   activeCheckpoint,
   checkpointError,
   processingText,
+  placeholder,
   errorMessage,
   conversations,
   sendMessage,
@@ -124,6 +126,8 @@ export default function MobileSession({
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
+  const [placeholderKey, setPlaceholderKey] = useState(0);
+  const prevPlaceholderRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -146,6 +150,14 @@ export default function MobileSession({
     }
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
+
+  // Restart fade-in animation when placeholder text changes
+  useEffect(() => {
+    if (placeholder && placeholder !== prevPlaceholderRef.current) {
+      setPlaceholderKey((k) => k + 1);
+    }
+    prevPlaceholderRef.current = placeholder;
+  }, [placeholder]);
 
   // Auto-resize textarea after every content change (type, paste, clear)
   useLayoutEffect(() => {
@@ -666,29 +678,72 @@ export default function MobileSession({
             gap: "8px",
           }}
         >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder="Say something_"
-            rows={1}
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              resize: "none",
-              backgroundColor: "transparent",
-              fontFamily: "system-ui, -apple-system, sans-serif",
-              fontSize: "16px",
-              lineHeight: "24px",
-              color: "#E2E0DB",
-              padding: "10px 0",
-              overflow: "hidden",
-            }}
-          />
+          <div style={{ flex: 1, position: "relative" }}>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder=""
+              rows={1}
+              style={{
+                width: "100%",
+                border: "none",
+                outline: "none",
+                resize: "none",
+                backgroundColor: "transparent",
+                fontFamily: "system-ui, -apple-system, sans-serif",
+                fontSize: "16px",
+                lineHeight: "24px",
+                color: "#E2E0DB",
+                padding: "10px 0",
+                overflow: "hidden",
+              }}
+            />
+            {!input && (
+              <div
+                key={placeholderKey}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "10px 0",
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                  fontSize: "16px",
+                  lineHeight: "24px",
+                  color: "var(--color-text-ghost)",
+                  pointerEvents: "none",
+                  animation: placeholder ? "placeholderFadeIn 0.8s ease-out" : "none",
+                }}
+              >
+                {placeholder ? (
+                  <>
+                    <span>{placeholder.replace(/\.{2,}$/, "")}</span>
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        style={{
+                          animation: "ellipsisDot 1.4s ease-in-out infinite",
+                          animationDelay: `${i * 0.2}s`,
+                          opacity: 0.3,
+                          display: "inline-block",
+                          width: "0.3em",
+                          textAlign: "center",
+                        }}
+                      >
+                        .
+                      </span>
+                    ))}
+                  </>
+                ) : (
+                  <span>{messages.length > 0 ? "" : "Begin anywhere_"}</span>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading || isStreaming}

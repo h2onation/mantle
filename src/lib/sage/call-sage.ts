@@ -2,6 +2,7 @@ import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
+import { generatePlaceholder } from "@/lib/sage/placeholder-generator";
 
 interface CallSageOptions {
   conversationId: string;
@@ -209,7 +210,10 @@ export function callSage({
           .join("\n\n");
 
         const isFirstSession = !manualComponents || manualComponents.length === 0;
-        const classification = await classifyResponse(fullText, recentText, isFirstSession);
+        const [classification, placeholder] = await Promise.all([
+          classifyResponse(fullText, recentText, isFirstSession),
+          generatePlaceholder(fullText),
+        ]);
 
         // 10. Update message with checkpoint and processing text
         if (messageId) {
@@ -248,6 +252,7 @@ export function callSage({
               conversationId: convId,
               checkpoint,
               processingText: classification.processingText,
+              placeholder,
             })}\n\n`
           )
         );

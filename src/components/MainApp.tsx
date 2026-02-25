@@ -29,6 +29,7 @@ export default function MainApp() {
     errorMessage,
     checkpointError,
     processingText,
+    placeholder,
     conversations,
     sendMessage,
     retryLastMessage,
@@ -140,6 +141,7 @@ export default function MainApp() {
               activeCheckpoint={activeCheckpoint}
               checkpointError={checkpointError}
               processingText={processingText}
+              placeholder={placeholder}
               errorMessage={errorMessage}
               conversations={conversations}
               sendMessage={sendMessage}
