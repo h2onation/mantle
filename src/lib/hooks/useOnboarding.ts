@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+export type OnboardingPhase = "hidden" | "onboarding" | "dissolving" | "complete";
 
 interface UseOnboardingProps {
   initialized: boolean;
@@ -13,11 +15,7 @@ export function useOnboarding({
   isNewUser,
   sendMessage,
 }: UseOnboardingProps) {
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isBlurred, setIsBlurred] = useState(false);
-  const [skipWelcome, setSkipWelcome] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const dismissReopenRef = useRef(false);
+  const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>("hidden");
 
   useEffect(() => {
     if (!initialized || !isNewUser) return;
@@ -25,54 +23,25 @@ export function useOnboarding({
     const completed = localStorage.getItem("mantle_onboarding_completed");
     if (completed === "true") return;
 
-    const wasDismissed = localStorage.getItem("mantle_onboarding_dismissed");
-    if (wasDismissed === "true") {
-      setSkipWelcome(true);
-    }
-
-    setShowOnboarding(true);
-    setIsBlurred(true);
+    setOnboardingPhase("onboarding");
   }, [initialized, isNewUser]);
 
   const handleComplete = useCallback(
-    (focusText: string, selectedSound: string | null) => {
-      if (!selectedSound) {
-        localStorage.removeItem("mantle_session_sound");
-      }
-      localStorage.setItem("mantle_onboarding_completed", "true");
+    (focusText: string) => {
+      setOnboardingPhase("dissolving");
 
-      setShowOnboarding(false);
-      setIsBlurred(false);
-
-      sendMessage(focusText);
+      // 500ms fade-out + 300ms dark pause
+      setTimeout(() => {
+        localStorage.setItem("mantle_onboarding_completed", "true");
+        sendMessage(focusText);
+        setOnboardingPhase("complete");
+      }, 800);
     },
     [sendMessage]
   );
 
-  const handleDismiss = useCallback(() => {
-    localStorage.setItem("mantle_onboarding_dismissed", "true");
-    setShowOnboarding(false);
-    setIsBlurred(false);
-    setDismissed(true);
-    dismissReopenRef.current = false;
-  }, []);
-
-  const handleInputFocus = useCallback(() => {
-    if (dismissed && !dismissReopenRef.current) {
-      dismissReopenRef.current = true;
-      setSkipWelcome(true);
-      setShowOnboarding(true);
-      setIsBlurred(true);
-      setDismissed(false);
-    }
-  }, [dismissed]);
-
   return {
-    showOnboarding,
-    isBlurred,
-    skipWelcome,
+    onboardingPhase,
     handleComplete,
-    handleDismiss,
-    handleInputFocus,
   };
 }

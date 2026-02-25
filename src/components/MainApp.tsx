@@ -40,12 +40,8 @@ export default function MainApp() {
   } = useChat();
 
   const {
-    showOnboarding,
-    isBlurred,
-    skipWelcome,
+    onboardingPhase,
     handleComplete,
-    handleDismiss,
-    handleInputFocus,
   } = useOnboarding({ initialized, isNewUser, sendMessage });
 
   const handleSimulationEvent = useCallback((type: string, conversationId: string) => {
@@ -116,55 +112,63 @@ export default function MainApp() {
     );
   }
 
+  const showLayout = onboardingPhase === "complete" || onboardingPhase === "hidden";
+  const layoutFadingIn = onboardingPhase === "complete";
+
   return (
     <>
-      <MobileLayout
-        isBlurred={isBlurred}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        sessionContent={
-          <MobileSession
-            messages={messages}
-            conversationId={conversationId}
-            isLoading={isLoading}
-            isStreaming={isStreaming}
-            isNewUser={isNewUser}
-            sessionSummary={sessionSummary}
-            lastSessionDate={lastSessionDate}
-            confirmedComponents={confirmedComponents}
-            activeCheckpoint={activeCheckpoint}
-            checkpointError={checkpointError}
-            processingText={processingText}
-            errorMessage={errorMessage}
-            conversations={conversations}
-            sendMessage={sendMessage}
-            retryLastMessage={retryLastMessage}
-            confirmCheckpoint={confirmCheckpoint}
-            switchConversation={switchConversation}
-            startNewSession={startNewSession}
-            refreshConversations={refreshConversations}
-            onInputFocus={handleInputFocus}
-          />
-        }
-        manualContent={
-          <MobileManual components={confirmedComponents} />
-        }
-        guidanceContent={
-          <MobileGuidance confirmedCount={confirmedComponents.length} />
-        }
-        settingsContent={
-          <MobileSettings
-            userEmail={userEmail}
-            sessionCount={conversations.length}
-            onSimulationEvent={handleSimulationEvent}
-          />
-        }
-      />
-      {showOnboarding && (
+      <div
+        style={{
+          opacity: showLayout ? 1 : 0,
+          visibility: showLayout ? "visible" : "hidden",
+          transition: layoutFadingIn ? "opacity 500ms ease" : undefined,
+        }}
+      >
+        <MobileLayout
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          sessionContent={
+            <MobileSession
+              messages={messages}
+              conversationId={conversationId}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+              isNewUser={isNewUser}
+              sessionSummary={sessionSummary}
+              lastSessionDate={lastSessionDate}
+              confirmedComponents={confirmedComponents}
+              activeCheckpoint={activeCheckpoint}
+              checkpointError={checkpointError}
+              processingText={processingText}
+              errorMessage={errorMessage}
+              conversations={conversations}
+              sendMessage={sendMessage}
+              retryLastMessage={retryLastMessage}
+              confirmCheckpoint={confirmCheckpoint}
+              switchConversation={switchConversation}
+              startNewSession={startNewSession}
+              refreshConversations={refreshConversations}
+            />
+          }
+          manualContent={
+            <MobileManual components={confirmedComponents} />
+          }
+          guidanceContent={
+            <MobileGuidance confirmedCount={confirmedComponents.length} />
+          }
+          settingsContent={
+            <MobileSettings
+              userEmail={userEmail}
+              sessionCount={conversations.length}
+              onSimulationEvent={handleSimulationEvent}
+            />
+          }
+        />
+      </div>
+      {(onboardingPhase === "onboarding" || onboardingPhase === "dissolving") && (
         <OnboardingOverlay
           onComplete={handleComplete}
-          onDismiss={handleDismiss}
-          skipWelcome={skipWelcome}
+          phase={onboardingPhase}
         />
       )}
     </>

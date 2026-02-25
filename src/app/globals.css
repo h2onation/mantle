@@ -38,6 +38,10 @@ body {
   color: var(--color-text);
 }
 
+textarea::placeholder {
+  color: var(--color-text-dim);
+}
+
 /* Thin dark scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
