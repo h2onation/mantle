@@ -124,17 +124,18 @@ export default function MobileSession({
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages, isLoading]);
 
   // Trigger particle convergence when a checkpoint arrives
   useEffect(() => {
@@ -296,24 +297,30 @@ export default function MobileSession({
 
       {/* Messages area */}
       <div
+        ref={scrollRef}
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "0 16px 16px",
+          overflowX: "hidden",
           display: "flex",
           flexDirection: "column",
           position: "relative",
+          maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.4) 6%, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.9) 14%, black 18%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.4) 6%, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.9) 14%, black 18%)",
         }}
       >
         <SessionParticles messageCount={messages.length} converge={isConverging} />
+        {/* Spacer pushes messages to bottom of viewport */}
+        <div style={{ flexGrow: 1, minHeight: "24px" }} />
+
         {/* Empty state placeholder */}
-        {!hasMessages && (
+        {!hasMessages && !isLoading && (
           <div
             style={{
-              flex: 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              padding: "40px 24px",
             }}
           >
             <p
@@ -324,46 +331,12 @@ export default function MobileSession({
                 lineHeight: 1.5,
                 letterSpacing: "-0.3px",
                 textAlign: "center",
-                padding: "0 24px",
               }}
             >
               Ready when you are.
             </p>
           </div>
         )}
-
-        {/* Messages list */}
-        {hasMessages && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "28px",
-              alignItems: "flex-start",
-            }}
-          >
-            {/* Session label */}
-            {conversations.length > 0 && conversationId && (() => {
-              const currentConv = conversations.find(c => c.id === conversationId);
-              const dateStr = currentConv?.created_at
-                ? formatShortDate(currentConv.created_at)
-                : formatShortDate(new Date().toISOString());
-              return (
-                <div
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: "9px",
-                    letterSpacing: "3px",
-                    textTransform: "uppercase",
-                    color: "rgba(226, 224, 219, 0.15)",
-                    textAlign: "center",
-                    paddingBottom: "36px",
-                  }}
-                >
-                  Session · {dateStr}
-                </div>
-              );
-            })()}
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
@@ -375,215 +348,351 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
+              // Checkpoint rendering — warm glow card
               if (isCheckpoint) {
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
-                      padding: "32px 0 32px 20px",
-                      borderLeft: "1px solid rgba(180, 145, 75, 0.2)",
-                      animation: "checkpointFadeIn 2s ease-out",
+                      animation: "checkpointFadeIn 0.45s ease-out both",
                     }}
                   >
-                    {/* Header */}
                     <div
                       style={{
-                        fontFamily: "Georgia, serif",
-                        fontSize: "13px",
-                        fontStyle: "italic",
-                        color: "rgba(180, 145, 75, 0.45)",
-                        marginBottom: "18px",
+                        backgroundColor: "#302820",
+                        borderRadius: "6px",
+                        margin: "16px",
+                        padding: "20px 20px 24px",
+                        animation: "warmPulse 7s ease-in-out infinite",
                       }}
                     >
-                      What I&apos;m noticing —
+                      {/* Sage label */}
+                      <div style={{ paddingBottom: "12px" }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "10px",
+                            fontWeight: 500,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            color: "#7A8B72",
+                          }}
+                        >
+                          Sage
+                        </span>
+                      </div>
+                      {/* Body */}
+                      <div
+                        style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "15px",
+                          lineHeight: 1.7,
+                          fontWeight: 430,
+                          color: "#D4CBC0",
+                          letterSpacing: "0.01em",
+                        }}
+                      >
+                        {renderMarkdown(msg.content)}
+                      </div>
+
+                      {/* Action buttons */}
+                      {isPendingCheckpoint && !checkpointActionState ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginTop: "20px",
+                            paddingTop: "16px",
+                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
+                          }}
+                        >
+                          <button
+                            onClick={() => {
+                              setCheckpointActionState("confirmed");
+                              confirmCheckpoint("confirmed");
+                            }}
+                            style={{
+                              background: "rgba(122, 139, 114, 0.15)",
+                              border: "1px solid rgba(122, 139, 114, 0.25)",
+                              borderRadius: "6px",
+                              padding: "8px 14px",
+                              color: "#A8B89F",
+                              fontFamily: "var(--font-sans)",
+                              fontSize: "12.5px",
+                              fontWeight: 500,
+                              cursor: "pointer",
+                              transition: "all 0.25s ease",
+                              letterSpacing: "0.01em",
+                            }}
+                          >
+                            Write to manual
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCheckpointActionState("refined");
+                              confirmCheckpoint("refined");
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "1px solid rgba(212, 203, 192, 0.1)",
+                              borderRadius: "6px",
+                              padding: "8px 14px",
+                              color: "rgba(212, 203, 192, 0.5)",
+                              fontFamily: "var(--font-sans)",
+                              fontSize: "12.5px",
+                              fontWeight: 450,
+                              cursor: "pointer",
+                              transition: "all 0.25s ease",
+                              letterSpacing: "0.01em",
+                            }}
+                          >
+                            Not quite
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCheckpointActionState("rejected");
+                              confirmCheckpoint("rejected");
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "1px solid rgba(212, 203, 192, 0.1)",
+                              borderRadius: "6px",
+                              padding: "8px 14px",
+                              color: "rgba(212, 203, 192, 0.35)",
+                              fontFamily: "var(--font-sans)",
+                              fontSize: "12.5px",
+                              fontWeight: 450,
+                              cursor: "pointer",
+                              transition: "all 0.25s ease",
+                              letterSpacing: "0.01em",
+                            }}
+                          >
+                            Not at all
+                          </button>
+                        </div>
+                      ) : isPendingCheckpoint && checkpointActionState ? (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            paddingTop: "16px",
+                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
+                            animation: "checkpointFadeIn 0.4s ease-out both",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              letterSpacing: "0.08em",
+                              color: checkpointActionState === "confirmed"
+                                ? "rgba(122, 139, 114, 0.7)"
+                                : "rgba(212, 203, 192, 0.4)",
+                            }}
+                          >
+                            {checkpointActionState === "confirmed" && "Written to manual"}
+                            {checkpointActionState === "refined" && "Sage will revisit this"}
+                            {checkpointActionState === "rejected" && "Discarded"}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {/* Already-resolved checkpoints (loaded from DB) */}
+                      {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            paddingTop: "16px",
+                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              letterSpacing: "0.08em",
+                              color: msg.checkpointMeta.status === "confirmed"
+                                ? "rgba(122, 139, 114, 0.7)"
+                                : "rgba(212, 203, 192, 0.4)",
+                            }}
+                          >
+                            {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
+                            {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
+                            {msg.checkpointMeta.status === "rejected" && "Discarded"}
+                          </span>
+                        </div>
+                      )}
+
+                      {checkpointError && isPendingCheckpoint && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "10px",
+                            color: "var(--color-text-ghost)",
+                            marginTop: "12px",
+                            display: "block",
+                          }}
+                        >
+                          {checkpointError}
+                        </span>
+                      )}
                     </div>
-
-                    {/* Body */}
-                    <div
-                      style={{
-                        fontFamily: "Georgia, serif",
-                        fontSize: "15px",
-                        fontStyle: "normal",
-                        lineHeight: "1.9",
-                        letterSpacing: "0.2px",
-                        color: "rgba(226, 224, 219, 0.82)",
-                      }}
-                    >
-                      {renderMarkdown(msg.content)}
-                    </div>
-
-                    {/* Action buttons */}
-                    {isPendingCheckpoint && !checkpointActionState && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          marginTop: "28px",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("confirmed");
-                            confirmCheckpoint("confirmed");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(139, 168, 136, 0.8)",
-                            background: "none",
-                            border: "none",
-                            borderBottom: "1px solid rgba(139, 168, 136, 0.3)",
-                            padding: "8px 14px 8px 0",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Yes, this resonates
-                        </button>
-                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("refined");
-                            confirmCheckpoint("refined");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(226, 224, 219, 0.3)",
-                            background: "none",
-                            border: "none",
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Refine
-                        </button>
-                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("rejected");
-                            confirmCheckpoint("rejected");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(226, 224, 219, 0.18)",
-                            background: "none",
-                            border: "none",
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Not quite
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Post-action states */}
-                    {isPendingCheckpoint && checkpointActionState === "confirmed" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(139, 168, 136, 0.55)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Added to your manual
-                      </div>
-                    )}
-                    {isPendingCheckpoint && checkpointActionState === "refined" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(226, 224, 219, 0.35)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Tell Sage what to adjust ↓
-                      </div>
-                    )}
-                    {isPendingCheckpoint && checkpointActionState === "rejected" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(226, 224, 219, 0.25)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Noted — Sage will keep listening
-                      </div>
-                    )}
-
-                    {checkpointError && (
-                      <span
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          color: "var(--color-text-ghost)",
-                          marginTop: "12px",
-                          display: "block",
-                        }}
-                      >
-                        {checkpointError}
-                      </span>
-                    )}
                   </div>
                 );
               }
 
+              // Sequence detection: checkpoints break Sage sequences
+              const isFirstInSageSequence = (() => {
+                if (msg.role !== "assistant") return false;
+                if (i === 0) return true;
+                const prev = messages[i - 1];
+                if (!prev || prev.role === "system") return true;
+                return prev.role !== "assistant" || prev.isCheckpoint === true;
+              })();
+
+              const isLastInSageSequence = (() => {
+                if (msg.role !== "assistant") return false;
+                if (i === messages.length - 1) {
+                  if (isLoading) return false;
+                  return true;
+                }
+                const next = messages[i + 1];
+                if (!next || next.role === "system") return true;
+                return next.role !== "assistant" || next.isCheckpoint === true;
+              })();
+
+              // Normal message rendering with Sage panel
+              if (!isUser) {
+                return (
+                  <div
+                    key={msg.id || `msg-${i}`}
+                    style={{
+                      animation: "checkpointFadeIn 0.45s ease-out both",
+                    }}
+                  >
+                    {/* Sage label */}
+                    {isFirstInSageSequence && (
+                      <div
+                        style={{
+                          padding: "0 28px",
+                          paddingTop: i === 0 ? "0" : "8px",
+                          paddingBottom: "10px",
+                          backgroundColor: "#262220",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "10px",
+                            fontWeight: 500,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            color: "#7A8B72",
+                          }}
+                        >
+                          Sage
+                        </span>
+                      </div>
+                    )}
+                    {/* Message */}
+                    <div
+                      style={{
+                        padding: "0 28px",
+                        paddingTop: isFirstInSageSequence ? "0" : "14px",
+                        paddingBottom: isLastInSageSequence ? "22px" : "0",
+                        backgroundColor: "#262220",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "15px",
+                          lineHeight: 1.7,
+                          fontWeight: 430,
+                          color: "#D4CBC0",
+                          letterSpacing: "0.01em",
+                        }}
+                      >
+                        {renderMarkdown(msg.content)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // User message
               return (
                 <div
                   key={msg.id || `msg-${i}`}
-                  style={isUser ? {
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontSize: "14px",
-                    lineHeight: "1.65",
-                    letterSpacing: "0.1px",
-                    color: "rgba(226, 224, 219, 0.38)",
-                    textAlign: "right",
-                    alignSelf: "flex-end",
-                  } : {
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontSize: "15px",
-                    lineHeight: "1.7",
-                    letterSpacing: "0.1px",
-                    color: "rgba(226, 224, 219, 0.78)",
-                    textAlign: "left",
+                  style={{
+                    padding: "0 28px 0 48px",
+                    paddingTop: "22px",
+                    paddingBottom: "22px",
+                    animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
-                  {isUser ? msg.content : renderMarkdown(msg.content)}
+                  <p
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "15px",
+                      lineHeight: 1.7,
+                      fontWeight: 400,
+                      color: "#C0B8AD",
+                      letterSpacing: "0.01em",
+                      margin: 0,
+                    }}
+                  >
+                    {msg.content}
+                  </p>
                 </div>
               );
             })}
 
-            {/* Typing indicator with processing text */}
+            {/* Processing dots */}
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
-                  <div
-                    style={{
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      backgroundColor: "var(--color-accent-glow)",
-                      animation: "sagePulse 2.5s ease-in-out infinite",
-                    }}
-                  />
+                <div
+                  style={{
+                    padding: "16px 28px 20px",
+                    backgroundColor: "#262220",
+                    animation: "checkpointFadeIn 0.3s ease-out both",
+                  }}
+                >
+                  {/* Show Sage label when prev message was user or checkpoint */}
+                  {messages.length === 0 ||
+                  messages[messages.length - 1]?.role !== "assistant" ||
+                  messages[messages.length - 1]?.isCheckpoint === true ? (
+                    <div style={{ paddingBottom: "8px" }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: "#7A8B72",
+                        }}
+                      >
+                        Sage
+                      </span>
+                    </div>
+                  ) : null}
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", padding: "8px 0" }}>
+                    {[0, 1, 2].map((dotIdx) => (
+                      <div
+                        key={dotIdx}
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          borderRadius: "50%",
+                          backgroundColor: "#7A8B72",
+                          opacity: 0.5,
+                          animation: "sagePulse 2.4s ease-in-out infinite",
+                          animationDelay: `${dotIdx * 0.35}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
                   {processingText && processingText !== "listening..." && (
                     <div
                       style={{
@@ -593,6 +702,7 @@ export default function MobileSession({
                         textTransform: "lowercase",
                         color: "var(--color-text-ghost)",
                         opacity: 0.5,
+                        paddingTop: "4px",
                         animation: "processingTextFadeIn 0.8s ease-out",
                       }}
                     >
@@ -601,6 +711,13 @@ export default function MobileSession({
                   )}
                 </div>
               )}
+
+            {/* Bottom spacer for checkpoint glow breathing room */}
+            {messages.length > 0 &&
+             messages[messages.length - 1]?.isCheckpoint === true &&
+             !isLoading && (
+              <div style={{ height: "40px", flexShrink: 0 }} />
+            )}
 
             {/* Error */}
             {errorMessage && (
@@ -646,24 +763,24 @@ export default function MobileSession({
                 </div>
               </div>
             )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        )}
       </div>
 
       {/* Input */}
       <div
         style={{
-          padding: "12px 16px 16px",
-          borderTop: "1px solid var(--color-divider)",
+          flexShrink: 0,
+          padding: "8px 16px 0",
         }}
       >
         <div
           style={{
+            position: "relative",
+            backgroundColor: "#242120",
+            borderRadius: "14px",
+            border: "1px solid rgba(122, 139, 114, 0.15)",
+            transition: "all 0.4s ease",
             display: "flex",
             alignItems: "flex-end",
-            gap: "8px",
           }}
         >
           <textarea
@@ -673,51 +790,57 @@ export default function MobileSession({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            placeholder="Say something_"
-            rows={1}
+            placeholder=""
+            rows={2}
             style={{
-              flex: 1,
+              width: "100%",
+              background: "transparent",
               border: "none",
               outline: "none",
               resize: "none",
-              backgroundColor: "transparent",
-              fontFamily: "system-ui, -apple-system, sans-serif",
-              fontSize: "16px",
-              lineHeight: "24px",
-              color: "#E2E0DB",
-              padding: "10px 0",
-              overflow: "hidden",
+              color: "#C8BFB4",
+              fontFamily: "var(--font-sans)",
+              fontSize: "14.5px",
+              fontWeight: 400,
+              lineHeight: 1.6,
+              padding: "12px 44px 12px 16px",
+              caretColor: "#7A8B72",
             }}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading || isStreaming}
+          <div
+            onClick={!input.trim() || isLoading || isStreaming ? undefined : handleSend}
             style={{
-              width: "34px",
-              height: "34px",
+              position: "absolute",
+              right: "10px",
+              bottom: "10px",
+              width: "28px",
+              height: "28px",
               borderRadius: "50%",
-              border: `1px solid ${input.trim() ? "rgba(139, 168, 136, 0.45)" : "rgba(226, 224, 219, 0.08)"}`,
-              backgroundColor: "transparent",
-              cursor: !input.trim() || isLoading || isStreaming ? "default" : "pointer",
+              backgroundColor: input.trim()
+                ? "rgba(122, 139, 114, 0.2)"
+                : "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
-              marginBottom: "2px",
-              transition: "border-color 0.2s ease",
+              transition: "background-color 0.3s ease",
+              cursor: input.trim() ? "pointer" : "default",
             }}
           >
-            <span
-              style={{
-                fontSize: "16px",
-                lineHeight: 1,
-                color: input.trim() ? "rgba(139, 168, 136, 0.75)" : "rgba(226, 224, 219, 0.15)",
-                transition: "color 0.2s ease",
-              }}
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={input.trim() ? "#7A8B72" : "rgba(212, 203, 192, 0.15)"}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transition: "stroke 0.3s ease" }}
             >
-              ↑
-            </span>
-          </button>
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
+            </svg>
+          </div>
         </div>
       </div>
 
