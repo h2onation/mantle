@@ -44,6 +44,11 @@ export default function MobileSettings({
     setShowSoundSelector(false);
   }, []);
 
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   async function handleDelete() {
     await fetch("/api/dev-reset", { method: "POST" });
     localStorage.clear();
@@ -285,6 +290,44 @@ export default function MobileSettings({
           {userEmail || "—"}
         </p>
       </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        style={{
+          width: "100%",
+          padding: "18px 0",
+          background: "none",
+          border: "none",
+          borderBottom: "1px solid var(--color-divider)",
+          cursor: "pointer",
+          textAlign: "left",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--color-text)",
+            letterSpacing: "0.2px",
+            margin: 0,
+          }}
+        >
+          Log out
+        </p>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            color: "var(--color-text-ghost)",
+            letterSpacing: "0.5px",
+            margin: "3px 0 0 0",
+          }}
+        >
+          {userEmail || "—"}
+        </p>
+      </button>
 
       {/* Session history */}
       <div
