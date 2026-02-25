@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import SessionParticles from "./SessionParticles";
@@ -57,7 +57,6 @@ interface MobileSessionProps {
   switchConversation: (id: string) => Promise<void>;
   startNewSession: () => Promise<void>;
   refreshConversations: () => Promise<void>;
-  onInputFocus: () => void;
 }
 
 function renderMarkdown(text: string) {
@@ -139,12 +138,10 @@ export default function MobileSession({
   switchConversation,
   startNewSession,
   refreshConversations,
-  onInputFocus,
 }: MobileSessionProps) {
   const [input, setInput] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSoundMenu, setShowSoundMenu] = useState(false);
-  const [focused, setFocused] = useState(false);
   const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const [indicatorTier, setIndicatorTier] = useState<"normal" | "deeper" | "heavy">("normal");
@@ -224,6 +221,18 @@ export default function MobileSession({
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
 
+  // Auto-resize textarea after every content change (type, paste, clear)
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const lineHeight = 24;
+    const maxLines = 6;
+    const maxHeight = lineHeight * maxLines;
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [input]);
+
   function handleSend() {
     const text = input.trim();
     if (!text) return;
@@ -232,19 +241,12 @@ export default function MobileSession({
     const isLongMessage = wordCount >= 100;
 
     setInput("");
-    setFocused(false);
 
     if (isLongMessage) {
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "44px";
-        }
         sendMessage(text);
       }, 1500);
     } else {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "44px";
-      }
       sendMessage(text);
     }
   }
@@ -258,27 +260,14 @@ export default function MobileSession({
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setInput(e.target.value);
-    const el = e.target;
-    el.style.height = "120px";
-    const maxHeight = window.innerHeight * 0.4;
-    el.style.height = Math.max(120, Math.min(el.scrollHeight, maxHeight)) + "px";
   }
 
   function handleFocus() {
-    setFocused(true);
-    onInputFocus();
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "120px";
-    }
+    // no-op, kept for onFocus binding
   }
 
   function handleBlur() {
-    if (!input.trim()) {
-      setFocused(false);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "44px";
-      }
-    }
+    // no-op, kept for onBlur binding
   }
 
   const handleCloseSoundMenu = useCallback(() => {
@@ -641,8 +630,6 @@ export default function MobileSession({
                     letterSpacing: "0.1px",
                     color: "rgba(226, 224, 219, 0.38)",
                     textAlign: "right",
-                    maxWidth: "78%",
-                    marginLeft: "auto",
                     alignSelf: "flex-end",
                   } : {
                     fontFamily: "system-ui, -apple-system, sans-serif",
@@ -651,8 +638,6 @@ export default function MobileSession({
                     letterSpacing: "0.1px",
                     color: "rgba(226, 224, 219, 0.78)",
                     textAlign: "left",
-                    maxWidth: "82%",
-                    marginRight: "auto",
                   }}
                 >
                   {isUser ? msg.content : renderMarkdown(msg.content)}
@@ -749,14 +734,11 @@ export default function MobileSession({
               resize: "none",
               backgroundColor: "transparent",
               fontFamily: "system-ui, -apple-system, sans-serif",
-              fontSize: "15px",
+              fontSize: "16px",
               lineHeight: "24px",
               color: "#E2E0DB",
               padding: "10px 0",
-              height: "44px",
-              maxHeight: focused ? "40vh" : "44px",
-              transition: "height 0.3s ease",
-              overflow: focused ? "auto" : "hidden",
+              overflow: "hidden",
             }}
           />
           <button

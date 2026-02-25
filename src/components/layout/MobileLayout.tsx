@@ -7,7 +7,6 @@ interface MobileLayoutProps {
   manualContent: React.ReactNode;
   guidanceContent: React.ReactNode;
   settingsContent: React.ReactNode;
-  isBlurred?: boolean;
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
 }
@@ -17,7 +16,6 @@ export default function MobileLayout({
   manualContent,
   guidanceContent,
   settingsContent,
-  isBlurred,
   activeTab,
   onTabChange,
 }: MobileLayoutProps) {
@@ -28,9 +26,6 @@ export default function MobileLayout({
         position: "fixed",
         inset: 0,
         backgroundColor: "var(--color-void)",
-        filter: isBlurred ? "blur(12px)" : undefined,
-        pointerEvents: isBlurred ? "none" : undefined,
-        transition: "filter 1.2s ease-out",
       }}
     >
       {([
