@@ -42,7 +42,7 @@ export default function MobileLayout({
             left: 0,
             right: 0,
             bottom: "calc(68px + env(safe-area-inset-bottom, 0px))",
-            overflow: "hidden",
+            overflowX: "hidden",
             display: activeTab === tab ? "block" : "none",
           }}
         >

@@ -55,22 +55,6 @@ export default function MobileGuidance({ confirmedCount }: MobileGuidanceProps) 
         position: "relative",
       }}
     >
-      {/* Background glow */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "200px",
-          height: "200px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, var(--color-accent-ghost) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
       <div
         style={{
           position: "relative",

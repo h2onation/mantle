@@ -101,21 +101,6 @@ export default function MobileManual({ components }: MobileManualProps) {
         position: "relative",
       }}
     >
-      {/* Faint glow */}
-      <div
-        style={{
-          position: "fixed",
-          top: "5%",
-          right: "20%",
-          width: "120px",
-          height: "120px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%)",
-          opacity: 0.03,
-          pointerEvents: "none",
-        }}
-      />
-
       {/* Header */}
       <p
         style={{

@@ -34,14 +34,6 @@ const SCREENS = [
   },
 ];
 
-const GLOW_CONFIGS = [
-  { x: "50%", y: "30%", size: 300, opacity: 0.08 },
-  { x: "30%", y: "25%", size: 280, opacity: 0.1 },
-  { x: "70%", y: "35%", size: 260, opacity: 0.1 },
-  { x: "40%", y: "20%", size: 300, opacity: 0.12 },
-  { x: "60%", y: "30%", size: 280, opacity: 0.1 },
-];
-
 export default function OnboardingOverlay({
   onComplete,
   phase,
@@ -98,8 +90,6 @@ export default function OnboardingOverlay({
     onComplete(text);
   }
 
-  const glow = GLOW_CONFIGS[screenIndex] || GLOW_CONFIGS[0];
-
   return (
     <div
       style={{
@@ -111,23 +101,6 @@ export default function OnboardingOverlay({
         transition: phase === "dissolving" ? "opacity 500ms ease" : "opacity 300ms ease",
       }}
     >
-      {/* Ambient glow */}
-      <div
-        style={{
-          position: "absolute",
-          left: glow.x,
-          top: glow.y,
-          width: `${glow.size}px`,
-          height: `${glow.size}px`,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%)`,
-          opacity: glow.opacity,
-          transform: "translate(-50%, -50%)",
-          transition: "left 600ms ease, top 600ms ease, opacity 600ms ease",
-          pointerEvents: "none",
-        }}
-      />
-
       {/* Screen content */}
       <div
         style={{

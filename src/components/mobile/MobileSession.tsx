@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
-import SessionParticles from "./SessionParticles";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 
 interface ChatMessage {
@@ -122,7 +121,7 @@ export default function MobileSession({
   const [input, setInput] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSoundMenu, setShowSoundMenu] = useState(false);
-  const [isConverging, setIsConverging] = useState(false);
+  const [checkpointJustArrived, setCheckpointJustArrived] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -136,12 +135,12 @@ export default function MobileSession({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Trigger particle convergence when a checkpoint arrives
+  // Checkpoint transition: fade in first, then start warm pulse
   useEffect(() => {
     if (activeCheckpoint && !prevCheckpointRef.current) {
-      setIsConverging(true);
+      setCheckpointJustArrived(true);
       setCheckpointActionState(null);
-      const timer = setTimeout(() => setIsConverging(false), 1500);
+      const timer = setTimeout(() => setCheckpointJustArrived(false), 1500);
       return () => clearTimeout(timer);
     }
     prevCheckpointRef.current = activeCheckpoint;
@@ -305,7 +304,6 @@ export default function MobileSession({
           position: "relative",
         }}
       >
-        <SessionParticles messageCount={messages.length} converge={isConverging} />
         {/* Empty state placeholder */}
         {!hasMessages && (
           <div
@@ -365,240 +363,289 @@ export default function MobileSession({
               );
             })()}
 
-            {messages.map((msg, i) => {
-              if (msg.role === "system") return null;
+            {(() => {
+              // Group consecutive checkpoint messages into shared panels
+              type MsgGroup = { type: "checkpoint"; msgs: { msg: ChatMessage; idx: number }[] }
+                | { type: "single"; msg: ChatMessage; idx: number };
+              const groups: MsgGroup[] = [];
+              const visible = messages.map((msg, idx) => ({ msg, idx })).filter(m => m.msg.role !== "system");
 
-              const isUser = msg.role === "user";
-              const isCheckpoint = msg.isCheckpoint === true;
-              const isPendingCheckpoint =
-                isCheckpoint &&
-                activeCheckpoint &&
-                activeCheckpoint.messageId === msg.id;
+              for (const item of visible) {
+                if (item.msg.isCheckpoint === true) {
+                  const last = groups[groups.length - 1];
+                  if (last && last.type === "checkpoint") {
+                    last.msgs.push(item);
+                  } else {
+                    groups.push({ type: "checkpoint", msgs: [item] });
+                  }
+                } else {
+                  groups.push({ type: "single", msg: item.msg, idx: item.idx });
+                }
+              }
 
-              if (isCheckpoint) {
+              return groups.map((group, gi) => {
+                if (group.type === "checkpoint") {
+                  return (
+                    <div
+                      key={`cpgroup-${gi}`}
+                      style={{
+                        backgroundColor: "#302820",
+                        borderRadius: "6px",
+                        margin: "16px",
+                        padding: "20px 20px 24px",
+                        animation: checkpointJustArrived
+                          ? "checkpointFadeIn 2s ease-out"
+                          : "checkpointFadeIn 2s ease-out, warmPulse 7s ease-in-out infinite",
+                      }}
+                    >
+                      {group.msgs.map(({ msg, idx: i }, mi) => {
+                        const isPending =
+                          activeCheckpoint &&
+                          activeCheckpoint.messageId === msg.id;
+                        const isLast = mi === group.msgs.length - 1;
+
+                        return (
+                          <div key={msg.id || `msg-${i}`} style={{ marginTop: mi > 0 ? "24px" : 0 }}>
+                            {/* Header */}
+                            <div
+                              style={{
+                                fontFamily: "var(--font-serif)",
+                                fontSize: "13px",
+                                fontStyle: "italic",
+                                color: "rgba(180, 145, 75, 0.45)",
+                                marginBottom: "18px",
+                              }}
+                            >
+                              What I&apos;m noticing —
+                            </div>
+
+                            {/* Body */}
+                            <div
+                              style={{
+                                fontFamily: "var(--font-serif)",
+                                fontSize: "15px",
+                                fontStyle: "normal",
+                                lineHeight: "1.9",
+                                letterSpacing: "0.2px",
+                                color: "rgba(226, 224, 219, 0.82)",
+                              }}
+                            >
+                              {renderMarkdown(msg.content)}
+                            </div>
+
+                            {/* Action buttons — only on pending checkpoint */}
+                            {isPending && !checkpointActionState && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  marginTop: "28px",
+                                }}
+                              >
+                                <button
+                                  onClick={() => {
+                                    setCheckpointActionState("confirmed");
+                                    confirmCheckpoint("confirmed");
+                                  }}
+                                  style={{
+                                    fontFamily: "monospace",
+                                    fontSize: "11px",
+                                    letterSpacing: "1.5px",
+                                    textTransform: "uppercase",
+                                    color: "var(--color-accent)",
+                                    background: "none",
+                                    border: "none",
+                                    borderBottom: "1px solid var(--color-accent-dim)",
+                                    padding: "8px 14px 8px 0",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Yes, this resonates
+                                </button>
+                                <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
+                                <button
+                                  onClick={() => {
+                                    setCheckpointActionState("refined");
+                                    confirmCheckpoint("refined");
+                                  }}
+                                  style={{
+                                    fontFamily: "monospace",
+                                    fontSize: "11px",
+                                    letterSpacing: "1.5px",
+                                    textTransform: "uppercase",
+                                    color: "rgba(226, 224, 219, 0.3)",
+                                    background: "none",
+                                    border: "none",
+                                    padding: "8px 14px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Refine
+                                </button>
+                                <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
+                                <button
+                                  onClick={() => {
+                                    setCheckpointActionState("rejected");
+                                    confirmCheckpoint("rejected");
+                                  }}
+                                  style={{
+                                    fontFamily: "monospace",
+                                    fontSize: "11px",
+                                    letterSpacing: "1.5px",
+                                    textTransform: "uppercase",
+                                    color: "rgba(226, 224, 219, 0.18)",
+                                    background: "none",
+                                    border: "none",
+                                    padding: "8px 14px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Not quite
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Post-action states */}
+                            {isPending && checkpointActionState === "confirmed" && (
+                              <div
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "10px",
+                                  letterSpacing: "2px",
+                                  textTransform: "uppercase",
+                                  color: "var(--color-accent-dim)",
+                                  marginTop: "28px",
+                                }}
+                              >
+                                Added to your manual
+                              </div>
+                            )}
+                            {isPending && checkpointActionState === "refined" && (
+                              <div
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "10px",
+                                  letterSpacing: "2px",
+                                  textTransform: "uppercase",
+                                  color: "rgba(226, 224, 219, 0.35)",
+                                  marginTop: "28px",
+                                }}
+                              >
+                                Tell Sage what to adjust ↓
+                              </div>
+                            )}
+                            {isPending && checkpointActionState === "rejected" && (
+                              <div
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "10px",
+                                  letterSpacing: "2px",
+                                  textTransform: "uppercase",
+                                  color: "rgba(226, 224, 219, 0.25)",
+                                  marginTop: "28px",
+                                }}
+                              >
+                                Noted — Sage will keep listening
+                              </div>
+                            )}
+
+                            {isPending && checkpointError && (
+                              <span
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "10px",
+                                  color: "var(--color-text-ghost)",
+                                  marginTop: "12px",
+                                  display: "block",
+                                }}
+                              >
+                                {checkpointError}
+                              </span>
+                            )}
+
+                            {/* Divider between consecutive checkpoints */}
+                            {!isLast && (
+                              <div style={{
+                                height: "1px",
+                                background: "linear-gradient(90deg, rgba(180,145,75,0.15), transparent)",
+                                marginTop: "24px",
+                              }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                // Regular message
+                const { msg, idx: i } = group;
+                const isUser = msg.role === "user";
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    style={{
-                      padding: "32px 0 32px 20px",
-                      borderLeft: "1px solid rgba(180, 145, 75, 0.2)",
-                      animation: "checkpointFadeIn 2s ease-out",
+                    style={isUser ? {
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      fontSize: "14px",
+                      lineHeight: "1.65",
+                      letterSpacing: "0.1px",
+                      color: "rgba(226, 224, 219, 0.38)",
+                      textAlign: "right",
+                      alignSelf: "flex-end",
+                    } : {
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      fontSize: "15px",
+                      lineHeight: "1.7",
+                      letterSpacing: "0.1px",
+                      color: "rgba(226, 224, 219, 0.78)",
+                      textAlign: "left",
                     }}
                   >
-                    {/* Header */}
-                    <div
-                      style={{
-                        fontFamily: "Georgia, serif",
-                        fontSize: "13px",
-                        fontStyle: "italic",
-                        color: "rgba(180, 145, 75, 0.45)",
-                        marginBottom: "18px",
-                      }}
-                    >
-                      What I&apos;m noticing —
-                    </div>
-
-                    {/* Body */}
-                    <div
-                      style={{
-                        fontFamily: "Georgia, serif",
-                        fontSize: "15px",
-                        fontStyle: "normal",
-                        lineHeight: "1.9",
-                        letterSpacing: "0.2px",
-                        color: "rgba(226, 224, 219, 0.82)",
-                      }}
-                    >
-                      {renderMarkdown(msg.content)}
-                    </div>
-
-                    {/* Action buttons */}
-                    {isPendingCheckpoint && !checkpointActionState && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          marginTop: "28px",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("confirmed");
-                            confirmCheckpoint("confirmed");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(139, 168, 136, 0.8)",
-                            background: "none",
-                            border: "none",
-                            borderBottom: "1px solid rgba(139, 168, 136, 0.3)",
-                            padding: "8px 14px 8px 0",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Yes, this resonates
-                        </button>
-                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("refined");
-                            confirmCheckpoint("refined");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(226, 224, 219, 0.3)",
-                            background: "none",
-                            border: "none",
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Refine
-                        </button>
-                        <span style={{ color: "rgba(226, 224, 219, 0.08)", padding: "0 6px" }}>·</span>
-                        <button
-                          onClick={() => {
-                            setCheckpointActionState("rejected");
-                            confirmCheckpoint("rejected");
-                          }}
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            color: "rgba(226, 224, 219, 0.18)",
-                            background: "none",
-                            border: "none",
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Not quite
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Post-action states */}
-                    {isPendingCheckpoint && checkpointActionState === "confirmed" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(139, 168, 136, 0.55)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Added to your manual
-                      </div>
-                    )}
-                    {isPendingCheckpoint && checkpointActionState === "refined" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(226, 224, 219, 0.35)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Tell Sage what to adjust ↓
-                      </div>
-                    )}
-                    {isPendingCheckpoint && checkpointActionState === "rejected" && (
-                      <div
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "rgba(226, 224, 219, 0.25)",
-                          marginTop: "28px",
-                        }}
-                      >
-                        Noted — Sage will keep listening
-                      </div>
-                    )}
-
-                    {checkpointError && (
-                      <span
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "10px",
-                          color: "var(--color-text-ghost)",
-                          marginTop: "12px",
-                          display: "block",
-                        }}
-                      >
-                        {checkpointError}
-                      </span>
-                    )}
+                    {isUser ? msg.content : renderMarkdown(msg.content)}
                   </div>
                 );
-              }
+              });
+            })()}
 
-              return (
-                <div
-                  key={msg.id || `msg-${i}`}
-                  style={isUser ? {
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontSize: "14px",
-                    lineHeight: "1.65",
-                    letterSpacing: "0.1px",
-                    color: "rgba(226, 224, 219, 0.38)",
-                    textAlign: "right",
-                    alignSelf: "flex-end",
-                  } : {
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontSize: "15px",
-                    lineHeight: "1.7",
-                    letterSpacing: "0.1px",
-                    color: "rgba(226, 224, 219, 0.78)",
-                    textAlign: "left",
-                  }}
-                >
-                  {isUser ? msg.content : renderMarkdown(msg.content)}
-                </div>
-              );
-            })}
-
-            {/* Typing indicator with processing text */}
+            {/* Typing indicator with processing text — on a dark panel */}
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
-                  <div
-                    style={{
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      backgroundColor: "var(--color-accent-glow)",
-                      animation: "sagePulse 2.5s ease-in-out infinite",
-                    }}
-                  />
-                  {processingText && processingText !== "listening..." && (
+                <div
+                  style={{
+                    backgroundColor: "#211F1B",
+                    borderRadius: "6px",
+                    margin: "16px",
+                    padding: "16px 20px",
+                    transition: "background-color 0.6s ease, box-shadow 0.6s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
                     <div
                       style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "8px",
-                        letterSpacing: "1.5px",
-                        textTransform: "lowercase",
-                        color: "var(--color-text-ghost)",
-                        opacity: 0.5,
-                        animation: "processingTextFadeIn 0.8s ease-out",
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        backgroundColor: "var(--color-accent-glow)",
+                        animation: "sagePulse 2.5s ease-in-out infinite",
                       }}
-                    >
-                      {processingText}
-                    </div>
-                  )}
+                    />
+                    {processingText && processingText !== "listening..." && (
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "8px",
+                          letterSpacing: "1.5px",
+                          textTransform: "lowercase",
+                          color: "var(--color-text-ghost)",
+                          opacity: 0.5,
+                          animation: "processingTextFadeIn 0.8s ease-out",
+                        }}
+                      >
+                        {processingText}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -647,7 +694,7 @@ export default function MobileSession({
               </div>
             )}
 
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} style={{ height: "40px" }} />
           </div>
         )}
       </div>
