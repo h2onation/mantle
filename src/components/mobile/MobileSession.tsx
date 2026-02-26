@@ -4,9 +4,10 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import SessionParticles from "./SessionParticles";
+import SessionDrawer from "./SessionDrawer";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
-import { renderMarkdown, formatShortDate } from "@/lib/utils/format";
+import { renderMarkdown } from "@/lib/utils/format";
 
 interface MobileSessionProps {
   messages: ChatMessage[];
@@ -127,16 +128,6 @@ export default function MobileSession({
   const handleCloseSoundMenu = useCallback(() => {
     setShowSoundMenu(false);
   }, []);
-
-  async function handleDrawerNewSession() {
-    setDrawerOpen(false);
-    await startNewSession();
-  }
-
-  async function handleDrawerSelectSession(convId: string) {
-    setDrawerOpen(false);
-    await switchConversation(convId);
-  }
 
   async function handleOpenDrawer() {
     setDrawerOpen(true);
@@ -712,180 +703,14 @@ export default function MobileSession({
         </div>
       </div>
 
-      {/* ─── DRAWER OVERLAY ─── */}
-      {/* Backdrop */}
-      <div
-        onClick={() => setDrawerOpen(false)}
-        style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          zIndex: 200,
-          opacity: drawerOpen ? 1 : 0,
-          pointerEvents: drawerOpen ? "auto" : "none",
-          transition: "opacity 0.3s ease",
-        }}
+      <SessionDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        conversations={conversations}
+        activeConversationId={conversationId}
+        onSelectSession={switchConversation}
+        onNewSession={startNewSession}
       />
-
-      {/* Drawer panel */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: "80vw",
-          maxWidth: "320px",
-          backgroundColor: "var(--color-surface)",
-          zIndex: 201,
-          transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.3s ease",
-          display: "flex",
-          flexDirection: "column",
-          paddingTop: "env(safe-area-inset-top, 48px)",
-        }}
-      >
-        {/* Drawer header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0 20px 16px",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "8px",
-              color: "var(--color-text-ghost)",
-              letterSpacing: "3px",
-              textTransform: "uppercase",
-            }}
-          >
-            SESSIONS
-          </span>
-          <button
-            onClick={() => setDrawerOpen(false)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "4px",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--color-text-ghost)" strokeWidth="1.5">
-              <line x1="2" y1="2" x2="12" y2="12" />
-              <line x1="12" y1="2" x2="2" y2="12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* New session button */}
-        <div style={{ padding: "0 20px 16px" }}>
-          <button
-            onClick={handleDrawerNewSession}
-            style={{
-              width: "100%",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--color-accent)",
-              background: "none",
-              border: "1px solid var(--color-accent-ghost)",
-              borderRadius: "8px",
-              padding: "12px 16px",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            New session
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: "1px", backgroundColor: "var(--color-divider)", margin: "0 20px" }} />
-
-        {/* Session list */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "8px 0",
-          }}
-        >
-          {conversations.map((conv) => {
-            const isActive = conv.id === conversationId;
-            return (
-              <button
-                key={conv.id}
-                onClick={() => handleDrawerSelectSession(conv.id)}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  background: "none",
-                  border: "none",
-                  borderLeft: isActive ? "2px solid var(--color-accent)" : "2px solid transparent",
-                  borderBottom: "1px solid var(--color-divider)",
-                  padding: "14px 20px 14px 18px",
-                  cursor: "pointer",
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "13px",
-                    color: isActive ? "var(--color-text)" : "var(--color-text-dim)",
-                    lineHeight: 1.4,
-                    margin: "0 0 6px 0",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {conv.title || conv.preview || "Untitled session"}
-                </p>
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "8px",
-                      color: "var(--color-text-ghost)",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    {formatShortDate(conv.updated_at)}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "8px",
-                      color: "var(--color-text-ghost)",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    {conv.message_count} message{conv.message_count !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-
-          {conversations.length === 0 && (
-            <p
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--color-text-ghost)",
-                padding: "20px",
-                textAlign: "center",
-              }}
-            >
-              No sessions yet
-            </p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
