@@ -349,31 +349,34 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
-              // Checkpoint rendering — warm glow card
+              // Checkpoint rendering — single container with warm bg + dissolve overlays
               if (isCheckpoint) {
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
+                    className="relative bg-[#302618]"
                     style={{
                       animation: "checkpointFadeIn 0.45s ease-out both",
                     }}
                   >
+                    {/* Top dissolve overlay */}
+                    <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
+                    {/* Sage label */}
+                    <div className="px-[28px] pt-[20px] pb-[8px]">
+                      <span
+                        className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        Sage
+                      </span>
+                    </div>
+                    {/* Message body — warmPulse on this div only */}
                     <div
-                      className="bg-[#302820] rounded-[6px] m-[16px] px-[20px] pt-[20px] pb-[24px]"
+                      className="px-[28px]"
                       style={{
                         animation: "warmPulse 7s ease-in-out infinite",
                       }}
                     >
-                      {/* Sage label */}
-                      <div className="pb-[8px]">
-                        <span
-                          className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
-                          style={{ fontFamily: "var(--font-mono)" }}
-                        >
-                          Sage
-                        </span>
-                      </div>
-                      {/* Body */}
                       <div
                         className="text-[15px] leading-[1.7] font-[430] text-[#D4CBC0] tracking-[0.01em]"
                         style={{ fontFamily: "var(--font-sans)" }}
@@ -389,6 +392,7 @@ export default function MobileSession({
                             gap: "8px",
                             marginTop: "20px",
                             paddingTop: "16px",
+                            paddingBottom: "20px",
                             borderTop: "1px solid rgba(212, 203, 192, 0.08)",
                           }}
                         >
@@ -451,6 +455,7 @@ export default function MobileSession({
                           style={{
                             marginTop: "20px",
                             paddingTop: "16px",
+                            paddingBottom: "20px",
                             borderTop: "1px solid rgba(212, 203, 192, 0.08)",
                             animation: "checkpointFadeIn 0.4s ease-out both",
                           }}
@@ -478,6 +483,7 @@ export default function MobileSession({
                           style={{
                             marginTop: "20px",
                             paddingTop: "16px",
+                            paddingBottom: "20px",
                             borderTop: "1px solid rgba(212, 203, 192, 0.08)",
                           }}
                         >
@@ -512,6 +518,10 @@ export default function MobileSession({
                         </span>
                       )}
                     </div>
+                    {/* Bottom dissolve overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to top, var(--color-void), transparent)' }} />
+                    {/* Bottom padding for dissolve space */}
+                    <div className="h-[12px]" />
                   </div>
                 );
               }
@@ -541,20 +551,21 @@ export default function MobileSession({
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
+                    className={isFirstInSageSequence ? "relative bg-[#151311]" : "bg-[#151311]"}
                     style={{
                       animation: "checkpointFadeIn 0.45s ease-out both",
                     }}
                   >
-                    {/* Top dissolve edge */}
+                    {/* Top dissolve overlay */}
                     {isFirstInSageSequence && (
-                      <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, transparent, #222020)' }} />
+                      <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
                     )}
                     {/* Sage label */}
                     {isFirstInSageSequence && (
                       <div
-                        className="bg-[#222020] px-[28px] pb-[8px]"
+                        className="px-[28px] pb-[8px]"
                         style={{
-                          paddingTop: i === 0 ? "0" : "8px",
+                          paddingTop: i === 0 ? "12px" : "20px",
                         }}
                       >
                         <span
@@ -567,10 +578,10 @@ export default function MobileSession({
                     )}
                     {/* Message */}
                     <div
-                      className="bg-[#222020] px-[28px]"
+                      className="px-[28px]"
                       style={{
                         paddingTop: isFirstInSageSequence ? "0" : "14px",
-                        paddingBottom: isLastInSageSequence ? "16px" : "0",
+                        paddingBottom: isLastInSageSequence ? "12px" : "0",
                       }}
                     >
                       <div
@@ -580,9 +591,12 @@ export default function MobileSession({
                         {renderMarkdown(msg.content)}
                       </div>
                     </div>
-                    {/* Bottom dissolve edge */}
+                    {/* Bottom dissolve overlay */}
                     {isLastInSageSequence && (
-                      <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, #222020, transparent)' }} />
+                      <div className="relative">
+                        <div className="absolute bottom-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to top, var(--color-void), transparent)' }} />
+                        <div className="h-[12px]" />
+                      </div>
                     )}
                   </div>
                 );
@@ -592,7 +606,7 @@ export default function MobileSession({
               return (
                 <div
                   key={msg.id || `msg-${i}`}
-                  className="pr-[28px] pl-[48px] py-[14px]"
+                  className="pr-[28px] pl-[48px] py-[10px]"
                   style={{
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
@@ -611,14 +625,14 @@ export default function MobileSession({
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
-                <>
-                <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, transparent, #222020)' }} />
                 <div
-                  className="bg-[#222020] px-[28px] pt-[16px] pb-[20px]"
+                  className="relative bg-[#151311] px-[28px] pt-[20px] pb-[20px]"
                   style={{
                     animation: "checkpointFadeIn 0.3s ease-out both",
                   }}
                 >
+                  {/* Top dissolve overlay */}
+                  <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
                   {/* Show Sage label when prev message was user or checkpoint */}
                   {messages.length === 0 ||
                   messages[messages.length - 1]?.role !== "assistant" ||
@@ -665,7 +679,6 @@ export default function MobileSession({
                     </div>
                   )}
                 </div>
-                </>
               )}
 
             {/* Bottom spacer for checkpoint glow breathing room */}
@@ -721,16 +734,34 @@ export default function MobileSession({
             )}
       </div>
 
-      {/* Input */}
+      {/* Input — ghost container */}
       <div
         className="shrink-0 px-[16px] pt-[8px] mb-[10px]"
       >
         <div
-          className="relative bg-[#242120] rounded-[14px] flex items-end transition-all duration-[400ms] ease-in-out"
+          className="relative rounded-[12px] transition-all duration-[400ms] ease-in-out"
           style={{
-            border: `1px solid ${inputFocused ? "rgba(122, 139, 114, 0.4)" : "rgba(122, 139, 114, 0.15)"}`,
+            backgroundColor: inputFocused ? "#151311" : "transparent",
+            border: `1px solid ${inputFocused ? "rgba(122, 139, 114, 0.2)" : "rgba(212, 203, 192, 0.12)"}`,
           }}
         >
+          {/* Whisper placeholder */}
+          {!input && !inputFocused && (
+            <span
+              style={{
+                position: "absolute",
+                left: "16px",
+                top: "13px",
+                color: "rgba(212, 203, 192, 0.28)",
+                fontSize: "14.5px",
+                fontFamily: "var(--font-sans)",
+                fontWeight: 400,
+                pointerEvents: "none",
+              }}
+            >
+              say what comes to mind...
+            </span>
+          )}
           <textarea
             ref={textareaRef}
             value={input}
@@ -739,33 +770,33 @@ export default function MobileSession({
             onFocus={handleFocus}
             onBlur={handleBlur}
             placeholder=""
-            rows={2}
+            rows={1}
             className="w-full bg-transparent border-none outline-none resize-none text-[#C8BFB4] text-[14.5px] font-normal leading-[1.6] caret-[#7A8B72]"
             style={{
-              fontFamily: "'Outfit', sans-serif",
-              padding: "12px 44px 12px 16px",
+              fontFamily: "var(--font-sans)",
+              padding: "12px 40px 12px 16px",
             }}
           />
           <div
             onClick={!input.trim() || isLoading || isStreaming ? undefined : handleSend}
-            className="absolute right-[10px] bottom-[10px] w-[28px] h-[28px] rounded-full flex items-center justify-center transition-colors duration-300"
             style={{
-              backgroundColor: input.trim()
-                ? "rgba(122, 139, 114, 0.2)"
-                : "transparent",
+              position: "absolute",
+              right: "10px",
+              bottom: "10px",
+              opacity: input.trim() ? 1 : 0,
+              transition: "opacity 0.3s ease",
               cursor: input.trim() ? "pointer" : "default",
             }}
           >
             <svg
-              width="13"
-              height="13"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={input.trim() ? "#7A8B72" : "rgba(212, 203, 192, 0.15)"}
+              stroke="#7A8B72"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ transition: "stroke 0.3s ease" }}
             >
               <line x1="12" y1="19" x2="12" y2="5" />
               <polyline points="5 12 12 5 19 12" />
