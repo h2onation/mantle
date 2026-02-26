@@ -48,6 +48,24 @@ export default function LoginPage() {
     }
   }
 
+  async function handleDevLogin() {
+    setError("");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "test@test.com",
+        password: "testtest",
+      });
+      if (error) throw error;
+      setTransitioning(true);
+      router.push("/");
+      router.refresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Dev login failed");
+      setLoading(false);
+    }
+  }
+
   async function handleGoogleLogin() {
     setError("");
     setLoading(true);
@@ -357,6 +375,33 @@ export default function LoginPage() {
         >
           Continue with Google
         </button>
+
+        {process.env.NODE_ENV !== "production" && (
+          <button
+            type="button"
+            onClick={handleDevLogin}
+            disabled={loading}
+            style={{
+              width: "100%",
+              marginTop: "12px",
+              padding: "12px",
+              backgroundColor: "transparent",
+              color: "var(--color-text-ghost)",
+              border: "1px solid var(--color-divider)",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 400,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 0.5,
+              transition: "opacity 0.2s",
+            }}
+          >
+            Dev Login
+          </button>
+        )}
       </div>
     </div>
   );
