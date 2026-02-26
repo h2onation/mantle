@@ -6,9 +6,16 @@ import LayerTooltip from "./LayerTooltip";
 
 interface EmptyLayerProps {
   layer: Layer;
+  onExploreWithSage?: (context: {
+    layerId: number;
+    layerName: string;
+    type: "pattern" | "component" | "empty_layer";
+    name?: string;
+    content: string;
+  }) => void;
 }
 
-export default function EmptyLayer({ layer }: EmptyLayerProps) {
+export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps) {
   return (
     <div
       style={{
@@ -32,7 +39,16 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
       </span>
 
       {/* Info button wrapped in tooltip */}
-      <LayerTooltip text={layer.about} showSageAction={true}>
+      <LayerTooltip
+        text={layer.about}
+        showSageAction={true}
+        onExploreWithSage={onExploreWithSage ? () => onExploreWithSage({
+          layerId: layer.id,
+          layerName: layer.name,
+          type: "empty_layer",
+          content: layer.about,
+        }) : undefined}
+      >
         <div
           style={{
             width: 24,

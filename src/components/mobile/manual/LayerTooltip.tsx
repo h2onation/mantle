@@ -1,20 +1,32 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 interface LayerTooltipProps {
   text: string;
   showSageAction: boolean;
+  onExploreWithSage?: () => void;
   children: React.ReactNode;
 }
 
 export default function LayerTooltip({
   text,
   showSageAction,
+  onExploreWithSage,
   children,
 }: LayerTooltipProps) {
   const [open, setOpen] = useState(false);
+  const [flipUp, setFlipUp] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const checkPosition = useCallback(() => {
+    if (!wrapperRef.current) return;
+    const rect = wrapperRef.current.getBoundingClientRect();
+    // Tooltip is ~200px tall (text + optional button + padding)
+    // Flip up if there's less than 220px below the trigger
+    const spaceBelow = window.innerHeight - rect.bottom;
+    setFlipUp(spaceBelow < 220);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -34,11 +46,12 @@ export default function LayerTooltip({
   return (
     <div
       ref={wrapperRef}
-      style={{ position: "relative", display: "inline-flex" }}
+      style={{ position: "relative", display: "inline-flex", zIndex: open ? 50 : "auto" }}
     >
       <div
         onClick={(e) => {
           e.stopPropagation();
+          checkPosition();
           setOpen(!open);
         }}
         style={{ cursor: "pointer" }}
@@ -54,11 +67,18 @@ export default function LayerTooltip({
               from { opacity: 0; transform: translateY(6px); }
               to { opacity: 1; transform: translateY(0); }
             }
+            @keyframes tooltipFadeInUp {
+              from { opacity: 0; transform: translateY(-6px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
           `}</style>
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "absolute",
-              top: "calc(100% + 8px)",
+              ...(flipUp
+                ? { bottom: "calc(100% + 8px)" }
+                : { top: "calc(100% + 8px)" }),
               right: 0,
               width: 280,
               background: "#1A1816",
@@ -67,8 +87,10 @@ export default function LayerTooltip({
               boxShadow:
                 "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(122,139,114,0.05)",
               padding: "18px 20px",
-              zIndex: 30,
-              animation: "tooltipFadeIn 0.2s ease-out both",
+              zIndex: 50,
+              animation: flipUp
+                ? "tooltipFadeInUp 0.2s ease-out both"
+                : "tooltipFadeIn 0.2s ease-out both",
             }}
           >
             <p
@@ -87,7 +109,7 @@ export default function LayerTooltip({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log("Navigate to Session tab");
+                  onExploreWithSage?.();
                 }}
                 style={{
                   display: "inline-flex",

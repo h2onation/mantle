@@ -47,7 +47,6 @@ interface MobileSessionProps {
   confirmedComponents: ManualComponent[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
-  processingText: string | null;
   errorMessage: string | null;
   conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
@@ -109,7 +108,6 @@ export default function MobileSession({
   isStreaming,
   activeCheckpoint,
   checkpointError,
-  processingText,
   errorMessage,
   conversations,
   sendMessage,
@@ -622,7 +620,7 @@ export default function MobileSession({
             })}
 
             {/* Processing dots */}
-            {isLoading &&
+            {(isLoading || isStreaming) &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
                 <div
@@ -662,22 +660,6 @@ export default function MobileSession({
                       />
                     ))}
                   </div>
-                  {processingText && processingText !== "listening..." && (
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "8px",
-                        letterSpacing: "1.5px",
-                        textTransform: "lowercase",
-                        color: "var(--color-text-ghost)",
-                        opacity: 0.5,
-                        paddingTop: "4px",
-                        animation: "processingTextFadeIn 0.8s ease-out",
-                      }}
-                    >
-                      {processingText}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -932,12 +914,11 @@ export default function MobileSession({
                     lineHeight: 1.4,
                     margin: "0 0 6px 0",
                     overflow: "hidden",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {conv.summary || conv.preview || "Untitled session"}
+                  {conv.title || conv.preview || "Untitled session"}
                 </p>
                 <div style={{ display: "flex", gap: "12px" }}>
                   <span

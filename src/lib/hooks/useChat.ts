@@ -35,10 +35,19 @@ interface ActiveCheckpoint {
   content: string;
 }
 
+export interface ExplorationContext {
+  layerId: number;
+  layerName: string;
+  type: "pattern" | "component" | "empty_layer";
+  name?: string;
+  content: string;
+}
+
 export interface ConversationSummaryItem {
   id: string;
   status: string;
   summary: string | null;
+  title: string | null;
   preview: string | null;
   created_at: string;
   updated_at: string;
@@ -85,35 +94,18 @@ export function useChat() {
   async function streamFromResponse(response: Response): Promise<{
     fullText: string;
     completeEvent: MessageCompleteEvent | null;
-    placeholderIdx: number;
   }> {
     let fullText = "";
     let completeEvent: MessageCompleteEvent | null = null;
     let sseError: string | null = null;
 
-    // Add placeholder assistant message — capture index atomically via setState callback
-    const placeholderIdx = { current: -1 };
-    setMessages((prev) => {
-      placeholderIdx.current = prev.length;
-      return [...prev, { role: "assistant" as const, content: "" }];
-    });
+    // Buffer text silently — no placeholder message during streaming
     setIsStreaming(true);
 
     try {
       await parseSSEStream(response, {
         onTextDelta: (text) => {
           fullText += text;
-          setMessages((prev) => {
-            const updated = [...prev];
-            const idx = placeholderIdx.current;
-            if (idx >= 0 && updated[idx]) {
-              updated[idx] = {
-                ...updated[idx],
-                content: updated[idx].content + text,
-              };
-            }
-            return updated;
-          });
         },
         onMessageComplete: (data) => {
           completeEvent = data;
@@ -126,30 +118,31 @@ export function useChat() {
       setIsStreaming(false);
     }
 
-    // If SSE emitted an error, remove the placeholder and surface it
+    // If SSE emitted an error, surface it
     if (sseError) {
-      setMessages((prev) => {
-        const updated = [...prev];
-        const idx = placeholderIdx.current;
-        if (idx >= 0 && updated[idx] && !updated[idx].content) {
-          updated.splice(idx, 1);
-        }
-        return updated;
-      });
       setErrorMessage(sseError);
     }
 
-    return { fullText, completeEvent, placeholderIdx: placeholderIdx.current };
+    // On success, add the complete message in one shot (fade-in via CSS)
+    if (!sseError && fullText) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant" as const,
+          content: fullText,
+          id: completeEvent?.messageId,
+        },
+      ]);
+    }
+
+    return { fullText, completeEvent };
   }
 
   function finalizeMessage(
     fullText: string,
-    completeEvent: MessageCompleteEvent | null,
-    placeholderOffset: number
+    completeEvent: MessageCompleteEvent | null
   ) {
     if (!completeEvent) return;
-
-    const idx = placeholderOffset;
 
     if (completeEvent.checkpoint) {
       // Set active checkpoint with full text
@@ -161,14 +154,13 @@ export function useChat() {
         content: fullText,
       });
 
-      // Keep full checkpoint text inline with checkpoint metadata
+      // Update last assistant message with checkpoint metadata
       setMessages((prev) => {
         const updated = [...prev];
-        if (idx >= 0 && updated[idx]) {
+        const idx = updated.length - 1;
+        if (idx >= 0 && updated[idx]?.role === "assistant") {
           updated[idx] = {
             ...updated[idx],
-            id: completeEvent!.messageId,
-            content: fullText,
             isCheckpoint: true,
             checkpointMeta: {
               layer: completeEvent!.checkpoint!.layer,
@@ -176,19 +168,6 @@ export function useChat() {
               name: completeEvent!.checkpoint!.name,
               status: "pending",
             },
-          };
-        }
-        return updated;
-      });
-    } else {
-      // Finalize normally
-      setMessages((prev) => {
-        const updated = [...prev];
-        if (idx >= 0 && updated[idx]) {
-          updated[idx] = {
-            ...updated[idx],
-            id: completeEvent!.messageId,
-            content: fullText,
           };
         }
         return updated;
@@ -221,20 +200,9 @@ export function useChat() {
         });
 
         if (res.ok) {
-          const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
+          const { completeEvent } = await streamFromResponse(res);
 
           if (completeEvent) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              if (placeholderIdx >= 0 && updated[placeholderIdx]) {
-                updated[placeholderIdx] = {
-                  ...updated[placeholderIdx],
-                  id: completeEvent!.messageId,
-                  content: fullText,
-                };
-              }
-              return updated;
-            });
             setConversationId(completeEvent.conversationId);
           }
         }
@@ -361,8 +329,8 @@ export function useChat() {
         return;
       }
 
-      const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent, placeholderIdx);
+      const { fullText, completeEvent } = await streamFromResponse(res);
+      finalizeMessage(fullText, completeEvent);
 
       // If a new conversation was created, refresh the list
       if (completeEvent?.conversationId && !conversationId) {
@@ -377,16 +345,9 @@ export function useChat() {
 
   function retryLastMessage() {
     if (!lastUserMessage.current) return;
-    // Remove trailing partial assistant message (no id = not finalized) and the user message
+    // Remove the last user message (on error, no assistant message was added)
     setMessages((prev) => {
       const updated = [...prev];
-      while (
-        updated.length > 0 &&
-        updated[updated.length - 1].role === "assistant" &&
-        !updated[updated.length - 1].id
-      ) {
-        updated.pop();
-      }
       if (updated.length > 0 && updated[updated.length - 1].role === "user") {
         updated.pop();
       }
@@ -442,8 +403,8 @@ export function useChat() {
       setActiveCheckpoint(null);
 
       // Stream Sage's follow-up response
-      const { fullText, completeEvent, placeholderIdx } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent, placeholderIdx);
+      const { fullText, completeEvent } = await streamFromResponse(res);
+      finalizeMessage(fullText, completeEvent);
 
       // Refresh manual from server
       await loadManual();
@@ -584,6 +545,70 @@ export function useChat() {
     await refreshConversations();
   }
 
+  async function startExploration(context: ExplorationContext): Promise<boolean> {
+    if (isLoading || isStreaming) return false;
+
+    // Complete current conversation if one exists
+    if (conversationId) {
+      try {
+        await fetch("/api/conversations/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId }),
+        });
+      } catch {
+        // Continue anyway
+      }
+    }
+
+    // Reset state for new session
+    setConversationId(null);
+    setMessages([]);
+    setSessionSummary(null);
+    setLastSessionDate(null);
+    setActiveCheckpoint(null);
+    setErrorMessage(null);
+    setCheckpointError(null);
+
+    // Send chat request with exploration context (message=null triggers Sage opener)
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: null,
+          conversationId: null,
+          explorationContext: context,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push("/login");
+        return false;
+      }
+
+      if (!res.ok) {
+        setErrorMessage("Something went wrong. Try again.");
+        return false;
+      }
+
+      const { completeEvent } = await streamFromResponse(res);
+
+      if (completeEvent) {
+        setConversationId(completeEvent.conversationId);
+      }
+
+      await refreshConversations();
+      return true;
+    } catch {
+      setErrorMessage("Connection lost. Try again.");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return {
     messages,
     conversationId,
@@ -606,6 +631,7 @@ export function useChat() {
     switchConversation,
     loadConversation,
     startNewSession,
+    startExploration,
     refreshConversations,
   };
 }

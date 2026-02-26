@@ -6,15 +6,25 @@ import type { Pattern } from "./ManualMockData";
 interface PatternItemProps {
   pattern: Pattern;
   isNew?: boolean;
+  layerId?: number;
+  layerName?: string;
+  onExploreWithSage?: (context: {
+    layerId: number;
+    layerName: string;
+    type: "pattern" | "component" | "empty_layer";
+    name?: string;
+    content: string;
+  }) => void;
 }
 
-export default function PatternItem({ pattern }: PatternItemProps) {
+export default function PatternItem({ pattern, isNew, layerId, layerName, onExploreWithSage }: PatternItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div
       onClick={() => setExpanded(!expanded)}
       style={{
+        position: "relative",
         background: expanded
           ? "linear-gradient(135deg, rgba(122,139,114,0.12) 0%, rgba(122,139,114,0.06) 100%)"
           : "rgba(122,139,114,0.06)",
@@ -27,6 +37,21 @@ export default function PatternItem({ pattern }: PatternItemProps) {
         transition: "background 0.3s ease, border-color 0.3s ease",
       }}
     >
+      {/* New-content pattern accent */}
+      {isNew && (
+        <div
+          style={{
+            position: "absolute",
+            left: -1,
+            top: 12,
+            width: 3,
+            height: 20,
+            backgroundColor: "#7A8B72",
+            opacity: 0.7,
+            borderRadius: "0 3px 3px 0",
+          }}
+        />
+      )}
       {/* Header row */}
       <div
         style={{
@@ -107,7 +132,15 @@ export default function PatternItem({ pattern }: PatternItemProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            console.log("Navigate to Session tab");
+            if (onExploreWithSage && layerId !== undefined && layerName) {
+              onExploreWithSage({
+                layerId,
+                layerName,
+                type: "pattern",
+                name: pattern.name,
+                content: pattern.description,
+              });
+            }
           }}
           style={{
             display: "inline-flex",

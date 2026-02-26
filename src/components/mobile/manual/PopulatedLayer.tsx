@@ -5,11 +5,20 @@ import type { Layer } from "./ManualMockData";
 import PatternItem from "./PatternItem";
 import LayerTooltip from "./LayerTooltip";
 
-interface PopulatedLayerProps {
-  layer: Layer;
+interface ExplorationContext {
+  layerId: number;
+  layerName: string;
+  type: "pattern" | "component" | "empty_layer";
+  name?: string;
+  content: string;
 }
 
-export default function PopulatedLayer({ layer }: PopulatedLayerProps) {
+interface PopulatedLayerProps {
+  layer: Layer;
+  onExploreWithSage?: (context: ExplorationContext) => void;
+}
+
+export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLayerProps) {
   const [narrativeOpen, setNarrativeOpen] = useState(false);
 
   return (
@@ -22,9 +31,34 @@ export default function PopulatedLayer({ layer }: PopulatedLayerProps) {
         boxShadow:
           "0 4px 24px rgba(0,0,0,0.25), 0 0 1px rgba(212,203,192,0.1), inset 0 1px 0 rgba(212,203,192,0.05)",
         position: "relative",
-        overflow: "hidden",
+        ...(layer.isNew
+          ? { animation: "layerFadeUp 0.5s ease-out both" }
+          : {}),
       }}
     >
+      {/* New-content accent bar */}
+      {layer.isNew && (
+        <>
+          <style>{`
+            @keyframes layerFadeUp {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 16,
+              bottom: 16,
+              width: 3,
+              backgroundColor: "#7A8B72",
+              borderRadius: "0 2px 2px 0",
+              boxShadow: "0 0 8px rgba(122,139,114,0.3)",
+            }}
+          />
+        </>
+      )}
       {/* Title row */}
       <div
         style={{
@@ -108,6 +142,55 @@ export default function PopulatedLayer({ layer }: PopulatedLayerProps) {
           {layer.component!.narrative}
         </div>
 
+        {/* Explore with Sage — visible when expanded */}
+        {narrativeOpen && onExploreWithSage && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExploreWithSage({
+                layerId: layer.id,
+                layerName: layer.name,
+                type: "component",
+                content: layer.component!.narrative,
+              });
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "var(--font-sans)",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#A8B89F",
+              background:
+                "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
+              border: "1px solid rgba(122,139,114,0.25)",
+              borderRadius: 8,
+              padding: "9px 14px 9px 12px",
+              cursor: "pointer",
+              marginTop: 14,
+              transition: "border-color 0.2s ease",
+            }}
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              style={{ display: "block" }}
+            >
+              <path
+                d="M3 1.5L7 5L3 8.5"
+                stroke="#A8B89F"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Explore with Sage
+          </button>
+        )}
+
         {/* Continue reading / Show less */}
         <div
           style={{
@@ -172,6 +255,9 @@ export default function PopulatedLayer({ layer }: PopulatedLayerProps) {
                 key={pattern.id}
                 pattern={pattern}
                 isNew={layer.isNew}
+                layerId={layer.id}
+                layerName={layer.name}
+                onExploreWithSage={onExploreWithSage}
               />
             ))}
           </div>

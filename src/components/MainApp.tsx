@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useChat } from "@/lib/hooks/useChat";
+import { useChat, type ExplorationContext } from "@/lib/hooks/useChat";
 import { useOnboarding } from "@/lib/hooks/useOnboarding";
 import MobileLayout from "@/components/layout/MobileLayout";
 import type { MobileTab } from "@/components/layout/MobileNav";
@@ -11,8 +11,15 @@ import MobileManual from "@/components/mobile/MobileManual";
 import MobileGuidance from "@/components/mobile/MobileGuidance";
 import MobileSettings from "@/components/mobile/MobileSettings";
 
+type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default function MainApp() {
   const [activeTab, setActiveTab] = useState<MobileTab>("session");
+  const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
 
   const {
     messages,
@@ -28,7 +35,6 @@ export default function MainApp() {
     userEmail,
     errorMessage,
     checkpointError,
-    processingText,
     conversations,
     sendMessage,
     retryLastMessage,
@@ -36,6 +42,7 @@ export default function MainApp() {
     switchConversation,
     loadConversation,
     startNewSession,
+    startExploration,
     refreshConversations,
   } = useChat();
 
@@ -43,6 +50,24 @@ export default function MainApp() {
     onboardingPhase,
     handleComplete,
   } = useOnboarding({ initialized, isNewUser, sendMessage });
+
+  const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
+    // Phase 1: Fade out Manual, fade in interstitial
+    setExplorationPhase("transitioning");
+    await sleep(400);
+
+    // Phase 2: Interstitial visible, start API call
+    setExplorationPhase("loading");
+    await startExploration(context);
+
+    // Phase 3: Response received, switch tab behind interstitial, then reveal
+    setActiveTab("session");
+    setExplorationPhase("revealing");
+    await sleep(600);
+
+    // Done
+    setExplorationPhase(null);
+  }, [startExploration]);
 
   const handleSimulationEvent = useCallback((type: string, conversationId: string) => {
     loadConversation(conversationId);
@@ -139,7 +164,6 @@ export default function MainApp() {
               confirmedComponents={confirmedComponents}
               activeCheckpoint={activeCheckpoint}
               checkpointError={checkpointError}
-              processingText={processingText}
               errorMessage={errorMessage}
               conversations={conversations}
               sendMessage={sendMessage}
@@ -151,7 +175,7 @@ export default function MainApp() {
             />
           }
           manualContent={
-            <MobileManual components={confirmedComponents} />
+            <MobileManual components={confirmedComponents} onExploreWithSage={handleExploreWithSage} />
           }
           guidanceContent={
             <MobileGuidance confirmedCount={confirmedComponents.length} />
@@ -165,6 +189,61 @@ export default function MainApp() {
           }
         />
       </div>
+
+      {/* Exploration interstitial overlay */}
+      {explorationPhase !== null && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            backgroundColor: "var(--color-void)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: explorationPhase === "revealing" ? 0 : 1,
+            transition: explorationPhase === "transitioning"
+              ? "opacity 400ms ease"
+              : explorationPhase === "revealing"
+                ? "opacity 500ms ease"
+                : undefined,
+          }}
+        >
+          {/* Ambient glow behind text */}
+          <div
+            style={{
+              position: "absolute",
+              width: 320,
+              height: 320,
+              borderRadius: "50%",
+              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.2) 0%, rgba(122,139,114,0.05) 40%, transparent 70%)",
+              filter: "blur(30px)",
+              pointerEvents: "none",
+              animation: "explorationGlow 4s ease-in-out infinite",
+            }}
+          />
+          <style>{`
+            @keyframes explorationGlow {
+              0%, 100% { opacity: 0.6; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.08); }
+            }
+          `}</style>
+          <p
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "20px",
+              color: "var(--color-text)",
+              margin: 0,
+              letterSpacing: "-0.3px",
+              position: "relative",
+              animation: "mantleFadeIn 0.6s ease-out both",
+            }}
+          >
+            Let&apos;s explore further
+          </p>
+        </div>
+      )}
+
       {(onboardingPhase === "onboarding" || onboardingPhase === "dissolving") && (
         <OnboardingOverlay
           onComplete={handleComplete}

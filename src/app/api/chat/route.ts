@@ -16,9 +16,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { message, conversationId } = (await request.json()) as {
+    const { message, conversationId, explorationContext } = (await request.json()) as {
       message: string | null;
       conversationId: string | null;
+      explorationContext?: {
+        layerId: number;
+        layerName: string;
+        type: "pattern" | "component" | "empty_layer";
+        name?: string;
+        content: string;
+      };
     };
 
     // 2. Create or use existing conversation
@@ -53,6 +60,7 @@ export async function POST(request: Request) {
       conversationId: convId,
       userId: user.id,
       message,
+      explorationContext,
     });
 
     return new Response(stream, {

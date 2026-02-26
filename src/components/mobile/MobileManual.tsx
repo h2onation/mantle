@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   getEmptyState,
   getPartialState,
@@ -20,8 +20,17 @@ interface ManualComponent {
   created_at?: string;
 }
 
+interface ExplorationContext {
+  layerId: number;
+  layerName: string;
+  type: "pattern" | "component" | "empty_layer";
+  name?: string;
+  content: string;
+}
+
 interface MobileManualProps {
   components: ManualComponent[];
+  onExploreWithSage?: (context: ExplorationContext) => void;
 }
 
 type MockState = "empty" | "partial" | "updated" | "mature";
@@ -41,17 +50,24 @@ const STATE_LABELS: { key: MockState; label: string }[] = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function MobileManual({ components }: MobileManualProps) {
+export default function MobileManual({ components, onExploreWithSage }: MobileManualProps) {
   const [activeState, setActiveState] = useState<MockState>("partial");
+  const scrollRef = useRef<HTMLDivElement>(null);
   const layers = STATE_GETTERS[activeState]();
   const isEmpty = layers.every((l) => l.component === null);
 
+  function handleStateChange(state: MockState) {
+    setActiveState(state);
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <div
+      ref={scrollRef}
       style={{
         height: "100%",
         overflowY: "auto",
-        padding: "40px 24px 100px",
+        padding: "40px 24px 120px",
         position: "relative",
       }}
     >
@@ -131,7 +147,7 @@ export default function MobileManual({ components }: MobileManualProps) {
         {STATE_LABELS.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setActiveState(key)}
+            onClick={() => handleStateChange(key)}
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "8px",
@@ -202,7 +218,7 @@ export default function MobileManual({ components }: MobileManualProps) {
       {/* Layer list */}
       <div style={{ marginTop: isEmpty ? 32 : 24, position: "relative" }}>
         {isEmpty ? (
-          layers.map((layer) => <EmptyLayer key={layer.id} layer={layer} />)
+          layers.map((layer) => <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />)
         ) : (
           <>
             {/* Populated layers */}
@@ -210,7 +226,7 @@ export default function MobileManual({ components }: MobileManualProps) {
               {layers
                 .filter((l) => l.component !== null)
                 .map((layer) => (
-                  <PopulatedLayer key={layer.id} layer={layer} />
+                  <PopulatedLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
                 ))}
             </div>
 
@@ -220,7 +236,7 @@ export default function MobileManual({ components }: MobileManualProps) {
                 {layers
                   .filter((l) => l.component === null)
                   .map((layer) => (
-                    <EmptyLayer key={layer.id} layer={layer} />
+                    <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
                   ))}
               </div>
             )}

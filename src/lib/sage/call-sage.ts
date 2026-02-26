@@ -3,16 +3,26 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
 
+interface ExplorationContext {
+  layerId: number;
+  layerName: string;
+  type: "pattern" | "component" | "empty_layer";
+  name?: string;
+  content: string;
+}
+
 interface CallSageOptions {
   conversationId: string;
   userId: string;
   message: string | null;
+  explorationContext?: ExplorationContext;
 }
 
 export function callSage({
   conversationId,
   userId,
   message,
+  explorationContext,
 }: CallSageOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -93,6 +103,11 @@ export function callSage({
           messages = [...first2, ...last48];
         }
 
+        // Anthropic requires at least 1 message — seed empty conversations
+        if (messages.length === 0) {
+          messages = [{ role: "user", content: "[Session started]" }];
+        }
+
         // 4. Load manual components (user-level)
         const { data: manualComponents } = await admin
           .from("manual_components")
@@ -131,7 +146,8 @@ export function callSage({
           manualComponents || [],
           isReturningUser,
           sessionSummary,
-          sessionCount
+          sessionCount,
+          explorationContext
         );
 
         // 7. Stream Anthropic response (60s timeout)

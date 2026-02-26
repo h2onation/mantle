@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+function extractTitle(summary: string | null): string | null {
+  if (!summary) return null;
+  const match = summary.match(/^TITLE:\s*(.+)/);
+  return match ? match[1].trim() : null;
+}
+
 export async function GET() {
   const supabase = createClient();
   const {
@@ -49,6 +55,7 @@ export async function GET() {
     id: c.id,
     status: c.status || "active",
     summary: c.summary,
+    title: extractTitle(c.summary),
     preview: previewMap[c.id] || null,
     created_at: c.created_at,
     updated_at: c.updated_at,

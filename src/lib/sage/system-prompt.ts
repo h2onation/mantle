@@ -5,11 +5,20 @@ interface ManualComponent {
   content: string;
 }
 
+interface ExplorationContext {
+  layerId: number;
+  layerName: string;
+  type: "pattern" | "component" | "empty_layer";
+  name?: string;
+  content: string;
+}
+
 export function buildSystemPrompt(
   manualComponents: ManualComponent[],
   isReturningUser: boolean,
   sessionSummary: string | null,
-  sessionCount?: number
+  sessionCount?: number,
+  explorationContext?: ExplorationContext
 ): string {
   let dynamicContext = "";
 
@@ -45,7 +54,7 @@ export function buildSystemPrompt(
     }
   }
 
-  return `You are Sage. You help people understand how they operate — how they think, react, and relate — through deep conversation. You are not a therapist. You are not a coach. You are a skilled conversationalist whose job is to listen carefully, ask the right questions, and reflect back what you hear in structured form. Nothing you surface becomes part of the user's manual unless they confirm it.
+  const basePrompt = `You are Sage. You help people understand how they operate — how they think, react, and relate — through deep conversation. You are not a therapist. You are not a coach. You are a skilled conversationalist whose job is to listen carefully, ask the right questions, and reflect back what you hear in structured form. Nothing you surface becomes part of the user's manual unless they confirm it.
 
 TONE
 Warm but precise. You sound like a thoughtful friend who happens to notice patterns — not a clinician, not a cheerleader. You can be direct. You match the user's register.
@@ -171,4 +180,35 @@ HANDLING DIFFERENT USERS
 - Already self-aware: "I want to get underneath the rehearsed version."
 
 ${dynamicContext}`;
+
+  if (explorationContext) {
+    let explorationBlock = "\nEXPLORATION FOCUS\n";
+    explorationBlock += "The user clicked 'Explore with Sage' on a specific part of their manual. This session should focus on exploring this concept with them.\n\n";
+
+    if (explorationContext.type === "pattern") {
+      explorationBlock += `They want to explore the pattern "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
+      explorationBlock += `Pattern description: ${explorationContext.content}\n\n`;
+      explorationBlock += "Open by referencing this pattern directly. Use their own language from the pattern description. ";
+      explorationBlock += "Ask a specific question that pulls them into a concrete, recent moment where this pattern was active. ";
+      explorationBlock += "Don't explain the pattern back to them — they already know it. Go deeper: what triggered it last time, what it cost them, what they wish they'd done instead.\n";
+    } else if (explorationContext.type === "component") {
+      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}) — their core component.\n`;
+      explorationBlock += `Component narrative: ${explorationContext.content}\n\n`;
+      explorationBlock += "Open by naming one thread from this narrative that feels like it has unexplored depth. ";
+      explorationBlock += "Don't summarize the whole narrative — pick the part with the most tension or the part that connects to something they haven't fully examined. ";
+      explorationBlock += "Ask a question that takes them from the general picture into a specific, recent situation.\n";
+    } else if (explorationContext.type === "empty_layer") {
+      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which they haven't built yet.\n`;
+      explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
+      explorationBlock += "This layer has no confirmed content yet. Open by framing what this layer is about in conversational terms — not clinical, not textbook. ";
+      explorationBlock += "Then ask a question that gives them a concrete entry point into this territory. ";
+      explorationBlock += "Reference what you already know from their other confirmed layers to make the question specific to them.\n";
+    }
+
+    explorationBlock += "\nDo NOT run the normal first-session entry or return-session entry. Do NOT introduce yourself. Go straight into the exploration focus.\n";
+
+    return basePrompt + "\n" + explorationBlock;
+  }
+
+  return basePrompt;
 }

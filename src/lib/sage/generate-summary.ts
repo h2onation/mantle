@@ -32,7 +32,7 @@ export async function generateSessionSummary(
       model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       system:
-        "Summarize this conversation between a user and Sage (an AI building behavioral models). Focus on: topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into Sage's context next session.",
+        "Summarize this conversation between a user and Sage (an AI building behavioral models). Your response MUST begin with a short title on the first line in this exact format:\nTITLE: [3-8 word descriptive title]\n\nThen a blank line, then the summary. The title should capture the main theme (e.g. \"TITLE: Conflict avoidance at work\" or \"TITLE: Understanding emotional triggers\"). No quotes or ending punctuation in the title.\n\nFor the summary: focus on topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into Sage's context next session.",
       messages: [{ role: "user", content: transcript }],
     });
 
