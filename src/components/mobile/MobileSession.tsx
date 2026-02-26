@@ -5,36 +5,7 @@ import React from "react";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import SessionParticles from "./SessionParticles";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
-
-interface ChatMessage {
-  id?: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  isCheckpoint?: boolean;
-  checkpointMeta?: {
-    layer: number;
-    type: string;
-    name: string | null;
-    status: string;
-  } | null;
-}
-
-interface ManualComponent {
-  id: string;
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-  created_at?: string;
-}
-
-interface ActiveCheckpoint {
-  messageId: string;
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-}
+import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 
 interface MobileSessionProps {
   messages: ChatMessage[];

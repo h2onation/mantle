@@ -4,14 +4,7 @@ import React, { useState } from "react";
 import type { Layer } from "./ManualMockData";
 import PatternItem from "./PatternItem";
 import LayerTooltip from "./LayerTooltip";
-
-interface ExplorationContext {
-  layerId: number;
-  layerName: string;
-  type: "pattern" | "component" | "empty_layer";
-  name?: string;
-  content: string;
-}
+import type { ExplorationContext } from "@/lib/types";
 
 interface PopulatedLayerProps {
   layer: Layer;

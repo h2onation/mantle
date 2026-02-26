@@ -2,19 +2,14 @@
 
 import React, { useState } from "react";
 import type { Pattern } from "./ManualMockData";
+import type { ExplorationContext } from "@/lib/types";
 
 interface PatternItemProps {
   pattern: Pattern;
   isNew?: boolean;
   layerId?: number;
   layerName?: string;
-  onExploreWithSage?: (context: {
-    layerId: number;
-    layerName: string;
-    type: "pattern" | "component" | "empty_layer";
-    name?: string;
-    content: string;
-  }) => void;
+  onExploreWithSage?: (context: ExplorationContext) => void;
 }
 
 export default function PatternItem({ pattern, isNew, layerId, layerName, onExploreWithSage }: PatternItemProps) {

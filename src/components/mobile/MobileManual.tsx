@@ -10,23 +10,7 @@ import {
 import type { Layer } from "./manual/ManualMockData";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
-
-interface ManualComponent {
-  id: string;
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-  created_at?: string;
-}
-
-interface ExplorationContext {
-  layerId: number;
-  layerName: string;
-  type: "pattern" | "component" | "empty_layer";
-  name?: string;
-  content: string;
-}
+import type { ManualComponent, ExplorationContext } from "@/lib/types";
 
 interface MobileManualProps {
   components: ManualComponent[];

@@ -2,14 +2,7 @@ import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
-
-interface ExplorationContext {
-  layerId: number;
-  layerName: string;
-  type: "pattern" | "component" | "empty_layer";
-  name?: string;
-  content: string;
-}
+import type { ExplorationContext } from "@/lib/types";
 
 interface CallSageOptions {
   conversationId: string;

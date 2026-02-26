@@ -1,17 +1,4 @@
-interface ManualComponent {
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-}
-
-interface ExplorationContext {
-  layerId: number;
-  layerName: string;
-  type: "pattern" | "component" | "empty_layer";
-  name?: string;
-  content: string;
-}
+import type { ManualComponent, ExplorationContext } from "@/lib/types";
 
 export function buildSystemPrompt(
   manualComponents: ManualComponent[],

@@ -3,16 +3,11 @@
 import React from "react";
 import type { Layer } from "./ManualMockData";
 import LayerTooltip from "./LayerTooltip";
+import type { ExplorationContext } from "@/lib/types";
 
 interface EmptyLayerProps {
   layer: Layer;
-  onExploreWithSage?: (context: {
-    layerId: number;
-    layerName: string;
-    type: "pattern" | "component" | "empty_layer";
-    name?: string;
-    content: string;
-  }) => void;
+  onExploreWithSage?: (context: ExplorationContext) => void;
 }
 
 export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps) {

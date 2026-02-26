@@ -4,44 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
-
-interface ChatMessage {
-  id?: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  isCheckpoint?: boolean;
-  checkpointMeta?: {
-    layer: number;
-    type: string;
-    name: string | null;
-    status: string;
-  } | null;
-}
-
-interface ManualComponent {
-  id: string;
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-  created_at?: string;
-}
-
-interface ActiveCheckpoint {
-  messageId: string;
-  layer: number;
-  type: string;
-  name: string | null;
-  content: string;
-}
-
-export interface ExplorationContext {
-  layerId: number;
-  layerName: string;
-  type: "pattern" | "component" | "empty_layer";
-  name?: string;
-  content: string;
-}
+import type { ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
+export type { ExplorationContext } from "@/lib/types";
 
 export interface ConversationSummaryItem {
   id: string;
