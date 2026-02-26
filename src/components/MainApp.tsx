@@ -53,24 +53,27 @@ export default function MainApp() {
   } = useOnboarding({ initialized, isNewUser, sendMessage });
 
   const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
-    // Build dynamic label: "Let's explore your [name]" or "Let's explore [layer]"
+    // Build dynamic label
     const elementName = context.name || context.layerName;
     setExplorationLabel(elementName);
 
-    // Phase 1: Fade out Manual, fade in interstitial
+    // Phase 1: Fade in interstitial
     setExplorationPhase("transitioning");
     await sleep(250);
 
-    // Phase 2: Interstitial visible, start API call
+    // Phase 2: Kick off API call (non-blocking — stream runs in background)
     setExplorationPhase("loading");
     await startExploration(context);
 
-    // Phase 3: Response received, switch tab behind interstitial, then reveal
+    // Brief pause on interstitial for the "moment of pause" feel
+    await sleep(800);
+
+    // Phase 3: Switch to session (thinking dots will be visible), fade out interstitial
     setActiveTab("session");
     setExplorationPhase("revealing");
     await sleep(350);
 
-    // Done
+    // Done — session is showing with thinking dots while Sage generates
     setExplorationPhase(null);
   }, [startExploration]);
 

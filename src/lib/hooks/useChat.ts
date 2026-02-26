@@ -548,17 +548,13 @@ export function useChat() {
   async function startExploration(context: ExplorationContext): Promise<boolean> {
     if (isLoading || isStreaming) return false;
 
-    // Complete current conversation if one exists
+    // Complete current conversation fire-and-forget (don't block on it)
     if (conversationId) {
-      try {
-        await fetch("/api/conversations/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId }),
-        });
-      } catch {
-        // Continue anyway
-      }
+      fetch("/api/conversations/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      }).catch(() => {});
     }
 
     // Reset state for new session
@@ -590,22 +586,27 @@ export function useChat() {
 
       if (!res.ok) {
         setErrorMessage("Something went wrong. Try again.");
+        setIsLoading(false);
         return false;
       }
 
-      const { completeEvent } = await streamFromResponse(res);
+      // Stream in the background — don't block the caller
+      streamFromResponse(res).then(({ completeEvent }) => {
+        if (completeEvent) {
+          setConversationId(completeEvent.conversationId);
+        }
+        refreshConversations();
+      }).catch(() => {
+        setErrorMessage("Connection lost. Try again.");
+      }).finally(() => {
+        setIsLoading(false);
+      });
 
-      if (completeEvent) {
-        setConversationId(completeEvent.conversationId);
-      }
-
-      await refreshConversations();
       return true;
     } catch {
       setErrorMessage("Connection lost. Try again.");
-      return false;
-    } finally {
       setIsLoading(false);
+      return false;
     }
   }
 

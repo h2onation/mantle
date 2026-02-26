@@ -550,9 +550,6 @@ export default function MobileSession({
                   <div
                     key={msg.id || `msg-${i}`}
                     className={isFirstInSageSequence ? "relative bg-[#151311]" : "bg-[#151311]"}
-                    style={{
-                      animation: "checkpointFadeIn 0.8s ease-out both",
-                    }}
                   >
                     {/* Top dissolve overlay */}
                     {isFirstInSageSequence && (
@@ -574,12 +571,13 @@ export default function MobileSession({
                         </span>
                       </div>
                     )}
-                    {/* Message */}
+                    {/* Message — text fades in within the persistent panel */}
                     <div
                       className="px-[28px]"
                       style={{
                         paddingTop: isFirstInSageSequence ? "0" : "14px",
                         paddingBottom: isLastInSageSequence ? "12px" : "0",
+                        animation: "checkpointFadeIn 0.8s ease-out both",
                       }}
                     >
                       <div
@@ -621,8 +619,7 @@ export default function MobileSession({
 
             {/* Processing dots */}
             {(isLoading || isStreaming) &&
-              messages.length > 0 &&
-              messages[messages.length - 1].role === "user" && (
+              (messages.length === 0 || messages[messages.length - 1].role === "user") && (
                 <div
                   className="relative bg-[#151311] px-[28px] pt-[20px] pb-[20px]"
                   style={{
