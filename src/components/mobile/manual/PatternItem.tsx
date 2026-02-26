@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Pattern } from "./ManualMockData";
+import type { Pattern } from "./layer-definitions";
 import type { ExplorationContext } from "@/lib/types";
 
 interface PatternItemProps {

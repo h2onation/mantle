@@ -28,7 +28,8 @@ export default function MobileSettings({
     if (saved) setTheme(saved);
   }, []);
   const [showSoundSelector, setShowSoundSelector] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
   const { isPlaying, currentTrack } = useAudio();
@@ -49,10 +50,16 @@ export default function MobileSettings({
     window.location.href = "/login";
   }
 
-  async function handleDelete() {
+  async function handleDeleteData() {
     await fetch("/api/dev-reset", { method: "POST" });
     localStorage.clear();
     window.location.reload();
+  }
+
+  async function handleDeleteAccount() {
+    await fetch("/api/account/delete", { method: "POST" });
+    localStorage.clear();
+    window.location.href = "/login";
   }
 
   async function handleSimulate() {
@@ -437,9 +444,47 @@ export default function MobileSettings({
         </button>
       </div>
 
-      {/* Delete everything */}
+      {/* Delete user data */}
       <button
-        onClick={() => setShowDeleteConfirm(true)}
+        onClick={() => setShowDeleteDataConfirm(true)}
+        style={{
+          width: "100%",
+          padding: "18px 0",
+          background: "none",
+          border: "none",
+          borderBottom: "1px solid var(--color-divider)",
+          cursor: "pointer",
+          textAlign: "left",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "#B5564D",
+            letterSpacing: "0.2px",
+            margin: 0,
+          }}
+        >
+          Delete user data
+        </p>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            color: "var(--color-text-ghost)",
+            letterSpacing: "0.5px",
+            margin: "3px 0 0 0",
+          }}
+        >
+          Removes manual and conversations
+        </p>
+      </button>
+
+      {/* Delete account */}
+      <button
+        onClick={() => setShowDeleteAccountConfirm(true)}
         style={{
           width: "100%",
           padding: "18px 0",
@@ -459,7 +504,7 @@ export default function MobileSettings({
             margin: 0,
           }}
         >
-          Delete everything
+          Delete account
         </p>
         <p
           style={{
@@ -474,8 +519,8 @@ export default function MobileSettings({
         </p>
       </button>
 
-      {/* Delete confirmation overlay */}
-      {showDeleteConfirm && (
+      {/* Delete data confirmation overlay */}
+      {showDeleteDataConfirm && (
         <div
           style={{
             position: "fixed",
@@ -506,12 +551,12 @@ export default function MobileSettings({
                 margin: "0 0 20px 0",
               }}
             >
-              This will permanently delete your manual, all conversations, and
-              all data. Are you sure?
+              This will delete your manual and all conversations. Your account
+              will remain.
             </p>
             <div style={{ display: "flex", gap: "12px" }}>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => setShowDeleteDataConfirm(false)}
                 style={{
                   flex: 1,
                   padding: "10px 0",
@@ -528,7 +573,7 @@ export default function MobileSettings({
                 Cancel
               </button>
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteData}
                 style={{
                   flex: 1,
                   padding: "10px 0",
@@ -542,7 +587,82 @@ export default function MobileSettings({
                   cursor: "pointer",
                 }}
               >
-                Delete
+                Delete data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete account confirmation overlay */}
+      {showDeleteAccountConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            padding: "32px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--color-surface)",
+              borderRadius: "16px",
+              padding: "24px",
+              maxWidth: "320px",
+              width: "100%",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                color: "var(--color-text)",
+                lineHeight: 1.6,
+                margin: "0 0 20px 0",
+              }}
+            >
+              This will permanently delete your account and all data. This
+              cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                onClick={() => setShowDeleteAccountConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "var(--color-text)",
+                  backgroundColor: "transparent",
+                  border: "1px solid var(--color-divider)",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#B5564D",
+                  backgroundColor: "transparent",
+                  border: "1px solid #B5564D",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete account
               </button>
             </div>
           </div>

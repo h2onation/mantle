@@ -186,7 +186,7 @@ export default function MainApp() {
             <MobileManual components={confirmedComponents} onExploreWithSage={handleExploreWithSage} />
           }
           guidanceContent={
-            <MobileGuidance confirmedCount={confirmedComponents.length} />
+            <MobileGuidance />
           }
           settingsContent={
             <MobileSettings

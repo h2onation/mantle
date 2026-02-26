@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Layer } from "./ManualMockData";
+import type { Layer } from "./layer-definitions";
 import PatternItem from "./PatternItem";
 import LayerTooltip from "./LayerTooltip";
 import type { ExplorationContext } from "@/lib/types";

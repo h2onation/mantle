@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { Layer } from "./ManualMockData";
+import type { Layer } from "./layer-definitions";
 import LayerTooltip from "./LayerTooltip";
 import type { ExplorationContext } from "@/lib/types";
 
