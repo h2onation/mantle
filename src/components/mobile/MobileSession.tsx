@@ -359,39 +359,24 @@ export default function MobileSession({
                     }}
                   >
                     <div
+                      className="bg-[#302820] rounded-[6px] m-[16px] px-[20px] pt-[20px] pb-[24px]"
                       style={{
-                        backgroundColor: "#302820",
-                        borderRadius: "6px",
-                        margin: "16px",
-                        padding: "20px 20px 24px",
                         animation: "warmPulse 7s ease-in-out infinite",
                       }}
                     >
                       {/* Sage label */}
-                      <div style={{ paddingBottom: "12px" }}>
+                      <div className="pb-[8px]">
                         <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "10px",
-                            fontWeight: 500,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            color: "#7A8B72",
-                          }}
+                          className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
+                          style={{ fontFamily: "var(--font-mono)" }}
                         >
                           Sage
                         </span>
                       </div>
                       {/* Body */}
                       <div
-                        style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: "15px",
-                          lineHeight: 1.7,
-                          fontWeight: 430,
-                          color: "#D4CBC0",
-                          letterSpacing: "0.01em",
-                        }}
+                        className="text-[15px] leading-[1.7] font-[430] text-[#D4CBC0] tracking-[0.01em]"
+                        style={{ fontFamily: "var(--font-sans)" }}
                       >
                         {renderMarkdown(msg.content)}
                       </div>
@@ -412,18 +397,14 @@ export default function MobileSession({
                               setCheckpointActionState("confirmed");
                               confirmCheckpoint("confirmed");
                             }}
+                            className="text-[12.5px] font-medium rounded-[6px] text-[#A8B89F] tracking-[0.01em]"
                             style={{
                               background: "rgba(122, 139, 114, 0.15)",
                               border: "1px solid rgba(122, 139, 114, 0.25)",
-                              borderRadius: "6px",
                               padding: "8px 14px",
-                              color: "#A8B89F",
                               fontFamily: "var(--font-sans)",
-                              fontSize: "12.5px",
-                              fontWeight: 500,
                               cursor: "pointer",
                               transition: "all 0.25s ease",
-                              letterSpacing: "0.01em",
                             }}
                           >
                             Write to manual
@@ -433,18 +414,15 @@ export default function MobileSession({
                               setCheckpointActionState("refined");
                               confirmCheckpoint("refined");
                             }}
+                            className="text-[12.5px] font-[450] rounded-[6px] tracking-[0.01em]"
                             style={{
                               background: "transparent",
                               border: "1px solid rgba(212, 203, 192, 0.1)",
-                              borderRadius: "6px",
                               padding: "8px 14px",
                               color: "rgba(212, 203, 192, 0.5)",
                               fontFamily: "var(--font-sans)",
-                              fontSize: "12.5px",
-                              fontWeight: 450,
                               cursor: "pointer",
                               transition: "all 0.25s ease",
-                              letterSpacing: "0.01em",
                             }}
                           >
                             Not quite
@@ -454,18 +432,15 @@ export default function MobileSession({
                               setCheckpointActionState("rejected");
                               confirmCheckpoint("rejected");
                             }}
+                            className="text-[12.5px] font-[450] rounded-[6px] tracking-[0.01em]"
                             style={{
                               background: "transparent",
                               border: "1px solid rgba(212, 203, 192, 0.1)",
-                              borderRadius: "6px",
                               padding: "8px 14px",
                               color: "rgba(212, 203, 192, 0.35)",
                               fontFamily: "var(--font-sans)",
-                              fontSize: "12.5px",
-                              fontWeight: 450,
                               cursor: "pointer",
                               transition: "all 0.25s ease",
-                              letterSpacing: "0.01em",
                             }}
                           >
                             Not at all
@@ -570,25 +545,21 @@ export default function MobileSession({
                       animation: "checkpointFadeIn 0.45s ease-out both",
                     }}
                   >
+                    {/* Top dissolve edge */}
+                    {isFirstInSageSequence && (
+                      <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, transparent, #222020)' }} />
+                    )}
                     {/* Sage label */}
                     {isFirstInSageSequence && (
                       <div
+                        className="bg-[#222020] px-[28px] pb-[8px]"
                         style={{
-                          padding: "0 28px",
                           paddingTop: i === 0 ? "0" : "8px",
-                          paddingBottom: "10px",
-                          backgroundColor: "#262220",
                         }}
                       >
                         <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "10px",
-                            fontWeight: 500,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            color: "#7A8B72",
-                          }}
+                          className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
+                          style={{ fontFamily: "var(--font-mono)" }}
                         >
                           Sage
                         </span>
@@ -596,26 +567,23 @@ export default function MobileSession({
                     )}
                     {/* Message */}
                     <div
+                      className="bg-[#222020] px-[28px]"
                       style={{
-                        padding: "0 28px",
                         paddingTop: isFirstInSageSequence ? "0" : "14px",
-                        paddingBottom: isLastInSageSequence ? "22px" : "0",
-                        backgroundColor: "#262220",
+                        paddingBottom: isLastInSageSequence ? "16px" : "0",
                       }}
                     >
                       <div
-                        style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: "15px",
-                          lineHeight: 1.7,
-                          fontWeight: 430,
-                          color: "#D4CBC0",
-                          letterSpacing: "0.01em",
-                        }}
+                        className="text-[15px] leading-[1.7] font-[430] text-[#D4CBC0] tracking-[0.01em]"
+                        style={{ fontFamily: "var(--font-sans)" }}
                       >
                         {renderMarkdown(msg.content)}
                       </div>
                     </div>
+                    {/* Bottom dissolve edge */}
+                    {isLastInSageSequence && (
+                      <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, #222020, transparent)' }} />
+                    )}
                   </div>
                 );
               }
@@ -624,23 +592,14 @@ export default function MobileSession({
               return (
                 <div
                   key={msg.id || `msg-${i}`}
+                  className="pr-[28px] pl-[48px] py-[14px]"
                   style={{
-                    padding: "0 28px 0 48px",
-                    paddingTop: "22px",
-                    paddingBottom: "22px",
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
                   <p
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "15px",
-                      lineHeight: 1.7,
-                      fontWeight: 400,
-                      color: "#C0B8AD",
-                      letterSpacing: "0.01em",
-                      margin: 0,
-                    }}
+                    className="text-[15px] leading-[1.7] font-normal text-[#C0B8AD] tracking-[0.01em] m-0"
+                    style={{ fontFamily: "var(--font-sans)" }}
                   >
                     {msg.content}
                   </p>
@@ -652,10 +611,11 @@ export default function MobileSession({
             {isLoading &&
               messages.length > 0 &&
               messages[messages.length - 1].role === "user" && (
+                <>
+                <div className="h-[16px]" style={{ background: 'linear-gradient(to bottom, transparent, #222020)' }} />
                 <div
+                  className="bg-[#222020] px-[28px] pt-[16px] pb-[20px]"
                   style={{
-                    padding: "16px 28px 20px",
-                    backgroundColor: "#262220",
                     animation: "checkpointFadeIn 0.3s ease-out both",
                   }}
                 >
@@ -663,16 +623,10 @@ export default function MobileSession({
                   {messages.length === 0 ||
                   messages[messages.length - 1]?.role !== "assistant" ||
                   messages[messages.length - 1]?.isCheckpoint === true ? (
-                    <div style={{ paddingBottom: "8px" }}>
+                    <div className="pb-[8px]">
                       <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "10px",
-                          fontWeight: 500,
-                          letterSpacing: "0.15em",
-                          textTransform: "uppercase",
-                          color: "#7A8B72",
-                        }}
+                        className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         Sage
                       </span>
@@ -711,6 +665,7 @@ export default function MobileSession({
                     </div>
                   )}
                 </div>
+                </>
               )}
 
             {/* Bottom spacer for checkpoint glow breathing room */}
@@ -768,20 +723,12 @@ export default function MobileSession({
 
       {/* Input */}
       <div
-        style={{
-          flexShrink: 0,
-          padding: "8px 16px 0",
-        }}
+        className="shrink-0 px-[16px] pt-[8px] mb-[10px]"
       >
         <div
+          className="relative bg-[#242120] rounded-[14px] flex items-end transition-all duration-[400ms] ease-in-out"
           style={{
-            position: "relative",
-            backgroundColor: "#242120",
-            borderRadius: "14px",
             border: `1px solid ${inputFocused ? "rgba(122, 139, 114, 0.4)" : "rgba(122, 139, 114, 0.15)"}`,
-            transition: "all 0.4s ease",
-            display: "flex",
-            alignItems: "flex-end",
           }}
         >
           <textarea
@@ -793,37 +740,19 @@ export default function MobileSession({
             onBlur={handleBlur}
             placeholder=""
             rows={2}
+            className="w-full bg-transparent border-none outline-none resize-none text-[#C8BFB4] text-[14.5px] font-normal leading-[1.6] caret-[#7A8B72]"
             style={{
-              width: "100%",
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              color: "#C8BFB4",
               fontFamily: "'Outfit', sans-serif",
-              fontSize: "14.5px",
-              fontWeight: 400,
-              lineHeight: 1.6,
               padding: "12px 44px 12px 16px",
-              caretColor: "#7A8B72",
             }}
           />
           <div
             onClick={!input.trim() || isLoading || isStreaming ? undefined : handleSend}
+            className="absolute right-[10px] bottom-[10px] w-[28px] h-[28px] rounded-full flex items-center justify-center transition-colors duration-300"
             style={{
-              position: "absolute",
-              right: "10px",
-              bottom: "10px",
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
               backgroundColor: input.trim()
                 ? "rgba(122, 139, 114, 0.2)"
                 : "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background-color 0.3s ease",
               cursor: input.trim() ? "pointer" : "default",
             }}
           >
