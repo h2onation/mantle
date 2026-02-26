@@ -119,9 +119,9 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 ## API Routes
 
 ### POST /api/chat — Edge Runtime
-- **Body**: `{ message: string | null, conversationId: string | null }`
+- **Body**: `{ message: string | null, conversationId: string | null, explorationContext?: ExplorationContext }`
 - **Returns**: SSE stream
-- Creates conversation if `conversationId` is null. Saves user message, loads full history, applies sliding window (first 2 + last 48 if >50), builds system prompt with manual context, streams Sage response via Anthropic, runs classifier (Haiku) post-stream on every response.
+- Creates conversation if `conversationId` is null. Saves user message, loads full history, applies sliding window (first 2 + last 48 if >50), builds system prompt with manual context (and optional exploration focus), streams Sage response via Anthropic, runs classifier (Haiku) post-stream on every response.
 
 ### POST /api/checkpoint/confirm — Edge Runtime
 - **Body**: `{ messageId: string, action: "confirmed" | "rejected" | "refined", conversationId: string }`
@@ -133,8 +133,8 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 - Returns all `manual_components` for the authenticated user.
 
 ### GET /api/conversations — Node.js Runtime
-- **Returns**: `{ conversations: Array<{ id, status, summary, created_at, updated_at, message_count }> }`
-- Lists all conversations for the authenticated user, ordered by `updated_at desc`. Message counts exclude system messages.
+- **Returns**: `{ conversations: Array<{ id, status, summary, title, preview, created_at, updated_at, message_count }> }`
+- Lists all conversations for the authenticated user, ordered by `updated_at desc`. Message counts exclude system messages. `title` is extracted from the `TITLE:` prefix in summary. `preview` is the first user message content.
 
 ### POST /api/conversations/complete — Edge Runtime
 - **Body**: `{ conversationId: string }`
@@ -150,6 +150,11 @@ Created with `"status": "pending"` by call-sage.ts. Updated to final status by c
 - **Returns**: SSE stream
 - Runs a simulated conversation with Sage using 10 pre-scripted user messages about conflict avoidance. Creates a conversation, loops through messages calling `callSage()` for each turn. Stops when a checkpoint is detected or all messages are exhausted. Streams progress events to the client.
 - **SSE events**: `started` (with conversationId, emitted immediately after conversation creation), `turn` (user message preview), `turn_complete` (with conversationId, processingText, hasCheckpoint, turn number), `checkpoint` (layer, name, conversationId, turn number), `complete` (totalTurns), `error`.
+
+### POST /api/dev-login — Edge Runtime
+- **Body**: none
+- **Returns**: `{ access_token, refresh_token, email }`
+- Development-only (returns 403 in production). Looks up user via `DEV_USER_EMAIL` env var or falls back to first user. Generates magic link token, verifies it server-side, sets session cookies directly. Optional env var: `DEV_USER_EMAIL`.
 
 ### POST /api/dev-reset — Edge Runtime
 - Deletes messages (FK first), then conversations, then manual_components for the user.
@@ -430,6 +435,7 @@ src/
       checkpoint/confirm/route.ts     POST Edge — confirm checkpoint + stream follow-up
       conversations/route.ts          GET Node — list conversations with metadata
       conversations/complete/route.ts POST Edge — mark conversation completed + summarize
+      dev-login/route.ts              POST Edge — dev-only passwordless login
       dev-reset/route.ts              POST Edge — delete all user data
       dev-simulate/route.ts           POST Edge — run simulated conversation until checkpoint
       manual/route.ts                 GET Node — return manual components
@@ -438,7 +444,7 @@ src/
     auth/callback/route.ts            GET Node — OAuth callback
     globals.css                       Tokens, themes, scrollbar, keyframes
     layout.tsx                        Root: fonts, AudioProvider, theme script
-    login/page.tsx                    Magic link + Google OAuth login
+    login/page.tsx                    Email/password + Google OAuth + dev login
     page.tsx                          Server component: auth gate -> MainApp
   components/
     icons/NavIcons.tsx                SVG icons: flame, seed-of-life, constellation, mortar
@@ -446,9 +452,18 @@ src/
       MobileLayout.tsx                Fixed shell: 4 tab panels + MobileNav (bottom 68px)
       MobileNav.tsx                   Bottom tab bar with icons + labels
     mobile/
-      MobileSession.tsx               Always-on chat + side drawer for session history, checkpoint cards
+      MobileSession.tsx               Chat message rendering, checkpoint cards, typing indicator, error display
+      ChatInput.tsx                   Ghost input container, textarea, send button, long-message delay
+      SessionDrawer.tsx               Side drawer: session list, new session button, backdrop
       SessionParticles.tsx            Ambient particles: drift during conversation, converge at checkpoint
-      MobileManual.tsx                Manual viewer: sorted by layer, markdown, upcoming
+      ProcessingIndicator.tsx         Three-tier pulsing orb (normal/deeper/heavy) — unused
+      MobileManual.tsx                Manual viewer: card-based layers with mock data + dev state switcher
+      manual/
+        EmptyLayer.tsx                Empty layer row with info tooltip
+        PopulatedLayer.tsx            Populated layer card with expand/collapse narrative
+        PatternItem.tsx               Expandable pattern card within a layer
+        LayerTooltip.tsx              Click-to-open tooltip with auto-flip positioning
+        ManualMockData.ts             Layer interfaces + mock data (empty/partial/updated/mature states)
       MobileGuidance.tsx              Locked until 1 confirmed, progress bars
       MobileSettings.tsx              Theme, sound, account, logout, history, export, delete
       MobileSoundSelector.tsx         Sound picker dropdown + SoundIndicator export
@@ -457,24 +472,44 @@ src/
       OnboardingInfoScreen.tsx        Shared info screen (icon + label + headline + body + stagger)
       OnboardingSeedScreen.tsx        Seed input screen (textarea + submit button)
     providers/AudioProvider.tsx       React context for ambient audio
-    MainApp.tsx                       Wires useChat + useOnboarding + MobileLayout
+    MainApp.tsx                       Wires useChat + useOnboarding + MobileLayout + exploration transition
   lib/
+    types.ts                          Shared interfaces: ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext
     anthropic.ts                      Raw fetch: anthropicFetch (sync), anthropicStream (SSE)
     audio/ambient-player.ts           Audio singleton, fade in/out, 3 tracks
     hooks/
-      useChat.ts                      Core state: messages, streaming, checkpoints, conversations, init
+      useChat.ts                      Core state: messages, streaming, checkpoints, conversations, exploration
       useOnboarding.ts                Onboarding state machine
     sage/
       call-sage.ts                    Pipeline: history -> window -> prompt -> stream -> classify
       classifier.ts                   Haiku checkpoint detection + processing text
-      generate-summary.ts             Shared Haiku summary generation utility
-      system-prompt.ts                Sage system prompt with dynamic context injection
+      generate-summary.ts             Shared Haiku summary generation (TITLE: prefix + body)
+      system-prompt.ts                Sage system prompt with dynamic context + exploration focus
     supabase/
       admin.ts                        Service role client (bypasses RLS)
       client.ts                       Browser client
       server.ts                       Server-side client (cookies)
-    utils/sse-parser.ts               Client-side SSE stream parser
+    utils/
+      sse-parser.ts                   Client-side SSE stream parser
+      format.tsx                      Shared utils: renderMarkdown, formatShortDate
 ```
+
+## Component Structure — MobileSession
+
+MobileSession.tsx was decomposed into focused sub-components:
+
+- **ChatInput.tsx**: Ghost input container, textarea with auto-resize, send button, long-message delay logic. Owns its own `input`, `inputFocused` state and `textareaRef`.
+- **SessionDrawer.tsx**: Side drawer overlay with backdrop, session list, new session button. Receives `open`/`onClose` props and conversation data.
+- **MobileSession.tsx**: Retains all message rendering — checkpoint cards, assistant messages (Sage panels with dissolve overlays), user messages, typing indicator (three-dot pulse), and error display. Owns `drawerOpen`, `showSoundMenu`, `isConverging`, `checkpointActionState` state.
+
+**Rules:**
+- Message rendering stays in MobileSession. Do not extract checkpoint cards, assistant messages, user messages, typing indicator, or error display.
+- New chat UI features go in MobileSession unless fully independent of the message list.
+- Do not duplicate `renderMarkdown` or type interfaces. Import from `@/lib/utils/format` and `@/lib/types`.
+
+**Shared modules:**
+- `src/lib/types.ts` — `ChatMessage`, `ManualComponent`, `ActiveCheckpoint`, `ExplorationContext`. All components import from here.
+- `src/lib/utils/format.tsx` — `renderMarkdown`, `formatShortDate`. Used by MobileSession and SessionDrawer.
 
 ## What Works End-to-End
 
@@ -565,6 +600,23 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - Restored `alignSelf: "flex-end"` on user messages (accidentally removed in prior session's padding fix).
 - Checkpoint card padding aligned with chat messages: removed extra right padding and `maxWidth: 320px` from checkpoint body.
 
+**2026-02-25 → 2026-02-26 — Manual redesign, Explore with Sage, chat restyling, dev login**
+- **Manual page rewrite**: `MobileManual.tsx` now renders from mock data (`ManualMockData.ts`) via `EmptyLayer.tsx` and `PopulatedLayer.tsx` sub-components. Real `components` prop is received but ignored (eslint-disable). Card-based layout with expand/collapse narratives, `LayerTooltip.tsx` for info popovers, `PatternItem.tsx` for expandable patterns. Dev state switcher (E/P/U/M) in top-right corner. Amber glow animations (`manualGlowPulse`, `manualAtmoFadeIn`).
+- **Explore with Sage**: New `ExplorationContext` type + `startExploration()` in `useChat.ts`. `POST /api/chat` now accepts optional `explorationContext` body field. `system-prompt.ts` injects `EXPLORATION FOCUS` block. `MainApp.tsx` orchestrates multi-phase interstitial transition (transitioning → loading → revealing). Manual sub-components have "Explore with Sage" buttons.
+- **Chat restyling**: `MobileSession.tsx` switched from inline styles to Tailwind `className` for messages. Sage messages render in `bg-[#151311]` panels with dissolve overlays. Checkpoint cards use `bg-[#302618]` + `warmPulse` animation. Button labels changed to "Write to manual" / "Not quite" / "Not at all". Three-dot typing indicator replaces single pulsing dot. Ghost input with focus-reactive border and whisper placeholder.
+- **Session titles**: `generate-summary.ts` now requires `TITLE:` prefix in summaries. `GET /api/conversations` extracts `title` and includes `preview` (first user message) in response.
+- **Login page**: Changed from magic link to email/password auth (`signInWithPassword` / `signUp`). "Dev Login" button (non-production) for quick access.
+- **Dev login route**: New `POST /api/dev-login` (Edge, production-blocked). Looks up user via `DEV_USER_EMAIL` env var, generates magic link token, sets session cookies directly.
+- **ProcessingIndicator.tsx**: New component with three tiers (normal/deeper/heavy) and breathing animations. Defined but currently unused.
+- **New CSS tokens**: `--color-orb-normal`, `--color-orb-deeper`, `--color-orb-heavy` (both themes). New keyframes: `sageBreathNormal`, `sageBreathDeeper`, `sageBreathHeavy`, `sageTextFadeIn`, `warmPulse`.
+
+**2026-02-26 — MobileSession component extraction**
+- Extracted `ChatMessage`, `ManualComponent`, `ActiveCheckpoint`, `ExplorationContext` interfaces to `src/lib/types.ts`. Replaced 7 duplicate definitions across MobileSession, useChat, MobileManual, system-prompt, call-sage, PopulatedLayer, EmptyLayer, PatternItem.
+- Extracted `renderMarkdown` and `formatShortDate` to `src/lib/utils/format.tsx`.
+- Extracted session drawer (backdrop + panel + session list) from `MobileSession.tsx` into `SessionDrawer.tsx`.
+- Extracted chat input (ghost container + textarea + send button + long-message delay) from `MobileSession.tsx` into `ChatInput.tsx`.
+- MobileSession.tsx retains: message rendering, checkpoint cards, typing indicator, error display, header, particles.
+
 ## Known Issues
 
 - **Hydration warning**: `data-theme` set by blocking script before React hydrates. Benign — prevents theme flash.
@@ -581,4 +633,5 @@ NEXT_PUBLIC_SUPABASE_URL          — https://nkmperzwcmttdkxwhbiv.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY     — Supabase anon/public key
 SUPABASE_SERVICE_ROLE_KEY         — Supabase service role key (server-only, bypasses RLS)
 ANTHROPIC_API_KEY                 — Anthropic API key
+DEV_USER_EMAIL                    — (optional) Email for /api/dev-login auto-login target
 ```
