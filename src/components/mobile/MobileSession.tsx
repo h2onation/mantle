@@ -354,7 +354,7 @@ export default function MobileSession({
                     key={msg.id || `msg-${i}`}
                     className="relative bg-[#302618]"
                     style={{
-                      animation: "checkpointFadeIn 0.45s ease-out both",
+                      animation: "checkpointFadeIn 1.2s ease-out both",
                     }}
                   >
                     {/* Top dissolve overlay */}
@@ -551,7 +551,7 @@ export default function MobileSession({
                     key={msg.id || `msg-${i}`}
                     className={isFirstInSageSequence ? "relative bg-[#151311]" : "bg-[#151311]"}
                     style={{
-                      animation: "checkpointFadeIn 0.45s ease-out both",
+                      animation: "checkpointFadeIn 0.8s ease-out both",
                     }}
                   >
                     {/* Top dissolve overlay */}

@@ -20,6 +20,7 @@ function sleep(ms: number) {
 export default function MainApp() {
   const [activeTab, setActiveTab] = useState<MobileTab>("session");
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
+  const [explorationLabel, setExplorationLabel] = useState("");
 
   const {
     messages,
@@ -52,9 +53,13 @@ export default function MainApp() {
   } = useOnboarding({ initialized, isNewUser, sendMessage });
 
   const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
+    // Build dynamic label: "Let's explore your [name]" or "Let's explore [layer]"
+    const elementName = context.name || context.layerName;
+    setExplorationLabel(elementName);
+
     // Phase 1: Fade out Manual, fade in interstitial
     setExplorationPhase("transitioning");
-    await sleep(400);
+    await sleep(250);
 
     // Phase 2: Interstitial visible, start API call
     setExplorationPhase("loading");
@@ -63,7 +68,7 @@ export default function MainApp() {
     // Phase 3: Response received, switch tab behind interstitial, then reveal
     setActiveTab("session");
     setExplorationPhase("revealing");
-    await sleep(600);
+    await sleep(350);
 
     // Done
     setExplorationPhase(null);
@@ -199,13 +204,15 @@ export default function MainApp() {
             zIndex: 300,
             backgroundColor: "var(--color-void)",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
+            gap: "6px",
             opacity: explorationPhase === "revealing" ? 0 : 1,
             transition: explorationPhase === "transitioning"
-              ? "opacity 400ms ease"
+              ? "opacity 250ms ease"
               : explorationPhase === "revealing"
-                ? "opacity 500ms ease"
+                ? "opacity 350ms ease"
                 : undefined,
           }}
         >
@@ -216,16 +223,16 @@ export default function MainApp() {
               width: 320,
               height: 320,
               borderRadius: "50%",
-              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.2) 0%, rgba(122,139,114,0.05) 40%, transparent 70%)",
+              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.28) 0%, rgba(122,139,114,0.08) 40%, transparent 70%)",
               filter: "blur(30px)",
               pointerEvents: "none",
-              animation: "explorationGlow 4s ease-in-out infinite",
+              animation: "explorationGlow 3s ease-in-out infinite",
             }}
           />
           <style>{`
             @keyframes explorationGlow {
-              0%, 100% { opacity: 0.6; transform: scale(1); }
-              50% { opacity: 1; transform: scale(1.08); }
+              0%, 100% { opacity: 0.45; transform: scale(0.92); }
+              50% { opacity: 1; transform: scale(1.15); }
             }
           `}</style>
           <p
@@ -236,11 +243,27 @@ export default function MainApp() {
               margin: 0,
               letterSpacing: "-0.3px",
               position: "relative",
-              animation: "mantleFadeIn 0.6s ease-out both",
+              animation: "mantleFadeIn 0.5s ease-out both",
             }}
           >
             Let&apos;s explore further
           </p>
+          {explorationLabel && (
+            <p
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontStyle: "italic",
+                fontSize: "15px",
+                color: "var(--color-text-dim)",
+                margin: 0,
+                letterSpacing: "-0.2px",
+                position: "relative",
+                animation: "mantleFadeIn 0.7s ease-out 0.15s both",
+              }}
+            >
+              {explorationLabel}
+            </p>
+          )}
         </div>
       )}
 
