@@ -214,179 +214,230 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
-              // Checkpoint rendering — single container with warm bg + dissolve overlays
+              // Checkpoint rendering — Meadow: light sage clearing with feathered gradient edges
               if (isCheckpoint) {
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    className="relative bg-[#302618]"
                     style={{
-                      animation: "checkpointFadeIn 1.2s ease-out both",
+                      animation: "checkpointFadeIn 2s ease-out both",
+                      background: "#0C0B0A",
                     }}
                   >
-                    {/* Top dissolve overlay */}
-                    <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
-                    {/* Sage label */}
-                    <div className="px-[28px] pt-[20px] pb-[8px]">
-                      <span
-                        className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        Sage
-                      </span>
-                    </div>
-                    {/* Message body — warmPulse on this div only */}
+                    {/* Top feather — dark to light sage */}
                     <div
-                      className="px-[28px]"
                       style={{
-                        animation: "warmPulse 7s ease-in-out infinite",
+                        height: "90px",
+                        background: "linear-gradient(180deg, #0C0B0A 0%, #1A1C17 12%, #2E3028 24%, #4A5242 42%, #7E8E72 60%, #A8B89C 76%, #CDDAC2 88%, #E0EADA 100%)",
+                      }}
+                    />
+                    {/* Core surface */}
+                    <div
+                      style={{
+                        position: "relative",
+                        overflow: "hidden",
+                        background: "linear-gradient(175deg, #E0EADA 0%, #E4EDE0 30%, #E8F0E4 50%, #E4EDE0 70%, #E0EADA 100%)",
                       }}
                     >
+                      {/* Radial glow */}
                       <div
-                        className="text-[15px] leading-[1.7] font-[430] text-[#D4CBC0] tracking-[0.01em]"
-                        style={{ fontFamily: "var(--font-sans)" }}
-                      >
-                        {renderMarkdown(msg.content)}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "radial-gradient(ellipse at center, rgba(245, 252, 240, 0.5) 0%, rgba(230, 242, 225, 0.2) 35%, transparent 60%)",
+                          filter: "blur(35px)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                      {/* Content */}
+                      <div style={{ position: "relative", zIndex: 1, padding: "20px 24px" }}>
+                        {/* Sage label */}
+                        <div style={{ paddingBottom: "8px" }}>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "8px",
+                              fontWeight: 500,
+                              letterSpacing: "2.5px",
+                              textTransform: "uppercase",
+                              color: "#5E7054",
+                            }}
+                          >
+                            Sage
+                          </span>
+                        </div>
+                        {/* Body text */}
+                        <div
+                          style={{
+                            fontFamily: "var(--font-serif)",
+                            fontSize: "15px",
+                            fontWeight: 400,
+                            lineHeight: 1.75,
+                            letterSpacing: "-0.2px",
+                            color: "#2A3326",
+                          }}
+                        >
+                          {renderMarkdown(msg.content)}
+                        </div>
+
+                        {/* "Does this feel right?" prompt */}
+                        {isPendingCheckpoint && !checkpointActionState && (
+                          <p
+                            style={{
+                              fontFamily: "var(--font-serif)",
+                              fontSize: "13px",
+                              fontStyle: "italic",
+                              color: "#455040",
+                              margin: "20px 0 0 0",
+                            }}
+                          >
+                            Does this feel right?
+                          </p>
+                        )}
+
+                        {/* Action buttons */}
+                        {isPendingCheckpoint && !checkpointActionState ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              marginTop: "16px",
+                              paddingBottom: "4px",
+                            }}
+                          >
+                            <button
+                              onClick={() => {
+                                setCheckpointActionState("confirmed");
+                                confirmCheckpoint("confirmed");
+                              }}
+                              style={{
+                                fontFamily: "var(--font-sans)",
+                                fontSize: "12px",
+                                fontWeight: 500,
+                                color: "#5E7054",
+                                background: "transparent",
+                                border: "1px solid rgba(94, 112, 84, 0.35)",
+                                borderRadius: "20px",
+                                padding: "6px 16px",
+                                cursor: "pointer",
+                                transition: "all 0.25s ease",
+                              }}
+                            >
+                              Yes, save this
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCheckpointActionState("refined");
+                                confirmCheckpoint("refined");
+                              }}
+                              style={{
+                                fontFamily: "var(--font-sans)",
+                                fontSize: "12px",
+                                fontWeight: 500,
+                                color: "#455040",
+                                background: "transparent",
+                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                borderRadius: "20px",
+                                padding: "6px 16px",
+                                cursor: "pointer",
+                                transition: "all 0.25s ease",
+                              }}
+                            >
+                              Refine it
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCheckpointActionState("rejected");
+                                confirmCheckpoint("rejected");
+                              }}
+                              style={{
+                                fontFamily: "var(--font-sans)",
+                                fontSize: "12px",
+                                fontWeight: 500,
+                                color: "#455040",
+                                background: "transparent",
+                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                borderRadius: "20px",
+                                padding: "6px 16px",
+                                cursor: "pointer",
+                                transition: "all 0.25s ease",
+                              }}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        ) : isPendingCheckpoint && checkpointActionState ? (
+                          <div
+                            style={{
+                              marginTop: "20px",
+                              paddingBottom: "4px",
+                              animation: "checkpointFadeIn 0.4s ease-out both",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                letterSpacing: "0.08em",
+                                color: checkpointActionState === "confirmed"
+                                  ? "#5E7054"
+                                  : "#455040",
+                              }}
+                            >
+                              {checkpointActionState === "confirmed" && "Written to manual"}
+                              {checkpointActionState === "refined" && "Sage will revisit this"}
+                              {checkpointActionState === "rejected" && "Discarded"}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        {/* Already-resolved checkpoints (loaded from DB) */}
+                        {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
+                          <div
+                            style={{
+                              marginTop: "20px",
+                              paddingBottom: "4px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                letterSpacing: "0.08em",
+                                color: msg.checkpointMeta.status === "confirmed"
+                                  ? "#5E7054"
+                                  : "#455040",
+                              }}
+                            >
+                              {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
+                              {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
+                              {msg.checkpointMeta.status === "rejected" && "Discarded"}
+                            </span>
+                          </div>
+                        )}
+
+                        {checkpointError && isPendingCheckpoint && (
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "10px",
+                              color: "#455040",
+                              marginTop: "12px",
+                              display: "block",
+                            }}
+                          >
+                            {checkpointError}
+                          </span>
+                        )}
                       </div>
-
-                      {/* Action buttons */}
-                      {isPendingCheckpoint && !checkpointActionState ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "8px",
-                            marginTop: "20px",
-                            paddingTop: "16px",
-                            paddingBottom: "20px",
-                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
-                          }}
-                        >
-                          <button
-                            onClick={() => {
-                              setCheckpointActionState("confirmed");
-                              confirmCheckpoint("confirmed");
-                            }}
-                            className="text-[12.5px] font-medium rounded-[6px] text-[#A8B89F] tracking-[0.01em]"
-                            style={{
-                              background: "rgba(122, 139, 114, 0.15)",
-                              border: "1px solid rgba(122, 139, 114, 0.25)",
-                              padding: "8px 14px",
-                              fontFamily: "var(--font-sans)",
-                              cursor: "pointer",
-                              transition: "all 0.25s ease",
-                            }}
-                          >
-                            Write to manual
-                          </button>
-                          <button
-                            onClick={() => {
-                              setCheckpointActionState("refined");
-                              confirmCheckpoint("refined");
-                            }}
-                            className="text-[12.5px] font-[450] rounded-[6px] tracking-[0.01em]"
-                            style={{
-                              background: "transparent",
-                              border: "1px solid rgba(212, 203, 192, 0.1)",
-                              padding: "8px 14px",
-                              color: "rgba(212, 203, 192, 0.5)",
-                              fontFamily: "var(--font-sans)",
-                              cursor: "pointer",
-                              transition: "all 0.25s ease",
-                            }}
-                          >
-                            Not quite
-                          </button>
-                          <button
-                            onClick={() => {
-                              setCheckpointActionState("rejected");
-                              confirmCheckpoint("rejected");
-                            }}
-                            className="text-[12.5px] font-[450] rounded-[6px] tracking-[0.01em]"
-                            style={{
-                              background: "transparent",
-                              border: "1px solid rgba(212, 203, 192, 0.1)",
-                              padding: "8px 14px",
-                              color: "rgba(212, 203, 192, 0.35)",
-                              fontFamily: "var(--font-sans)",
-                              cursor: "pointer",
-                              transition: "all 0.25s ease",
-                            }}
-                          >
-                            Not at all
-                          </button>
-                        </div>
-                      ) : isPendingCheckpoint && checkpointActionState ? (
-                        <div
-                          style={{
-                            marginTop: "20px",
-                            paddingTop: "16px",
-                            paddingBottom: "20px",
-                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
-                            animation: "checkpointFadeIn 0.4s ease-out both",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 500,
-                              letterSpacing: "0.08em",
-                              color: checkpointActionState === "confirmed"
-                                ? "rgba(122, 139, 114, 0.7)"
-                                : "rgba(212, 203, 192, 0.4)",
-                            }}
-                          >
-                            {checkpointActionState === "confirmed" && "Written to manual"}
-                            {checkpointActionState === "refined" && "Sage will revisit this"}
-                            {checkpointActionState === "rejected" && "Discarded"}
-                          </span>
-                        </div>
-                      ) : null}
-
-                      {/* Already-resolved checkpoints (loaded from DB) */}
-                      {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
-                        <div
-                          style={{
-                            marginTop: "20px",
-                            paddingTop: "16px",
-                            paddingBottom: "20px",
-                            borderTop: "1px solid rgba(212, 203, 192, 0.08)",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 500,
-                              letterSpacing: "0.08em",
-                              color: msg.checkpointMeta.status === "confirmed"
-                                ? "rgba(122, 139, 114, 0.7)"
-                                : "rgba(212, 203, 192, 0.4)",
-                            }}
-                          >
-                            {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
-                            {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
-                            {msg.checkpointMeta.status === "rejected" && "Discarded"}
-                          </span>
-                        </div>
-                      )}
-
-                      {checkpointError && isPendingCheckpoint && (
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "10px",
-                            color: "var(--color-text-ghost)",
-                            marginTop: "12px",
-                            display: "block",
-                          }}
-                        >
-                          {checkpointError}
-                        </span>
-                      )}
                     </div>
-                    {/* Bottom dissolve overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to top, var(--color-void), transparent)' }} />
-                    {/* Bottom padding for dissolve space */}
-                    <div className="h-[12px]" />
+                    {/* Bottom feather — light sage back to dark */}
+                    <div
+                      style={{
+                        height: "90px",
+                        background: "linear-gradient(180deg, #E0EADA 0%, #CDDAC2 12%, #A8B89C 24%, #7E8E72 40%, #4A5242 58%, #2E3028 76%, #1A1C17 88%, #0C0B0A 100%)",
+                      }}
+                    />
                   </div>
                 );
               }
