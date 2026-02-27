@@ -23,6 +23,20 @@
   --color-orb-deeper: #A89F7A;
   --color-orb-heavy: #C4956A;
 
+  /* Checkpoint clearing */
+  --cp-surface: #E0EADA;
+  --cp-surface-mid: #E4EDE0;
+  --cp-surface-light: #E8F0E4;
+  --cp-glow-a: rgba(245, 252, 240, 0.5);
+  --cp-glow-b: rgba(230, 242, 225, 0.2);
+  --cp-feather-in: linear-gradient(180deg, #0C0B0A 0%, #1A1C17 12%, #2E3028 24%, #4A5242 42%, #7E8E72 60%, #A8B89C 76%, #CDDAC2 88%, #E0EADA 100%);
+  --cp-feather-out: linear-gradient(180deg, #E0EADA 0%, #CDDAC2 12%, #A8B89C 24%, #7E8E72 40%, #4A5242 58%, #2E3028 76%, #1A1C17 88%, #0C0B0A 100%);
+  --cp-text: #2A3326;
+  --cp-text-accent: #5E7054;
+  --cp-text-dim: #455040;
+  --cp-border: rgba(94, 112, 84, 0.35);
+  --cp-border-dim: rgba(69, 80, 64, 0.2);
+
   /* Font variables */
   --font-serif: var(--font-instrument-serif);
   --font-sans: var(--font-dm-sans);
@@ -40,6 +54,20 @@
   --color-orb-normal: #D4A574;
   --color-orb-deeper: #D48F6A;
   --color-orb-heavy: #D47A6A;
+
+  /* Checkpoint clearing */
+  --cp-surface: #EAE0D4;
+  --cp-surface-mid: #EDE4DA;
+  --cp-surface-light: #F0E8E0;
+  --cp-glow-a: rgba(252, 245, 235, 0.5);
+  --cp-glow-b: rgba(242, 230, 215, 0.2);
+  --cp-feather-in: linear-gradient(180deg, #0C0B0A 0%, #1C1917 12%, #302A22 24%, #524840 42%, #8E7E6E 60%, #B8A894 76%, #DACCC0 88%, #EAE0D4 100%);
+  --cp-feather-out: linear-gradient(180deg, #EAE0D4 0%, #DACCC0 12%, #B8A894 24%, #8E7E6E 40%, #524840 58%, #302A22 76%, #1C1917 88%, #0C0B0A 100%);
+  --cp-text: #33261A;
+  --cp-text-accent: #705440;
+  --cp-text-dim: #504030;
+  --cp-border: rgba(112, 84, 64, 0.35);
+  --cp-border-dim: rgba(80, 64, 48, 0.2);
 }
 
 [data-theme="depth"] {
@@ -53,6 +81,20 @@
   --color-orb-normal: #7B9EC4;
   --color-orb-deeper: #7A8FA8;
   --color-orb-heavy: #6A7C94;
+
+  /* Checkpoint clearing */
+  --cp-surface: #DAE2EA;
+  --cp-surface-mid: #DEE6EE;
+  --cp-surface-light: #E2EAF2;
+  --cp-glow-a: rgba(235, 245, 255, 0.5);
+  --cp-glow-b: rgba(215, 232, 248, 0.2);
+  --cp-feather-in: linear-gradient(180deg, #0C0B0A 0%, #17191C 12%, #222A30 24%, #3E4852 42%, #6E7E8E 60%, #94A8B8 76%, #C0CCDA 88%, #DAE2EA 100%);
+  --cp-feather-out: linear-gradient(180deg, #DAE2EA 0%, #C0CCDA 12%, #94A8B8 24%, #6E7E8E 40%, #3E4852 58%, #222A30 76%, #17191C 88%, #0C0B0A 100%);
+  --cp-text: #1A2633;
+  --cp-text-accent: #405870;
+  --cp-text-dim: #304050;
+  --cp-border: rgba(64, 88, 112, 0.35);
+  --cp-border-dim: rgba(48, 64, 80, 0.2);
 }
 
 body {

@@ -214,21 +214,23 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
-              // Checkpoint rendering — Meadow: light sage clearing with feathered gradient edges
+              // Checkpoint rendering — clearing with feathered gradient edges
               if (isCheckpoint) {
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
                       animation: "checkpointFadeIn 2s ease-out both",
-                      background: "#0C0B0A",
+                      background: "var(--color-void)",
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
-                    {/* Top feather — dark to light sage */}
+                    {/* Top feather */}
                     <div
                       style={{
                         height: "90px",
-                        background: "linear-gradient(180deg, #0C0B0A 0%, #1A1C17 12%, #2E3028 24%, #4A5242 42%, #7E8E72 60%, #A8B89C 76%, #CDDAC2 88%, #E0EADA 100%)",
+                        background: "var(--cp-feather-in)",
                       }}
                     />
                     {/* Core surface */}
@@ -236,7 +238,7 @@ export default function MobileSession({
                       style={{
                         position: "relative",
                         overflow: "hidden",
-                        background: "linear-gradient(175deg, #E0EADA 0%, #E4EDE0 30%, #E8F0E4 50%, #E4EDE0 70%, #E0EADA 100%)",
+                        background: `linear-gradient(175deg, var(--cp-surface) 0%, var(--cp-surface-mid) 30%, var(--cp-surface-light) 50%, var(--cp-surface-mid) 70%, var(--cp-surface) 100%)`,
                       }}
                     >
                       {/* Radial glow */}
@@ -244,7 +246,7 @@ export default function MobileSession({
                         style={{
                           position: "absolute",
                           inset: 0,
-                          background: "radial-gradient(ellipse at center, rgba(245, 252, 240, 0.5) 0%, rgba(230, 242, 225, 0.2) 35%, transparent 60%)",
+                          background: "radial-gradient(ellipse at center, var(--cp-glow-a) 0%, var(--cp-glow-b) 35%, transparent 60%)",
                           filter: "blur(35px)",
                           pointerEvents: "none",
                         }}
@@ -260,7 +262,7 @@ export default function MobileSession({
                               fontWeight: 500,
                               letterSpacing: "2.5px",
                               textTransform: "uppercase",
-                              color: "#5E7054",
+                              color: "var(--cp-text-accent)",
                             }}
                           >
                             Sage
@@ -274,7 +276,7 @@ export default function MobileSession({
                             fontWeight: 400,
                             lineHeight: 1.75,
                             letterSpacing: "-0.2px",
-                            color: "#2A3326",
+                            color: "var(--cp-text)",
                           }}
                         >
                           {renderMarkdown(msg.content)}
@@ -287,7 +289,7 @@ export default function MobileSession({
                               fontFamily: "var(--font-serif)",
                               fontSize: "13px",
                               fontStyle: "italic",
-                              color: "#455040",
+                              color: "var(--cp-text-dim)",
                               margin: "20px 0 0 0",
                             }}
                           >
@@ -314,9 +316,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#5E7054",
+                                color: "var(--cp-text-accent)",
                                 background: "transparent",
-                                border: "1px solid rgba(94, 112, 84, 0.35)",
+                                border: "1px solid var(--cp-border)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -334,9 +336,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#455040",
+                                color: "var(--cp-text-dim)",
                                 background: "transparent",
-                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                border: "1px solid var(--cp-border-dim)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -354,9 +356,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#455040",
+                                color: "var(--cp-text-dim)",
                                 background: "transparent",
-                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                border: "1px solid var(--cp-border-dim)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -380,8 +382,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: checkpointActionState === "confirmed"
-                                  ? "#5E7054"
-                                  : "#455040",
+                                  ? "var(--cp-text-accent)"
+                                  : "var(--cp-text-dim)",
                               }}
                             >
                               {checkpointActionState === "confirmed" && "Written to manual"}
@@ -405,8 +407,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: msg.checkpointMeta.status === "confirmed"
-                                  ? "#5E7054"
-                                  : "#455040",
+                                  ? "var(--cp-text-accent)"
+                                  : "var(--cp-text-dim)",
                               }}
                             >
                               {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
@@ -421,7 +423,7 @@ export default function MobileSession({
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "10px",
-                              color: "#455040",
+                              color: "var(--cp-text-dim)",
                               marginTop: "12px",
                               display: "block",
                             }}
@@ -431,11 +433,11 @@ export default function MobileSession({
                         )}
                       </div>
                     </div>
-                    {/* Bottom feather — light sage back to dark */}
+                    {/* Bottom feather */}
                     <div
                       style={{
                         height: "90px",
-                        background: "linear-gradient(180deg, #E0EADA 0%, #CDDAC2 12%, #A8B89C 24%, #7E8E72 40%, #4A5242 58%, #2E3028 76%, #1A1C17 88%, #0C0B0A 100%)",
+                        background: "var(--cp-feather-out)",
                       }}
                     />
                   </div>
