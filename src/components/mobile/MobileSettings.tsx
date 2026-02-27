@@ -36,7 +36,7 @@ export default function MobileSettings({
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
-  const [simTurns, setSimTurns] = useState(3);
+  const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const { isPlaying, currentTrack } = useAudio();
@@ -92,7 +92,7 @@ export default function MobileSettings({
       const res = await fetch("/api/dev-simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turns: simTurns }),
+        body: JSON.stringify({ checkpoints: simCheckpoints }),
       });
       if (!res.ok) {
         setSimStatus("Failed to start simulation");
@@ -132,16 +132,23 @@ export default function MobileSettings({
               if (simConversationId && onSimulationEvent) {
                 onSimulationEvent("turn", simConversationId);
               }
+            } else if (event.type === "checkpoint_auto_confirmed") {
+              setSimStatus(`Checkpoint ${event.checkpointNumber} auto-confirmed (layer ${event.layer})`);
+              // Reload to show confirmed checkpoint in chat
+              if (simConversationId && onSimulationEvent) {
+                onSimulationEvent("turn", simConversationId);
+              }
             } else if (event.type === "checkpoint") {
               if (event.conversationId) simConversationId = event.conversationId;
-              setSimStatus(`Checkpoint at turn ${event.turn}!`);
+              setSimStatus(`Checkpoint ${event.checkpointNumber} at turn ${event.turn}!`);
 
               if (simConversationId && onSimulationEvent) {
                 onSimulationEvent("checkpoint", simConversationId);
               }
             } else if (event.type === "complete") {
+              const cpInfo = event.totalCheckpoints != null ? `, ${event.totalCheckpoints} checkpoint${event.totalCheckpoints !== 1 ? "s" : ""}` : "";
               setSimStatus(
-                `Done — ${event.totalTurns} turns${event.totalTurns >= 10 ? ", no checkpoint detected" : ""}`
+                `Done — ${event.totalTurns} turns${cpInfo}`
               );
             } else if (event.type === "error") {
               setSimStatus("Simulation failed");
@@ -481,14 +488,14 @@ export default function MobileSettings({
             {[1, 2, 3].map((n) => (
               <button
                 key={n}
-                onClick={() => setSimTurns(n)}
+                onClick={() => setSimCheckpoints(n)}
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: 6,
-                  border: `1px solid ${simTurns === n ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
-                  background: simTurns === n ? "var(--color-accent-ghost)" : "none",
-                  color: simTurns === n ? "var(--color-accent)" : "var(--color-text-ghost)",
+                  border: `1px solid ${simCheckpoints === n ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
+                  background: simCheckpoints === n ? "var(--color-accent-ghost)" : "none",
+                  color: simCheckpoints === n ? "var(--color-accent)" : "var(--color-text-ghost)",
                   fontFamily: "var(--font-mono)",
                   fontSize: "10px",
                   fontWeight: 500,
@@ -508,10 +515,11 @@ export default function MobileSettings({
           style={{
             width: "100%",
             background: "none",
-            border: "none",
+            border: `1px solid ${simulating ? "var(--color-divider)" : "var(--color-accent-ghost)"}`,
+            borderRadius: 8,
             cursor: simulating ? "default" : "pointer",
-            textAlign: "left",
-            padding: 0,
+            textAlign: "center",
+            padding: "10px 0",
             opacity: simulating ? 0.5 : 1,
             WebkitTapHighlightColor: "transparent",
           }}
@@ -520,12 +528,14 @@ export default function MobileSettings({
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
-              color: "var(--color-text-ghost)",
+              color: simulating ? "var(--color-text-ghost)" : "var(--color-accent)",
               letterSpacing: "0.5px",
               margin: 0,
             }}
           >
-            {simulating ? simStatus : `Run ${simTurns} turn${simTurns > 1 ? "s" : ""}`}
+            {simulating
+              ? simStatus
+              : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
           </p>
         </button>
       </div>
@@ -587,10 +597,11 @@ export default function MobileSettings({
           style={{
             width: "100%",
             background: "none",
-            border: "none",
+            border: `1px solid ${populating || populateLayers.size === 0 ? "var(--color-divider)" : "var(--color-accent-ghost)"}`,
+            borderRadius: 8,
             cursor: populating || populateLayers.size === 0 ? "default" : "pointer",
-            textAlign: "left",
-            padding: 0,
+            textAlign: "center",
+            padding: "10px 0",
             opacity: populating ? 0.5 : 1,
             WebkitTapHighlightColor: "transparent",
           }}
@@ -599,7 +610,7 @@ export default function MobileSettings({
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
-              color: "var(--color-text-ghost)",
+              color: populating || populateLayers.size === 0 ? "var(--color-text-ghost)" : "var(--color-accent)",
               letterSpacing: "0.5px",
               margin: 0,
             }}

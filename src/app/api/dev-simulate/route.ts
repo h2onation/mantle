@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
 
-const MAX_TURNS = 10;
+// All 10 pre-scripted messages are available; the simulation loops through
+// them all, stopping when the target number of checkpoints is reached.
 
 // Pre-scripted user messages — written to progressively deepen the conversation
 // and give the classifier enough signal to detect a pattern checkpoint.
@@ -99,12 +100,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Optional body param to limit turns (default: MAX_TURNS)
-  let requestedTurns = MAX_TURNS;
+  // Optional body param: how many checkpoints to reach before stopping.
+  // The simulation auto-confirms all checkpoints before the Nth one,
+  // then stops at the Nth checkpoint for manual action.
+  let targetCheckpoints = 1;
   try {
     const body = await request.json();
-    if (body.turns && typeof body.turns === "number" && body.turns >= 1) {
-      requestedTurns = body.turns;
+    if (body.checkpoints && typeof body.checkpoints === "number" && body.checkpoints >= 1) {
+      targetCheckpoints = body.checkpoints;
     }
   } catch {
     // No body or invalid JSON — use default
@@ -146,10 +149,10 @@ export async function POST(request: Request) {
           conversationId,
         });
 
-        // 2. Loop through pre-scripted messages
-        const maxTurns = Math.min(requestedTurns, USER_MESSAGES.length);
+        // 2. Loop through pre-scripted messages, counting checkpoints
+        let checkpointCount = 0;
 
-        for (let turn = 1; turn <= maxTurns; turn++) {
+        for (let turn = 1; turn <= USER_MESSAGES.length; turn++) {
           const userMessage = USER_MESSAGES[turn - 1];
 
           emit(controller, {
@@ -176,30 +179,98 @@ export async function POST(request: Request) {
             hasCheckpoint: !!result.checkpoint,
           });
 
-          // Check for checkpoint — stop here
+          // Check for checkpoint
           if (result.checkpoint?.isCheckpoint && result.checkpoint.layer) {
+            checkpointCount++;
+
+            if (checkpointCount >= targetCheckpoints) {
+              // Target reached — stop here for manual action
+              emit(controller, {
+                type: "checkpoint",
+                turn,
+                layer: result.checkpoint.layer,
+                name: result.checkpoint.name,
+                conversationId,
+                checkpointNumber: checkpointCount,
+              });
+              emit(controller, {
+                type: "complete",
+                conversationId,
+                totalTurns: turn,
+                totalCheckpoints: checkpointCount,
+              });
+              controller.close();
+              return;
+            }
+
+            // Auto-confirm this checkpoint and continue
             emit(controller, {
-              type: "checkpoint",
+              type: "checkpoint_auto_confirmed",
               turn,
               layer: result.checkpoint.layer,
               name: result.checkpoint.name,
-              conversationId,
+              checkpointNumber: checkpointCount,
             });
-            emit(controller, {
-              type: "complete",
-              conversationId,
-              totalTurns: turn,
-            });
-            controller.close();
-            return;
+
+            // Find the checkpoint message to get its content
+            const { data: cpMsg } = await admin
+              .from("messages")
+              .select("id, content, checkpoint_meta")
+              .eq("conversation_id", conversationId)
+              .eq("is_checkpoint", true)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .single();
+
+            if (cpMsg) {
+              // Update checkpoint_meta.status to confirmed
+              await admin
+                .from("messages")
+                .update({ checkpoint_meta: { ...cpMsg.checkpoint_meta, status: "confirmed" } })
+                .eq("id", cpMsg.id);
+
+              // Upsert to manual_components
+              const layer = result.checkpoint.layer;
+              const { data: existing } = await admin
+                .from("manual_components")
+                .select("id")
+                .eq("user_id", user!.id)
+                .eq("layer", layer)
+                .eq("type", "component")
+                .maybeSingle();
+
+              if (existing) {
+                await admin
+                  .from("manual_components")
+                  .update({ content: cpMsg.content, source_message_id: cpMsg.id, name: null })
+                  .eq("id", existing.id);
+              } else {
+                await admin.from("manual_components").insert({
+                  user_id: user!.id,
+                  layer,
+                  type: "component",
+                  name: null,
+                  content: cpMsg.content,
+                  source_message_id: cpMsg.id,
+                });
+              }
+
+              // Insert system message so Sage knows
+              await admin.from("messages").insert({
+                conversation_id: conversationId,
+                role: "system",
+                content: "[User confirmed the checkpoint]",
+              });
+            }
           }
         }
 
-        // Hit max turns without checkpoint
+        // Hit max messages without reaching target checkpoints
         emit(controller, {
           type: "complete",
           conversationId,
-          totalTurns: maxTurns,
+          totalTurns: USER_MESSAGES.length,
+          totalCheckpoints: checkpointCount,
         });
         controller.close();
       } catch (err) {
