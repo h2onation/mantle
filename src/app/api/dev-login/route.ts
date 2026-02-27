@@ -81,22 +81,26 @@ export async function POST() {
     user: session.user,
   });
 
-  // Supabase SSR chunks cookies at 3180 chars
+  // Supabase SSR chunks cookies at 3180 chars.
+  // Important: encode the full value FIRST, then chunk the encoded string.
+  // This matches how @supabase/ssr's createChunks() works. Chunking raw JSON
+  // then encoding each chunk individually causes combineChunks() to fail.
   const CHUNK_SIZE = 3180;
+  const encoded = encodeURIComponent(cookieValue);
   const headers = new Headers({ "Content-Type": "application/json" });
 
-  if (cookieValue.length <= CHUNK_SIZE) {
+  if (encoded.length <= CHUNK_SIZE) {
     headers.append(
       "Set-Cookie",
-      `${cookieName}=${encodeURIComponent(cookieValue)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600`
+      `${cookieName}=${encoded}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600`
     );
   } else {
-    const chunks = Math.ceil(cookieValue.length / CHUNK_SIZE);
+    const chunks = Math.ceil(encoded.length / CHUNK_SIZE);
     for (let i = 0; i < chunks; i++) {
-      const chunk = cookieValue.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      const chunk = encoded.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
       headers.append(
         "Set-Cookie",
-        `${cookieName}.${i}=${encodeURIComponent(chunk)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600`
+        `${cookieName}.${i}=${chunk}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600`
       );
     }
   }
