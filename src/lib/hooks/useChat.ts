@@ -350,13 +350,14 @@ export function useChat() {
 
       if (action === "confirmed") {
         // Add to confirmed components locally (optimistic update)
+        // All checkpoints write as "component" type (one per layer)
         setConfirmedComponents((prev) => [
           ...prev,
           {
             id: activeCheckpoint.messageId,
             layer: activeCheckpoint.layer,
-            type: activeCheckpoint.type,
-            name: activeCheckpoint.name,
+            type: "component",
+            name: null,
             content: activeCheckpoint.content,
             created_at: new Date().toISOString(),
           },

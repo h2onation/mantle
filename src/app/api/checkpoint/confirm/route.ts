@@ -66,33 +66,22 @@ export async function POST(request: Request) {
   let systemContent: string;
 
   if (action === "confirmed") {
-    const { layer, type, name } = msg.checkpoint_meta as {
+    const { layer } = msg.checkpoint_meta as {
       layer: number;
-      type: "component" | "pattern";
+      type: string;
       name: string | null;
       status: string;
     };
 
-    // Normalize name
-    const normalizedName = name ? name.toLowerCase().trim() : null;
-
-    // Save to manual_components (select-then-insert/update for partial indexes)
-    const componentType = type === "component" ? "component" : "pattern";
-
-    let existingQuery = admin
+    // All confirmed checkpoints write as "component" (one per layer).
+    // Pattern support is not yet scoped.
+    const { data: existing, error: existingError } = await admin
       .from("manual_components")
       .select("id")
       .eq("user_id", user.id)
       .eq("layer", layer)
-      .eq("type", componentType);
-
-    if (componentType === "pattern") {
-      existingQuery = normalizedName
-        ? existingQuery.eq("name", normalizedName)
-        : existingQuery.is("name", null);
-    }
-
-    const { data: existing, error: existingError } = await existingQuery.maybeSingle();
+      .eq("type", "component")
+      .maybeSingle();
 
     if (existingError) {
       console.error("[confirm] Error checking existing component:", existingError);
@@ -104,7 +93,7 @@ export async function POST(request: Request) {
         .update({
           content: msg.content,
           source_message_id: messageId,
-          name: normalizedName,
+          name: null,
         })
         .eq("id", existing.id);
 
@@ -116,8 +105,8 @@ export async function POST(request: Request) {
       const { error: insertError } = await admin.from("manual_components").insert({
         user_id: user.id,
         layer,
-        type: componentType,
-        name: normalizedName,
+        type: "component",
+        name: null,
         content: msg.content,
         source_message_id: messageId,
       });
