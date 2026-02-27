@@ -133,7 +133,7 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
           ) : (
             <>
               {/* Populated layers */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {layers
                   .filter((l) => l.component !== null || l.patterns.length > 0)
                   .map((layer) => (

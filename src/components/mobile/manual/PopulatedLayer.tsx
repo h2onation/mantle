@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import type { Layer } from "./layer-definitions";
 import PatternItem from "./PatternItem";
-import LayerTooltip from "./LayerTooltip";
 import type { ExplorationContext } from "@/lib/types";
 
 interface PopulatedLayerProps {
@@ -17,7 +16,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
   return (
     <div
       style={{
-        padding: "26px 0 22px",
+        padding: "2px 0 6px",
         position: "relative",
         ...(layer.isNew
           ? { animation: "layerFadeUp 0.5s ease-out both" }
@@ -47,62 +46,21 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
           />
         </>
       )}
-      {/* Title row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 18,
-        }}
-      >
+      {/* Layer label */}
+      <div style={{ marginBottom: 10 }}>
         <span
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 16,
-            fontWeight: 520,
-            color: "#161E14",
+            fontFamily: "var(--font-mono)",
+            fontSize: 9,
+            fontWeight: 500,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "#2A3326",
             lineHeight: 1.3,
           }}
         >
           {layer.name}
         </span>
-
-        {/* Info button wrapped in tooltip */}
-        <LayerTooltip text={layer.about} showSageAction={false}>
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              background: "rgba(94, 112, 84, 0.12)",
-              border: "1px solid rgba(94, 112, 84, 0.15)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-              style={{ display: "block" }}
-            >
-              <circle cx="5" cy="2" r="1" fill="#5E7054" />
-              <line
-                x1="5"
-                y1="4.5"
-                x2="5"
-                y2="8.5"
-                stroke="#5E7054"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        </LayerTooltip>
       </div>
 
       {/* Narrative (only if component exists) */}
@@ -114,20 +72,34 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
           <div
             style={{
               fontFamily: "var(--font-serif)",
-              fontSize: 15,
-              lineHeight: 1.78,
-              fontWeight: 410,
+              fontSize: 14,
+              lineHeight: 1.75,
+              fontWeight: 400,
+              letterSpacing: "-0.1px",
               color: "#2A3326",
+              position: "relative",
               ...(narrativeOpen
                 ? { whiteSpace: "pre-line" as const }
                 : {
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical" as const,
+                    maxHeight: 110,
                     overflow: "hidden",
                   }),
             }}
           >
+            {/* Fade-out gradient when collapsed */}
+            {!narrativeOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40,
+                  background: "linear-gradient(to bottom, transparent, #E4EDE0)",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
             {layer.component.narrative}
           </div>
 
@@ -186,22 +158,22 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               display: "flex",
               alignItems: "center",
               gap: 4,
-              marginTop: 10,
+              marginTop: 6,
             }}
           >
             <span
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: 13,
-                fontWeight: 470,
-                color: "rgba(94, 112, 84, 0.65)",
+                fontSize: 11,
+                fontWeight: 500,
+                color: "rgba(94, 112, 84, 0.55)",
               }}
             >
               {narrativeOpen ? "Show less" : "Continue reading"}
             </span>
             <svg
-              width="10"
-              height="10"
+              width="8"
+              height="8"
               viewBox="0 0 10 10"
               fill="none"
               style={{
@@ -231,8 +203,8 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               height: 1,
               background:
                 "linear-gradient(to right, rgba(94,112,84,0.15) 0%, rgba(94,112,84,0.05) 80%, transparent 100%)",
-              marginTop: 18,
-              marginBottom: 16,
+              marginTop: 12,
+              marginBottom: 10,
             }}
           />
 
