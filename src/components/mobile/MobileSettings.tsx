@@ -21,11 +21,13 @@ export default function MobileSettings({
   sessionCount,
   onSimulationEvent,
 }: MobileSettingsProps) {
-  const [theme, setTheme] = useState<"sage" | "ember">("sage");
+  const THEMES = ["sage", "ember", "depth"] as const;
+  type Theme = (typeof THEMES)[number];
+  const [theme, setTheme] = useState<Theme>("sage");
 
   useEffect(() => {
-    const saved = localStorage.getItem("mantle_theme") as "sage" | "ember" | null;
-    if (saved) setTheme(saved);
+    const saved = localStorage.getItem("mantle_theme") as Theme | null;
+    if (saved && THEMES.includes(saved)) setTheme(saved);
   }, []);
   const [showSoundSelector, setShowSoundSelector] = useState(false);
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
@@ -34,8 +36,21 @@ export default function MobileSettings({
   const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
   const { isPlaying, currentTrack } = useAudio();
 
+  const THEME_COLORS: Record<Theme, string> = {
+    sage: "#8BA888",
+    ember: "#D4A574",
+    depth: "#7B9EC4",
+  };
+
+  const THEME_LABELS: Record<Theme, string> = {
+    sage: "Sage",
+    ember: "Ember",
+    depth: "Depth",
+  };
+
   function handleThemeToggle() {
-    const next = theme === "sage" ? "ember" : "sage";
+    const idx = THEMES.indexOf(theme);
+    const next = THEMES[(idx + 1) % THEMES.length];
     setTheme(next);
     document.body.setAttribute("data-theme", next);
     localStorage.setItem("mantle_theme", next);
@@ -202,7 +217,7 @@ export default function MobileSettings({
               width: "12px",
               height: "12px",
               borderRadius: "50%",
-              backgroundColor: theme === "sage" ? "#8BA888" : "#D4A574",
+              backgroundColor: THEME_COLORS[theme],
             }}
           />
           <span
@@ -213,7 +228,7 @@ export default function MobileSettings({
               letterSpacing: "0.5px",
             }}
           >
-            {theme === "sage" ? "Sage" : "Ember"}
+            {THEME_LABELS[theme]}
           </span>
         </div>
       </button>

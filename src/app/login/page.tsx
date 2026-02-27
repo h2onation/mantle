@@ -48,22 +48,11 @@ export default function LoginPage() {
     }
   }
 
-  async function handleDevLogin() {
+  function handleDevLogin() {
+    setIsSignUp(false);
+    setEmail("test@test.com");
+    setPassword("testtest");
     setError("");
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: "test@test.com",
-        password: "testtest",
-      });
-      if (error) throw error;
-      setTransitioning(true);
-      router.push("/");
-      router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Dev login failed");
-      setLoading(false);
-    }
   }
 
   async function handleGoogleLogin() {

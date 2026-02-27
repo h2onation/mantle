@@ -42,6 +42,19 @@
   --color-orb-heavy: #D47A6A;
 }
 
+[data-theme="depth"] {
+  --color-accent: #7B9EC4;
+  --color-accent-dim: rgba(123, 158, 196, 0.4);
+  --color-accent-ghost: rgba(123, 158, 196, 0.08);
+  --color-accent-glow: rgba(123, 158, 196, 0.12);
+  --color-warm: #141618;
+
+  /* Processing orb depth colors */
+  --color-orb-normal: #7B9EC4;
+  --color-orb-deeper: #7A8FA8;
+  --color-orb-heavy: #6A7C94;
+}
+
 body {
   margin: 0;
   background-color: var(--color-void);
