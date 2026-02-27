@@ -16,7 +16,7 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
-  const isEmpty = layers.every((l) => l.component === null);
+  const isEmpty = layers.every((l) => l.component === null && l.patterns.length === 0);
 
   const handleCloseSoundMenu = useCallback(() => {
     setShowSoundMenu(false);
@@ -134,17 +134,17 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
               {/* Populated layers */}
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {layers
-                  .filter((l) => l.component !== null)
+                  .filter((l) => l.component !== null || l.patterns.length > 0)
                   .map((layer) => (
                     <PopulatedLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
                   ))}
               </div>
 
               {/* Empty layers below populated */}
-              {layers.some((l) => l.component === null) && (
+              {layers.some((l) => l.component === null && l.patterns.length === 0) && (
                 <div style={{ marginTop: 12 }}>
                   {layers
-                    .filter((l) => l.component === null)
+                    .filter((l) => l.component === null && l.patterns.length === 0)
                     .map((layer) => (
                       <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
                     ))}

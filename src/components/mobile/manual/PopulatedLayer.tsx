@@ -110,120 +110,122 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
         </LayerTooltip>
       </div>
 
-      {/* Narrative */}
-      <div
-        onClick={() => setNarrativeOpen(!narrativeOpen)}
-        style={{ cursor: "pointer" }}
-      >
+      {/* Narrative (only if component exists) */}
+      {layer.component && (
         <div
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 15,
-            lineHeight: 1.78,
-            fontWeight: 410,
-            color: "#C8BFB4",
-            ...(narrativeOpen
-              ? { whiteSpace: "pre-line" as const }
-              : {
-                  display: "-webkit-box",
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical" as const,
-                  overflow: "hidden",
-                }),
-          }}
+          onClick={() => setNarrativeOpen(!narrativeOpen)}
+          style={{ cursor: "pointer" }}
         >
-          {layer.component!.narrative}
-        </div>
-
-        {/* Explore with Sage — visible when expanded */}
-        {narrativeOpen && onExploreWithSage && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onExploreWithSage({
-                layerId: layer.id,
-                layerName: layer.name,
-                type: "component",
-                content: layer.component!.narrative,
-              });
-            }}
+          <div
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontFamily: "var(--font-sans)",
-              fontSize: 12,
-              fontWeight: 500,
-              color: "#A8B89F",
-              background:
-                "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
-              border: "1px solid rgba(122,139,114,0.25)",
-              borderRadius: 8,
-              padding: "9px 14px 9px 12px",
-              cursor: "pointer",
-              marginTop: 14,
-              transition: "border-color 0.2s ease",
+              fontFamily: "var(--font-serif)",
+              fontSize: 15,
+              lineHeight: 1.78,
+              fontWeight: 410,
+              color: "#C8BFB4",
+              ...(narrativeOpen
+                ? { whiteSpace: "pre-line" as const }
+                : {
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical" as const,
+                    overflow: "hidden",
+                  }),
             }}
           >
+            {layer.component.narrative}
+          </div>
+
+          {/* Explore with Sage — visible when expanded */}
+          {narrativeOpen && onExploreWithSage && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onExploreWithSage({
+                  layerId: layer.id,
+                  layerName: layer.name,
+                  type: "component",
+                  content: layer.component!.narrative,
+                });
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: "var(--font-sans)",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#A8B89F",
+                background:
+                  "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
+                border: "1px solid rgba(122,139,114,0.25)",
+                borderRadius: 8,
+                padding: "9px 14px 9px 12px",
+                cursor: "pointer",
+                marginTop: 14,
+                transition: "border-color 0.2s ease",
+              }}
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                fill="none"
+                style={{ display: "block" }}
+              >
+                <path
+                  d="M3 1.5L7 5L3 8.5"
+                  stroke="#A8B89F"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Explore with Sage
+            </button>
+          )}
+
+          {/* Continue reading / Show less */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              marginTop: 10,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 13,
+                fontWeight: 470,
+                color: "#8A9B82",
+              }}
+            >
+              {narrativeOpen ? "Show less" : "Continue reading"}
+            </span>
             <svg
               width="10"
               height="10"
               viewBox="0 0 10 10"
               fill="none"
-              style={{ display: "block" }}
+              style={{
+                display: "block",
+                transition: "transform 0.3s ease",
+                transform: narrativeOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }}
             >
               <path
-                d="M3 1.5L7 5L3 8.5"
-                stroke="#A8B89F"
+                d="M2 3.5L5 6.5L8 3.5"
+                stroke="#8A9B82"
                 strokeWidth="1.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
-            Explore with Sage
-          </button>
-        )}
-
-        {/* Continue reading / Show less */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            marginTop: 10,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              fontWeight: 470,
-              color: "#8A9B82",
-            }}
-          >
-            {narrativeOpen ? "Show less" : "Continue reading"}
-          </span>
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            style={{
-              display: "block",
-              transition: "transform 0.3s ease",
-              transform: narrativeOpen ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          >
-            <path
-              d="M2 3.5L5 6.5L8 3.5"
-              stroke="#8A9B82"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Patterns section */}
       {layer.patterns.length > 0 && (
