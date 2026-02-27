@@ -9,6 +9,7 @@ const TABS: MobileTab[] = ["session", "manual", "guidance", "settings"];
 interface MobileNavProps {
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
+  hidden?: boolean;
 }
 
 function TabIcon({ tab, color }: { tab: MobileTab; color: string }) {
@@ -24,7 +25,7 @@ function TabIcon({ tab, color }: { tab: MobileTab; color: string }) {
   }
 }
 
-export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
+export default function MobileNav({ activeTab, onTabChange, hidden = false }: MobileNavProps) {
   return (
     <div
       style={{
@@ -41,6 +42,9 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
         paddingTop: "10px",
         paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
         zIndex: 100,
+        transform: hidden ? "translateY(100%)" : "translateY(0)",
+        transition: "transform 0.25s ease",
+        pointerEvents: hidden ? "none" : "auto",
       }}
     >
       {TABS.map((tab) => {
