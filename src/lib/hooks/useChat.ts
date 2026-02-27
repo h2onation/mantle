@@ -599,5 +599,6 @@ export function useChat() {
     startNewSession,
     startExploration,
     refreshConversations,
+    loadManual,
   };
 }

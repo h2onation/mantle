@@ -89,7 +89,7 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
   return { fullText, messageId, checkpoint, processingText };
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = createClient();
   const {
     data: { user },
@@ -97,6 +97,17 @@ export async function POST() {
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Optional body param to limit turns (default: MAX_TURNS)
+  let requestedTurns = MAX_TURNS;
+  try {
+    const body = await request.json();
+    if (body.turns && typeof body.turns === "number" && body.turns >= 1) {
+      requestedTurns = body.turns;
+    }
+  } catch {
+    // No body or invalid JSON — use default
   }
 
   const admin = createAdminClient();
@@ -136,7 +147,7 @@ export async function POST() {
         });
 
         // 2. Loop through pre-scripted messages
-        const maxTurns = Math.min(MAX_TURNS, USER_MESSAGES.length);
+        const maxTurns = Math.min(requestedTurns, USER_MESSAGES.length);
 
         for (let turn = 1; turn <= maxTurns; turn++) {
           const userMessage = USER_MESSAGES[turn - 1];

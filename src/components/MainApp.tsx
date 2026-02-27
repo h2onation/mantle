@@ -45,6 +45,7 @@ export default function MainApp() {
     startNewSession,
     startExploration,
     refreshConversations,
+    loadManual,
   } = useChat();
 
   const {
@@ -193,6 +194,7 @@ export default function MainApp() {
               userEmail={userEmail}
               sessionCount={conversations.length}
               onSimulationEvent={handleSimulationEvent}
+              onPopulateComplete={loadManual}
             />
           }
         />

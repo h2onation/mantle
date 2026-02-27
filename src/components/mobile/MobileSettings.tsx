@@ -8,6 +8,7 @@ interface MobileSettingsProps {
   userEmail: string;
   sessionCount: number;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
+  onPopulateComplete?: () => void;
 }
 
 const SOUND_LABELS: Record<string, string> = {
@@ -20,6 +21,7 @@ export default function MobileSettings({
   userEmail,
   sessionCount,
   onSimulationEvent,
+  onPopulateComplete,
 }: MobileSettingsProps) {
   const THEMES = ["sage", "ember", "depth"] as const;
   type Theme = (typeof THEMES)[number];
@@ -34,6 +36,9 @@ export default function MobileSettings({
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
+  const [simTurns, setSimTurns] = useState(3);
+  const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  const [populating, setPopulating] = useState(false);
   const { isPlaying, currentTrack } = useAudio();
 
   const THEME_COLORS: Record<Theme, string> = {
@@ -84,7 +89,11 @@ export default function MobileSettings({
     let simConversationId: string | null = null;
 
     try {
-      const res = await fetch("/api/dev-simulate", { method: "POST" });
+      const res = await fetch("/api/dev-simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turns: simTurns }),
+      });
       if (!res.ok) {
         setSimStatus("Failed to start simulation");
         setSimulating(false);
@@ -146,6 +155,35 @@ export default function MobileSettings({
       setSimStatus("Simulation failed");
     } finally {
       setSimulating(false);
+    }
+  }
+
+  function togglePopulateLayer(layer: number) {
+    setPopulateLayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(layer)) next.delete(layer);
+      else next.add(layer);
+      return next;
+    });
+  }
+
+  async function handlePopulate() {
+    if (populateLayers.size === 0) return;
+    setPopulating(true);
+    try {
+      const res = await fetch("/api/dev-populate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layers: Array.from(populateLayers).sort() }),
+      });
+      if (!res.ok) {
+        console.error("[populate] Failed:", await res.text());
+      }
+      if (onPopulateComplete) onPopulateComplete();
+    } catch (err) {
+      console.error("[populate] Error:", err);
+    } finally {
+      setPopulating(false);
     }
   }
 
@@ -420,6 +458,50 @@ export default function MobileSettings({
           borderBottom: "1px solid var(--color-divider)",
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-accent)",
+              letterSpacing: "0.2px",
+              margin: 0,
+            }}
+          >
+            Simulate user
+          </p>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3].map((n) => (
+              <button
+                key={n}
+                onClick={() => setSimTurns(n)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: `1px solid ${simTurns === n ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
+                  background: simTurns === n ? "var(--color-accent-ghost)" : "none",
+                  color: simTurns === n ? "var(--color-accent)" : "var(--color-text-ghost)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  padding: 0,
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
         <button
           onClick={handleSimulate}
           disabled={simulating}
@@ -436,6 +518,35 @@ export default function MobileSettings({
         >
           <p
             style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              color: "var(--color-text-ghost)",
+              letterSpacing: "0.5px",
+              margin: 0,
+            }}
+          >
+            {simulating ? simStatus : `Run ${simTurns} turn${simTurns > 1 ? "s" : ""}`}
+          </p>
+        </button>
+      </div>
+
+      {/* Populate manual */}
+      <div
+        style={{
+          padding: "18px 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
+          <p
+            style={{
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
               color: "var(--color-accent)",
@@ -443,18 +554,61 @@ export default function MobileSettings({
               margin: 0,
             }}
           >
-            {simulating ? "Simulating..." : "Simulate user"}
+            Populate manual
           </p>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => togglePopulateLayer(n)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: `1px solid ${populateLayers.has(n) ? "var(--color-accent)" : "var(--color-text-ghost)"}`,
+                  background: populateLayers.has(n) ? "var(--color-accent-ghost)" : "none",
+                  color: populateLayers.has(n) ? "var(--color-accent)" : "var(--color-text-ghost)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  padding: 0,
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={handlePopulate}
+          disabled={populating || populateLayers.size === 0}
+          style={{
+            width: "100%",
+            background: "none",
+            border: "none",
+            cursor: populating || populateLayers.size === 0 ? "default" : "pointer",
+            textAlign: "left",
+            padding: 0,
+            opacity: populating ? 0.5 : 1,
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
           <p
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
               color: "var(--color-text-ghost)",
               letterSpacing: "0.5px",
-              margin: "3px 0 0 0",
+              margin: 0,
             }}
           >
-            {simStatus}
+            {populating
+              ? "Populating..."
+              : populateLayers.size === 0
+                ? "Select layers above"
+                : `Insert layers ${Array.from(populateLayers).sort().join(", ")}`}
           </p>
         </button>
       </div>
