@@ -110,6 +110,7 @@ export async function POST(request: Request) {
 
       if (updateError) {
         console.error("[confirm] Error updating manual_components:", updateError);
+        return Response.json({ error: "Failed to save to manual" }, { status: 500 });
       }
     } else {
       const { error: insertError } = await admin.from("manual_components").insert({
@@ -123,6 +124,7 @@ export async function POST(request: Request) {
 
       if (insertError) {
         console.error("[confirm] Error inserting manual_components:", insertError);
+        return Response.json({ error: "Failed to save to manual" }, { status: 500 });
       }
     }
 
