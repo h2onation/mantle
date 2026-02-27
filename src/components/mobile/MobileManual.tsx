@@ -80,11 +80,14 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "24px 24px 120px",
+          padding: 0,
+          paddingBottom: 120,
           position: "relative",
+          maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 3%, rgba(0,0,0,0.5) 8%, black 16%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 3%, rgba(0,0,0,0.5) 8%, black 16%)",
         }}
       >
-        {/* Page title */}
+        {/* Page title — keeps its own horizontal padding */}
         <h1
           style={{
             fontFamily: "var(--font-serif)",
@@ -92,6 +95,7 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
             fontWeight: 400,
             color: "var(--color-text)",
             margin: 0,
+            padding: "24px 24px 0",
             letterSpacing: "-0.3px",
             lineHeight: 1.3,
           }}
@@ -114,6 +118,7 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
                 fontSize: "15px",
                 color: "rgba(212, 203, 192, 0.32)",
                 margin: "16px 0 0 0",
+                padding: "0 24px",
                 maxWidth: 310,
                 lineHeight: 1.6,
                 letterSpacing: "-0.1px",
@@ -129,23 +134,23 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
         {/* Layer list */}
         <div style={{ marginTop: isEmpty ? 32 : 24, position: "relative" }}>
           {isEmpty ? (
-            layers.map((layer) => <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />)
+            <div style={{ padding: "0 24px" }}>
+              {layers.map((layer) => <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />)}
+            </div>
           ) : (
             <>
-              {/* Populated layers */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {layers
-                  .filter((l) => l.component !== null || l.patterns.length > 0)
-                  .map((layer) => (
-                    <MeadowZone key={layer.id}>
-                      <PopulatedLayer layer={layer} onExploreWithSage={onExploreWithSage} />
-                    </MeadowZone>
-                  ))}
-              </div>
+              {/* Populated layers — edge to edge, no gap */}
+              {layers
+                .filter((l) => l.component !== null || l.patterns.length > 0)
+                .map((layer) => (
+                  <MeadowZone key={layer.id}>
+                    <PopulatedLayer layer={layer} onExploreWithSage={onExploreWithSage} />
+                  </MeadowZone>
+                ))}
 
-              {/* Empty layers below populated */}
+              {/* Empty layers below populated — padded */}
               {layers.some((l) => l.component === null && l.patterns.length === 0) && (
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: 12, padding: "0 24px" }}>
                   {layers
                     .filter((l) => l.component === null && l.patterns.length === 0)
                     .map((layer) => (

@@ -56,7 +56,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
             letterSpacing: "2px",
             textTransform: "uppercase",
             color: "#2A3326",
-            lineHeight: 1.3,
+            lineHeight: 1,
           }}
         >
           {layer.name}
