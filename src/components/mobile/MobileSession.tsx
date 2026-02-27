@@ -230,7 +230,7 @@ export default function MobileSession({
                     <div
                       style={{
                         height: "90px",
-                        background: "var(--cp-feather-in)",
+                        background: "linear-gradient(180deg, var(--color-void) 0%, var(--cp-g1) 12%, var(--cp-g2) 24%, var(--cp-g3) 42%, var(--cp-g4) 60%, var(--cp-g5) 76%, var(--cp-g6) 88%, var(--cp-surface) 100%)",
                       }}
                     />
                     {/* Core surface */}
@@ -437,7 +437,7 @@ export default function MobileSession({
                     <div
                       style={{
                         height: "90px",
-                        background: "var(--cp-feather-out)",
+                        background: "linear-gradient(180deg, var(--cp-surface) 0%, var(--cp-g6) 12%, var(--cp-g5) 24%, var(--cp-g4) 40%, var(--cp-g3) 58%, var(--cp-g2) 76%, var(--cp-g1) 88%, var(--color-void) 100%)",
                       }}
                     />
                   </div>
