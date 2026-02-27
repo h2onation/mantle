@@ -3,6 +3,7 @@ export const runtime = "edge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
+import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 
 // All 10 pre-scripted messages are available; the simulation loops through
 // them all, stopping when the target number of checkpoints is reached.
@@ -48,6 +49,7 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
   messageId: string | null;
   checkpoint: { isCheckpoint: boolean; layer: number; type: string; name: string | null } | null;
   processingText: string | null;
+  cleanContent: string | null;
 }> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -56,6 +58,7 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
   let messageId: string | null = null;
   let checkpoint: { isCheckpoint: boolean; layer: number; type: string; name: string | null } | null = null;
   let processingText: string | null = null;
+  let cleanContent: string | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -77,6 +80,7 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
           messageId = event.messageId;
           checkpoint = event.checkpoint;
           processingText = event.processingText;
+          cleanContent = event.cleanContent || null;
         } else if (event.type === "error") {
           throw new Error(event.message);
         }
@@ -87,7 +91,7 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
     }
   }
 
-  return { fullText, messageId, checkpoint, processingText };
+  return { fullText, messageId, checkpoint, processingText, cleanContent };
 }
 
 export async function POST(request: Request) {
@@ -212,54 +216,13 @@ export async function POST(request: Request) {
               checkpointNumber: checkpointCount,
             });
 
-            // Find the checkpoint message to get its content
-            const { data: cpMsg } = await admin
-              .from("messages")
-              .select("id, content, checkpoint_meta")
-              .eq("conversation_id", conversationId)
-              .eq("is_checkpoint", true)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .single();
-
-            if (cpMsg) {
-              // Update checkpoint_meta.status to confirmed
-              await admin
-                .from("messages")
-                .update({ checkpoint_meta: { ...cpMsg.checkpoint_meta, status: "confirmed" } })
-                .eq("id", cpMsg.id);
-
-              // Upsert to manual_components
-              const layer = result.checkpoint.layer;
-              const { data: existing } = await admin
-                .from("manual_components")
-                .select("id")
-                .eq("user_id", user!.id)
-                .eq("layer", layer)
-                .eq("type", "component")
-                .maybeSingle();
-
-              if (existing) {
-                await admin
-                  .from("manual_components")
-                  .update({ content: cpMsg.content, source_message_id: cpMsg.id, name: null })
-                  .eq("id", existing.id);
-              } else {
-                await admin.from("manual_components").insert({
-                  user_id: user!.id,
-                  layer,
-                  type: "component",
-                  name: null,
-                  content: cpMsg.content,
-                  source_message_id: cpMsg.id,
-                });
-              }
-
-              // Insert system message so Sage knows
-              await admin.from("messages").insert({
-                conversation_id: conversationId,
-                role: "system",
-                content: "[User confirmed the checkpoint]",
+            // Use confirmCheckpoint utility (handles composed content,
+            // changelog archiving, pattern support, and system message)
+            if (result.messageId) {
+              await confirmCheckpoint({
+                messageId: result.messageId,
+                conversationId,
+                userId: user!.id,
               });
             }
           }

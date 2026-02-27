@@ -29,6 +29,7 @@ export async function POST() {
   }
 
   await admin.from("manual_components").delete().eq("user_id", user.id);
+  await admin.from("manual_changelog").delete().eq("user_id", user.id);
 
   return Response.json({ ok: true });
 }

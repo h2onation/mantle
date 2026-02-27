@@ -3,6 +3,7 @@ export const runtime = "edge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
+import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 
 export async function POST(request: Request) {
   // 1. Authenticate
@@ -51,87 +52,43 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3. Update checkpoint_meta.status
-  const updatedMeta = { ...msg.checkpoint_meta, status: action };
-  const { error: metaUpdateError } = await admin
-    .from("messages")
-    .update({ checkpoint_meta: updatedMeta })
-    .eq("id", messageId);
-
-  if (metaUpdateError) {
-    console.error("[confirm] Error updating checkpoint_meta:", metaUpdateError);
-  }
-
-  // 4. Handle action
-  let systemContent: string;
-
+  // 3. Handle action
   if (action === "confirmed") {
-    const { layer } = msg.checkpoint_meta as {
-      layer: number;
-      type: string;
-      name: string | null;
-      status: string;
-    };
+    // Use the confirmCheckpoint utility which handles composed content,
+    // changelog archiving, pattern support, and system message insertion
+    const result = await confirmCheckpoint({
+      messageId,
+      conversationId,
+      userId: user.id,
+    });
 
-    // All confirmed checkpoints write as "component" (one per layer).
-    // Pattern support is not yet scoped.
-    const { data: existing, error: existingError } = await admin
-      .from("manual_components")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("layer", layer)
-      .eq("type", "component")
-      .maybeSingle();
-
-    if (existingError) {
-      console.error("[confirm] Error checking existing component:", existingError);
+    if (!result.success) {
+      return Response.json(
+        { error: result.error || "Failed to save to manual" },
+        { status: 500 }
+      );
     }
-
-    if (existing) {
-      const { error: updateError } = await admin
-        .from("manual_components")
-        .update({
-          content: msg.content,
-          source_message_id: messageId,
-          name: null,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        console.error("[confirm] Error updating manual_components:", updateError);
-        return Response.json({ error: "Failed to save to manual" }, { status: 500 });
-      }
-    } else {
-      const { error: insertError } = await admin.from("manual_components").insert({
-        user_id: user.id,
-        layer,
-        type: "component",
-        name: null,
-        content: msg.content,
-        source_message_id: messageId,
-      });
-
-      if (insertError) {
-        console.error("[confirm] Error inserting manual_components:", insertError);
-        return Response.json({ error: "Failed to save to manual" }, { status: 500 });
-      }
-    }
-
-    systemContent = "[User confirmed the checkpoint]";
-  } else if (action === "rejected") {
-    systemContent = "[User rejected the checkpoint]";
   } else {
-    systemContent = "[User wants to refine the checkpoint]";
+    // For rejected/refined: update status and insert system message
+    const updatedMeta = { ...msg.checkpoint_meta, status: action };
+    await admin
+      .from("messages")
+      .update({ checkpoint_meta: updatedMeta })
+      .eq("id", messageId);
+
+    const systemContent =
+      action === "rejected"
+        ? "[User rejected the checkpoint]"
+        : "[User wants to refine the checkpoint]";
+
+    await admin.from("messages").insert({
+      conversation_id: conversationId,
+      role: "system",
+      content: systemContent,
+    });
   }
 
-  // 5. Insert system message
-  await admin.from("messages").insert({
-    conversation_id: conversationId,
-    role: "system",
-    content: systemContent,
-  });
-
-  // 6. Call Sage and return streaming response
+  // 4. Call Sage and return streaming response
   const stream = callSage({
     conversationId,
     userId: user.id,

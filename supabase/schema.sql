@@ -39,6 +39,7 @@ create table public.conversations (
   status text default 'active' check (status in ('active', 'completed')),
   summary text,
   calibration_ratings text,
+  extraction_state jsonb,
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
@@ -122,3 +123,32 @@ create trigger update_conversations_updated_at
 create trigger update_manual_components_updated_at
   before update on public.manual_components
   for each row execute procedure public.update_updated_at();
+
+-- Manual changelog: tracks how components evolve over time
+-- Every time a component is updated (deepened, expanded, or revised due to contradiction),
+-- the old version gets archived here before the update writes.
+create table public.manual_changelog (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  component_id uuid not null,
+  layer integer not null check (layer in (1, 2, 3, 4, 5)),
+  type text not null check (type in ('component', 'pattern')),
+  name text,
+  previous_content text not null,
+  new_content text not null,
+  change_description text not null,
+  conversation_id uuid references public.conversations(id) on delete set null,
+  created_at timestamptz default now() not null
+);
+
+create index idx_manual_changelog_component
+  on public.manual_changelog(component_id, created_at desc);
+
+create index idx_manual_changelog_user
+  on public.manual_changelog(user_id, created_at desc);
+
+alter table public.manual_changelog enable row level security;
+
+create policy "Users can view their own changelog"
+  on public.manual_changelog for select
+  using (auth.uid() = user_id);

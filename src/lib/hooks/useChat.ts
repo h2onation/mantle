@@ -88,13 +88,16 @@ export function useChat() {
     }
 
     // On success, add the complete message in one shot (fade-in via CSS)
+    // Use cleanContent (stripped of manual entry block) when available
     if (!sseError && fullText) {
+      const evt = completeEvent as MessageCompleteEvent | null;
+      const displayContent = evt?.cleanContent || fullText;
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant" as const,
-          content: fullText,
-          id: completeEvent?.messageId,
+          content: displayContent,
+          id: evt?.messageId,
         },
       ]);
     }
@@ -108,14 +111,17 @@ export function useChat() {
   ) {
     if (!completeEvent) return;
 
+    // Use clean content (without manual entry block) when available
+    const displayContent = completeEvent.cleanContent || fullText;
+
     if (completeEvent.checkpoint) {
-      // Set active checkpoint with full text
+      // Set active checkpoint with clean text
       setActiveCheckpoint({
         messageId: completeEvent.messageId,
         layer: completeEvent.checkpoint.layer,
         type: completeEvent.checkpoint.type,
         name: completeEvent.checkpoint.name,
-        content: fullText,
+        content: displayContent,
       });
 
       // Update last assistant message with checkpoint metadata

@@ -8,6 +8,8 @@ export interface MessageCompleteEvent {
     name: string | null;
   } | null;
   processingText: string;
+  cleanContent?: string;
+  nextPrompt?: string;
 }
 
 interface SSECallbacks {
