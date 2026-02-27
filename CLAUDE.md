@@ -348,21 +348,27 @@ Always-on chat view with a side drawer for session management. No idle/active st
 
 ### Manual (`MobileManual.tsx`)
 
-Full height, `overflowY: auto`, padding `40px 24px 56px`. Faint decorative glow (fixed, top 5%, right 20%, 120px circle, `--color-accent-glow` opacity 0.03).
+Full height, `overflowY: auto`, zero horizontal padding on scroll container (panels go edge-to-edge). Top scroll fade via `mask-image` gradient (same approach as Session). Header bar matches Session layout (MANTLE wordmark center, sound indicator right).
 
-Renders all 5 layers in order. Each layer shows its header, then its component and patterns (if confirmed), or "Forming..." if empty. Patterns are nested within their parent layer, not shown as separate top-level items.
+Page title "Your Manual" (`--font-serif` 22px, `--color-text`) sits on dark void with its own `padding: 24px 24px 0`. Below it, populated layers each wrap in `<MeadowZone>` — full-width feathered green panels with 70px top/bottom feather gradients. Adjacent panels sit directly adjacent (0px gap). Empty layers render below populated ones on the dark void.
+
+**Inside MeadowZone (hardcoded dark colors, no CSS custom properties):**
+
+| Element | Font | Size | Weight | Color | Notes |
+|---------|------|------|--------|-------|-------|
+| Layer label | `--font-mono` | 9px | 500 | `#2A3326` | letter-spacing 2px, uppercase, line-height 1, margin-bottom 10px |
+| Body text | `--font-serif` | 14px | 400 | `#2A3326` | line-height 1.75, letter-spacing -0.1px. Collapsed maxHeight 110px with fade to `#E4EDE0` |
+| Continue reading | `--font-sans` | 11px | 500 | `rgba(94, 112, 84, 0.55)` | margin-top 6px, chevron rotates on expand |
+| Pattern name | `--font-sans` | 14.5px | 480 | `rgba(94, 112, 84, 0.5)` | Inside expandable card with +/× icon |
+| Pattern content | `--font-serif` | 14px | 400 | `rgba(58, 74, 52, 0.7)` | line-height 1.72 |
+| Pattern card bg | — | — | — | `rgba(94,112,84,0.04)` | border-radius 10px, 1px border |
+
+**Outside MeadowZone (dark void, CSS custom properties OK):**
 
 | Element | Font | Size | Color | Notes |
 |---------|------|------|-------|-------|
-| Header | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 3px, uppercase. "MANUAL . N CONFIRMED" |
-| Empty state | `--font-serif` italic | 16px | `--color-text-ghost` | "Your manual will form as you go." Shows when no components exist. |
-| Layer header | `--font-mono` | 8px | `--color-accent` opacity 0.7 | letter-spacing 2px, uppercase. "01 — WHAT DRIVES YOU" through "05 — YOUR RELATIONSHIP TO OTHERS" |
-| Pattern sub-label | `--font-mono` | 8px | `--color-accent` opacity 0.5 | "PATTERN — NAME" within a layer |
-| Passage text | `--font-serif` | 16px | `--color-text` | line-height 1.8, letter-spacing -0.1px. Rendered via `renderMarkdown()` |
-| Date | `--font-mono` | 8px | `--color-text-ghost` | letter-spacing 1px. Format "MMM D" |
-| "Still true?" | `--font-mono` | 8px | `--color-accent-dim` | letter-spacing 1px. No click handler (display only). |
-| Divider | — | 1px height | `linear-gradient(90deg, var(--color-accent-ghost), transparent)` | Between layers, margin-bottom 40px |
-| Empty layer | opacity 0.3 | — | — | Layer header + "Forming..." placeholder (`--font-serif` italic 14px `--color-text-ghost`) |
+| Empty state | `--font-serif` | 15px | `rgba(212, 203, 192, 0.32)` | "Sage is learning how you operate..." |
+| Empty layer row | `--font-sans` | 13.5px | `rgba(212, 203, 192, 0.28)` | Layer name + info tooltip with "Explore with Sage" |
 
 ### Guidance (`MobileGuidance.tsx`)
 
@@ -669,6 +675,13 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - **`dev-simulate/route.ts`**: Uses `confirmCheckpoint()` utility for auto-confirm. Captures `cleanContent`.
 - **`dev-reset/route.ts`**: Added `manual_changelog` deletion.
 - **DB migrations**: `conversations.extraction_state` JSONB column. `manual_changelog` table with indexes and RLS policy.
+
+**2026-02-27 — Manual page MeadowZone integration**
+- **`MobileManual.tsx`**: Scroll container changed from `padding: 24px 24px 120px` to zero horizontal padding so MeadowZone panels go edge-to-edge. Page title "Your Manual" gets its own `padding: 24px 24px 0`. Empty layers wrapped in a padded div. Top scroll fade added via `maskImage`/`WebkitMaskImage` gradient (same as Session page).
+- **`PopulatedLayer.tsx`**: Layer label `lineHeight` changed from 1.3 to 1 to eliminate gap between feather ending and first text.
+- MeadowZone panels already wrapped populated layers (from prior commit). This change removed the flex container wrapper and any parent padding that prevented edge-to-edge rendering.
+- No changes to `MeadowZone.tsx` (feather height already 70px).
+- Updated Manual section in CLAUDE.md UI Spec.
 
 ## Known Issues
 
