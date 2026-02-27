@@ -5,6 +5,7 @@ import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import SessionParticles from "./SessionParticles";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
+import MeadowZone from "./MeadowZone";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
@@ -219,40 +220,10 @@ export default function MobileSession({
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    style={{
-                      animation: "checkpointFadeIn 2s ease-out both",
-                      background: "var(--color-void)",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
+                    style={{ animation: "checkpointFadeIn 2s ease-out both" }}
                   >
-                    {/* Top feather */}
-                    <div
-                      style={{
-                        height: "90px",
-                        background: "linear-gradient(180deg, var(--color-void) 0%, var(--cp-g1) 12%, var(--cp-g2) 24%, var(--cp-g3) 42%, var(--cp-g4) 60%, var(--cp-g5) 76%, var(--cp-g6) 88%, var(--cp-surface) 100%)",
-                      }}
-                    />
-                    {/* Core surface */}
-                    <div
-                      style={{
-                        position: "relative",
-                        overflow: "hidden",
-                        background: `linear-gradient(175deg, var(--cp-surface) 0%, var(--cp-surface-mid) 30%, var(--cp-surface-light) 50%, var(--cp-surface-mid) 70%, var(--cp-surface) 100%)`,
-                      }}
-                    >
-                      {/* Radial glow */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background: "radial-gradient(ellipse at center, var(--cp-glow-a) 0%, var(--cp-glow-b) 35%, transparent 60%)",
-                          filter: "blur(35px)",
-                          pointerEvents: "none",
-                        }}
-                      />
-                      {/* Content */}
-                      <div style={{ position: "relative", zIndex: 1, padding: "20px 24px" }}>
+                    <MeadowZone>
+                      <div style={{ padding: "20px 0" }}>
                         {/* Sage label */}
                         <div style={{ paddingBottom: "8px" }}>
                           <span
@@ -262,7 +233,7 @@ export default function MobileSession({
                               fontWeight: 500,
                               letterSpacing: "2.5px",
                               textTransform: "uppercase",
-                              color: "var(--cp-text-accent)",
+                              color: "#5E7054",
                             }}
                           >
                             Sage
@@ -276,7 +247,7 @@ export default function MobileSession({
                             fontWeight: 400,
                             lineHeight: 1.75,
                             letterSpacing: "-0.2px",
-                            color: "var(--cp-text)",
+                            color: "#2A3326",
                           }}
                         >
                           {renderMarkdown(msg.content)}
@@ -289,7 +260,7 @@ export default function MobileSession({
                               fontFamily: "var(--font-serif)",
                               fontSize: "13px",
                               fontStyle: "italic",
-                              color: "var(--cp-text-dim)",
+                              color: "#455040",
                               margin: "20px 0 0 0",
                             }}
                           >
@@ -316,9 +287,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "var(--cp-text-accent)",
+                                color: "#5E7054",
                                 background: "transparent",
-                                border: "1px solid var(--cp-border)",
+                                border: "1px solid rgba(94, 112, 84, 0.35)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -336,9 +307,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "var(--cp-text-dim)",
+                                color: "#455040",
                                 background: "transparent",
-                                border: "1px solid var(--cp-border-dim)",
+                                border: "1px solid rgba(69, 80, 64, 0.2)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -356,9 +327,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "var(--cp-text-dim)",
+                                color: "#455040",
                                 background: "transparent",
-                                border: "1px solid var(--cp-border-dim)",
+                                border: "1px solid rgba(69, 80, 64, 0.2)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -382,8 +353,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: checkpointActionState === "confirmed"
-                                  ? "var(--cp-text-accent)"
-                                  : "var(--cp-text-dim)",
+                                  ? "#5E7054"
+                                  : "#455040",
                               }}
                             >
                               {checkpointActionState === "confirmed" && "Written to manual"}
@@ -407,8 +378,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: msg.checkpointMeta.status === "confirmed"
-                                  ? "var(--cp-text-accent)"
-                                  : "var(--cp-text-dim)",
+                                  ? "#5E7054"
+                                  : "#455040",
                               }}
                             >
                               {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
@@ -423,7 +394,7 @@ export default function MobileSession({
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "10px",
-                              color: "var(--cp-text-dim)",
+                              color: "#455040",
                               marginTop: "12px",
                               display: "block",
                             }}
@@ -432,14 +403,7 @@ export default function MobileSession({
                           </span>
                         )}
                       </div>
-                    </div>
-                    {/* Bottom feather */}
-                    <div
-                      style={{
-                        height: "90px",
-                        background: "linear-gradient(180deg, var(--cp-surface) 0%, var(--cp-g6) 12%, var(--cp-g5) 24%, var(--cp-g4) 40%, var(--cp-g3) 58%, var(--cp-g2) 76%, var(--cp-g1) 88%, var(--color-void) 100%)",
-                      }}
-                    />
+                    </MeadowZone>
                   </div>
                 );
               }

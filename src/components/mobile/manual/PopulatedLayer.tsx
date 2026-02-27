@@ -17,12 +17,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
   return (
     <div
       style={{
-        background: "linear-gradient(175deg, #302C27 0%, #2A2622 100%)",
-        borderRadius: 14,
-        padding: "26px 22px 22px",
-        border: "1px solid rgba(212, 203, 192, 0.07)",
-        boxShadow:
-          "0 4px 24px rgba(0,0,0,0.25), 0 0 1px rgba(212,203,192,0.1), inset 0 1px 0 rgba(212,203,192,0.05)",
+        padding: "26px 0 22px",
         position: "relative",
         ...(layer.isNew
           ? { animation: "layerFadeUp 0.5s ease-out both" }
@@ -45,9 +40,9 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               top: 16,
               bottom: 16,
               width: 3,
-              backgroundColor: "#7A8B72",
+              backgroundColor: "#5E7054",
               borderRadius: "0 2px 2px 0",
-              boxShadow: "0 0 8px rgba(122,139,114,0.3)",
+              boxShadow: "0 0 8px rgba(94,112,84,0.3)",
             }}
           />
         </>
@@ -66,7 +61,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
             fontFamily: "var(--font-sans)",
             fontSize: 16,
             fontWeight: 520,
-            color: "#EDE6DC",
+            color: "#161E14",
             lineHeight: 1.3,
           }}
         >
@@ -80,8 +75,8 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               width: 24,
               height: 24,
               borderRadius: "50%",
-              background: "rgba(122, 139, 114, 0.12)",
-              border: "1px solid rgba(122, 139, 114, 0.15)",
+              background: "rgba(94, 112, 84, 0.12)",
+              border: "1px solid rgba(94, 112, 84, 0.15)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -95,13 +90,13 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               fill="none"
               style={{ display: "block" }}
             >
-              <circle cx="5" cy="2" r="1" fill="#8A9B82" />
+              <circle cx="5" cy="2" r="1" fill="#5E7054" />
               <line
                 x1="5"
                 y1="4.5"
                 x2="5"
                 y2="8.5"
-                stroke="#8A9B82"
+                stroke="#5E7054"
                 strokeWidth="1.2"
                 strokeLinecap="round"
               />
@@ -122,7 +117,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               fontSize: 15,
               lineHeight: 1.78,
               fontWeight: 410,
-              color: "#C8BFB4",
+              color: "#2A3326",
               ...(narrativeOpen
                 ? { whiteSpace: "pre-line" as const }
                 : {
@@ -155,10 +150,10 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
                 fontFamily: "var(--font-sans)",
                 fontSize: 12,
                 fontWeight: 500,
-                color: "#A8B89F",
+                color: "rgba(94, 112, 84, 0.65)",
                 background:
-                  "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
-                border: "1px solid rgba(122,139,114,0.25)",
+                  "linear-gradient(135deg, rgba(94,112,84,0.1) 0%, rgba(94,112,84,0.05) 100%)",
+                border: "1px solid rgba(94,112,84,0.2)",
                 borderRadius: 8,
                 padding: "9px 14px 9px 12px",
                 cursor: "pointer",
@@ -175,7 +170,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               >
                 <path
                   d="M3 1.5L7 5L3 8.5"
-                  stroke="#A8B89F"
+                  stroke="rgba(94, 112, 84, 0.65)"
                   strokeWidth="1.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -199,7 +194,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
                 fontFamily: "var(--font-sans)",
                 fontSize: 13,
                 fontWeight: 470,
-                color: "#8A9B82",
+                color: "rgba(94, 112, 84, 0.65)",
               }}
             >
               {narrativeOpen ? "Show less" : "Continue reading"}
@@ -217,7 +212,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
             >
               <path
                 d="M2 3.5L5 6.5L8 3.5"
-                stroke="#8A9B82"
+                stroke="#5E7054"
                 strokeWidth="1.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -235,7 +230,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
             style={{
               height: 1,
               background:
-                "linear-gradient(to right, rgba(122,139,114,0.2) 0%, rgba(122,139,114,0.05) 80%, transparent 100%)",
+                "linear-gradient(to right, rgba(94,112,84,0.15) 0%, rgba(94,112,84,0.05) 80%, transparent 100%)",
               marginTop: 18,
               marginBottom: 16,
             }}

@@ -5,6 +5,7 @@ import { buildLayers } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
 import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
+import MeadowZone from "./MeadowZone";
 import type { ManualComponent, ExplorationContext } from "@/lib/types";
 
 interface MobileManualProps {
@@ -136,7 +137,9 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
                 {layers
                   .filter((l) => l.component !== null || l.patterns.length > 0)
                   .map((layer) => (
-                    <PopulatedLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
+                    <MeadowZone key={layer.id}>
+                      <PopulatedLayer layer={layer} onExploreWithSage={onExploreWithSage} />
+                    </MeadowZone>
                   ))}
               </div>
 

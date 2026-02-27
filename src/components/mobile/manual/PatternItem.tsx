@@ -21,11 +21,11 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
       style={{
         position: "relative",
         background: expanded
-          ? "linear-gradient(135deg, rgba(122,139,114,0.12) 0%, rgba(122,139,114,0.06) 100%)"
-          : "rgba(122,139,114,0.06)",
+          ? "linear-gradient(135deg, rgba(94,112,84,0.08) 0%, rgba(94,112,84,0.04) 100%)"
+          : "rgba(94,112,84,0.04)",
         border: expanded
-          ? "1px solid rgba(122,139,114,0.22)"
-          : "1px solid rgba(122,139,114,0.08)",
+          ? "1px solid rgba(94,112,84,0.15)"
+          : "1px solid rgba(94,112,84,0.08)",
         borderRadius: 10,
         padding: "15px 16px",
         cursor: "pointer",
@@ -41,8 +41,8 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             top: 12,
             width: 3,
             height: 20,
-            backgroundColor: "#7A8B72",
-            opacity: 0.7,
+            backgroundColor: "#5E7054",
+            opacity: 0.5,
             borderRadius: "0 3px 3px 0",
           }}
         />
@@ -60,7 +60,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             fontFamily: "var(--font-sans)",
             fontSize: "14.5px",
             fontWeight: 480,
-            color: "#E2DAD0",
+            color: "rgba(94, 112, 84, 0.5)",
             lineHeight: 1.3,
           }}
         >
@@ -85,7 +85,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             y1="1"
             x2="6"
             y2="11"
-            stroke="#7A8B72"
+            stroke="rgba(94, 112, 84, 0.5)"
             strokeWidth="1.4"
             strokeLinecap="round"
           />
@@ -94,7 +94,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             y1="6"
             x2="11"
             y2="6"
-            stroke="#7A8B72"
+            stroke="rgba(94, 112, 84, 0.5)"
             strokeWidth="1.4"
             strokeLinecap="round"
           />
@@ -115,7 +115,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: 14,
-            color: "#B0A89D",
+            color: "rgba(58, 74, 52, 0.7)",
             lineHeight: 1.72,
             margin: 0,
             padding: "12px 0 14px",
@@ -144,10 +144,10 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             fontFamily: "var(--font-sans)",
             fontSize: 12,
             fontWeight: 500,
-            color: "#A8B89F",
+            color: "rgba(94, 112, 84, 0.65)",
             background:
-              "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
-            border: "1px solid rgba(122,139,114,0.25)",
+              "linear-gradient(135deg, rgba(94,112,84,0.1) 0%, rgba(94,112,84,0.05) 100%)",
+            border: "1px solid rgba(94,112,84,0.2)",
             borderRadius: 8,
             padding: "9px 14px 9px 12px",
             cursor: "pointer",
@@ -163,7 +163,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           >
             <path
               d="M3 1.5L7 5L3 8.5"
-              stroke="#A8B89F"
+              stroke="rgba(94, 112, 84, 0.65)"
               strokeWidth="1.2"
               strokeLinecap="round"
               strokeLinejoin="round"
