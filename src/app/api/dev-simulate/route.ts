@@ -95,6 +95,10 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ error: "Not available in production" }, { status: 403 });
+  }
+
   const supabase = createClient();
   const {
     data: { user },

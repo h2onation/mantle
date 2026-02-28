@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useChat, type ExplorationContext } from "@/lib/hooks/useChat";
+import { useChat } from "@/lib/hooks/useChat";
+import type { ExplorationContext } from "@/lib/types";
 import { useOnboarding } from "@/lib/hooks/useOnboarding";
 import MobileLayout from "@/components/layout/MobileLayout";
 import type { MobileTab } from "@/components/layout/MobileNav";

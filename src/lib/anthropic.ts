@@ -16,6 +16,9 @@ export async function anthropicFetch(
   body: AnthropicRequest,
   timeoutMs = 60000
 ): Promise<AnthropicResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -23,7 +26,7 @@ export async function anthropicFetch(
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
@@ -46,13 +49,16 @@ export async function anthropicStream(
   body: Omit<AnthropicRequest, "stream">,
   timeoutMs = 60000
 ): Promise<ReadableStream<Uint8Array>> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
     headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },

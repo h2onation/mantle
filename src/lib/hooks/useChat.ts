@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
-export type { ExplorationContext } from "@/lib/types";
 
 export interface ConversationSummaryItem {
   id: string;
@@ -50,8 +49,8 @@ export function useChat() {
         const data = await res.json();
         setConfirmedComponents(data.components || []);
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error("[useChat] Failed to load manual:", err);
     }
   }, []);
 
@@ -203,8 +202,8 @@ export function useChat() {
         allConversations = convData.conversations || [];
         setConversations(allConversations);
       }
-    } catch {
-      // Fall back to empty
+    } catch (err) {
+      console.error("[useChat] Failed to load conversations:", err);
     }
 
     if (allConversations.length > 0) {
@@ -255,7 +254,7 @@ export function useChat() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ conversationId: convId }),
-          }).catch(() => {});
+          }).catch((err) => console.error("[useChat] Summary generation failed:", err));
         }
         setInitialized(true);
       }
