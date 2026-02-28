@@ -14,18 +14,49 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 ## Commands
 
 - `npm run dev` — start dev server (localhost:3000)
+- `npm run test` — run all tests (108 tests, <1s, zero API cost)
+- `npm run test:watch` — run tests in watch mode during development
 - `npm run build` — production build (zero errors as of last verification)
 - `npx tsc --noEmit` — type check (zero errors)
 - `POST /api/dev-reset` — delete all user data (conversations, messages, manual_components). Does NOT delete profile or auth user. Client calls this then `localStorage.clear()` + `window.location.reload()`.
 
 ## Development Workflow
 
-- **Always type-check after edits**: Run `npx tsc --noEmit` after any code changes to catch errors early. Run `npm run build` before committing to verify the production build passes.
+- **Always test and type-check after edits**: Run `npm run test` after any logic changes. Run `npx tsc --noEmit` after any code changes. Run `npm run build` before committing. The pre-commit hook enforces tests + build automatically.
 - **Commit incrementally**: Commit working changes after each verified feature or fix — don't batch everything at the end of a session.
 - **Anthropic model IDs**: Always verify exact model version strings. Current models: `claude-sonnet-4-6` (Sage), `claude-haiku-4-5-20251001` (classifier/summary). Do not guess date suffixes.
 - **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 - **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
 - **Non-interactive CLIs**: When using `create-next-app` or similar scaffolding CLIs, always use non-interactive flags (e.g., `--yes`, `--typescript`, `--tailwind`, `--app`, `--no-git`) to prevent commands from hanging.
+
+## Testing
+
+**Vitest** with `vite-tsconfig-paths`. Config at `vitest.config.ts`. 108 tests, runs in <1s, zero API cost (all Anthropic/Supabase calls mocked).
+
+**Convention**: Test files colocated next to source as `*.test.ts`. Test helpers in `src/lib/__test-helpers__/`.
+
+**Test coverage by file**:
+| Test file | Tests | What it catches |
+|-----------|-------|----------------|
+| `src/lib/sage/call-sage.test.ts` | 30 | Delimiter buffer state machine, sliding window, history mapping, manual entry parsing |
+| `src/lib/sage/system-prompt.test.ts` | 24 | Prompt conditional blocks (first user, returning, exploration, checkpoints) |
+| `src/lib/sage/extraction.test.ts` | 18 | Checkpoint gate thresholds (standard vs first-checkpoint), language bank filtering |
+| `src/lib/sage/classifier.test.ts` | 10 | JSON cleaning, layer-null invalidation, fallback behavior |
+| `src/lib/utils/sse-parser.test.ts` | 9 | Stream chunking, malformed JSON, null body |
+| `src/lib/sage/confirm-checkpoint.test.ts` | 8 | Pattern limits, content priority, system message insertion |
+| `src/lib/sage/generate-summary.test.ts` | 5 | Transcript labeling |
+| `src/lib/utils/format.test.ts` | 4 | Date formatting |
+
+**Extracted pure functions** (exported from their source files, used internally + in tests):
+- `call-sage.ts`: `applySlidingWindow()`, `mapSystemMessages()`, `createDelimiterBuffer()`, `parseManualEntryBlock()`
+- `classifier.ts`: `cleanAndParseClassification()`
+- `generate-summary.ts`: `buildTranscript()`
+
+**Rules for writing tests going forward**:
+- When modifying a file that has a `.test.ts` companion, update or add tests for the changed behavior.
+- When extracting new pure functions from I/O-heavy code, write tests for them.
+- All Anthropic API calls must be mocked — never consume real tokens in tests.
+- Run `npm run test` after logic changes to verify nothing broke.
 
 ## Stack
 

@@ -16,6 +16,36 @@ const FALLBACK: ClassificationResult = {
   processingText: "listening...",
 };
 
+/**
+ * Cleans raw classifier text (strips markdown backticks), parses JSON,
+ * maps fields, and validates checkpoint integrity (layer required).
+ */
+export function cleanAndParseClassification(
+  rawText: string
+): ClassificationResult {
+  const cleaned = rawText
+    .replace(/```json\s*/g, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const parsed = JSON.parse(cleaned);
+
+  const result: ClassificationResult = {
+    isCheckpoint: Boolean(parsed.is_checkpoint),
+    layer: parsed.layer ?? null,
+    type: parsed.type ?? null,
+    name: parsed.name ?? null,
+    processingText: parsed.processing_text || "listening...",
+  };
+
+  // Invalid checkpoint if no layer
+  if (result.isCheckpoint && result.layer === null) {
+    result.isCheckpoint = false;
+  }
+
+  return result;
+}
+
 export async function classifyResponse(
   sageResponse: string,
   recentMessages: string,
@@ -57,15 +87,8 @@ If checkpoint: pick strongest layer. Recurring loop (trigger → response → co
     const rawText =
       response.content[0].type === "text" ? response.content[0].text : "";
 
-    // Strip markdown backticks if present
-    const cleaned = rawText
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
-
-    let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      return cleanAndParseClassification(rawText);
     } catch (parseErr) {
       console.error(
         "[classifier] JSON parse failed. Raw text:",
@@ -75,21 +98,6 @@ If checkpoint: pick strongest layer. Recurring loop (trigger → response → co
       );
       return FALLBACK;
     }
-
-    const result: ClassificationResult = {
-      isCheckpoint: Boolean(parsed.is_checkpoint),
-      layer: parsed.layer ?? null,
-      type: parsed.type ?? null,
-      name: parsed.name ?? null,
-      processingText: parsed.processing_text || "listening...",
-    };
-
-    // Invalid checkpoint if no layer
-    if (result.isCheckpoint && result.layer === null) {
-      result.isCheckpoint = false;
-    }
-
-    return result;
   } catch (err) {
     console.error("[classifier] API call failed:", err);
     return FALLBACK;

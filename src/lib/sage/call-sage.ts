@@ -9,6 +9,176 @@ import {
 } from "@/lib/sage/extraction";
 import type { ExplorationContext } from "@/lib/types";
 
+// ── Extracted pure functions (testable without mocking) ──
+
+/**
+ * Maps DB messages (including system messages) to conversation history.
+ * System messages from checkpoint actions become synthetic user messages
+ * so Sage sees them naturally in the conversation flow.
+ */
+export function mapSystemMessages(
+  dbMessages: { role: string; content: string }[]
+): { role: "user" | "assistant"; content: string }[] {
+  const history: { role: "user" | "assistant"; content: string }[] = [];
+  for (const msg of dbMessages) {
+    if (msg.role === "system") {
+      if (msg.content === "[User confirmed the checkpoint]") {
+        history.push({
+          role: "user",
+          content: "I confirmed that checkpoint. That resonates.",
+        });
+      } else if (msg.content === "[User rejected the checkpoint]") {
+        history.push({
+          role: "user",
+          content: "That checkpoint didn't land right for me.",
+        });
+      } else if (
+        msg.content === "[User wants to refine the checkpoint]"
+      ) {
+        history.push({
+          role: "user",
+          content: "That's close but not quite right.",
+        });
+      }
+    } else {
+      history.push({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      });
+    }
+  }
+  return history;
+}
+
+/**
+ * Applies sliding window to conversation history.
+ * Keeps first 2 + last 48 messages when over 50 total.
+ */
+export function applySlidingWindow(
+  messages: { role: "user" | "assistant"; content: string }[]
+): { role: "user" | "assistant"; content: string }[] {
+  if (messages.length > 50) {
+    const first2 = messages.slice(0, 2);
+    const last48 = messages.slice(-48);
+    return [...first2, ...last48];
+  }
+  return messages;
+}
+
+/**
+ * Parses the |||MANUAL_ENTRY||| ... |||END_MANUAL_ENTRY||| block
+ * from Sage's full response text. Returns the conversational text
+ * (before delimiter) and the parsed manual entry JSON (if valid).
+ */
+export function parseManualEntryBlock(fullText: string): {
+  conversationalText: string;
+  manualEntry: {
+    layer: number;
+    type: string;
+    name: string;
+    content: string;
+    changelog: string;
+  } | null;
+} {
+  const entryDelimiter = "|||MANUAL_ENTRY|||";
+  const endDelimiter = "|||END_MANUAL_ENTRY|||";
+  const entryStart = fullText.indexOf(entryDelimiter);
+
+  if (entryStart === -1) {
+    return { conversationalText: fullText, manualEntry: null };
+  }
+
+  const conversationalText = fullText.substring(0, entryStart).trimEnd();
+  const jsonStart = entryStart + entryDelimiter.length;
+  const jsonEnd = fullText.indexOf(endDelimiter);
+
+  if (jsonEnd === -1) {
+    return { conversationalText, manualEntry: null };
+  }
+
+  const jsonStr = fullText.substring(jsonStart, jsonEnd).trim();
+  try {
+    return { conversationalText, manualEntry: JSON.parse(jsonStr) };
+  } catch {
+    return { conversationalText, manualEntry: null };
+  }
+}
+
+/**
+ * Creates a streaming delimiter buffer that prefix-matches against a delimiter string.
+ * Holds back tokens that could be the start of the delimiter so the client
+ * never sees the delimiter or anything after it.
+ */
+export function createDelimiterBuffer(delimiter: string) {
+  let pendingBuffer = "";
+  let delimiterFound = false;
+
+  return {
+    /**
+     * Process an incoming text chunk. Returns the safe text to flush
+     * (text confirmed NOT to be part of the delimiter).
+     * Returns null if the delimiter has been found (suppress all further output)
+     * or if nothing safe to flush yet.
+     */
+    process(text: string): string | null {
+      if (delimiterFound) return null;
+
+      pendingBuffer += text;
+
+      // Check if pending buffer contains the full delimiter
+      const delimIdx = pendingBuffer.indexOf(delimiter);
+      if (delimIdx !== -1) {
+        const safe = pendingBuffer.substring(0, delimIdx);
+        delimiterFound = true;
+        pendingBuffer = "";
+        return safe || null;
+      }
+
+      // Check if the end of the pending buffer could be the start of the delimiter
+      let prefixMatch = 0;
+      for (
+        let i = 1;
+        i <= Math.min(pendingBuffer.length, delimiter.length);
+        i++
+      ) {
+        if (pendingBuffer.endsWith(delimiter.substring(0, i))) {
+          prefixMatch = i;
+        }
+      }
+
+      if (prefixMatch > 0) {
+        // Hold back the potential prefix, flush everything before it
+        const safe = pendingBuffer.substring(
+          0,
+          pendingBuffer.length - prefixMatch
+        );
+        pendingBuffer = pendingBuffer.substring(
+          pendingBuffer.length - prefixMatch
+        );
+        return safe || null;
+      }
+
+      // No match possible — flush everything
+      const safe = pendingBuffer;
+      pendingBuffer = "";
+      return safe;
+    },
+
+    /** Flush any remaining buffered text (call at stream end) */
+    flush(): string | null {
+      if (delimiterFound) return null;
+      const remaining = pendingBuffer;
+      pendingBuffer = "";
+      return remaining || null;
+    },
+
+    /** Whether the delimiter has been found */
+    get found(): boolean {
+      return delimiterFound;
+    },
+  };
+}
+
 interface CallSageOptions {
   conversationId: string;
   userId: string;
@@ -74,44 +244,10 @@ export function callSage({
           ]);
 
         // 3. Build history from DB messages
-        const history: { role: "user" | "assistant"; content: string }[] = [];
-        if (historyResult.data) {
-          for (const msg of historyResult.data) {
-            if (msg.role === "system") {
-              if (msg.content === "[User confirmed the checkpoint]") {
-                history.push({
-                  role: "user",
-                  content: "I confirmed that checkpoint. That resonates.",
-                });
-              } else if (msg.content === "[User rejected the checkpoint]") {
-                history.push({
-                  role: "user",
-                  content: "That checkpoint didn't land right for me.",
-                });
-              } else if (
-                msg.content === "[User wants to refine the checkpoint]"
-              ) {
-                history.push({
-                  role: "user",
-                  content: "That's close but not quite right.",
-                });
-              }
-            } else {
-              history.push({
-                role: msg.role as "user" | "assistant",
-                content: msg.content,
-              });
-            }
-          }
-        }
+        const history = mapSystemMessages(historyResult.data || []);
 
         // 4. Sliding window: first 2 + last 48 if over 50
-        let messages = history;
-        if (messages.length > 50) {
-          const first2 = messages.slice(0, 2);
-          const last48 = messages.slice(-48);
-          messages = [...first2, ...last48];
-        }
+        let messages = applySlidingWindow(history);
 
         if (messages.length === 0) {
           messages = [{ role: "user", content: "[Session started]" }];
@@ -198,16 +334,9 @@ export function callSage({
 
         // 9. Stream Sage response with delimiter buffer
         let fullText = "";
-        const DELIMITER = "|||MANUAL_ENTRY|||";
-
-        // Buffer for prefix-matching against the delimiter.
-        // We hold back tokens that could be the start of the delimiter
-        // so the client never sees |||MANUAL_ENTRY||| or the JSON after it.
-        let pendingBuffer = "";
-        let delimiterFound = false;
+        const delimBuffer = createDelimiterBuffer("|||MANUAL_ENTRY|||");
 
         const flushSafe = (text: string) => {
-          // Send text that is confirmed safe (not part of delimiter)
           if (text) {
             controller.enqueue(
               encoder.encode(
@@ -250,52 +379,8 @@ export function callSage({
                 const text = event.delta.text;
                 fullText += text;
 
-                // ── Delimiter buffer logic ──
-                if (delimiterFound) {
-                  // Already past delimiter — silently accumulate, don't send
-                  continue;
-                }
-
-                pendingBuffer += text;
-
-                // Check if pending buffer contains the full delimiter
-                const delimIdx = pendingBuffer.indexOf(DELIMITER);
-                if (delimIdx !== -1) {
-                  // Found it! Flush everything before the delimiter, suppress the rest
-                  const safe = pendingBuffer.substring(0, delimIdx);
-                  flushSafe(safe);
-                  delimiterFound = true;
-                  pendingBuffer = "";
-                  continue;
-                }
-
-                // Check if the end of the pending buffer could be the start of the delimiter
-                let prefixMatch = 0;
-                for (
-                  let i = 1;
-                  i <= Math.min(pendingBuffer.length, DELIMITER.length);
-                  i++
-                ) {
-                  if (pendingBuffer.endsWith(DELIMITER.substring(0, i))) {
-                    prefixMatch = i;
-                  }
-                }
-
-                if (prefixMatch > 0) {
-                  // Hold back the potential prefix, flush everything before it
-                  const safe = pendingBuffer.substring(
-                    0,
-                    pendingBuffer.length - prefixMatch
-                  );
-                  flushSafe(safe);
-                  pendingBuffer = pendingBuffer.substring(
-                    pendingBuffer.length - prefixMatch
-                  );
-                } else {
-                  // No match possible — flush everything
-                  flushSafe(pendingBuffer);
-                  pendingBuffer = "";
-                }
+                const safe = delimBuffer.process(text);
+                if (safe) flushSafe(safe);
               }
             } catch {
               // Skip malformed SSE lines
@@ -304,9 +389,8 @@ export function callSage({
         }
 
         // Flush any remaining buffer that wasn't a delimiter
-        if (!delimiterFound && pendingBuffer) {
-          flushSafe(pendingBuffer);
-        }
+        const remaining = delimBuffer.flush();
+        if (remaining) flushSafe(remaining);
 
         if (!fullText) {
           emitError(
@@ -317,32 +401,9 @@ export function callSage({
         }
 
         // 10. Parse and strip manual entry block if present
-        let conversationalText = fullText;
-        let manualEntry: {
-          layer: number;
-          type: string;
-          name: string;
-          content: string;
-          changelog: string;
-        } | null = null;
-
-        const entryDelimiter = "|||MANUAL_ENTRY|||";
-        const endDelimiter = "|||END_MANUAL_ENTRY|||";
-        const entryStart = fullText.indexOf(entryDelimiter);
-
-        if (entryStart !== -1) {
-          conversationalText = fullText.substring(0, entryStart).trimEnd();
-          const jsonStart = entryStart + entryDelimiter.length;
-          const jsonEnd = fullText.indexOf(endDelimiter);
-          if (jsonEnd !== -1) {
-            const jsonStr = fullText.substring(jsonStart, jsonEnd).trim();
-            try {
-              manualEntry = JSON.parse(jsonStr);
-            } catch {
-              console.error("[callSage] Failed to parse manual entry JSON");
-            }
-          }
-        }
+        const { conversationalText, manualEntry } =
+          parseManualEntryBlock(fullText);
+        const entryStart = fullText.indexOf("|||MANUAL_ENTRY|||");
 
         // 11. Save Sage's response (conversational part only)
         const { data: savedResponse } = await admin

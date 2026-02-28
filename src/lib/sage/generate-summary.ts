@@ -2,6 +2,21 @@ import { anthropicFetch } from "@/lib/anthropic";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
+ * Builds a labeled transcript string from message objects.
+ */
+export function buildTranscript(
+  messages: { role: string; content: string }[]
+): string {
+  return messages
+    .map((m) => {
+      const label =
+        m.role === "user" ? "User" : m.role === "assistant" ? "Sage" : "System";
+      return `${label}: ${m.content}`;
+    })
+    .join("\n\n");
+}
+
+/**
  * Generate a session summary via Haiku and save it to the conversation record.
  * Returns the summary text, or null if generation fails.
  */
@@ -19,13 +34,7 @@ export async function generateSessionSummary(
     return null;
   }
 
-  const transcript = messages
-    .map((m) => {
-      const label =
-        m.role === "user" ? "User" : m.role === "assistant" ? "Sage" : "System";
-      return `${label}: ${m.content}`;
-    })
-    .join("\n\n");
+  const transcript = buildTranscript(messages);
 
   try {
     const response = await anthropicFetch({
