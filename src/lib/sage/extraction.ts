@@ -184,7 +184,7 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 }
 
 CRITICAL RULES:
-- The language_bank is CUMULATIVE. Carry forward all previous entries. Only add new ones from the latest exchange. Never drop previous entries.
+- The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
 - Layer signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready) unless a checkpoint was confirmed, in which case that layer resets for new pattern discovery.
 - When a layer has a confirmed component already, its signal starts at "explored" minimum.
 - Be aggressive about capturing language. If in doubt, capture it.
@@ -204,18 +204,14 @@ export async function runExtraction(
   let userContent = "";
 
   userContent += "PREVIOUS EXTRACTION STATE:\n";
-  userContent += JSON.stringify(
-    {
-      layers: state.layers,
-      language_bank: state.language_bank,
-      depth: state.depth,
-      current_thread: state.current_thread,
-      mode: state.mode,
-      checkpoint_gate: state.checkpoint_gate,
-    },
-    null,
-    2
-  );
+  userContent += JSON.stringify({
+    layers: state.layers,
+    language_bank: state.language_bank,
+    depth: state.depth,
+    current_thread: state.current_thread,
+    mode: state.mode,
+    checkpoint_gate: state.checkpoint_gate,
+  });
   userContent += "\n\n";
 
   userContent += `is_first_checkpoint: ${isFirstCheckpoint}\n\n`;
@@ -249,7 +245,7 @@ export async function runExtraction(
   try {
     const response = await anthropicFetch({
       model: "claude-sonnet-4-6",
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: EXTRACTION_SYSTEM,
       messages: [{ role: "user", content: userContent }],
     });
@@ -261,6 +257,18 @@ export async function runExtraction(
       .replace(/```json\s*/g, "")
       .replace(/```\s*/g, "")
       .trim();
+
+    // Detect truncated JSON (brace/bracket mismatch)
+    const opens = (cleaned.match(/[{[]/g) || []).length;
+    const closes = (cleaned.match(/[}\]]/g) || []).length;
+    if (opens > closes) {
+      console.error(
+        "[extraction] Truncated JSON detected (opens: %d, closes: %d), falling back to previous state",
+        opens,
+        closes
+      );
+      return { ...state, next_prompt: "", sage_brief: "" };
+    }
 
     const parsed = JSON.parse(cleaned);
 
