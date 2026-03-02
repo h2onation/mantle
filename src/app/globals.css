@@ -171,6 +171,12 @@ textarea::placeholder {
 }
 
 
+/* Voice recording pulse */
+@keyframes voicePulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
 /* Particle convergence */
 @keyframes particleConverge {
   0% { opacity: var(--particle-opacity); }

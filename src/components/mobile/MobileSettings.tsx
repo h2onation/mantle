@@ -7,6 +7,8 @@ import MobileSoundSelector from "./MobileSoundSelector";
 interface MobileSettingsProps {
   userEmail: string;
   sessionCount: number;
+  voiceAutoSend: boolean;
+  onVoiceAutoSendChange: (value: boolean) => void;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
 }
@@ -20,6 +22,8 @@ const SOUND_LABELS: Record<string, string> = {
 export default function MobileSettings({
   userEmail,
   sessionCount,
+  voiceAutoSend,
+  onVoiceAutoSendChange,
   onSimulationEvent,
   onPopulateComplete,
 }: MobileSettingsProps) {
@@ -326,6 +330,78 @@ export default function MobileSettings({
           onClose={handleCloseSoundSelector}
         />
       </div>
+
+      {/* Voice auto-send */}
+      <button
+        onClick={() => onVoiceAutoSendChange(!voiceAutoSend)}
+        style={{
+          width: "100%",
+          padding: "18px 0",
+          background: "none",
+          border: "none",
+          borderBottom: "1px solid var(--color-divider)",
+          cursor: "pointer",
+          textAlign: "left",
+          WebkitTapHighlightColor: "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-text)",
+              letterSpacing: "0.2px",
+              margin: 0,
+            }}
+          >
+            Voice auto-send
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              color: "var(--color-text-ghost)",
+              letterSpacing: "0.5px",
+              margin: "3px 0 0 0",
+            }}
+          >
+            {voiceAutoSend ? "Sends after silence" : "Manual review"}
+          </p>
+        </div>
+        {/* Toggle pill */}
+        <div
+          style={{
+            width: "36px",
+            height: "20px",
+            borderRadius: "10px",
+            backgroundColor: voiceAutoSend
+              ? "var(--color-accent-dim)"
+              : "var(--color-divider)",
+            position: "relative",
+            transition: "background-color 0.25s ease",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              borderRadius: "50%",
+              backgroundColor: voiceAutoSend
+                ? "var(--color-accent)"
+                : "var(--color-text-ghost)",
+              position: "absolute",
+              top: "2px",
+              left: voiceAutoSend ? "18px" : "2px",
+              transition: "left 0.25s ease, background-color 0.25s ease",
+            }}
+          />
+        </div>
+      </button>
 
       {/* Account */}
       <div

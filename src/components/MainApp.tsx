@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
 import { useOnboarding } from "@/lib/hooks/useOnboarding";
@@ -22,6 +22,18 @@ export default function MainApp() {
   const [activeTab, setActiveTab] = useState<MobileTab>("session");
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
+  const [voiceAutoSend, setVoiceAutoSend] = useState(true);
+
+  // Load voice auto-send preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("mantle_voice_autosubmit");
+    if (saved !== null) setVoiceAutoSend(saved === "true");
+  }, []);
+
+  const handleVoiceAutoSendChange = useCallback((value: boolean) => {
+    setVoiceAutoSend(value);
+    localStorage.setItem("mantle_voice_autosubmit", String(value));
+  }, []);
 
   const {
     messages,
@@ -182,6 +194,7 @@ export default function MainApp() {
               switchConversation={switchConversation}
               startNewSession={startNewSession}
               refreshConversations={refreshConversations}
+              voiceAutoSend={voiceAutoSend}
             />
           }
           manualContent={
@@ -194,6 +207,8 @@ export default function MainApp() {
             <MobileSettings
               userEmail={userEmail}
               sessionCount={conversations.length}
+              voiceAutoSend={voiceAutoSend}
+              onVoiceAutoSendChange={handleVoiceAutoSendChange}
               onSimulationEvent={handleSimulationEvent}
               onPopulateComplete={loadManual}
             />
