@@ -36,6 +36,8 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
 
   async function handleGoogle() {
     setError("");
+    // Store flag so we can detect the conversion on redirect return
+    localStorage.setItem("mantle_pending_conversion", "true");
     const { error: linkError } = await supabase.auth.linkIdentity({
       provider: "google",
       options: {
@@ -43,6 +45,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
       },
     });
     if (linkError) {
+      localStorage.removeItem("mantle_pending_conversion");
       setError(linkError.message);
     }
     // If no error, browser redirects to Google
@@ -226,11 +229,26 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
               border: "none",
               cursor: "pointer",
               padding: "4px 8px",
+              marginBottom: "16px",
             }}
           >
             Not now
           </button>
         </div>
+
+        {/* Disclaimer */}
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "11px",
+            color: "var(--color-text-ghost)",
+            margin: 0,
+            lineHeight: 1.5,
+            textAlign: "center",
+          }}
+        >
+          Already have an account? Your current session will continue &mdash; create a new account to save this work.
+        </p>
       </div>
     </div>
   );

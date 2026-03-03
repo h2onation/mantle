@@ -3,46 +3,33 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 export type MicPermission = "not-requested" | "granted" | "denied";
-export type RecordingState = "idle" | "recording" | "countdown";
-
-interface UseVoiceInputOptions {
-  onAutoSubmit: (text: string) => void;
-  autoSend: boolean;
-}
+export type RecordingState = "idle" | "recording";
 
 interface UseVoiceInputReturn {
   micPermission: MicPermission;
   recordingState: RecordingState;
   transcript: string;
   isInterim: boolean;
-  countdownActive: boolean;
   error: string | null;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
-  cancelCountdown: () => void;
   clearTranscript: () => void;
 }
 
 const DEEPGRAM_WS_URL = "wss://api.deepgram.com/v1/listen";
-const COUNTDOWN_MS = 1500;
 const MEDIA_RECORDER_TIMESLICE_MS = 250;
 
-export function useVoiceInput({
-  onAutoSubmit,
-  autoSend,
-}: UseVoiceInputOptions): UseVoiceInputReturn {
+export function useVoiceInput(): UseVoiceInputReturn {
   const [micPermission, setMicPermission] = useState<MicPermission>("not-requested");
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
   const [isInterim, setIsInterim] = useState(false);
-  const [countdownActive, setCountdownActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Refs for cleanup
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalTranscriptRef = useRef("");
   const reconnectAttemptedRef = useRef(false);
   const tempKeyRef = useRef<string | null>(null);
@@ -86,10 +73,6 @@ export function useVoiceInput({
   }, []);
 
   function cleanupAll() {
-    if (countdownTimerRef.current) {
-      clearTimeout(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -160,13 +143,8 @@ export function useVoiceInput({
         try {
           const data = JSON.parse(event.data);
 
-          // Utterance end event — triggers auto-submit countdown
-          if (data.type === "UtteranceEnd") {
-            if (autoSend && finalTranscriptRef.current.trim()) {
-              startCountdown();
-            }
-            return;
-          }
+          // Ignore utterance end events (no auto-send)
+          if (data.type === "UtteranceEnd") return;
 
           const alt = data.channel?.alternatives?.[0];
           if (!alt) return;
@@ -187,14 +165,6 @@ export function useVoiceInput({
               : text;
             setTranscript(combined);
             setIsInterim(true);
-
-            // Cancel any active countdown when user resumes speaking
-            if (countdownTimerRef.current) {
-              clearTimeout(countdownTimerRef.current);
-              countdownTimerRef.current = null;
-              setCountdownActive(false);
-              setRecordingState("recording");
-            }
           }
         } catch {
           // Ignore malformed messages
@@ -223,37 +193,6 @@ export function useVoiceInput({
       setError("Voice input disconnected — try again");
     }
   }
-
-  function startCountdown() {
-    // Don't start countdown if already active
-    if (countdownTimerRef.current) return;
-
-    setCountdownActive(true);
-    setRecordingState("countdown");
-
-    countdownTimerRef.current = setTimeout(() => {
-      countdownTimerRef.current = null;
-      setCountdownActive(false);
-
-      const text = finalTranscriptRef.current.trim();
-      if (text) {
-        onAutoSubmit(text);
-        finalTranscriptRef.current = "";
-        setTranscript("");
-        setIsInterim(false);
-        setRecordingState("recording");
-      }
-    }, COUNTDOWN_MS);
-  }
-
-  const cancelCountdown = useCallback(() => {
-    if (countdownTimerRef.current) {
-      clearTimeout(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-    setCountdownActive(false);
-    setRecordingState("recording");
-  }, []);
 
   const clearTranscript = useCallback(() => {
     finalTranscriptRef.current = "";
@@ -332,13 +271,6 @@ export function useVoiceInput({
   const stopRecording = useCallback(() => {
     isStoppingRef.current = true;
 
-    // Cancel any pending countdown
-    if (countdownTimerRef.current) {
-      clearTimeout(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-    setCountdownActive(false);
-
     // Stop MediaRecorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
@@ -366,11 +298,9 @@ export function useVoiceInput({
     recordingState,
     transcript,
     isInterim,
-    countdownActive,
     error,
     startRecording,
     stopRecording,
-    cancelCountdown,
     clearTranscript,
   };
 }

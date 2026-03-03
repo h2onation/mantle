@@ -21,19 +21,14 @@ export default function MainApp() {
   const [activeTab, setActiveTab] = useState<MobileTab>("session");
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
-  const [voiceAutoSend, setVoiceAutoSend] = useState(true);
   const [authDismissed, setAuthDismissed] = useState(false);
   const seedSent = useRef(false);
 
-  // Load voice auto-send preference from localStorage
+  // Clean up post-OAuth conversion flag
   useEffect(() => {
-    const saved = localStorage.getItem("mantle_voice_autosubmit");
-    if (saved !== null) setVoiceAutoSend(saved === "true");
-  }, []);
-
-  const handleVoiceAutoSendChange = useCallback((value: boolean) => {
-    setVoiceAutoSend(value);
-    localStorage.setItem("mantle_voice_autosubmit", String(value));
+    if (localStorage.getItem("mantle_pending_conversion") === "true") {
+      localStorage.removeItem("mantle_pending_conversion");
+    }
   }, []);
 
   const {
@@ -53,6 +48,7 @@ export default function MainApp() {
     conversations,
     isGuest,
     promptAuth,
+    resetPromptAuth,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
@@ -75,12 +71,21 @@ export default function MainApp() {
     sendMessage(seed);
   }, [initialized, sendMessage]);
 
-  // Auth prompt: when promptAuth fires, reset dismiss so modal shows
+  // When promptAuth fires, clear any previous dismiss so modal shows
   useEffect(() => {
-    if (promptAuth) {
-      setAuthDismissed(false);
-    }
+    if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
+
+  // Auth prompt dismiss: reset promptAuth so next checkpoint can re-trigger
+  const handleAuthDismiss = useCallback(() => {
+    setAuthDismissed(true);
+    resetPromptAuth();
+  }, [resetPromptAuth]);
+
+  const handleAuthSuccess = useCallback(() => {
+    setAuthDismissed(true);
+    resetPromptAuth();
+  }, [resetPromptAuth]);
 
   const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
     // Build dynamic label
@@ -152,7 +157,6 @@ export default function MainApp() {
             switchConversation={switchConversation}
             startNewSession={startNewSession}
             refreshConversations={refreshConversations}
-            voiceAutoSend={voiceAutoSend}
           />
         }
         manualContent={
@@ -165,8 +169,6 @@ export default function MainApp() {
           <MobileSettings
             userEmail={userEmail}
             sessionCount={conversations.length}
-            voiceAutoSend={voiceAutoSend}
-            onVoiceAutoSendChange={handleVoiceAutoSendChange}
             onSimulationEvent={handleSimulationEvent}
             onPopulateComplete={loadManual}
           />
@@ -242,8 +244,8 @@ export default function MainApp() {
       {/* Auth prompt modal for guest users */}
       {showAuthModal && (
         <AuthPromptModal
-          onDismiss={() => setAuthDismissed(true)}
-          onSuccess={() => setAuthDismissed(true)}
+          onDismiss={handleAuthDismiss}
+          onSuccess={handleAuthSuccess}
         />
       )}
     </>

@@ -7,8 +7,6 @@ import SettingsRow from "@/components/shared/SettingsRow";
 interface MobileSettingsProps {
   userEmail: string;
   sessionCount: number;
-  voiceAutoSend: boolean;
-  onVoiceAutoSendChange: (value: boolean) => void;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
 }
@@ -16,8 +14,6 @@ interface MobileSettingsProps {
 export default function MobileSettings({
   userEmail,
   sessionCount,
-  voiceAutoSend,
-  onVoiceAutoSendChange,
   onSimulationEvent,
   onPopulateComplete,
 }: MobileSettingsProps) {
@@ -174,43 +170,6 @@ export default function MobileSettings({
       >
         SETTINGS
       </p>
-
-      {/* Voice auto-send */}
-      <SettingsRow
-        title="Voice auto-send"
-        subtitle={voiceAutoSend ? "Sends after silence" : "Manual review"}
-        onClick={() => onVoiceAutoSendChange(!voiceAutoSend)}
-        rightContent={
-          <div
-            style={{
-              width: "36px",
-              height: "20px",
-              borderRadius: "10px",
-              backgroundColor: voiceAutoSend
-                ? "var(--color-accent-dim)"
-                : "var(--color-divider)",
-              position: "relative",
-              transition: "background-color 0.25s ease",
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                width: "16px",
-                height: "16px",
-                borderRadius: "50%",
-                backgroundColor: voiceAutoSend
-                  ? "var(--color-accent)"
-                  : "var(--color-text-ghost)",
-                position: "absolute",
-                top: "2px",
-                left: voiceAutoSend ? "18px" : "2px",
-                transition: "left 0.25s ease, background-color 0.25s ease",
-              }}
-            />
-          </div>
-        }
-      />
 
       {/* Account */}
       <SettingsRow title="Account" subtitle={userEmail || "—"} />

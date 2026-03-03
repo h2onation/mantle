@@ -27,7 +27,6 @@ interface MobileSessionProps {
   switchConversation: (id: string) => Promise<void>;
   startNewSession: () => Promise<void>;
   refreshConversations: () => Promise<void>;
-  voiceAutoSend: boolean;
 }
 
 export default function MobileSession({
@@ -45,7 +44,6 @@ export default function MobileSession({
   switchConversation,
   startNewSession,
   refreshConversations,
-  voiceAutoSend,
 }: MobileSessionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
@@ -617,7 +615,6 @@ export default function MobileSession({
       <ChatInput
         onSend={sendMessage}
         disabled={isLoading || isStreaming}
-        voiceAutoSend={voiceAutoSend}
       />
 
       <SessionDrawer

@@ -271,23 +271,28 @@ Two detection paths, both ending at the same confirm flow:
 4. **checkpoint/confirm/route.ts**: On confirm, calls `confirmCheckpoint()`. Inserts system message (`[User confirmed the checkpoint]`, etc.). Streams Sage's follow-up.
 5. **call-sage.ts** (next call): System messages in DB are mapped to synthetic user messages in conversation history so Sage sees them naturally. E.g. `"[User confirmed the checkpoint]"` becomes `"I confirmed that checkpoint. That resonates."`
 
-## Onboarding Flow
+## Onboarding Flow (Pre-Auth)
 
-Phase-based state machine in `useOnboarding.ts`. Five editorial screens: Brand → Time Investment → How It Works → Honesty Contract → Seed Input.
+`OnboardingFlow.tsx` orchestrates a pre-auth onboarding flow rendered on `/login`. Four views managed by `currentView` state:
 
-**Phases**: `"hidden" | "onboarding" | "dissolving" | "complete"`
-- `"hidden"` — returning user or already completed, no onboarding
-- `"onboarding"` — overlay visible, MobileLayout invisible
-- `"dissolving"` — overlay fading out (500ms) + dark pause (300ms)
-- `"complete"` — overlay unmounted, MobileLayout fading in (500ms)
+**Views**: `"entry" | "login" | "onboarding" | "seed"`
 
-**New users** (`isNewUser && !localStorage mantle_onboarding_completed`): full 5-screen flow. Screens 0–3 are info screens (`OnboardingInfoScreen.tsx`) with icon + label + headline + body, staggered entrance animations. Screen 4 is a seed input (`OnboardingSeedScreen.tsx`) with textarea + "Let's go →" button.
+**Components** (all in `src/components/onboarding/`):
+- `OnboardingFlow.tsx` — View orchestrator with crossfade transitions (400ms). Checks `mantle_onboarding_completed` localStorage on mount; if completed + auth session → redirect to `/`. If completed + no session → show login. If not completed → show entry.
+- `EntryScreen.tsx` — Landing: headline + "Get started" + "Log in" buttons.
+- `LoginScreen.tsx` — Email/password login + Google OAuth for returning users.
+- `InfoScreens.tsx` — 2-screen info flow (Build Manual + What to Expect) with swipe navigation, pagination dots, and glow transitions.
+- `SeedScreen.tsx` — Seed textarea + age confirmation checkbox + "Begin" button.
+- `AuthPromptModal.tsx` — Post-checkpoint auth conversion for guest users (email/password via `updateUser` + Google OAuth via `linkIdentity`).
+- `AmbientGlow.tsx` — Animated radial gradient background with configurable position/scale/opacity.
 
-**Completing onboarding**: User types in seed screen textarea and taps "Let's go →". `handleComplete(text)` sets phase to `"dissolving"`, waits 800ms, then sets localStorage, calls `sendMessage(text)`, sets phase to `"complete"`. MobileLayout fades in.
+**New user flow**: Entry → Get Started → Info screens → Seed screen → `signInAnonymously()` → sets `mantle_onboarding_completed` + `mantle_age_confirmed` in localStorage → stores seed in `sessionStorage` → `router.push("/")`.
 
-**Returning users** (have existing conversations): onboarding does not show.
+**Returning user flow**: Entry → Log In → email/password or Google OAuth → `router.push("/")`.
 
-**Visual features**: Ambient radial gradient glow (shifts position/size per screen using `--color-accent-glow`), dash pagination (5 dashes), Back/Continue navigation, crossfade transitions between screens (250ms out, 100ms in).
+**Guest-to-real conversion**: After first checkpoint confirm, backend detects `user.is_anonymous` and returns `promptAuth: true` in SSE. `useChat` surfaces this via `promptAuth` state. `MainApp` shows `AuthPromptModal`. Email: `updateUser({ email, password })`. Google: `linkIdentity({ provider: "google" })` with `mantle_pending_conversion` localStorage flag for redirect handling.
+
+**Seed handoff**: `sessionStorage.setItem("mantle_seed_text", text)` in SeedScreen → `sessionStorage.getItem` + `removeItem` in MainApp → `sendMessage(seed)` (guarded by `seedSent` ref + `initialized` flag).
 
 ## Color System
 
@@ -513,7 +518,8 @@ These features were designed, partially built, or referenced, and have been remo
 |---------|--------|-----------------|
 | Desktop layout | Removed | Mobile-only. No desktop code exists. |
 | Calibration / calibration_ratings | Removed | `calibration_ratings` column still exists in schema but is dead — never read or written. Nothing replaced it. |
-| PromptCards | Removed | Replaced by FocusCard in onboarding flow. |
+| PromptCards | Removed | Replaced by FocusCard, then by pre-auth onboarding. |
+| Old onboarding (OnboardingOverlay, OnboardingInfoScreen, OnboardingSeedScreen, useOnboarding) | Removed | Replaced by pre-auth onboarding flow (OnboardingFlow + EntryScreen + LoginScreen + InfoScreens + SeedScreen + AuthPromptModal). |
 | Synthetic first message | Removed | Sage now generates its own opener via `triggerSageOpener()` sending `message: null` to `/api/chat`. |
 | Gate (as separate UI) | Removed as UI | Still exists as a conversation transition in system-prompt.ts ("READINESS GATE" section). Sage handles it conversationally, no separate gate UI. |
 | Advisor mode | Removed | Completely removed from system-prompt.ts and codebase. Nothing replaced it. |
@@ -545,13 +551,21 @@ Sage manages its own mode transitions:
 
 ## Middleware
 
-`middleware.ts` at project root. Creates Supabase server client, calls `getUser()` (which also refreshes the session token via cookie set/remove handlers). Unauthenticated users redirected to `/login`. Authenticated users on `/login` redirected to `/`. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and `/api` routes.
+`middleware.ts` at project root. Creates Supabase server client, calls `getUser()` (which also refreshes the session token via cookie set/remove handlers). Unauthenticated users redirected to `/login`. Authenticated users on `/login` redirected to `/`. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and `/api` routes. Also handles anonymous (guest) users — `getUser()` returns a valid user for anonymous sessions created via `signInAnonymously()`.
 
 ## localStorage Keys
 
 | Key | Set by | Purpose |
 |-----|--------|---------|
-| `mantle_onboarding_completed` | useOnboarding | Prevents re-showing onboarding |
+| `mantle_onboarding_completed` | SeedScreen | Prevents re-showing onboarding |
+| `mantle_age_confirmed` | SeedScreen | Legal age confirmation |
+| `mantle_pending_conversion` | AuthPromptModal | Flags Google OAuth redirect in progress (cleaned up on return) |
+
+## sessionStorage Keys
+
+| Key | Set by | Purpose |
+|-----|--------|---------|
+| `mantle_seed_text` | SeedScreen | Seed text handoff to MainApp (consumed + removed on use) |
 
 ## File Tree
 
@@ -577,7 +591,7 @@ src/
     auth/callback/route.ts            GET Node — OAuth callback
     globals.css                       Tokens, scrollbar, keyframes
     layout.tsx                        Root: fonts, {children}
-    login/page.tsx                    Email/password + Google OAuth + dev login
+    login/page.tsx                    Renders OnboardingFlow (pre-auth onboarding + login)
     page.tsx                          Server component: auth gate -> MainApp
   components/
     icons/NavIcons.tsx                SVG icons: flame, seed-of-life, constellation, mortar
@@ -598,21 +612,25 @@ src/
       MobileGuidance.tsx              Locked until 1 confirmed, progress bars
       MobileSettings.tsx              Account, logout, history, export, simulate, delete
     onboarding/
-      OnboardingOverlay.tsx           5-screen orchestrator with glow, pagination, transitions
-      OnboardingInfoScreen.tsx        Shared info screen (icon + label + headline + body + stagger)
-      OnboardingSeedScreen.tsx        Seed input screen (textarea + submit button)
+      OnboardingFlow.tsx             Pre-auth flow orchestrator (entry → login → info → seed)
+      EntryScreen.tsx                Landing screen with Get Started + Log In buttons
+      LoginScreen.tsx                Email/password + Google OAuth login for returning users
+      InfoScreens.tsx                2-screen info flow with swipe navigation
+      SeedScreen.tsx                 Seed textarea + age confirmation + anonymous auth
+      AuthPromptModal.tsx            Post-checkpoint guest-to-real account conversion
+      AmbientGlow.tsx                Animated radial gradient background
     shared/
       ConfirmationModal.tsx           Reusable destructive-action confirmation overlay
       SettingsRow.tsx                 Reusable settings row with title/subtitle/divider
       ExploreWithSageButton.tsx       "Explore with Sage" button with chevron (meadow + dark variants)
-    MainApp.tsx                       Wires useChat + useOnboarding + MobileLayout + exploration transition
+    MainApp.tsx                       Wires useChat + MobileLayout + seed handoff + auth prompt + exploration
   lib/
     types.ts                          Shared interfaces: ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext
     anthropic.ts                      Raw fetch: anthropicFetch (sync), anthropicStream (SSE)
     hooks/
       useChat.ts                      Core state: messages, streaming, checkpoints, conversations, exploration
       useKeyboardOpen.ts              Detects virtual keyboard via focusin/focusout (hides nav)
-      useOnboarding.ts                Onboarding state machine
+      useVoiceInput.ts                Voice input via Deepgram
     sage/
       call-sage.ts                    Pipeline: parallel DB reads -> extraction (background) -> prompt -> stream (delimiter buffer) -> classify or skip
       classifier.ts                   Haiku checkpoint detection + processing text (fallback when no manual entry block)
@@ -792,6 +810,12 @@ This file was written from a full codebase audit on 2026-02-23. If you modify th
 - **Dead CSS tokens removed**: `--color-warm`, `--cp-surface`, `--cp-surface-light`, `--cp-glow-a`, `--cp-glow-b`, `--cp-g1` through `--cp-g6`, `--color-error-dim` (11 tokens).
 - **Missed token replacements**: `ChatInput.tsx` `#7A8B72` → `var(--color-accent-muted)` (send/mic icons). `PopulatedLayer.tsx` `#5E7054` → `var(--cp-text-accent)` (chevron stroke).
 - **Particles removed**: Deleted `SessionParticles.tsx`. Removed import, `isConverging` state, convergence effect, and `<SessionParticles>` render from `MobileSession.tsx`. Removed 5 keyframes from `globals.css` (`particleDrift1-4`, `particleConverge`). Removed dead `processingTextFadeIn` keyframe.
+
+**2026-03-03 — Onboarding bug cleanup + hardening**
+- **promptAuth reset fix**: `useChat` now exports `resetPromptAuth()`. `MainApp` calls it on auth modal dismiss/success. Previously `promptAuth` stayed `true` permanently, preventing re-show on subsequent checkpoints.
+- **AuthPromptModal improvements**: Added `mantle_pending_conversion` localStorage flag before Google OAuth redirect (cleaned up on app reload in MainApp). Added disclaimer text: "Already have an account? Your current session will continue — create a new account to save this work."
+- **Google OAuth on LoginScreen**: Added `signInWithOAuth({ provider: "google" })` with "or" divider between email/password form and Google button.
+- **CLAUDE.md rewrite**: Replaced outdated Onboarding Flow section (referenced deleted OnboardingOverlay/OnboardingInfoScreen/OnboardingSeedScreen/useOnboarding). Documented actual pre-auth flow (OnboardingFlow → EntryScreen → LoginScreen → InfoScreens → SeedScreen → AuthPromptModal → AmbientGlow). Updated localStorage/sessionStorage keys, file tree, dead features list, middleware section.
 
 ## Known Issues
 

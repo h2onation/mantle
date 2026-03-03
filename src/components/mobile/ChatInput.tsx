@@ -1,37 +1,25 @@
 "use client";
 
-import { useState, useRef, useLayoutEffect, useEffect, useCallback } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import React from "react";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
-  voiceAutoSend: boolean;
 }
 
-type ButtonMode = "mic" | "mic-denied" | "stop" | "send" | "edit";
+type ButtonMode = "mic" | "mic-denied" | "stop" | "send";
 
 export default function ChatInput({
   onSend,
   disabled,
-  voiceAutoSend,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleAutoSubmit = useCallback(
-    (text: string) => {
-      onSend(text);
-    },
-    [onSend]
-  );
-
-  const voice = useVoiceInput({
-    onAutoSubmit: handleAutoSubmit,
-    autoSend: voiceAutoSend,
-  });
+  const voice = useVoiceInput();
 
   const isRecording = voice.recordingState !== "idle";
 
@@ -116,7 +104,7 @@ export default function ChatInput({
       const currentTranscript = voice.transcript.trim();
       voice.stopRecording();
 
-      if (!voiceAutoSend && currentTranscript) {
+      if (currentTranscript) {
         setInput(currentTranscript);
       }
     } else {
@@ -125,15 +113,10 @@ export default function ChatInput({
     }
   }
 
-  function handleCancelCountdown() {
-    voice.cancelCountdown();
-  }
-
   const hasText = input.trim().length > 0;
 
   // Single button swaps between states
   function getButtonMode(): ButtonMode {
-    if (voice.countdownActive) return "edit";
     if (isRecording) return "stop";
     if (hasText) return "send";
     if (voice.micPermission === "denied") return "mic-denied";
@@ -151,9 +134,6 @@ export default function ChatInput({
       case "mic-denied":
       case "stop":
         handleMicToggle();
-        break;
-      case "edit":
-        handleCancelCountdown();
         break;
     }
   }
@@ -221,20 +201,6 @@ export default function ChatInput({
             </span>
           )}
 
-          {/* Countdown highlight overlay */}
-          {voice.countdownActive && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "12px",
-                backgroundColor: "var(--color-accent-ghost)",
-                pointerEvents: "none",
-                animation: "checkpointFadeIn 0.2s ease-out both",
-              }}
-            />
-          )}
-
           <textarea
             ref={textareaRef}
             value={input}
@@ -244,7 +210,6 @@ export default function ChatInput({
             onBlur={handleBlur}
             placeholder=""
             rows={1}
-            readOnly={voice.countdownActive}
             style={{
               width: "100%",
               backgroundColor: "transparent",
@@ -268,7 +233,7 @@ export default function ChatInput({
         {/* Single swap button — outside the input */}
         <button
           onClick={handleButtonClick}
-          disabled={disabled && buttonMode !== "stop" && buttonMode !== "edit"}
+          disabled={disabled && buttonMode !== "stop"}
           style={{
             display: "flex",
             alignItems: "center",
@@ -362,21 +327,6 @@ export default function ChatInput({
               <line x1="12" y1="18" x2="12" y2="23" />
               <line x1="8" y1="23" x2="16" y2="23" />
             </svg>
-          )}
-
-          {/* Edit pill during countdown */}
-          {buttonMode === "edit" && (
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "8px",
-                color: "var(--color-accent)",
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-              }}
-            >
-              EDIT
-            </span>
           )}
         </button>
       </div>

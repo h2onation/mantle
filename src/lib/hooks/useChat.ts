@@ -605,6 +605,7 @@ export function useChat() {
     conversations,
     isGuest,
     promptAuth,
+    resetPromptAuth: () => setPromptAuth(false),
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
