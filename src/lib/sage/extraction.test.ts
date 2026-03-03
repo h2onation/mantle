@@ -4,11 +4,11 @@ import { formatExtractionForSage, type ExtractionState } from "@/lib/sage/extrac
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [], dimensions: [] },
-      2: { signal: "none", material: [], examples: [], dimensions: [] },
-      3: { signal: "none", material: [], examples: [], dimensions: [] },
-      4: { signal: "none", material: [], examples: [], dimensions: [] },
-      5: { signal: "none", material: [], examples: [], dimensions: [] },
+      1: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      2: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      3: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      4: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      5: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
     },
     language_bank: [],
     depth: "surface",
@@ -20,7 +20,21 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       has_charged_language: false,
       has_behavior_driver_link: false,
       strongest_layer: null,
+      target_type: "component",
     },
+    clinical_flag: {
+      active: false,
+      level: "none",
+      note: "",
+    },
+    pattern_tracking: {
+      active: false,
+      layer: null,
+      label: "",
+      chain_elements: [],
+      recurrence_count: 0,
+    },
+    confirmed_patterns: [],
     next_prompt: "",
     sage_brief: "",
     ...overrides,
@@ -63,6 +77,7 @@ describe("formatExtractionForSage", () => {
             material: ["first", "second", "third", "fourth"],
             examples: [],
             dimensions: [],
+            discovery_mode: "component",
           },
         },
       });
@@ -112,6 +127,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 3,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, false);
@@ -127,6 +143,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: false,
           has_behavior_driver_link: false,
           strongest_layer: null,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, false);
@@ -144,6 +161,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: false,
           has_behavior_driver_link: false,
           strongest_layer: null,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, false);
@@ -160,6 +178,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: false,
           strongest_layer: 1,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, true);
@@ -174,6 +193,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 2,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, true);
@@ -188,6 +208,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: false,
           has_behavior_driver_link: true,
           strongest_layer: 1,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, true);
@@ -202,6 +223,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: false,
           strongest_layer: 1,
+          target_type: "component",
         },
       });
       const result = formatExtractionForSage(state, true);
@@ -219,6 +241,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 1,
+          target_type: "component",
         },
       });
       const components = [
@@ -237,6 +260,7 @@ describe("formatExtractionForSage", () => {
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 1,
+          target_type: "component",
         },
       });
       const components = [
@@ -264,6 +288,348 @@ describe("formatExtractionForSage", () => {
       const state = makeState({ current_thread: "" });
       const result = formatExtractionForSage(state, false);
       expect(result).not.toContain("THREAD:");
+    });
+  });
+
+  describe("clinical flag", () => {
+    it("includes crisis warning when clinical_flag is crisis", () => {
+      const state = makeState({
+        clinical_flag: { active: true, level: "crisis", note: "User expressed suicidal ideation" },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("⚠ CRISIS:");
+      expect(result).toContain("User expressed suicidal ideation");
+      expect(result).toContain("Stop building");
+    });
+
+    it("includes caution warning when clinical_flag is caution", () => {
+      const state = makeState({
+        clinical_flag: { active: true, level: "caution", note: "User asked if they have ADHD" },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("⚠ CLINICAL CAUTION:");
+      expect(result).toContain("User asked if they have ADHD");
+      expect(result).toContain("Stay in behavioral description");
+    });
+
+    it("does NOT include clinical warning when level is none", () => {
+      const state = makeState({
+        clinical_flag: { active: false, level: "none", note: "" },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).not.toContain("⚠ CRISIS");
+      expect(result).not.toContain("⚠ CLINICAL CAUTION");
+    });
+
+    it("blocks checkpoint gate when crisis is active", () => {
+      const state = makeState({
+        clinical_flag: { active: true, level: "crisis", note: "Self-harm intent" },
+        checkpoint_gate: {
+          concrete_examples: 3,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 1,
+          target_type: "component",
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("CHECKPOINT: NOT READY");
+    });
+
+    it("does NOT block checkpoint gate when caution is active", () => {
+      const state = makeState({
+        clinical_flag: { active: true, level: "caution", note: "Diagnostic question" },
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+          target_type: "component",
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("CHECKPOINT: READY");
+    });
+
+    it("crisis warning appears before CHECKPOINT line", () => {
+      const state = makeState({
+        clinical_flag: { active: true, level: "crisis", note: "Crisis detected" },
+      });
+      const result = formatExtractionForSage(state, false);
+      const crisisIdx = result.indexOf("⚠ CRISIS:");
+      const checkpointIdx = result.indexOf("CHECKPOINT:");
+      expect(crisisIdx).toBeLessThan(checkpointIdx);
+    });
+  });
+
+  // ─── Pattern system tests ──────────────────────────────────────────────────
+  describe("discovery_mode", () => {
+    it("defaults to 'component' for all layers", () => {
+      const state = makeState();
+      for (let i = 1; i <= 5; i++) {
+        expect(state.layers[i].discovery_mode).toBe("component");
+      }
+    });
+
+    it("shows [pattern mode] in layer signals when discovery_mode is 'pattern'", () => {
+      const state = makeState({
+        layers: {
+          ...makeState().layers,
+          1: { signal: "explored", material: [], examples: [], dimensions: [], discovery_mode: "pattern" },
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("L1 (What Drives You): explored [pattern mode]");
+    });
+
+    it("does NOT show [pattern mode] when discovery_mode is 'component'", () => {
+      const state = makeState();
+      const result = formatExtractionForSage(state, false);
+      expect(result).not.toContain("[pattern mode]");
+    });
+  });
+
+  describe("pattern_tracking", () => {
+    it("defaults to inactive with empty chain", () => {
+      const state = makeState();
+      expect(state.pattern_tracking.active).toBe(false);
+      expect(state.pattern_tracking.chain_elements).toEqual([]);
+      expect(state.pattern_tracking.recurrence_count).toBe(0);
+    });
+
+    it("renders PATTERN CHAIN when active with elements", () => {
+      const state = makeState({
+        pattern_tracking: {
+          active: true,
+          layer: 3,
+          label: "the shutdown loop",
+          chain_elements: [
+            { element: "trigger", content: "authority challenge", source: "my boss told me I was wrong" },
+            { element: "response", content: "freeze and withdraw", source: "I just shut down" },
+          ],
+          recurrence_count: 2,
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain('PATTERN CHAIN: "the shutdown loop"');
+      expect(result).toContain("✓ trigger: authority challenge");
+      expect(result).toContain("✓ response: freeze and withdraw");
+      expect(result).toContain("○ internal_experience: not yet identified");
+      expect(result).toContain("○ payoff: not yet identified");
+      expect(result).toContain("○ cost: not yet identified");
+    });
+
+    it("does NOT render PATTERN CHAIN when inactive", () => {
+      const state = makeState();
+      const result = formatExtractionForSage(state, false);
+      expect(result).not.toContain("PATTERN CHAIN");
+    });
+  });
+
+  describe("pattern gate", () => {
+    it("renders PATTERN GATE: MET when target_type is pattern and criteria met", () => {
+      const state = makeState({
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+          target_type: "pattern",
+        },
+        pattern_tracking: {
+          active: true,
+          layer: 3,
+          label: "the shutdown loop",
+          chain_elements: [
+            { element: "trigger", content: "authority", source: "boss" },
+            { element: "response", content: "freeze", source: "shut down" },
+            { element: "cost", content: "missed opportunities", source: "I never speak up" },
+          ],
+          recurrence_count: 2,
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("PATTERN GATE: MET");
+      expect(result).toContain('pattern: "the shutdown loop"');
+    });
+
+    it("renders PATTERN GATE: NOT MET when recurrence < 2", () => {
+      const state = makeState({
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+          target_type: "pattern",
+        },
+        pattern_tracking: {
+          active: true,
+          layer: 3,
+          label: "test pattern",
+          chain_elements: [
+            { element: "trigger", content: "x", source: "y" },
+            { element: "response", content: "x", source: "y" },
+            { element: "cost", content: "x", source: "y" },
+          ],
+          recurrence_count: 1,
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("PATTERN GATE: NOT MET");
+      expect(result).toContain("need more recurrence");
+    });
+
+    it("renders PATTERN GATE: NOT MET when chain < 3 elements", () => {
+      const state = makeState({
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+          target_type: "pattern",
+        },
+        pattern_tracking: {
+          active: true,
+          layer: 3,
+          label: "test pattern",
+          chain_elements: [
+            { element: "trigger", content: "x", source: "y" },
+            { element: "response", content: "x", source: "y" },
+          ],
+          recurrence_count: 3,
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("PATTERN GATE: NOT MET");
+      expect(result).toContain("chain incomplete (2/3 minimum elements)");
+    });
+
+    it("does NOT render PATTERN GATE for component target_type", () => {
+      const state = makeState({
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+          target_type: "component",
+        },
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("CHECKPOINT: READY");
+      expect(result).not.toContain("PATTERN GATE");
+    });
+  });
+
+  describe("pattern saturation", () => {
+    it("shows SATURATED when layer has 2 patterns in manual components", () => {
+      const state = makeState({
+        layers: {
+          ...makeState().layers,
+          1: { signal: "explored", material: [], examples: [], dimensions: [], discovery_mode: "pattern" },
+        },
+      });
+      const components = [
+        { layer: 1, type: "component", name: "Core Drive", content: "..." },
+        { layer: 1, type: "pattern", name: "Pattern A", content: "..." },
+        { layer: 1, type: "pattern", name: "Pattern B", content: "..." },
+      ];
+      const result = formatExtractionForSage(state, false, components);
+      expect(result).toContain("SATURATED: 2/2 patterns");
+    });
+
+    it("does NOT show SATURATED when layer has < 2 patterns", () => {
+      const state = makeState({
+        layers: {
+          ...makeState().layers,
+          1: { signal: "explored", material: [], examples: [], dimensions: [], discovery_mode: "pattern" },
+        },
+      });
+      const components = [
+        { layer: 1, type: "component", name: "Core Drive", content: "..." },
+        { layer: 1, type: "pattern", name: "Pattern A", content: "..." },
+      ];
+      const result = formatExtractionForSage(state, false, components);
+      expect(result).not.toContain("SATURATED");
+      expect(result).toContain("[pattern mode]");
+    });
+  });
+
+  describe("confirmed patterns", () => {
+    it("renders CONFIRMED PATTERNS with chain summary", () => {
+      const state = makeState({
+        confirmed_patterns: [
+          {
+            layer: 3,
+            name: "the shutdown loop",
+            chain_elements: [
+              { element: "trigger", content: "authority challenge", source: "boss" },
+              { element: "response", content: "freeze", source: "shut down" },
+              { element: "cost", content: "missed opportunities", source: "never speak up" },
+            ],
+          },
+        ],
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("CONFIRMED PATTERNS");
+      expect(result).toContain('L3 — "the shutdown loop"');
+      expect(result).toContain("trigger: authority challenge");
+      expect(result).toContain("response: freeze");
+      expect(result).toContain("cost: missed opportunities");
+    });
+
+    it("does NOT render CONFIRMED PATTERNS when array is empty", () => {
+      const state = makeState();
+      const result = formatExtractionForSage(state, false);
+      expect(result).not.toContain("CONFIRMED PATTERNS");
+    });
+
+    it("renders CROSS-LAYER CONNECTIONS when 2+ confirmed patterns have triggers", () => {
+      const state = makeState({
+        confirmed_patterns: [
+          {
+            layer: 1,
+            name: "the control reflex",
+            chain_elements: [
+              { element: "trigger", content: "loss of autonomy", source: "someone decided for me" },
+              { element: "response", content: "take over", source: "I just stepped in" },
+            ],
+          },
+          {
+            layer: 3,
+            name: "the shutdown loop",
+            chain_elements: [
+              { element: "trigger", content: "authority challenge", source: "boss" },
+              { element: "response", content: "freeze", source: "shut down" },
+            ],
+          },
+        ],
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).toContain("CROSS-LAYER CONNECTIONS");
+      expect(result).toContain('L1 "the control reflex" trigger: loss of autonomy');
+      expect(result).toContain('L3 "the shutdown loop" trigger: authority challenge');
+    });
+
+    it("does NOT render CROSS-LAYER CONNECTIONS with only 1 confirmed pattern", () => {
+      const state = makeState({
+        confirmed_patterns: [
+          {
+            layer: 3,
+            name: "the shutdown loop",
+            chain_elements: [
+              { element: "trigger", content: "authority", source: "boss" },
+            ],
+          },
+        ],
+      });
+      const result = formatExtractionForSage(state, false);
+      expect(result).not.toContain("CROSS-LAYER CONNECTIONS");
     });
   });
 });

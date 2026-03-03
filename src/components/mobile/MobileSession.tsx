@@ -184,6 +184,11 @@ export default function MobileSession({
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
 
+              // Hide the seed message (first user message in conversation).
+              // Sage references the seed naturally in its opening, so the user
+              // sees their topic reflected without their own message displayed.
+              if (msg.role === "user" && i === 0) return null;
+
               const isUser = msg.role === "user";
               const isCheckpoint = msg.isCheckpoint === true;
               const isPendingCheckpoint =

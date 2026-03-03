@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { ExtractionState } from "@/lib/sage/extraction";
 
 interface ConfirmCheckpointOptions {
   messageId: string;
@@ -167,6 +168,55 @@ export async function confirmCheckpoint({
         checkpoint_meta: { ...meta, status: "confirmed" },
       })
       .eq("id", messageId);
+
+    // 3b. Update extraction state based on checkpoint type
+    const { data: convData } = await admin
+      .from("conversations")
+      .select("extraction_state")
+      .eq("id", conversationId)
+      .single();
+
+    if (convData?.extraction_state) {
+      const extractionState = convData.extraction_state as ExtractionState;
+
+      if (meta.type === "component") {
+        // After component confirmation, flip discovery_mode to "pattern"
+        // so extraction layer starts looking for patterns on this layer.
+        const layer = extractionState.layers[meta.layer];
+        if (layer) {
+          layer.discovery_mode = "pattern";
+          layer.signal = "explored";
+        }
+      } else if (meta.type === "pattern") {
+        // After pattern confirmation, archive chain_elements to confirmed_patterns
+        // and reset pattern_tracking for the next pattern.
+        if (extractionState.pattern_tracking?.active) {
+          const cp = {
+            layer: meta.layer,
+            name: nameToWrite,
+            chain_elements: extractionState.pattern_tracking.chain_elements || [],
+          };
+          if (!extractionState.confirmed_patterns) {
+            extractionState.confirmed_patterns = [];
+          }
+          extractionState.confirmed_patterns.push(cp);
+
+          // Reset pattern_tracking
+          extractionState.pattern_tracking = {
+            active: false,
+            layer: null,
+            label: "",
+            chain_elements: [],
+            recurrence_count: 0,
+          };
+        }
+      }
+
+      await admin
+        .from("conversations")
+        .update({ extraction_state: extractionState })
+        .eq("id", conversationId);
+    }
 
     // 4. Insert system message
     await admin.from("messages").insert({
