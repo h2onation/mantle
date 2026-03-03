@@ -29,7 +29,7 @@ export default function MobileNav({ activeTab, onTabChange, hidden = false }: Mo
   return (
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         bottom: 0,
         left: 0,
         right: 0,
@@ -40,7 +40,9 @@ export default function MobileNav({ activeTab, onTabChange, hidden = false }: Mo
         justifyContent: "center",
         gap: "20px",
         paddingTop: "10px",
-        paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "clamp(0px, (100vw - 430px) * 999, 20px)",
+        paddingRight: "clamp(0px, (100vw - 430px) * 999, 20px)",
+        paddingBottom: "clamp(calc(14px + env(safe-area-inset-bottom, 0px)), (100vw - 430px) * 999, 20px)",
         zIndex: 100,
         transform: hidden ? "translateY(100%)" : "translateY(0)",
         transition: "transform 0.25s ease",
