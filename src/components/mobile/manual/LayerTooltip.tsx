@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import ExploreWithSageButton from "@/components/shared/ExploreWithSageButton";
 
 interface LayerTooltipProps {
   text: string;
@@ -61,17 +62,6 @@ export default function LayerTooltip({
 
       {open && (
         <>
-          {/* Tooltip fade-in animation */}
-          <style>{`
-            @keyframes tooltipFadeIn {
-              from { opacity: 0; transform: translateY(6px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes tooltipFadeInUp {
-              from { opacity: 0; transform: translateY(-6px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -105,47 +95,11 @@ export default function LayerTooltip({
               {text}
             </p>
 
-            {showSageAction && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExploreWithSage?.();
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "#A8B89F",
-                  background:
-                    "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)",
-                  border: "1px solid rgba(122,139,114,0.25)",
-                  borderRadius: 8,
-                  padding: "9px 14px 9px 12px",
-                  cursor: "pointer",
-                  marginTop: 14,
-                  transition: "border-color 0.2s ease",
-                }}
-              >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  style={{ display: "block" }}
-                >
-                  <path
-                    d="M3 1.5L7 5L3 8.5"
-                    stroke="#A8B89F"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Explore with Sage
-              </button>
+            {showSageAction && onExploreWithSage && (
+              <ExploreWithSageButton
+                onClick={onExploreWithSage}
+                variant="dark"
+              />
             )}
           </div>
         </>

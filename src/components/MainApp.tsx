@@ -145,16 +145,6 @@ export default function MainApp() {
         >
           Forming...
         </p>
-        <style>{`
-          @keyframes mantleSpinner {
-            0% { transform: scale(${1}) rotate(0deg); }
-            100% { transform: scale(${1}) rotate(360deg); }
-          }
-          @keyframes mantleFadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
       </div>
     );
   }
@@ -250,12 +240,6 @@ export default function MainApp() {
               animation: "explorationGlow 3s ease-in-out infinite",
             }}
           />
-          <style>{`
-            @keyframes explorationGlow {
-              0%, 100% { opacity: 0.45; transform: scale(0.92); }
-              50% { opacity: 1; transform: scale(1.15); }
-            }
-          `}</style>
           <p
             style={{
               fontFamily: "var(--font-serif)",

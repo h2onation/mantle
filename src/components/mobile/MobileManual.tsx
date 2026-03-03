@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef } from "react";
 import { buildLayers } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
-import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
 import MeadowZone from "./MeadowZone";
 import type { ManualComponent, ExplorationContext } from "@/lib/types";
 
@@ -14,14 +13,9 @@ interface MobileManualProps {
 }
 
 export default function MobileManual({ components, onExploreWithSage }: MobileManualProps) {
-  const [showSoundMenu, setShowSoundMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
   const isEmpty = layers.every((l) => l.component === null && l.patterns.length === 0);
-
-  const handleCloseSoundMenu = useCallback(() => {
-    setShowSoundMenu(false);
-  }, []);
 
   return (
     <div
@@ -58,20 +52,8 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
           MANTLE
         </span>
 
-        {/* Sound indicator — right */}
-        <div
-          style={{
-            minWidth: "44px",
-            minHeight: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-          }}
-        >
-          <SoundIndicator compact onTap={() => setShowSoundMenu(!showSoundMenu)} />
-          <MobileSoundSelector open={showSoundMenu} onClose={handleCloseSoundMenu} />
-        </div>
+        {/* Right spacer */}
+        <div style={{ minWidth: "44px", minHeight: "44px" }} />
       </div>
 
       {/* Scrollable content */}
@@ -106,12 +88,6 @@ export default function MobileManual({ components, onExploreWithSage }: MobileMa
         {/* Empty state atmospheric text */}
         {isEmpty && (
           <>
-            <style>{`
-              @keyframes manualAtmoFadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-            `}</style>
             <p
               style={{
                 fontFamily: "var(--font-serif)",

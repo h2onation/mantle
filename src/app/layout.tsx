@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, DM_Sans, JetBrains_Mono } from "next/font/google";
-import { AudioProvider } from "@/components/providers/AudioProvider";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -40,12 +39,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('mantle_theme')||'sage';document.body.setAttribute('data-theme',t)})()`,
-          }}
-        />
-        <AudioProvider>{children}</AudioProvider>
+        {children}
       </body>
     </html>
   );

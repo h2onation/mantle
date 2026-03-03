@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { Pattern } from "./layer-definitions";
+import ExploreWithSageButton from "@/components/shared/ExploreWithSageButton";
 import type { ExplorationContext } from "@/lib/types";
 
 interface PatternItemProps {
@@ -21,11 +22,11 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
       style={{
         position: "relative",
         background: expanded
-          ? "linear-gradient(135deg, rgba(94,112,84,0.08) 0%, rgba(94,112,84,0.04) 100%)"
-          : "rgba(94,112,84,0.04)",
+          ? "linear-gradient(135deg, var(--cp-pattern-bg-active) 0%, var(--cp-pattern-bg) 100%)"
+          : "var(--cp-pattern-bg)",
         border: expanded
-          ? "1px solid rgba(94,112,84,0.15)"
-          : "1px solid rgba(94,112,84,0.08)",
+          ? "1px solid var(--cp-pattern-border-active)"
+          : "1px solid var(--cp-pattern-border)",
         borderRadius: 10,
         padding: "15px 16px",
         cursor: "pointer",
@@ -41,7 +42,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             top: 12,
             width: 3,
             height: 20,
-            backgroundColor: "#5E7054",
+            backgroundColor: "var(--cp-text-accent)",
             opacity: 0.5,
             borderRadius: "0 3px 3px 0",
           }}
@@ -60,7 +61,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
             fontFamily: "var(--font-sans)",
             fontSize: "14.5px",
             fontWeight: 480,
-            color: "rgba(94, 112, 84, 0.5)",
+            color: "var(--cp-pattern-name)",
             lineHeight: 1.3,
           }}
         >
@@ -115,7 +116,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: 14,
-            color: "rgba(58, 74, 52, 0.7)",
+            color: "var(--cp-pattern-content)",
             lineHeight: 1.72,
             margin: 0,
             padding: "12px 0 14px",
@@ -124,53 +125,19 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           {pattern.description}
         </p>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onExploreWithSage && layerId !== undefined && layerName) {
+        {onExploreWithSage && layerId !== undefined && layerName && (
+          <ExploreWithSageButton
+            onClick={() =>
               onExploreWithSage({
                 layerId,
                 layerName,
                 type: "pattern",
                 name: pattern.name,
                 content: pattern.description,
-              });
+              })
             }
-          }}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "rgba(94, 112, 84, 0.65)",
-            background:
-              "linear-gradient(135deg, rgba(94,112,84,0.1) 0%, rgba(94,112,84,0.05) 100%)",
-            border: "1px solid rgba(94,112,84,0.2)",
-            borderRadius: 8,
-            padding: "9px 14px 9px 12px",
-            cursor: "pointer",
-            transition: "border-color 0.2s ease",
-          }}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            style={{ display: "block" }}
-          >
-            <path
-              d="M3 1.5L7 5L3 8.5"
-              stroke="rgba(94, 112, 84, 0.65)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Explore with Sage
-        </button>
+          />
+        )}
       </div>
     </div>
   );
