@@ -93,7 +93,7 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
           fontSize: "15px",
           fontWeight: 400,
           color: "var(--color-text-dim)",
-          backgroundColor: "rgba(255,255,255,0.03)",
+          backgroundColor: "var(--color-btn-disabled-bg)",
           border: "1px solid var(--color-divider)",
           borderRadius: "12px",
           cursor: "pointer",

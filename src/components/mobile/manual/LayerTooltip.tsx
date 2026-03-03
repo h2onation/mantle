@@ -71,11 +71,11 @@ export default function LayerTooltip({
                 : { top: "calc(100% + 8px)" }),
               right: 0,
               width: 280,
-              background: "#1A1816",
+              background: "var(--color-tooltip-bg)",
               borderRadius: 12,
-              border: "1px solid rgba(122,139,114,0.15)",
+              border: "1px solid var(--color-tooltip-border)",
               boxShadow:
-                "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(122,139,114,0.05)",
+                "0 20px 60px var(--color-backdrop), 0 0 30px rgba(122,139,114,0.05)",
               padding: "18px 20px",
               zIndex: 50,
               animation: flipUp
@@ -87,7 +87,7 @@ export default function LayerTooltip({
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: "13.5px",
-                color: "rgba(212,203,192,0.6)",
+                color: "var(--color-tooltip-text)",
                 lineHeight: 1.65,
                 margin: 0,
               }}

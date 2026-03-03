@@ -33,6 +33,10 @@
   --cp-pattern-content: rgba(58, 74, 52, 0.7);
   --cp-explore-text: rgba(94, 112, 84, 0.65);
   --cp-explore-border: rgba(94, 112, 84, 0.2);
+  --cp-explore-text-dark: #A8B89F;
+  --cp-explore-bg-dark: rgba(122, 139, 114, 0.15);
+  --cp-explore-bg-dark-dim: rgba(122, 139, 114, 0.08);
+  --cp-explore-border-dark: rgba(122, 139, 114, 0.25);
   --cp-link: rgba(94, 112, 84, 0.55);
 
   /* Chat surfaces */
@@ -59,6 +63,20 @@
   --color-input-border-focus: rgba(122, 139, 114, 0.2);
   --color-input-border-active: rgba(122, 139, 114, 0.35);
   --color-input-placeholder: rgba(212, 203, 192, 0.28);
+
+  /* Onboarding forms */
+  --color-input-bg: rgba(255, 255, 255, 0.025);
+  --color-input-focus-glow: rgba(91, 117, 83, 0.06);
+  --color-checkbox-border: rgba(255, 255, 255, 0.12);
+  --color-checkbox-check: rgba(139, 157, 119, 0.8);
+  --color-btn-disabled-text: rgba(232, 228, 221, 0.18);
+  --color-btn-disabled-bg: rgba(255, 255, 255, 0.03);
+  --color-btn-disabled-border: rgba(255, 255, 255, 0.04);
+
+  /* Tooltip */
+  --color-tooltip-bg: #1A1816;
+  --color-tooltip-border: rgba(122, 139, 114, 0.15);
+  --color-tooltip-text: rgba(212, 203, 192, 0.6);
 
   /* Empty layer (dark void context) */
   --color-empty-text: rgba(212, 203, 192, 0.28);

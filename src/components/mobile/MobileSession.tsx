@@ -8,6 +8,15 @@ import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 
+const sageLabelStyle = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "10px",
+  fontWeight: 500,
+  letterSpacing: "0.15em",
+  textTransform: "uppercase" as const,
+  color: "var(--color-accent-muted)",
+} as const;
+
 interface MobileSessionProps {
   messages: ChatMessage[];
   conversationId: string | null;
@@ -428,16 +437,7 @@ export default function MobileSession({
                           paddingTop: i === 0 ? "12px" : "20px",
                         }}
                       >
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "10px",
-                            fontWeight: 500,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase" as const,
-                            color: "var(--color-accent-muted)",
-                          }}
-                        >
+                        <span style={sageLabelStyle}>
                           Sage
                         </span>
                       </div>
@@ -526,16 +526,7 @@ export default function MobileSession({
                   messages[messages.length - 1]?.role !== "assistant" ||
                   messages[messages.length - 1]?.isCheckpoint === true ? (
                     <div style={{ paddingBottom: "8px" }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "10px",
-                          fontWeight: 500,
-                          letterSpacing: "0.15em",
-                          textTransform: "uppercase" as const,
-                          color: "var(--color-accent-muted)",
-                        }}
-                      >
+                      <span style={sageLabelStyle}>
                         Sage
                       </span>
                     </div>

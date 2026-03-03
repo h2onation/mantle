@@ -57,7 +57,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
     fontFamily: "var(--font-serif)",
     fontSize: "15px",
     color: "var(--color-text)",
-    backgroundColor: "rgba(255,255,255,0.025)",
+    backgroundColor: "var(--color-input-bg)",
     border: "1px solid var(--color-divider)",
     borderRadius: "12px",
     outline: "none",

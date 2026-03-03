@@ -109,7 +109,7 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
           fontSize: "15px",
           lineHeight: 1.75,
           color: "var(--color-text)",
-          backgroundColor: "rgba(255,255,255,0.025)",
+          backgroundColor: "var(--color-input-bg)",
           border: "1px solid var(--color-divider)",
           borderRadius: "14px",
           padding: "16px",
@@ -122,7 +122,7 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
         }}
         onFocusCapture={(e) => {
           e.currentTarget.style.borderColor = "var(--color-input-border-focus)";
-          e.currentTarget.style.boxShadow = "0 0 40px rgba(91,117,83,0.06)";
+          e.currentTarget.style.boxShadow = "0 0 40px var(--color-input-focus-glow)";
         }}
         onBlurCapture={(e) => {
           e.currentTarget.style.borderColor = "var(--color-divider)";
@@ -148,7 +148,7 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
             borderRadius: "4px",
             border: ageConfirmed
               ? "1px solid var(--color-accent-dim)"
-              : "1px solid rgba(255,255,255,0.12)",
+              : "1px solid var(--color-checkbox-border)",
             backgroundColor: ageConfirmed
               ? "var(--color-accent-glow)"
               : "transparent",
@@ -161,7 +161,7 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
         >
           {ageConfirmed && (
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2.5 6L5 8.5L9.5 3.5" stroke="rgba(139,157,119,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2.5 6L5 8.5L9.5 3.5" stroke="var(--color-checkbox-check)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </div>
@@ -200,13 +200,13 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
           fontFamily: "var(--font-serif)",
           fontSize: "15px",
           fontWeight: 400,
-          color: isEnabled ? "var(--color-void)" : "rgba(232,228,221,0.18)",
+          color: isEnabled ? "var(--color-void)" : "var(--color-btn-disabled-text)",
           backgroundColor: isEnabled
             ? "var(--color-accent-strong)"
-            : "rgba(255,255,255,0.03)",
+            : "var(--color-btn-disabled-bg)",
           border: isEnabled
             ? "1px solid var(--color-input-border-active)"
-            : "1px solid rgba(255,255,255,0.04)",
+            : "1px solid var(--color-btn-disabled-border)",
           borderRadius: "12px",
           cursor: isEnabled ? "pointer" : "default",
           transition: "all 0.4s ease",

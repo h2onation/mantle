@@ -24,12 +24,12 @@ export default function ExploreWithSageButton({
         fontFamily: "var(--font-sans)",
         fontSize: 12,
         fontWeight: 500,
-        color: isDark ? "#A8B89F" : "var(--cp-explore-text)",
+        color: isDark ? "var(--cp-explore-text-dark)" : "var(--cp-explore-text)",
         background: isDark
-          ? "linear-gradient(135deg, rgba(122,139,114,0.15) 0%, rgba(122,139,114,0.08) 100%)"
+          ? "linear-gradient(135deg, var(--cp-explore-bg-dark) 0%, var(--cp-explore-bg-dark-dim) 100%)"
           : "linear-gradient(135deg, rgba(94,112,84,0.1) 0%, rgba(94,112,84,0.05) 100%)",
         border: isDark
-          ? "1px solid rgba(122,139,114,0.25)"
+          ? "1px solid var(--cp-explore-border-dark)"
           : "1px solid var(--cp-explore-border)",
         borderRadius: 8,
         padding: "9px 14px 9px 12px",
@@ -47,7 +47,7 @@ export default function ExploreWithSageButton({
       >
         <path
           d="M3 1.5L7 5L3 8.5"
-          stroke={isDark ? "#A8B89F" : "rgba(94, 112, 84, 0.65)"}
+          stroke={isDark ? "var(--cp-explore-text-dark)" : "var(--cp-explore-text)"}
           strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
