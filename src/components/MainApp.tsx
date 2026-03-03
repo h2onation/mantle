@@ -207,12 +207,6 @@ export default function MainApp() {
               animation: "explorationGlow 3s ease-in-out infinite",
             }}
           />
-          <style>{`
-            @keyframes explorationGlow {
-              0%, 100% { opacity: 0.45; transform: scale(0.92); }
-              50% { opacity: 1; transform: scale(1.15); }
-            }
-          `}</style>
           <p
             style={{
               fontFamily: "var(--font-serif)",

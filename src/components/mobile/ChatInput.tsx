@@ -159,7 +159,7 @@ export default function ChatInput({
   }
 
   return (
-    <div className="shrink-0 px-[16px] pt-[8px] mb-[10px]">
+    <div style={{ flexShrink: 0, paddingLeft: "16px", paddingRight: "16px", paddingTop: "8px", marginBottom: "10px" }}>
       {/* Voice error toast */}
       {voice.error && (
         <div
@@ -167,7 +167,7 @@ export default function ChatInput({
             padding: "6px 12px",
             marginBottom: "6px",
             borderRadius: "8px",
-            backgroundColor: "rgba(181, 86, 77, 0.12)",
+            backgroundColor: "var(--color-error-ghost)",
             animation: "checkpointFadeIn 0.3s ease-out both",
           }}
         >
@@ -175,7 +175,7 @@ export default function ChatInput({
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "12px",
-              color: "rgba(181, 86, 77, 0.7)",
+              color: "var(--color-error-text)",
             }}
           >
             {voice.error}
@@ -186,18 +186,20 @@ export default function ChatInput({
       <div style={{ display: "flex", alignItems: "flex-end", gap: "8px" }}>
         {/* Input container */}
         <div
-          className="relative rounded-[12px] transition-all duration-[400ms] ease-in-out"
           style={{
+            position: "relative" as const,
+            borderRadius: "12px",
+            transition: "all 400ms ease-in-out",
             flex: 1,
             minWidth: 0,
             backgroundColor:
-              inputFocused || isRecording ? "#151311" : "transparent",
+              inputFocused || isRecording ? "var(--color-surface-sage)" : "transparent",
             border: `1px solid ${
               isRecording
-                ? "rgba(122, 139, 114, 0.35)"
+                ? "var(--color-input-border-active)"
                 : inputFocused
-                  ? "rgba(122, 139, 114, 0.2)"
-                  : "rgba(212, 203, 192, 0.12)"
+                  ? "var(--color-input-border-focus)"
+                  : "var(--color-input-border)"
             }`,
           }}
         >
@@ -208,7 +210,7 @@ export default function ChatInput({
                 position: "absolute",
                 left: "16px",
                 top: "13px",
-                color: "rgba(212, 203, 192, 0.28)",
+                color: "var(--color-input-placeholder)",
                 fontSize: "14.5px",
                 fontFamily: "var(--font-sans)",
                 fontWeight: 400,
@@ -243,15 +245,22 @@ export default function ChatInput({
             placeholder=""
             rows={1}
             readOnly={voice.countdownActive}
-            className="w-full bg-transparent border-none outline-none resize-none text-[14.5px] font-normal leading-[1.6]"
             style={{
+              width: "100%",
+              backgroundColor: "transparent",
+              border: "none",
+              outline: "none",
+              resize: "none" as const,
+              fontSize: "14.5px",
+              fontWeight: 400,
+              lineHeight: 1.6,
               fontFamily: "var(--font-sans)",
               padding: "12px 16px",
               color:
                 isRecording && voice.isInterim
                   ? "rgba(200, 191, 180, 0.5)"
-                  : "#C8BFB4",
-              caretColor: isRecording ? "transparent" : "#7A8B72",
+                  : "var(--color-input-text)",
+              caretColor: isRecording ? "transparent" : "var(--color-accent-muted)",
             }}
           />
         </div>
@@ -322,7 +331,7 @@ export default function ChatInput({
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#7A8B72"
+              stroke="var(--color-accent-muted)"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -342,7 +351,7 @@ export default function ChatInput({
               stroke={
                 buttonMode === "mic-denied"
                   ? "rgba(181, 86, 77, 0.5)"
-                  : "#7A8B72"
+                  : "var(--color-accent-muted)"
               }
               strokeWidth="2"
               strokeLinecap="round"

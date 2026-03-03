@@ -30,7 +30,7 @@ export default function MobileLayout({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#252320",
+        backgroundColor: "var(--color-shell)",
       }}
     >
       <div

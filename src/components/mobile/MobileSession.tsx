@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import MobileSoundSelector, { SoundIndicator } from "./MobileSoundSelector";
-import SessionParticles from "./SessionParticles";
+import { useState, useRef, useEffect } from "react";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
 import MeadowZone from "./MeadowZone";
@@ -50,8 +48,6 @@ export default function MobileSession({
   voiceAutoSend,
 }: MobileSessionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showSoundMenu, setShowSoundMenu] = useState(false);
-  const [isConverging, setIsConverging] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -65,20 +61,13 @@ export default function MobileSession({
     }
   }, [messages, isLoading]);
 
-  // Trigger particle convergence when a checkpoint arrives
+  // Reset checkpoint action state when a new checkpoint arrives
   useEffect(() => {
     if (activeCheckpoint && !prevCheckpointRef.current) {
-      setIsConverging(true);
       setCheckpointActionState(null);
-      const timer = setTimeout(() => setIsConverging(false), 1500);
-      return () => clearTimeout(timer);
     }
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
-
-  const handleCloseSoundMenu = useCallback(() => {
-    setShowSoundMenu(false);
-  }, []);
 
   async function handleOpenDrawer() {
     setDrawerOpen(true);
@@ -148,20 +137,8 @@ export default function MobileSession({
           MANTLE
         </span>
 
-        {/* Sound indicator — right */}
-        <div
-          style={{
-            minWidth: "44px",
-            minHeight: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-          }}
-        >
-          <SoundIndicator compact onTap={() => setShowSoundMenu(!showSoundMenu)} />
-          <MobileSoundSelector open={showSoundMenu} onClose={handleCloseSoundMenu} />
-        </div>
+        {/* Right spacer */}
+        <div style={{ minWidth: "44px", minHeight: "44px" }} />
       </div>
 
       {/* Messages area */}
@@ -178,7 +155,6 @@ export default function MobileSession({
           WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.4) 6%, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.9) 14%, black 18%)",
         }}
       >
-        <SessionParticles messageCount={messages.length} converge={isConverging} />
         {/* Spacer pushes messages to bottom of viewport */}
         <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
@@ -235,7 +211,7 @@ export default function MobileSession({
                               fontWeight: 500,
                               letterSpacing: "2.5px",
                               textTransform: "uppercase",
-                              color: "#5E7054",
+                              color: "var(--cp-text-accent)",
                             }}
                           >
                             Sage
@@ -249,7 +225,7 @@ export default function MobileSession({
                             fontWeight: 400,
                             lineHeight: 1.75,
                             letterSpacing: "-0.2px",
-                            color: "#2A3326",
+                            color: "var(--cp-text)",
                           }}
                         >
                           {renderMarkdown(msg.content)}
@@ -262,7 +238,7 @@ export default function MobileSession({
                               fontFamily: "var(--font-serif)",
                               fontSize: "13px",
                               fontStyle: "italic",
-                              color: "#455040",
+                              color: "var(--cp-text-dim)",
                               margin: "20px 0 0 0",
                             }}
                           >
@@ -289,9 +265,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#5E7054",
+                                color: "var(--cp-text-accent)",
                                 background: "transparent",
-                                border: "1px solid rgba(94, 112, 84, 0.35)",
+                                border: "1px solid var(--cp-border)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -309,9 +285,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#455040",
+                                color: "var(--cp-text-dim)",
                                 background: "transparent",
-                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                border: "1px solid var(--cp-border-dim)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -329,9 +305,9 @@ export default function MobileSession({
                                 fontFamily: "var(--font-sans)",
                                 fontSize: "12px",
                                 fontWeight: 500,
-                                color: "#455040",
+                                color: "var(--cp-text-dim)",
                                 background: "transparent",
-                                border: "1px solid rgba(69, 80, 64, 0.2)",
+                                border: "1px solid var(--cp-border-dim)",
                                 borderRadius: "20px",
                                 padding: "6px 16px",
                                 cursor: "pointer",
@@ -355,8 +331,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: checkpointActionState === "confirmed"
-                                  ? "#5E7054"
-                                  : "#455040",
+                                  ? "var(--cp-text-accent)"
+                                  : "var(--cp-text-dim)",
                               }}
                             >
                               {checkpointActionState === "confirmed" && "Written to manual"}
@@ -380,8 +356,8 @@ export default function MobileSession({
                                 fontWeight: 500,
                                 letterSpacing: "0.08em",
                                 color: msg.checkpointMeta.status === "confirmed"
-                                  ? "#5E7054"
-                                  : "#455040",
+                                  ? "var(--cp-text-accent)"
+                                  : "var(--cp-text-dim)",
                               }}
                             >
                               {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
@@ -396,7 +372,7 @@ export default function MobileSession({
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "10px",
-                              color: "#455040",
+                              color: "var(--cp-text-dim)",
                               marginTop: "12px",
                               display: "block",
                             }}
@@ -435,23 +411,34 @@ export default function MobileSession({
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    className={isFirstInSageSequence ? "relative bg-[#151311]" : "bg-[#151311]"}
+                    style={{
+                      position: isFirstInSageSequence ? "relative" as const : undefined,
+                      backgroundColor: "var(--color-surface-sage)",
+                    }}
                   >
                     {/* Top dissolve overlay */}
                     {isFirstInSageSequence && (
-                      <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to bottom, var(--color-void), transparent)" }} />
                     )}
                     {/* Sage label */}
                     {isFirstInSageSequence && (
                       <div
-                        className="px-[28px] pb-[8px]"
                         style={{
+                          paddingLeft: "28px",
+                          paddingRight: "28px",
+                          paddingBottom: "8px",
                           paddingTop: i === 0 ? "12px" : "20px",
                         }}
                       >
                         <span
-                          className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
-                          style={{ fontFamily: "var(--font-mono)" }}
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "10px",
+                            fontWeight: 500,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase" as const,
+                            color: "var(--color-accent-muted)",
+                          }}
                         >
                           Sage
                         </span>
@@ -459,25 +446,32 @@ export default function MobileSession({
                     )}
                     {/* Message — text fades in within the persistent panel */}
                     <div
-                      className="px-[28px]"
                       style={{
+                        paddingLeft: "28px",
+                        paddingRight: "28px",
                         paddingTop: isFirstInSageSequence ? "0" : "14px",
                         paddingBottom: isLastInSageSequence ? "12px" : "0",
                         animation: "checkpointFadeIn 0.8s ease-out both",
                       }}
                     >
                       <div
-                        className="text-[15px] leading-[1.7] font-[430] text-[#D4CBC0] tracking-[0.01em]"
-                        style={{ fontFamily: "var(--font-sans)" }}
+                        style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "15px",
+                          lineHeight: 1.7,
+                          fontWeight: 430,
+                          color: "var(--color-sage-text)",
+                          letterSpacing: "0.01em",
+                        }}
                       >
                         {renderMarkdown(msg.content)}
                       </div>
                     </div>
                     {/* Bottom dissolve overlay */}
                     {isLastInSageSequence && (
-                      <div className="relative">
-                        <div className="absolute bottom-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to top, var(--color-void), transparent)' }} />
-                        <div className="h-[12px]" />
+                      <div style={{ position: "relative" }}>
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to top, var(--color-void), transparent)" }} />
+                        <div style={{ height: "12px" }} />
                       </div>
                     )}
                   </div>
@@ -488,14 +482,24 @@ export default function MobileSession({
               return (
                 <div
                   key={msg.id || `msg-${i}`}
-                  className="pr-[28px] pl-[48px] py-[10px]"
                   style={{
+                    paddingRight: "28px",
+                    paddingLeft: "48px",
+                    paddingTop: "10px",
+                    paddingBottom: "10px",
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
                   <p
-                    className="text-[15px] leading-[1.7] font-normal text-[#C0B8AD] tracking-[0.01em] m-0"
-                    style={{ fontFamily: "var(--font-sans)" }}
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "15px",
+                      lineHeight: 1.7,
+                      fontWeight: 400,
+                      color: "var(--color-user-text)",
+                      letterSpacing: "0.01em",
+                      margin: 0,
+                    }}
                   >
                     {msg.content}
                   </p>
@@ -507,21 +511,32 @@ export default function MobileSession({
             {(isLoading || isStreaming) &&
               (messages.length === 0 || messages[messages.length - 1].role === "user") && (
                 <div
-                  className="relative bg-[#151311] px-[28px] pt-[20px] pb-[20px]"
                   style={{
+                    position: "relative",
+                    backgroundColor: "var(--color-surface-sage)",
+                    paddingLeft: "28px",
+                    paddingRight: "28px",
+                    paddingTop: "20px",
+                    paddingBottom: "20px",
                     animation: "checkpointFadeIn 0.3s ease-out both",
                   }}
                 >
                   {/* Top dissolve overlay */}
-                  <div className="absolute top-0 left-0 right-0 h-[12px] z-[1] pointer-events-none" style={{ background: 'linear-gradient(to bottom, var(--color-void), transparent)' }} />
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to bottom, var(--color-void), transparent)" }} />
                   {/* Show Sage label when prev message was user or checkpoint */}
                   {messages.length === 0 ||
                   messages[messages.length - 1]?.role !== "assistant" ||
                   messages[messages.length - 1]?.isCheckpoint === true ? (
-                    <div className="pb-[8px]">
+                    <div style={{ paddingBottom: "8px" }}>
                       <span
-                        className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#7A8B72]"
-                        style={{ fontFamily: "var(--font-mono)" }}
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase" as const,
+                          color: "var(--color-accent-muted)",
+                        }}
                       >
                         Sage
                       </span>
@@ -535,7 +550,7 @@ export default function MobileSession({
                           width: "5px",
                           height: "5px",
                           borderRadius: "50%",
-                          backgroundColor: "#7A8B72",
+                          backgroundColor: "var(--color-accent-muted)",
                           opacity: 0.5,
                           animation: "sagePulse 2.4s ease-in-out infinite",
                           animationDelay: `${dotIdx * 0.35}s`,

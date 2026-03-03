@@ -26,7 +26,7 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
           fontFamily: "var(--font-sans)",
           fontSize: "13.5px",
           fontWeight: 430,
-          color: "rgba(212, 203, 192, 0.28)",
+          color: "var(--color-empty-text)",
           lineHeight: 1.3,
         }}
       >
@@ -49,7 +49,7 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
             width: 24,
             height: 24,
             borderRadius: "50%",
-            background: "rgba(212, 203, 192, 0.04)",
+            background: "var(--color-empty-bg)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -63,13 +63,13 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
             fill="none"
             style={{ display: "block" }}
           >
-            <circle cx="5" cy="2" r="1" fill="rgba(212, 203, 192, 0.25)" />
+            <circle cx="5" cy="2" r="1" fill="var(--color-empty-icon)" />
             <line
               x1="5"
               y1="4.5"
               x2="5"
               y2="8.5"
-              stroke="rgba(212, 203, 192, 0.25)"
+              stroke="var(--color-empty-icon)"
               strokeWidth="1.2"
               strokeLinecap="round"
             />
