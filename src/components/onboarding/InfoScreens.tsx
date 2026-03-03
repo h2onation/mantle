@@ -125,7 +125,7 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
           flexDirection: "column",
           justifyContent: "flex-end",
           height: "100%",
-          padding: "0 32px 148px",
+          padding: "0 32px calc(96px + env(safe-area-inset-bottom, 0px) + 16px)",
           boxSizing: "border-box",
           opacity: contentVisible ? 1 : 0,
           transform: contentVisible
@@ -203,7 +203,7 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
       <div
         style={{
           position: "absolute",
-          bottom: "52px",
+          bottom: "calc(32px + env(safe-area-inset-bottom, 0px))",
           left: "32px",
           right: "32px",
           display: "flex",

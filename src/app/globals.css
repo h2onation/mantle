@@ -71,8 +71,19 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
   background-color: var(--color-void);
   color: var(--color-text);
 }
@@ -158,4 +169,10 @@ textarea::placeholder {
 @keyframes tooltipFadeInUp {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Voice waveform bar animation */
+@keyframes waveformBar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
 }

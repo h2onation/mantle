@@ -85,7 +85,7 @@ export default function OnboardingFlow() {
       <div
         style={{
           width: "100%",
-          height: "100vh",
+          height: "100dvh",
           backgroundColor: "var(--color-void)",
         }}
       />
@@ -98,7 +98,7 @@ export default function OnboardingFlow() {
         width: "100%",
         maxWidth: "430px",
         margin: "0 auto",
-        height: "100vh",
+        height: "100dvh",
         backgroundColor: "var(--color-void)",
         position: "relative",
         overflow: "hidden",

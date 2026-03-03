@@ -163,92 +163,123 @@ export default function ChatInput({
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: "8px" }}>
-        {/* Input container */}
-        <div
-          style={{
-            position: "relative" as const,
-            borderRadius: "12px",
-            transition: "all 400ms ease-in-out",
-            flex: 1,
-            minWidth: 0,
-            backgroundColor:
-              inputFocused || isRecording ? "var(--color-surface-sage)" : "transparent",
-            border: `1px solid ${
-              isRecording
-                ? "var(--color-input-border-active)"
-                : inputFocused
-                  ? "var(--color-input-border-focus)"
-                  : "var(--color-input-border)"
-            }`,
-          }}
-        >
-          {/* Whisper placeholder */}
-          {!input && !inputFocused && !isRecording && (
-            <span
-              style={{
-                position: "absolute",
-                left: "16px",
-                top: "13px",
-                color: "var(--color-input-placeholder)",
-                fontSize: "14.5px",
-                fontFamily: "var(--font-sans)",
-                fontWeight: 400,
-                pointerEvents: "none",
-              }}
-            >
-              say what comes to mind...
-            </span>
-          )}
-
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder=""
-            rows={1}
-            autoComplete="off"
-            autoCorrect="off"
+      {/* Input container — button lives inside */}
+      <div
+        style={{
+          position: "relative" as const,
+          borderRadius: "12px",
+          transition: "all 400ms ease-in-out",
+          backgroundColor:
+            inputFocused || isRecording ? "var(--color-surface-sage)" : "transparent",
+          border: `1px solid ${
+            isRecording
+              ? "var(--color-input-border-active)"
+              : inputFocused
+                ? "var(--color-input-border-focus)"
+                : "var(--color-input-border)"
+          }`,
+        }}
+      >
+        {/* Whisper placeholder */}
+        {!input && !inputFocused && !isRecording && (
+          <span
             style={{
-              width: "100%",
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "none" as const,
+              position: "absolute",
+              left: "16px",
+              top: "13px",
+              color: "var(--color-input-placeholder)",
               fontSize: "14.5px",
-              fontWeight: 400,
-              lineHeight: 1.6,
               fontFamily: "var(--font-sans)",
-              padding: "12px 16px",
-              color:
-                isRecording && voice.isInterim
-                  ? "rgba(200, 191, 180, 0.5)"
-                  : "var(--color-input-text)",
-              caretColor: isRecording ? "transparent" : "var(--color-accent-muted)",
+              fontWeight: 400,
+              pointerEvents: "none",
             }}
-          />
-        </div>
+          >
+            say what comes to mind...
+          </span>
+        )}
 
-        {/* Single swap button — outside the input */}
+        {/* Waveform bars — visible during recording before transcript arrives */}
+        {isRecording && !voice.transcript && (
+          <div
+            style={{
+              position: "absolute" as const,
+              left: "16px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px",
+              height: "20px",
+              zIndex: 1,
+              pointerEvents: "none",
+            }}
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: "2px",
+                  height: "100%",
+                  borderRadius: "1px",
+                  backgroundColor: "var(--color-accent-muted)",
+                  opacity: 0.6,
+                  animation: "waveformBar 1.2s ease-in-out infinite",
+                  animationDelay: `${i * 0.15}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder=""
+          rows={1}
+          autoComplete="off"
+          autoCorrect="off"
+          style={{
+            width: "100%",
+            backgroundColor: "transparent",
+            border: "none",
+            outline: "none",
+            resize: "none" as const,
+            fontSize: "14.5px",
+            fontWeight: 400,
+            lineHeight: 1.6,
+            fontFamily: "var(--font-sans)",
+            padding: "12px 48px 12px 16px",
+            boxSizing: "border-box",
+            color:
+              isRecording && voice.isInterim
+                ? "rgba(200, 191, 180, 0.5)"
+                : "var(--color-input-text)",
+            caretColor: isRecording ? "transparent" : "var(--color-accent-muted)",
+          }}
+        />
+
+        {/* Action button — inside the input bubble */}
         <button
           onClick={handleButtonClick}
           disabled={disabled && buttonMode !== "stop"}
           style={{
+            position: "absolute" as const,
+            right: "6px",
+            bottom: "6px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             width: "36px",
             height: "36px",
-            flexShrink: 0,
             background: "none",
             border: "none",
             cursor:
               disabled && buttonMode === "mic" ? "default" : "pointer",
             padding: 0,
-            marginBottom: "4px",
             WebkitTapHighlightColor: "transparent",
             opacity:
               buttonMode === "mic-denied"
@@ -257,78 +288,86 @@ export default function ChatInput({
                   ? 0.3
                   : 1,
             transition: "opacity 0.3s ease",
+            zIndex: 1,
           }}
         >
-          {/* Stop icon with pulse ring */}
+          {/* Stop icon — filled circle with inner square */}
           {buttonMode === "stop" && (
             <div
               style={{
-                position: "relative",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                animation: "mantleFadeIn 0.15s ease-out both",
               }}
             >
               <div
                 style={{
-                  position: "absolute",
-                  width: "26px",
-                  height: "26px",
+                  width: "24px",
+                  height: "24px",
                   borderRadius: "50%",
-                  border: "1px solid var(--color-accent)",
-                  opacity: 0.4,
+                  backgroundColor: "var(--color-accent)",
+                  opacity: 0.8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   animation: "voicePulse 2s ease-in-out infinite",
                 }}
-              />
-              <div
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "2px",
-                  backgroundColor: "var(--color-accent)",
-                }}
-              />
+              >
+                <div
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "1.5px",
+                    backgroundColor: "var(--color-void)",
+                  }}
+                />
+              </div>
             </div>
           )}
 
           {/* Send arrow */}
           {buttonMode === "send" && (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-accent-muted)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="12" y1="19" x2="12" y2="5" />
-              <polyline points="5 12 12 5 19 12" />
-            </svg>
+            <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--color-accent-muted)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg>
+            </div>
           )}
 
           {/* Mic icon */}
           {(buttonMode === "mic" || buttonMode === "mic-denied") && (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={
-                buttonMode === "mic-denied"
-                  ? "rgba(181, 86, 77, 0.5)"
-                  : "var(--color-accent-muted)"
-              }
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="9" y="1" width="6" height="12" rx="3" />
-              <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-              <line x1="12" y1="18" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>
+            <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={
+                  buttonMode === "mic-denied"
+                    ? "rgba(181, 86, 77, 0.5)"
+                    : "var(--color-accent-muted)"
+                }
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="1" width="6" height="12" rx="3" />
+                <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                <line x1="12" y1="18" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </div>
           )}
         </button>
       </div>
