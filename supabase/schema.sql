@@ -152,3 +152,21 @@ alter table public.manual_changelog enable row level security;
 create policy "Users can view their own changelog"
   on public.manual_changelog for select
   using (auth.uid() = user_id);
+
+-- Safety events: logged when crisis content is detected in user messages.
+-- Access via service role only — no user-facing policies.
+create table public.safety_events (
+  id uuid default uuid_generate_v4() primary key,
+  conversation_id uuid references public.conversations(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  crisis_detected boolean default true,
+  sage_included_988 boolean,
+  created_at timestamptz default now() not null
+);
+
+create index idx_safety_events_user_id on public.safety_events(user_id);
+create index idx_safety_events_conversation_id on public.safety_events(conversation_id);
+create index idx_safety_events_created_at on public.safety_events(created_at desc);
+
+alter table public.safety_events enable row level security;
+-- RLS enabled but no policies = blocked for all authenticated users.

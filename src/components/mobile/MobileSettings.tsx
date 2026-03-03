@@ -434,6 +434,85 @@ export default function MobileSettings({
         </p>
       </div>
 
+      {/* Crisis Support */}
+      <div
+        style={{
+          padding: "18px 0",
+          borderBottom: "1px solid var(--color-divider)",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--color-text)",
+            letterSpacing: "0.2px",
+            margin: 0,
+          }}
+        >
+          Crisis Support
+        </p>
+        <div style={{ marginTop: "8px" }}>
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              color: "var(--color-text-ghost)",
+              letterSpacing: "0.5px",
+              margin: "0 0 4px 0",
+            }}
+          >
+            988 Suicide &amp; Crisis Lifeline
+          </p>
+          <a
+            href="tel:988"
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-accent)",
+              textDecoration: "none",
+            }}
+          >
+            Call or text 988
+          </a>
+        </div>
+        <div style={{ marginTop: "10px" }}>
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              color: "var(--color-text-ghost)",
+              letterSpacing: "0.5px",
+              margin: "0 0 4px 0",
+            }}
+          >
+            Crisis Text Line
+          </p>
+          <a
+            href="sms:741741?body=HOME"
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-accent)",
+              textDecoration: "none",
+            }}
+          >
+            Text HOME to 741741
+          </a>
+        </div>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            color: "var(--color-text-ghost)",
+            letterSpacing: "0.5px",
+            margin: "10px 0 0 0",
+          }}
+        >
+          Free, confidential, available 24/7
+        </p>
+      </div>
+
       {/* Logout */}
       <button
         onClick={handleLogout}

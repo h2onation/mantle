@@ -4,6 +4,7 @@ import {
   mapSystemMessages,
   parseManualEntryBlock,
   createDelimiterBuffer,
+  detectCrisisInUserMessage,
 } from "@/lib/sage/call-sage";
 
 // ── applySlidingWindow ──
@@ -230,6 +231,46 @@ describe("parseManualEntryBlock", () => {
       content: "You seek control in uncertain situations.",
       changelog: "Observed pattern",
     });
+  });
+});
+
+// ── detectCrisisInUserMessage ──
+
+describe("detectCrisisInUserMessage", () => {
+  it("detects direct crisis phrases", () => {
+    expect(detectCrisisInUserMessage("I want to kill myself")).toBe(true);
+    expect(detectCrisisInUserMessage("I want to hurt myself")).toBe(true);
+    expect(detectCrisisInUserMessage("I want to die")).toBe(true);
+    expect(detectCrisisInUserMessage("thinking about suicide")).toBe(true);
+    expect(detectCrisisInUserMessage("I've been doing self-harm")).toBe(true);
+  });
+
+  it("detects indirect crisis phrases", () => {
+    expect(detectCrisisInUserMessage("everyone would be better off without me")).toBe(true);
+    expect(detectCrisisInUserMessage("there's no point anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I just want to make it stop")).toBe(true);
+    expect(detectCrisisInUserMessage("I can't do this anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I want to disappear")).toBe(true);
+    expect(detectCrisisInUserMessage("life is not worth living")).toBe(true);
+    expect(detectCrisisInUserMessage("I'm tired of being alive")).toBe(true);
+  });
+
+  it("is case-insensitive", () => {
+    expect(detectCrisisInUserMessage("I Want To HURT Myself")).toBe(true);
+    expect(detectCrisisInUserMessage("SUICIDE")).toBe(true);
+  });
+
+  it("does not trigger on grief or general discussion of death", () => {
+    expect(detectCrisisInUserMessage("I've been thinking about death a lot since my grandmother passed")).toBe(false);
+    expect(detectCrisisInUserMessage("My dog died last week and I'm sad")).toBe(false);
+    expect(detectCrisisInUserMessage("I had a hard day at work")).toBe(false);
+  });
+
+  it("detects phrases with contractions and without apostrophes", () => {
+    expect(detectCrisisInUserMessage("I dont want to be here")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to be here")).toBe(true);
+    expect(detectCrisisInUserMessage("I cant do this anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("whats the point of living")).toBe(true);
   });
 });
 

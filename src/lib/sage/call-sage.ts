@@ -179,6 +179,40 @@ export function createDelimiterBuffer(delimiter: string) {
   };
 }
 
+const CRISIS_PHRASES = [
+  "kill myself",
+  "hurt myself",
+  "want to die",
+  "end my life",
+  "suicide",
+  "self-harm",
+  "don't want to be here",
+  "dont want to be here",
+  "better off without me",
+  "no point anymore",
+  "make it stop",
+  "can't do this anymore",
+  "cant do this anymore",
+  "want to disappear",
+  "not worth living",
+  "no reason to keep going",
+  "tired of being alive",
+  "wish i wouldn't wake up",
+  "wish i wouldnt wake up",
+  "don't want to be here anymore",
+  "dont want to be here anymore",
+  "what's the point of living",
+  "whats the point of living",
+];
+
+export function detectCrisisInUserMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return CRISIS_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
+const CRISIS_RESOURCES =
+  "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
+
 interface CallSageOptions {
   conversationId: string;
   userId: string;
@@ -401,9 +435,47 @@ export function callSage({
         }
 
         // 10. Parse and strip manual entry block if present
-        const { conversationalText, manualEntry } =
-          parseManualEntryBlock(fullText);
+        const parsed = parseManualEntryBlock(fullText);
+        const { manualEntry } = parsed;
+        let conversationalText = parsed.conversationalText;
         const entryStart = fullText.indexOf("|||MANUAL_ENTRY|||");
+
+        // 10b. Crisis detection — output validation + logging
+        if (message !== null && detectCrisisInUserMessage(message)) {
+          const sageIncluded988 = fullText.includes("988");
+
+          if (!sageIncluded988) {
+            fullText += CRISIS_RESOURCES;
+            conversationalText += CRISIS_RESOURCES;
+
+            // Flush the appended crisis resources to the client
+            flushSafe(CRISIS_RESOURCES);
+          }
+
+          console.log("[callSage] CRISIS DETECTED", {
+            timestamp: new Date().toISOString(),
+            conversation_id: convId,
+            crisis_detected: true,
+            sage_included_988: sageIncluded988,
+          });
+
+          admin
+            .from("safety_events")
+            .insert({
+              conversation_id: convId,
+              user_id: userId,
+              crisis_detected: true,
+              sage_included_988: sageIncluded988,
+              created_at: new Date().toISOString(),
+            })
+            .then(({ error }) => {
+              if (error)
+                console.error(
+                  "[callSage] Failed to log safety event:",
+                  error
+                );
+            });
+        }
 
         // 11. Save Sage's response (conversational part only)
         const { data: savedResponse } = await admin
