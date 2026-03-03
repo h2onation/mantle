@@ -204,11 +204,11 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("FIRST MESSAGE");
     });
 
-    it("contains the scripted meta-frame as a literal string", () => {
+    it("tells Sage the orientation box handles intro so first message is conversational", () => {
       const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("Welcome to our session. This is where we explore what's top of mind and start building a manual of how you operate.");
-      expect(result).toContain("People are great for processing, but they have their own stakes in your story. I don't.");
-      expect(result).toContain("Push back anytime I'm off. And the more real you are with me, the more useful this gets.");
+      expect(result).toContain("welcome orientation box");
+      expect(result).toContain("purely conversational");
+      expect(result).toContain("One short paragraph");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {
