@@ -25,36 +25,60 @@ export default function MobileLayout({
   return (
     <div
       style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "var(--color-void)",
+        width: "100%",
+        height: "100dvh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#252320",
       }}
     >
-      {([
-        ["session", sessionContent],
-        ["manual", manualContent],
-        ["guidance", guidanceContent],
-        ["settings", settingsContent],
-      ] as const).map(([tab, content]) => (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          maxWidth: 430,
+          maxHeight: 932,
+          borderRadius: "clamp(0px, (100vw - 430px) * 999, 40px)",
+          border: "clamp(0px, (100vw - 430px) * 999, 1px) solid rgba(226, 224, 219, 0.08)",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
         <div
-          key={tab}
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: keyboardOpen
-              ? "0px"
-              : "calc(68px + env(safe-area-inset-bottom, 0px))",
-            overflowX: "hidden",
-            display: activeTab === tab ? "block" : "none",
-            transition: "bottom 0.25s ease",
+            inset: 0,
+            backgroundColor: "var(--color-void)",
           }}
         >
-          {content}
+          {([
+            ["session", sessionContent],
+            ["manual", manualContent],
+            ["guidance", guidanceContent],
+            ["settings", settingsContent],
+          ] as const).map(([tab, content]) => (
+            <div
+              key={tab}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: keyboardOpen
+                  ? "0px"
+                  : "calc(68px + env(safe-area-inset-bottom, 0px))",
+                overflowX: "hidden",
+                display: activeTab === tab ? "block" : "none",
+                transition: "bottom 0.25s ease",
+              }}
+            >
+              {content}
+            </div>
+          ))}
+          <MobileNav activeTab={activeTab} onTabChange={onTabChange} hidden={keyboardOpen} />
         </div>
-      ))}
-      <MobileNav activeTab={activeTab} onTabChange={onTabChange} hidden={keyboardOpen} />
+      </div>
     </div>
   );
 }
