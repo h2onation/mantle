@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
-import { useOnboarding } from "@/lib/hooks/useOnboarding";
 import MobileLayout from "@/components/layout/MobileLayout";
 import type { MobileTab } from "@/components/layout/MobileNav";
-import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
+import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileGuidance from "@/components/mobile/MobileGuidance";
@@ -23,6 +22,8 @@ export default function MainApp() {
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [voiceAutoSend, setVoiceAutoSend] = useState(true);
+  const [authDismissed, setAuthDismissed] = useState(false);
+  const seedSent = useRef(false);
 
   // Load voice auto-send preference from localStorage
   useEffect(() => {
@@ -50,6 +51,8 @@ export default function MainApp() {
     errorMessage,
     checkpointError,
     conversations,
+    isGuest,
+    promptAuth,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
@@ -61,10 +64,23 @@ export default function MainApp() {
     loadManual,
   } = useChat();
 
-  const {
-    onboardingPhase,
-    handleComplete,
-  } = useOnboarding({ initialized, isNewUser, sendMessage });
+  // Seed handoff: send seed text from onboarding as first message
+  useEffect(() => {
+    if (!initialized) return;
+    if (seedSent.current) return;
+    const seed = sessionStorage.getItem("mantle_seed_text");
+    if (!seed) return;
+    seedSent.current = true;
+    sessionStorage.removeItem("mantle_seed_text");
+    sendMessage(seed);
+  }, [initialized, sendMessage]);
+
+  // Auth prompt: when promptAuth fires, reset dismiss so modal shows
+  useEffect(() => {
+    if (promptAuth) {
+      setAuthDismissed(false);
+    }
+  }, [promptAuth]);
 
   const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
     // Build dynamic label
@@ -104,117 +120,58 @@ export default function MainApp() {
         style={{
           height: "100vh",
           backgroundColor: "var(--color-void)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "24px",
         }}
-      >
-        <div style={{ position: "relative", width: "40px", height: "40px" }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                border: "1.5px solid transparent",
-                borderTopColor:
-                  i === 0
-                    ? "var(--color-accent)"
-                    : i === 1
-                      ? "var(--color-text-ghost)"
-                      : "var(--color-divider)",
-                animation: `mantleSpinner ${1.2 + i * 0.3}s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite`,
-                animationDirection: i === 1 ? "reverse" : "normal",
-                transform: `scale(${1 - i * 0.2})`,
-              }}
-            />
-          ))}
-        </div>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: "14px",
-            color: "var(--color-text-ghost)",
-            margin: 0,
-            animation: "mantleFadeIn 0.8s ease-out",
-          }}
-        >
-          Forming...
-        </p>
-        <style>{`
-          @keyframes mantleSpinner {
-            0% { transform: scale(${1}) rotate(0deg); }
-            100% { transform: scale(${1}) rotate(360deg); }
-          }
-          @keyframes mantleFadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-      </div>
+      />
     );
   }
 
-  const showLayout = onboardingPhase === "complete" || onboardingPhase === "hidden";
-  const layoutFadingIn = onboardingPhase === "complete";
+  const showAuthModal = isGuest && promptAuth && !authDismissed;
 
   return (
     <>
-      <div
-        style={{
-          opacity: showLayout ? 1 : 0,
-          visibility: showLayout ? "visible" : "hidden",
-          transition: layoutFadingIn ? "opacity 500ms ease" : undefined,
-        }}
-      >
-        <MobileLayout
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          sessionContent={
-            <MobileSession
-              messages={messages}
-              conversationId={conversationId}
-              isLoading={isLoading}
-              isStreaming={isStreaming}
-              isNewUser={isNewUser}
-              sessionSummary={sessionSummary}
-              lastSessionDate={lastSessionDate}
-              confirmedComponents={confirmedComponents}
-              activeCheckpoint={activeCheckpoint}
-              checkpointError={checkpointError}
-              errorMessage={errorMessage}
-              conversations={conversations}
-              sendMessage={sendMessage}
-              retryLastMessage={retryLastMessage}
-              confirmCheckpoint={confirmCheckpoint}
-              switchConversation={switchConversation}
-              startNewSession={startNewSession}
-              refreshConversations={refreshConversations}
-              voiceAutoSend={voiceAutoSend}
-            />
-          }
-          manualContent={
-            <MobileManual components={confirmedComponents} onExploreWithSage={handleExploreWithSage} />
-          }
-          guidanceContent={
-            <MobileGuidance />
-          }
-          settingsContent={
-            <MobileSettings
-              userEmail={userEmail}
-              sessionCount={conversations.length}
-              voiceAutoSend={voiceAutoSend}
-              onVoiceAutoSendChange={handleVoiceAutoSendChange}
-              onSimulationEvent={handleSimulationEvent}
-              onPopulateComplete={loadManual}
-            />
-          }
-        />
-      </div>
+      <MobileLayout
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        sessionContent={
+          <MobileSession
+            messages={messages}
+            conversationId={conversationId}
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            isNewUser={isNewUser}
+            sessionSummary={sessionSummary}
+            lastSessionDate={lastSessionDate}
+            confirmedComponents={confirmedComponents}
+            activeCheckpoint={activeCheckpoint}
+            checkpointError={checkpointError}
+            errorMessage={errorMessage}
+            conversations={conversations}
+            sendMessage={sendMessage}
+            retryLastMessage={retryLastMessage}
+            confirmCheckpoint={confirmCheckpoint}
+            switchConversation={switchConversation}
+            startNewSession={startNewSession}
+            refreshConversations={refreshConversations}
+            voiceAutoSend={voiceAutoSend}
+          />
+        }
+        manualContent={
+          <MobileManual components={confirmedComponents} onExploreWithSage={handleExploreWithSage} />
+        }
+        guidanceContent={
+          <MobileGuidance />
+        }
+        settingsContent={
+          <MobileSettings
+            userEmail={userEmail}
+            sessionCount={conversations.length}
+            voiceAutoSend={voiceAutoSend}
+            onVoiceAutoSendChange={handleVoiceAutoSendChange}
+            onSimulationEvent={handleSimulationEvent}
+            onPopulateComplete={loadManual}
+          />
+        }
+      />
 
       {/* Exploration interstitial overlay */}
       {explorationPhase !== null && (
@@ -288,10 +245,11 @@ export default function MainApp() {
         </div>
       )}
 
-      {(onboardingPhase === "onboarding" || onboardingPhase === "dissolving") && (
-        <OnboardingOverlay
-          onComplete={handleComplete}
-          phase={onboardingPhase}
+      {/* Auth prompt modal for guest users */}
+      {showAuthModal && (
+        <AuthPromptModal
+          onDismiss={() => setAuthDismissed(true)}
+          onSuccess={() => setAuthDismissed(true)}
         />
       )}
     </>

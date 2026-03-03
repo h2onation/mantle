@@ -36,6 +36,8 @@ export function useChat() {
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
   const [processingText, setProcessingText] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
+  const [isGuest, setIsGuest] = useState(false);
+  const [promptAuth, setPromptAuth] = useState(false);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -147,6 +149,10 @@ export function useChat() {
       setProcessingText(completeEvent.processingText);
     }
 
+    if (completeEvent.promptAuth) {
+      setPromptAuth(true);
+    }
+
     if (completeEvent.conversationId && !conversationId) {
       setConversationId(completeEvent.conversationId);
     }
@@ -192,6 +198,7 @@ export function useChat() {
     }
 
     setUserEmail(session.user.email || "");
+    setIsGuest(session.user.is_anonymous === true);
 
     // Load all conversations via API
     let allConversations: ConversationSummaryItem[] = [];
@@ -596,6 +603,8 @@ export function useChat() {
     checkpointError,
     processingText,
     conversations,
+    isGuest,
+    promptAuth,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,

@@ -88,11 +88,25 @@ export async function POST(request: Request) {
     });
   }
 
-  // 4. Call Sage and return streaming response
+  // 4. Detect if this is a guest's first confirmed checkpoint → promptAuth
+  let promptAuth = false;
+  if (action === "confirmed" && user.is_anonymous) {
+    const { count } = await admin
+      .from("manual_components")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    // If this confirm just created the first component, prompt auth
+    if (count !== null && count <= 1) {
+      promptAuth = true;
+    }
+  }
+
+  // 5. Call Sage and return streaming response
   const stream = callSage({
     conversationId,
     userId: user.id,
     message: null,
+    promptAuth,
   });
 
   return new Response(stream, {

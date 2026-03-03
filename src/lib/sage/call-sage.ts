@@ -218,6 +218,7 @@ interface CallSageOptions {
   userId: string;
   message: string | null;
   explorationContext?: ExplorationContext;
+  promptAuth?: boolean;
 }
 
 export function callSage({
@@ -225,6 +226,7 @@ export function callSage({
   userId,
   message,
   explorationContext,
+  promptAuth,
 }: CallSageOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -575,6 +577,7 @@ export function callSage({
               nextPrompt: previousExtraction?.next_prompt || "",
               cleanContent:
                 entryStart !== -1 ? conversationalText : undefined,
+              ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )
         );
