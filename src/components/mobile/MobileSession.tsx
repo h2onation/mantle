@@ -43,6 +43,7 @@ export default function MobileSession({
   conversationId,
   isLoading,
   isStreaming,
+  confirmedComponents,
   activeCheckpoint,
   checkpointError,
   errorMessage,
@@ -420,7 +421,11 @@ export default function MobileSession({
 
               // Normal message rendering with Sage panel
               if (!isUser) {
-                return (
+                // First-session orientation box: show above Sage's first message
+                const isFirstAssistant = !messages.slice(0, i).some(m => m.role === "assistant");
+                const showOrientationBox = isFirstAssistant && confirmedComponents.length === 0;
+
+                const sagePanel = (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
@@ -479,6 +484,45 @@ export default function MobileSession({
                     )}
                   </div>
                 );
+
+                if (showOrientationBox) {
+                  return (
+                    <>
+                      <div
+                        key="orientation-box"
+                        style={{
+                          margin: "16px 0 0 0",
+                          padding: "24px 28px 24px 20px",
+                          borderLeft: "2px solid var(--color-accent-dim)",
+                          backgroundColor: "var(--color-surface)",
+                          animation: "mantleFadeIn 0.6s ease-out",
+                        }}
+                      >
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: "0 0 16px 0",
+                        }}>
+                          Welcome to our session. This is where we explore what&#39;s top of mind and start building a manual of how you operate. You should see me as a tool to name the things you already know, recognize patterns, and reflect them back for you to confirm. Push back anytime I&#39;m off. I&#39;ll be asking questions and going deeper. You don&#39;t have to go anywhere you don&#39;t want to, but the more you share, the more useful your manual becomes.
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: 0,
+                        }}>
+                          People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
+                        </p>
+                      </div>
+                      {sagePanel}
+                    </>
+                  );
+                }
+
+                return sagePanel;
               }
 
               // User message
