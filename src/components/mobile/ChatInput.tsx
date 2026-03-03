@@ -210,6 +210,8 @@ export default function ChatInput({
             onBlur={handleBlur}
             placeholder=""
             rows={1}
+            autoComplete="off"
+            autoCorrect="off"
             style={{
               width: "100%",
               backgroundColor: "transparent",
