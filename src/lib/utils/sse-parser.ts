@@ -10,6 +10,7 @@ export interface MessageCompleteEvent {
   processingText: string;
   cleanContent?: string;
   nextPrompt?: string;
+  promptAuth?: boolean;
 }
 
 interface SSECallbacks {
