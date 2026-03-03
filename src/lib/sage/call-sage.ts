@@ -358,15 +358,34 @@ export function callSage({
             )
           : "";
 
-        const systemPrompt = buildSystemPrompt(
-          manualComponents || [],
+        // Derive conditional-loading flags from data already in memory
+        const turnCount = messages.length;
+        const hasPatternEligibleLayer = previousExtraction
+          ? Object.values(previousExtraction.layers).some(
+              (l) => l.discovery_mode === "pattern"
+            )
+          : false;
+        const checkpointApproaching = previousExtraction
+          ? Object.values(previousExtraction.layers).some(
+              (l) =>
+                l.signal === "emerging" ||
+                l.signal === "explored" ||
+                l.signal === "checkpoint_ready"
+            )
+          : false;
+
+        const systemPrompt = buildSystemPrompt({
+          manualComponents: manualComponents || [],
           isReturningUser,
           sessionSummary,
-          extractionForSage,
+          extractionContext: extractionForSage,
           isFirstCheckpoint,
           sessionCount,
-          explorationContext
-        );
+          explorationContext,
+          turnCount,
+          hasPatternEligibleLayer,
+          checkpointApproaching,
+        });
 
         // 9. Stream Sage response with delimiter buffer
         let fullText = "";
