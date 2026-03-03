@@ -51,11 +51,11 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
   const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "14px 16px",
-    fontFamily: "Georgia, serif",
+    fontFamily: "var(--font-serif)",
     fontSize: "15px",
-    color: "#E8E4DD",
+    color: "var(--color-text)",
     backgroundColor: "rgba(255,255,255,0.025)",
-    border: "1px solid rgba(255,255,255,0.06)",
+    border: "1px solid var(--color-divider)",
     borderRadius: "12px",
     outline: "none",
     boxSizing: "border-box",
@@ -68,7 +68,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         position: "fixed",
         inset: 0,
         zIndex: 400,
-        backgroundColor: "rgba(0,0,0,0.7)",
+        backgroundColor: "var(--color-backdrop-heavy)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -80,7 +80,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         style={{
           width: "100%",
           maxWidth: "380px",
-          backgroundColor: "#1A1A18",
+          backgroundColor: "var(--color-void)",
           borderRadius: "16px",
           padding: "32px",
           boxSizing: "border-box",
@@ -89,10 +89,10 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         {/* Headline */}
         <h2
           style={{
-            fontFamily: "Georgia, serif",
+            fontFamily: "var(--font-serif)",
             fontSize: "24px",
             fontWeight: 400,
-            color: "#E8E4DD",
+            color: "var(--color-text)",
             margin: "0 0 8px 0",
             lineHeight: 1.2,
           }}
@@ -103,9 +103,9 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         {/* Body */}
         <p
           style={{
-            fontFamily: "Georgia, serif",
+            fontFamily: "var(--font-serif)",
             fontSize: "14px",
-            color: "rgba(232,228,221,0.5)",
+            color: "var(--color-text-dim)",
             margin: "0 0 24px 0",
             lineHeight: 1.5,
           }}
@@ -116,9 +116,9 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         {error && (
           <p
             style={{
-              fontFamily: "Arial, sans-serif",
+              fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: "#B5564D",
+              color: "var(--color-error)",
               margin: "0 0 16px 0",
             }}
           >
@@ -134,8 +134,8 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(139,157,119,0.25)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
             style={{
               ...inputStyle,
               marginBottom: "12px",
@@ -150,8 +150,8 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(139,157,119,0.25)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
             style={{
               ...inputStyle,
               marginBottom: "20px",
@@ -165,11 +165,11 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             style={{
               width: "100%",
               padding: "16px",
-              fontFamily: "Georgia, serif",
+              fontFamily: "var(--font-serif)",
               fontSize: "15px",
               fontWeight: 400,
-              color: "#1A1A18",
-              backgroundColor: "rgba(139,157,119,0.55)",
+              color: "var(--color-void)",
+              backgroundColor: "var(--color-accent-strong)",
               border: "none",
               borderRadius: "12px",
               cursor: loading ? "not-allowed" : "pointer",
@@ -189,12 +189,12 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
           style={{
             width: "100%",
             padding: "16px",
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "14px",
             fontWeight: 500,
-            color: "#E8E4DD",
+            color: "var(--color-text)",
             backgroundColor: "transparent",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid var(--color-divider)",
             borderRadius: "12px",
             cursor: loading ? "not-allowed" : "pointer",
             display: "flex",
@@ -219,9 +219,9 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
           <button
             onClick={onDismiss}
             style={{
-              fontFamily: "Arial, sans-serif",
+              fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: "rgba(232,228,221,0.3)",
+              color: "var(--color-text-ghost)",
               background: "none",
               border: "none",
               cursor: "pointer",

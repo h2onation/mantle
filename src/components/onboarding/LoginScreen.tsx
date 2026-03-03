@@ -41,11 +41,11 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
   const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "14px 16px",
-    fontFamily: "Georgia, serif",
+    fontFamily: "var(--font-serif)",
     fontSize: "15px",
-    color: "#E8E4DD",
+    color: "var(--color-text)",
     backgroundColor: "rgba(255,255,255,0.025)",
-    border: "1px solid rgba(255,255,255,0.06)",
+    border: "1px solid var(--color-divider)",
     borderRadius: "12px",
     outline: "none",
     boxSizing: "border-box",
@@ -72,9 +72,9 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
           display: "flex",
           alignItems: "center",
           gap: "4px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "13.5px",
-          color: "rgba(232,228,221,0.3)",
+          color: "var(--color-text-ghost)",
           background: "none",
           border: "none",
           cursor: "pointer",
@@ -90,12 +90,12 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
       {/* WELCOME BACK label */}
       <div
         style={{
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-sans)",
           fontSize: "10.5px",
           fontWeight: 600,
           letterSpacing: "0.2em",
           textTransform: "uppercase",
-          color: "rgba(139,157,119,0.5)",
+          color: "var(--color-accent-dim)",
           marginBottom: "8px",
         }}
       >
@@ -105,10 +105,10 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
       {/* MANTLE wordmark */}
       <div
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "20px",
           letterSpacing: "0.2em",
-          color: "#E8E4DD",
+          color: "var(--color-text)",
           marginBottom: "8px",
         }}
       >
@@ -118,11 +118,11 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
       {/* Headline */}
       <h1
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "28px",
           fontWeight: 400,
           lineHeight: 1.22,
-          color: "#E8E4DD",
+          color: "var(--color-text)",
           margin: "0 0 32px 0",
         }}
       >
@@ -132,9 +132,9 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
       {error && (
         <p
           style={{
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "13px",
-            color: "#B5564D",
+            color: "var(--color-error)",
             margin: "0 0 16px 0",
           }}
         >
@@ -150,8 +150,8 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(139,157,119,0.25)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
           style={{
             ...inputStyle,
             marginBottom: "12px",
@@ -165,8 +165,8 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(139,157,119,0.25)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
           style={{
             ...inputStyle,
             marginBottom: "24px",
@@ -180,11 +180,11 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
           style={{
             width: "100%",
             padding: "16px",
-            fontFamily: "Georgia, serif",
+            fontFamily: "var(--font-serif)",
             fontSize: "15px",
             fontWeight: 400,
-            color: "#1A1A18",
-            backgroundColor: "rgba(139,157,119,0.55)",
+            color: "var(--color-void)",
+            backgroundColor: "var(--color-accent-strong)",
             border: "none",
             borderRadius: "12px",
             cursor: loading ? "not-allowed" : "pointer",
@@ -201,9 +201,9 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
       <div style={{ textAlign: "center" }}>
         <span
           style={{
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "13px",
-            color: "rgba(232,228,221,0.3)",
+            color: "var(--color-text-ghost)",
             textDecoration: "underline",
             cursor: "pointer",
           }}

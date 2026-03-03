@@ -139,12 +139,12 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         {/* Label */}
         <div
           style={{
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "10.5px",
             fontWeight: 600,
             letterSpacing: "0.2em",
             textTransform: "uppercase",
-            color: "rgba(139,157,119,0.5)",
+            color: "var(--color-accent-dim)",
             marginBottom: "16px",
           }}
         >
@@ -154,12 +154,12 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         {/* Headline */}
         <h1
           style={{
-            fontFamily: "Georgia, serif",
+            fontFamily: "var(--font-serif)",
             fontSize: "30px",
             fontWeight: 400,
             lineHeight: 1.22,
             letterSpacing: "-0.01em",
-            color: "#E8E4DD",
+            color: "var(--color-text)",
             margin: "0 0 20px 0",
             whiteSpace: "pre-line",
           }}
@@ -172,10 +172,10 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
           <p
             key={i}
             style={{
-              fontFamily: "Georgia, serif",
+              fontFamily: "var(--font-serif)",
               fontSize: "14.5px",
               lineHeight: 1.75,
-              color: "rgba(232,228,221,0.6)",
+              color: "var(--color-text-dim)",
               margin: i < screen.body.length - 1 ? "0 0 16px 0" : "0",
               maxWidth: "340px",
             }}
@@ -188,9 +188,9 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         {screen.dataTrust && (
           <p
             style={{
-              fontFamily: "Arial, sans-serif",
+              fontFamily: "var(--font-sans)",
               fontSize: "12.5px",
-              color: "rgba(139,157,119,0.4)",
+              color: "var(--color-accent-dim)",
               margin: "20px 0 0 0",
             }}
           >
@@ -225,10 +225,10 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
                   height: "5px",
                   borderRadius: "3px",
                   backgroundColor: isActive
-                    ? "rgba(139,157,119,0.55)"
+                    ? "var(--color-accent-strong)"
                     : isVisited
-                    ? "rgba(139,157,119,0.2)"
-                    : "rgba(255,255,255,0.08)",
+                    ? "var(--color-accent-glow)"
+                    : "var(--color-divider)",
                   border: "none",
                   padding: 0,
                   cursor: "pointer",
@@ -247,9 +247,9 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
             <button
               onClick={() => transitionTo(screenIndex - 1, -1)}
               style={{
-                fontFamily: "Georgia, serif",
+                fontFamily: "var(--font-serif)",
                 fontSize: "13.5px",
-                color: "rgba(232,228,221,0.3)",
+                color: "var(--color-text-ghost)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -267,11 +267,11 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              fontFamily: "Georgia, serif",
+              fontFamily: "var(--font-serif)",
               fontSize: "13.5px",
-              color: "#1A1A18",
-              backgroundColor: "rgba(139,157,119,0.5)",
-              border: "1px solid rgba(139,157,119,0.25)",
+              color: "var(--color-void)",
+              backgroundColor: "var(--color-accent-dim)",
+              border: "1px solid var(--color-input-border-focus)",
               borderRadius: "10px",
               padding: "11px 24px",
               cursor: "pointer",

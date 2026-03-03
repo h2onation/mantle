@@ -16,6 +16,7 @@
   --color-accent-dim: rgba(139, 168, 136, 0.4);
   --color-accent-ghost: rgba(139, 168, 136, 0.08);
   --color-accent-glow: rgba(139, 168, 136, 0.12);
+  --color-accent-strong: rgba(139, 168, 136, 0.55);
 
   /* Checkpoint clearing */
   --cp-surface-mid: #E4EDE0;

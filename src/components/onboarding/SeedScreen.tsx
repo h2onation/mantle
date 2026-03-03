@@ -70,11 +70,11 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
       {/* Headline — no label above (intentional) */}
       <h1
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "24px",
           fontWeight: 400,
           lineHeight: 1.22,
-          color: "#E8E4DD",
+          color: "var(--color-text)",
           margin: "0 0 14px 0",
         }}
       >
@@ -84,10 +84,10 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
       {/* Body */}
       <p
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "14.5px",
           lineHeight: 1.75,
-          color: "rgba(232,228,221,0.6)",
+          color: "var(--color-text-dim)",
           margin: "0 0 28px 0",
         }}
       >
@@ -105,12 +105,12 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
         style={{
           width: "100%",
           minHeight: "120px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "15px",
           lineHeight: 1.75,
-          color: "#E8E4DD",
+          color: "var(--color-text)",
           backgroundColor: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          border: "1px solid var(--color-divider)",
           borderRadius: "14px",
           padding: "16px",
           outline: "none",
@@ -121,11 +121,11 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
           overflow: "hidden",
         }}
         onFocusCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(139,157,119,0.25)";
+          e.currentTarget.style.borderColor = "var(--color-input-border-focus)";
           e.currentTarget.style.boxShadow = "0 0 40px rgba(91,117,83,0.06)";
         }}
         onBlurCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+          e.currentTarget.style.borderColor = "var(--color-divider)";
           e.currentTarget.style.boxShadow = "none";
         }}
       />
@@ -147,10 +147,10 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
             height: "18px",
             borderRadius: "4px",
             border: ageConfirmed
-              ? "1px solid rgba(139,157,119,0.5)"
+              ? "1px solid var(--color-accent-dim)"
               : "1px solid rgba(255,255,255,0.12)",
             backgroundColor: ageConfirmed
-              ? "rgba(139,157,119,0.1)"
+              ? "var(--color-accent-glow)"
               : "transparent",
             display: "flex",
             alignItems: "center",
@@ -167,9 +167,9 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
         </div>
         <span
           style={{
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "12.5px",
-            color: "rgba(232,228,221,0.45)",
+            color: "var(--color-text-dim)",
           }}
         >
           I am 18 or older
@@ -180,9 +180,9 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
       {error && (
         <p
           style={{
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: "13px",
-            color: "#B5564D",
+            color: "var(--color-error)",
             margin: "0 0 12px 0",
           }}
         >
@@ -197,15 +197,15 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
         style={{
           width: "100%",
           padding: "16px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "15px",
           fontWeight: 400,
-          color: isEnabled ? "#1A1A18" : "rgba(232,228,221,0.18)",
+          color: isEnabled ? "var(--color-void)" : "rgba(232,228,221,0.18)",
           backgroundColor: isEnabled
-            ? "rgba(139,157,119,0.6)"
+            ? "var(--color-accent-strong)"
             : "rgba(255,255,255,0.03)",
           border: isEnabled
-            ? "1px solid rgba(139,157,119,0.3)"
+            ? "1px solid var(--color-input-border-active)"
             : "1px solid rgba(255,255,255,0.04)",
           borderRadius: "12px",
           cursor: isEnabled ? "pointer" : "default",
@@ -221,19 +221,19 @@ export default function SeedScreen({ onGlowChange }: SeedScreenProps) {
       <div
         style={{
           textAlign: "center",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-sans)",
           fontSize: "10.5px",
-          color: "rgba(232,228,221,0.25)",
+          color: "var(--color-text-ghost)",
           lineHeight: 1.65,
         }}
       >
         <div>
           By continuing, you agree to the{" "}
-          <span style={{ textDecoration: "underline", color: "rgba(232,228,221,0.32)", cursor: "pointer" }}>
+          <span style={{ textDecoration: "underline", color: "var(--color-text-ghost)", cursor: "pointer" }}>
             Terms of Service
           </span>{" "}
           and{" "}
-          <span style={{ textDecoration: "underline", color: "rgba(232,228,221,0.32)", cursor: "pointer" }}>
+          <span style={{ textDecoration: "underline", color: "var(--color-text-ghost)", cursor: "pointer" }}>
             Privacy Policy
           </span>
           .

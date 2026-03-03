@@ -24,11 +24,11 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
       {/* MANTLE label */}
       <div
         style={{
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-sans)",
           fontSize: "10.5px",
           fontWeight: 600,
           letterSpacing: "0.25em",
-          color: "rgba(139,157,119,0.5)",
+          color: "var(--color-accent-dim)",
           marginBottom: "16px",
         }}
       >
@@ -38,12 +38,12 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
       {/* Headline */}
       <h1
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "30px",
           fontWeight: 400,
           lineHeight: 1.25,
           letterSpacing: "-0.01em",
-          color: "#E8E4DD",
+          color: "var(--color-text)",
           margin: "0 0 16px 0",
         }}
       >
@@ -53,10 +53,10 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
       {/* Subtext */}
       <p
         style={{
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "17px",
           lineHeight: 1.5,
-          color: "rgba(232,228,221,0.45)",
+          color: "var(--color-text-dim)",
           margin: "0 0 48px 0",
         }}
       >
@@ -69,11 +69,11 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
         style={{
           width: "100%",
           padding: "16px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "15px",
           fontWeight: 400,
-          color: "#1A1A18",
-          backgroundColor: "rgba(139,157,119,0.55)",
+          color: "var(--color-void)",
+          backgroundColor: "var(--color-accent-strong)",
           border: "none",
           borderRadius: "12px",
           cursor: "pointer",
@@ -89,12 +89,12 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
         style={{
           width: "100%",
           padding: "16px",
-          fontFamily: "Georgia, serif",
+          fontFamily: "var(--font-serif)",
           fontSize: "15px",
           fontWeight: 400,
-          color: "rgba(232,228,221,0.5)",
+          color: "var(--color-text-dim)",
           backgroundColor: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          border: "1px solid var(--color-divider)",
           borderRadius: "12px",
           cursor: "pointer",
         }}
