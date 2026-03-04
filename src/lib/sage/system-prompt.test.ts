@@ -208,7 +208,7 @@ describe("buildSystemPrompt", () => {
       const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
       expect(result).toContain("welcome orientation box");
       expect(result).toContain("purely conversational");
-      expect(result).toContain("One short paragraph");
+      expect(result).toContain("Three beats: acknowledge, perspective, question");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {
