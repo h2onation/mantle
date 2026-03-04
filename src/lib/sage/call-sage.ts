@@ -537,10 +537,14 @@ export function callSage({
 
           const isFirstSession =
             !manualComponents || manualComponents.length === 0;
+          const layersWithComponents = (manualComponents || [])
+            .filter((c) => c.type === "component")
+            .map((c) => c.layer);
           const classification = await classifyResponse(
             conversationalText,
             recentText,
-            isFirstSession
+            isFirstSession,
+            layersWithComponents
           );
 
           isCheckpoint = classification.isCheckpoint;
@@ -548,6 +552,21 @@ export function callSage({
           checkpointType = classification.type;
           checkpointName = classification.name;
           processingText = classification.processingText;
+        }
+
+        // 12b. Hard guard: first entry on any layer must be a component.
+        //      Both Sage and the classifier can misclassify as "pattern"
+        //      when the content describes a loop but the layer has no component yet.
+        if (isCheckpoint && checkpointLayer && checkpointType === "pattern") {
+          const layerHasComponent = (manualComponents || []).some(
+            (c) => c.layer === checkpointLayer && c.type === "component"
+          );
+          if (!layerHasComponent) {
+            checkpointType = "component";
+            if (manualEntry) {
+              manualEntry.type = "component";
+            }
+          }
         }
 
         // 13. Update message metadata

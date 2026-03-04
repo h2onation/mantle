@@ -49,7 +49,8 @@ export function cleanAndParseClassification(
 export async function classifyResponse(
   sageResponse: string,
   recentMessages: string,
-  isFirstSession?: boolean
+  isFirstSession?: boolean,
+  layersWithComponents?: number[]
 ): Promise<ClassificationResult> {
   try {
     const checkpointThreshold = isFirstSession
@@ -75,7 +76,9 @@ Layer 3 (Your Reaction System): internal operating system under pressure, belief
 Layer 4 (How You Operate): thinking style, decision-making, energy management, handling complexity, operational defaults
 Layer 5 (Your Relationship to Others): communication, trust, repair, conflict patterns, how others actually experience them
 
-If checkpoint: pick strongest layer. Recurring loop (trigger → response → cost) = "pattern". Broader narrative = "component". Extract headline if present.`,
+If checkpoint: pick strongest layer. Recurring loop (trigger → response → cost) = "pattern". Broader narrative = "component". Extract headline if present.
+
+TYPE RULE: The first entry on any layer MUST be "component". Only classify as "pattern" if the layer already has a confirmed component.${layersWithComponents && layersWithComponents.length > 0 ? ` Layers with confirmed components (eligible for patterns): ${layersWithComponents.join(", ")}. All other layers: type must be "component".` : ` No layers have confirmed components yet. Type is always "component".`}`,
       messages: [
         {
           role: "user",
