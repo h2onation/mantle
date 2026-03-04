@@ -83,10 +83,6 @@
   --color-empty-bg: rgba(212, 203, 192, 0.04);
   --color-empty-icon: rgba(212, 203, 192, 0.25);
 
-  /* Font variables */
-  --font-serif: var(--font-instrument-serif);
-  --font-sans: var(--font-dm-sans);
-  --font-mono: var(--font-jetbrains-mono);
 
   /* ─── Session Linen Tokens ─── */
 

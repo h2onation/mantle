@@ -34,7 +34,7 @@ export default function ConfirmationModal({
     >
       <div
         style={{
-          backgroundColor: "var(--color-surface)",
+          backgroundColor: "var(--session-cream)",
           borderRadius: "16px",
           padding: "24px",
           maxWidth: "320px",
@@ -45,7 +45,7 @@ export default function ConfirmationModal({
           style={{
             fontFamily: "var(--font-sans)",
             fontSize: "14px",
-            color: "var(--color-text)",
+            color: "var(--session-ink)",
             lineHeight: 1.6,
             margin: "0 0 20px 0",
           }}
@@ -61,9 +61,9 @@ export default function ConfirmationModal({
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
               fontWeight: 500,
-              color: "var(--color-text)",
+              color: "var(--session-ink)",
               backgroundColor: "transparent",
-              border: "1px solid var(--color-divider)",
+              border: "1px solid var(--session-ink-hairline)",
               borderRadius: "10px",
               cursor: "pointer",
             }}
@@ -78,11 +78,11 @@ export default function ConfirmationModal({
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
               fontWeight: 500,
-              color: isDestructive ? "var(--color-error)" : "var(--color-text)",
+              color: isDestructive ? "var(--color-error)" : "var(--session-ink)",
               backgroundColor: "transparent",
               border: isDestructive
                 ? "1px solid var(--color-error)"
-                : "1px solid var(--color-divider)",
+                : "1px solid var(--session-ink-hairline)",
               borderRadius: "10px",
               cursor: "pointer",
             }}

@@ -55,7 +55,7 @@ export default function SessionDrawer({
           bottom: 0,
           width: "80vw",
           maxWidth: "320px",
-          backgroundColor: "var(--color-surface)",
+          backgroundColor: "var(--session-linen)",
           zIndex: 201,
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 0.3s ease",
@@ -77,7 +77,7 @@ export default function SessionDrawer({
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "8px",
-              color: "var(--color-text-ghost)",
+              color: "var(--session-ink-ghost)",
               letterSpacing: "3px",
               textTransform: "uppercase",
             }}
@@ -93,7 +93,7 @@ export default function SessionDrawer({
               padding: "4px",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--color-text-ghost)" strokeWidth="1.5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--session-ink-ghost)" strokeWidth="1.5">
               <line x1="2" y1="2" x2="12" y2="12" />
               <line x1="12" y1="2" x2="2" y2="12" />
             </svg>
@@ -108,9 +108,9 @@ export default function SessionDrawer({
               width: "100%",
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: "var(--color-accent)",
+              color: "var(--session-sage)",
               background: "none",
-              border: "1px solid var(--color-accent-ghost)",
+              border: "1px solid var(--session-sage-muted)",
               borderRadius: "8px",
               padding: "12px 16px",
               cursor: "pointer",
@@ -122,7 +122,7 @@ export default function SessionDrawer({
         </div>
 
         {/* Divider */}
-        <div style={{ height: "1px", backgroundColor: "var(--color-divider)", margin: "0 20px" }} />
+        <div style={{ height: "1px", backgroundColor: "var(--session-ink-hairline)", margin: "0 20px" }} />
 
         {/* Session list */}
         <div
@@ -144,8 +144,8 @@ export default function SessionDrawer({
                   textAlign: "left",
                   background: "none",
                   border: "none",
-                  borderLeft: isActive ? "2px solid var(--color-accent)" : "2px solid transparent",
-                  borderBottom: "1px solid var(--color-divider)",
+                  borderLeft: isActive ? "2px solid var(--session-sage)" : "2px solid transparent",
+                  borderBottom: "1px solid var(--session-ink-hairline)",
                   padding: "14px 20px 14px 18px",
                   cursor: "pointer",
                 }}
@@ -154,7 +154,7 @@ export default function SessionDrawer({
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "13px",
-                    color: isActive ? "var(--color-text)" : "var(--color-text-dim)",
+                    color: isActive ? "var(--session-ink)" : "var(--session-ink-mid)",
                     lineHeight: 1.4,
                     margin: "0 0 6px 0",
                     overflow: "hidden",
@@ -169,7 +169,7 @@ export default function SessionDrawer({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: "8px",
-                      color: "var(--color-text-ghost)",
+                      color: "var(--session-ink-ghost)",
                       letterSpacing: "1px",
                     }}
                   >
@@ -179,7 +179,7 @@ export default function SessionDrawer({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: "8px",
-                      color: "var(--color-text-ghost)",
+                      color: "var(--session-ink-ghost)",
                       letterSpacing: "1px",
                     }}
                   >
@@ -195,7 +195,7 @@ export default function SessionDrawer({
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
-                color: "var(--color-text-ghost)",
+                color: "var(--session-ink-ghost)",
                 padding: "20px",
                 textAlign: "center",
               }}

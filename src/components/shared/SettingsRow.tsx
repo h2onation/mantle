@@ -32,7 +32,7 @@ export default function SettingsRow({
         padding: "18px 0",
         background: "none",
         border: "none",
-        borderBottom: noBorder ? "none" : "1px solid var(--color-divider)",
+        borderBottom: noBorder ? "none" : "1px solid var(--session-ink-hairline)",
         cursor: isButton ? "pointer" : "default",
         textAlign: "left" as const,
         WebkitTapHighlightColor: isButton ? "transparent" : undefined,
@@ -49,7 +49,7 @@ export default function SettingsRow({
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: titleColor || "var(--color-text)",
+              color: titleColor || "var(--session-ink)",
               letterSpacing: "0.2px",
               margin: 0,
             }}
@@ -61,7 +61,7 @@ export default function SettingsRow({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: "var(--color-text-ghost)",
+                color: "var(--session-ink-ghost)",
                 letterSpacing: "0.5px",
                 margin: "3px 0 0 0",
               }}

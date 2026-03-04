@@ -65,17 +65,12 @@ export default function MobileLayout({
                 top: 0,
                 left: 0,
                 right: 0,
-                bottom: keyboardOpen
-                  ? "0px"
-                  : "calc(68px + env(safe-area-inset-bottom, 0px))",
+                bottom: "0px",
                 overflowX: "hidden",
                 display: activeTab === tab ? "block" : "none",
-                transition: "bottom 0.25s ease",
-                ...(tab === "session" ? {
-                  background: "var(--session-linen)",
-                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E\")",
-                  backgroundSize: "256px 256px",
-                } : {}),
+                background: "var(--session-linen)",
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E\")",
+                backgroundSize: "256px 256px",
               }}
             >
               {content}
