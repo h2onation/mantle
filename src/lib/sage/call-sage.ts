@@ -179,6 +179,10 @@ export function createDelimiterBuffer(delimiter: string) {
   };
 }
 
+// Crisis phrases — must be specific enough to avoid false positives.
+// Removed overly broad phrases that trigger on normal relationship distress:
+//   "make it stop", "can't do this anymore", "don't want to be here"
+// These appear constantly in non-crisis conversations about difficult emotions.
 const CRISIS_PHRASES = [
   "kill myself",
   "hurt myself",
@@ -186,13 +190,8 @@ const CRISIS_PHRASES = [
   "end my life",
   "suicide",
   "self-harm",
-  "don't want to be here",
-  "dont want to be here",
   "better off without me",
   "no point anymore",
-  "make it stop",
-  "can't do this anymore",
-  "cant do this anymore",
   "want to disappear",
   "not worth living",
   "no reason to keep going",
@@ -203,6 +202,9 @@ const CRISIS_PHRASES = [
   "dont want to be here anymore",
   "what's the point of living",
   "whats the point of living",
+  "don't want to exist",
+  "dont want to exist",
+  "no point in living",
 ];
 
 export function detectCrisisInUserMessage(message: string): boolean {
@@ -554,17 +556,25 @@ export function callSage({
           processingText = classification.processingText;
         }
 
-        // 12b. Hard guard: first entry on any layer must be a component.
-        //      Both Sage and the classifier can misclassify as "pattern"
-        //      when the content describes a loop but the layer has no component yet.
-        if (isCheckpoint && checkpointLayer && checkpointType === "pattern") {
+        // 12b. Hard guard: enforce component/pattern layer rules.
+        //      Rule 1: First entry on any layer must be a component.
+        //      Rule 2: Only one component per layer — force to pattern if component exists.
+        if (isCheckpoint && checkpointLayer) {
           const layerHasComponent = (manualComponents || []).some(
             (c) => c.layer === checkpointLayer && c.type === "component"
           );
-          if (!layerHasComponent) {
+
+          if (checkpointType === "pattern" && !layerHasComponent) {
+            // Rule 1: No component on this layer yet — force to component
             checkpointType = "component";
             if (manualEntry) {
               manualEntry.type = "component";
+            }
+          } else if (checkpointType === "component" && layerHasComponent) {
+            // Rule 2: Component already exists — force to pattern
+            checkpointType = "pattern";
+            if (manualEntry) {
+              manualEntry.type = "pattern";
             }
           }
         }
