@@ -3,18 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
-import MeadowZone from "./MeadowZone";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 
 const sageLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "10px",
+  fontSize: "7px",
   fontWeight: 500,
-  letterSpacing: "0.15em",
+  letterSpacing: "2.5px",
   textTransform: "uppercase" as const,
-  color: "var(--color-accent-muted)",
+  color: "var(--session-sage-soft)",
 } as const;
 
 interface MobileSessionProps {
@@ -99,7 +98,7 @@ export default function MobileSession({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
+          padding: "12px 24px",
           flexShrink: 0,
         }}
       >
@@ -109,13 +108,13 @@ export default function MobileSession({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "3px",
+            gap: "4px",
             background: "none",
             border: "none",
             cursor: "pointer",
-            padding: "6px 4px",
-            minWidth: "44px",
-            minHeight: "44px",
+            padding: 0,
+            width: "40px",
+            height: "40px",
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -124,9 +123,10 @@ export default function MobileSession({
             <div
               key={i}
               style={{
-                width: "16px",
-                height: "1px",
-                backgroundColor: "var(--color-text-ghost)",
+                width: i === 2 ? "13px" : "18px",
+                height: "1.5px",
+                backgroundColor: "var(--session-ink-ghost)",
+                borderRadius: "1px",
               }}
             />
           ))}
@@ -135,61 +135,78 @@ export default function MobileSession({
         {/* Logo — center */}
         <span
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "9px",
-            color: "var(--color-text-ghost)",
-            letterSpacing: "4px",
+            fontFamily: "var(--font-serif)",
+            fontSize: "13px",
+            fontWeight: 400,
+            color: "var(--session-ink-faded)",
+            letterSpacing: "15px",
             textTransform: "uppercase",
+            paddingLeft: "15px",
           }}
         >
           MANTLE
         </span>
 
         {/* Right spacer */}
-        <div style={{ minWidth: "44px", minHeight: "44px" }} />
+        <div style={{ width: "40px" }} />
       </div>
 
-      {/* Messages area */}
-      <div
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.4) 6%, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.9) 14%, black 18%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.4) 6%, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.9) 14%, black 18%)",
-        }}
-      >
-        {/* Spacer pushes messages to bottom of viewport */}
-        <div style={{ flexGrow: 1, minHeight: "24px" }} />
+      {/* Messages area wrapper */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        {/* Scroll fade overlay */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "48px",
+            zIndex: 1,
+            pointerEvents: "none",
+            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, rgba(200,185,140,0.08) 40%, transparent 100%)",
+          }}
+        />
 
-        {/* Empty state placeholder */}
-        {!hasMessages && !isLoading && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "40px 24px",
-            }}
-          >
-            <p
+        {/* Scrollable content */}
+        <div
+          ref={scrollRef}
+          style={{
+            height: "100%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            padding: "20px 16px 24px",
+            gap: "14px",
+          }}
+        >
+          {/* Spacer pushes messages to bottom of viewport */}
+          <div style={{ flexGrow: 1, minHeight: "24px" }} />
+
+          {/* Empty state placeholder */}
+          {!hasMessages && !isLoading && (
+            <div
               style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "22px",
-                color: "var(--color-text-ghost)",
-                lineHeight: 1.5,
-                letterSpacing: "-0.3px",
-                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 24px",
               }}
             >
-              Ready when you are.
-            </p>
-          </div>
-        )}
+              <p
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "22px",
+                  color: "var(--session-ink-ghost)",
+                  lineHeight: 1.5,
+                  letterSpacing: "-0.3px",
+                  textAlign: "center",
+                }}
+              >
+                Ready when you are.
+              </p>
+            </div>
+          )}
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
@@ -206,69 +223,128 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
-              // Checkpoint rendering — clearing with feathered gradient edges
+              // Checkpoint / Pattern card rendering
               if (isCheckpoint) {
+                const isPattern = isPendingCheckpoint
+                  ? activeCheckpoint?.type === "pattern"
+                  : msg.checkpointMeta?.type === "pattern";
+
+                const patternName = isPendingCheckpoint
+                  ? activeCheckpoint?.name
+                  : msg.checkpointMeta?.name;
+
+                const primaryBg = isPattern
+                  ? "var(--session-navy-btn)"
+                  : "var(--session-sage-soft)";
+
+                const accentColor = isPattern
+                  ? "var(--session-navy-label)"
+                  : "var(--session-sage)";
+
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    style={{ animation: "checkpointFadeIn 2s ease-out both" }}
+                    style={{
+                      animation: "checkpointFadeIn 0.45s ease both",
+                      ...(isPattern
+                        ? {
+                            background: "var(--session-navy-bg)",
+                            border: "1px solid var(--session-navy-border)",
+                            borderRadius: "8px",
+                            boxShadow: "0 6px 36px var(--session-navy-glow), 0 2px 6px rgba(26,22,20,0.04)",
+                            padding: "16px 16px 14px",
+                            margin: "12px 0",
+                          }
+                        : {
+                            background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
+                            border: "1px solid var(--session-sage-border)",
+                            borderRadius: "8px",
+                            boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
+                            padding: "16px 16px 14px",
+                            margin: "20px 0 12px",
+                          }),
+                    }}
                   >
-                    <MeadowZone>
-                      <div style={{ padding: "20px 0" }}>
-                        {/* Sage label */}
-                        <div style={{ paddingBottom: "8px" }}>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "8px",
-                              fontWeight: 500,
-                              letterSpacing: "2.5px",
-                              textTransform: "uppercase",
-                              color: "var(--cp-text-accent)",
-                            }}
-                          >
-                            Sage
-                          </span>
-                        </div>
-                        {/* Body text */}
-                        <div
-                          style={{
+                    {/* Header */}
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "7px",
+                        fontWeight: 500,
+                        letterSpacing: "2px",
+                        textTransform: "uppercase",
+                        color: accentColor,
+                        marginBottom: isPattern ? "12px" : "14px",
+                      }}
+                    >
+                      {isPattern ? "PATTERN" : "CHECKPOINT"}
+                    </div>
+
+                    {/* Pattern name */}
+                    {isPattern && patternName && (
+                      <div
+                        style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "17px",
+                          fontWeight: 400,
+                          letterSpacing: "-0.2px",
+                          lineHeight: 1.3,
+                          color: "var(--session-ink)",
+                          marginBottom: "14px",
+                        }}
+                      >
+                        {patternName}
+                      </div>
+                    )}
+
+                    {/* Body text */}
+                    <div
+                      style={isPattern
+                        ? {
+                            fontFamily: "var(--font-sans)",
+                            fontSize: "13px",
+                            fontWeight: 400,
+                            lineHeight: 1.65,
+                            color: "var(--session-ink-mid)",
+                          }
+                        : {
                             fontFamily: "var(--font-serif)",
-                            fontSize: "15px",
+                            fontSize: "14px",
                             fontWeight: 400,
                             lineHeight: 1.75,
-                            letterSpacing: "-0.2px",
-                            color: "var(--cp-text)",
+                            color: "var(--session-ink)",
+                          }
+                      }
+                    >
+                      {renderMarkdown(msg.content)}
+                    </div>
+
+                    {/* Divider + prompt + buttons (pending only) */}
+                    {isPendingCheckpoint && !checkpointActionState && (
+                      <>
+                        <div
+                          style={{
+                            marginTop: isPattern ? "16px" : "18px",
+                            paddingTop: "12px",
+                            borderTop: isPattern
+                              ? "1px solid var(--session-navy-divider)"
+                              : "1px solid rgba(94, 112, 84, 0.1)",
                           }}
                         >
-                          {renderMarkdown(msg.content)}
-                        </div>
-
-                        {/* "Does this feel right?" prompt */}
-                        {isPendingCheckpoint && !checkpointActionState && (
                           <p
                             style={{
                               fontFamily: "var(--font-serif)",
                               fontSize: "13px",
                               fontStyle: "italic",
-                              color: "var(--cp-text-dim)",
-                              margin: "20px 0 0 0",
+                              color: "var(--session-ink-faded)",
+                              margin: "0 0 12px 0",
                             }}
                           >
-                            Does this feel right?
+                            {isPattern ? "Does this resonate?" : "Does this feel right?"}
                           </p>
-                        )}
 
-                        {/* Action buttons */}
-                        {isPendingCheckpoint && !checkpointActionState ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              marginTop: "16px",
-                              paddingBottom: "4px",
-                            }}
-                          >
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                            {/* Primary button */}
                             <button
                               onClick={() => {
                                 setCheckpointActionState("confirmed");
@@ -276,130 +352,153 @@ export default function MobileSession({
                               }}
                               style={{
                                 fontFamily: "var(--font-sans)",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                color: "var(--cp-text-accent)",
-                                background: "transparent",
-                                border: "1px solid var(--cp-border)",
-                                borderRadius: "20px",
-                                padding: "6px 16px",
-                                cursor: "pointer",
-                                transition: "all 0.25s ease",
-                              }}
-                            >
-                              Yes, save this
-                            </button>
-                            <button
-                              onClick={() => {
-                                setCheckpointActionState("refined");
-                                confirmCheckpoint("refined");
-                              }}
-                              style={{
-                                fontFamily: "var(--font-sans)",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                color: "var(--cp-text-dim)",
-                                background: "transparent",
-                                border: "1px solid var(--cp-border-dim)",
-                                borderRadius: "20px",
-                                padding: "6px 16px",
-                                cursor: "pointer",
-                                transition: "all 0.25s ease",
-                              }}
-                            >
-                              Refine it
-                            </button>
-                            <button
-                              onClick={() => {
-                                setCheckpointActionState("rejected");
-                                confirmCheckpoint("rejected");
-                              }}
-                              style={{
-                                fontFamily: "var(--font-sans)",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                color: "var(--cp-text-dim)",
-                                background: "transparent",
-                                border: "1px solid var(--cp-border-dim)",
-                                borderRadius: "20px",
-                                padding: "6px 16px",
-                                cursor: "pointer",
-                                transition: "all 0.25s ease",
-                              }}
-                            >
-                              Skip
-                            </button>
-                          </div>
-                        ) : isPendingCheckpoint && checkpointActionState ? (
-                          <div
-                            style={{
-                              marginTop: "20px",
-                              paddingBottom: "4px",
-                              animation: "checkpointFadeIn 0.4s ease-out both",
-                            }}
-                          >
-                            <span
-                              style={{
                                 fontSize: "11px",
                                 fontWeight: 500,
-                                letterSpacing: "0.08em",
-                                color: checkpointActionState === "confirmed"
-                                  ? "var(--cp-text-accent)"
-                                  : "var(--cp-text-dim)",
+                                letterSpacing: "0.5px",
+                                color: "#FFFFFF",
+                                background: primaryBg,
+                                border: "none",
+                                borderRadius: "6px",
+                                padding: "9px 0",
+                                cursor: "pointer",
+                                width: "100%",
+                                transition: "opacity 0.25s ease",
                               }}
                             >
-                              {checkpointActionState === "confirmed" && "Written to manual"}
-                              {checkpointActionState === "refined" && "Sage will revisit this"}
-                              {checkpointActionState === "rejected" && "Discarded"}
-                            </span>
-                          </div>
-                        ) : null}
+                              Yes, write to manual
+                            </button>
 
-                        {/* Already-resolved checkpoints (loaded from DB) */}
-                        {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
-                          <div
-                            style={{
-                              marginTop: "20px",
-                              paddingBottom: "4px",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 500,
-                                letterSpacing: "0.08em",
-                                color: msg.checkpointMeta.status === "confirmed"
-                                  ? "var(--cp-text-accent)"
-                                  : "var(--cp-text-dim)",
-                              }}
-                            >
-                              {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
-                              {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
-                              {msg.checkpointMeta.status === "rejected" && "Discarded"}
-                            </span>
+                            {/* Secondary row */}
+                            <div style={{ display: "flex", gap: "16px", justifyContent: "center", alignItems: "center" }}>
+                              <button
+                                onClick={() => {
+                                  setCheckpointActionState("refined");
+                                  confirmCheckpoint("refined");
+                                }}
+                                style={{
+                                  fontFamily: "var(--font-sans)",
+                                  fontSize: "10px",
+                                  fontWeight: 500,
+                                  color: "var(--session-ink-mid)",
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                }}
+                              >
+                                Not quite
+                              </button>
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "var(--session-ink-whisper)",
+                                }}
+                              >
+                                &middot;
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setCheckpointActionState("rejected");
+                                  confirmCheckpoint("rejected");
+                                }}
+                                style={{
+                                  fontFamily: "var(--font-sans)",
+                                  fontSize: "10px",
+                                  fontWeight: 500,
+                                  color: "var(--session-ink-ghost)",
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                }}
+                              >
+                                Not at all
+                              </button>
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      </>
+                    )}
 
-                        {checkpointError && isPendingCheckpoint && (
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "10px",
-                              color: "var(--cp-text-dim)",
-                              marginTop: "12px",
-                              display: "block",
-                            }}
-                          >
-                            {checkpointError}
-                          </span>
-                        )}
+                    {/* Action state feedback */}
+                    {isPendingCheckpoint && checkpointActionState && (
+                      <div
+                        style={{
+                          marginTop: "16px",
+                          paddingTop: "12px",
+                          borderTop: isPattern
+                            ? "1px solid var(--session-navy-divider)"
+                            : "1px solid rgba(94, 112, 84, 0.1)",
+                          animation: "checkpointFadeIn 0.4s ease-out both",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "7px",
+                            fontWeight: 500,
+                            letterSpacing: "2px",
+                            textTransform: "uppercase",
+                            color: checkpointActionState === "confirmed"
+                              ? accentColor
+                              : "var(--session-ink-ghost)",
+                          }}
+                        >
+                          {checkpointActionState === "confirmed" && "Written to manual"}
+                          {checkpointActionState === "refined" && "Sage will revisit this"}
+                          {checkpointActionState === "rejected" && "Discarded"}
+                        </span>
                       </div>
-                    </MeadowZone>
+                    )}
+
+                    {/* Already-resolved checkpoints (loaded from DB) */}
+                    {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
+                      <div
+                        style={{
+                          marginTop: "16px",
+                          paddingTop: "12px",
+                          borderTop: isPattern
+                            ? "1px solid var(--session-navy-divider)"
+                            : "1px solid rgba(94, 112, 84, 0.1)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "7px",
+                            fontWeight: 500,
+                            letterSpacing: "2px",
+                            textTransform: "uppercase",
+                            color: msg.checkpointMeta.status === "confirmed"
+                              ? accentColor
+                              : "var(--session-ink-ghost)",
+                          }}
+                        >
+                          {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
+                          {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
+                          {msg.checkpointMeta.status === "rejected" && "Discarded"}
+                        </span>
+                      </div>
+                    )}
+
+                    {checkpointError && isPendingCheckpoint && (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          color: "var(--session-ink-ghost)",
+                          marginTop: "12px",
+                          display: "block",
+                        }}
+                      >
+                        {checkpointError}
+                      </span>
+                    )}
                   </div>
                 );
               }
 
-              // Sequence detection: checkpoints break Sage sequences
+              // Sequence detection: is this the first sage message in a run?
               const isFirstInSageSequence = (() => {
                 if (msg.role !== "assistant") return false;
                 if (i === 0) return true;
@@ -408,18 +507,7 @@ export default function MobileSession({
                 return prev.role !== "assistant" || prev.isCheckpoint === true;
               })();
 
-              const isLastInSageSequence = (() => {
-                if (msg.role !== "assistant") return false;
-                if (i === messages.length - 1) {
-                  if (isLoading) return false;
-                  return true;
-                }
-                const next = messages[i + 1];
-                if (!next || next.role === "system") return true;
-                return next.role !== "assistant" || next.isCheckpoint === true;
-              })();
-
-              // Normal message rendering with Sage panel
+              // Sage message — tinted bubble with serif text
               if (!isUser) {
                 // First-session orientation box: show above Sage's first message
                 const isFirstAssistant = !messages.slice(0, i).some(m => m.role === "assistant");
@@ -429,59 +517,32 @@ export default function MobileSession({
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
-                      position: isFirstInSageSequence ? "relative" as const : undefined,
-                      backgroundColor: "var(--color-surface-sage)",
+                      display: "flex",
+                      flexDirection: "column",
+                      animation: "checkpointFadeIn 0.8s ease-out both",
                     }}
                   >
-                    {/* Top dissolve overlay */}
+                    {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
-                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to bottom, var(--color-void), transparent)" }} />
-                    )}
-                    {/* Sage label */}
-                    {isFirstInSageSequence && (
-                      <div
-                        style={{
-                          paddingLeft: "28px",
-                          paddingRight: "28px",
-                          paddingBottom: "8px",
-                          paddingTop: i === 0 ? "12px" : "20px",
-                        }}
-                      >
-                        <span style={sageLabelStyle}>
-                          Sage
-                        </span>
+                      <div style={{ marginBottom: "6px", paddingLeft: "4px" }}>
+                        <span style={sageLabelStyle}>SAGE</span>
                       </div>
                     )}
-                    {/* Message — text fades in within the persistent panel */}
+                    {/* Bubble */}
                     <div
                       style={{
-                        paddingLeft: "28px",
-                        paddingRight: "28px",
-                        paddingTop: isFirstInSageSequence ? "0" : "14px",
-                        paddingBottom: isLastInSageSequence ? "12px" : "0",
-                        animation: "checkpointFadeIn 0.8s ease-out both",
+                        background: "var(--session-sage-tint)",
+                        borderRadius: "4px",
+                        padding: "12px 14px",
+                        fontFamily: "var(--font-serif)",
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: 1.65,
+                        color: "var(--session-ink-soft)",
                       }}
                     >
-                      <div
-                        style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: "15px",
-                          lineHeight: 1.7,
-                          fontWeight: 430,
-                          color: "var(--color-sage-text)",
-                          letterSpacing: "0.01em",
-                        }}
-                      >
-                        {renderMarkdown(msg.content)}
-                      </div>
+                      {renderMarkdown(msg.content)}
                     </div>
-                    {/* Bottom dissolve overlay */}
-                    {isLastInSageSequence && (
-                      <div style={{ position: "relative" }}>
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to top, var(--color-void), transparent)" }} />
-                        <div style={{ height: "12px" }} />
-                      </div>
-                    )}
                   </div>
                 );
 
@@ -534,26 +595,25 @@ export default function MobileSession({
                 return sagePanel;
               }
 
-              // User message
+              // User message — right-aligned, no bubble
               return (
                 <div
                   key={msg.id || `msg-${i}`}
                   style={{
-                    paddingRight: "28px",
-                    paddingLeft: "48px",
-                    paddingTop: "10px",
-                    paddingBottom: "10px",
+                    alignSelf: "flex-end",
+                    maxWidth: "85%",
+                    padding: "0 4px",
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
                   <p
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontSize: "15px",
-                      lineHeight: 1.7,
+                      fontSize: "13px",
                       fontWeight: 400,
-                      color: "var(--color-user-text)",
-                      letterSpacing: "0.01em",
+                      lineHeight: 1.55,
+                      color: "var(--session-ink-mid)",
+                      textAlign: "right",
                       margin: 0,
                     }}
                   >
@@ -563,47 +623,48 @@ export default function MobileSession({
               );
             })}
 
-            {/* Processing dots */}
+            {/* Typing indicator */}
             {(isLoading || isStreaming) &&
               (messages.length === 0 || messages[messages.length - 1].role === "user") && (
                 <div
                   style={{
-                    position: "relative",
-                    backgroundColor: "var(--color-surface-sage)",
-                    paddingLeft: "28px",
-                    paddingRight: "28px",
-                    paddingTop: "20px",
-                    paddingBottom: "20px",
+                    display: "flex",
+                    flexDirection: "column",
                     animation: "checkpointFadeIn 0.3s ease-out both",
                   }}
                 >
-                  {/* Top dissolve overlay */}
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "12px", zIndex: 1, pointerEvents: "none" as const, background: "linear-gradient(to bottom, var(--color-void), transparent)" }} />
                   {/* Show Sage label when prev message was user or checkpoint */}
-                  {messages.length === 0 ||
-                  messages[messages.length - 1]?.role !== "assistant" ||
-                  messages[messages.length - 1]?.isCheckpoint === true ? (
-                    <div style={{ paddingBottom: "8px" }}>
-                      <span style={sageLabelStyle}>
-                        Sage
-                      </span>
+                  {(messages.length === 0 ||
+                    messages[messages.length - 1]?.role !== "assistant" ||
+                    messages[messages.length - 1]?.isCheckpoint === true) && (
+                    <div style={{ marginBottom: "6px", paddingLeft: "4px" }}>
+                      <span style={sageLabelStyle}>SAGE</span>
                     </div>
-                  ) : null}
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center", padding: "8px 0" }}>
-                    {[0, 1, 2].map((dotIdx) => (
-                      <div
-                        key={dotIdx}
-                        style={{
-                          width: "5px",
-                          height: "5px",
-                          borderRadius: "50%",
-                          backgroundColor: "var(--color-accent-muted)",
-                          opacity: 0.5,
-                          animation: "sagePulse 2.4s ease-in-out infinite",
-                          animationDelay: `${dotIdx * 0.35}s`,
-                        }}
-                      />
-                    ))}
+                  )}
+                  <div
+                    style={{
+                      background: "var(--session-sage-tint)",
+                      borderRadius: "4px",
+                      padding: "12px 14px",
+                      alignSelf: "flex-start",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      {[0, 1, 2].map((dotIdx) => (
+                        <div
+                          key={dotIdx}
+                          style={{
+                            width: "5px",
+                            height: "5px",
+                            borderRadius: "50%",
+                            backgroundColor: "var(--session-sage-soft)",
+                            opacity: 0.5,
+                            animation: "sagePulse 2.4s ease-in-out infinite",
+                            animationDelay: `${dotIdx * 0.35}s`,
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -636,7 +697,7 @@ export default function MobileSession({
                     style={{
                       fontFamily: "var(--font-sans)",
                       fontSize: "13px",
-                      color: "var(--color-text-ghost)",
+                      color: "var(--session-ink-ghost)",
                     }}
                   >
                     {errorMessage}
@@ -647,7 +708,7 @@ export default function MobileSession({
                       fontFamily: "var(--font-sans)",
                       fontSize: "13px",
                       fontWeight: 500,
-                      color: "var(--color-accent)",
+                      color: "var(--session-sage)",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -659,6 +720,7 @@ export default function MobileSession({
                 </div>
               </div>
             )}
+        </div>
       </div>
 
       <ChatInput

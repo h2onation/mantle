@@ -1,28 +1,18 @@
 "use client";
 
-import { IconSession, IconManual, IconGuidance, IconSettings } from "@/components/icons/NavIcons";
+export type MobileTab = "session" | "manual" | "explore" | "settings";
 
-export type MobileTab = "session" | "manual" | "guidance" | "settings";
-
-const TABS: MobileTab[] = ["session", "manual", "guidance", "settings"];
+const TABS: { id: MobileTab; label: string }[] = [
+  { id: "session", label: "Session" },
+  { id: "manual", label: "Manual" },
+  { id: "explore", label: "Explore" },
+  { id: "settings", label: "Settings" },
+];
 
 interface MobileNavProps {
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
   hidden?: boolean;
-}
-
-function TabIcon({ tab, color }: { tab: MobileTab; color: string }) {
-  switch (tab) {
-    case "session":
-      return <IconSession color={color} />;
-    case "manual":
-      return <IconManual color={color} />;
-    case "guidance":
-      return <IconGuidance color={color} />;
-    case "settings":
-      return <IconSettings color={color} />;
-  }
 }
 
 export default function MobileNav({ activeTab, onTabChange, hidden = false }: MobileNavProps) {
@@ -33,57 +23,46 @@ export default function MobileNav({ activeTab, onTabChange, hidden = false }: Mo
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: "var(--color-void)",
-        borderTop: "1px solid var(--color-divider)",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "baseline",
         justifyContent: "center",
-        gap: "20px",
+        gap: "28px",
         paddingTop: "10px",
-        paddingLeft: "clamp(0px, (100vw - 430px) * 999, 20px)",
-        paddingRight: "clamp(0px, (100vw - 430px) * 999, 20px)",
-        paddingBottom: "clamp(calc(14px + env(safe-area-inset-bottom, 0px)), (100vw - 430px) * 999, 20px)",
+        paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
         zIndex: 100,
         transform: hidden ? "translateY(100%)" : "translateY(0)",
         transition: "transform 0.25s ease",
         pointerEvents: hidden ? "none" : "auto",
       }}
     >
-      {TABS.map((tab) => {
-        const isActive = activeTab === tab;
-        const color = isActive ? "var(--color-accent)" : "var(--color-text-ghost)";
+      {TABS.map(({ id, label }) => {
+        const isActive = activeTab === id;
         return (
           <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
+            key={id}
+            onClick={() => onTabChange(id)}
             style={{
-              padding: "4px 8px",
+              padding: "0 0 3px",
               background: "none",
               border: "none",
+              borderBottom: isActive
+                ? "1px solid var(--session-ink-mid)"
+                : "1px solid transparent",
               cursor: "pointer",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "4px",
+              fontFamily: "var(--font-serif)",
+              fontSize: "10px",
+              fontWeight: 400,
+              letterSpacing: "4px",
+              textTransform: "uppercase",
+              lineHeight: 1,
+              color: isActive
+                ? "var(--session-ink-mid)"
+                : "var(--session-ink-ghost)",
+              transition: "all 0.25s ease",
               WebkitTapHighlightColor: "transparent",
-              minWidth: "56px",
-              minHeight: "44px",
-              color,
-              transition: "color 0.4s ease",
             }}
           >
-            <TabIcon tab={tab} color={color} />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "7px",
-                letterSpacing: "2.5px",
-                lineHeight: 1,
-                textTransform: "uppercase",
-              }}
-            >
-              {tab}
-            </span>
+            {label}
           </button>
         );
       })}

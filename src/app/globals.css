@@ -87,6 +87,41 @@
   --font-serif: var(--font-instrument-serif);
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains-mono);
+
+  /* ─── Session Linen Tokens ─── */
+
+  /* Surface */
+  --session-linen:       #F4F0EA;
+  --session-cream:       #FAF8F4;
+  --session-parchment:   #E8E2D8;
+
+  /* Ink hierarchy */
+  --session-ink:         #1A1614;
+  --session-ink-soft:    #3D3632;
+  --session-ink-mid:     #6B6360;
+  --session-ink-faded:   #8A8480;
+  --session-ink-ghost:   #B8B2AC;
+  --session-ink-whisper: #D4CEC8;
+  --session-ink-hairline: rgba(26, 22, 20, 0.08);
+
+  /* Sage green (checkpoint accent) */
+  --session-sage:        #5E7054;
+  --session-sage-soft:   #7A8B72;
+  --session-sage-muted:  rgba(94, 112, 84, 0.10);
+  --session-sage-border: rgba(94, 112, 84, 0.22);
+  --session-sage-tint:   rgba(94, 112, 84, 0.04);
+
+  /* Navy (pattern accent) */
+  --session-navy-bg:      rgba(45, 55, 80, 0.05);
+  --session-navy-border:  rgba(45, 55, 80, 0.16);
+  --session-navy-label:   #3D4A60;
+  --session-navy-btn:     #556275;
+  --session-navy-glow:    rgba(70, 85, 115, 0.16);
+  --session-navy-divider: rgba(45, 55, 80, 0.10);
+
+  /* Gold shadow system */
+  --session-glow-cp:     rgba(185, 170, 110, 0.30);
+  --session-glow-scroll: rgba(200, 185, 140, 0.25);
 }
 
 html {
@@ -131,7 +166,7 @@ textarea::placeholder {
 
 /* Checkpoint fade-in */
 @keyframes checkpointFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
