@@ -41,9 +41,8 @@ export default function OnboardingFlow() {
         return;
       }
 
-      // Onboarding completed but no session — show login
-      setCurrentView("login");
-      setGlowConfig(LOGIN_GLOW);
+      // Onboarding completed but no session — show entry screen
+      // (user taps "Log In" to reach the login form)
       setReady(true);
     });
   }, [router]);
