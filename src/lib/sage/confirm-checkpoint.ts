@@ -46,7 +46,18 @@ export async function confirmCheckpoint({
 
     // Use pre-composed content from Sage's manual entry block.
     // Falls back to the conversational checkpoint text if composition wasn't produced.
-    const contentToWrite = meta.composed_content || message.content;
+    // When falling back, strip any crisis resources text that may have been appended
+    // by the crisis detection system (prevents contamination of manual entries).
+    const CRISIS_RESOURCES_PATTERN =
+      "\n\nIf you're in crisis or need immediate support, please reach out to";
+    let fallbackContent = message.content;
+    if (!meta.composed_content && fallbackContent) {
+      const crisisIdx = fallbackContent.indexOf(CRISIS_RESOURCES_PATTERN);
+      if (crisisIdx !== -1) {
+        fallbackContent = fallbackContent.substring(0, crisisIdx).trimEnd();
+      }
+    }
+    const contentToWrite = meta.composed_content || fallbackContent;
     const nameToWrite = meta.composed_name || meta.name || "Untitled";
 
     // 2. Check for existing content on this layer
@@ -62,6 +73,15 @@ export async function confirmCheckpoint({
     const existingPatterns = (existingComponents || []).filter(
       (c) => c.type === "pattern"
     );
+
+    // Safety net: reject second component on same layer.
+    // The call-sage hard guard should prevent this, but defend in depth.
+    if (meta.type === "component" && existingComponent) {
+      console.warn(
+        `[confirmCheckpoint] Blocked duplicate component on layer ${meta.layer}. Existing id=${existingComponent.id}. Forcing to pattern.`
+      );
+      meta.type = "pattern";
+    }
 
     let componentId: string | null = null;
 

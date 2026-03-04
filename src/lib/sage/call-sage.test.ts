@@ -248,11 +248,18 @@ describe("detectCrisisInUserMessage", () => {
   it("detects indirect crisis phrases", () => {
     expect(detectCrisisInUserMessage("everyone would be better off without me")).toBe(true);
     expect(detectCrisisInUserMessage("there's no point anymore")).toBe(true);
-    expect(detectCrisisInUserMessage("I just want to make it stop")).toBe(true);
-    expect(detectCrisisInUserMessage("I can't do this anymore")).toBe(true);
     expect(detectCrisisInUserMessage("I want to disappear")).toBe(true);
     expect(detectCrisisInUserMessage("life is not worth living")).toBe(true);
     expect(detectCrisisInUserMessage("I'm tired of being alive")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to exist")).toBe(true);
+    expect(detectCrisisInUserMessage("there's no point in living")).toBe(true);
+  });
+
+  it("does not false-positive on common relationship distress", () => {
+    // These phrases were removed because they trigger on normal conversations
+    expect(detectCrisisInUserMessage("I just want to make it stop hurting")).toBe(false);
+    expect(detectCrisisInUserMessage("I can't do this anymore with him")).toBe(false);
+    expect(detectCrisisInUserMessage("I don't want to be here in this relationship")).toBe(false);
   });
 
   it("is case-insensitive", () => {
@@ -267,9 +274,9 @@ describe("detectCrisisInUserMessage", () => {
   });
 
   it("detects phrases with contractions and without apostrophes", () => {
-    expect(detectCrisisInUserMessage("I dont want to be here")).toBe(true);
-    expect(detectCrisisInUserMessage("I don't want to be here")).toBe(true);
-    expect(detectCrisisInUserMessage("I cant do this anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I dont want to be here anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to be here anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I dont want to exist")).toBe(true);
     expect(detectCrisisInUserMessage("whats the point of living")).toBe(true);
   });
 });

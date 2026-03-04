@@ -510,6 +510,61 @@ Haiku runs post-stream as a fallback when Sage does NOT include a `|||MANUAL_ENT
 ### Session Summary
 Generated fire-and-forget when `useChat` initializes and the last message is >30 minutes old. Also generated when a conversation is marked completed via `/api/conversations/complete`. Uses shared `generateSessionSummary()` utility in `src/lib/sage/generate-summary.ts` (Haiku). Stored on conversation `summary` column.
 
+## Sage Prompt Assembly
+
+### buildSystemPrompt Conditional Loading
+
+Sections load based on `BuildPromptOptions` flags. Source of truth for what Sage sees:
+
+| Section | Condition |
+|---------|-----------|
+| Voice, Legal Boundaries, Conversation Approach, Deepening Moves, Adapting | Always |
+| Extraction Context guidance | `turnCount > 1` |
+| Manual Entry Format | `turnCount > 1` |
+| Progress Signals | `turnCount > 2` |
+| First Message | `turnCount <= 1 && isNewUser` |
+| First Session content | `isNewUser` |
+| Checkpoints, Composition Voice, Post-Checkpoint | `showCheckpointInstructions` (`checkpointApproaching \|\| isReturningUser`) |
+| First Checkpoint teaching | `isFirstCheckpoint && checkpointApproaching` |
+| Building Toward Signal | `checkpointApproaching` |
+| Patterns | `hasPatternEligibleLayer` |
+| Returning User | `isReturningUser` |
+| Readiness Gate | `manualComponents.length >= 3` |
+| Confirmed Manual (dynamic) | `manualComponents.length > 0` |
+| Session Context (dynamic) | `isReturningUser` |
+| Exploration Focus (dynamic) | `explorationContext` provided |
+
+`isNewUser = manualComponents.length === 0 && !isReturningUser`. `checkpointApproaching` = any layer signal is `emerging`, `explored`, or `checkpoint_ready` in `previousExtraction`. 1-turn lag: Sage sees the PREVIOUS turn's extraction. See "Extraction Layer" in Architecture Rules.
+
+### Layer Discovery Rules
+
+- Every layer starts in `discovery_mode: "component"`
+- First checkpoint on any layer MUST be type `"component"`
+- After component confirmation, `discovery_mode` flips to `"pattern"` (managed by `confirmCheckpoint()`)
+- Max 1 component + 2 patterns per layer (5 components + 10 patterns total)
+- Four-layer type enforcement: system prompt TYPE RULE → extraction `target_type` → hard guard in `call-sage.ts` → safety net in `confirm-checkpoint.ts`
+
+### Extraction → Sage Pipeline (per turn)
+
+1. User message arrives at `/api/chat`
+2. Parallel reads: history, `manual_components`, `extraction_state` (via `Promise.all`)
+3. `buildSystemPrompt()` using previous extraction state (1-turn lag)
+4. Sage streams response; `runExtraction()` fires in background (not awaited)
+5. Delimiter buffer suppresses `|||MANUAL_ENTRY|||` from client stream
+6. If manual entry block found → skip classifier, use Sage's metadata (Path A)
+7. If no block → Haiku classifier runs as fallback (Path B)
+8. Background extraction saves updated state to `conversations.extraction_state`
+
+See "Checkpoint Lifecycle" for the full confirm flow after step 7.
+
+### Critical Invariants
+
+- `composed_content` must never be null on confirmed checkpoints (fixed by loading Manual Entry Format at `turnCount > 1`)
+- Crisis text must never appear in manual entries (stripped in `confirmCheckpoint()` fallback path)
+- `clinical_flag.level === "crisis"` blocks checkpoint gate entirely (in `formatExtractionForSage`)
+- Checkpoint gate is quality-based (examples + mechanism + charged language), not turn-based
+- First-checkpoint gate is lighter: 1 example (vs 2), mechanism OR behavior-driver link (vs both)
+
 ## Dead Features — Full Kill List
 
 These features were designed, partially built, or referenced, and have been removed:
