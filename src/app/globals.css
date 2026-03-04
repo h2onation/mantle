@@ -18,27 +18,6 @@
   --color-accent-glow: rgba(139, 168, 136, 0.12);
   --color-accent-strong: rgba(139, 168, 136, 0.55);
 
-  /* Checkpoint clearing */
-  --cp-surface-mid: #E4EDE0;
-  --cp-text: #2A3326;
-  --cp-text-accent: #5E7054;
-  --cp-text-dim: #455040;
-  --cp-border: rgba(94, 112, 84, 0.35);
-  --cp-border-dim: rgba(69, 80, 64, 0.2);
-  --cp-pattern-bg: rgba(94, 112, 84, 0.04);
-  --cp-pattern-bg-active: rgba(94, 112, 84, 0.08);
-  --cp-pattern-border: rgba(94, 112, 84, 0.08);
-  --cp-pattern-border-active: rgba(94, 112, 84, 0.15);
-  --cp-pattern-name: rgba(94, 112, 84, 0.5);
-  --cp-pattern-content: rgba(58, 74, 52, 0.7);
-  --cp-explore-text: rgba(94, 112, 84, 0.65);
-  --cp-explore-border: rgba(94, 112, 84, 0.2);
-  --cp-explore-text-dark: #A8B89F;
-  --cp-explore-bg-dark: rgba(122, 139, 114, 0.15);
-  --cp-explore-bg-dark-dim: rgba(122, 139, 114, 0.08);
-  --cp-explore-border-dark: rgba(122, 139, 114, 0.25);
-  --cp-link: rgba(94, 112, 84, 0.55);
-
   /* Chat surfaces */
   --color-surface-sage: #151311;
   --color-shell: #252320;
@@ -72,17 +51,6 @@
   --color-btn-disabled-text: rgba(232, 228, 221, 0.18);
   --color-btn-disabled-bg: rgba(255, 255, 255, 0.03);
   --color-btn-disabled-border: rgba(255, 255, 255, 0.04);
-
-  /* Tooltip */
-  --color-tooltip-bg: #1A1816;
-  --color-tooltip-border: rgba(122, 139, 114, 0.15);
-  --color-tooltip-text: rgba(212, 203, 192, 0.6);
-
-  /* Empty layer (dark void context) */
-  --color-empty-text: rgba(212, 203, 192, 0.28);
-  --color-empty-bg: rgba(212, 203, 192, 0.04);
-  --color-empty-icon: rgba(212, 203, 192, 0.25);
-
 
   /* ─── Session Linen Tokens ─── */
 
@@ -200,6 +168,12 @@ textarea::placeholder {
 @keyframes manualAtmoFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Generic fade-in with subtle lift */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Layer new-content entrance */

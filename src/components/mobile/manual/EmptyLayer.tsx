@@ -18,15 +18,15 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
         alignItems: "center",
         justifyContent: "space-between",
         padding: "16px 0",
-        borderBottom: "1px solid rgba(212, 203, 192, 0.04)",
+        borderBottom: "1px solid var(--session-ink-hairline)",
       }}
     >
       <span
         style={{
           fontFamily: "var(--font-sans)",
-          fontSize: "13.5px",
-          fontWeight: 430,
-          color: "var(--color-empty-text)",
+          fontSize: 13,
+          fontWeight: 400,
+          color: "var(--session-ink-whisper)",
           lineHeight: 1.3,
         }}
       >
@@ -44,37 +44,21 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
           content: layer.about,
         }) : undefined}
       >
-        <div
+        <button
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            background: "var(--color-empty-bg)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            fontFamily: "var(--font-sans)",
+            fontSize: 11,
+            fontWeight: 500,
+            color: "var(--session-ink-ghost)",
+            background: "none",
+            border: "1px solid var(--session-ink-hairline)",
+            borderRadius: 12,
+            padding: "4px 10px",
+            cursor: "pointer",
           }}
         >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            style={{ display: "block" }}
-          >
-            <circle cx="5" cy="2" r="1" fill="var(--color-empty-icon)" />
-            <line
-              x1="5"
-              y1="4.5"
-              x2="5"
-              y2="8.5"
-              stroke="var(--color-empty-icon)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
+          Explore
+        </button>
       </LayerTooltip>
     </div>
   );

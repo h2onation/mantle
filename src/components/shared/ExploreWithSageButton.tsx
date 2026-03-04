@@ -2,15 +2,11 @@
 
 interface ExploreWithSageButtonProps {
   onClick: () => void;
-  variant?: "meadow" | "dark";
 }
 
 export default function ExploreWithSageButton({
   onClick,
-  variant = "meadow",
 }: ExploreWithSageButtonProps) {
-  const isDark = variant === "dark";
-
   return (
     <button
       onClick={(e) => {
@@ -22,22 +18,18 @@ export default function ExploreWithSageButton({
         alignItems: "center",
         gap: 6,
         fontFamily: "var(--font-sans)",
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 500,
-        color: isDark ? "var(--cp-explore-text-dark)" : "var(--cp-explore-text)",
-        background: isDark
-          ? "linear-gradient(135deg, var(--cp-explore-bg-dark) 0%, var(--cp-explore-bg-dark-dim) 100%)"
-          : "linear-gradient(135deg, rgba(94,112,84,0.1) 0%, rgba(94,112,84,0.05) 100%)",
-        border: isDark
-          ? "1px solid var(--cp-explore-border-dark)"
-          : "1px solid var(--cp-explore-border)",
-        borderRadius: 8,
-        padding: "9px 14px 9px 12px",
+        color: "var(--session-sage-soft)",
+        background: "none",
+        border: "1px solid var(--session-sage-border)",
+        borderRadius: 16,
+        padding: "6px 14px",
         cursor: "pointer",
         marginTop: 14,
-        transition: "border-color 0.2s ease",
       }}
     >
+      Explore further
       <svg
         width="10"
         height="10"
@@ -47,13 +39,12 @@ export default function ExploreWithSageButton({
       >
         <path
           d="M3 1.5L7 5L3 8.5"
-          stroke={isDark ? "var(--cp-explore-text-dark)" : "var(--cp-explore-text)"}
+          stroke="var(--session-sage-soft)"
           strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
-      Explore with Sage
     </button>
   );
 }

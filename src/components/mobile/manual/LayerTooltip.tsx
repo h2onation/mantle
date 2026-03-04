@@ -71,11 +71,11 @@ export default function LayerTooltip({
                 : { top: "calc(100% + 8px)" }),
               right: 0,
               width: 280,
-              background: "var(--color-tooltip-bg)",
+              background: "var(--session-cream)",
               borderRadius: 12,
-              border: "1px solid var(--color-tooltip-border)",
+              border: "1px solid var(--session-ink-hairline)",
               boxShadow:
-                "0 20px 60px var(--color-backdrop), 0 0 30px rgba(122,139,114,0.05)",
+                "0 20px 60px rgba(0,0,0,0.12), 0 0 30px rgba(122,139,114,0.05)",
               padding: "18px 20px",
               zIndex: 50,
               animation: flipUp
@@ -87,7 +87,7 @@ export default function LayerTooltip({
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: "13.5px",
-                color: "var(--color-tooltip-text)",
+                color: "var(--session-ink-soft)",
                 lineHeight: 1.65,
                 margin: 0,
               }}
@@ -98,7 +98,6 @@ export default function LayerTooltip({
             {showSageAction && onExploreWithSage && (
               <ExploreWithSageButton
                 onClick={onExploreWithSage}
-                variant="dark"
               />
             )}
           </div>
