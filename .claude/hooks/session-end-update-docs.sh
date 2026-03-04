@@ -15,7 +15,7 @@ fi
 # Output context for Claude to act on
 cat <<'CONTEXT'
 {
-  "additionalContext": "IMPORTANT: Before ending, check if any significant changes were made this session (new features, DB changes, architectural decisions, new API routes, new files, removed features). If so, update CLAUDE.md to reflect what was built, replacing outdated sections rather than appending. Add a Drift Log entry with today's date and a summary of changes."
+  "additionalContext": "IMPORTANT: Before ending, check if any significant changes were made this session (new features, DB changes, architectural decisions, new API routes, new files, removed features). If so: (1) update CLAUDE.md to reflect what was built, replacing outdated sections rather than appending, and (2) add a Drift Log entry with today's date and summary of changes in .claude/DRIFT_LOG.md."
 }
 CONTEXT
 

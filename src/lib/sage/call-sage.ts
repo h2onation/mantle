@@ -2,6 +2,7 @@ import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
+import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
 import {
   runExtraction,
   formatExtractionForSage,
@@ -179,6 +180,10 @@ export function createDelimiterBuffer(delimiter: string) {
   };
 }
 
+// Crisis phrases — must be specific enough to avoid false positives.
+// Removed overly broad phrases that trigger on normal relationship distress:
+//   "make it stop", "can't do this anymore", "don't want to be here"
+// These appear constantly in non-crisis conversations about difficult emotions.
 const CRISIS_PHRASES = [
   "kill myself",
   "hurt myself",
@@ -186,13 +191,8 @@ const CRISIS_PHRASES = [
   "end my life",
   "suicide",
   "self-harm",
-  "don't want to be here",
-  "dont want to be here",
   "better off without me",
   "no point anymore",
-  "make it stop",
-  "can't do this anymore",
-  "cant do this anymore",
   "want to disappear",
   "not worth living",
   "no reason to keep going",
@@ -203,6 +203,9 @@ const CRISIS_PHRASES = [
   "dont want to be here anymore",
   "what's the point of living",
   "whats the point of living",
+  "don't want to exist",
+  "dont want to exist",
+  "no point in living",
 ];
 
 export function detectCrisisInUserMessage(message: string): boolean {
@@ -358,15 +361,34 @@ export function callSage({
             )
           : "";
 
-        const systemPrompt = buildSystemPrompt(
-          manualComponents || [],
+        // Derive conditional-loading flags from data already in memory
+        const turnCount = messages.length;
+        const hasPatternEligibleLayer = previousExtraction
+          ? Object.values(previousExtraction.layers).some(
+              (l) => l.discovery_mode === "pattern"
+            )
+          : false;
+        const checkpointApproaching = previousExtraction
+          ? Object.values(previousExtraction.layers).some(
+              (l) =>
+                l.signal === "emerging" ||
+                l.signal === "explored" ||
+                l.signal === "checkpoint_ready"
+            )
+          : false;
+
+        const systemPrompt = buildSystemPrompt({
+          manualComponents: manualComponents || [],
           isReturningUser,
           sessionSummary,
-          extractionForSage,
+          extractionContext: extractionForSage,
           isFirstCheckpoint,
           sessionCount,
-          explorationContext
-        );
+          explorationContext,
+          turnCount,
+          hasPatternEligibleLayer,
+          checkpointApproaching,
+        });
 
         // 9. Stream Sage response with delimiter buffer
         let fullText = "";
@@ -518,10 +540,14 @@ export function callSage({
 
           const isFirstSession =
             !manualComponents || manualComponents.length === 0;
+          const layersWithComponents = (manualComponents || [])
+            .filter((c) => c.type === "component")
+            .map((c) => c.layer);
           const classification = await classifyResponse(
             conversationalText,
             recentText,
-            isFirstSession
+            isFirstSession,
+            layersWithComponents
           );
 
           isCheckpoint = classification.isCheckpoint;
@@ -529,6 +555,67 @@ export function callSage({
           checkpointType = classification.type;
           checkpointName = classification.name;
           processingText = classification.processingText;
+        }
+
+        // 12b. Hard guard: enforce component/pattern layer rules.
+        //      Rule 1: First entry on any layer must be a component.
+        //      Rule 2: Only one component per layer — force to pattern if component exists.
+        if (isCheckpoint && checkpointLayer) {
+          const layerHasComponent = (manualComponents || []).some(
+            (c) => c.layer === checkpointLayer && c.type === "component"
+          );
+
+          if (checkpointType === "pattern" && !layerHasComponent) {
+            // Rule 1: No component on this layer yet — force to component
+            checkpointType = "component";
+            if (manualEntry) {
+              manualEntry.type = "component";
+            }
+          } else if (checkpointType === "component" && layerHasComponent) {
+            // Rule 2: Component already exists — force to pattern
+            checkpointType = "pattern";
+            if (manualEntry) {
+              manualEntry.type = "pattern";
+            }
+          }
+        }
+
+        // 12c. Path B composition: when classifier detected a checkpoint but
+        //      Sage didn't produce a |||MANUAL_ENTRY||| block, compose the
+        //      manual entry now so composed_content is ready at confirmation.
+        let composedEntry: {
+          content: string;
+          name: string;
+          changelog: string;
+        } | null = null;
+
+        const hasComposedContent =
+          manualEntry?.content && manualEntry.content.length > 0;
+
+        if (isCheckpoint && checkpointLayer && !hasComposedContent) {
+          try {
+            const existingLayerContent = (manualComponents || []).filter(
+              (c) => c.layer === checkpointLayer
+            );
+
+            composedEntry = await composeManualEntry({
+              checkpointText: conversationalText,
+              conversationHistory: messages,
+              languageBank: previousExtraction?.language_bank || [],
+              layer: checkpointLayer,
+              type: (checkpointType as "component" | "pattern") || "component",
+              name: checkpointName,
+              existingLayerContent:
+                existingLayerContent.length > 0
+                  ? existingLayerContent
+                  : undefined,
+            });
+          } catch (err) {
+            console.error(
+              "[callSage] Path B composition failed, saving without composed_content:",
+              err
+            );
+          }
         }
 
         // 13. Update message metadata
@@ -542,11 +629,14 @@ export function callSage({
             updateData.checkpoint_meta = {
               layer: checkpointLayer,
               type: checkpointType,
-              name: checkpointName,
+              name: composedEntry?.name || manualEntry?.name || checkpointName,
               status: "pending",
-              composed_content: manualEntry?.content || null,
-              composed_name: manualEntry?.name || null,
-              changelog: manualEntry?.changelog || null,
+              composed_content:
+                manualEntry?.content || composedEntry?.content || null,
+              composed_name:
+                manualEntry?.name || composedEntry?.name || null,
+              changelog:
+                manualEntry?.changelog || composedEntry?.changelog || null,
             };
           }
 

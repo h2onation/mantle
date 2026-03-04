@@ -7,6 +7,7 @@ export interface LayerSignal {
   material: string[];
   examples: string[];
   dimensions: string[];
+  discovery_mode: "component" | "pattern";
 }
 
 export interface LanguageEntry {
@@ -22,6 +23,33 @@ export interface CheckpointGate {
   has_charged_language: boolean;
   has_behavior_driver_link: boolean;
   strongest_layer: number | null;
+  target_type: "component" | "pattern";
+}
+
+export interface ClinicalFlag {
+  active: boolean;
+  level: "crisis" | "caution" | "none";
+  note: string;
+}
+
+export interface PatternChainElement {
+  element: "trigger" | "internal_experience" | "response" | "payoff" | "cost";
+  content: string;
+  source: string; // user quote or paraphrase that evidenced this
+}
+
+export interface PatternTracking {
+  active: boolean;
+  layer: number | null;
+  label: string; // working name for the pattern, e.g. "the shutdown loop"
+  chain_elements: PatternChainElement[];
+  recurrence_count: number; // how many distinct instances the user has described
+}
+
+export interface ConfirmedPattern {
+  layer: number;
+  name: string;
+  chain_elements: PatternChainElement[];
 }
 
 export interface ExtractionState {
@@ -31,6 +59,9 @@ export interface ExtractionState {
   current_thread: string;
   mode: "situation_led" | "direct_exploration" | "synthesis";
   checkpoint_gate: CheckpointGate;
+  clinical_flag: ClinicalFlag;
+  pattern_tracking: PatternTracking;
+  confirmed_patterns: ConfirmedPattern[];
   next_prompt: string;
   sage_brief: string;
 }
@@ -47,11 +78,11 @@ interface ManualComponent {
 function defaultState(): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [], dimensions: [] },
-      2: { signal: "none", material: [], examples: [], dimensions: [] },
-      3: { signal: "none", material: [], examples: [], dimensions: [] },
-      4: { signal: "none", material: [], examples: [], dimensions: [] },
-      5: { signal: "none", material: [], examples: [], dimensions: [] },
+      1: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      2: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      3: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      4: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      5: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
     },
     language_bank: [],
     depth: "surface",
@@ -63,7 +94,21 @@ function defaultState(): ExtractionState {
       has_charged_language: false,
       has_behavior_driver_link: false,
       strongest_layer: null,
+      target_type: "component",
     },
+    clinical_flag: {
+      active: false,
+      level: "none",
+      note: "",
+    },
+    pattern_tracking: {
+      active: false,
+      layer: null,
+      label: "",
+      chain_elements: [],
+      recurrence_count: 0,
+    },
+    confirmed_patterns: [],
     next_prompt: "",
     sage_brief: "",
   };
@@ -99,7 +144,7 @@ Capture the user's exact phrases that carry weight. Not your paraphrase. Their w
 - Moments of visible heat or charge in the text
 
 2. LAYER SIGNALS
-What layers did the user's latest message touch? Be specific about what material surfaced. Don't just say "Layer 1 emerging" — say what need or value you're seeing signal for and what the evidence is.
+What layers did the user's latest message touch? Be specific about what material surfaced. Don't just say "Layer 1 emerging." Say what need or value you're seeing signal for and what the evidence is.
 
 Track dimensions within each layer:
 - Layer 1: core needs, values hierarchy, what they protect, what they sacrifice, what they compete for
@@ -151,16 +196,58 @@ Write a short paragraph (3-5 sentences) orienting Sage:
 - What Sage should push on vs leave alone
 - Whether a checkpoint is approaching and what it would cover
 
-7. MODE RECOMMENDATION
+7. CLINICAL FLAG
+A lightweight signal that tells Sage when to engage legal guardrails. Two levels:
+
+"crisis": User expressed suicidal ideation, self-harm intent, or intent to harm others. Sage must stop building and provide resources.
+
+"caution": User introduced diagnostic language, asked Sage to assess a condition, or described distress that may exceed manual-building scope. Sage should stay in behavioral description and may need to offer a professional referral.
+
+"none": Normal conversation. Clinical themes may be present but the user is not asking Sage to do anything clinical.
+
+IMPORTANT: A user talking ABOUT depression, anxiety, trauma, etc. as part of their story is "none." A user asking Sage to ASSESS whether they have a condition, or describing experiences that clearly exceed self-understanding scope (psychotic symptoms, inability to function, active destabilization), is "caution." The bar for "caution" is high. Most conversations stay "none" even when the material is heavy.
+
+8. MODE RECOMMENDATION
 - situation_led: Default. User is telling stories, Sage is deepening.
 - direct_exploration: When 2+ layers have confirmed components and there are clear gaps.
 - synthesis: When all 5 layers have at least one confirmed component.
+
+9. PATTERN TRACKING
+Each layer has a discovery_mode: "component" (default) or "pattern" (after a component is confirmed on that layer).
+
+When a layer is in "pattern" mode, you are looking for REPEATING BEHAVIORAL PATTERNS: loops that play out across different situations. A pattern is NOT the same as a component. Components describe the landscape. Patterns describe the loops that run on that landscape.
+
+PATTERN DETECTION:
+When discovery_mode is "pattern" for a layer, watch for:
+- Behavior the user has described in TWO OR MORE different contexts (recurrence)
+- A sequence: something triggers → something happens internally → the user responds → there's a payoff AND a cost
+- The user recognizing "I always do this" or "this keeps happening"
+
+FUNCTIONAL ANALYSIS CHAIN:
+When you detect a recurring pattern, build the chain:
+- trigger: What activates it (situation, person, feeling)
+- internal_experience: What happens inside (the feeling, the thought, the body response)
+- response: What they do (the behavior, the action, the avoidance)
+- payoff: What it protects or provides (the short-term gain, the relief)
+- cost: What it costs them (the long-term damage, the thing they lose)
+
+Each element needs a content description AND a source (the user's exact words or a tight paraphrase of what evidenced it).
+
+PATTERN GATE:
+A pattern checkpoint is ready when:
+- recurrence_count >= 2 (the user has described this loop in at least two distinct situations)
+- At least 3 of 5 chain elements are filled (trigger + response + one of: internal_experience, payoff, or cost)
+- The pattern belongs to a layer that already has a confirmed component (discovery_mode = "pattern")
+
+When the pattern gate is met, set checkpoint_gate.target_type to "pattern" and checkpoint_gate.strongest_layer to the pattern's layer.
+
+When in component mode (no pattern tracking active), checkpoint_gate.target_type stays "component".
 
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
   "layers": {
-    "1": { "signal": "none|emerging|explored|checkpoint_ready", "material": ["specific observation"], "examples": ["concrete moment from user"], "dimensions": ["which aspects touched"] },
+    "1": { "signal": "none|emerging|explored|checkpoint_ready", "material": ["specific observation"], "examples": ["concrete moment from user"], "dimensions": ["which aspects touched"], "discovery_mode": "component|pattern" },
     "2": { ... },
     "3": { ... },
     "4": { ... },
@@ -177,7 +264,22 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
     "has_mechanism": false,
     "has_charged_language": false,
     "has_behavior_driver_link": false,
-    "strongest_layer": null
+    "strongest_layer": null,
+    "target_type": "component|pattern"
+  },
+  "clinical_flag": {
+    "active": false,
+    "level": "none",
+    "note": ""
+  },
+  "pattern_tracking": {
+    "active": false,
+    "layer": null,
+    "label": "working name for pattern",
+    "chain_elements": [
+      { "element": "trigger|internal_experience|response|payoff|cost", "content": "description", "source": "user quote" }
+    ],
+    "recurrence_count": 0
   },
   "next_prompt": "3-6 word placeholder hint...",
   "sage_brief": "3-5 sentence orientation for Sage"
@@ -186,10 +288,13 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 CRITICAL RULES:
 - The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
 - Layer signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready) unless a checkpoint was confirmed, in which case that layer resets for new pattern discovery.
-- When a layer has a confirmed component already, its signal starts at "explored" minimum.
+- When a layer has a confirmed component already, its signal starts at "explored" minimum and its discovery_mode is "pattern".
 - Be aggressive about capturing language. If in doubt, capture it.
 - The checkpoint gate is a quality assessment. Do not count turns.
-- The next_prompt must be 3-6 words, lowercase, ending with "..."`;
+- The next_prompt must be 3-6 words, lowercase, ending with "..."
+- discovery_mode is managed externally. Always carry forward the discovery_mode from the previous state for each layer. Do not change it yourself.
+- pattern_tracking is cumulative. Once active, keep building chain_elements across turns. Increment recurrence_count when the user describes a new instance of the same loop. Reset pattern_tracking (active: false) after a pattern checkpoint is confirmed.
+- PATTERN SATURATION: Each layer has a maximum of 2 patterns. Check the confirmed manual components to count existing patterns per layer. If a layer already has 2 confirmed patterns and you detect a third recurring loop, do NOT activate pattern_tracking. Instead, note "saturated" in the sage_brief and suggest deepening an existing pattern or exploring a different layer.`;
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
@@ -211,6 +316,7 @@ export async function runExtraction(
     current_thread: state.current_thread,
     mode: state.mode,
     checkpoint_gate: state.checkpoint_gate,
+    pattern_tracking: state.pattern_tracking,
   });
   userContent += "\n\n";
 
@@ -272,13 +378,27 @@ export async function runExtraction(
 
     const parsed = JSON.parse(cleaned);
 
+    // Preserve discovery_mode from previous state (managed by confirm-checkpoint,
+    // not by the extraction LLM). Merge parsed layers with existing discovery_mode.
+    const mergedLayers = parsed.layers || state.layers;
+    for (let i = 1; i <= 5; i++) {
+      if (mergedLayers[i] && state.layers[i]) {
+        mergedLayers[i].discovery_mode = state.layers[i].discovery_mode;
+      } else if (mergedLayers[i]) {
+        mergedLayers[i].discovery_mode = mergedLayers[i].discovery_mode || "component";
+      }
+    }
+
     return {
-      layers: parsed.layers || state.layers,
+      layers: mergedLayers,
       language_bank: parsed.language_bank || state.language_bank,
       depth: parsed.depth || state.depth,
       current_thread: parsed.current_thread || state.current_thread,
       mode: parsed.mode || state.mode,
       checkpoint_gate: parsed.checkpoint_gate || state.checkpoint_gate,
+      clinical_flag: parsed.clinical_flag || state.clinical_flag,
+      pattern_tracking: parsed.pattern_tracking || state.pattern_tracking,
+      confirmed_patterns: state.confirmed_patterns, // managed by confirm-checkpoint, not by LLM
       next_prompt: parsed.next_prompt || "",
       sage_brief: parsed.sage_brief || "",
     };
@@ -314,6 +434,17 @@ export function formatExtractionForSage(
     const layer = state.layers[i];
     if (!layer) continue;
     context += `L${i} (${layerNames[i]}): ${layer.signal}`;
+    if (layer.discovery_mode === "pattern") {
+      // Check if this layer is saturated (2 patterns already confirmed)
+      const layerPatternCount = manualComponents
+        ? manualComponents.filter((c) => c.layer === i && c.type === "pattern").length
+        : 0;
+      if (layerPatternCount >= 2) {
+        context += ` [pattern mode — SATURATED: 2/2 patterns]`;
+      } else {
+        context += ` [pattern mode]`;
+      }
+    }
     if (layer.material.length > 0) {
       context += ` — ${layer.material.slice(-3).join("; ")}`;
     }
@@ -326,43 +457,97 @@ export function formatExtractionForSage(
     .slice(-15);
 
   if (chargedLanguage.length > 0) {
-    context += "USER'S OWN LANGUAGE (use these — they're more powerful than your paraphrase)\n";
+    context += "USER'S OWN LANGUAGE (use these. They're more powerful than your paraphrase)\n";
     for (const entry of chargedLanguage) {
       context += `"${entry.phrase}" [${entry.charge}] — re: ${entry.context}\n`;
     }
     context += "\n";
   }
 
-  // Checkpoint gate evaluation
-  const gate = state.checkpoint_gate;
-  const gateReady = isFirstCheckpoint
-    ? gate.concrete_examples >= 1 &&
-      gate.has_charged_language &&
-      (gate.has_mechanism || gate.has_behavior_driver_link)
-    : gate.concrete_examples >= 2 &&
-      gate.has_mechanism &&
-      gate.has_charged_language &&
-      gate.has_behavior_driver_link;
+  // Clinical flag — placed before checkpoint gate so Sage sees it first
+  const cf = state.clinical_flag;
+  if (cf && cf.active) {
+    if (cf.level === "crisis") {
+      context += `⚠ CRISIS: ${cf.note}. Stop building. Acknowledge. Provide 988 and Crisis Text Line. Do not checkpoint.\n\n`;
+    } else if (cf.level === "caution") {
+      context += `⚠ CLINICAL CAUTION: ${cf.note}. Stay in behavioral description. Offer professional referral if scope is exceeded.\n\n`;
+    }
+  }
 
-  context += `CHECKPOINT: ${gateReady ? "READY" : "NOT READY"}`;
-  if (!gateReady) {
-    const missing: string[] = [];
-    const minExamples = isFirstCheckpoint ? 1 : 2;
-    if (gate.concrete_examples < minExamples)
-      missing.push(`need ${minExamples - gate.concrete_examples} more concrete example(s)`);
-    if (!gate.has_mechanism && !isFirstCheckpoint) missing.push("haven't reached mechanism yet");
-    if (!gate.has_charged_language) missing.push("no charged user language captured");
-    if (!gate.has_behavior_driver_link && !gate.has_mechanism)
-      missing.push("no behavior-to-driver link yet");
-    context += ` — missing: ${missing.join(", ")}`;
+  // Checkpoint gate evaluation — blocked when clinical_flag is crisis
+  const gate = state.checkpoint_gate;
+  const isCrisis = cf && cf.active && cf.level === "crisis";
+  const pt = state.pattern_tracking;
+  const isPatternGate = gate.target_type === "pattern";
+
+  // Pattern gate: recurrence >= 2 AND at least 3 of 5 chain elements filled
+  const patternChainCount = pt?.chain_elements?.length || 0;
+  const patternGateReady = isPatternGate && !isCrisis &&
+    (pt?.recurrence_count || 0) >= 2 &&
+    patternChainCount >= 3;
+
+  // Component gate (standard or first-checkpoint)
+  const componentGateReady = !isPatternGate && !isCrisis && (
+    isFirstCheckpoint
+      ? gate.concrete_examples >= 1 &&
+        gate.has_charged_language &&
+        (gate.has_mechanism || gate.has_behavior_driver_link)
+      : gate.concrete_examples >= 2 &&
+        gate.has_mechanism &&
+        gate.has_charged_language &&
+        gate.has_behavior_driver_link
+  );
+
+  const gateReady = patternGateReady || componentGateReady;
+
+  if (isPatternGate) {
+    context += `PATTERN GATE: ${patternGateReady ? "MET" : "NOT MET"}`;
+    if (!patternGateReady) {
+      const missing: string[] = [];
+      if ((pt?.recurrence_count || 0) < 2) missing.push("need more recurrence (2+ instances)");
+      if (patternChainCount < 3) missing.push(`chain incomplete (${patternChainCount}/3 minimum elements)`);
+      context += ` — missing: ${missing.join(", ")}`;
+    } else {
+      context += ` — layer: L${gate.strongest_layer}, pattern: "${pt?.label || "unnamed"}"`;
+    }
   } else {
-    context += ` — strongest layer: L${gate.strongest_layer}`;
+    context += `CHECKPOINT: ${gateReady ? "READY" : "NOT READY"}`;
+    if (!gateReady) {
+      const missing: string[] = [];
+      const minExamples = isFirstCheckpoint ? 1 : 2;
+      if (gate.concrete_examples < minExamples)
+        missing.push(`need ${minExamples - gate.concrete_examples} more concrete example(s)`);
+      if (!gate.has_mechanism && !isFirstCheckpoint) missing.push("haven't reached mechanism yet");
+      if (!gate.has_charged_language) missing.push("no charged user language captured");
+      if (!gate.has_behavior_driver_link && !gate.has_mechanism)
+        missing.push("no behavior-to-driver link yet");
+      context += ` — missing: ${missing.join(", ")}`;
+    } else {
+      context += ` — strongest layer: L${gate.strongest_layer}`;
+    }
   }
   context += "\n";
 
-  if (isFirstCheckpoint && gateReady) {
+  if (isFirstCheckpoint && gateReady && !isPatternGate) {
     context +=
       "FIRST CHECKPOINT: This is the user's first checkpoint ever. After your observation, include the instructional wrapper explaining what just happened and how confirmation works. See prompt instructions.\n";
+  }
+
+  // Pattern chain status — shows Sage what's been collected
+  if (pt && pt.active && pt.chain_elements && pt.chain_elements.length > 0) {
+    context += `\nPATTERN CHAIN: "${pt.label || "unnamed"}" (L${pt.layer}, ${pt.recurrence_count} instance(s))\n`;
+    const chainOrder: Array<"trigger" | "internal_experience" | "response" | "payoff" | "cost"> = [
+      "trigger", "internal_experience", "response", "payoff", "cost"
+    ];
+    for (const el of chainOrder) {
+      const found = pt.chain_elements.find((c) => c.element === el);
+      if (found) {
+        context += `  ✓ ${el}: ${found.content} ("${found.source}")\n`;
+      } else {
+        context += `  ○ ${el}: not yet identified\n`;
+      }
+    }
+    context += "\n";
   }
 
   // When checkpoint is ready and the target layer already has content,
@@ -377,7 +562,40 @@ export function formatExtractionForSage(
         context += `[${comp.type}${comp.name ? ` — "${comp.name}"` : ""}]\n`;
         context += `${comp.content}\n\n`;
       }
-      context += "Your manual entry should integrate with or deepen this existing content. If new material contradicts it, name the tension — do not flatten it.\n";
+      context += "Your manual entry should integrate with or deepen this existing content. If new material contradicts it, name the tension. Do not flatten it.\n";
+    }
+  }
+
+  // Confirmed patterns with chain elements — gives Sage structural memory
+  if (state.confirmed_patterns && state.confirmed_patterns.length > 0) {
+    context += "\nCONFIRMED PATTERNS (reference these in conversation. They're part of the manual)\n";
+    for (const cp of state.confirmed_patterns) {
+      context += `L${cp.layer} — "${cp.name}": `;
+      const chainSummary = cp.chain_elements
+        .map((el) => `${el.element}: ${el.content}`)
+        .join(" → ");
+      context += chainSummary + "\n";
+    }
+    context += "\n";
+
+    // Cross-layer refs: show connections between confirmed patterns across layers
+    if (state.confirmed_patterns.length >= 2) {
+      const triggers = state.confirmed_patterns
+        .filter((p) => p.chain_elements.some((e) => e.element === "trigger"))
+        .map((p) => ({
+          layer: p.layer,
+          name: p.name,
+          trigger: p.chain_elements.find((e) => e.element === "trigger")!.content,
+        }));
+
+      if (triggers.length >= 2) {
+        context += "CROSS-LAYER CONNECTIONS\n";
+        context += "These patterns may share triggers or costs. Look for connections:\n";
+        for (const t of triggers) {
+          context += `  L${t.layer} "${t.name}" trigger: ${t.trigger}\n`;
+        }
+        context += "\n";
+      }
     }
   }
 

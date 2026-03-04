@@ -42,6 +42,7 @@ export default function MobileSession({
   conversationId,
   isLoading,
   isStreaming,
+  confirmedComponents,
   activeCheckpoint,
   checkpointError,
   errorMessage,
@@ -210,6 +211,11 @@ export default function MobileSession({
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
+
+              // Hide the seed message (first user message in conversation).
+              // Sage references the seed naturally in its opening, so the user
+              // sees their topic reflected without their own message displayed.
+              if (msg.role === "user" && i === 0) return null;
 
               const isUser = msg.role === "user";
               const isCheckpoint = msg.isCheckpoint === true;
@@ -504,7 +510,11 @@ export default function MobileSession({
 
               // Sage message — tinted bubble with serif text
               if (!isUser) {
-                return (
+                // First-session orientation box: show above Sage's first message
+                const isFirstAssistant = !messages.slice(0, i).some(m => m.role === "assistant");
+                const showOrientationBox = isFirstAssistant && confirmedComponents.length === 0;
+
+                const sagePanel = (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
@@ -536,6 +546,54 @@ export default function MobileSession({
                     </div>
                   </div>
                 );
+
+                if (showOrientationBox) {
+                  return (
+                    <>
+                      <div
+                        key="orientation-box"
+                        style={{
+                          margin: "16px 0 0 0",
+                          padding: "24px 28px 24px 20px",
+                          borderLeft: "2px solid var(--color-accent-dim)",
+                          backgroundColor: "var(--color-surface)",
+                          animation: "mantleFadeIn 0.6s ease-out",
+                        }}
+                      >
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: "0 0 16px 0",
+                        }}>
+                          Welcome to our session. This is where we explore what&#39;s top of mind and start building a manual of how you operate. You should see me as a tool to name the things you already know, recognize patterns, and reflect them back for you to confirm. Push back anytime I&#39;m off. I&#39;ll be asking questions and going deeper. You don&#39;t have to go anywhere you don&#39;t want to, but the more you share, the more useful your manual becomes.
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: "0 0 16px 0",
+                        }}>
+                          People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: 0,
+                        }}>
+                          You gave me a place to start. Let&#39;s see what&#39;s underneath it.
+                        </p>
+                      </div>
+                      {sagePanel}
+                    </>
+                  );
+                }
+
+                return sagePanel;
               }
 
               // User message — right-aligned, no bubble
