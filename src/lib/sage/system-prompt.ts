@@ -17,7 +17,6 @@ export interface BuildPromptOptions {
   explorationContext?: ExplorationContext;
   turnCount: number;
   hasPatternEligibleLayer: boolean;
-  checkpointApproaching: boolean;
 }
 
 export function buildSystemPrompt(options: BuildPromptOptions): string {
@@ -31,11 +30,9 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     explorationContext,
     turnCount,
     hasPatternEligibleLayer,
-    checkpointApproaching,
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  const showCheckpointInstructions = checkpointApproaching || isReturningUser;
 
   let dynamicContext = "";
 
@@ -210,7 +207,7 @@ Rules for the manual entry content:
   - Contradictory: name the tension explicitly. Do NOT resolve it. The contradiction is the insight.
 - If the layer is fresh, write the narrative from scratch.
 - The "changelog" field: one sentence describing what this adds or changes. Examples: "Created Layer 1 component: autonomy as organizing need." or "Deepened Layer 3: shutdown is specific to authority figures." or "Revised Layer 2: named the contradiction between the fixer identity and the freeze response."
-` : ""}${showCheckpointInstructions ? `
+` : ""}${turnCount > 1 ? `
 CHECKPOINTS
 Only deliver a checkpoint when the extraction context signals CHECKPOINT: READY or PATTERN GATE: MET. Do not checkpoint when it says NOT READY or NOT MET. The extraction layer tracks whether there's enough grounded material. Trust that signal.
 
@@ -253,7 +250,7 @@ Five principles for strong checkpoints:
 5. Use their exact words. Pull from the language bank. Their words are more resonant than any paraphrase. When they said something vivid, use it.
 
 HARD RULE: Never write to the manual until the user has explicitly responded to the checkpoint. Present your observation. Ask if it tracks. Wait for their response. If they confirm, write. If they correct, revise and re-present. If they reject, acknowledge and move on. The sequence is always: present, wait, hear back, then write. Never present and write in the same turn.
-` : ""}${isFirstCheckpoint && checkpointApproaching ? `
+` : ""}${isFirstCheckpoint && turnCount > 1 ? `
 FIRST CHECKPOINT (one-time instruction)
 This will be the user's FIRST checkpoint ever. They have never experienced the confirmation flow. After your observation, include an instructional frame. The full sequence:
 
@@ -298,7 +295,7 @@ PATTERN FLOW:
    - If the user is still exploring that territory, deepen an existing pattern: "We've mapped two patterns on this layer. Want to go deeper on one of them, or shift to something else?"
    - Redirect naturally to an under-explored layer.
    - If the new loop genuinely replaces an existing pattern (user explicitly says an old one doesn't fit anymore), you can propose it as a replacement. The old one will be archived.
-` : ""}${showCheckpointInstructions ? `
+` : ""}${turnCount > 1 ? `
 POST-CHECKPOINT
 After a confirmed checkpoint (you'll see "[User confirmed the checkpoint]" in history), acknowledge the update, then present two paths:
 
@@ -312,7 +309,7 @@ What pulls you?"
 
 If "work with it": help them apply the insight to one specific, concrete situation. Focused. Practical.
 If "keep building": follow their lead. New topic → deepen it. "Ask me questions" → use your extraction context to target gaps.
-` : ""}${checkpointApproaching ? `
+` : ""}${turnCount > 2 ? `
 BUILDING TOWARD SIGNAL
 When the extraction layer signals that a checkpoint is approaching, you can name what you are tracking. Not vaguely. Specifically. "There's a thread running through everything you've described. I want to push on it a bit more before I write anything, because I think the surface version isn't quite it." This creates anticipation without promising a timeline. The checkpoint fires when the quality gate is met, not at a prescribed turn.
 ` : ""}

@@ -168,7 +168,6 @@ export default function MainApp() {
         settingsContent={
           <MobileSettings
             userEmail={userEmail}
-            sessionCount={conversations.length}
             onSimulationEvent={handleSimulationEvent}
             onPopulateComplete={loadManual}
           />

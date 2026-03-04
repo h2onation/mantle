@@ -3,22 +3,24 @@
 import { useState } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
+import { VERSION } from "@/lib/version";
+import { CRISIS_RESOURCES, CRISIS_FOOTER } from "@/lib/crisis-resources";
 
 interface MobileSettingsProps {
   userEmail: string;
-  sessionCount: number;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
 }
 
 export default function MobileSettings({
   userEmail,
-  sessionCount,
   onSimulationEvent,
   onPopulateComplete,
 }: MobileSettingsProps) {
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+  const [crisisOpen, setCrisisOpen] = useState(false);
+  const [versionOpen, setVersionOpen] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
   const [simCheckpoints, setSimCheckpoints] = useState(1);
@@ -175,80 +177,67 @@ export default function MobileSettings({
       <SettingsRow title="Account" subtitle={userEmail || "—"} />
 
       {/* Crisis Support */}
-      <SettingsRow title="Crisis Support">
-        <div>
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--color-text)",
-              letterSpacing: "0.2px",
-              margin: 0,
-            }}
-          >
-            Crisis Support
-          </p>
-          <div style={{ marginTop: "8px" }}>
-            <p
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                color: "var(--color-text-ghost)",
-                letterSpacing: "0.5px",
-                margin: "0 0 4px 0",
-              }}
-            >
-              988 Suicide &amp; Crisis Lifeline
-            </p>
-            <a
-              href="tel:988"
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--color-accent)",
-                textDecoration: "none",
-              }}
-            >
-              Call or text 988
-            </a>
-          </div>
-          <div style={{ marginTop: "10px" }}>
-            <p
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                color: "var(--color-text-ghost)",
-                letterSpacing: "0.5px",
-                margin: "0 0 4px 0",
-              }}
-            >
-              Crisis Text Line
-            </p>
-            <a
-              href="sms:741741?body=HOME"
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--color-accent)",
-                textDecoration: "none",
-              }}
-            >
-              Text HOME to 741741
-            </a>
-          </div>
+      <SettingsRow
+        title="Crisis Support"
+        subtitle="Resources and helplines"
+        onClick={() => setCrisisOpen(!crisisOpen)}
+      />
+      <div
+        style={{
+          maxHeight: crisisOpen ? 300 : 0,
+          opacity: crisisOpen ? 1 : 0,
+          overflow: "hidden",
+          transition:
+            "max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s cubic-bezier(0.4,0,0.2,1) 0.05s",
+        }}
+      >
+        <div
+          style={{
+            borderBottom: "1px solid var(--color-divider)",
+            padding: "0 0 16px 0",
+          }}
+        >
+          {CRISIS_RESOURCES.map((resource, i) => (
+            <div key={i} style={{ marginTop: i > 0 ? 12 : 0 }}>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  color: "var(--color-text-ghost)",
+                  letterSpacing: "0.5px",
+                  margin: "0 0 4px 0",
+                }}
+              >
+                {resource.label}
+              </p>
+              <a
+                href={resource.href}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  color: "var(--color-accent)",
+                  textDecoration: "none",
+                }}
+              >
+                {resource.action}
+              </a>
+            </div>
+          ))}
           <p
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
               color: "var(--color-text-ghost)",
               letterSpacing: "0.5px",
-              margin: "10px 0 0 0",
+              margin: "12px 0 0 0",
+              textAlign: "center",
             }}
           >
-            Free, confidential, available 24/7
+            {CRISIS_FOOTER}
           </p>
         </div>
-      </SettingsRow>
+      </div>
 
       {/* Logout */}
       <SettingsRow
@@ -256,15 +245,6 @@ export default function MobileSettings({
         subtitle={userEmail || "—"}
         onClick={handleLogout}
       />
-
-      {/* Session history */}
-      <SettingsRow
-        title="Session history"
-        subtitle={`${sessionCount} session${sessionCount !== 1 ? "s" : ""}`}
-      />
-
-      {/* Export manual */}
-      <SettingsRow title="Export manual" subtitle="PDF or text" />
 
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
@@ -442,6 +422,59 @@ export default function MobileSettings({
         onClick={() => setShowDeleteAccountConfirm(true)}
         noBorder
       />
+
+      {/* Version */}
+      <div
+        onClick={() => setVersionOpen(!versionOpen)}
+        style={{
+          padding: "24px 0",
+          textAlign: "center",
+          cursor: "pointer",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "8px",
+            color: "var(--color-text-ghost)",
+            letterSpacing: "1px",
+            margin: 0,
+          }}
+        >
+          v{VERSION.app} · sage v{VERSION.sage}
+        </p>
+        <div
+          style={{
+            maxHeight: versionOpen ? 100 : 0,
+            opacity: versionOpen ? 1 : 0,
+            overflow: "hidden",
+            transition:
+              "max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s cubic-bezier(0.4,0,0.2,1) 0.05s",
+          }}
+        >
+          <div style={{ marginTop: 10 }}>
+            {[
+              ["App version", VERSION.app],
+              ["Sage version", VERSION.sage],
+              ["Last updated", VERSION.updated],
+            ].map(([label, value]) => (
+              <p
+                key={label}
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  color: "var(--color-text-ghost)",
+                  letterSpacing: "0.5px",
+                  margin: "4px 0",
+                }}
+              >
+                {label}: {value}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Confirmation modals */}
       <ConfirmationModal

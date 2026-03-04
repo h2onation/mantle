@@ -3,6 +3,7 @@ export const runtime = "edge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
+import { VERSION } from "@/lib/version";
 
 export async function POST(request: Request) {
   try {
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "X-Mantle-Version": VERSION.app,
+        "X-Sage-Version": VERSION.sage,
       },
     });
   } catch {

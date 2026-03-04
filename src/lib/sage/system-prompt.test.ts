@@ -12,7 +12,6 @@ describe("buildSystemPrompt", () => {
     isFirstCheckpoint: false,
     turnCount: 5,
     hasPatternEligibleLayer: false,
-    checkpointApproaching: false,
   };
 
   function build(overrides: Partial<BuildPromptOptions> = {}) {
@@ -33,7 +32,6 @@ describe("buildSystemPrompt", () => {
         extractionContext: "Some extraction context",
         isFirstCheckpoint: true,
         sessionCount: 3,
-        checkpointApproaching: true,
         hasPatternEligibleLayer: true,
       });
       expect(result).toContain("You are Sage");
@@ -81,7 +79,7 @@ describe("buildSystemPrompt", () => {
     });
 
     it("LEGAL BOUNDARIES appears before CHECKPOINTS when checkpoints are shown", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({ turnCount: 5 });
       const legalIdx = result.indexOf("LEGAL BOUNDARIES");
       const checkpointsIdx = result.indexOf("CHECKPOINTS");
       expect(legalIdx).toBeLessThan(checkpointsIdx);
@@ -235,11 +233,18 @@ describe("buildSystemPrompt", () => {
       expect(firstMessageSectionLine).toBeUndefined();
     });
 
-    it("FIRST MESSAGE appears before CHECKPOINTS in the prompt when both present", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1, checkpointApproaching: true });
-      const firstMessageIdx = result.indexOf("FIRST MESSAGE");
-      const checkpointsIdx = result.indexOf("CHECKPOINTS");
-      expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
+    it("FIRST MESSAGE and CHECKPOINTS are mutually exclusive (turnCount gating)", () => {
+      // FIRST MESSAGE section loads on turnCount <= 1, CHECKPOINTS on turnCount > 1
+      const turn1 = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      const turn1Lines = turn1.split("\n");
+      expect(turn1Lines.find((l) => l.trim() === "FIRST MESSAGE")).toBeDefined();
+      expect(turn1).not.toContain("CHECKPOINTS");
+
+      const turn2 = build({ manualComponents: [], isReturningUser: false, turnCount: 2 });
+      const turn2Lines = turn2.split("\n");
+      // FIRST MESSAGE section header should not appear (though FIRST SESSION may reference it in prose)
+      expect(turn2Lines.find((l) => l.trim() === "FIRST MESSAGE")).toBeUndefined();
+      expect(turn2).toContain("CHECKPOINTS");
     });
 
     it("instructs not to introduce by name or explain layers on turn 1", () => {
@@ -279,18 +284,18 @@ describe("buildSystemPrompt", () => {
 
   // ─── First checkpoint instruction ────────────────────────────────────────
   describe("first checkpoint instruction", () => {
-    it("contains 'FIRST CHECKPOINT (one-time instruction)' when isFirstCheckpoint is true and checkpointApproaching", () => {
-      const result = build({ isFirstCheckpoint: true, checkpointApproaching: true });
+    it("contains 'FIRST CHECKPOINT (one-time instruction)' when isFirstCheckpoint is true and turnCount > 1", () => {
+      const result = build({ isFirstCheckpoint: true, turnCount: 5 });
       expect(result).toContain("FIRST CHECKPOINT (one-time instruction)");
     });
 
     it("does NOT contain 'FIRST CHECKPOINT' when isFirstCheckpoint is false", () => {
-      const result = build({ isFirstCheckpoint: false, checkpointApproaching: true });
+      const result = build({ isFirstCheckpoint: false, turnCount: 5 });
       expect(result).not.toContain("FIRST CHECKPOINT");
     });
 
-    it("does NOT contain 'FIRST CHECKPOINT' when checkpointApproaching is false even if isFirstCheckpoint is true", () => {
-      const result = build({ isFirstCheckpoint: true, checkpointApproaching: false });
+    it("does NOT contain 'FIRST CHECKPOINT' on turnCount 1 even if isFirstCheckpoint is true", () => {
+      const result = build({ isFirstCheckpoint: true, turnCount: 1 });
       expect(result).not.toContain("FIRST CHECKPOINT");
     });
   });
@@ -392,12 +397,12 @@ describe("buildSystemPrompt", () => {
     });
 
     it("CHECKPOINTS references both CHECKPOINT: READY and PATTERN GATE: MET when both shown", () => {
-      const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
+      const result = build({ turnCount: 5, hasPatternEligibleLayer: true });
       expect(result).toContain("CHECKPOINT: READY or PATTERN GATE: MET");
     });
 
     it("PATTERNS section appears before POST-CHECKPOINT when both shown", () => {
-      const result = build({ hasPatternEligibleLayer: true, checkpointApproaching: true });
+      const result = build({ hasPatternEligibleLayer: true, turnCount: 5 });
       const patternsIdx = result.indexOf("PATTERNS");
       const postCheckpointIdx = result.indexOf("POST-CHECKPOINT");
       expect(patternsIdx).toBeLessThan(postCheckpointIdx);
@@ -416,28 +421,26 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("HOW TO USE THE EXTRACTION CONTEXT");
     });
 
-    it("excludes CHECKPOINTS when checkpointApproaching is false and not returning", () => {
-      const result = build({ checkpointApproaching: false, isReturningUser: false });
+    it("excludes CHECKPOINTS on turnCount 1", () => {
+      const result = build({ turnCount: 1 });
       expect(result).not.toContain("CHECKPOINTS");
     });
 
-    it("includes CHECKPOINTS for returning users regardless of checkpointApproaching", () => {
-      const result = build({ isReturningUser: true, checkpointApproaching: false });
-      expect(result).toContain("CHECKPOINTS");
+    it("includes CHECKPOINTS on turnCount 2+ (regardless of user status)", () => {
+      const newUser = build({ turnCount: 2, isReturningUser: false });
+      expect(newUser).toContain("CHECKPOINTS");
+
+      const returningUser = build({ turnCount: 2, isReturningUser: true });
+      expect(returningUser).toContain("CHECKPOINTS");
     });
 
-    it("includes CHECKPOINTS when checkpointApproaching is true", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("CHECKPOINTS");
-    });
-
-    it("excludes POST-CHECKPOINT when not approaching and not returning", () => {
-      const result = build({ checkpointApproaching: false, isReturningUser: false });
+    it("excludes POST-CHECKPOINT on turnCount 1", () => {
+      const result = build({ turnCount: 1 });
       expect(result).not.toContain("POST-CHECKPOINT");
     });
 
-    it("includes POST-CHECKPOINT for returning users", () => {
-      const result = build({ isReturningUser: true });
+    it("includes POST-CHECKPOINT on turnCount 2+", () => {
+      const result = build({ turnCount: 2 });
       expect(result).toContain("POST-CHECKPOINT");
     });
 
@@ -463,14 +466,17 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("READINESS GATE");
     });
 
-    it("includes BUILDING TOWARD SIGNAL when checkpointApproaching is true", () => {
-      const result = build({ checkpointApproaching: true });
+    it("includes BUILDING TOWARD SIGNAL on turnCount 3+", () => {
+      const result = build({ turnCount: 3 });
       expect(result).toContain("BUILDING TOWARD SIGNAL");
     });
 
-    it("excludes BUILDING TOWARD SIGNAL when checkpointApproaching is false", () => {
-      const result = build({ checkpointApproaching: false });
-      expect(result).not.toContain("BUILDING TOWARD SIGNAL");
+    it("excludes BUILDING TOWARD SIGNAL on turnCount 2 or less", () => {
+      const turn1 = build({ turnCount: 1 });
+      expect(turn1).not.toContain("BUILDING TOWARD SIGNAL");
+
+      const turn2 = build({ turnCount: 2 });
+      expect(turn2).not.toContain("BUILDING TOWARD SIGNAL");
     });
   });
 
@@ -487,7 +493,7 @@ describe("buildSystemPrompt", () => {
     });
 
     it("BUILDING TOWARD SIGNAL contains signal-naming instruction when present", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({ turnCount: 3 });
       expect(result).toContain("There's a thread running through everything you've described");
     });
   });

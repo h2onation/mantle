@@ -28,6 +28,10 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 - **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 - **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
 - **Non-interactive CLIs**: When using `create-next-app` or similar scaffolding CLIs, always use non-interactive flags (e.g., `--yes`, `--typescript`, `--tailwind`, `--app`, `--no-git`) to prevent commands from hanging.
+- **Versioning**: Both app and Sage versions live in `src/lib/version.ts`. Bump before committing, not after. The pre-commit hook warns if versioned files changed but `VERSION` wasn't updated.
+  - **App version**: bump patch for bug fixes, minor for features, major for breaking changes.
+  - **Sage version**: bump patch for prompt wording tweaks, minor for new sections or behavioral changes, major for architectural changes (new layers, pipeline restructuring).
+  - Both start at 0.1.0 (pre-beta).
 
 ## Testing
 
@@ -476,12 +480,13 @@ Header "SETTINGS" (`--font-mono` 8px, `--color-text-ghost`, letter-spacing 3px).
 | Item | State | Details |
 |------|-------|---------|
 | Account | Display-only | Shows email. |
+| Crisis Support | Expandable | Tap to expand/collapse. Shows 988 Lifeline + Crisis Text Line from shared `CRISIS_RESOURCES` constant. Links are tappable (`tel:988`, `sms:741741`). |
 | Log out | Functional | Shows email as subtitle. Calls `POST /api/auth/logout` (server-side cookie clearing) then redirects to `/login`. |
-| Session history | Display-only | Shows "N sessions" (correct count from conversations list). |
 | Export manual | Display-only | Shows "PDF or text". No handler. |
 | Simulate user | Functional | Accent color text. Calls `/api/dev-simulate`, streams SSE. Instantly switches to Session tab via `started` event, reloads messages after each turn. Stops at checkpoint for manual action. |
 | Delete data | Functional | Red text `var(--color-error)`. Confirmation modal. Calls `/api/dev-reset` + `localStorage.clear()` + reload. |
 | Delete account | Functional | Red text `var(--color-error)`. Confirmation modal. Calls `/api/account/delete` + `localStorage.clear()` + redirect to `/login`. |
+| Version | Expandable | Centered `v{app} · sage v{sage}` label. Tap expands to show app version, sage version, last updated. `--font-mono` 8px. |
 
 ## Architecture Rules
 
@@ -520,13 +525,13 @@ Sections load based on `BuildPromptOptions` flags. Source of truth for what Sage
 |---------|-----------|
 | Voice, Legal Boundaries, Conversation Approach, Deepening Moves, Adapting | Always |
 | Extraction Context guidance | `turnCount > 1` |
+| Checkpoints, Composition Voice, Post-Checkpoint | `turnCount > 1` |
 | Manual Entry Format | `turnCount > 1` |
+| First Checkpoint teaching | `isFirstCheckpoint && turnCount > 1` |
 | Progress Signals | `turnCount > 2` |
+| Building Toward Signal | `turnCount > 2` |
 | First Message | `turnCount <= 1 && isNewUser` |
 | First Session content | `isNewUser` |
-| Checkpoints, Composition Voice, Post-Checkpoint | `showCheckpointInstructions` (`checkpointApproaching \|\| isReturningUser`) |
-| First Checkpoint teaching | `isFirstCheckpoint && checkpointApproaching` |
-| Building Toward Signal | `checkpointApproaching` |
 | Patterns | `hasPatternEligibleLayer` |
 | Returning User | `isReturningUser` |
 | Readiness Gate | `manualComponents.length >= 3` |
@@ -534,7 +539,7 @@ Sections load based on `BuildPromptOptions` flags. Source of truth for what Sage
 | Session Context (dynamic) | `isReturningUser` |
 | Exploration Focus (dynamic) | `explorationContext` provided |
 
-`isNewUser = manualComponents.length === 0 && !isReturningUser`. `checkpointApproaching` = any layer signal is `emerging`, `explored`, or `checkpoint_ready` in `previousExtraction`. 1-turn lag: Sage sees the PREVIOUS turn's extraction. See "Extraction Layer" in Architecture Rules.
+`isNewUser = manualComponents.length === 0 && !isReturningUser`. The extraction context controls WHEN Sage fires a checkpoint via `CHECKPOINT: READY` / `CHECKPOINT: NOT READY` signals. Sage always knows how to checkpoint from turn 2 onward — the extraction gate prevents premature firing.
 
 ### Layer Discovery Rules
 
@@ -555,11 +560,12 @@ Sections load based on `BuildPromptOptions` flags. Source of truth for what Sage
 7. If no block → Haiku classifier runs as fallback (Path B)
 8. Background extraction saves updated state to `conversations.extraction_state`
 
-See "Checkpoint Lifecycle" for the full confirm flow after step 7.
+On confirmation (Path A): `composed_content` from `checkpoint_meta` is written directly.
+On confirmation (Path B): `composeManualEntry()` makes a follow-up Sonnet call to compose a proper manual entry from the conversational checkpoint + context + language bank. Falls back to message content only if the composition API call fails.
 
 ### Critical Invariants
 
-- `composed_content` must never be null on confirmed checkpoints (fixed by loading Manual Entry Format at `turnCount > 1`)
+- `composed_content` must never be null on confirmed checkpoints. Two defenses: (1) Sage always has Manual Entry Format instructions from turn 2 onward, (2) `confirmCheckpoint()` calls `composeManualEntry()` as a fallback when `composed_content` is null (Path B).
 - Crisis text must never appear in manual entries (stripped in `confirmCheckpoint()` fallback path)
 - `clinical_flag.level === "crisis"` blocks checkpoint gate entirely (in `formatExtractionForSage`)
 - Checkpoint gate is quality-based (examples + mechanism + charged language), not turn-based
@@ -681,6 +687,8 @@ src/
     MainApp.tsx                       Wires useChat + MobileLayout + seed handoff + auth prompt + exploration
   lib/
     types.ts                          Shared interfaces: ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext
+    version.ts                        App + Sage version constants
+    crisis-resources.ts               Shared crisis helpline data (used by MobileSettings + call-sage crisis protocol)
     anthropic.ts                      Raw fetch: anthropicFetch (sync), anthropicStream (SSE)
     hooks/
       useChat.ts                      Core state: messages, streaming, checkpoints, conversations, exploration

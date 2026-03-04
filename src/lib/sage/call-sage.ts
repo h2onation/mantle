@@ -367,14 +367,6 @@ export function callSage({
               (l) => l.discovery_mode === "pattern"
             )
           : false;
-        const checkpointApproaching = previousExtraction
-          ? Object.values(previousExtraction.layers).some(
-              (l) =>
-                l.signal === "emerging" ||
-                l.signal === "explored" ||
-                l.signal === "checkpoint_ready"
-            )
-          : false;
 
         const systemPrompt = buildSystemPrompt({
           manualComponents: manualComponents || [],
@@ -386,7 +378,6 @@ export function callSage({
           explorationContext,
           turnCount,
           hasPatternEligibleLayer,
-          checkpointApproaching,
         });
 
         // 9. Stream Sage response with delimiter buffer
