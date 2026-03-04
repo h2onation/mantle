@@ -2,6 +2,7 @@ import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
+import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
 import {
   runExtraction,
   formatExtractionForSage,
@@ -579,6 +580,44 @@ export function callSage({
           }
         }
 
+        // 12c. Path B composition: when classifier detected a checkpoint but
+        //      Sage didn't produce a |||MANUAL_ENTRY||| block, compose the
+        //      manual entry now so composed_content is ready at confirmation.
+        let composedEntry: {
+          content: string;
+          name: string;
+          changelog: string;
+        } | null = null;
+
+        const hasComposedContent =
+          manualEntry?.content && manualEntry.content.length > 0;
+
+        if (isCheckpoint && checkpointLayer && !hasComposedContent) {
+          try {
+            const existingLayerContent = (manualComponents || []).filter(
+              (c) => c.layer === checkpointLayer
+            );
+
+            composedEntry = await composeManualEntry({
+              checkpointText: conversationalText,
+              conversationHistory: messages,
+              languageBank: previousExtraction?.language_bank || [],
+              layer: checkpointLayer,
+              type: (checkpointType as "component" | "pattern") || "component",
+              name: checkpointName,
+              existingLayerContent:
+                existingLayerContent.length > 0
+                  ? existingLayerContent
+                  : undefined,
+            });
+          } catch (err) {
+            console.error(
+              "[callSage] Path B composition failed, saving without composed_content:",
+              err
+            );
+          }
+        }
+
         // 13. Update message metadata
         if (messageId) {
           const updateData: Record<string, unknown> = {
@@ -590,11 +629,14 @@ export function callSage({
             updateData.checkpoint_meta = {
               layer: checkpointLayer,
               type: checkpointType,
-              name: checkpointName,
+              name: composedEntry?.name || manualEntry?.name || checkpointName,
               status: "pending",
-              composed_content: manualEntry?.content || null,
-              composed_name: manualEntry?.name || null,
-              changelog: manualEntry?.changelog || null,
+              composed_content:
+                manualEntry?.content || composedEntry?.content || null,
+              composed_name:
+                manualEntry?.name || composedEntry?.name || null,
+              changelog:
+                manualEntry?.changelog || composedEntry?.changelog || null,
             };
           }
 

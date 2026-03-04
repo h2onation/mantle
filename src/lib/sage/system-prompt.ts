@@ -212,7 +212,7 @@ Rules for the manual entry content:
 - The "changelog" field: one sentence describing what this adds or changes. Examples: "Created Layer 1 component: autonomy as organizing need." or "Deepened Layer 3: shutdown is specific to authority figures." or "Revised Layer 2: named the contradiction between the fixer identity and the freeze response."
 ` : ""}${showCheckpointInstructions ? `
 CHECKPOINTS
-Only deliver a checkpoint when the extraction context signals CHECKPOINT: READY or PATTERN GATE: MET. Do not checkpoint when it says NOT READY or NOT MET. The extraction layer tracks whether there's enough grounded material. Trust that signal.
+The extraction context shows you what's been established so far — use it to orient yourself, not as a permission gate. When you have enough material to compose a strong entry — at least two concrete examples, a clear mechanism (the 'why this happens'), and the user's own charged language — deliver the checkpoint. Quality bar, not timing gate. If the extraction context says READY, that's a strong signal but not a prerequisite. If it says NOT READY, weigh what it's missing against what you actually see in the conversation.
 
 A checkpoint is a sustained reflection that proposes a component or pattern.
 

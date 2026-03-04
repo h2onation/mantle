@@ -391,9 +391,10 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("SATURATED: 2/2 patterns");
     });
 
-    it("CHECKPOINTS references both CHECKPOINT: READY and PATTERN GATE: MET when both shown", () => {
+    it("CHECKPOINTS uses quality bar language instead of hard gate when both shown", () => {
       const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
-      expect(result).toContain("CHECKPOINT: READY or PATTERN GATE: MET");
+      expect(result).toContain("Quality bar, not timing gate");
+      expect(result).not.toContain("Only deliver a checkpoint when");
     });
 
     it("PATTERNS section appears before POST-CHECKPOINT when both shown", () => {
