@@ -6,7 +6,7 @@ import MobileNav, { type MobileTab } from "./MobileNav";
 interface MobileLayoutProps {
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
-  guidanceContent: React.ReactNode;
+  exploreContent: React.ReactNode;
   settingsContent: React.ReactNode;
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
@@ -15,7 +15,7 @@ interface MobileLayoutProps {
 export default function MobileLayout({
   sessionContent,
   manualContent,
-  guidanceContent,
+  exploreContent,
   settingsContent,
   activeTab,
   onTabChange,
@@ -55,7 +55,7 @@ export default function MobileLayout({
           {([
             ["session", sessionContent],
             ["manual", manualContent],
-            ["guidance", guidanceContent],
+            ["explore", exploreContent],
             ["settings", settingsContent],
           ] as const).map(([tab, content]) => (
             <div
@@ -71,6 +71,11 @@ export default function MobileLayout({
                 overflowX: "hidden",
                 display: activeTab === tab ? "block" : "none",
                 transition: "bottom 0.25s ease",
+                ...(tab === "session" ? {
+                  background: "var(--session-linen)",
+                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E\")",
+                  backgroundSize: "256px 256px",
+                } : {}),
               }}
             >
               {content}

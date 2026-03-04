@@ -139,7 +139,7 @@ export default function ChatInput({
   }
 
   return (
-    <div style={{ flexShrink: 0, paddingLeft: "16px", paddingRight: "16px", paddingTop: "8px", marginBottom: "10px" }}>
+    <div style={{ flexShrink: 0, padding: "8px 20px 4px" }}>
       {/* Voice error toast */}
       {voice.error && (
         <div
@@ -163,38 +163,42 @@ export default function ChatInput({
         </div>
       )}
 
-      {/* Input container — button lives inside */}
+      {/* Input container — underline style */}
       <div
         style={{
           position: "relative" as const,
-          borderRadius: "12px",
-          transition: "all 400ms ease-in-out",
-          backgroundColor:
-            inputFocused || isRecording ? "var(--color-surface-sage)" : "transparent",
-          border: `1px solid ${
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: "12px",
+          borderBottom: `1px solid ${
             isRecording
-              ? "var(--color-input-border-active)"
+              ? "var(--session-sage-soft)"
               : inputFocused
-                ? "var(--color-input-border-focus)"
-                : "var(--color-input-border)"
+                ? "var(--session-sage-border)"
+                : "var(--session-ink-whisper)"
           }`,
+          paddingBottom: "8px",
+          transition: "border-color 400ms ease-in-out",
         }}
       >
-        {/* Whisper placeholder */}
+        {/* Visible placeholder — hides on focus or when text present */}
         {!input && !inputFocused && !isRecording && (
           <span
             style={{
               position: "absolute",
-              left: "16px",
-              top: "13px",
-              color: "var(--color-input-placeholder)",
-              fontSize: "14.5px",
-              fontFamily: "var(--font-sans)",
+              left: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontFamily: "var(--font-serif)",
+              fontSize: "15px",
+              fontStyle: "italic",
               fontWeight: 400,
+              color: "var(--session-ink-ghost)",
               pointerEvents: "none",
             }}
           >
-            say what comes to mind...
+            continue...
           </span>
         )}
 
@@ -203,7 +207,7 @@ export default function ChatInput({
           <div
             style={{
               position: "absolute" as const,
-              left: "16px",
+              left: 0,
               top: "50%",
               transform: "translateY(-50%)",
               display: "flex",
@@ -221,7 +225,7 @@ export default function ChatInput({
                   width: "2px",
                   height: "100%",
                   borderRadius: "1px",
-                  backgroundColor: "var(--color-accent-muted)",
+                  backgroundColor: "var(--session-sage-soft)",
                   opacity: 0.6,
                   animation: "waveformBar 1.2s ease-in-out infinite",
                   animationDelay: `${i * 0.15}s`,
@@ -243,36 +247,34 @@ export default function ChatInput({
           autoComplete="off"
           autoCorrect="off"
           style={{
-            width: "100%",
+            flex: 1,
             backgroundColor: "transparent",
             border: "none",
             outline: "none",
             resize: "none" as const,
-            fontSize: "14.5px",
+            fontSize: "13px",
             fontWeight: 400,
             lineHeight: 1.6,
             fontFamily: "var(--font-sans)",
-            padding: "12px 48px 12px 16px",
+            padding: 0,
             boxSizing: "border-box",
             color:
               isRecording && voice.isInterim
                 ? "rgba(200, 191, 180, 0.5)"
-                : "var(--color-input-text)",
-            caretColor: isRecording ? "transparent" : "var(--color-accent-muted)",
+                : "var(--session-ink-mid)",
+            caretColor: isRecording ? "transparent" : "var(--session-sage-soft)",
           }}
         />
 
-        {/* Action button — inside the input bubble */}
+        {/* Action button */}
         <button
           onClick={handleButtonClick}
           disabled={disabled && buttonMode !== "stop"}
           style={{
-            position: "absolute" as const,
-            right: "6px",
-            bottom: "6px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
             width: "36px",
             height: "36px",
             background: "none",
@@ -288,7 +290,6 @@ export default function ChatInput({
                   ? 0.3
                   : 1,
             transition: "opacity 0.3s ease",
-            zIndex: 1,
           }}
         >
           {/* Stop icon — filled circle with inner square */}
@@ -306,7 +307,7 @@ export default function ChatInput({
                   width: "24px",
                   height: "24px",
                   borderRadius: "50%",
-                  backgroundColor: "var(--color-accent)",
+                  backgroundColor: "var(--session-sage-soft)",
                   opacity: 0.8,
                   display: "flex",
                   alignItems: "center",
@@ -319,7 +320,7 @@ export default function ChatInput({
                     width: "8px",
                     height: "8px",
                     borderRadius: "1.5px",
-                    backgroundColor: "var(--color-void)",
+                    backgroundColor: "var(--session-linen)",
                   }}
                 />
               </div>
@@ -330,12 +331,12 @@ export default function ChatInput({
           {buttonMode === "send" && (
             <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--color-accent-muted)"
-                strokeWidth="2"
+                stroke="var(--session-ink-ghost)"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -349,16 +350,16 @@ export default function ChatInput({
           {(buttonMode === "mic" || buttonMode === "mic-denied") && (
             <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke={
                   buttonMode === "mic-denied"
                     ? "rgba(181, 86, 77, 0.5)"
-                    : "var(--color-accent-muted)"
+                    : "var(--session-ink-ghost)"
                 }
-                strokeWidth="2"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
