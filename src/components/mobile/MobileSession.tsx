@@ -512,9 +512,18 @@ export default function MobileSession({
                           fontSize: "14px",
                           lineHeight: 1.75,
                           color: "var(--color-text-dim)",
-                          margin: 0,
+                          margin: "0 0 16px 0",
                         }}>
                           People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          lineHeight: 1.75,
+                          color: "var(--color-text-dim)",
+                          margin: 0,
+                        }}>
+                          You gave me a place to start. Let&#39;s see what&#39;s underneath it.
                         </p>
                       </div>
                       {sagePanel}
