@@ -244,8 +244,15 @@ export default function ChatInput({
           onBlur={handleBlur}
           placeholder=""
           rows={1}
+          name="chat-message"
+          autoComplete="off"
+          autoCorrect="on"
           autoCapitalize="sentences"
           spellCheck={true}
+          inputMode="text"
+          enterKeyHint="send"
+          data-lpignore="true"
+          data-1p-ignore
           style={{
             flex: 1,
             backgroundColor: "transparent",
