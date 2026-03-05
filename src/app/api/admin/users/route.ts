@@ -18,8 +18,12 @@ export async function GET() {
     }
 
     const emailMap: Record<string, string> = {};
+    const anonMap: Record<string, boolean> = {};
+    const createdMap: Record<string, string> = {};
     for (const u of authData.users) {
       emailMap[u.id] = u.email || "";
+      anonMap[u.id] = !u.email;
+      createdMap[u.id] = u.created_at;
     }
 
     // Get profiles
@@ -70,6 +74,8 @@ export async function GET() {
       email: emailMap[p.id] || "",
       conversation_count: convCounts[p.id] || 0,
       component_count: compCounts[p.id] || 0,
+      is_anonymous: anonMap[p.id] || false,
+      created_at: createdMap[p.id] || "",
     }));
 
     return Response.json({ users });

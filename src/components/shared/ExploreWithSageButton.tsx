@@ -2,11 +2,14 @@
 
 interface ExploreWithSageButtonProps {
   onClick: () => void;
+  readOnly?: boolean;
 }
 
 export default function ExploreWithSageButton({
   onClick,
+  readOnly,
 }: ExploreWithSageButtonProps) {
+  if (readOnly) return null;
   return (
     <button
       onClick={(e) => {

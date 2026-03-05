@@ -8,9 +8,10 @@ import type { ExplorationContext } from "@/lib/types";
 interface EmptyLayerProps {
   layer: Layer;
   onExploreWithSage?: (context: ExplorationContext) => void;
+  readOnly?: boolean;
 }
 
-export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps) {
+export default function EmptyLayer({ layer, onExploreWithSage, readOnly }: EmptyLayerProps) {
   return (
     <div
       style={{
@@ -33,33 +34,35 @@ export default function EmptyLayer({ layer, onExploreWithSage }: EmptyLayerProps
         {layer.name}
       </span>
 
-      {/* Info button wrapped in tooltip */}
-      <LayerTooltip
-        text={layer.about}
-        showSageAction={true}
-        onExploreWithSage={onExploreWithSage ? () => onExploreWithSage({
-          layerId: layer.id,
-          layerName: layer.name,
-          type: "empty_layer",
-          content: layer.about,
-        }) : undefined}
-      >
-        <button
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 11,
-            fontWeight: 500,
-            color: "var(--session-ink-ghost)",
-            background: "none",
-            border: "1px solid var(--session-ink-hairline)",
-            borderRadius: 12,
-            padding: "4px 10px",
-            cursor: "pointer",
-          }}
+      {/* Info button wrapped in tooltip (hidden in readOnly) */}
+      {!readOnly && (
+        <LayerTooltip
+          text={layer.about}
+          showSageAction={true}
+          onExploreWithSage={onExploreWithSage ? () => onExploreWithSage({
+            layerId: layer.id,
+            layerName: layer.name,
+            type: "empty_layer",
+            content: layer.about,
+          }) : undefined}
         >
-          Explore
-        </button>
-      </LayerTooltip>
+          <button
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 11,
+              fontWeight: 500,
+              color: "var(--session-ink-ghost)",
+              background: "none",
+              border: "1px solid var(--session-ink-hairline)",
+              borderRadius: 12,
+              padding: "4px 10px",
+              cursor: "pointer",
+            }}
+          >
+            Explore
+          </button>
+        </LayerTooltip>
+      )}
     </div>
   );
 }

@@ -8,10 +8,11 @@ import type { ExplorationContext } from "@/lib/types";
 interface PopulatedLayerProps {
   layer: Layer;
   onExploreWithSage?: (context: ExplorationContext) => void;
+  readOnly?: boolean;
 }
 
-export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLayerProps) {
-  const [narrativeOpen, setNarrativeOpen] = useState(false);
+export default function PopulatedLayer({ layer, onExploreWithSage, readOnly }: PopulatedLayerProps) {
+  const [narrativeOpen, setNarrativeOpen] = useState(readOnly ? true : false);
 
   return (
     <div style={{ padding: "0 0 20px" }}>
@@ -48,8 +49,8 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
         {layer.component && (
           <div>
             <div
-              onClick={() => setNarrativeOpen(!narrativeOpen)}
-              style={{ cursor: "pointer" }}
+              onClick={readOnly ? undefined : () => setNarrativeOpen(!narrativeOpen)}
+              style={{ cursor: readOnly ? "default" : "pointer" }}
             >
               {/* Body text with mask-image truncation */}
               <div
@@ -75,23 +76,25 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
               </div>
 
               {/* Continue reading / less toggle */}
-              <span
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: 13,
-                  fontStyle: "italic",
-                  color: "var(--session-ink-ghost)",
-                  display: "inline-block",
-                  marginTop: narrativeOpen ? 6 : 2,
-                  cursor: "pointer",
-                }}
-              >
-                {narrativeOpen ? "↑ less" : ". . . continue reading"}
-              </span>
+              {!readOnly && (
+                <span
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: 13,
+                    fontStyle: "italic",
+                    color: "var(--session-ink-ghost)",
+                    display: "inline-block",
+                    marginTop: narrativeOpen ? 6 : 2,
+                    cursor: "pointer",
+                  }}
+                >
+                  {narrativeOpen ? "↑ less" : ". . . continue reading"}
+                </span>
+              )}
             </div>
 
-            {/* Explore further — only when expanded */}
-            {narrativeOpen && onExploreWithSage && (
+            {/* Explore further — only when expanded and not readOnly */}
+            {narrativeOpen && onExploreWithSage && !readOnly && (
               <div
                 style={{
                   marginTop: 14,
@@ -172,6 +175,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage }: PopulatedLa
                   layerId={layer.id}
                   layerName={layer.name}
                   onExploreWithSage={onExploreWithSage}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
