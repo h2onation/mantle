@@ -11,20 +11,39 @@ interface MobileSettingsProps {
   onPopulateComplete?: () => void;
 }
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({
+  label,
+  isOpen,
+  onToggle,
+}: {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <p
+    <button
+      onClick={onToggle}
       style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
         fontFamily: "var(--font-mono)",
-        fontSize: "8px",
-        color: "var(--session-ink-ghost)",
+        fontSize: "10px",
+        color: "var(--session-ink-faded)",
         letterSpacing: "3px",
         textTransform: "uppercase",
         margin: "32px 0 12px 0",
+        padding: "8px 0",
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       {label}
-    </p>
+      <span style={{ fontSize: "10px" }}>{isOpen ? "\u25BE" : "\u25B8"}</span>
+    </button>
   );
 }
 
@@ -40,6 +59,16 @@ export default function MobileSettings({
   const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
+
+  function toggleSection(key: string) {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -188,32 +217,37 @@ export default function MobileSettings({
       </p>
 
       {/* ─── Account ─────────────────────────────────────────────── */}
-      <SectionHeader label="ACCOUNT" />
+      <SectionHeader label="ACCOUNT" isOpen={openSections.has("account")} onToggle={() => toggleSection("account")} />
 
-      <SettingsRow
-        title="Log out"
-        subtitle={userEmail || "—"}
-        onClick={handleLogout}
-      />
+      {openSections.has("account") && (
+        <>
+          <SettingsRow
+            title="Log out"
+            subtitle={userEmail || "—"}
+            onClick={handleLogout}
+          />
 
-      <SettingsRow
-        title="Delete user data"
-        titleColor="var(--color-error)"
-        subtitle="Removes manual and conversations"
-        onClick={() => setShowDeleteDataConfirm(true)}
-      />
+          <SettingsRow
+            title="Delete user data"
+            titleColor="var(--color-error)"
+            subtitle="Removes manual and conversations"
+            onClick={() => setShowDeleteDataConfirm(true)}
+          />
 
-      <SettingsRow
-        title="Delete account"
-        titleColor="var(--color-error)"
-        subtitle="Cannot be undone"
-        onClick={() => setShowDeleteAccountConfirm(true)}
-        noBorder
-      />
+          <SettingsRow
+            title="Delete account"
+            titleColor="var(--color-error)"
+            subtitle="Cannot be undone"
+            onClick={() => setShowDeleteAccountConfirm(true)}
+            noBorder
+          />
+        </>
+      )}
 
       {/* ─── Crisis Support ──────────────────────────────────────── */}
-      <SectionHeader label="CRISIS SUPPORT" />
+      <SectionHeader label="CRISIS SUPPORT" isOpen={openSections.has("crisis")} onToggle={() => toggleSection("crisis")} />
 
+      {openSections.has("crisis") && (
       <SettingsRow title="Crisis Support" noBorder>
         <div>
           <div>
@@ -277,10 +311,13 @@ export default function MobileSettings({
           </p>
         </div>
       </SettingsRow>
+      )}
 
       {/* ─── Dev Tools ───────────────────────────────────────────── */}
-      <SectionHeader label="DEV TOOLS" />
+      <SectionHeader label="DEV TOOLS" isOpen={openSections.has("devtools")} onToggle={() => toggleSection("devtools")} />
 
+      {openSections.has("devtools") && (
+        <>
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
@@ -440,6 +477,8 @@ export default function MobileSettings({
           </button>
         </div>
       </SettingsRow>
+        </>
+      )}
 
       {/* Admin view (renders nothing for non-admins) */}
       <AdminView />
