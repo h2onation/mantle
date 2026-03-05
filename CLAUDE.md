@@ -84,7 +84,7 @@ When merging branches that both modified `version.ts`:
 
 ### Pre-commit hook
 
-The hook uses an interactive `read -p` prompt that Claude Code cannot answer. **Always bump `version.ts` before committing** when `src/` files changed — don't rely on the hook's skip option. Stage `version.ts` alongside your other changes.
+The hook runs tests + build. It does NOT check version bumps — version bumping is manual, triggered by the user saying "bump sage" or "bump app". Do not bump versions unless the user asks.
 
 ## Testing
 
