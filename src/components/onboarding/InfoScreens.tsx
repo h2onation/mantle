@@ -1,22 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { GlowConfig } from "./AmbientGlow";
 
 interface InfoScreensProps {
   onNavigateToSeed: () => void;
   onBack: () => void;
-  onGlowChange: (config: GlowConfig) => void;
 }
 
 const SCREENS = [
   {
-    label: "MANTLE",
-    headline: "Build a working model\nof how you operate.",
+    label: "HOW IT WORKS",
+    headline: "Build a working model of how you operate.",
     body: [
       "Through extended conversation, you\u2019ll map what drives you, how you react under pressure, and how you show up in relationships. The result is your User Manual. A living document built from your words and confirmed by you at every step.",
     ],
-    glow: { x: 50, y: 25, scale: 1.1, opacity: 0.22 },
   },
   {
     label: "WHAT TO EXPECT",
@@ -26,35 +23,27 @@ const SCREENS = [
       "Sage will ask questions, listen closely, and gradually form an understanding of how you operate. The deeper you go, the more precise your manual becomes.",
     ],
     dataTrust: "Your conversations are encrypted and your data is never sold.",
-    glow: { x: 35, y: 30, scale: 1.0, opacity: 0.18 },
   },
 ];
 
 // 3 dots total: screen 1, screen 2, seed
 const TOTAL_DOTS = 3;
 
-export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: InfoScreensProps) {
+export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensProps) {
   const [screenIndex, setScreenIndex] = useState(0);
   const [contentVisible, setContentVisible] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
-  const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+  const [direction, setDirection] = useState(1);
   const touchStartX = useRef(0);
-
-  // Emit glow config on screen change
-  useEffect(() => {
-    onGlowChange(SCREENS[screenIndex].glow);
-  }, [screenIndex, onGlowChange]);
 
   const transitionTo = useCallback((nextIndex: number, dir: number) => {
     if (transitioning) return;
 
-    // Navigate to seed screen
     if (nextIndex >= SCREENS.length) {
       onNavigateToSeed();
       return;
     }
 
-    // Navigate back to entry
     if (nextIndex < 0) {
       onBack();
       return;
@@ -74,7 +63,6 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
     }, 350);
   }, [transitioning, onNavigateToSeed, onBack]);
 
-  // Arrow key navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "ArrowRight") transitionTo(screenIndex + 1, 1);
@@ -110,23 +98,37 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
   return (
     <div
       style={{
-        position: "relative",
-        zIndex: 1,
+        display: "flex",
+        flexDirection: "column",
         height: "100%",
         boxSizing: "border-box",
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Wordmark (top center) */}
+      <div
+        style={{
+          padding: "16px 0",
+          textAlign: "center",
+          fontFamily: "var(--font-serif)",
+          fontSize: 13,
+          fontWeight: 400,
+          letterSpacing: "15px",
+          color: "var(--session-ink-faded)",
+          paddingLeft: 15,
+        }}
+      >
+        MANTLE
+      </div>
+
+      {/* Spacer pushes content to bottom */}
+      <div style={{ flex: 1 }} />
+
       {/* Content area */}
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          height: "100%",
-          padding: "0 32px calc(96px + env(safe-area-inset-bottom, 0px) + 16px)",
-          boxSizing: "border-box",
+          padding: "0 28px 40px",
           opacity: contentVisible ? 1 : 0,
           transform: contentVisible
             ? "translateY(0)"
@@ -139,13 +141,13 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         {/* Label */}
         <div
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "10.5px",
-            fontWeight: 600,
-            letterSpacing: "0.2em",
+            fontFamily: "var(--font-mono)",
+            fontSize: 8,
+            fontWeight: 500,
+            letterSpacing: "3px",
             textTransform: "uppercase",
-            color: "var(--color-accent-dim)",
-            marginBottom: "16px",
+            color: "var(--session-sage)",
+            marginBottom: 16,
           }}
         >
           {screen.label}
@@ -155,11 +157,11 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         <h1
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "30px",
+            fontSize: 30,
             fontWeight: 400,
-            lineHeight: 1.22,
-            letterSpacing: "-0.01em",
-            color: "var(--color-text)",
+            lineHeight: 1.2,
+            letterSpacing: "-0.3px",
+            color: "var(--session-ink)",
             margin: "0 0 20px 0",
             whiteSpace: "pre-line",
           }}
@@ -173,25 +175,27 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
             key={i}
             style={{
               fontFamily: "var(--font-serif)",
-              fontSize: "14.5px",
-              lineHeight: 1.75,
-              color: "var(--color-text-dim)",
-              margin: i < screen.body.length - 1 ? "0 0 16px 0" : "0",
-              maxWidth: "340px",
+              fontSize: 16,
+              fontWeight: 400,
+              lineHeight: 1.6,
+              color: "var(--session-ink-mid)",
+              margin: i < screen.body.length - 1 ? "0 0 14px 0" : "0",
             }}
           >
             {paragraph}
           </p>
         ))}
 
-        {/* Data trust line (Screen 2 only) */}
+        {/* Privacy note (Screen 2 only) */}
         {screen.dataTrust && (
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "12.5px",
-              color: "var(--color-accent-dim)",
-              margin: "20px 0 0 0",
+              fontSize: 12,
+              fontWeight: 400,
+              lineHeight: 1.5,
+              color: "var(--session-sage-soft)",
+              margin: "16px 0 0 0",
             }}
           >
             {screen.dataTrust}
@@ -202,33 +206,28 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
       {/* Nav bar */}
       <div
         style={{
-          position: "absolute",
-          bottom: "calc(32px + env(safe-area-inset-bottom, 0px))",
-          left: "32px",
-          right: "32px",
+          padding: "0 28px",
+          paddingBottom: "calc(32px + env(safe-area-inset-bottom, 0px))",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
         }}
       >
         {/* Pagination dots */}
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {Array.from({ length: TOTAL_DOTS }).map((_, i) => {
             const isActive = i === screenIndex;
-            const isVisited = i < screenIndex;
             return (
               <button
                 key={i}
                 onClick={() => handleDotClick(i)}
                 style={{
-                  width: isActive ? "20px" : "5px",
-                  height: "5px",
-                  borderRadius: "3px",
+                  width: isActive ? 20 : 4,
+                  height: isActive ? 2 : 4,
+                  borderRadius: isActive ? 1 : 2,
                   backgroundColor: isActive
-                    ? "var(--color-accent-strong)"
-                    : isVisited
-                    ? "var(--color-accent-glow)"
-                    : "var(--color-divider)",
+                    ? "var(--session-sage)"
+                    : "var(--session-ink-whisper)",
                   border: "none",
                   padding: 0,
                   cursor: "pointer",
@@ -241,45 +240,45 @@ export default function InfoScreens({ onNavigateToSeed, onBack, onGlowChange }: 
         </div>
 
         {/* Right side: Back + Continue */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* Back button (Screen 2 only) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {screenIndex > 0 && (
             <button
               onClick={() => transitionTo(screenIndex - 1, -1)}
               style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "13.5px",
-                color: "var(--color-text-ghost)",
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                fontWeight: 500,
+                color: "var(--session-ink-ghost)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: "0",
+                padding: 0,
               }}
             >
               Back
             </button>
           )}
 
-          {/* Continue button */}
           <button
             onClick={() => transitionTo(screenIndex + 1, 1)}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "6px",
-              fontFamily: "var(--font-serif)",
-              fontSize: "13.5px",
-              color: "var(--color-void)",
-              backgroundColor: "var(--color-accent-dim)",
-              border: "1px solid var(--color-input-border-focus)",
-              borderRadius: "10px",
-              padding: "11px 24px",
+              gap: 6,
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--session-cream)",
+              backgroundColor: "var(--session-sage-soft)",
+              border: "none",
+              borderRadius: 8,
+              padding: "12px 28px",
               cursor: "pointer",
             }}
           >
             Continue
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M5 3L9.5 7L5 11" stroke="var(--session-cream)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>

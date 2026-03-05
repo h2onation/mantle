@@ -5,102 +5,105 @@ interface EntryScreenProps {
   onLogin: () => void;
 }
 
-export const ENTRY_GLOW = { x: 50, y: 32, scale: 1.2, opacity: 0.16 };
-
 export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps) {
   return (
     <div
       style={{
-        position: "relative",
-        zIndex: 1,
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-end",
         height: "100%",
-        padding: "0 32px 64px",
         boxSizing: "border-box",
       }}
     >
-      {/* MANTLE label */}
+      {/* Wordmark (top center) */}
       <div
         style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "10.5px",
-          fontWeight: 600,
-          letterSpacing: "0.25em",
-          color: "var(--color-accent-dim)",
-          marginBottom: "16px",
+          padding: "16px 0",
+          textAlign: "center",
+          fontFamily: "var(--font-serif)",
+          fontSize: 13,
+          fontWeight: 400,
+          letterSpacing: "15px",
+          color: "var(--session-ink-faded)",
+          paddingLeft: 15,
         }}
       >
         MANTLE
       </div>
 
-      {/* Headline */}
-      <h1
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "30px",
-          fontWeight: 400,
-          lineHeight: 1.25,
-          letterSpacing: "-0.01em",
-          color: "var(--color-text)",
-          margin: "0 0 16px 0",
-        }}
-      >
-        You understand yourself in fragments.
-      </h1>
+      {/* Spacer pushes content to bottom */}
+      <div style={{ flex: 1 }} />
 
-      {/* Subtext */}
-      <p
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "17px",
-          lineHeight: 1.5,
-          color: "var(--color-text-dim)",
-          margin: "0 0 48px 0",
-        }}
-      >
-        That&apos;s why the same patterns keep running.
-      </p>
+      {/* Content area */}
+      <div style={{ padding: "0 28px 56px" }}>
+        {/* Headline */}
+        <h1
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 34,
+            fontWeight: 400,
+            lineHeight: 1.15,
+            letterSpacing: "-0.5px",
+            color: "var(--session-ink)",
+            margin: "0 0 14px 0",
+          }}
+        >
+          You understand yourself in fragments.
+        </h1>
 
-      {/* Primary button */}
-      <button
-        onClick={onGetStarted}
-        style={{
-          width: "100%",
-          padding: "16px",
-          fontFamily: "var(--font-serif)",
-          fontSize: "15px",
-          fontWeight: 400,
-          color: "var(--color-void)",
-          backgroundColor: "var(--color-accent-strong)",
-          border: "none",
-          borderRadius: "12px",
-          cursor: "pointer",
-          marginBottom: "12px",
-        }}
-      >
-        Get started
-      </button>
+        {/* Subhead */}
+        <p
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 18,
+            fontWeight: 400,
+            lineHeight: 1.4,
+            color: "var(--session-ink-mid)",
+            margin: "0 0 44px 0",
+          }}
+        >
+          That&apos;s why the same patterns keep running.
+        </p>
 
-      {/* Secondary button */}
-      <button
-        onClick={onLogin}
-        style={{
-          width: "100%",
-          padding: "16px",
-          fontFamily: "var(--font-serif)",
-          fontSize: "15px",
-          fontWeight: 400,
-          color: "var(--color-text-dim)",
-          backgroundColor: "var(--color-btn-disabled-bg)",
-          border: "1px solid var(--color-divider)",
-          borderRadius: "12px",
-          cursor: "pointer",
-        }}
-      >
-        Log in
-      </button>
+        {/* Get started button */}
+        <button
+          onClick={onGetStarted}
+          style={{
+            width: "100%",
+            padding: "16px 0",
+            fontFamily: "var(--font-sans)",
+            fontSize: 15,
+            fontWeight: 500,
+            color: "var(--session-cream)",
+            backgroundColor: "var(--session-sage)",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            marginBottom: 12,
+          }}
+        >
+          Get started
+        </button>
+
+        {/* Log in button */}
+        <button
+          onClick={onLogin}
+          style={{
+            width: "100%",
+            padding: "16px 0",
+            fontFamily: "var(--font-sans)",
+            fontSize: 15,
+            fontWeight: 500,
+            color: "var(--session-ink-mid)",
+            backgroundColor: "transparent",
+            border: "1px solid var(--session-ink-whisper)",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          Log in
+        </button>
+      </div>
     </div>
   );
 }

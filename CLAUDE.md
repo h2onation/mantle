@@ -29,6 +29,37 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 - **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
 - **Non-interactive CLIs**: When using `create-next-app` or similar scaffolding CLIs, always use non-interactive flags (e.g., `--yes`, `--typescript`, `--tailwind`, `--app`, `--no-git`) to prevent commands from hanging.
 
+## Versioning
+
+Two version constants in `src/lib/version.ts`:
+- **`APP_VERSION`** — tracks UI, components, hooks, utilities, API routes (everything in `src/` except Sage prompt files)
+- **`SAGE_VERSION`** — tracks Sage behavior: `system-prompt.ts` and `extraction.ts` only
+
+### When to bump
+
+| Files changed | Bump |
+|---------------|------|
+| `src/lib/sage/system-prompt.ts` or `src/lib/sage/extraction.ts` | `SAGE_VERSION` |
+| Any other `src/` file | `APP_VERSION` |
+| Both categories | Both versions |
+
+**Bump once per branch, in the first commit that touches relevant files.** Do not bump again on subsequent commits within the same branch.
+
+### How to bump
+
+Use **minor** increments (x.Y.0) for features, redesigns, or meaningful changes. Use **patch** increments (x.y.Z) for bug fixes and small tweaks. Judgment call — when in doubt, use minor.
+
+### Merge conflict resolution
+
+When merging branches that both modified `version.ts`:
+- Take the **higher value** for each version independently
+- Do not create an additional bump in the merge commit itself
+- Example: Branch A has APP 2.2.0 / SAGE 1.0.0, Branch B has APP 2.0.0 / SAGE 2.1.0 → merge result: APP 2.2.0 / SAGE 2.1.0
+
+### Pre-commit hook
+
+The hook uses an interactive `read -p` prompt that Claude Code cannot answer. **Always bump `version.ts` before committing** when `src/` files changed — don't rely on the hook's skip option. Stage `version.ts` alongside your other changes.
+
 ## Testing
 
 **Vitest** with `vite-tsconfig-paths`. Config at `vitest.config.ts`. 113 tests, runs in <1s, zero API cost (all Anthropic/Supabase calls mocked).

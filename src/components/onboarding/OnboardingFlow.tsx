@@ -3,20 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import AmbientGlow, { type GlowConfig } from "./AmbientGlow";
-import EntryScreen, { ENTRY_GLOW } from "./EntryScreen";
-import LoginScreen, { LOGIN_GLOW } from "./LoginScreen";
+import EntryScreen from "./EntryScreen";
+import LoginScreen from "./LoginScreen";
 import InfoScreens from "./InfoScreens";
 import SeedScreen from "./SeedScreen";
 
 type ViewName = "entry" | "login" | "onboarding" | "seed";
 
-const SEED_GLOW: GlowConfig = { x: 55, y: 15, scale: 0.9, opacity: 0.14 };
-
 export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
   const [viewOpacity, setViewOpacity] = useState(1);
-  const [glowConfig, setGlowConfig] = useState<GlowConfig>(ENTRY_GLOW);
   const [ready, setReady] = useState(false);
   const router = useRouter();
   const checkedRef = useRef(false);
@@ -47,36 +43,29 @@ export default function OnboardingFlow() {
     });
   }, [router]);
 
-  const fadeToView = useCallback((view: ViewName, glow: GlowConfig, duration = 400) => {
+  const fadeToView = useCallback((view: ViewName, duration = 400) => {
     setViewOpacity(0);
     setTimeout(() => {
       setCurrentView(view);
-      setGlowConfig(glow);
       setViewOpacity(1);
     }, duration);
   }, []);
 
-  // Glow change callback (stable reference)
-  const handleGlowChange = useCallback((config: GlowConfig) => {
-    setGlowConfig(config);
-  }, []);
-
   function handleGetStarted() {
-    fadeToView("onboarding", { x: 50, y: 25, scale: 1.1, opacity: 0.22 });
+    fadeToView("onboarding");
   }
 
   function handleLogin() {
-    fadeToView("login", LOGIN_GLOW);
+    fadeToView("login");
   }
 
   function handleBackToEntry() {
     setCurrentView("entry");
-    setGlowConfig(ENTRY_GLOW);
     setViewOpacity(1);
   }
 
   function handleNavigateToSeed() {
-    fadeToView("seed", SEED_GLOW);
+    fadeToView("seed");
   }
 
   if (!ready) {
@@ -85,7 +74,7 @@ export default function OnboardingFlow() {
         style={{
           width: "100%",
           height: "100dvh",
-          backgroundColor: "var(--color-void)",
+          background: "var(--session-linen)",
         }}
       />
     );
@@ -98,15 +87,15 @@ export default function OnboardingFlow() {
         maxWidth: "430px",
         margin: "0 auto",
         height: "100dvh",
-        backgroundColor: "var(--color-void)",
+        background: "var(--session-linen)",
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E")`,
+        backgroundSize: "256px 256px",
         position: "relative",
         overflow: "hidden",
         boxSizing: "border-box",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <AmbientGlow config={glowConfig} />
-
       <div
         style={{
           height: "100%",
@@ -129,14 +118,11 @@ export default function OnboardingFlow() {
           <InfoScreens
             onNavigateToSeed={handleNavigateToSeed}
             onBack={handleBackToEntry}
-            onGlowChange={handleGlowChange}
           />
         )}
 
         {currentView === "seed" && (
-          <SeedScreen
-            onGlowChange={handleGlowChange}
-          />
+          <SeedScreen />
         )}
       </div>
     </div>

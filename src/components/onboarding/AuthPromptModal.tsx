@@ -51,20 +51,6 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
     // If no error, browser redirects to Google
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "14px 16px",
-    fontFamily: "var(--font-serif)",
-    fontSize: "15px",
-    color: "var(--color-text)",
-    backgroundColor: "var(--color-input-bg)",
-    border: "1px solid var(--color-divider)",
-    borderRadius: "12px",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border-color 0.3s ease",
-  };
-
   return (
     <div
       style={{
@@ -83,8 +69,8 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         style={{
           width: "100%",
           maxWidth: "380px",
-          backgroundColor: "var(--color-void)",
-          borderRadius: "16px",
+          backgroundColor: "var(--session-cream)",
+          borderRadius: 12,
           padding: "32px",
           boxSizing: "border-box",
         }}
@@ -93,9 +79,9 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         <h2
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "24px",
+            fontSize: 24,
             fontWeight: 400,
-            color: "var(--color-text)",
+            color: "var(--session-ink)",
             margin: "0 0 8px 0",
             lineHeight: 1.2,
           }}
@@ -107,9 +93,9 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         <p
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "14px",
-            color: "var(--color-text-dim)",
-            margin: "0 0 24px 0",
+            fontSize: 14,
+            color: "var(--session-ink-mid)",
+            margin: "0 0 28px 0",
             lineHeight: 1.5,
           }}
         >
@@ -120,7 +106,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "13px",
+              fontSize: 13,
               color: "var(--color-error)",
               margin: "0 0 16px 0",
             }}
@@ -130,35 +116,81 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         )}
 
         <form onSubmit={handleEmailSubmit}>
-          {/* Email */}
+          {/* Email label */}
+          <label
+            style={{
+              display: "block",
+              fontFamily: "var(--font-mono)",
+              fontSize: 8,
+              fontWeight: 500,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink-faded)",
+              marginBottom: 8,
+            }}
+          >
+            EMAIL
+          </label>
           <input
             type="email"
-            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
             style={{
-              ...inputStyle,
-              marginBottom: "12px",
+              width: "100%",
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              color: "var(--session-ink)",
+              backgroundColor: "transparent",
+              border: "none",
+              borderBottom: "1px solid var(--session-ink-whisper)",
+              borderRadius: 0,
+              padding: "12px 0",
+              outline: "none",
+              boxSizing: "border-box",
+              marginBottom: 28,
             }}
+            onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
           />
 
-          {/* Password */}
+          {/* Password label */}
+          <label
+            style={{
+              display: "block",
+              fontFamily: "var(--font-mono)",
+              fontSize: 8,
+              fontWeight: 500,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink-faded)",
+              marginBottom: 8,
+            }}
+          >
+            PASSWORD
+          </label>
           <input
             type="password"
-            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--color-input-border-focus)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-divider)"; }}
             style={{
-              ...inputStyle,
-              marginBottom: "20px",
+              width: "100%",
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              color: "var(--session-ink)",
+              backgroundColor: "transparent",
+              border: "none",
+              borderBottom: "1px solid var(--session-ink-whisper)",
+              borderRadius: 0,
+              padding: "12px 0",
+              outline: "none",
+              boxSizing: "border-box",
+              marginBottom: 32,
             }}
+            onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
           />
 
           {/* Create account button */}
@@ -167,23 +199,45 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             disabled={loading}
             style={{
               width: "100%",
-              padding: "16px",
-              fontFamily: "var(--font-serif)",
-              fontSize: "15px",
-              fontWeight: 400,
-              color: "var(--color-void)",
-              backgroundColor: "var(--color-accent-strong)",
+              padding: "16px 0",
+              fontFamily: "var(--font-sans)",
+              fontSize: 15,
+              fontWeight: 500,
+              color: "var(--session-cream)",
+              backgroundColor: "var(--session-sage)",
               border: "none",
-              borderRadius: "12px",
+              borderRadius: 8,
               cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.7 : 1,
               transition: "opacity 0.2s",
-              marginBottom: "12px",
+              marginBottom: 20,
             }}
           >
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
+
+        {/* Divider */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ flex: 1, height: 1, backgroundColor: "var(--session-ink-hairline)" }} />
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 11,
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            or
+          </span>
+          <div style={{ flex: 1, height: 1, backgroundColor: "var(--session-ink-hairline)" }} />
+        </div>
 
         {/* Google OAuth button */}
         <button
@@ -191,23 +245,22 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
           disabled={loading}
           style={{
             width: "100%",
-            padding: "16px",
+            padding: "14px 0",
             fontFamily: "var(--font-sans)",
-            fontSize: "14px",
+            fontSize: 14,
             fontWeight: 500,
-            color: "var(--color-text)",
+            color: "var(--session-ink-mid)",
             backgroundColor: "transparent",
-            border: "1px solid var(--color-divider)",
-            borderRadius: "12px",
+            border: "1px solid var(--session-ink-whisper)",
+            borderRadius: 8,
             cursor: loading ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "10px",
-            marginBottom: "20px",
+            gap: 10,
+            marginBottom: 20,
           }}
         >
-          {/* Google icon */}
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
             <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
@@ -223,13 +276,13 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             onClick={onDismiss}
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--color-text-ghost)",
+              fontSize: 13,
+              color: "var(--session-ink-ghost)",
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: "4px 8px",
-              marginBottom: "16px",
+              marginBottom: 16,
             }}
           >
             Not now
@@ -240,8 +293,8 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         <p
           style={{
             fontFamily: "var(--font-sans)",
-            fontSize: "11px",
-            color: "var(--color-text-ghost)",
+            fontSize: 11,
+            color: "var(--session-ink-ghost)",
             margin: 0,
             lineHeight: 1.5,
             textAlign: "center",
