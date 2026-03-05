@@ -120,7 +120,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
         resolve(ws);
       };
 
-      ws.onerror = () => {
+      ws.onerror = (event) => {
+        console.error("[voice] WebSocket connection failed:", event);
         reject(new Error("WebSocket connection failed"));
       };
 
@@ -240,7 +241,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
     let ws: WebSocket;
     try {
       ws = await connectWebSocket(key);
-    } catch {
+    } catch (err) {
+      console.error("[voice] Deepgram connection failed — API key may be expired or invalid:", err);
       setError("Could not connect to voice service");
       stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;

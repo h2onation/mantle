@@ -124,7 +124,7 @@ export default function MainApp() {
       <div
         style={{
           height: "100vh",
-          backgroundColor: "var(--color-void)",
+          backgroundColor: "var(--session-linen)",
         }}
       />
     );
@@ -181,7 +181,7 @@ export default function MainApp() {
             position: "fixed",
             inset: 0,
             zIndex: 300,
-            backgroundColor: "var(--color-void)",
+            backgroundColor: "var(--session-linen)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -202,7 +202,7 @@ export default function MainApp() {
               width: 320,
               height: 320,
               borderRadius: "50%",
-              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.28) 0%, rgba(122,139,114,0.08) 40%, transparent 70%)",
+              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.18) 0%, rgba(122,139,114,0.05) 40%, transparent 70%)",
               filter: "blur(30px)",
               pointerEvents: "none",
               animation: "explorationGlow 3s ease-in-out infinite",
@@ -212,7 +212,7 @@ export default function MainApp() {
             style={{
               fontFamily: "var(--font-serif)",
               fontSize: "20px",
-              color: "var(--color-text)",
+              color: "var(--session-ink)",
               margin: 0,
               letterSpacing: "-0.3px",
               position: "relative",
@@ -227,7 +227,7 @@ export default function MainApp() {
                 fontFamily: "var(--font-serif)",
                 fontStyle: "italic",
                 fontSize: "15px",
-                color: "var(--color-text-dim)",
+                color: "var(--session-ink-soft)",
                 margin: 0,
                 letterSpacing: "-0.2px",
                 position: "relative",

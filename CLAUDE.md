@@ -141,6 +141,8 @@ The hook uses an interactive `read -p` prompt that Claude Code cannot answer. **
 
 After making UI changes, take a preview screenshot to verify the result visually before reporting completion. When clicking UI elements in preview, prefer using CSS selectors or text content to identify elements rather than guessing pixel positions.
 
+**Preview viewport**: Always call `preview_resize` with `preset: "mobile"` immediately after `preview_start`. The app is mobile-only (430px max-width centered shell), so desktop viewport (1280x800 default) will show the shell centered in a wide dark background, making the preview panel useless.
+
 ## Database Schema
 
 Five tables in `supabase/schema.sql`: **profiles** (auto-created via trigger), **conversations** (status, summary, extraction_state JSONB), **messages** (role, content, is_checkpoint, checkpoint_meta JSONB, processing_text), **manual_components** (user-level, layer 1-5, type component/pattern), **manual_changelog** (archives previous versions on update).
