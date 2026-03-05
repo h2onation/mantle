@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import AdminView from "@/components/mobile/AdminView";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
 interface MobileSettingsProps {
   userEmail: string;
@@ -59,6 +60,7 @@ export default function MobileSettings({
   const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
+  const isAdmin = useIsAdmin();
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   function toggleSection(key: string) {
@@ -313,7 +315,9 @@ export default function MobileSettings({
       </SettingsRow>
       )}
 
-      {/* ─── Dev Tools ───────────────────────────────────────────── */}
+      {/* ─── Dev Tools (admin only) ────────────────────────────── */}
+      {isAdmin && (
+      <>
       <SectionHeader label="DEV TOOLS" isOpen={openSections.has("devtools")} onToggle={() => toggleSection("devtools")} />
 
       {openSections.has("devtools") && (
@@ -477,11 +481,11 @@ export default function MobileSettings({
           </button>
         </div>
       </SettingsRow>
+          <AdminView />
         </>
       )}
-
-      {/* Admin view (renders nothing for non-admins) */}
-      <AdminView />
+      </>
+      )}
 
       {/* Confirmation modals */}
       <ConfirmationModal

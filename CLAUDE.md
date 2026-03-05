@@ -11,6 +11,29 @@ Mantle is a mobile-first web app where an AI conversationalist called Sage build
 
 Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantle/.env.local .env.local` when creating a new worktree. This is the first step before anything else.
 
+## Git Workflow
+
+- When asked to "merge and push", ALWAYS merge the feature branch INTO main (not main into the feature branch) unless explicitly told otherwise.
+- After deleting worktrees or branches, verify the shell's cwd is still valid before running further commands.
+- Never delete .env.local or other environment files during branch/worktree cleanup.
+
+## Preview & UI Verification
+
+- When using preview_screenshot or preview_eval, take extra care with click selectors. Prefer data-testid attributes or unique selectors over generic button/tab selectors.
+- If a click fails, try alternative selectors (aria-label, text content, CSS class) rather than retrying the same selector.
+- If auth session is lost after page reload, restart the dev server and re-authenticate before continuing verification.
+
+## Build & Deploy
+
+- Always use non-interactive flags when running scaffolding commands (e.g., `npx create-next-app --yes` or `--no-install` then `npm install`).
+- After any code changes, run `npm run build` to verify before committing.
+- This project deploys on Vercel — ensure builds pass locally before merging to main.
+
+## API & Model References
+
+- When referencing Anthropic model IDs, always verify the latest model version via web search rather than guessing from memory. Model IDs change frequently (e.g., claude-3-5-sonnet-20251001 vs 20241022).
+- When integrating third-party APIs (Deepgram, etc.), start with the simplest auth approach (direct API key) before attempting complex token grant flows.
+
 ## Commands
 
 - `npm run dev` — start dev server (localhost:3000)

@@ -206,23 +206,7 @@ export default function AdminView() {
   // ── Inline settings (hidden + users) ─────────────────────────────
 
   return (
-    <div style={{ marginTop: 32 }}>
-      {/* Section header */}
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "8px",
-          letterSpacing: "3px",
-          textTransform: "uppercase",
-          color: "var(--color-error)",
-          marginBottom: 16,
-          paddingTop: 16,
-          borderTop: "1px solid var(--session-ink-hairline)",
-        }}
-      >
-        ADMIN
-      </div>
-
+    <div>
       {/* Entry point */}
       {adminView === "hidden" && (
         <button
@@ -236,7 +220,7 @@ export default function AdminView() {
             opacity: adminLoading ? 0.5 : 1,
           }}
         >
-          {adminLoading ? "Loading..." : "View user conversations"}
+          {adminLoading ? "Loading..." : "Debug audit"}
         </button>
       )}
 

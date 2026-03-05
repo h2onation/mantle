@@ -1,10 +1,9 @@
-## /ship - Wrap Up and Deploy
-
-1. Run `npm run build` to verify no build errors
-2. Run `npx tsc --noEmit` to verify no type errors
-3. Stage all changes with specific file names (not `git add -A`)
-4. Write a conventional commit message summarizing the work
-5. Push to the current branch
-6. If on a feature branch, create a PR to main and merge it
-
-Never skip the build check step. If the build fails, fix the errors before committing.
+# Ship Skill
+1. Run `npm run build` to verify no errors
+2. Checkout main: `git checkout main`
+3. Merge the feature branch INTO main: `git merge <branch-name>`
+4. Push to origin: `git push origin main`
+5. Delete the feature branch: `git branch -d <branch-name>`
+6. If a worktree exists for the branch, delete it FIRST with `git worktree remove <path>` BEFORE deleting the branch
+7. Verify cwd is valid after cleanup
+8. NEVER delete .env.local or other dotenv files
