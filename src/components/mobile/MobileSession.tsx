@@ -6,6 +6,7 @@ import ChatInput from "./ChatInput";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
+import { useKeyboardOpen } from "@/lib/hooks/useKeyboardOpen";
 
 const sageLabelStyle = {
   fontFamily: "var(--font-mono)",
@@ -54,6 +55,7 @@ export default function MobileSession({
   startNewSession,
   refreshConversations,
 }: MobileSessionProps) {
+  const keyboardOpen = useKeyboardOpen();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -90,7 +92,8 @@ export default function MobileSession({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        paddingBottom: "calc(68px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: keyboardOpen ? "0px" : "calc(68px + env(safe-area-inset-bottom, 0px))",
+        transition: "padding-bottom 0.25s ease",
       }}
     >
       {/* Header */}
