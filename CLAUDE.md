@@ -142,6 +142,8 @@ Five tables in `supabase/schema.sql`: **profiles** (auto-created via trigger), *
 - **Patterns**: Max 2 per layer per user. Same name = replace. 3rd pattern archives oldest to `manual_changelog`. Partial unique index `unique_pattern_name_per_layer`.
 - Upsert uses select-then-insert/update (not `ON CONFLICT`) because partial unique indexes make standard upsert tricky.
 
+**admin_access_logs** — Audit trail for admin data access. Logs every conversation/message view with admin_id, target_user_id, conversation_id, action, timestamp. RLS: admins can insert (own entries only) and read. Admin role determined by `is_admin()` Postgres function checking JWT `app_metadata.role`.
+
 ## API Routes
 
 | Method | Path | Runtime | Purpose |
@@ -159,6 +161,9 @@ Five tables in `supabase/schema.sql`: **profiles** (auto-created via trigger), *
 | POST | `/api/account/delete` | Edge | Delete all user data + auth user |
 | POST | `/api/auth/logout` | Node | Server-side logout (clears HttpOnly cookies) |
 | GET | `/auth/callback` | Node | OAuth callback |
+| GET | `/api/admin/users` | Node | Admin-only: list all users with conversation/component counts |
+| POST | `/api/admin/conversations` | Node | Admin-only: list conversations for a user. Logs access. |
+| POST | `/api/admin/messages` | Node | Admin-only: view full message thread + extraction state. Logs access. |
 
 Dev routes (`dev-*`) return 403 in production.
 
@@ -288,6 +293,9 @@ Haiku runs post-stream as a fallback when Sage does NOT include a `|||MANUAL_ENT
 
 ### Session Summary
 Generated fire-and-forget when `useChat` initializes and the last message is >30 minutes old. Also generated when a conversation is marked completed via `/api/conversations/complete`. Uses shared `generateSessionSummary()` utility in `src/lib/sage/generate-summary.ts` (Haiku). Stored on conversation `summary` column.
+
+### Admin Access
+Admin role is set via JWT custom claims (`app_metadata.role = "admin"`), not a database column. Set/revoked only through direct SQL in Supabase SQL Editor. The `is_admin()` Postgres function checks the JWT claim and is used in all admin RLS policies. Admin routes are read-only (SELECT-only policies on user tables). Every conversation/message view is logged to `admin_access_logs`. Admin UI renders inside MobileSettings via the `AdminView` component, which returns null for non-admin users — completely absent from the DOM. Middleware blocks non-admin requests to `/api/admin/*` routes.
 
 ## Sage Prompt Assembly
 
@@ -424,6 +432,7 @@ See `.claude/DRIFT_LOG.md`. Update that file when modifying the codebase.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling `getUser()` on each page request (which refreshes cookies). If user stays on the SPA without page navigation, token could expire. API routes return 401 -> redirect to `/login` as fallback.
 - **Ghost conversation rows**: If `useChat` init sends `conversationId: null` to `/api/chat` and the user somehow also sends a message before state updates, a second conversation could be created. Mitigated by `initStarted.current` ref guard and `isLoading`/`isStreaming` checks, but not impossible.
 - **OAuth redirect config**: Redirect URL is built dynamically (`window.location.origin + "/auth/callback"`). Supabase dashboard must have each environment's URL (localhost:3000, production domain) in the allowed redirect URLs. No `.env` variable for this.
+- **Admin JWT refresh**: After granting/revoking admin via SQL, the user must log out and back in. Existing sessions retain the old claim until token expiry (~1 hour).
 
 ## Environment Variables
 

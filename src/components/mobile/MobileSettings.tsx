@@ -3,17 +3,33 @@
 import { useState } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
+import AdminView from "@/components/mobile/AdminView";
 
 interface MobileSettingsProps {
   userEmail: string;
-  sessionCount: number;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
 }
 
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "8px",
+        color: "var(--session-ink-ghost)",
+        letterSpacing: "3px",
+        textTransform: "uppercase",
+        margin: "32px 0 12px 0",
+      }}
+    >
+      {label}
+    </p>
+  );
+}
+
 export default function MobileSettings({
   userEmail,
-  sessionCount,
   onSimulationEvent,
   onPopulateComplete,
 }: MobileSettingsProps) {
@@ -171,24 +187,36 @@ export default function MobileSettings({
         SETTINGS
       </p>
 
-      {/* Account */}
-      <SettingsRow title="Account" subtitle={userEmail || "—"} />
+      {/* ─── Account ─────────────────────────────────────────────── */}
+      <SectionHeader label="ACCOUNT" />
 
-      {/* Crisis Support */}
-      <SettingsRow title="Crisis Support">
+      <SettingsRow
+        title="Log out"
+        subtitle={userEmail || "—"}
+        onClick={handleLogout}
+      />
+
+      <SettingsRow
+        title="Delete user data"
+        titleColor="var(--color-error)"
+        subtitle="Removes manual and conversations"
+        onClick={() => setShowDeleteDataConfirm(true)}
+      />
+
+      <SettingsRow
+        title="Delete account"
+        titleColor="var(--color-error)"
+        subtitle="Cannot be undone"
+        onClick={() => setShowDeleteAccountConfirm(true)}
+        noBorder
+      />
+
+      {/* ─── Crisis Support ──────────────────────────────────────── */}
+      <SectionHeader label="CRISIS SUPPORT" />
+
+      <SettingsRow title="Crisis Support" noBorder>
         <div>
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--session-ink)",
-              letterSpacing: "0.2px",
-              margin: 0,
-            }}
-          >
-            Crisis Support
-          </p>
-          <div style={{ marginTop: "8px" }}>
+          <div>
             <p
               style={{
                 fontFamily: "var(--font-mono)",
@@ -250,21 +278,8 @@ export default function MobileSettings({
         </div>
       </SettingsRow>
 
-      {/* Logout */}
-      <SettingsRow
-        title="Log out"
-        subtitle={userEmail || "—"}
-        onClick={handleLogout}
-      />
-
-      {/* Session history */}
-      <SettingsRow
-        title="Session history"
-        subtitle={`${sessionCount} session${sessionCount !== 1 ? "s" : ""}`}
-      />
-
-      {/* Export manual */}
-      <SettingsRow title="Export manual" subtitle="PDF or text" />
+      {/* ─── Dev Tools ───────────────────────────────────────────── */}
+      <SectionHeader label="DEV TOOLS" />
 
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
@@ -346,7 +361,7 @@ export default function MobileSettings({
       </SettingsRow>
 
       {/* Populate manual */}
-      <SettingsRow title="Populate manual">
+      <SettingsRow title="Populate manual" noBorder>
         <div style={{ width: "100%" }}>
           <div
             style={{
@@ -426,22 +441,8 @@ export default function MobileSettings({
         </div>
       </SettingsRow>
 
-      {/* Delete user data */}
-      <SettingsRow
-        title="Delete user data"
-        titleColor="var(--color-error)"
-        subtitle="Removes manual and conversations"
-        onClick={() => setShowDeleteDataConfirm(true)}
-      />
-
-      {/* Delete account */}
-      <SettingsRow
-        title="Delete account"
-        titleColor="var(--color-error)"
-        subtitle="Cannot be undone"
-        onClick={() => setShowDeleteAccountConfirm(true)}
-        noBorder
-      />
+      {/* Admin view (renders nothing for non-admins) */}
+      <AdminView />
 
       {/* Confirmation modals */}
       <ConfirmationModal

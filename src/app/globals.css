@@ -33,6 +33,9 @@
   --color-error-ghost: rgba(181, 86, 77, 0.12);
   --color-error-text: rgba(181, 86, 77, 0.7);
 
+  /* Admin */
+  --color-admin-banner-bg: rgba(181, 86, 77, 0.05);
+
   /* Overlays */
   --color-backdrop: rgba(0, 0, 0, 0.5);
   --color-backdrop-heavy: rgba(0, 0, 0, 0.6);

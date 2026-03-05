@@ -31,13 +31,14 @@ export default function MobileLayout({
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "var(--color-shell)",
+        overflowX: "auto",
+        minWidth: "fit-content",
       }}
     >
       <div
         style={{
-          width: "100%",
+          width: 430,
           height: "100%",
-          maxWidth: 430,
           maxHeight: 932,
           borderRadius: "clamp(0px, (100vw - 430px) * 999, 40px)",
           border: "clamp(0px, (100vw - 430px) * 999, 1px) solid rgba(226, 224, 219, 0.08)",

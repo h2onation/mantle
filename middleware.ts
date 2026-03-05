@@ -44,6 +44,19 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Block non-admin access to admin API routes
+  const isAdminRoute = pathname.startsWith("/api/admin");
+  if (isAdminRoute) {
+    const role = user?.app_metadata?.role;
+    if (role !== "admin") {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return response;
+  }
+
   // Allow /login, /auth/callback, and static files
   const isPublicRoute =
     pathname === "/login" ||
@@ -66,6 +79,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|api(?!/admin)).*)",
   ],
 };
