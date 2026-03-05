@@ -295,7 +295,7 @@ export default function AdminView() {
             position: "fixed",
             inset: 0,
             zIndex: 300,
-            background: "var(--color-void)",
+            background: "var(--session-linen)",
             display: "flex",
             flexDirection: "column",
           }}
@@ -408,7 +408,7 @@ export default function AdminView() {
                   fontSize: "9px",
                   letterSpacing: "3px",
                   textTransform: "uppercase",
-                  color: profileTab === tab ? "var(--color-error)" : "var(--color-text-ghost)",
+                  color: profileTab === tab ? "var(--color-error)" : "var(--session-ink-ghost)",
                   background: "none",
                   border: "none",
                   borderBottom: profileTab === tab ? "1px solid var(--color-error)" : "1px solid transparent",
