@@ -84,6 +84,49 @@ export default function MobileSession({
   }
 
   const hasMessages = messages.length > 0;
+  const hasAssistantMessage = messages.some(m => m.role === "assistant");
+
+  // Orientation box — shown to new users (no confirmed manual entries)
+  const orientationBox = (
+    <div
+      key="orientation-box"
+      style={{
+        margin: "16px 0 0 0",
+        padding: "24px 28px 24px 20px",
+        borderLeft: "2px solid var(--session-sage-border)",
+        backgroundColor: "var(--session-cream)",
+        animation: "mantleFadeIn 0.6s ease-out",
+      }}
+    >
+      <p style={{
+        fontFamily: "var(--font-serif)",
+        fontSize: "14px",
+        lineHeight: 1.75,
+        color: "var(--session-ink-soft)",
+        margin: "0 0 16px 0",
+      }}>
+        Welcome to our session. This is where we explore what&#39;s top of mind and start building a manual of how you operate. You should see me as a tool to name the things you already know, recognize patterns, and reflect them back for you to confirm. Push back anytime I&#39;m off. I&#39;ll be asking questions and going deeper. You don&#39;t have to go anywhere you don&#39;t want to, but the more you share, the more useful your manual becomes.
+      </p>
+      <p style={{
+        fontFamily: "var(--font-serif)",
+        fontSize: "14px",
+        lineHeight: 1.75,
+        color: "var(--session-ink-soft)",
+        margin: "0 0 16px 0",
+      }}>
+        People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
+      </p>
+      <p style={{
+        fontFamily: "var(--font-serif)",
+        fontSize: "14px",
+        lineHeight: 1.75,
+        color: "var(--session-ink-soft)",
+        margin: 0,
+      }}>
+        You gave me a place to start. Let&#39;s see what&#39;s underneath it.
+      </p>
+    </div>
+  );
 
   return (
     <div
@@ -186,6 +229,9 @@ export default function MobileSession({
         >
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
+
+          {/* Standalone orientation box — shows immediately before Sage responds */}
+          {confirmedComponents.length === 0 && hasMessages && !hasAssistantMessage && orientationBox}
 
           {/* Empty state placeholder */}
           {!hasMessages && !isLoading && (
@@ -553,44 +599,7 @@ export default function MobileSession({
                 if (showOrientationBox) {
                   return (
                     <>
-                      <div
-                        key="orientation-box"
-                        style={{
-                          margin: "16px 0 0 0",
-                          padding: "24px 28px 24px 20px",
-                          borderLeft: "2px solid var(--color-accent-dim)",
-                          backgroundColor: "var(--color-surface)",
-                          animation: "mantleFadeIn 0.6s ease-out",
-                        }}
-                      >
-                        <p style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "14px",
-                          lineHeight: 1.75,
-                          color: "var(--color-text-dim)",
-                          margin: "0 0 16px 0",
-                        }}>
-                          Welcome to our session. This is where we explore what&#39;s top of mind and start building a manual of how you operate. You should see me as a tool to name the things you already know, recognize patterns, and reflect them back for you to confirm. Push back anytime I&#39;m off. I&#39;ll be asking questions and going deeper. You don&#39;t have to go anywhere you don&#39;t want to, but the more you share, the more useful your manual becomes.
-                        </p>
-                        <p style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "14px",
-                          lineHeight: 1.75,
-                          color: "var(--color-text-dim)",
-                          margin: "0 0 16px 0",
-                        }}>
-                          People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
-                        </p>
-                        <p style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "14px",
-                          lineHeight: 1.75,
-                          color: "var(--color-text-dim)",
-                          margin: 0,
-                        }}>
-                          You gave me a place to start. Let&#39;s see what&#39;s underneath it.
-                        </p>
-                      </div>
+                      {orientationBox}
                       {sagePanel}
                     </>
                   );

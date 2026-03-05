@@ -49,7 +49,7 @@ export default function MobileLayout({
           style={{
             position: "absolute",
             inset: 0,
-            backgroundColor: "var(--color-void)",
+            backgroundColor: "var(--session-linen)",
           }}
         >
           {([
