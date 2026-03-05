@@ -482,9 +482,9 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Give me the full version");
     });
 
-    it("always contains BRIDGE MOVE text", () => {
+    it("always contains DEEPENING MOVES scene-invitation guidance", () => {
       const result = build();
-      expect(result).toContain("connect two things the user said");
+      expect(result).toContain("Every question should invite a scene, not a label");
     });
 
     it("BUILDING TOWARD SIGNAL contains signal-naming instruction when present", () => {
