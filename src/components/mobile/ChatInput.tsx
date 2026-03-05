@@ -244,8 +244,8 @@ export default function ChatInput({
           onBlur={handleBlur}
           placeholder=""
           rows={1}
-          autoComplete="off"
-          autoCorrect="off"
+          autoCapitalize="sentences"
+          spellCheck={true}
           style={{
             flex: 1,
             backgroundColor: "transparent",
