@@ -391,9 +391,9 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("SATURATED: 2/2 patterns");
     });
 
-    it("CHECKPOINTS uses quality bar language instead of hard gate when both shown", () => {
+    it("CHECKPOINTS uses research-assistant language instead of hard gate when both shown", () => {
       const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
-      expect(result).toContain("Quality bar, not timing gate");
+      expect(result).toContain("Use the extraction context as your research assistant, not your permission slip");
       expect(result).not.toContain("Only deliver a checkpoint when");
     });
 
