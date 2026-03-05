@@ -28,6 +28,9 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 - **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 - **Writing .env.local**: This is a local development file — write to it without hesitation when setting up credentials.
 - **Non-interactive CLIs**: When using `create-next-app` or similar scaffolding CLIs, always use non-interactive flags (e.g., `--yes`, `--typescript`, `--tailwind`, `--app`, `--no-git`) to prevent commands from hanging.
+- **Never use real user emails for dev-login or testing.** Only use test@test.com or your own email. Claude Code sessions must not authenticate as other users' accounts.
+
+> **CRITICAL: Never authenticate as a real user.** For testing, always use test@test.com or create a fresh anonymous user. Never generate magic links for any email other than your own or test@test.com.
 
 ## Versioning
 
