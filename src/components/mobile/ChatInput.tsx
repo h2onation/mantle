@@ -198,7 +198,7 @@ export default function ChatInput({
               pointerEvents: "none",
             }}
           >
-            continue...
+            tell me . . .
           </span>
         )}
 
