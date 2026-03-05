@@ -10,14 +10,15 @@ interface PatternItemProps {
   layerId?: number;
   layerName?: string;
   onExploreWithSage?: (context: ExplorationContext) => void;
+  readOnly?: boolean;
 }
 
-export default function PatternItem({ pattern, isNew, layerId, layerName, onExploreWithSage }: PatternItemProps) {
-  const [expanded, setExpanded] = useState(false);
+export default function PatternItem({ pattern, isNew, layerId, layerName, onExploreWithSage, readOnly }: PatternItemProps) {
+  const [expanded, setExpanded] = useState(readOnly ? true : false);
 
   return (
     <div
-      onClick={() => setExpanded(!expanded)}
+      onClick={readOnly ? undefined : () => setExpanded(!expanded)}
       style={{
         position: "relative",
         background: expanded
@@ -28,7 +29,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           : "1px solid rgba(45, 55, 80, 0.08)",
         borderRadius: 8,
         padding: "14px 16px",
-        cursor: "pointer",
+        cursor: readOnly ? "default" : "pointer",
         transition: "all 0.2s ease",
       }}
     >
@@ -88,40 +89,42 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           </span>
         </div>
 
-        {/* Plus/close icon */}
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          style={{
-            display: "block",
-            flexShrink: 0,
-            transition: "transform 0.3s ease",
-            transform: expanded ? "rotate(45deg)" : "rotate(0deg)",
-          }}
-        >
-          <line
-            x1="6"
-            y1="1"
-            x2="6"
-            y2="11"
-            stroke="var(--session-navy-label)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            opacity={0.4}
-          />
-          <line
-            x1="1"
-            y1="6"
-            x2="11"
-            y2="6"
-            stroke="var(--session-navy-label)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            opacity={0.4}
-          />
-        </svg>
+        {/* Plus/close icon (hidden in readOnly) */}
+        {!readOnly && (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            style={{
+              display: "block",
+              flexShrink: 0,
+              transition: "transform 0.3s ease",
+              transform: expanded ? "rotate(45deg)" : "rotate(0deg)",
+            }}
+          >
+            <line
+              x1="6"
+              y1="1"
+              x2="6"
+              y2="11"
+              stroke="var(--session-navy-label)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              opacity={0.4}
+            />
+            <line
+              x1="1"
+              y1="6"
+              x2="11"
+              y2="6"
+              stroke="var(--session-navy-label)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              opacity={0.4}
+            />
+          </svg>
+        )}
       </div>
 
       {/* Expandable content */}
@@ -168,8 +171,8 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
           </div>
         </div>
 
-        {/* Explore further — only when expanded */}
-        {onExploreWithSage && layerId !== undefined && layerName && (
+        {/* Explore further — only when expanded and not readOnly */}
+        {onExploreWithSage && layerId !== undefined && layerName && !readOnly && (
           <div
             style={{
               marginTop: 14,
