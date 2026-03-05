@@ -71,6 +71,8 @@ RULES:
 - Patterns: 80-150 words. Structured around the loop: trigger → experience → response → cost.
 - Talk to them about their life, not about their traits. Not a case note. A mirror.
 
+Also generate a headline name (4-8 words). Flatly descriptive — says what the mechanism IS. Good: 'Critical Voice That Blocks Starting,' 'Needing Wins to Override Doubt.' Bad: 'The Starting Tax,' 'The Inner Scorecard.' No metaphors. Just describe it.
+
 Respond with ONLY valid JSON. No markdown. No backticks.
 {"content": "The composed narrative...", "name": "The Headline Name", "changelog": "One sentence describing what this adds or changes."}`;
 
