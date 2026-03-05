@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useRef, useEffect } from "react";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
@@ -542,7 +543,25 @@ export default function MobileSession({
                         color: "var(--session-ink-soft)",
                       }}
                     >
-                      {renderMarkdown(msg.content)}
+                      <div
+                        style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "14px",
+                          fontWeight: 400,
+                          lineHeight: 1.65,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                        }}
+                      >
+                        {React.Children.map(renderMarkdown(msg.content), (child) =>
+                          React.isValidElement(child)
+                            ? React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
+                                style: { ...(child as React.ReactElement<{ style?: React.CSSProperties }>).props.style, margin: 0 },
+                              })
+                            : child
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -598,14 +617,14 @@ export default function MobileSession({
                 return sagePanel;
               }
 
-              // User message — right-aligned, no bubble
+              // User message — right-positioned, left-justified text
               return (
                 <div
                   key={msg.id || `msg-${i}`}
                   style={{
                     alignSelf: "flex-end",
-                    maxWidth: "85%",
-                    padding: "0 4px",
+                    maxWidth: "80%",
+                    padding: "0 8px 0 0",
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
@@ -616,7 +635,7 @@ export default function MobileSession({
                       fontWeight: 400,
                       lineHeight: 1.55,
                       color: "var(--session-ink-mid)",
-                      textAlign: "right",
+                      textAlign: "left",
                       margin: 0,
                     }}
                   >
