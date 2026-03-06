@@ -103,7 +103,8 @@ export default function MobileSettings({
         body: JSON.stringify({ personaDescription: simPersona.trim(), checkpointTarget: simCheckpoints }),
       });
       if (!res.ok) {
-        setSimStatus("Failed to start simulation");
+        const errBody = await res.json().catch(() => ({}));
+        setSimStatus(`Failed: ${errBody.error || `HTTP ${res.status}`}`);
         setSimulating(false);
         return;
       }
@@ -331,9 +332,9 @@ export default function MobileSettings({
               width: "100%",
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
-              color: "var(--color-text)",
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-divider)",
+              color: "var(--session-ink-soft)",
+              background: "rgba(26, 22, 20, 0.03)",
+              border: "1px solid var(--session-ink-hairline)",
               borderRadius: 8,
               padding: "10px 12px",
               resize: "vertical",
@@ -423,6 +424,22 @@ export default function MobileSettings({
                   : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
             </p>
           </button>
+
+          {/* Persistent status — visible after simulation ends */}
+          {!simulating && simStatus && (
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                color: simStatus.includes("ailed") ? "#B5564D" : "var(--session-sage)",
+                letterSpacing: "0.5px",
+                margin: "8px 0 0",
+                textAlign: "center",
+              }}
+            >
+              {simStatus}
+            </p>
+          )}
         </div>
       </SettingsRow>
 
