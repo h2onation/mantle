@@ -70,6 +70,7 @@ export default function AdminView() {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Profile overlay state
   const [profileTab, setProfileTab] = useState<"sessions" | "manual">("sessions");
@@ -228,7 +229,7 @@ export default function AdminView() {
       {adminView === "users" && (
         <div>
           <button
-            onClick={() => setAdminView("hidden")}
+            onClick={() => { setSearchQuery(""); setAdminView("hidden"); }}
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
@@ -245,30 +246,63 @@ export default function AdminView() {
           >
             ← BACK
           </button>
-          {adminUsers.map((user) => (
-            <button
-              key={user.id}
-              onClick={() => openUserProfile(user)}
-              style={listItemStyle}
-            >
-              <div>{adminUserLabel(user)}</div>
-              <div style={metaStyle}>
-                {user.conversation_count} session{user.conversation_count !== 1 ? "s" : ""} · {user.component_count} component{user.component_count !== 1 ? "s" : ""}
-              </div>
-            </button>
-          ))}
-          {adminUsers.length === 0 && !adminLoading && (
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--session-ink-ghost)",
-                padding: "14px 0",
-              }}
-            >
-              No users found
-            </div>
-          )}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, email, or date..."
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--session-ink)",
+              background: "var(--color-surface)",
+              border: "1px solid var(--session-ink-hairline)",
+              borderRadius: 6,
+              padding: "8px 10px",
+              width: "100%",
+              marginBottom: 10,
+              outline: "none",
+              boxSizing: "border-box" as const,
+            }}
+          />
+          {(() => {
+            const query = searchQuery.toLowerCase().trim();
+            const filteredUsers = query
+              ? adminUsers.filter((u) => {
+                  const label = adminUserLabel(u).toLowerCase();
+                  const email = (u.email || "").toLowerCase();
+                  return label.includes(query) || email.includes(query);
+                })
+              : adminUsers;
+            return (
+              <>
+                {filteredUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => openUserProfile(user)}
+                    style={listItemStyle}
+                  >
+                    <div>{adminUserLabel(user)}</div>
+                    <div style={metaStyle}>
+                      {user.conversation_count} session{user.conversation_count !== 1 ? "s" : ""} · {user.component_count} component{user.component_count !== 1 ? "s" : ""}
+                    </div>
+                  </button>
+                ))}
+                {filteredUsers.length === 0 && !adminLoading && (
+                  <div
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13px",
+                      color: "var(--session-ink-ghost)",
+                      padding: "14px 0",
+                    }}
+                  >
+                    {query ? "No matching users" : "No users found"}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
