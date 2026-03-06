@@ -1,23 +1,15 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyAdmin } from "@/lib/admin/verify-admin";
 
 export async function POST() {
-  if (process.env.NODE_ENV === "production") {
-    return Response.json({ error: "Not available in production" }, { status: 403 });
+  const { userId, isAdmin } = await verifyAdmin();
+  if (!isAdmin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const admin = createAdminClient();
 
     // Delete in order: messages → conversations → manual_components
@@ -25,16 +17,16 @@ export async function POST() {
     const { data: convs } = await admin
       .from("conversations")
       .select("id")
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     if (convs && convs.length > 0) {
       const convIds = convs.map((c) => c.id);
       await admin.from("messages").delete().in("conversation_id", convIds);
-      await admin.from("conversations").delete().eq("user_id", user.id);
+      await admin.from("conversations").delete().eq("user_id", userId);
     }
 
-    await admin.from("manual_components").delete().eq("user_id", user.id);
-    await admin.from("manual_changelog").delete().eq("user_id", user.id);
+    await admin.from("manual_components").delete().eq("user_id", userId);
+    await admin.from("manual_changelog").delete().eq("user_id", userId);
 
     return Response.json({ ok: true });
   } catch (err) {

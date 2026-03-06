@@ -18,6 +18,12 @@
           },
           {
             "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // empty'); if echo \"$CMD\" | grep -qE '^git commit'; then \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-commit-docs.sh; fi",
+            "timeout": 10,
+            "statusMessage": "Checking if docs need updating..."
+          },
+          {
+            "type": "command",
             "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // empty'); if echo \"$CMD\" | grep -qE '^gh pr create'; then \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-pr-security.sh; fi",
             "timeout": 60,
             "statusMessage": "Running security scan before PR..."

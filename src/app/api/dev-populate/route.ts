@@ -1,7 +1,7 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyAdmin } from "@/lib/admin/verify-admin";
 
 // Realistic Sage-style narratives for each layer, ~150-200 words each.
 const LAYER_CONTENT: Record<number, string> = {
@@ -41,17 +41,9 @@ The deeper pattern is this: you treat closeness as something you earn through co
 };
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return Response.json({ error: "Not available in production" }, { status: 403 });
-  }
-
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const { userId, isAdmin } = await verifyAdmin();
+  if (!isAdmin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { layers } = (await request.json()) as { layers: number[] };
@@ -69,11 +61,11 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
 
   // Wipe existing manual_components so each call gives exactly the state you specify
-  await admin.from("manual_components").delete().eq("user_id", user.id);
+  await admin.from("manual_components").delete().eq("user_id", userId);
 
   // Insert one component per requested layer
   const rows = validLayers.map((layer) => ({
-    user_id: user.id,
+    user_id: userId,
     layer,
     type: "component" as const,
     name: null,
@@ -100,7 +92,7 @@ export async function POST(request: Request) {
 
   const patternRows = validLayers.flatMap((layer) =>
     (PATTERN_CONTENT[layer] || []).map((p) => ({
-      user_id: user.id,
+      user_id: userId,
       layer,
       type: "pattern" as const,
       name: p.name,

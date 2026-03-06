@@ -1,7 +1,7 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyAdmin } from "@/lib/admin/verify-admin";
 import { callSage, mapSystemMessages } from "@/lib/sage/call-sage";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 import {
@@ -74,20 +74,9 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
 }
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return Response.json(
-      { error: "Not available in production" },
-      { status: 403 }
-    );
-  }
-
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const { userId, isAdmin } = await verifyAdmin();
+  if (!isAdmin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Parse body
@@ -132,7 +121,7 @@ export async function POST(request: Request) {
         // 1. Create conversation
         const { data: conv, error: convError } = await admin
           .from("conversations")
-          .insert({ user_id: user!.id })
+          .insert({ user_id: userId })
           .select("id")
           .single();
 
@@ -190,7 +179,7 @@ export async function POST(request: Request) {
           // Call Sage with the simulated user's message
           const sageStream = callSage({
             conversationId,
-            userId: user!.id,
+            userId: userId,
             message: userMessage,
           });
 
@@ -232,7 +221,7 @@ export async function POST(request: Request) {
                 await confirmCheckpoint({
                   messageId: result.messageId,
                   conversationId,
-                  userId: user!.id,
+                  userId: userId,
                 });
               }
               confirmedCount++;
@@ -240,7 +229,7 @@ export async function POST(request: Request) {
               // Get Sage's follow-up response
               const followUpStream = callSage({
                 conversationId,
-                userId: user!.id,
+                userId: userId,
                 message: null,
               });
               await consumeSageStream(followUpStream);
@@ -281,7 +270,7 @@ export async function POST(request: Request) {
               // Get Sage's follow-up to the rejection/refinement
               const followUpStream = callSage({
                 conversationId,
-                userId: user!.id,
+                userId: userId,
                 message: null,
               });
               await consumeSageStream(followUpStream);

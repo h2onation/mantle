@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     // Query all messages for the conversation
     const { data: messages, error: msgError } = await admin
       .from("messages")
-      .select("id, role, content, is_checkpoint, checkpoint_meta, processing_text, created_at")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, processing_text, created_at, extraction_snapshot")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
 

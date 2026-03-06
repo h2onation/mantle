@@ -396,6 +396,31 @@ export function callSage({
           checkpointApproaching,
         });
 
+        // 8b. Debug logging (dev only)
+        if (process.env.NODE_ENV !== "production") {
+          const gate = previousExtraction?.checkpoint_gate;
+          const depth = previousExtraction?.depth;
+          const mode = previousExtraction?.mode;
+          const brief = previousExtraction?.sage_brief;
+          const strongest = gate?.strongest_layer;
+
+          console.log("[sage-debug] Turn %d | Depth: %s | Mode: %s", turnCount, depth || "none", mode || "none");
+
+          if (gate) {
+            const gateMet = isFirstCheckpoint
+              ? gate.concrete_examples >= 1 && gate.has_charged_language && (gate.has_mechanism || gate.has_behavior_driver_link)
+              : gate.concrete_examples >= 2 && gate.has_mechanism && gate.has_charged_language && gate.has_behavior_driver_link;
+
+            console.log("[sage-debug] Gate: examples=%d mechanism=%s charged=%s driver=%s strongest=L%s | Met: %s (first: %s)",
+              gate.concrete_examples, gate.has_mechanism, gate.has_charged_language,
+              gate.has_behavior_driver_link, strongest || "?", gateMet, isFirstCheckpoint);
+          }
+
+          if (brief) {
+            console.log("[sage-debug] Brief: %s", brief.substring(0, 150));
+          }
+        }
+
         // 9. Stream Sage response with delimiter buffer
         let fullText = "";
         const delimBuffer = createDelimiterBuffer("|||MANUAL_ENTRY|||");
@@ -520,6 +545,19 @@ export function callSage({
 
         const messageId = savedResponse?.id || null;
 
+        // 11b. Save extraction snapshot (defensive — column may not exist yet)
+        if (messageId && previousExtraction) {
+          admin
+            .from("messages")
+            .update({ extraction_snapshot: previousExtraction })
+            .eq("id", messageId)
+            .then(({ error }) => {
+              if (error && !error.message.includes("extraction_snapshot")) {
+                console.error("[callSage] Failed to save extraction snapshot:", error);
+              }
+            });
+        }
+
         // 12. Classification: skip Haiku classifier when manual entry is present
         //     (Sage already decided it's a checkpoint and provided all metadata)
         let isCheckpoint = false;
@@ -584,6 +622,13 @@ export function callSage({
               manualEntry.type = "pattern";
             }
           }
+        }
+
+        // 12b-log. Checkpoint detection debug log (dev only)
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[sage-debug] %s", isCheckpoint
+            ? `CHECKPOINT: L${checkpointLayer} ${checkpointType} "${checkpointName}" via ${manualEntry ? "Path A" : "Path B"}`
+            : "No checkpoint this turn");
         }
 
         // 12c. Path B composition: when classifier detected a checkpoint but
