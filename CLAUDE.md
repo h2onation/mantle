@@ -46,6 +46,7 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 ## Development Workflow
 
 - **Always test and type-check after edits**: Run `npm run test` after any logic changes. Run `npx tsc --noEmit` after any code changes. Run `npm run build` before committing. The pre-commit hook enforces tests + build automatically.
+- **Never run the full test suite unless explicitly asked.** Run only tests relevant to the current change.
 - **Commit incrementally**: Commit working changes after each verified feature or fix — don't batch everything at the end of a session.
 - **Anthropic model IDs**: Always verify exact model version strings. Current models: `claude-sonnet-4-6` (Sage), `claude-haiku-4-5-20251001` (classifier/summary). Do not guess date suffixes.
 - **Edge Runtime env vars**: `ANTHROPIC_API_KEY` sometimes not available in Edge Runtime via `.env.local` alone. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`

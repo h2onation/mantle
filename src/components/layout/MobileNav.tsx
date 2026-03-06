@@ -12,10 +12,9 @@ const TABS: { id: MobileTab; label: string }[] = [
 interface MobileNavProps {
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
-  hidden?: boolean;
 }
 
-export default function MobileNav({ activeTab, onTabChange, hidden = false }: MobileNavProps) {
+export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
   return (
     <div
       style={{
@@ -28,10 +27,8 @@ export default function MobileNav({ activeTab, onTabChange, hidden = false }: Mo
         justifyContent: "space-evenly",
         paddingTop: "10px",
         paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+        background: "var(--session-linen)",
         zIndex: 100,
-        transform: hidden ? "translateY(100%)" : "translateY(0)",
-        transition: "transform 0.25s ease",
-        pointerEvents: hidden ? "none" : "auto",
       }}
     >
       {TABS.map(({ id, label }) => {

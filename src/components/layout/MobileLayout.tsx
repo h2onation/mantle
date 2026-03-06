@@ -1,6 +1,5 @@
 "use client";
 
-import { useKeyboardOpen } from "@/lib/hooks/useKeyboardOpen";
 import MobileNav, { type MobileTab } from "./MobileNav";
 
 interface MobileLayoutProps {
@@ -20,8 +19,6 @@ export default function MobileLayout({
   activeTab,
   onTabChange,
 }: MobileLayoutProps) {
-  const keyboardOpen = useKeyboardOpen();
-
   return (
     <div
       style={{
@@ -77,7 +74,7 @@ export default function MobileLayout({
               {content}
             </div>
           ))}
-          <MobileNav activeTab={activeTab} onTabChange={onTabChange} hidden={keyboardOpen} />
+          <MobileNav activeTab={activeTab} onTabChange={onTabChange} />
         </div>
       </div>
     </div>
