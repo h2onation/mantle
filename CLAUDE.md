@@ -17,12 +17,6 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 - After deleting worktrees or branches, verify the shell's cwd is still valid before running further commands.
 - Never delete .env.local or other environment files during branch/worktree cleanup.
 
-## Preview & UI Verification
-
-- When using preview_screenshot or preview_eval, take extra care with click selectors. Prefer data-testid attributes or unique selectors over generic button/tab selectors.
-- If a click fails, try alternative selectors (aria-label, text content, CSS class) rather than retrying the same selector.
-- If auth session is lost after page reload, restart the dev server and re-authenticate before continuing verification.
-
 ## Build & Deploy
 
 - Always use non-interactive flags when running scaffolding commands (e.g., `npx create-next-app --yes` or `--no-install` then `npm install`).
@@ -37,7 +31,7 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 ## Commands
 
 - `npm run dev` — start dev server (localhost:3000)
-- `npm run test` — run all tests (113 tests, <1s, zero API cost)
+- `npm run test` — run all tests (174 tests, <1s, zero API cost)
 - `npm run test:watch` — run tests in watch mode during development
 - `npm run build` — production build (zero errors as of last verification)
 - `npx tsc --noEmit` — type check (zero errors)
@@ -88,16 +82,16 @@ The hook runs tests + build. It does NOT check version bumps — version bumping
 
 ## Testing
 
-**Vitest** with `vite-tsconfig-paths`. Config at `vitest.config.ts`. 113 tests, runs in <1s, zero API cost (all Anthropic/Supabase calls mocked).
+**Vitest** with `vite-tsconfig-paths`. Config at `vitest.config.ts`. 174 tests, runs in <1s, zero API cost (all Anthropic/Supabase calls mocked).
 
 **Convention**: Test files colocated next to source as `*.test.ts`. Test helpers in `src/lib/__test-helpers__/`.
 
 **Test coverage by file**:
 | Test file | Tests | What it catches |
 |-----------|-------|----------------|
-| `src/lib/sage/call-sage.test.ts` | 30 | Delimiter buffer state machine, sliding window, history mapping, manual entry parsing |
-| `src/lib/sage/system-prompt.test.ts` | 24 | Prompt conditional blocks (first user, returning, exploration, checkpoints) |
-| `src/lib/sage/extraction.test.ts` | 18 | Checkpoint gate thresholds (standard vs first-checkpoint), language bank filtering |
+| `src/lib/sage/system-prompt.test.ts` | 62 | Prompt conditional blocks (first user, returning, exploration, checkpoints) |
+| `src/lib/sage/extraction.test.ts` | 40 | Checkpoint gate thresholds (standard vs first-checkpoint), language bank filtering |
+| `src/lib/sage/call-sage.test.ts` | 36 | Delimiter buffer state machine, sliding window, history mapping, manual entry parsing |
 | `src/lib/sage/classifier.test.ts` | 10 | JSON cleaning, layer-null invalidation, fallback behavior |
 | `src/lib/utils/sse-parser.test.ts` | 9 | Stream chunking, malformed JSON, null body |
 | `src/lib/sage/confirm-checkpoint.test.ts` | 8 | Pattern limits, content priority, system message insertion |
@@ -120,9 +114,10 @@ The hook runs tests + build. It does NOT check version bumps — version bumping
 
 - **Next.js 14.2.15**, App Router
 - **Supabase**: Postgres + Auth (magic link + Google OAuth). RLS on all tables. Supabase project ref `nkmperzwcmttdkxwhbiv`.
-- **Anthropic API** via raw `fetch` (no SDK, `@anthropic-ai/sdk` was removed). Three model usages:
+- **Anthropic API** via raw `fetch` (no SDK, `@anthropic-ai/sdk` was removed). Four model usages:
   - `claude-sonnet-4-6` — Sage conversation (in `call-sage.ts`)
   - `claude-sonnet-4-6` — Extraction pre-pass (in `extraction.ts`, runs in parallel with Sage)
+  - `claude-sonnet-4-6` — Manual entry composition fallback (in `confirm-checkpoint.ts`, Path B only)
   - `claude-haiku-4-5-20251001` — classifier (in `classifier.ts`) and session summary (in `generate-summary.ts`)
 - **Styling**: All inline `style={{}}`. No CSS classes in components. CSS custom properties in `globals.css`. Tailwind is installed but only its `@tailwind base/components/utilities` directives are used.
 - **Fonts**: Instrument Serif, DM Sans, JetBrains Mono via `next/font/google`
@@ -139,9 +134,13 @@ The hook runs tests + build. It does NOT check version bumps — version bumping
 
 ## UI Verification
 
-After making UI changes, take a preview screenshot to verify the result visually before reporting completion. When clicking UI elements in preview, prefer using CSS selectors or text content to identify elements rather than guessing pixel positions.
+**Auth limitation**: The preview browser cannot establish authenticated sessions. `dev-login` sets HttpOnly cookies which the headless preview doesn't persist across navigation, and anonymous auth via onboarding has the same limitation. Auth-gated pages (session view, manual tab, settings, checkpoint cards) cannot be reached in preview.
+
+**When to screenshot**: For changes to pre-auth pages (login, onboarding), take a preview screenshot to verify. For auth-gated UI changes, tests + type check + build is sufficient sign-off — tell the user to verify manually in their browser. For prompt-only or backend-only changes, no screenshot needed.
 
 **Preview viewport**: Always call `preview_resize` with `preset: "mobile"` immediately after `preview_start`. The app is mobile-only (430px max-width centered shell), so desktop viewport (1280x800 default) will show the shell centered in a wide dark background, making the preview panel useless.
+
+**Selectors**: When clicking UI elements in preview, prefer data-testid attributes or unique selectors over generic button/tab selectors. If a click fails, try alternative selectors (aria-label, text content, CSS class) rather than retrying the same selector.
 
 ## Database Schema
 
@@ -281,7 +280,7 @@ Detailed pixel values are in the component files. This section documents pattern
 Four tabs: session, manual, guidance, settings. Fixed bottom, hides when keyboard opens (`useKeyboardOpen` hook). Active tab = `--color-accent`, inactive = `--color-text-ghost`.
 
 ### Session (`MobileSession.tsx`)
-Always-on chat view + side drawer for session history. Header: hamburger menu (left) → "MANTLE" wordmark (center) → spacer (right). Messages render in Sage panels (`--color-surface-sage` bg) with top/bottom dissolve overlays. Typing indicator: three pulsing dots, shows when `(isLoading || isStreaming) && last message is user`. Checkpoint cards render inside `<MeadowZone>` with `--cp-*` tokens. Text is NOT streamed incrementally — buffered and shown in one shot after `parseSSEStream` completes.
+Always-on chat view + side drawer for session history. Header: hamburger menu (left) → "MANTLE" wordmark (center) → spacer (right). Messages render in Sage panels (`--session-sage-tint` bg) with top/bottom dissolve overlays. Typing indicator: three pulsing dots, shows when `(isLoading || isStreaming) && last message is user`. Checkpoint cards render inline in the message loop with `--session-*` tokens. Text is NOT streamed incrementally — buffered and shown in one shot after `parseSSEStream` completes.
 
 ### Manual (`MobileManual.tsx`)
 Zero horizontal padding scroll container (panels go edge-to-edge). Populated layers wrap in `<MeadowZone>` — full-width feathered green panels. Empty layers render on dark void below. Dev state switcher (E/P/U/M) in top-right corner. Sub-components: `PopulatedLayer`, `EmptyLayer`, `PatternItem`, `LayerTooltip`.
@@ -381,8 +380,6 @@ See "Checkpoint Lifecycle" for the full confirm flow.
 ## Dead Features
 
 Do not re-introduce: desktop layout, calibration/calibration_ratings, PromptCards, old onboarding (OnboardingOverlay/useOnboarding), synthetic first message, gate UI, advisor mode, SessionTimer, ENTRY SEQUENCE UI, insights page, reactive orb, session hub idle state, theme toggle, sound/audio, ambient particles.
-
-**Gotcha**: `calibration_ratings` column still exists in `conversations` table schema — dead, never read or written.
 
 ## Conversation Modes (System Prompt)
 

@@ -278,6 +278,18 @@ export default function MobileSession({
 
               // Checkpoint / Pattern card rendering
               if (isCheckpoint) {
+                const LAYER_NAMES: Record<number, string> = {
+                  1: "WHAT DRIVES YOU",
+                  2: "YOUR SELF PERCEPTION",
+                  3: "YOUR REACTION SYSTEM",
+                  4: "HOW YOU OPERATE",
+                  5: "YOUR RELATIONSHIP TO OTHERS",
+                };
+
+                const checkpointLayer = isPendingCheckpoint
+                  ? activeCheckpoint?.layer
+                  : msg.checkpointMeta?.layer;
+
                 const isPattern = isPendingCheckpoint
                   ? activeCheckpoint?.type === "pattern"
                   : msg.checkpointMeta?.type === "pattern";
@@ -318,6 +330,24 @@ export default function MobileSession({
                           }),
                     }}
                   >
+                    {/* Layer name header */}
+                    {checkpointLayer && LAYER_NAMES[checkpointLayer] && (
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "8px",
+                          fontWeight: 400,
+                          letterSpacing: "3px",
+                          textTransform: "uppercase",
+                          color: "var(--cp-text-accent, var(--color-accent-dim))",
+                          marginBottom: "12px",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {LAYER_NAMES[checkpointLayer]}
+                      </div>
+                    )}
+
                     {/* Header */}
                     <div
                       style={{

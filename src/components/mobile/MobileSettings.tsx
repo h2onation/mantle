@@ -56,8 +56,9 @@ export default function MobileSettings({
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [simulating, setSimulating] = useState(false);
-  const [simStatus, setSimStatus] = useState<string>("Run a fake conversation");
+  const [simStatus, setSimStatus] = useState<string>("");
   const [simCheckpoints, setSimCheckpoints] = useState(1);
+  const [simPersona, setSimPersona] = useState("");
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
@@ -99,7 +100,7 @@ export default function MobileSettings({
       const res = await fetch("/api/dev-simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkpoints: simCheckpoints }),
+        body: JSON.stringify({ personaDescription: simPersona.trim(), checkpointTarget: simCheckpoints }),
       });
       if (!res.ok) {
         setSimStatus("Failed to start simulation");
@@ -136,14 +137,9 @@ export default function MobileSettings({
               if (simConversationId && onSimulationEvent) {
                 onSimulationEvent("turn", simConversationId);
               }
-            } else if (event.type === "checkpoint_auto_confirmed") {
-              setSimStatus(`Checkpoint ${event.checkpointNumber} auto-confirmed (layer ${event.layer})`);
-              if (simConversationId && onSimulationEvent) {
-                onSimulationEvent("turn", simConversationId);
-              }
             } else if (event.type === "checkpoint") {
               if (event.conversationId) simConversationId = event.conversationId;
-              setSimStatus(`Checkpoint ${event.checkpointNumber} at turn ${event.turn}!`);
+              setSimStatus(`Checkpoint ${event.checkpointNumber} ${event.action || "confirmed"} (layer ${event.layer}) at turn ${event.turn}`);
               if (simConversationId && onSimulationEvent) {
                 onSimulationEvent("checkpoint", simConversationId);
               }
@@ -325,6 +321,30 @@ export default function MobileSettings({
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
+          {/* Persona textarea */}
+          <textarea
+            value={simPersona}
+            onChange={(e) => setSimPersona(e.target.value)}
+            placeholder="Describe the persona — personality, backstory, emotional style (e.g. 'A 34-year-old teacher who avoids conflict and struggles to set boundaries')"
+            rows={4}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--color-text)",
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-divider)",
+              borderRadius: 8,
+              padding: "10px 12px",
+              resize: "vertical",
+              marginBottom: 10,
+              outline: "none",
+              lineHeight: 1.4,
+              boxSizing: "border-box",
+            }}
+          />
+
+          {/* Checkpoint target pills */}
           <div
             style={{
               display: "flex",
@@ -335,14 +355,15 @@ export default function MobileSettings({
           >
             <p
               style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--session-sage)",
-                letterSpacing: "0.2px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                color: "var(--session-ink-ghost)",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
                 margin: 0,
               }}
             >
-              Simulate user
+              CHECKPOINTS
             </p>
             <div style={{ display: "flex", gap: 6 }}>
               {[1, 2, 3].map((n) => (
@@ -369,18 +390,20 @@ export default function MobileSettings({
               ))}
             </div>
           </div>
+
+          {/* Run button */}
           <button
             onClick={handleSimulate}
-            disabled={simulating}
+            disabled={simulating || !simPersona.trim()}
             style={{
               width: "100%",
               background: "none",
-              border: `1px solid ${simulating ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+              border: `1px solid ${simulating || !simPersona.trim() ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
               borderRadius: 8,
-              cursor: simulating ? "default" : "pointer",
+              cursor: simulating || !simPersona.trim() ? "default" : "pointer",
               textAlign: "center",
               padding: "10px 0",
-              opacity: simulating ? 0.5 : 1,
+              opacity: simulating || !simPersona.trim() ? 0.5 : 1,
               WebkitTapHighlightColor: "transparent",
             }}
           >
@@ -388,14 +411,16 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: simulating ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                color: simulating || !simPersona.trim() ? "var(--session-ink-ghost)" : "var(--session-sage)",
                 letterSpacing: "0.5px",
                 margin: 0,
               }}
             >
               {simulating
                 ? simStatus
-                : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
+                : !simPersona.trim()
+                  ? "Enter a persona to simulate"
+                  : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
             </p>
           </button>
         </div>
