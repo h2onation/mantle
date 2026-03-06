@@ -80,6 +80,8 @@ export default function AdminView() {
   const [conversationMessages, setConversationMessages] = useState<AdminMessage[]>([]);
   const [extractionState, setExtractionState] = useState<Record<string, unknown> | null>(null);
   const [expandedCheckpoints, setExpandedCheckpoints] = useState<Set<string>>(new Set());
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
 
   if (!isAdmin) return null;
 
@@ -107,6 +109,8 @@ export default function AdminView() {
     setConversationMessages([]);
     setExtractionState(null);
     setExpandedCheckpoints(new Set());
+    setShowUserPicker(false);
+    setPickerSearch("");
     setAdminView("profile");
     setAdminLoading(true);
 
@@ -346,7 +350,8 @@ export default function AdminView() {
             >
               ← BACK
             </button>
-            <div
+            <button
+              onClick={() => { setShowUserPicker((v) => !v); setPickerSearch(""); }}
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "12px",
@@ -357,10 +362,14 @@ export default function AdminView() {
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
                 padding: "0 8px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
-              {adminUserLabel(selectedUser)}
-            </div>
+              {adminUserLabel(selectedUser)} <span style={{ fontSize: "8px", marginLeft: 2 }}>{showUserPicker ? "▲" : "▼"}</span>
+            </button>
             <button
               onClick={() => { setAdminView("hidden"); setSelectedUser(null); }}
               style={{
@@ -380,6 +389,102 @@ export default function AdminView() {
               CLOSE
             </button>
           </div>
+
+          {/* User picker dropdown */}
+          {showUserPicker && (
+            <>
+              {/* Backdrop */}
+              <div
+                onClick={() => setShowUserPicker(false)}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 310,
+                }}
+              />
+              {/* Panel */}
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 320,
+                  background: "var(--session-linen)",
+                  borderBottom: "1px solid var(--session-ink-hairline)",
+                  padding: "8px 16px 12px",
+                  maxHeight: "60vh",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <input
+                  type="text"
+                  value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  placeholder="Search users..."
+                  autoFocus
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    color: "var(--session-ink)",
+                    background: "var(--color-surface)",
+                    border: "1px solid var(--session-ink-hairline)",
+                    borderRadius: 6,
+                    padding: "8px 10px",
+                    width: "100%",
+                    marginBottom: 8,
+                    outline: "none",
+                    boxSizing: "border-box" as const,
+                  }}
+                />
+                <div style={{ overflowY: "auto", flex: 1 }}>
+                  {(() => {
+                    const pq = pickerSearch.toLowerCase().trim();
+                    const filtered = pq
+                      ? adminUsers.filter((u) => {
+                          const label = adminUserLabel(u).toLowerCase();
+                          const email = (u.email || "").toLowerCase();
+                          return label.includes(pq) || email.includes(pq);
+                        })
+                      : adminUsers;
+                    return (
+                      <>
+                        {filtered.map((user) => (
+                          <button
+                            key={user.id}
+                            onClick={() => {
+                              setShowUserPicker(false);
+                              setPickerSearch("");
+                              openUserProfile(user);
+                            }}
+                            style={{
+                              ...listItemStyle,
+                              opacity: user.id === selectedUser?.id ? 0.4 : 1,
+                            }}
+                          >
+                            <div>{adminUserLabel(user)}</div>
+                            <div style={metaStyle}>
+                              {user.conversation_count} session{user.conversation_count !== 1 ? "s" : ""} · {user.component_count} component{user.component_count !== 1 ? "s" : ""}
+                            </div>
+                          </button>
+                        ))}
+                        {filtered.length === 0 && (
+                          <div
+                            style={{
+                              fontFamily: "var(--font-sans)",
+                              fontSize: "13px",
+                              color: "var(--session-ink-ghost)",
+                              padding: "14px 0",
+                            }}
+                          >
+                            {pq ? "No matching users" : "No users found"}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Admin banner */}
           <div

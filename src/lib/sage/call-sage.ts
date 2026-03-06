@@ -206,6 +206,12 @@ const CRISIS_PHRASES = [
   "don't want to exist",
   "dont want to exist",
   "no point in living",
+  "end it all",
+  "don't want to wake up",
+  "dont want to wake up",
+  "nothing left for me",
+  "can't go on like this",
+  "cant go on like this",
 ];
 
 export function detectCrisisInUserMessage(message: string): boolean {
