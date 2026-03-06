@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import EntryScreen from "./EntryScreen";
 import LoginScreen from "./LoginScreen";
 import InfoScreens from "./InfoScreens";
@@ -14,34 +12,16 @@ export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
   const [viewOpacity, setViewOpacity] = useState(1);
   const [ready, setReady] = useState(false);
-  const router = useRouter();
   const checkedRef = useRef(false);
 
-  // Returning user check on mount
+  // Show UI immediately — middleware already handles redirecting
+  // authenticated users from /login to /. No need to duplicate that
+  // check here (doing so causes redirect loops with stale cookies).
   useEffect(() => {
     if (checkedRef.current) return;
     checkedRef.current = true;
-
-    const onboardingCompleted = localStorage.getItem("mantle_onboarding_completed") === "true";
-    if (!onboardingCompleted) {
-      setReady(true);
-      return;
-    }
-
-    // Check for auth session (covers both real users and anonymous guests)
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        // Authenticated user (real or anonymous) — resume session
-        router.push("/");
-        return;
-      }
-
-      // Onboarding completed but no session — show entry screen
-      // (user taps "Log In" to reach the login form)
-      setReady(true);
-    });
-  }, [router]);
+    setReady(true);
+  }, []);
 
   const fadeToView = useCallback((view: ViewName, duration = 400) => {
     setViewOpacity(0);
