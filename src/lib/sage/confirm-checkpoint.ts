@@ -70,6 +70,7 @@ RULES:
 - Components: 150-250 words. Dense, flowing prose. No bullet points. Every sentence earns its place.
 - Patterns: 80-150 words. Structured around the loop: trigger → experience → response → cost.
 - Talk to them about their life, not about their traits. Not a case note. A mirror.
+- No time references. No "right now," "currently," "at this stage," "these days." The entry describes how they operate, period.
 
 Also generate a headline name (4-8 words). Flatly descriptive — says what the mechanism IS. Good: 'Critical Voice That Blocks Starting,' 'Needing Wins to Override Doubt.' Bad: 'The Starting Tax,' 'The Inner Scorecard.' No metaphors. Just describe it.
 
