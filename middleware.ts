@@ -60,6 +60,7 @@ export async function middleware(request: NextRequest) {
   // Allow /login, /auth/callback, and static files
   const isPublicRoute =
     pathname === "/login" ||
+    pathname === "/reset-password" ||
     pathname.startsWith("/auth/callback");
 
   if (!user && !isPublicRoute) {

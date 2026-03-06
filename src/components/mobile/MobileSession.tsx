@@ -635,8 +635,8 @@ export default function MobileSession({
                   key={msg.id || `msg-${i}`}
                   style={{
                     alignSelf: "flex-end",
-                    maxWidth: "80%",
-                    padding: "0 8px 0 0",
+                    maxWidth: "88%",
+                    padding: "0 2px 0 0",
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
