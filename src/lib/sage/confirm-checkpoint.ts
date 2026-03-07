@@ -68,6 +68,7 @@ RULES:
 - Use the user's exact charged phrases where they carry weight. Their language, not clinical language.
 - Grounded in their specific examples and moments. Not abstract.
 - Components: 150-250 words. Dense, flowing prose. No bullet points. Every sentence earns its place.
+- MINIMUM LENGTH: Components must be at least 150 words. If your draft is shorter, expand it with more specific detail from the conversation. Do not pad with filler — add grounded observations, concrete examples, or mechanism descriptions.
 - Patterns: 80-150 words. Structured around the loop: trigger → experience → response → cost.
 - Talk to them about their life, not about their traits. Not a case note. A mirror.
 - No time references. No "right now," "currently," "at this stage," "these days." The entry describes how they operate, period.

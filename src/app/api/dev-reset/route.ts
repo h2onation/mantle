@@ -1,13 +1,15 @@
 export const runtime = "edge";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {
-  const { userId, isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
 
   try {
     const admin = createAdminClient();

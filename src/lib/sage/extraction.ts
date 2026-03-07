@@ -322,6 +322,16 @@ export async function runExtraction(
 
   userContent += `is_first_checkpoint: ${isFirstCheckpoint}\n\n`;
 
+  const confirmedComponentCount = manualComponents.filter(
+    (c) => c.type === "component"
+  ).length;
+
+  if (confirmedComponentCount < 3) {
+    userContent += `pattern_tracking_enabled: false\nDo not activate pattern tracking. The user needs at least 3 confirmed components before patterns are introduced.\n\n`;
+  } else {
+    userContent += `pattern_tracking_enabled: true\n\n`;
+  }
+
   if (manualComponents.length > 0) {
     const layerNames: Record<number, string> = {
       1: "What Drives You",

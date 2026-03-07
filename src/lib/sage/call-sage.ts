@@ -269,12 +269,12 @@ export function callSage({
           }
         }
 
-        // 2. Parallel DB reads: history + manual components + extraction state
-        const [historyResult, manualResult, extractionResult] =
+        // 2. Parallel DB reads: history + manual components + extraction state + last checkpoint
+        const [historyResult, manualResult, extractionResult, lastCheckpointResult] =
           await Promise.all([
             admin
               .from("messages")
-              .select("role, content")
+              .select("role, content, created_at")
               .eq("conversation_id", convId)
               .order("created_at", { ascending: true }),
             admin
@@ -286,6 +286,14 @@ export function callSage({
               .select("extraction_state, summary")
               .eq("id", convId)
               .single(),
+            admin
+              .from("messages")
+              .select("created_at")
+              .eq("conversation_id", convId)
+              .eq("is_checkpoint", true)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
           ]);
 
         // 3. Build history from DB messages
@@ -299,6 +307,17 @@ export function callSage({
         }
 
         const manualComponents = manualResult.data;
+
+        // 4b. Compute turns since last checkpoint
+        let turnsSinceCheckpoint = Infinity;
+        if (lastCheckpointResult.data) {
+          const cpTime = lastCheckpointResult.data.created_at;
+          const userMsgsSince = (historyResult.data || []).filter(
+            (m: { role: string; created_at?: string }) =>
+              m.role === "user" && m.created_at && m.created_at > cpTime
+          ).length;
+          turnsSinceCheckpoint = userMsgsSince;
+        }
 
         // 5. Determine returning user + session context
         const isReturningUser =
@@ -391,7 +410,10 @@ export function callSage({
 
         // Derive conditional-loading flags from data already in memory
         const turnCount = messages.length;
-        const hasPatternEligibleLayer = previousExtraction
+        const confirmedComponentCount = (manualComponents || []).filter(
+          (c) => c.type === "component"
+        ).length;
+        const hasPatternEligibleLayer = previousExtraction && confirmedComponentCount >= 3
           ? Object.values(previousExtraction.layers).some(
               (l) => l.discovery_mode === "pattern"
             )
@@ -426,7 +448,7 @@ export function callSage({
           const brief = previousExtraction?.sage_brief;
           const strongest = gate?.strongest_layer;
 
-          console.log("[sage-debug] Turn %d | Depth: %s | Mode: %s", turnCount, depth || "none", mode || "none");
+          console.log("[sage-debug] Turn %d | Depth: %s | Mode: %s | Since CP: %d", turnCount, depth || "none", mode || "none", turnsSinceCheckpoint);
 
           if (gate) {
             const gateMet = isFirstCheckpoint
@@ -644,6 +666,17 @@ export function callSage({
               manualEntry.type = "pattern";
             }
           }
+        }
+
+        // 12b2. Suppress checkpoint if fewer than 5 user turns since last
+        if (isCheckpoint && turnsSinceCheckpoint < 5) {
+          if (process.env.NODE_ENV !== "production") {
+            console.log("[sage-debug] Checkpoint suppressed: %d turns since last (minimum 5)", turnsSinceCheckpoint);
+          }
+          isCheckpoint = false;
+          checkpointLayer = null;
+          checkpointType = null;
+          checkpointName = null;
         }
 
         // 12b-log. Checkpoint detection debug log (dev only)
