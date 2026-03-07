@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useLayoutEffect, useEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect, useCallback } from "react";
 import React from "react";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 
@@ -17,29 +17,59 @@ export default function ChatInput({
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const voice = useVoiceInput();
 
   const isRecording = voice.recordingState !== "idle";
 
-  // Sync voice transcript into the textarea display
+  /** Extract plain text from contentEditable div.
+   *  innerText respects <br> and block-level line breaks. */
+  const getEditorText = useCallback((): string => {
+    const el = editorRef.current;
+    if (!el) return "";
+    return (el.innerText || "").replace(/\n$/, "");
+  }, []);
+
+  /** Set editor text imperatively (for clear, voice sync — never during typing). */
+  const setEditorText = useCallback((text: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (!text) {
+      // Clear completely — remove residual <br> tags
+      el.innerHTML = "";
+      return;
+    }
+    el.textContent = text;
+    // Move cursor to end
+    const range = document.createRange();
+    const sel = window.getSelection();
+    if (!sel) return;
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }, []);
+
+  // Sync voice transcript into the editor display
   useEffect(() => {
     if (isRecording && voice.transcript) {
       setInput(voice.transcript);
+      setEditorText(voice.transcript);
     }
-  }, [isRecording, voice.transcript]);
+  }, [isRecording, voice.transcript, setEditorText]);
 
-  // Auto-resize textarea after every content change
+  // Auto-resize editor after every content change
   useLayoutEffect(() => {
-    const el = textareaRef.current;
+    const el = editorRef.current;
     if (!el) return;
     el.style.height = "auto";
     const lineHeight = 24;
     const maxLines = 6;
     const maxHeight = lineHeight * maxLines;
-    el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
-    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+    const contentHeight = el.scrollHeight;
+    el.style.height = Math.min(contentHeight, maxHeight) + "px";
+    el.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
   }, [input]);
 
   // Auto-dismiss voice error after 3s
@@ -66,6 +96,7 @@ export default function ChatInput({
     const isLongMessage = wordCount >= 100;
 
     setInput("");
+    setEditorText("");
 
     if (isLongMessage) {
       setTimeout(() => {
@@ -76,19 +107,38 @@ export default function ChatInput({
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   }
 
-  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
+  function handleInput() {
     // If user starts typing while recording, stop recording
     if (isRecording) {
       voice.stopRecording();
     }
-    setInput(e.target.value);
+    setInput(getEditorText());
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    // Insert plain text at cursor position
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    // Move cursor to end of inserted text
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Update React state
+    setInput(getEditorText());
   }
 
   function handleFocus() {
@@ -106,9 +156,11 @@ export default function ChatInput({
 
       if (currentTranscript) {
         setInput(currentTranscript);
+        setEditorText(currentTranscript);
       }
     } else {
       setInput("");
+      setEditorText("");
       await voice.startRecording();
     }
   }
@@ -235,22 +287,23 @@ export default function ChatInput({
           </div>
         )}
 
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={handleInput}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholder=""
-          rows={1}
-          name="chat-message"
-          autoComplete="off"
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Message input"
+          enterKeyHint="send"
+          inputMode="text"
           autoCorrect="on"
           autoCapitalize="sentences"
           spellCheck={true}
-          inputMode="text"
-          enterKeyHint="send"
           data-lpignore="true"
           data-1p-ignore
           style={{
@@ -259,12 +312,18 @@ export default function ChatInput({
             border: "none",
             outline: "none",
             resize: "none" as const,
-            fontSize: "13px",
+            fontSize: "16px",
             fontWeight: 400,
-            lineHeight: 1.6,
+            lineHeight: 1.5,
             fontFamily: "var(--font-sans)",
             padding: 0,
             boxSizing: "border-box",
+            minHeight: "24px",
+            whiteSpace: "pre-wrap",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            WebkitUserSelect: "text",
+            userSelect: "text" as const,
             color:
               isRecording && voice.isInterim
                 ? "rgba(200, 191, 180, 0.5)"
