@@ -127,7 +127,7 @@ export default function MainApp() {
     return (
       <div
         style={{
-          height: "100vh",
+          height: "100dvh",
           backgroundColor: "var(--session-linen)",
         }}
       />
