@@ -104,5 +104,32 @@ export async function POST(request: Request) {
     await admin.from("manual_components").insert(patternRows);
   }
 
+  // Update extraction_state discovery_mode for populated layers
+  const { data: activeConv } = await admin
+    .from("conversations")
+    .select("id, extraction_state")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (activeConv?.extraction_state) {
+    const state = activeConv.extraction_state as Record<string, unknown>;
+    const layers = state.layers as Record<string, Record<string, unknown>> | undefined;
+    if (layers) {
+      for (const layer of validLayers) {
+        if (layers[layer]) {
+          layers[layer].discovery_mode = "pattern";
+          layers[layer].signal = "explored";
+        }
+      }
+      await admin
+        .from("conversations")
+        .update({ extraction_state: state })
+        .eq("id", activeConv.id);
+    }
+  }
+
   return Response.json({ ok: true, count: validLayers.length + patternRows.length });
 }

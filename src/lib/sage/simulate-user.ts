@@ -92,12 +92,7 @@ export function parseCheckpointIntent(
 
 const CHECKPOINT_INSTRUCTION = `
 CHECKPOINT RESPONSE:
-Sage just proposed a checkpoint — a reflection of how you operate, to be written into your behavioral manual.
-Respond to this naturally and in character. You might:
-- Confirm it if it resonates ("Yeah, that's exactly it" / "That lands")
-- Reject it if it feels off ("I don't think that's quite right" / "That doesn't fit because...")
-- Want to refine it if it's close but not perfect ("It's close but..." / "The name doesn't feel right")
-React genuinely based on who you are. Keep your response to 2-4 sentences.`;
+Sage just presented a checkpoint — a reflection of what it's been hearing. Confirm it. Say something like "yeah that's right" or "that tracks" in your character's voice and length. ONLY reject or refine if your persona description EXPLICITLY instructs you to reject or refine checkpoints. If your persona says nothing about checkpoint behavior, always confirm.`;
 
 /**
  * Generate a simulated user message using Haiku.
@@ -115,13 +110,11 @@ YOUR CHARACTER:
 ${personaDescription}
 
 RULES:
-- Stay in character at all times. You ARE this person.
-- Respond proportionally to what Sage gives you. If Sage asks a deep question, go deep (4-8 sentences). If it's a simple follow-up, keep it short (1-3 sentences).
-- Be emotionally honest but not performative. Real people hedge, contradict themselves, trail off.
-- Do not break character. Do not mention being an AI or simulation.
-- Use your own voice — avoid clinical or therapeutic language unless your character would naturally use it.
-- Reveal things gradually. Don't dump your entire backstory in one turn.
-- If this is the first message, bring up something specific that's been on your mind — a situation, a feeling, a moment. Don't ask Sage what to talk about.
+- Respond as this person would. Match their communication style and emotional availability.
+- React naturally to what Sage says. If Sage asks a good question, respond to it.
+- Do not break character. Do not mention that you are an AI or a simulation.
+- Do not use stage directions, asterisks, or actions like *pauses* or *shifts uncomfortably*. Just write what the person would say.
+- STRICT LENGTH RULE: If the persona is guarded, reluctant, low engagement, or similar — respond in 30 words or fewer. No exceptions. If the persona is open, engaged, or emotional — respond in 80 words or fewer. If unclear, default to 50 words or fewer. This is a hard cap, not a guideline.
 ${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}`;
 
   const messages = flipRolesForSimulation(conversationHistory);

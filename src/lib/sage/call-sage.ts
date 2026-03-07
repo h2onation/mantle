@@ -337,18 +337,40 @@ export function callSage({
             manualComponents || [],
             isFirstCheckpoint
           )
-            .then((newState) => {
-              admin
+            .then(async (newState) => {
+              // Re-read current extraction_state to pick up any discovery_mode
+              // changes made by confirmCheckpoint() while extraction was running.
+              const { data: currentConv } = await admin
+                .from("conversations")
+                .select("extraction_state")
+                .eq("id", convId)
+                .single();
+
+              if (currentConv?.extraction_state) {
+                const currentState =
+                  currentConv.extraction_state as ExtractionState;
+                // Preserve the current discovery_mode (may have been flipped by confirmCheckpoint)
+                for (let i = 1; i <= 5; i++) {
+                  if (newState.layers[i] && currentState.layers[i]) {
+                    newState.layers[i].discovery_mode =
+                      currentState.layers[i].discovery_mode;
+                  }
+                }
+                // Preserve confirmed_patterns (managed by confirmCheckpoint, not extraction)
+                newState.confirmed_patterns =
+                  currentState.confirmed_patterns || [];
+              }
+
+              const { error } = await admin
                 .from("conversations")
                 .update({ extraction_state: newState })
-                .eq("id", convId)
-                .then(({ error }) => {
-                  if (error)
-                    console.error(
-                      "[callSage] Failed to save extraction state:",
-                      error
-                    );
-                });
+                .eq("id", convId);
+
+              if (error)
+                console.error(
+                  "[callSage] Failed to save extraction state:",
+                  error
+                );
             })
             .catch((err) =>
               console.error(
