@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useLayoutEffect, useEffect, useCallback } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import React from "react";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 
@@ -17,59 +17,29 @@ export default function ChatInput({
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const voice = useVoiceInput();
 
   const isRecording = voice.recordingState !== "idle";
 
-  /** Extract plain text from contentEditable div.
-   *  innerText respects <br> and block-level line breaks. */
-  const getEditorText = useCallback((): string => {
-    const el = editorRef.current;
-    if (!el) return "";
-    return (el.innerText || "").replace(/\n$/, "");
-  }, []);
-
-  /** Set editor text imperatively (for clear, voice sync — never during typing). */
-  const setEditorText = useCallback((text: string) => {
-    const el = editorRef.current;
-    if (!el) return;
-    if (!text) {
-      // Clear completely — remove residual <br> tags
-      el.innerHTML = "";
-      return;
-    }
-    el.textContent = text;
-    // Move cursor to end
-    const range = document.createRange();
-    const sel = window.getSelection();
-    if (!sel) return;
-    range.selectNodeContents(el);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }, []);
-
-  // Sync voice transcript into the editor display
+  // Sync voice transcript into the textarea display
   useEffect(() => {
     if (isRecording && voice.transcript) {
       setInput(voice.transcript);
-      setEditorText(voice.transcript);
     }
-  }, [isRecording, voice.transcript, setEditorText]);
+  }, [isRecording, voice.transcript]);
 
-  // Auto-resize editor after every content change
+  // Auto-resize textarea after every content change
   useLayoutEffect(() => {
-    const el = editorRef.current;
+    const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     const lineHeight = 24;
     const maxLines = 6;
     const maxHeight = lineHeight * maxLines;
-    const contentHeight = el.scrollHeight;
-    el.style.height = Math.min(contentHeight, maxHeight) + "px";
-    el.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
   }, [input]);
 
   // Auto-dismiss voice error after 3s
@@ -96,7 +66,6 @@ export default function ChatInput({
     const isLongMessage = wordCount >= 100;
 
     setInput("");
-    setEditorText("");
 
     if (isLongMessage) {
       setTimeout(() => {
@@ -107,38 +76,19 @@ export default function ChatInput({
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   }
 
-  function handleInput() {
+  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     // If user starts typing while recording, stop recording
     if (isRecording) {
       voice.stopRecording();
     }
-    setInput(getEditorText());
-  }
-
-  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text/plain");
-    // Insert plain text at cursor position
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    range.deleteContents();
-    const textNode = document.createTextNode(text);
-    range.insertNode(textNode);
-    // Move cursor to end of inserted text
-    range.setStartAfter(textNode);
-    range.setEndAfter(textNode);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    // Update React state
-    setInput(getEditorText());
+    setInput(e.target.value);
   }
 
   function handleFocus() {
@@ -156,11 +106,9 @@ export default function ChatInput({
 
       if (currentTranscript) {
         setInput(currentTranscript);
-        setEditorText(currentTranscript);
       }
     } else {
       setInput("");
-      setEditorText("");
       await voice.startRecording();
     }
   }
@@ -287,23 +235,22 @@ export default function ChatInput({
           </div>
         )}
 
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={handleInput}
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={handleInput}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          role="textbox"
-          aria-multiline="true"
-          aria-label="Message input"
-          enterKeyHint="send"
-          inputMode="text"
+          placeholder=""
+          rows={1}
+          name="chat-message"
+          autoComplete="off"
           autoCorrect="on"
           autoCapitalize="sentences"
           spellCheck={true}
+          inputMode="text"
+          enterKeyHint="send"
           data-lpignore="true"
           data-1p-ignore
           style={{
@@ -318,12 +265,6 @@ export default function ChatInput({
             fontFamily: "var(--font-sans)",
             padding: 0,
             boxSizing: "border-box",
-            minHeight: "24px",
-            whiteSpace: "pre-wrap",
-            overflowWrap: "break-word",
-            wordBreak: "break-word",
-            WebkitUserSelect: "text",
-            userSelect: "text" as const,
             color:
               isRecording && voice.isInterim
                 ? "rgba(200, 191, 180, 0.5)"

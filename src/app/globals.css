@@ -102,8 +102,6 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  position: fixed;
-  width: 100%;
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
   background-color: var(--color-void);
