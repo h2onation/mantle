@@ -12,8 +12,17 @@ export async function POST() {
   try {
     const admin = createAdminClient();
 
-    // Delete in order: messages → conversations → manual_components
-    // (messages have FK to conversations)
+    // Delete order matters: manual_components.source_message_id → messages.id (no CASCADE),
+    // so manual_components must be deleted BEFORE messages.
+    // 1. Manual data first (removes FK refs to messages)
+    await admin.from("manual_components").delete().eq("user_id", userId);
+    await admin.from("manual_changelog").delete().eq("user_id", userId);
+
+    // 2. Feedback (FK to auth.users, not cascade-deleted without deleting auth user)
+    await admin.from("feedback").delete().eq("user_id", userId);
+
+    // 3. Messages then conversations (messages FK → conversations is CASCADE,
+    //    but explicit delete avoids relying on it)
     const { data: convs } = await admin
       .from("conversations")
       .select("id")
@@ -22,11 +31,8 @@ export async function POST() {
     if (convs && convs.length > 0) {
       const convIds = convs.map((c) => c.id);
       await admin.from("messages").delete().in("conversation_id", convIds);
-      await admin.from("conversations").delete().eq("user_id", userId);
     }
-
-    await admin.from("manual_components").delete().eq("user_id", userId);
-    await admin.from("manual_changelog").delete().eq("user_id", userId);
+    await admin.from("conversations").delete().eq("user_id", userId);
 
     return Response.json({ ok: true });
   } catch (err) {
