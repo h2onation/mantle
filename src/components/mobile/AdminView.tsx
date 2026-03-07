@@ -103,7 +103,7 @@ function ExtractionPanel({ snapshot }: { snapshot: ExtractionSnapshot }) {
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: "8px",
-          color: "var(--color-text-ghost)",
+          color: "var(--session-ink-ghost)",
           cursor: "pointer",
           background: "none",
           border: "none",
@@ -121,8 +121,9 @@ function ExtractionPanel({ snapshot }: { snapshot: ExtractionSnapshot }) {
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: "9px",
-            color: "var(--color-text-ghost)",
-            background: "var(--color-surface)",
+            color: "var(--session-ink-faded)",
+            background: "var(--session-linen)",
+            border: "1px solid var(--session-ink-hairline)",
             borderRadius: 6,
             padding: 8,
             marginTop: 4,
@@ -151,7 +152,7 @@ function ExtractionPanel({ snapshot }: { snapshot: ExtractionSnapshot }) {
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "8px",
-              color: "var(--color-text-ghost)",
+              color: "var(--session-ink-ghost)",
               cursor: "pointer",
               background: "none",
               border: "none",
@@ -213,12 +214,23 @@ export default function AdminView() {
   async function loadAdminUsers() {
     setAdminLoading(true);
     try {
-      const res = await fetch("/api/admin/users");
-      if (!res.ok) {
+      // Load users and global feedback in parallel
+      const [usersRes, feedbackRes] = await Promise.all([
+        fetch("/api/admin/users"),
+        !feedbackLoaded ? fetch("/api/admin/feedback") : Promise.resolve(null),
+      ]);
+
+      if (feedbackRes && feedbackRes.ok) {
+        const fbData = await feedbackRes.json();
+        setFeedbackItems(fbData.feedback || []);
+        setFeedbackLoaded(true);
+      }
+
+      if (!usersRes.ok) {
         setAdminLoading(false);
         return;
       }
-      const data = await res.json();
+      const data = await usersRes.json();
       const users: AdminUser[] = data.users || [];
       setAdminUsers(users);
       if (users.length > 0) {
@@ -436,8 +448,8 @@ export default function AdminView() {
             </button>
           </div>
 
-          {/* User picker dropdown */}
-          {showUserPicker && (
+          {/* User picker dropdown — hidden on feedback tab */}
+          {showUserPicker && profileTab !== "feedback" && (
             <>
               {/* Backdrop */}
               <div
@@ -471,7 +483,7 @@ export default function AdminView() {
                     fontFamily: "var(--font-sans)",
                     fontSize: "13px",
                     color: "var(--session-ink)",
-                    background: "var(--color-surface)",
+                    background: "rgba(255, 255, 255, 0.6)",
                     border: "1px solid var(--session-ink-hairline)",
                     borderRadius: 6,
                     padding: "8px 10px",
@@ -551,8 +563,8 @@ export default function AdminView() {
             READ ONLY — ADMIN VIEW
           </div>
 
-          {/* ── Viewing user selector ────────────────────────── */}
-          <div
+          {/* ── Viewing user selector (hidden on feedback tab) ── */}
+          {profileTab !== "feedback" && <div
             style={{
               padding: "10px 16px 6px",
               flexShrink: 0,
@@ -580,7 +592,7 @@ export default function AdminView() {
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
                 color: "var(--session-ink)",
-                background: "var(--color-surface)",
+                background: "rgba(255, 255, 255, 0.6)",
                 border: "1px solid var(--session-ink-hairline)",
                 borderRadius: 8,
                 padding: "10px 12px",
@@ -611,7 +623,7 @@ export default function AdminView() {
                 {showUserPicker ? "▲" : "▼"}
               </span>
             </button>
-          </div>
+          </div>}
 
           {/* Tab bar */}
           <div
@@ -633,8 +645,9 @@ export default function AdminView() {
                     setConversationMessages([]);
                     setExtractionState(null);
                   }
-                  if (tab === "feedback" && !feedbackLoaded) {
-                    loadFeedback();
+                  if (tab === "feedback") {
+                    setShowUserPicker(false);
+                    if (!feedbackLoaded) loadFeedback();
                   }
                 }}
                 style={{

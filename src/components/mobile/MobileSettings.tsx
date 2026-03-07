@@ -79,9 +79,18 @@ export default function MobileSettings({
   }
 
   async function handleDeleteData() {
-    await fetch("/api/dev-reset", { method: "POST" });
-    localStorage.clear();
-    window.location.reload();
+    try {
+      const res = await fetch("/api/dev-reset", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("[settings] Delete data failed:", body.error || res.status);
+        return;
+      }
+      localStorage.clear();
+      window.location.reload();
+    } catch (err) {
+      console.error("[settings] Delete data error:", err);
+    }
   }
 
   async function handleDeleteAccount() {

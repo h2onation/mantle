@@ -322,6 +322,8 @@ Generated fire-and-forget when `useChat` initializes and the last message is >30
 ### Admin Access
 Admin role is set via JWT custom claims (`app_metadata.role = "admin"`), not a database column. Set/revoked only through direct SQL in Supabase SQL Editor. The `is_admin()` Postgres function checks the JWT claim and is used in all admin RLS policies. Admin routes are read-only (SELECT-only policies on user tables). Every conversation/message view is logged to `admin_access_logs`. Admin UI renders inside MobileSettings via the `AdminView` component, which returns null for non-admin users — completely absent from the DOM. Middleware blocks non-admin requests to `/api/admin/*` routes.
 
+**Admin overlay uses the linen palette** (`--session-linen`, `--session-ink`, `--session-ink-ghost`, `--session-ink-faded`, `--session-ink-hairline`, `--session-sage-tint`). Never use dark-theme tokens (`--color-surface`, `--color-text`, `--color-text-ghost`, `--color-text-dim`, `--color-void`) in AdminView — they are invisible on the light background. Exception: `--color-error` and `--color-admin-banner-bg` for the admin warning banner and accent highlights.
+
 ## Sage Prompt Assembly
 
 ### buildSystemPrompt Conditional Loading
