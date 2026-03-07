@@ -118,6 +118,19 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // 0. Clean slate: delete all existing user data before simulation
+        await admin.from("manual_changelog").delete().eq("user_id", userId);
+        await admin.from("manual_components").delete().eq("user_id", userId);
+        const { data: existingConvs } = await admin
+          .from("conversations")
+          .select("id")
+          .eq("user_id", userId);
+        if (existingConvs && existingConvs.length > 0) {
+          const convIds = existingConvs.map((c: { id: string }) => c.id);
+          await admin.from("messages").delete().in("conversation_id", convIds);
+          await admin.from("conversations").delete().eq("user_id", userId);
+        }
+
         // 1. Create conversation
         const { data: conv, error: convError } = await admin
           .from("conversations")

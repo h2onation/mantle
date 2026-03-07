@@ -10,8 +10,11 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    // Get auth users for emails
-    const { data: authData, error: authError } = await admin.auth.admin.listUsers();
+    // Get auth users for emails (perPage avoids default 50-user pagination limit)
+    const { data: authData, error: authError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
     if (authError) {
       console.error("[admin/users] Auth list error:", authError);
       return Response.json({ error: "Failed to list users" }, { status: 500 });
@@ -36,11 +39,20 @@ export async function GET() {
       return Response.json({ error: "Failed to load profiles" }, { status: 500 });
     }
 
-    if (!profiles || profiles.length === 0) {
+    // Include auth users that have no profile row (e.g. admin account
+    // created before the auto-profile trigger, or trigger failed)
+    const profileIds = new Set((profiles || []).map((p) => p.id));
+    const missingProfiles = authData.users
+      .filter((u) => !profileIds.has(u.id))
+      .map((u) => ({ id: u.id, display_name: null }));
+
+    const allProfiles = [...(profiles || []), ...missingProfiles];
+
+    if (allProfiles.length === 0) {
       return Response.json({ users: [] });
     }
 
-    const userIds = profiles.map((p) => p.id);
+    const userIds = allProfiles.map((p) => p.id);
 
     // Count conversations per user
     const { data: conversations } = await admin
@@ -68,7 +80,7 @@ export async function GET() {
       }
     }
 
-    const users = profiles.map((p) => ({
+    const users = allProfiles.map((p) => ({
       id: p.id,
       display_name: p.display_name || null,
       email: emailMap[p.id] || "",

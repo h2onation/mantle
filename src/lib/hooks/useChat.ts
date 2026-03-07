@@ -38,6 +38,8 @@ export function useChat() {
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
   const [isGuest, setIsGuest] = useState(false);
   const [promptAuth, setPromptAuth] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackHint, setFeedbackHint] = useState<string | null>(null);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -279,6 +281,31 @@ export function useChat() {
 
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading || isStreaming) return;
+
+    // Handle /feedback command — intercept before reaching Sage
+    if (text.trim().toLowerCase().startsWith("/feedback")) {
+      const feedbackText = text.trim().slice("/feedback".length).trim();
+      if (!feedbackText) {
+        setFeedbackHint("Type /feedback followed by your message");
+        return;
+      }
+      setFeedbackHint(null);
+      try {
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: feedbackText, sessionId: conversationId }),
+        });
+        if (res.ok) {
+          setShowFeedbackModal(true);
+        } else {
+          setFeedbackHint("Couldn't send feedback, try again");
+        }
+      } catch {
+        setFeedbackHint("Couldn't send feedback, try again");
+      }
+      return;
+    }
 
     // Clear previous error and track for retry
     setErrorMessage(null);
@@ -606,6 +633,10 @@ export function useChat() {
     isGuest,
     promptAuth,
     resetPromptAuth: () => setPromptAuth(false),
+    showFeedbackModal,
+    dismissFeedbackModal: () => setShowFeedbackModal(false),
+    feedbackHint,
+    clearFeedbackHint: () => setFeedbackHint(null),
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,

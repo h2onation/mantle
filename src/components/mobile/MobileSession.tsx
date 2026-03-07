@@ -36,6 +36,10 @@ interface MobileSessionProps {
   switchConversation: (id: string) => Promise<void>;
   startNewSession: () => Promise<void>;
   refreshConversations: () => Promise<void>;
+  showFeedbackModal?: boolean;
+  dismissFeedbackModal?: () => void;
+  feedbackHint?: string | null;
+  clearFeedbackHint?: () => void;
 }
 
 export default function MobileSession({
@@ -54,6 +58,10 @@ export default function MobileSession({
   switchConversation,
   startNewSession,
   refreshConversations,
+  showFeedbackModal,
+  dismissFeedbackModal,
+  feedbackHint,
+  clearFeedbackHint,
 }: MobileSessionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
@@ -784,8 +792,27 @@ export default function MobileSession({
         </div>
       </div>
 
+      {/* Feedback hint (inline, above input) */}
+      {feedbackHint && (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "9px",
+            color: "var(--session-ink-ghost)",
+            letterSpacing: "0.5px",
+            textAlign: "center",
+            padding: "6px 16px",
+          }}
+        >
+          {feedbackHint}
+        </div>
+      )}
+
       <ChatInput
-        onSend={sendMessage}
+        onSend={(text) => {
+          if (clearFeedbackHint) clearFeedbackHint();
+          sendMessage(text);
+        }}
         disabled={isLoading || isStreaming}
       />
 
@@ -797,6 +824,85 @@ export default function MobileSession({
         onSelectSession={switchConversation}
         onNewSession={startNewSession}
       />
+
+      {/* Feedback confirmation modal */}
+      {showFeedbackModal && dismissFeedbackModal && (
+        <FeedbackModal onClose={dismissFeedbackModal} />
+      )}
+    </div>
+  );
+}
+
+// ── Feedback modal ──────────────────────────────────────────────────
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--color-backdrop-heavy)",
+        padding: "32px",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "var(--session-cream)",
+          borderRadius: "16px",
+          padding: "24px",
+          maxWidth: "320px",
+          width: "100%",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "14px",
+            color: "var(--session-ink)",
+            lineHeight: 1.6,
+            margin: "0 0 20px 0",
+          }}
+        >
+          Thanks for the feedback and working through the rough edges. It means a lot.
+        </p>
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "14px",
+            color: "var(--session-ink)",
+            lineHeight: 1.6,
+            margin: "0 0 20px 0",
+          }}
+        >
+          This message went directly to Jeff and won&apos;t affect your conversation with Sage.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%",
+            padding: "10px 0",
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            fontWeight: 500,
+            color: "var(--session-ink)",
+            backgroundColor: "transparent",
+            border: "1px solid var(--session-ink-hairline)",
+            borderRadius: "10px",
+            cursor: "pointer",
+          }}
+        >
+          Back to Sage
+        </button>
+      </div>
     </div>
   );
 }

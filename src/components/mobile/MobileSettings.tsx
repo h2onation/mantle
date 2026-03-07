@@ -312,6 +312,24 @@ export default function MobileSettings({
       </SettingsRow>
       )}
 
+      {/* ─── Feedback hint ──────────────────────────────────────── */}
+      <div style={{ margin: "32px 0 0" }}>
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "12px",
+            color: "var(--session-ink-ghost)",
+            lineHeight: 1.6,
+            margin: 0,
+          }}
+        >
+          Send Jeff feedback directly — just type{" "}
+          <strong style={{ color: "var(--session-ink-faded)" }}>/feedback</strong>{" "}
+          followed by your message in any Sage session. It goes straight to Jeff
+          and won&apos;t affect your conversation with Sage.
+        </p>
+      </div>
+
       {/* ─── Dev Tools (admin only) ────────────────────────────── */}
       {isAdmin && (
       <>

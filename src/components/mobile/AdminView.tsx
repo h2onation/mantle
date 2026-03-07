@@ -56,7 +56,15 @@ interface ExtractionSnapshot {
   [key: string]: unknown;
 }
 
-type AdminViewState = "hidden" | "users" | "profile";
+interface AdminFeedbackItem {
+  id: string;
+  user_email: string;
+  message: string;
+  session_id: string | null;
+  created_at: string;
+}
+
+type AdminViewState = "hidden" | "profile";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -184,10 +192,9 @@ export default function AdminView() {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Profile overlay state
-  const [profileTab, setProfileTab] = useState<"sessions" | "manual">("sessions");
+  const [profileTab, setProfileTab] = useState<"sessions" | "manual" | "feedback">("sessions");
   const [userConversations, setUserConversations] = useState<AdminConversation[]>([]);
   const [userManual, setUserManual] = useState<ManualComponent[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -196,6 +203,8 @@ export default function AdminView() {
   const [expandedCheckpoints, setExpandedCheckpoints] = useState<Set<string>>(new Set());
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([]);
+  const [feedbackLoaded, setFeedbackLoaded] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -205,13 +214,21 @@ export default function AdminView() {
     setAdminLoading(true);
     try {
       const res = await fetch("/api/admin/users");
-      if (!res.ok) return;
+      if (!res.ok) {
+        setAdminLoading(false);
+        return;
+      }
       const data = await res.json();
-      setAdminUsers(data.users || []);
-      setAdminView("users");
+      const users: AdminUser[] = data.users || [];
+      setAdminUsers(users);
+      if (users.length > 0) {
+        // Auto-open first user — openUserProfile manages its own loading state
+        openUserProfile(users[0]);
+      } else {
+        setAdminLoading(false);
+      }
     } catch (err) {
       console.error("[admin] Failed to load users:", err);
-    } finally {
       setAdminLoading(false);
     }
   }
@@ -288,8 +305,23 @@ export default function AdminView() {
     });
   }
 
+  async function loadFeedback() {
+    setAdminLoading(true);
+    try {
+      const res = await fetch("/api/admin/feedback");
+      if (!res.ok) return;
+      const data = await res.json();
+      setFeedbackItems(data.feedback || []);
+      setFeedbackLoaded(true);
+    } catch (err) {
+      console.error("[admin] Failed to load feedback:", err);
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
   function closeProfile() {
-    setAdminView("users");
+    setAdminView("hidden");
     setSelectedUser(null);
     setSelectedConversation(null);
     setConversationMessages([]);
@@ -343,87 +375,6 @@ export default function AdminView() {
         </button>
       )}
 
-      {/* User list */}
-      {adminView === "users" && (
-        <div>
-          <button
-            onClick={() => { setSearchQuery(""); setAdminView("hidden"); }}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              color: "var(--session-ink-ghost)",
-              cursor: "pointer",
-              marginBottom: 12,
-              letterSpacing: "1px",
-              background: "none",
-              border: "none",
-              padding: 0,
-              textAlign: "left" as const,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            ← BACK
-          </button>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, or date..."
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--session-ink)",
-              background: "var(--color-surface)",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: 6,
-              padding: "8px 10px",
-              width: "100%",
-              marginBottom: 10,
-              outline: "none",
-              boxSizing: "border-box" as const,
-            }}
-          />
-          {(() => {
-            const query = searchQuery.toLowerCase().trim();
-            const filteredUsers = query
-              ? adminUsers.filter((u) => {
-                  const label = adminUserLabel(u).toLowerCase();
-                  const email = (u.email || "").toLowerCase();
-                  return label.includes(query) || email.includes(query);
-                })
-              : adminUsers;
-            return (
-              <>
-                {filteredUsers.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => openUserProfile(user)}
-                    style={listItemStyle}
-                  >
-                    <div>{adminUserLabel(user)}</div>
-                    <div style={metaStyle}>
-                      {user.conversation_count} session{user.conversation_count !== 1 ? "s" : ""} · {user.component_count} component{user.component_count !== 1 ? "s" : ""}
-                    </div>
-                  </button>
-                ))}
-                {filteredUsers.length === 0 && !adminLoading && (
-                  <div
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "13px",
-                      color: "var(--session-ink-ghost)",
-                      padding: "14px 0",
-                    }}
-                  >
-                    {query ? "No matching users" : "No users found"}
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-      )}
-
       {/* ── Full-screen profile overlay ─────────────────────────── */}
       {adminView === "profile" && selectedUser && (
         <div
@@ -464,26 +415,7 @@ export default function AdminView() {
             >
               ← BACK
             </button>
-            <button
-              onClick={() => { setShowUserPicker((v) => !v); setPickerSearch(""); }}
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "12px",
-                color: "var(--session-ink-faded)",
-                textAlign: "center",
-                flex: 1,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                padding: "0 8px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {adminUserLabel(selectedUser)} <span style={{ fontSize: "8px", marginLeft: 2 }}>{showUserPicker ? "▲" : "▼"}</span>
-            </button>
+            <div style={{ flex: 1 }} />
             <button
               onClick={() => { setAdminView("hidden"); setSelectedUser(null); }}
               style={{
@@ -619,6 +551,68 @@ export default function AdminView() {
             READ ONLY — ADMIN VIEW
           </div>
 
+          {/* ── Viewing user selector ────────────────────────── */}
+          <div
+            style={{
+              padding: "10px 16px 6px",
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "8px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-ink-ghost)",
+                marginBottom: 6,
+              }}
+            >
+              VIEWING USER
+            </div>
+            <button
+              onClick={() => { setShowUserPicker((v) => !v); setPickerSearch(""); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                fontFamily: "var(--font-sans)",
+                fontSize: "13px",
+                color: "var(--session-ink)",
+                background: "var(--color-surface)",
+                border: "1px solid var(--session-ink-hairline)",
+                borderRadius: 8,
+                padding: "10px 12px",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+                boxSizing: "border-box" as const,
+              }}
+            >
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1,
+                  textAlign: "left",
+                }}
+              >
+                {adminUserLabel(selectedUser)}
+              </span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  color: "var(--session-ink-ghost)",
+                  marginLeft: 8,
+                  flexShrink: 0,
+                }}
+              >
+                {showUserPicker ? "▲" : "▼"}
+              </span>
+            </button>
+          </div>
+
           {/* Tab bar */}
           <div
             style={{
@@ -629,7 +623,7 @@ export default function AdminView() {
               flexShrink: 0,
             }}
           >
-            {(["sessions", "manual"] as const).map((tab) => (
+            {(["sessions", "manual", "feedback"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -638,6 +632,9 @@ export default function AdminView() {
                     setSelectedConversation(null);
                     setConversationMessages([]);
                     setExtractionState(null);
+                  }
+                  if (tab === "feedback" && !feedbackLoaded) {
+                    loadFeedback();
                   }
                 }}
                 style={{
@@ -993,6 +990,53 @@ export default function AdminView() {
             {/* ── Manual tab ────────────────────────────────────── */}
             {profileTab === "manual" && !adminLoading && (
               <AdminManualView components={userManual} />
+            )}
+
+            {/* ── Feedback tab ─────────────────────────────────── */}
+            {profileTab === "feedback" && !adminLoading && (
+              <div>
+                {feedbackItems.length === 0 && (
+                  <div
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13px",
+                      color: "var(--session-ink-ghost)",
+                      padding: "40px 0",
+                      textAlign: "center",
+                    }}
+                  >
+                    No feedback yet
+                  </div>
+                )}
+                {feedbackItems.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "14px 0",
+                      borderBottom: "1px solid var(--session-ink-hairline)",
+                    }}
+                  >
+                    <div style={metaStyle}>
+                      {item.user_email || "Guest"} · {formatAdminDate(item.created_at)}
+                      {item.session_id && (
+                        <span> · {item.session_id.slice(0, 8)}</span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "13px",
+                        color: "var(--session-ink)",
+                        lineHeight: 1.55,
+                        marginTop: 6,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {item.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

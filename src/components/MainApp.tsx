@@ -49,6 +49,10 @@ export default function MainApp() {
     isGuest,
     promptAuth,
     resetPromptAuth,
+    showFeedbackModal,
+    dismissFeedbackModal,
+    feedbackHint,
+    clearFeedbackHint,
     sendMessage,
     retryLastMessage,
     confirmCheckpoint,
@@ -157,6 +161,10 @@ export default function MainApp() {
             switchConversation={switchConversation}
             startNewSession={startNewSession}
             refreshConversations={refreshConversations}
+            showFeedbackModal={showFeedbackModal}
+            dismissFeedbackModal={dismissFeedbackModal}
+            feedbackHint={feedbackHint}
+            clearFeedbackHint={clearFeedbackHint}
           />
         }
         manualContent={
