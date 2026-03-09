@@ -50,6 +50,8 @@ Every new worktree needs `.env.local`. Always run `ln -s /Users/jeffwaters/mantl
 
 > **CRITICAL: Never authenticate as a real user.** For testing, always use test@test.com or create a fresh anonymous user. Never generate magic links for any email other than your own or test@test.com.
 
+> **CRITICAL: Never grant admin roles.** Claude Code must NEVER run SQL or code that sets `app_metadata.role = "admin"` on any user account. Admin roles are exclusively managed by the project owner via the Supabase dashboard. This includes test accounts — no exceptions.
+
 ## Versioning
 
 Two version constants in `src/lib/version.ts`:
