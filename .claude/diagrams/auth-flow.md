@@ -7,15 +7,15 @@ flowchart TD
     A[User visits /login] --> B[OnboardingFlow: entry screen]
     B --> C["Get Started"]
     C --> D[Info screens x2<br/>swipeable]
-    D --> E[Seed screen<br/>user writes opening thought]
+    D --> E["Age confirmation + Begin"]
     E --> F["signInAnonymously()"]
     F --> G["Set localStorage flags<br/>(onboarding_completed, age_confirmed)"]
-    G --> H["Store seed in sessionStorage<br/>(mantle_seed_text)"]
-    H --> I["router.push('/')"]
-    I --> J["Middleware: getUser() succeeds<br/>(anonymous user is valid)"]
-    J --> K[MainApp loads]
-    K --> L["Read + remove seed from sessionStorage"]
-    L --> M["sendMessage(seed) — first conversation begins"]
+    G --> H["router.push('/')"]
+    H --> I["Middleware: getUser() succeeds<br/>(anonymous user is valid)"]
+    I --> J[MainApp loads]
+    J --> K["Welcome message + 3 chips displayed"]
+    K --> L["User taps chip → sendMessage(chipText)"]
+    L --> M["First conversation begins"]
 ```
 
 ## Returning user (email/password or Google)

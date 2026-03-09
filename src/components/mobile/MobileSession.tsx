@@ -47,7 +47,7 @@ export default function MobileSession({
   conversationId,
   isLoading,
   isStreaming,
-  confirmedComponents,
+  isNewUser,
   activeCheckpoint,
   checkpointError,
   errorMessage,
@@ -64,6 +64,7 @@ export default function MobileSession({
   clearFeedbackHint,
 }: MobileSessionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [chipsDismissed, setChipsDismissed] = useState(false);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -91,51 +92,7 @@ export default function MobileSession({
   }
 
   const hasMessages = messages.length > 0;
-  const hasAssistantMessage = messages.some(m => m.role === "assistant");
 
-  // Orientation box — shown to new users (no confirmed manual entries)
-  const orientationBox = (
-    <div
-      key="orientation-box"
-      style={{
-        margin: "16px 0 0 0",
-        padding: "16px 16px 14px",
-        background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-        border: "1px solid var(--session-sage-border)",
-        borderRadius: "8px",
-        boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
-        animation: "mantleFadeIn 0.6s ease-out",
-      }}
-    >
-      <p style={{
-        fontFamily: "var(--font-serif)",
-        fontSize: "14px",
-        lineHeight: 1.75,
-        color: "var(--session-ink)",
-        margin: "0 0 16px 0",
-      }}>
-        Welcome to our session. This is where we explore what&#39;s top of mind and start building a manual of how you operate. You should see me as a tool to name the things you already know, recognize patterns, and reflect them back for you to confirm. Push back anytime I&#39;m off. I&#39;ll be asking questions and going deeper. You don&#39;t have to go anywhere you don&#39;t want to, but the more you share, the more useful your manual becomes.
-      </p>
-      <p style={{
-        fontFamily: "var(--font-serif)",
-        fontSize: "14px",
-        lineHeight: 1.75,
-        color: "var(--session-ink)",
-        margin: "0 0 16px 0",
-      }}>
-        People are great for processing, but they have their own stakes in your story. I don&#39;t. I have a framework and a lens, but no ego in the outcome.
-      </p>
-      <p style={{
-        fontFamily: "var(--font-serif)",
-        fontSize: "14px",
-        lineHeight: 1.75,
-        color: "var(--session-ink)",
-        margin: 0,
-      }}>
-        You gave me a place to start. Let&#39;s see what&#39;s underneath it.
-      </p>
-    </div>
-  );
 
   return (
     <div
@@ -238,11 +195,73 @@ export default function MobileSession({
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
-          {/* Standalone orientation box — shows immediately before Sage responds */}
-          {confirmedComponents.length === 0 && hasMessages && !hasAssistantMessage && orientationBox}
+          {/* Welcome + chips for new users */}
+          {isNewUser && !hasMessages && !isLoading && !chipsDismissed && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "28px",
+                padding: "40px 24px 20px",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "22px",
+                  color: "var(--session-ink)",
+                  lineHeight: 1.4,
+                  letterSpacing: "-0.3px",
+                  textAlign: "center",
+                  margin: 0,
+                }}
+              >
+                Welcome. Let&apos;s start where you are at.
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  width: "100%",
+                }}
+              >
+                {[
+                  "I have questions about how this works",
+                  "I\u2019m ready but could use help finding a starting point",
+                  "I have a specific situation to explore",
+                ].map((chipText) => (
+                  <button
+                    key={chipText}
+                    onClick={() => {
+                      setChipsDismissed(true);
+                      sendMessage(chipText);
+                    }}
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "14px",
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                      color: "var(--session-ink-mid)",
+                      backgroundColor: "transparent",
+                      border: "1px solid var(--session-ink-whisper)",
+                      borderRadius: "20px",
+                      padding: "12px 18px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    {chipText}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Empty state placeholder */}
-          {!hasMessages && !isLoading && (
+          {/* Empty state for returning users */}
+          {!isNewUser && !hasMessages && !isLoading && (
             <div
               style={{
                 display: "flex",
@@ -268,11 +287,6 @@ export default function MobileSession({
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;
-
-              // Hide the seed message (first user message in conversation).
-              // Sage references the seed naturally in its opening, so the user
-              // sees their topic reflected without their own message displayed.
-              if (msg.role === "user" && i === 0) return null;
 
               const isUser = msg.role === "user";
               const isCheckpoint = msg.isCheckpoint === true;
@@ -597,10 +611,6 @@ export default function MobileSession({
 
               // Sage message — tinted bubble with serif text
               if (!isUser) {
-                // First-session orientation box: show above Sage's first message
-                const isFirstAssistant = !messages.slice(0, i).some(m => m.role === "assistant");
-                const showOrientationBox = isFirstAssistant && confirmedComponents.length === 0;
-
                 const sagePanel = (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -651,15 +661,6 @@ export default function MobileSession({
                     </div>
                   </div>
                 );
-
-                if (showOrientationBox) {
-                  return (
-                    <>
-                      {orientationBox}
-                      {sagePanel}
-                    </>
-                  );
-                }
 
                 return sagePanel;
               }

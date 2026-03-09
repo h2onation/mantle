@@ -66,9 +66,9 @@ From the manual tab, users can tap "Explore with Sage" on any layer to start a t
 1. See the entry screen
 2. Tap "Get Started"
 3. Swipe through two info screens explaining what Mantle is
-4. Write a seed thought (their opening message to Sage)
-5. An anonymous account is created silently — no email needed upfront
-6. The seed becomes their first message and the conversation starts
+4. Confirm age, tap "Begin" — an anonymous account is created silently
+5. Land in chat with a welcome message and three chips (entry paths)
+6. Tap a chip — it becomes their first message and the conversation starts
 
 ### Guest-to-real conversion
 After confirming their first checkpoint, anonymous users are prompted to create a real account (email or Google). This preserves all their conversation history and manual entries.

@@ -8,11 +8,13 @@ flowchart TD
     B --> C["'Get Started' button"]
     C --> D["Info screen 1: what Mantle is"]
     D --> E["Info screen 2: how it works"]
-    E --> F["Seed screen: write your opening thought"]
+    E --> F["Age confirmation + Begin button"]
     F --> G["Anonymous account created silently"]
     G --> H["Dissolve transition into chat"]
-    H --> I["Seed text becomes first message to Sage"]
-    I --> J["Conversation begins"]
+    H --> I["Welcome message + 3 chips displayed"]
+    I --> J["User taps chip → first message sent"]
+    J --> K["Sage responds per routing path (A/B/C)"]
+    K --> L["Conversation converges to situation"]
 ```
 
 ## Checkpoint lifecycle (confirming a manual entry)

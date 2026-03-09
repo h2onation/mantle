@@ -1,27 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SeedScreen() {
-  const [text, setText] = useState("");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
 
-  const hasText = text.trim().length > 0;
-  const isEnabled = hasText && ageConfirmed && !submitting;
+  const isEnabled = ageConfirmed && !submitting;
 
   async function handleSubmit() {
     if (!isEnabled) return;
     setSubmitting(true);
     setError("");
 
-    // Store seed text and flags
-    sessionStorage.setItem("mantle_seed_text", text.trim());
     localStorage.setItem("mantle_age_confirmed", "true");
     localStorage.setItem("mantle_onboarding_completed", "true");
 
@@ -80,7 +75,7 @@ export default function SeedScreen() {
             margin: "0 0 10px 0",
           }}
         >
-          Start with the thing you keep thinking about but haven&apos;t said out loud.
+          Ready when you are.
         </h1>
 
         {/* Subhead */}
@@ -94,42 +89,8 @@ export default function SeedScreen() {
             margin: "0 0 20px 0",
           }}
         >
-          It doesn&apos;t need to be the biggest thing. Just the one that won&apos;t leave you alone.
+          You&apos;ll choose how to start on the next screen.
         </p>
-
-        {/* Textarea container */}
-        <div
-          style={{
-            border: "1px solid var(--session-ink-whisper)",
-            borderRadius: 8,
-            padding: 16,
-            height: 120,
-            backgroundColor: "rgba(255, 255, 255, 0.3)",
-            marginBottom: 18,
-          }}
-        >
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Tell me..."
-            style={{
-              width: "100%",
-              height: "100%",
-              fontFamily: "var(--font-sans)",
-              fontSize: 14,
-              fontWeight: 400,
-              lineHeight: 1.6,
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              boxSizing: "border-box",
-              padding: 0,
-            }}
-          />
-        </div>
 
         {/* Age checkbox */}
         <label

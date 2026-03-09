@@ -204,11 +204,12 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("FIRST MESSAGE");
     });
 
-    it("tells Sage the orientation box handles intro so first message is conversational", () => {
+    it("contains chip-based routing instructions for all three paths", () => {
       const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("welcome orientation box");
-      expect(result).toContain("purely conversational");
-      expect(result).toContain("Three beats: acknowledge, perspective, question");
+      expect(result).toContain("PATH A");
+      expect(result).toContain("PATH B");
+      expect(result).toContain("PATH C");
+      expect(result).toContain("CONVERGENCE");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {
