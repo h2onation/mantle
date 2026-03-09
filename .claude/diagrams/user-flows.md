@@ -4,14 +4,14 @@
 
 ```mermaid
 flowchart TD
-    A["Visit mantle"] --> B["/login — entry screen"]
+    A["Visit mantle"] --> B["/login — splash screen"]
     B --> C["'Get Started' button"]
-    C --> D["Info screen 1: what Mantle is"]
-    D --> E["Info screen 2: how it works"]
-    E --> F["Seed screen: write your opening thought"]
-    F --> G["Anonymous account created silently"]
-    G --> H["Dissolve transition into chat"]
-    H --> I["Seed text becomes first message to Sage"]
+    C --> D["'How It Works' screen"]
+    D --> E["'Before You Start' screen<br/>(age gate, no text input)"]
+    E --> F["Anonymous account created silently"]
+    F --> G["Dissolve transition into chat"]
+    G --> H["Welcome block + 3 tappable chips"]
+    H --> I["User taps a chip → first message to Sage"]
     I --> J["Conversation begins"]
 ```
 

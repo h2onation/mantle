@@ -63,12 +63,12 @@ From the manual tab, users can tap "Explore with Sage" on any layer to start a t
 ## How users get in
 
 ### New users
-1. See the entry screen
+1. See the splash screen with rotating "That's why . ." examples
 2. Tap "Get Started"
-3. Swipe through two info screens explaining what Mantle is
-4. Write a seed thought (their opening message to Sage)
+3. Read "How It Works" — a single page explaining the process
+4. "Before You Start" — confirm age (18+), read the disclosure, tap Begin
 5. An anonymous account is created silently — no email needed upfront
-6. The seed becomes their first message and the conversation starts
+6. Chat opens with a welcome message and three tappable chips to start the conversation
 
 ### Guest-to-real conversion
 After confirming their first checkpoint, anonymous users are prompted to create a real account (email or Google). This preserves all their conversation history and manual entries.
@@ -135,13 +135,12 @@ All admin access is logged to an audit trail. The admin view is read-only — no
 
 - **Export manual** — The settings button exists but doesn't do anything yet
 - **Guidance tab** — Unlocks after first confirmation but only shows "coming soon"
-- **"Still true?"** — Label on manual components has no click handler
 
 ---
 
 ## Key numbers
 
-- **174 automated tests**, all run in under 1 second with zero API cost (everything mocked)
+- **185 automated tests**, all run in under 1 second with zero API cost (everything mocked)
 - **4 AI model calls per turn** (max): Sage response, extraction analysis, checkpoint classification (fallback), manual entry composition (fallback)
 - **Sliding window**: Conversations over 50 messages keep the first 2 + last 48 messages
 - **Session summary**: Auto-generated (by a smaller AI model) when a conversation goes stale for 30+ minutes
