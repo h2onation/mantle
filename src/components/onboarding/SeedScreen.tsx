@@ -1,27 +1,23 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SeedScreen() {
-  const [text, setText] = useState("");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
 
-  const hasText = text.trim().length > 0;
-  const isEnabled = hasText && ageConfirmed && !submitting;
+  const isEnabled = ageConfirmed && !submitting;
 
   async function handleSubmit() {
     if (!isEnabled) return;
     setSubmitting(true);
     setError("");
 
-    // Store seed text and flags
-    sessionStorage.setItem("mantle_seed_text", text.trim());
+    // Store flags
     localStorage.setItem("mantle_age_confirmed", "true");
     localStorage.setItem("mantle_onboarding_completed", "true");
 
@@ -68,6 +64,21 @@ export default function SeedScreen() {
 
       {/* Content area */}
       <div style={{ padding: "0 28px 40px" }}>
+        {/* Section label */}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 8,
+            fontWeight: 500,
+            letterSpacing: "3px",
+            textTransform: "uppercase",
+            color: "var(--session-sage)",
+            marginBottom: 16,
+          }}
+        >
+          BEFORE YOU START
+        </div>
+
         {/* Headline */}
         <h1
           style={{
@@ -80,10 +91,10 @@ export default function SeedScreen() {
             margin: "0 0 10px 0",
           }}
         >
-          Start with the thing you keep thinking about but haven&apos;t said out loud.
+          This works best when you&apos;re honest and undistracted.
         </h1>
 
-        {/* Subhead */}
+        {/* Body */}
         <p
           style={{
             fontFamily: "var(--font-serif)",
@@ -91,45 +102,11 @@ export default function SeedScreen() {
             fontWeight: 400,
             lineHeight: 1.5,
             color: "var(--session-ink-mid)",
-            margin: "0 0 20px 0",
+            margin: "0 0 24px 0",
           }}
         >
-          It doesn&apos;t need to be the biggest thing. Just the one that won&apos;t leave you alone.
+          Set aside about 15 minutes. Find a place where you can think clearly. Sage will meet you where you&apos;re at with a few questions to get started, then go deeper. The more you bring, the more precise your manual becomes.
         </p>
-
-        {/* Textarea container */}
-        <div
-          style={{
-            border: "1px solid var(--session-ink-whisper)",
-            borderRadius: 8,
-            padding: 16,
-            height: 120,
-            backgroundColor: "rgba(255, 255, 255, 0.3)",
-            marginBottom: 18,
-          }}
-        >
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Tell me..."
-            style={{
-              width: "100%",
-              height: "100%",
-              fontFamily: "var(--font-sans)",
-              fontSize: 14,
-              fontWeight: 400,
-              lineHeight: 1.6,
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              boxSizing: "border-box",
-              padding: 0,
-            }}
-          />
-        </div>
 
         {/* Age checkbox */}
         <label
@@ -176,6 +153,20 @@ export default function SeedScreen() {
             I am 18 or older
           </span>
         </label>
+
+        {/* Disclosure */}
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 12,
+            fontWeight: 400,
+            lineHeight: 1.6,
+            color: "var(--session-ink-ghost)",
+            margin: "0 0 18px 0",
+          }}
+        >
+          Sage is an AI tool that helps you articulate what you already sense but haven&apos;t organized. It&apos;s not therapy. No agenda, no diagnosis, just your patterns and a map of your behaviors organized through conversation.
+        </p>
 
         {/* Error message */}
         {error && (
@@ -227,20 +218,15 @@ export default function SeedScreen() {
             lineHeight: 1.6,
           }}
         >
-          <div>
-            By continuing, you agree to the{" "}
-            <span style={{ textDecoration: "underline", cursor: "pointer" }}>
-              Terms of Service
-            </span>{" "}
-            and{" "}
-            <span style={{ textDecoration: "underline", cursor: "pointer" }}>
-              Privacy Policy
-            </span>
-            .
-          </div>
-          <div style={{ marginTop: 4 }}>
-            Sage is an AI. This is not therapy or mental health services.
-          </div>
+          By continuing, you agree to the{" "}
+          <span style={{ textDecoration: "underline", cursor: "pointer" }}>
+            Terms of Service
+          </span>{" "}
+          and{" "}
+          <span style={{ textDecoration: "underline", cursor: "pointer" }}>
+            Privacy Policy
+          </span>
+          .
         </div>
       </div>
     </div>

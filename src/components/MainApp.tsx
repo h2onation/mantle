@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
 import MobileLayout from "@/components/layout/MobileLayout";
@@ -22,7 +22,6 @@ export default function MainApp() {
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
-  const seedSent = useRef(false);
 
   // Clean up post-OAuth conversion flag
   useEffect(() => {
@@ -63,17 +62,6 @@ export default function MainApp() {
     refreshConversations,
     loadManual,
   } = useChat();
-
-  // Seed handoff: send seed text from onboarding as first message
-  useEffect(() => {
-    if (!initialized) return;
-    if (seedSent.current) return;
-    const seed = sessionStorage.getItem("mantle_seed_text");
-    if (!seed) return;
-    seedSent.current = true;
-    sessionStorage.removeItem("mantle_seed_text");
-    sendMessage(seed);
-  }, [initialized, sendMessage]);
 
   // When promptAuth fires, clear any previous dismiss so modal shows
   useEffect(() => {
