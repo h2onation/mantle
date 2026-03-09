@@ -8,6 +8,15 @@ Key areas that drift:
 - New localStorage keys
 - Dead feature cleanup (e.g. removing `calibration_ratings` from schema)
 
+**2026-03-09 — Sage Opening: chip-based routing replaces seed text**
+- `SeedScreen.tsx`: Removed textarea and seed text storage. Now renders age checkbox + "Begin" button only.
+- `MainApp.tsx`: Removed seed handoff useEffect (no more sessionStorage seed text).
+- `MobileSession.tsx`: Removed orientation box. Added welcome message ("Welcome. Let's start where you are at.") + 3 chip buttons for new users. Removed first-user-message hiding — chip text displays as normal message. Removed `confirmedComponents` from destructured props (unused after orientation box removal).
+- `system-prompt.ts`: Replaced FIRST MESSAGE section (seed-based) with chip-based routing (Path A: meta Q&A, Path B: progressive narrowing, Path C: direct situation). Added convergence rules. Updated FIRST SESSION section.
+- `system-prompt.test.ts`: Updated test to check for PATH A/B/C routing content instead of old seed/orientation references.
+- Versions: APP 2.10.0, SAGE 2.4.0
+- sessionStorage key `mantle_seed_text` is now dead — no longer set or read.
+
 **2026-02-23 — Session History feature**
 - Added `GET /api/conversations` and `POST /api/conversations/complete` routes
 - Added `src/lib/sage/generate-summary.ts` (shared Haiku summary utility, extracted from `session/summary/route.ts`)
