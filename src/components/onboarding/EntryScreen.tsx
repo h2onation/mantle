@@ -1,11 +1,44 @@
 "use client";
 
+import { useState, useEffect, useCallback, useRef } from "react";
+
+const ROTATING_EXAMPLES = [
+  ". . a conversation you keep replaying.",
+  ". . a dynamic at work you can\u2019t quite name.",
+  ". . a relationship shifted and you\u2019re not sure why.",
+  ". . the pattern you can see but can\u2019t stop.",
+  ". . a decision you keep circling but won\u2019t make.",
+  ". . the advice you give everyone else doesn\u2019t work on you.",
+  ". . the person you are at home isn\u2019t the person you are at work.",
+  ". . you know exactly how to make people like you and it exhausts you.",
+];
+
 interface EntryScreenProps {
   onGetStarted: () => void;
   onLogin: () => void;
 }
 
 export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const advance = useCallback(() => {
+    setVisible(false);
+    timeoutRef.current = setTimeout(() => {
+      setActiveIndex((prev) => (prev + 1) % ROTATING_EXAMPLES.length);
+      setVisible(true);
+    }, 400);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(advance, 4000);
+    return () => {
+      clearInterval(interval);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [advance]);
+
   return (
     <div
       style={{
@@ -51,8 +84,8 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
           You understand yourself in fragments.
         </h1>
 
-        {/* Subhead */}
-        <p
+        {/* Subhead with rotating completions */}
+        <div
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: 18,
@@ -60,10 +93,19 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
             lineHeight: 1.4,
             color: "var(--session-ink-mid)",
             margin: "0 0 44px 0",
+            minHeight: "76px",
           }}
         >
-          That&apos;s why the same patterns keep running.
-        </p>
+          <span>That&apos;s why </span>
+          <span
+            style={{
+              opacity: visible ? 1 : 0,
+              transition: "opacity 400ms ease",
+            }}
+          >
+            {ROTATING_EXAMPLES[activeIndex]}
+          </span>
+        </div>
 
         {/* Get started button */}
         <button
