@@ -62,6 +62,7 @@ create table public.messages (
   is_checkpoint boolean default false,
   checkpoint_meta jsonb,
   processing_text text,
+  extraction_snapshot jsonb,
   created_at timestamptz default now() not null
 );
 

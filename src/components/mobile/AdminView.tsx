@@ -87,9 +87,10 @@ function adminUserLabel(user: AdminUser): string {
 
 // ── Extraction snapshot panel ────────────────────────────────────────
 
-function ExtractionPanel({ snapshot }: { snapshot: ExtractionSnapshot }) {
+function ExtractionPanel({ snapshot, forceExpanded }: { snapshot: ExtractionSnapshot; forceExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
+  const isExpanded = forceExpanded || expanded;
 
   const gate = snapshot.checkpoint_gate;
   const gateMet = gate
@@ -113,10 +114,10 @@ function ExtractionPanel({ snapshot }: { snapshot: ExtractionSnapshot }) {
           WebkitTapHighlightColor: "transparent",
         }}
       >
-        {expanded ? "▾" : "▸"} EXTRACTION
+        {isExpanded ? "▾" : "▸"} EXTRACTION
       </button>
 
-      {expanded && (
+      {isExpanded && (
         <div
           style={{
             fontFamily: "var(--font-mono)",
@@ -202,6 +203,7 @@ export default function AdminView() {
   const [conversationMessages, setConversationMessages] = useState<AdminMessage[]>([]);
   const [extractionState, setExtractionState] = useState<Record<string, unknown> | null>(null);
   const [expandedCheckpoints, setExpandedCheckpoints] = useState<Set<string>>(new Set());
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
   const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([]);
@@ -289,6 +291,7 @@ export default function AdminView() {
   async function loadMessages(conversationId: string) {
     setSelectedConversation(conversationId);
     setExpandedCheckpoints(new Set());
+    setShowAllLogs(false);
     setAdminLoading(true);
 
     try {
@@ -758,6 +761,34 @@ export default function AdminView() {
                       ← BACK TO SESSIONS
                     </button>
 
+                    {/* Log toggle */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        paddingBottom: 8,
+                      }}
+                    >
+                      <button
+                        onClick={() => setShowAllLogs((v) => !v)}
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "8px",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          color: showAllLogs ? "var(--color-error)" : "var(--session-ink-ghost)",
+                          background: "none",
+                          border: showAllLogs ? "1px solid var(--color-error-ghost)" : "1px solid var(--session-ink-hairline)",
+                          borderRadius: 4,
+                          padding: "5px 8px",
+                          cursor: "pointer",
+                          WebkitTapHighlightColor: "transparent",
+                        }}
+                      >
+                        {showAllLogs ? "Hide logs" : "Show all logs"}
+                      </button>
+                    </div>
+
                     {/* Messages */}
                     {conversationMessages.map((msg) => {
                       // Hide system messages
@@ -844,9 +875,9 @@ export default function AdminView() {
                                   WebkitTapHighlightColor: "transparent",
                                 }}
                               >
-                                {expandedCheckpoints.has(msg.id) ? "▾ checkpoint_meta" : "▸ checkpoint_meta"}
+                                {(showAllLogs || expandedCheckpoints.has(msg.id)) ? "▾ checkpoint_meta" : "▸ checkpoint_meta"}
                               </button>
-                              {expandedCheckpoints.has(msg.id) && (
+                              {(showAllLogs || expandedCheckpoints.has(msg.id)) && (
                                 <div
                                   style={{
                                     fontFamily: "var(--font-mono)",
@@ -867,7 +898,7 @@ export default function AdminView() {
 
                             {/* Per-turn extraction snapshot */}
                             {msg.extraction_snapshot && (
-                              <ExtractionPanel snapshot={msg.extraction_snapshot as ExtractionSnapshot} />
+                              <ExtractionPanel snapshot={msg.extraction_snapshot as ExtractionSnapshot} forceExpanded={showAllLogs} />
                             )}
                           </div>
                         );
