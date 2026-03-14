@@ -18,6 +18,11 @@ flowchart TD
         SUMMARY["POST /api/session/summary<br/>Edge — generate summary"]
         LOGOUT["POST /api/auth/logout<br/>Node — clear cookies"]
         DELETE["POST /api/account/delete<br/>Edge — delete everything"]
+        LINKPHONE["GET+POST /api/settings/link-phone<br/>Node — phone linking + verification"]
+    end
+
+    subgraph SMS["SMS (Twilio webhook)"]
+        SMSIN["POST /api/sms/incoming<br/>Node — inbound SMS handler"]
     end
 
     subgraph Admin["Admin only"]

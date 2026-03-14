@@ -8,6 +8,7 @@ erDiagram
     PROFILES ||--o{ MANUAL_CHANGELOG : "has many"
     PROFILES ||--o{ SAFETY_EVENTS : "has many"
     PROFILES ||--o{ ADMIN_ACCESS_LOGS : "logged by"
+    PROFILES ||--o| PHONE_NUMBERS : "links phone"
     CONVERSATIONS ||--o{ MESSAGES : "contains"
     CONVERSATIONS ||--o{ SAFETY_EVENTS : "may trigger"
     CONVERSATIONS ||--o{ MANUAL_CHANGELOG : "referenced by"
@@ -90,6 +91,17 @@ erDiagram
         uuid target_user_id
         uuid conversation_id
         text action
+        timestamptz created_at
+    }
+
+    PHONE_NUMBERS {
+        uuid id PK
+        uuid user_id FK "unique"
+        text phone "+1XXXXXXXXXX"
+        bool verified
+        text verification_code "nullable, cleared after verify"
+        timestamptz code_expires_at "nullable"
+        timestamptz linked_at "nullable, set on verify"
         timestamptz created_at
     }
 ```

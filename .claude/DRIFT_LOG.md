@@ -138,6 +138,15 @@ Key areas that drift:
 - **Path B composition at creation time**: New `composeManualEntry()` function in `confirm-checkpoint.ts` (exported, called from `call-sage.ts` step 12c). When Haiku classifier detects a checkpoint but Sage didn't produce `|||MANUAL_ENTRY|||`, Sonnet composes a polished manual entry. Runs between classifier and DB save.
 - **Composition guard**: `call-sage.ts` step 12c checks `hasComposedContent` before calling `composeManualEntry()`.
 
+**2026-03-14 — Text Sage: Twilio SMS + phone linking**
+- **New dependency**: `twilio` npm package added.
+- **New `POST /api/sms/incoming`** (Node runtime): Twilio webhook handler. Validates Twilio signature, echoes incoming SMS back. Returns TwiML XML (even on error).
+- **New `GET+POST /api/settings/link-phone`** (Node runtime): GET returns linked phone status. POST initiates (sends 6-digit code via Twilio) or verifies (checks code + expiry). Upserts `phone_numbers` table.
+- **New `public/sage-contact.vcf`**: vCard for Sage with Twilio number +15305000927.
+- **`MobileSettings.tsx`**: Added "TEXT SAGE" collapsible section with phone linking flow (unlinked → input → verifying → linked states). Linked state shows phone number, "Change" button, and "Add Sage to contacts" VCF download.
+- **New table `phone_numbers`**: user_id (unique), phone, verified, verification_code, code_expires_at, linked_at.
+- Diagram updates: `api-routes.md`, `database-schema.md`, `user-flows.md`, `SYSTEM_MAP.md`.
+
 **2026-03-04 — CLAUDE.md slimmed**
 - Moved Drift Log to `.claude/DRIFT_LOG.md` (~130 lines saved)
 - Removed File Tree section (~80 lines saved — use glob instead)

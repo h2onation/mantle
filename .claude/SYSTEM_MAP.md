@@ -50,7 +50,7 @@ Each layer can hold **1 component** (the core insight) and up to **2 patterns** 
 - **Session** — The active conversation with Sage. Includes a side drawer for switching between past conversations.
 - **Manual** — The user's growing manual. Populated layers appear in green "meadow" panels. Empty layers show below in dark space.
 - **Guidance** — Locked until the first manual entry is confirmed. Currently a placeholder ("coming soon").
-- **Settings** — Account, logout, session history, dev tools (admin only), data deletion.
+- **Settings** — Account, logout, session history, Text Sage (phone linking), dev tools (admin only), data deletion.
 
 ### Checkpoint cards
 These appear inline in the chat when Sage proposes a manual entry. They show the layer, type (component or pattern), a title, and the composed insight text. The user taps confirm, reject, or refine.
@@ -135,6 +135,7 @@ All admin access is logged to an audit trail. The admin view is read-only — no
 
 - **Export manual** — The settings button exists but doesn't do anything yet
 - **Guidance tab** — Unlocks after first confirmation but only shows "coming soon"
+- **Text Sage (SMS)** — Phone linking and verification works. Inbound SMS route exists as an echo bot. Real Sage conversation over SMS not yet wired up.
 
 ---
 
