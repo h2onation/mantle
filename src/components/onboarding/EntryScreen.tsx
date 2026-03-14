@@ -145,6 +145,25 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
         >
           Log in
         </button>
+
+        {/* Legal links */}
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 24,
+            fontFamily: "var(--font-sans)",
+            fontSize: 11,
+            color: "var(--color-text-ghost)",
+          }}
+        >
+          <a href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>
+            Privacy Policy
+          </a>
+          <span style={{ margin: "0 6px" }}>&middot;</span>
+          <a href="/terms" style={{ color: "inherit", textDecoration: "none" }}>
+            Terms of Service
+          </a>
+        </div>
       </div>
     </div>
   );

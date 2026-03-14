@@ -61,6 +61,8 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/reset-password" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
     pathname.startsWith("/auth/callback");
 
   if (!user && !isPublicRoute) {

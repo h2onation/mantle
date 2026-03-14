@@ -61,11 +61,13 @@ flowchart LR
     REQ[Incoming request] --> MW[middleware.ts]
     MW --> AUTH["getUser() via server client<br/>(also refreshes session cookies)"]
     AUTH --> CHECK{Authenticated?}
-    CHECK -- "No + not /login" --> REDIR1[Redirect to /login]
+    CHECK -- "No + not public route" --> REDIR1[Redirect to /login]
     CHECK -- "Yes + on /login" --> REDIR2[Redirect to /]
     CHECK -- "Yes + normal page" --> PASS[Continue to page]
-    CHECK -- "No + on /login" --> PASS
+    CHECK -- "No + public route" --> PASS
 ```
+
+**Public routes** (no auth required): `/login`, `/reset-password`, `/privacy`, `/terms`, `/auth/callback*`
 
 ## Three Supabase clients
 
