@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import AdminView from "@/components/mobile/AdminView";
@@ -63,6 +63,81 @@ export default function MobileSettings({
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
+
+  // ── Text Sage phone linking ──────────────────────────────────────
+  const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "verifying" | "linked">("loading");
+  const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [phoneBusy, setPhoneBusy] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/link-phone")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.phone && data.verified) {
+          setLinkedPhone(data.phone);
+          setPhoneState("linked");
+        } else {
+          setPhoneState("unlinked");
+        }
+      })
+      .catch(() => setPhoneState("unlinked"));
+  }, []);
+
+  async function handleSendCode() {
+    setPhoneBusy(true);
+    setPhoneError(null);
+    try {
+      const res = await fetch("/api/settings/link-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPhoneError(data.error || "Failed to send code");
+        return;
+      }
+      setPhoneState("verifying");
+    } catch {
+      setPhoneError("Network error");
+    } finally {
+      setPhoneBusy(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    setPhoneBusy(true);
+    setPhoneError(null);
+    try {
+      const res = await fetch("/api/settings/link-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneInput, code: codeInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPhoneError(data.error || "Verification failed");
+        return;
+      }
+      setLinkedPhone(data.phone);
+      setPhoneState("linked");
+      setCodeInput("");
+    } catch {
+      setPhoneError("Network error");
+    } finally {
+      setPhoneBusy(false);
+    }
+  }
+
+  function handleChangePhone() {
+    setPhoneState("input");
+    setPhoneInput("");
+    setCodeInput("");
+    setPhoneError(null);
+  }
 
   function toggleSection(key: string) {
     setOpenSections((prev) => {
@@ -319,6 +394,275 @@ export default function MobileSettings({
           </p>
         </div>
       </SettingsRow>
+      )}
+
+      {/* ─── Text Sage ─────────────────────────────────────────── */}
+      <SectionHeader label="TEXT SAGE" isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
+
+      {openSections.has("textsage") && (
+        <SettingsRow title="Text Sage" noBorder>
+          <div style={{ width: "100%" }}>
+            {phoneState === "loading" && (
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  color: "var(--session-ink-ghost)",
+                  letterSpacing: "0.5px",
+                  margin: 0,
+                }}
+              >
+                Loading...
+              </p>
+            )}
+
+            {phoneState === "unlinked" && (
+              <button
+                onClick={() => setPhoneState("input")}
+                style={{
+                  width: "100%",
+                  background: "none",
+                  border: "1px solid var(--session-sage-muted)",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  padding: "10px 0",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    color: "var(--session-sage)",
+                    margin: 0,
+                  }}
+                >
+                  Link your phone to text Sage
+                </p>
+              </button>
+            )}
+
+            {phoneState === "input" && (
+              <div>
+                <input
+                  type="tel"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                  style={{
+                    width: "100%",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    color: "var(--session-ink-soft)",
+                    background: "rgba(26, 22, 20, 0.03)",
+                    border: "1px solid var(--session-ink-hairline)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: 8,
+                  }}
+                />
+                <button
+                  onClick={handleSendCode}
+                  disabled={phoneBusy || !phoneInput.trim()}
+                  style={{
+                    width: "100%",
+                    background: "none",
+                    border: `1px solid ${phoneBusy || !phoneInput.trim() ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+                    borderRadius: 8,
+                    cursor: phoneBusy || !phoneInput.trim() ? "default" : "pointer",
+                    textAlign: "center",
+                    padding: "10px 0",
+                    opacity: phoneBusy ? 0.5 : 1,
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px",
+                      color: phoneBusy || !phoneInput.trim() ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                      letterSpacing: "0.5px",
+                      margin: 0,
+                    }}
+                  >
+                    {phoneBusy ? "Sending..." : "Send verification code"}
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {phoneState === "verifying" && (
+              <div>
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    color: "var(--session-ink-ghost)",
+                    letterSpacing: "0.5px",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Code sent to {phoneInput}
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="6-digit code"
+                  style={{
+                    width: "100%",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "16px",
+                    color: "var(--session-ink-soft)",
+                    background: "rgba(26, 22, 20, 0.03)",
+                    border: "1px solid var(--session-ink-hairline)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: 8,
+                    textAlign: "center",
+                    letterSpacing: "6px",
+                  }}
+                />
+                <button
+                  onClick={handleVerifyCode}
+                  disabled={phoneBusy || codeInput.length !== 6}
+                  style={{
+                    width: "100%",
+                    background: "none",
+                    border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+                    borderRadius: 8,
+                    cursor: phoneBusy || codeInput.length !== 6 ? "default" : "pointer",
+                    textAlign: "center",
+                    padding: "10px 0",
+                    opacity: phoneBusy ? 0.5 : 1,
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px",
+                      color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                      letterSpacing: "0.5px",
+                      margin: 0,
+                    }}
+                  >
+                    {phoneBusy ? "Verifying..." : "Verify"}
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {phoneState === "linked" && (
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "13px",
+                        color: "var(--session-ink)",
+                        margin: 0,
+                      }}
+                    >
+                      {linkedPhone}
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "9px",
+                        color: "var(--session-sage)",
+                        letterSpacing: "0.5px",
+                        margin: "3px 0 0 0",
+                      }}
+                    >
+                      LINKED
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleChangePhone}
+                    style={{
+                      background: "none",
+                      border: "1px solid var(--session-ink-hairline)",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      padding: "6px 12px",
+                      WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "9px",
+                        color: "var(--session-ink-ghost)",
+                        letterSpacing: "0.5px",
+                        margin: 0,
+                      }}
+                    >
+                      Change
+                    </p>
+                  </button>
+                </div>
+                <a
+                  href="/sage-contact.vcf"
+                  download="Sage (Mantle).vcf"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    background: "none",
+                    border: "1px solid var(--session-sage-muted)",
+                    borderRadius: 8,
+                    textAlign: "center",
+                    padding: "10px 0",
+                    textDecoration: "none",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px",
+                      color: "var(--session-sage)",
+                      letterSpacing: "0.5px",
+                      margin: 0,
+                    }}
+                  >
+                    Add Sage to contacts
+                  </p>
+                </a>
+              </div>
+            )}
+
+            {phoneError && (
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  color: "var(--color-error)",
+                  letterSpacing: "0.5px",
+                  margin: "8px 0 0 0",
+                  textAlign: "center",
+                }}
+              >
+                {phoneError}
+              </p>
+            )}
+          </div>
+        </SettingsRow>
       )}
 
       {/* ─── Feedback hint ──────────────────────────────────────── */}

@@ -77,6 +77,23 @@ flowchart TD
     H --> I["'Explore with Sage' buttons<br/>launch targeted conversation"]
 ```
 
+## Phone linking (Text Sage)
+
+```mermaid
+flowchart TD
+    A["Settings → Text Sage section"] --> B["Tap 'Link your phone to text Sage'"]
+    B --> C["Enter phone number"]
+    C --> D["POST /api/settings/link-phone<br/>(sends 6-digit code via Twilio)"]
+    D --> E["Enter verification code"]
+    E --> F["POST /api/settings/link-phone<br/>(with code)"]
+    F --> G{Code valid?}
+    G -- Yes --> H["Phone linked — shows number + LINKED badge"]
+    H --> I["'Add Sage to contacts' downloads VCF"]
+    H --> J["'Change' button → restart flow"]
+    G -- No --> K["Error: Invalid code / expired"]
+    K --> E
+```
+
 ## Conversation modes (Sage self-manages)
 
 ```mermaid
