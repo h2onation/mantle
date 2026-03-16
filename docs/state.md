@@ -47,9 +47,9 @@
 - **OAuth redirect config**: Redirect URL is built dynamically (window.location.origin + "/auth/callback"). Supabase dashboard must have each environment's URL in allowed redirect URLs.
 
 ## In-Flight Work
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-16*
 
-- Documentation system migration (completing now)
+- Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
 - [Jeff to add: MMS status — Phase 0.5 A2P registration started?]
 - [Jeff to add: any other active workstreams]
