@@ -50,6 +50,7 @@
 *Last verified: 2026-03-16*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
+- Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
 - [Jeff to add: MMS status — Phase 0.5 A2P registration started?]
 - [Jeff to add: any other active workstreams]
