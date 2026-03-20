@@ -53,6 +53,7 @@
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
 - MMS: SMS opt-in page (/sms) deployed, privacy/terms updated with data sharing language. A2P 10DLC CTA verification pending.
+- Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users
