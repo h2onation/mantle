@@ -174,7 +174,7 @@ export default function SeedScreen() {
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: 13,
-              color: "var(--color-error)",
+              color: "var(--session-error)",
               margin: "0 0 12px 0",
             }}
           >

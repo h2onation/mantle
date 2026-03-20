@@ -153,7 +153,7 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
             marginTop: 24,
             fontFamily: "var(--font-sans)",
             fontSize: 11,
-            color: "var(--color-text-ghost)",
+            color: "var(--session-ink-ghost)",
           }}
         >
           <a href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>

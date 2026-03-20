@@ -3,59 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* Base */
-  --color-void: #0C0B0A;
-  --color-surface: #161513;
-  --color-text: #E2E0DB;
-  --color-text-dim: rgba(226, 224, 219, 0.55);
-  --color-text-ghost: rgba(226, 224, 219, 0.25);
-  --color-divider: rgba(226, 224, 219, 0.06);
-
-  /* Sage theme (default) */
-  --color-accent: #8BA888;
-  --color-accent-dim: rgba(139, 168, 136, 0.4);
-  --color-accent-ghost: rgba(139, 168, 136, 0.08);
-  --color-accent-glow: rgba(139, 168, 136, 0.12);
-  --color-accent-strong: rgba(139, 168, 136, 0.55);
-
-  /* Chat surfaces */
-  --color-surface-sage: #151311;
-  --color-shell: #252320;
-
-  /* Chat text */
-  --color-sage-text: #D4CBC0;
-  --color-user-text: #C0B8AD;
-  --color-input-text: #C8BFB4;
-  --color-accent-muted: #7A8B72;
-
-  /* Error */
-  --color-error: #B5564D;
-  --color-error-ghost: rgba(181, 86, 77, 0.12);
-  --color-error-text: rgba(181, 86, 77, 0.7);
-
-  /* Admin */
-  --color-admin-banner-bg: rgba(181, 86, 77, 0.05);
-
-  /* Overlays */
-  --color-backdrop: rgba(0, 0, 0, 0.5);
-  --color-backdrop-heavy: rgba(0, 0, 0, 0.6);
-
-  /* Input states */
-  --color-input-border: rgba(212, 203, 192, 0.12);
-  --color-input-border-focus: rgba(122, 139, 114, 0.2);
-  --color-input-border-active: rgba(122, 139, 114, 0.35);
-  --color-input-placeholder: rgba(212, 203, 192, 0.28);
-
-  /* Onboarding forms */
-  --color-input-bg: rgba(255, 255, 255, 0.025);
-  --color-input-focus-glow: rgba(91, 117, 83, 0.06);
-  --color-checkbox-border: rgba(255, 255, 255, 0.12);
-  --color-checkbox-check: rgba(139, 157, 119, 0.8);
-  --color-btn-disabled-text: rgba(232, 228, 221, 0.18);
-  --color-btn-disabled-bg: rgba(255, 255, 255, 0.03);
-  --color-btn-disabled-border: rgba(255, 255, 255, 0.04);
-
-  /* ─── Session Linen Tokens ─── */
+  /* ─── Linen Design System ─── */
 
   /* Surface */
   --session-linen:       #F4F0EA;
@@ -86,6 +34,16 @@
   --session-navy-glow:    rgba(70, 85, 115, 0.16);
   --session-navy-divider: rgba(45, 55, 80, 0.10);
 
+  /* Error */
+  --session-error:        #B5564D;
+  --session-error-ghost:  rgba(181, 86, 77, 0.12);
+  --session-error-text:   rgba(181, 86, 77, 0.7);
+  --session-error-banner: rgba(181, 86, 77, 0.05);
+
+  /* Overlays */
+  --session-backdrop:       rgba(0, 0, 0, 0.5);
+  --session-backdrop-heavy: rgba(0, 0, 0, 0.6);
+
   /* Gold shadow system */
   --session-glow-cp:     rgba(185, 170, 110, 0.30);
   --session-glow-scroll: rgba(200, 185, 140, 0.25);
@@ -104,15 +62,15 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
-  background-color: var(--color-void);
-  color: var(--color-text);
+  background-color: var(--session-linen);
+  color: var(--session-ink);
 }
 
 textarea::placeholder {
-  color: var(--color-text-dim);
+  color: var(--session-ink-faded);
 }
 
-/* Thin dark scrollbars */
+/* Thin scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -122,13 +80,13 @@ textarea::placeholder {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-divider);
+  background: var(--session-ink-hairline);
   border-radius: 2px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-divider) transparent;
+  scrollbar-color: var(--session-ink-hairline) transparent;
 }
 
 /* Checkpoint fade-in */

@@ -169,7 +169,7 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontSize: 13,
-                  color: "var(--color-error)",
+                  color: "var(--session-error)",
                   margin: "0 0 16px 0",
                 }}
               >
@@ -299,7 +299,7 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontSize: 13,
-                  color: "var(--color-error)",
+                  color: "var(--session-error)",
                   margin: "0 0 16px 0",
                 }}
               >

@@ -312,14 +312,14 @@ export default function MobileSettings({
 
           <SettingsRow
             title="Delete user data"
-            titleColor="var(--color-error)"
+            titleColor="var(--session-error)"
             subtitle="Removes manual and conversations"
             onClick={() => setShowDeleteDataConfirm(true)}
           />
 
           <SettingsRow
             title="Delete account"
-            titleColor="var(--color-error)"
+            titleColor="var(--session-error)"
             subtitle="Cannot be undone"
             onClick={() => setShowDeleteAccountConfirm(true)}
             noBorder
@@ -652,7 +652,7 @@ export default function MobileSettings({
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "9px",
-                  color: "var(--color-error)",
+                  color: "var(--session-error)",
                   letterSpacing: "0.5px",
                   margin: "8px 0 0 0",
                   textAlign: "center",
@@ -802,7 +802,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: simStatus.includes("ailed") ? "#B5564D" : "var(--session-sage)",
+                color: simStatus.includes("ailed") ? "var(--session-error)" : "var(--session-sage)",
                 letterSpacing: "0.5px",
                 margin: "8px 0 0",
                 textAlign: "center",

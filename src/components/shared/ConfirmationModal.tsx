@@ -28,7 +28,7 @@ export default function ConfirmationModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "var(--color-backdrop-heavy)",
+        backgroundColor: "var(--session-backdrop-heavy)",
         padding: "32px",
       }}
     >
@@ -78,10 +78,10 @@ export default function ConfirmationModal({
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
               fontWeight: 500,
-              color: isDestructive ? "var(--color-error)" : "var(--session-ink)",
+              color: isDestructive ? "var(--session-error)" : "var(--session-ink)",
               backgroundColor: "transparent",
               border: isDestructive
-                ? "1px solid var(--color-error)"
+                ? "1px solid var(--session-error)"
                 : "1px solid var(--session-ink-hairline)",
               borderRadius: "10px",
               cursor: "pointer",

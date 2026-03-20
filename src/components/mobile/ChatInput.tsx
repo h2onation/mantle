@@ -147,7 +147,7 @@ export default function ChatInput({
             padding: "6px 12px",
             marginBottom: "6px",
             borderRadius: "8px",
-            backgroundColor: "var(--color-error-ghost)",
+            backgroundColor: "var(--session-error-ghost)",
             animation: "checkpointFadeIn 0.3s ease-out both",
           }}
         >
@@ -155,7 +155,7 @@ export default function ChatInput({
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "12px",
-              color: "var(--color-error-text)",
+              color: "var(--session-error-text)",
             }}
           >
             {voice.error}

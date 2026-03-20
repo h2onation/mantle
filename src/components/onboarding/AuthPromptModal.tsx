@@ -57,7 +57,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
         position: "fixed",
         inset: 0,
         zIndex: 400,
-        backgroundColor: "var(--color-backdrop-heavy)",
+        backgroundColor: "var(--session-backdrop-heavy)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -107,7 +107,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: 13,
-              color: "var(--color-error)",
+              color: "var(--session-error)",
               margin: "0 0 16px 0",
             }}
           >

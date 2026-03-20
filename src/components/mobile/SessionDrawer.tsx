@@ -38,7 +38,7 @@ export default function SessionDrawer({
         style={{
           position: "fixed",
           inset: 0,
-          backgroundColor: "var(--color-backdrop)",
+          backgroundColor: "var(--session-backdrop)",
           zIndex: 200,
           opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",

@@ -371,7 +371,7 @@ export default function MobileSession({
                           fontWeight: 400,
                           letterSpacing: "3px",
                           textTransform: "uppercase",
-                          color: "var(--cp-text-accent, var(--color-accent-dim))",
+                          color: "var(--cp-text-accent, var(--session-sage-soft))",
                           marginBottom: "12px",
                           lineHeight: 1,
                         }}
@@ -877,7 +877,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "var(--color-backdrop-heavy)",
+        backgroundColor: "var(--session-backdrop-heavy)",
         padding: "32px",
       }}
     >
