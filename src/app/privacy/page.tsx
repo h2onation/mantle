@@ -8,9 +8,9 @@ export default function PrivacyPolicy() {
   return (
     <div
       style={{
-        backgroundColor: "var(--color-void)",
+        backgroundColor: "var(--session-linen)",
         minHeight: "100vh",
-        color: "var(--color-text)",
+        color: "var(--session-ink)",
       }}
     >
       <div
@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
         >
           Privacy Policy
         </h1>
-        <p style={{ color: "var(--color-text-dim)", margin: "0 0 32px 0" }}>
+        <p style={{ color: "var(--session-ink-mid)", margin: "0 0 32px 0" }}>
           Last updated: March 14, 2026
         </p>
 
@@ -175,7 +175,10 @@ export default function PrivacyPolicy() {
           from Sage at the number you provided. Messages are sent only in
           response to conversations you initiate. You can stop receiving messages
           at any time by texting STOP. Message and data rates may apply. Message
-          frequency varies based on your usage.
+          frequency varies based on your usage. No mobile information
+          collected as part of the SMS opt-in process will be shared with or
+          sold to third parties or affiliates for marketing or promotional
+          purposes.
         </p>
 
         <h2
@@ -242,13 +245,13 @@ export default function PrivacyPolicy() {
           style={{
             marginTop: 48,
             paddingTop: 20,
-            borderTop: "1px solid var(--color-divider)",
+            borderTop: "1px solid var(--session-ink-hairline)",
           }}
         >
           <a
             href="https://trustthemantle.com"
             style={{
-              color: "var(--color-accent)",
+              color: "var(--session-sage)",
               textDecoration: "none",
               fontSize: 13,
             }}

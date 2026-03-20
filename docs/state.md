@@ -36,7 +36,7 @@
 - **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
-- **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built
+- **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance).
 
 ## Known Issues
 *Last verified: 2026-03-15*
@@ -52,7 +52,7 @@
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
-- [Jeff to add: MMS status — Phase 0.5 A2P registration started?]
+- MMS: SMS opt-in page (/sms) deployed, privacy/terms updated with data sharing language. A2P 10DLC CTA verification pending.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users

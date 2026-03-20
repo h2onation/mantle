@@ -8,9 +8,9 @@ export default function TermsOfService() {
   return (
     <div
       style={{
-        backgroundColor: "var(--color-void)",
+        backgroundColor: "var(--session-linen)",
         minHeight: "100vh",
-        color: "var(--color-text)",
+        color: "var(--session-ink)",
       }}
     >
       <div
@@ -33,7 +33,7 @@ export default function TermsOfService() {
         >
           Terms of Service
         </h1>
-        <p style={{ color: "var(--color-text-dim)", margin: "0 0 32px 0" }}>
+        <p style={{ color: "var(--session-ink-mid)", margin: "0 0 32px 0" }}>
           Last updated: March 14, 2026
         </p>
 
@@ -188,7 +188,7 @@ export default function TermsOfService() {
           Your use of Mantle is also governed by our{" "}
           <a
             href="/privacy"
-            style={{ color: "var(--color-accent)", textDecoration: "none" }}
+            style={{ color: "var(--session-sage)", textDecoration: "none" }}
           >
             Privacy Policy
           </a>
@@ -241,13 +241,13 @@ export default function TermsOfService() {
           style={{
             marginTop: 48,
             paddingTop: 20,
-            borderTop: "1px solid var(--color-divider)",
+            borderTop: "1px solid var(--session-ink-hairline)",
           }}
         >
           <a
             href="https://trustthemantle.com"
             style={{
-              color: "var(--color-accent)",
+              color: "var(--session-sage)",
               textDecoration: "none",
               fontSize: 13,
             }}
