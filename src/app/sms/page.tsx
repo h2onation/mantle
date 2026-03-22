@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 export default function SmsPage() {
   return (
     <div
+      className="scrollable-page"
       style={{
         backgroundColor: "var(--session-linen)",
         minHeight: "100vh",

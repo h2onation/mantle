@@ -4,6 +4,7 @@ import Link from "next/link";
 export default function SmsOptInScreenshot() {
   return (
     <main
+      className="scrollable-page"
       style={{
         maxWidth: 640,
         margin: "0 auto",
