@@ -36,7 +36,7 @@
 - **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
-- **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance).
+- **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance). SMS consent disclosure added to Settings phone input. Screenshot page at /sms-opt-in-screenshot.
 
 ## Known Issues
 *Last verified: 2026-03-15*

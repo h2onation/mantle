@@ -464,6 +464,36 @@ export default function MobileSettings({
                     marginBottom: 8,
                   }}
                 />
+
+                {/* SMS consent disclosure */}
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    color: "var(--session-ink-faded)",
+                    lineHeight: 1.5,
+                    margin: "4px 0 10px 0",
+                    padding: "0 2px",
+                  }}
+                >
+                  By entering your phone number, you agree to receive text messages
+                  from Sage by Mantle. Message frequency varies. Msg &amp; data rates
+                  may apply. Reply STOP to opt out. See our{" "}
+                  <a
+                    href="/privacy"
+                    style={{ color: "var(--session-ink-faded)", textDecoration: "underline" }}
+                  >
+                    Privacy Policy
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/terms"
+                    style={{ color: "var(--session-ink-faded)", textDecoration: "underline" }}
+                  >
+                    Terms
+                  </a>
+                  .
+                </p>
                 <button
                   onClick={handleSendCode}
                   disabled={phoneBusy || !phoneInput.trim()}

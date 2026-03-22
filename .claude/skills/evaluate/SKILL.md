@@ -1,7 +1,4 @@
----
-name: evaluate
-description: Evaluate a Sage conversation transcript against the quality framework.
----
+# Evaluate Sage Conversation
 Read these files first (in order):
 1. src/lib/sage/system-prompt.ts
 2. src/lib/sage/confirm-checkpoint.ts
