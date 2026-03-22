@@ -1,90 +1,92 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "SMS Opt-In Flow — Mantle",
-};
+import Image from "next/image";
+import Link from "next/link";
 
 export default function SmsOptInScreenshot() {
   return (
-    <div
+    <main
       style={{
-        backgroundColor: "var(--session-linen)",
+        maxWidth: 640,
+        margin: "0 auto",
+        padding: "48px 24px",
+        fontFamily: "var(--font-sans, system-ui, sans-serif)",
+        color: "#3a3632",
+        background: "#f5f0eb",
         minHeight: "100vh",
-        color: "var(--session-ink)",
       }}
     >
-      <div
+      <h1
         style={{
-          maxWidth: 640,
-          margin: "0 auto",
-          padding: "40px 20px",
-          fontFamily: "var(--font-sans)",
-          fontSize: 14,
-          lineHeight: 1.6,
+          fontSize: "24px",
+          fontWeight: 400,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          marginBottom: 8,
         }}
       >
-        <h1
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 28,
-            fontWeight: 400,
-            margin: "0 0 8px 0",
-          }}
-        >
-          SMS Opt-In Flow
-        </h1>
-        <p style={{ color: "var(--session-ink-mid)", margin: "0 0 32px 0" }}>
-          Below is a screenshot of how users opt in to receive SMS messages from
-          Sage within the Mantle app.
-        </p>
+        SMS Opt-In Flow
+      </h1>
 
-        <img
+      <p
+        style={{
+          fontSize: "15px",
+          color: "#8a8480",
+          lineHeight: 1.6,
+          marginBottom: 32,
+        }}
+      >
+        Below is a screenshot of how users opt in to receive SMS messages from
+        Sage within the Mantle app.
+      </p>
+
+      <div
+        style={{
+          border: "1px solid rgba(26, 22, 20, 0.1)",
+          borderRadius: 12,
+          overflow: "hidden",
+          marginBottom: 32,
+        }}
+      >
+        <Image
           src="/sms-opt-in.png"
-          alt="Screenshot of the SMS opt-in flow in Mantle. Users enter their phone number in Settings and complete SMS verification to confirm consent."
-          style={{
-            width: "100%",
-            maxWidth: 480,
-            borderRadius: 8,
-            border: "1px solid var(--session-ink-faint, #e0d9d0)",
-            display: "block",
-            margin: "0 auto 24px auto",
-          }}
+          alt="Screenshot of SMS opt-in flow in the Mantle app Settings page, showing phone number input, consent disclosure text, and Send verification code button"
+          width={450}
+          height={900}
+          style={{ width: "100%", height: "auto", display: "block" }}
+          priority
         />
-
-        <p style={{ margin: "0 0 32px 0" }}>
-          Users navigate to Settings, enter their phone number, and complete SMS
-          verification to confirm consent.
-        </p>
-
-        <nav
-          style={{
-            borderTop: "1px solid var(--session-ink-faint, #e0d9d0)",
-            paddingTop: 20,
-            display: "flex",
-            gap: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          <a
-            href="/sms"
-            style={{ color: "var(--session-ink-mid)", textDecoration: "underline" }}
-          >
-            SMS Info
-          </a>
-          <a
-            href="/privacy"
-            style={{ color: "var(--session-ink-mid)", textDecoration: "underline" }}
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="/terms"
-            style={{ color: "var(--session-ink-mid)", textDecoration: "underline" }}
-          >
-            Terms of Service
-          </a>
-        </nav>
       </div>
-    </div>
+
+      <p
+        style={{
+          fontSize: "15px",
+          color: "#8a8480",
+          lineHeight: 1.6,
+          marginBottom: 40,
+        }}
+      >
+        Users navigate to Settings, enter their phone number, and complete SMS
+        verification to confirm consent.
+      </p>
+
+      <nav
+        style={{
+          display: "flex",
+          gap: 24,
+          fontSize: "13px",
+          borderTop: "1px solid rgba(26, 22, 20, 0.1)",
+          paddingTop: 24,
+        }}
+      >
+        <Link href="/sms" style={{ color: "#8a8480", textDecoration: "underline" }}>
+          SMS
+        </Link>
+        <Link href="/privacy" style={{ color: "#8a8480", textDecoration: "underline" }}>
+          Privacy Policy
+        </Link>
+        <Link href="/terms" style={{ color: "#8a8480", textDecoration: "underline" }}>
+          Terms
+        </Link>
+      </nav>
+    </main>
   );
 }

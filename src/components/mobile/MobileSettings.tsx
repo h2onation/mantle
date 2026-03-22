@@ -464,13 +464,11 @@ export default function MobileSettings({
                     marginBottom: 8,
                   }}
                 />
-
-                {/* SMS consent disclosure */}
                 <p
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "11px",
-                    color: "var(--session-ink-faded)",
+                    color: "#8a8480",
                     lineHeight: 1.5,
                     margin: "4px 0 10px 0",
                     padding: "0 2px",
@@ -481,14 +479,14 @@ export default function MobileSettings({
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
-                    style={{ color: "var(--session-ink-faded)", textDecoration: "underline" }}
+                    style={{ color: "#6e6a66", textDecoration: "underline" }}
                   >
                     Privacy Policy
                   </a>{" "}
                   and{" "}
                   <a
                     href="/terms"
-                    style={{ color: "var(--session-ink-faded)", textDecoration: "underline" }}
+                    style={{ color: "#6e6a66", textDecoration: "underline" }}
                   >
                     Terms
                   </a>
