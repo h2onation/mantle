@@ -44,13 +44,15 @@ export default function SmsOptInScreenshot() {
           borderRadius: 12,
           overflow: "hidden",
           marginBottom: 32,
+          maxWidth: 320,
+          margin: "0 auto 32px auto",
         }}
       >
         <Image
           src="/sms-opt-in.png"
           alt="Screenshot of SMS opt-in flow in the Mantle app Settings page, showing phone number input, consent disclosure text, and Send verification code button"
-          width={450}
-          height={900}
+          width={320}
+          height={552}
           style={{ width: "100%", height: "auto", display: "block" }}
           priority
         />
