@@ -130,7 +130,7 @@ export default function PatternItem({ pattern, isNew, layerId, layerName, onExpl
       {/* Expandable content */}
       <div
         style={{
-          maxHeight: expanded ? 500 : 0,
+          maxHeight: expanded ? 2000 : 0,
           opacity: expanded ? 1 : 0,
           overflow: "hidden",
           transition:
