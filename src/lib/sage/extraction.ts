@@ -165,14 +165,14 @@ Where is the conversation in its vertical descent?
 Evaluate whether there is enough material for a meaningful checkpoint. This is purely a quality assessment. Number of turns is irrelevant.
 
 STANDARD GATE (all must be true):
-- concrete_examples >= 2: At least two specific, concrete moments from the user's life (not abstract claims like "I'm always anxious" but real situations they walked through)
+- concrete_examples >= 2: At least two specific, concrete moments from the user's life (not abstract claims like "I'm always anxious" but real situations they walked through). A concrete example requires: a specific moment in time, what happened, and what the user did or felt. References to recurring situations ("when he snaps," "at work") do NOT count. The user must have narrated the scene, not just named the topic.
 - has_mechanism: The conversation has reached WHY, not just WHAT. There's a connection between surface behavior and an underlying driver, need, or belief.
 - has_charged_language: The language bank contains at least one high-charge phrase that can anchor the checkpoint.
 - has_behavior_driver_link: A clear line exists between an observable behavior and what's fueling it.
 
 FIRST-CHECKPOINT GATE (lighter, when "is_first_checkpoint" is true):
 The first checkpoint is a teaching moment. The user needs to experience the confirm-and-write loop quickly. Lighter bar:
-- concrete_examples >= 1: One vivid, specific moment is enough.
+- concrete_examples >= 1: One vivid, specific moment is enough. The user must have narrated the scene (what happened, what they did or felt), not just referenced a topic or recurring situation.
 - has_charged_language: true
 - has_mechanism OR has_behavior_driver_link: at least one.
 
