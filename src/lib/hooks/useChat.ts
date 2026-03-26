@@ -190,17 +190,18 @@ export function useChat() {
       }
     }
 
-    // Wait for auth
+    // Wait for auth — use getUser() (server-validated) instead of
+    // getSession() which reads from cache and can return stale tokens.
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (!authUser) {
       router.push("/login");
       return;
     }
 
-    setUserEmail(session.user.email || "");
-    setIsGuest(session.user.is_anonymous === true);
+    setUserEmail(authUser.email || "");
+    setIsGuest(authUser.is_anonymous === true);
 
     // Load all conversations via API
     let allConversations: ConversationSummaryItem[] = [];

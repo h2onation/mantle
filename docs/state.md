@@ -39,15 +39,16 @@
 - **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance). SMS consent disclosure added to Settings phone input. Screenshot page at /sms-opt-in-screenshot.
 
 ## Known Issues
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-25*
 
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word-count heuristic (100+ for returning users, 60+ for first-session) is in the classifier prompt but not enforced in code — if Haiku returns isCheckpoint: true with a valid layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling getUser() on each page request. If user stays on the SPA without page navigation, token could expire. API routes return 401 → redirect to /login as fallback.
 - **Ghost conversation rows**: If useChat init sends conversationId: null and the user sends a message before state updates, a second conversation could be created. Mitigated by initStarted.current ref guard and isLoading/isStreaming checks, but not impossible.
 - **OAuth redirect config**: Redirect URL is built dynamically (window.location.origin + "/auth/callback"). Supabase dashboard must have each environment's URL in allowed redirect URLs.
+- ~~**OAuth session leak (FIXED 2026-03-25)**: Auth callback responses could be cached by Vercel CDN, causing one user to receive another user's session cookies on OAuth redirect. Additionally, client hooks (useChat, useIsAdmin) used `getSession()` which reads from cache without server validation. Fix: added `force-dynamic` + `Cache-Control: no-store` to auth callback, replaced all client-side `getSession()` with `getUser()`.~~
 
 ## In-Flight Work
-*Last verified: 2026-03-16*
+*Last verified: 2026-03-25*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
@@ -56,6 +57,7 @@
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
 - MMS: SMS opt-in page (/sms) deployed, privacy/terms updated with data sharing language. A2P 10DLC CTA verification pending.
 - Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
+- Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users

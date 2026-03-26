@@ -6,8 +6,10 @@ export function useIsAdmin(): boolean {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const role = session?.user?.app_metadata?.role;
+    // Use getUser() (server-validated) instead of getSession() which
+    // reads from cache and can return stale/wrong user data.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const role = user?.app_metadata?.role;
       setIsAdmin(role === "admin");
     });
   }, []);

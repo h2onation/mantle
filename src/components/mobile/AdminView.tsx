@@ -967,7 +967,7 @@ export default function AdminView() {
 
                           {/* Per-turn extraction snapshot */}
                           {msg.extraction_snapshot && (
-                            <ExtractionPanel snapshot={msg.extraction_snapshot as ExtractionSnapshot} />
+                            <ExtractionPanel snapshot={msg.extraction_snapshot as ExtractionSnapshot} forceExpanded={showAllLogs} />
                           )}
                         </div>
                       );
