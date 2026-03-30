@@ -47,12 +47,13 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("LEGAL BOUNDARIES");
     });
 
-    it("contains all four hard rules", () => {
+    it("contains all five hard rules", () => {
       const result = build();
       expect(result).toContain("Never diagnose");
       expect(result).toContain("Never prescribe");
       expect(result).toContain("Never assess their state");
       expect(result).toContain("Never claim clinical competence");
+      expect(result).toContain("Never fabricate knowledge of external content");
     });
 
     it("contains clinical material guidance", () => {
@@ -473,6 +474,52 @@ describe("buildSystemPrompt", () => {
     it("excludes BUILDING TOWARD SIGNAL when checkpointApproaching is false", () => {
       const result = build({ checkpointApproaching: false });
       expect(result).not.toContain("BUILDING TOWARD SIGNAL");
+    });
+  });
+
+  // ─── Shared content (URL) ─────────────────────────────────────────────────
+  describe("shared content (URL)", () => {
+    it("includes fetched content and 'you HAVE read it' when fetch succeeds", () => {
+      const result = build({
+        contentContext: {
+          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
+          fetchedContent: { success: true, title: "Test Article", text: "Article body text here." },
+        },
+      });
+      expect(result).toContain("SHARED CONTENT");
+      expect(result).toContain("you HAVE read it");
+      expect(result).toContain("Article body text here.");
+      expect(result).toContain("Title: Test Article");
+    });
+
+    it("includes hard prohibition against guessing when fetch fails", () => {
+      const result = build({
+        contentContext: {
+          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
+          fetchedContent: { success: false, error: "blocked" },
+        },
+      });
+      expect(result).toContain("FETCH FAILED");
+      expect(result).toContain("MUST NOT describe, summarize, or characterize");
+      expect(result).toContain("Do not guess from the URL");
+      expect(result).not.toContain("you HAVE read it");
+    });
+
+    it("includes hard prohibition when fetch returns null", () => {
+      const result = build({
+        contentContext: {
+          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
+          fetchedContent: null,
+        },
+      });
+      expect(result).toContain("FETCH FAILED");
+      expect(result).toContain("MUST NOT describe, summarize, or characterize");
+    });
+
+    it("base prompt always contains external content fabrication guard", () => {
+      const result = build();
+      expect(result).toContain("Never fabricate knowledge of external content");
+      expect(result).toContain("Do not guess from the URL, domain name, path");
     });
   });
 

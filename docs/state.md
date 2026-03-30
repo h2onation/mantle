@@ -30,7 +30,7 @@
 - Admin panel: user list, conversation viewer, message viewer with extraction state, access logging
 - Exploration mode: "Explore with Sage" from manual entries
 - Transcript recognition: regex detects pasted transcripts (iMessage, email, journal, timestamped chat), loads conditional prompt section so Sage asks for context, cross-references manual, focuses on user's behavior. No UI changes.
-- Resonant content: URL detection + fetch (5s timeout, HTML text extraction, 3000-word cap). Sage describes content in one sentence, asks what resonated, connects to manual only after user leads. Graceful fallback when fetch fails. No UI changes, no new dependencies.
+- Resonant content: URL detection + fetch (5s timeout, HTML text extraction, 3000-word cap). Sage describes content in one sentence, asks what resonated, connects to manual only after user leads. Graceful fallback when fetch fails. Hard rule prevents Sage from fabricating content descriptions when fetch fails or no content is present — guessing from URLs is blocked in base prompt. No UI changes, no new dependencies.
 
 ## Not Yet Functional
 *Last verified: 2026-03-15*
@@ -72,7 +72,7 @@
 ## Test Suite
 *Last verified: 2026-03-30*
 
-- Test count: 217
+- Test count: 221
 - All pass, < 1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
