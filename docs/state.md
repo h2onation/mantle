@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-30*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -29,6 +29,7 @@
 - Guest-to-real auth conversion after first checkpoint
 - Admin panel: user list, conversation viewer, message viewer with extraction state, access logging
 - Exploration mode: "Explore with Sage" from manual entries
+- Transcript recognition: regex detects pasted transcripts (iMessage, email, journal, timestamped chat), loads conditional prompt section so Sage asks for context, cross-references manual, focuses on user's behavior. No UI changes.
 
 ## Not Yet Functional
 *Last verified: 2026-03-15*
@@ -68,9 +69,9 @@
 - Success metric: 3+ out of 10 return for 3rd session unprompted within 2 weeks
 
 ## Test Suite
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-30*
 
-- Test count: 185
+- Test count: 200
 - All pass, < 1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
