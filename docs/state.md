@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-30*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -25,7 +25,7 @@
 - Dev simulate: Settings → "Simulate user" → auto-runs conversation until checkpoint
 - Dev reset: deletes all user data (not profile/auth) + localStorage clear
 - Crisis protocol: detects crisis language, provides 988 + Crisis Text Line
-- Voice input (Deepgram)
+- Voice input (Deepgram): auto-scroll during transcription, 3.5-line max height on input
 - Guest-to-real auth conversion after first checkpoint
 - Admin panel: user list, conversation viewer, message viewer with extraction state, access logging
 - Exploration mode: "Explore with Sage" from manual entries
@@ -39,7 +39,7 @@
 - **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance). SMS consent disclosure added to Settings phone input. Screenshot page at /sms-opt-in-screenshot.
 
 ## Known Issues
-*Last verified: 2026-03-25*
+*Last verified: 2026-03-30*
 
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word-count heuristic (100+ for returning users, 60+ for first-session) is in the classifier prompt but not enforced in code — if Haiku returns isCheckpoint: true with a valid layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling getUser() on each page request. If user stays on the SPA without page navigation, token could expire. API routes return 401 → redirect to /login as fallback.
@@ -48,7 +48,7 @@
 - ~~**OAuth session leak (FIXED 2026-03-25)**: Auth callback responses could be cached by Vercel CDN, causing one user to receive another user's session cookies on OAuth redirect. Additionally, client hooks (useChat, useIsAdmin) used `getSession()` which reads from cache without server validation. Fix: added `force-dynamic` + `Cache-Control: no-store` to auth callback, replaced all client-side `getSession()` with `getUser()`.~~
 
 ## In-Flight Work
-*Last verified: 2026-03-25*
+*Last verified: 2026-03-30*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
@@ -58,6 +58,7 @@
 - MMS: SMS opt-in page (/sms) deployed, privacy/terms updated with data sharing language. A2P 10DLC CTA verification pending.
 - Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
 - Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
+- Sage prompt tuning (2026-03-30): Thirteen fixes from fifth and sixth audits across three evaluation sessions. Abstract stacking: added concrete violation example. Reframe rule: added three WRONG/RIGHT examples. Other-person inner state: upgraded to HARD RULE with example conversion to question. Confirmation questions: banned closed questions that confirm Sage's own hypothesis. Gender: added gender-assumption guard (default to "you"/"they"). Checkpoint delivery: formalized 4-step delivery sequence with violation checks, raised observation minimum to 5-8 sentences, added bind requirement. Checkpoint gating: block checkpoint when user expresses uncertainty about generalization, treat "help me think through it" as exploration invitation not checkpoint permission.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users

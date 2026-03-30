@@ -36,10 +36,11 @@ export default function ChatInput({
     if (!el) return;
     el.style.height = "auto";
     const lineHeight = 24;
-    const maxLines = 6;
-    const maxHeight = lineHeight * maxLines;
+    const maxHeight = lineHeight * 3.5; // ~84px — 3.5 lines, partial cutoff signals more text
     el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
     el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+    // Auto-scroll to bottom so latest transcription text is always visible
+    el.scrollTop = el.scrollHeight;
   }, [input]);
 
   // Auto-dismiss voice error after 3s
