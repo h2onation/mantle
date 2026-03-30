@@ -1,5 +1,7 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
+import type { FetchedContent } from "@/lib/utils/fetch-url-content";
+import type { UrlDetection } from "@/lib/utils/url-detection";
 
 interface ManualComponent {
   layer: number;
@@ -17,6 +19,10 @@ export interface BuildPromptOptions {
   sessionCount?: number;
   explorationContext?: ExplorationContext;
   transcriptContext?: TranscriptDetection | null;
+  contentContext?: {
+    urlDetection: UrlDetection;
+    fetchedContent: FetchedContent | null;
+  } | null;
   turnCount: number;
   hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
@@ -32,6 +38,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     sessionCount,
     explorationContext,
     transcriptContext,
+    contentContext,
     turnCount,
     hasPatternEligibleLayer,
     checkpointApproaching,
@@ -110,6 +117,54 @@ After discussing the transcript, you may propose a new example for an existing t
     dynamicContext += `
 The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
 `;
+  }
+
+  // ─── Shared content context (URL) ─────────────────────────────────────
+  if (contentContext?.urlDetection.hasUrl) {
+    const fetched = contentContext.fetchedContent;
+    const userText = contentContext.urlDetection.userContext;
+
+    if (fetched?.success && fetched.text) {
+      dynamicContext += `
+SHARED CONTENT
+
+The user shared a link. Here is what the page contains:
+${fetched.title ? `\nTitle: ${fetched.title}` : ""}
+Content:
+${fetched.text}
+${userText ? `\nThe user said alongside the link: "${userText}"` : ""}
+APPROACH
+- Acknowledge the content with a brief, neutral one-sentence description of what it covers. Prove you read it.
+- Then ask what resonated: "What about this resonated with you?" or "What stood out?"
+- Do NOT analyze the content independently, lecture about the topic, or immediately connect it to the manual.
+- Wait for the user to describe what landed. THEN connect to manual patterns if relevant.
+- The user's reaction is the primary data, not the content itself.
+- Do not reproduce, extensively quote, or summarize the full content back to the user.
+- Do not diagnose based on content ("based on this article, you might have...").
+- Do not critique or evaluate the quality of the content.
+${userText ? "- The user provided framing alongside the link. Acknowledge their framing before asking what resonated. If they already told you what landed, skip the \"what resonated\" question and go deeper." : ""}
+MANUAL WRITING
+After discussing what resonated, you may propose manual entries as usual. Reference the content briefly in the entry text (e.g. "shared an article about X, said: 'quote from user'"). Do not store the content itself.
+`;
+    } else {
+      // Fetch failed — ask user to paste or describe
+      const reason = fetched?.error || "unknown";
+      const friendlyReason =
+        reason === "timeout" ? "it took too long to load" :
+        reason === "blocked" ? "the site blocked access" :
+        reason === "not_found" ? "the page wasn't found" :
+        reason === "no_readable_content" ? "there wasn't readable text on the page" :
+        "it couldn't be accessed";
+
+      dynamicContext += `
+SHARED CONTENT
+
+The user shared a link but the content couldn't be read (${friendlyReason}).
+${userText ? `The user said alongside the link: "${userText}"` : ""}
+Respond naturally. Something like: "I can't access that link directly. If you can share the key part that stuck with you, paste the text or just tell me what it was about and what landed, I can work with that."
+${userText ? "The user provided some framing. Acknowledge what they said, then ask them to share the content or describe what landed." : ""}
+`;
+    }
   }
 
   // ─── Base prompt (ALWAYS) ──────────────────────────────────────────────
