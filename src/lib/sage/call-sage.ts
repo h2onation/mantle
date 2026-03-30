@@ -10,6 +10,9 @@ import {
 } from "@/lib/sage/extraction";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
+import { detectUrls } from "@/lib/utils/url-detection";
+import { fetchUrlContent } from "@/lib/utils/fetch-url-content";
+import type { FetchedContent } from "@/lib/utils/fetch-url-content";
 
 // ── Extracted pure functions (testable without mocking) ──
 
@@ -400,10 +403,27 @@ export function callSage({
             );
         }
 
-        // 7b. Transcript detection — lightweight regex, no API cost
-        const transcriptDetection = message
-          ? detectTranscript(message)
-          : null;
+        // 7b. URL detection — runs first, takes priority over transcript detection
+        const urlDetection = message ? detectUrls(message) : null;
+        let fetchedContent: FetchedContent | null = null;
+
+        if (urlDetection?.hasUrl) {
+          // Fetch the first URL (5-second timeout built into fetchUrlContent)
+          fetchedContent = await fetchUrlContent(urlDetection.urls[0]);
+
+          if (process.env.NODE_ENV !== "production") {
+            console.log(
+              "[sage-debug] URL fetched: %s | success: %s | title: %s",
+              urlDetection.urls[0],
+              fetchedContent.success,
+              fetchedContent.title || "(none)"
+            );
+          }
+        }
+
+        // 7c. Transcript detection — only if no URL detected
+        const transcriptDetection =
+          message && !urlDetection?.hasUrl ? detectTranscript(message) : null;
 
         // 8. Build system prompt using PREVIOUS extraction state (no waiting)
         const extractionForSage = previousExtraction
@@ -442,6 +462,9 @@ export function callSage({
           sessionCount,
           explorationContext,
           transcriptContext: transcriptDetection,
+          contentContext: urlDetection?.hasUrl
+            ? { urlDetection, fetchedContent }
+            : null,
           turnCount,
           hasPatternEligibleLayer,
           checkpointApproaching,
