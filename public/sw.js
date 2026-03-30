@@ -1,9 +1,11 @@
 // Mantle Service Worker
 // Manual implementation — no library dependencies
 
-const PRECACHE = 'mantle-precache-v1';
-const RUNTIME = 'mantle-runtime-v1';
-const PRECACHE_URLS = ['/', '/login', '/offline.html'];
+const PRECACHE = 'mantle-precache-v2';
+const RUNTIME = 'mantle-runtime-v2';
+// Only precache static files. Never precache auth-dependent pages
+// like / or /login — they return different content based on session.
+const PRECACHE_URLS = ['/offline.html'];
 
 // Install: precache app shell
 self.addEventListener('install', (event) => {
@@ -40,8 +42,11 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
 
-  // Network-only: API routes and auth callback
+  // Network-only: API routes, auth callback, and Next.js RSC requests
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
+    return;
+  }
+  if (event.request.headers.get('RSC') === '1') {
     return;
   }
 
