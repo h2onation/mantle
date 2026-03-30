@@ -10,6 +10,8 @@ import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileGuidance from "@/components/mobile/MobileGuidance";
 import MobileSettings from "@/components/mobile/MobileSettings";
+import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
+import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
 
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
 
@@ -22,6 +24,7 @@ export default function MainApp() {
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
+  const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // Clean up post-OAuth conversion flag
   useEffect(() => {
@@ -235,6 +238,9 @@ export default function MainApp() {
           )}
         </div>
       )}
+
+      {/* SW update prompt */}
+      {updateAvailable && <SWUpdatePrompt onUpdate={applyUpdate} />}
 
       {/* Auth prompt modal for guest users */}
       {showAuthModal && (

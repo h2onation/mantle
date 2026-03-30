@@ -31,6 +31,8 @@
 - Exploration mode: "Explore with Sage" from manual entries
 - Transcript recognition: regex detects pasted transcripts (iMessage, email, journal, timestamped chat), loads conditional prompt section so Sage asks for context, cross-references manual, focuses on user's behavior. No UI changes.
 - Resonant content: URL detection + fetch (5s timeout, HTML text extraction, 3000-word cap). Sage describes content in one sentence, asks what resonated, connects to manual only after user leads. Graceful fallback when fetch fails. Hard rule prevents Sage from fabricating content descriptions when fetch fails or no content is present — guessing from URLs is blocked in base prompt. No UI changes, no new dependencies.
+- PWA Phase 1: web app manifest, app icons (192/512/maskable/apple-touch), standalone display, dark splash screen, "Add to Home Screen" support
+- PWA Phase 2: service worker (precache app shell, stale-while-revalidate for static assets, network-only for /api/* and /auth/*), offline fallback page, SW update detection with in-app "Update available" prompt
 
 ## Not Yet Functional
 *Last verified: 2026-03-15*
@@ -61,6 +63,7 @@
 - Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
 - Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
 - Sage prompt tuning (2026-03-30): Thirteen fixes from fifth and sixth audits across three evaluation sessions. Abstract stacking: added concrete violation example. Reframe rule: added three WRONG/RIGHT examples. Other-person inner state: upgraded to HARD RULE with example conversion to question. Confirmation questions: banned closed questions that confirm Sage's own hypothesis. Gender: added gender-assumption guard (default to "you"/"they"). Checkpoint delivery: formalized 4-step delivery sequence with violation checks, raised observation minimum to 5-8 sentences, added bind requirement. Checkpoint gating: block checkpoint when user expresses uncertainty about generalization, treat "help me think through it" as exploration invitation not checkpoint permission.
+- PWA Phase 1+2 (2026-03-30): Installable app (manifest, icons, meta tags) + service worker (offline fallback, asset caching, update prompt). No npm dependencies added. Phase 3 (standalone polish, auth flow testing, splash screens) pending device QA.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users
