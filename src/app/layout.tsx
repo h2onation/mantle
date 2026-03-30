@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -20,11 +20,14 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#0C0B0A",
+};
+
 export const metadata: Metadata = {
   title: "Mantle",
   description: "Understand how you operate.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0C0B0A",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
