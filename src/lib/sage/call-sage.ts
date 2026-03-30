@@ -9,6 +9,7 @@ import {
   type ExtractionState,
 } from "@/lib/sage/extraction";
 import type { ExplorationContext } from "@/lib/types";
+import { detectTranscript } from "@/lib/utils/transcript-detection";
 
 // ── Extracted pure functions (testable without mocking) ──
 
@@ -399,6 +400,11 @@ export function callSage({
             );
         }
 
+        // 7b. Transcript detection — lightweight regex, no API cost
+        const transcriptDetection = message
+          ? detectTranscript(message)
+          : null;
+
         // 8. Build system prompt using PREVIOUS extraction state (no waiting)
         const extractionForSage = previousExtraction
           ? formatExtractionForSage(
@@ -435,6 +441,7 @@ export function callSage({
           isFirstCheckpoint,
           sessionCount,
           explorationContext,
+          transcriptContext: transcriptDetection,
           turnCount,
           hasPatternEligibleLayer,
           checkpointApproaching,

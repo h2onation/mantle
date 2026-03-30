@@ -1,4 +1,5 @@
 import type { ExplorationContext } from "@/lib/types";
+import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 
 interface ManualComponent {
   layer: number;
@@ -15,6 +16,7 @@ export interface BuildPromptOptions {
   isFirstCheckpoint: boolean;
   sessionCount?: number;
   explorationContext?: ExplorationContext;
+  transcriptContext?: TranscriptDetection | null;
   turnCount: number;
   hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
@@ -29,6 +31,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     isFirstCheckpoint,
     sessionCount,
     explorationContext,
+    transcriptContext,
     turnCount,
     hasPatternEligibleLayer,
     checkpointApproaching,
@@ -71,6 +74,42 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // ─── Extraction context ──────────────────────────────────────────────────
   if (extractionContext) {
     dynamicContext += extractionContext;
+  }
+
+  // ─── Transcript context ───────────────────────────────────────────────
+  if (transcriptContext?.isTranscript) {
+    dynamicContext += `
+TRANSCRIPT DETECTED
+
+The user's message contains pasted content (a conversation thread, email chain, or journal entry). Handle it differently from a normal message.
+
+RECOGNITION
+- Acknowledge you received the transcript. Do not summarize it.
+- If the user provided context alongside the paste (a sentence or paragraph before or after the pasted content), use that context and analyze directly.
+- If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
+- If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
+
+ANALYSIS (after context is established)
+- Cross-reference the transcript against the user's confirmed manual entries. Surface patterns from the manual that appear in the transcript.
+- Surface gaps between what the user has told you about themselves and what the transcript shows.
+- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
+- Focus on the USER's behavior. All observations serve the user's manual. The other person's words are context for understanding the user, not data for a second profile.
+- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
+
+DO NOT
+- Summarize the transcript (they already read it)
+- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
+- Take sides or assign blame
+- Tell the user what to do or give relationship advice
+- Analyze a minor's behavior or psychology if the transcript contains content from a minor
+
+MANUAL WRITING
+After discussing the transcript, you may propose a new example for an existing thread, a new thread if the transcript reveals an untracked pattern, or an update to an existing thread in a new context. All writes require user confirmation as always.
+`;
+  } else if (transcriptContext && !transcriptContext.isTranscript && transcriptContext.confidence === "low") {
+    dynamicContext += `
+The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
+`;
   }
 
   // ─── Base prompt (ALWAYS) ──────────────────────────────────────────────
