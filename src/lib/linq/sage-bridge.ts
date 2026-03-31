@@ -14,26 +14,18 @@ import {
   mapSystemMessages,
   applySlidingWindow,
   detectCrisisInUserMessage,
+  parseManualEntryBlock,
 } from "@/lib/sage/call-sage";
+import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 
 const CRISIS_RESOURCES =
   "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
-
-const SMS_MODE_APPENDIX = `
-TEXT MESSAGE MODE
-
-You are responding via text message. Keep responses concise and conversational. No checkpoint formatting. No manual thread proposals. Do not include |||MANUAL_ENTRY||| blocks.
-
-If something is worth exploring deeper, say: "This is worth exploring more. Open Mantle when you have 20 minutes."
-
-If someone asks about their manual or patterns over text, give them a brief summary and nudge them to the app for the full view.
-
-Do not reference UI elements, buttons, or anything the user would need to "click" or "see" in an app. You are in a text conversation.`;
 
 interface SageBridgeResult {
   responseText: string;
   conversationId: string;
   messageId: string | null;
+  checkpointText: string | null;
 }
 
 /**
@@ -188,14 +180,13 @@ export async function processTextMessage(
     messages,
   });
 
-  let responseText =
+  const fullText =
     response.content?.[0]?.text || "Something went wrong on my end.";
 
-  // Strip any |||MANUAL_ENTRY||| block that Sage might emit despite instructions
-  const delimIdx = responseText.indexOf("|||MANUAL_ENTRY|||");
-  if (delimIdx !== -1) {
-    responseText = responseText.substring(0, delimIdx).trimEnd();
-  }
+  // Parse manual entry block if present (same parser as web)
+  const parsed = parseManualEntryBlock(fullText);
+  let responseText = parsed.conversationalText;
+  const manualEntry = parsed.manualEntry;
 
   // 9. Crisis detection
   if (detectCrisisInUserMessage(messageText)) {
@@ -254,7 +245,47 @@ export async function processTextMessage(
       });
   }
 
-  return { responseText, conversationId, messageId };
+  // 11. Handle checkpoint — save metadata and build confirmation text
+  let checkpointText: string | null = null;
+
+  if (manualEntry && messageId) {
+    const isPattern = manualEntry.type === "pattern";
+
+    // Save checkpoint metadata on the message (same as web)
+    await admin
+      .from("messages")
+      .update({
+        is_checkpoint: true,
+        checkpoint_meta: {
+          layer: manualEntry.layer,
+          type: manualEntry.type,
+          name: manualEntry.name,
+          status: "pending",
+          composed_content: manualEntry.content || null,
+          composed_name: manualEntry.name || null,
+          changelog: manualEntry.changelog || null,
+        },
+      })
+      .eq("id", messageId);
+
+    // Build the text checkpoint message using the same language as the app
+    const question = isPattern ? "Does this resonate?" : "Does this feel right?";
+    checkpointText =
+      `${question}\n\n` +
+      `"${manualEntry.name}"\n` +
+      `${manualEntry.content}\n\n` +
+      `Reply YES to write to manual, NOT QUITE if it needs refining, or NO to discard.`;
+
+    console.log(
+      "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s message_id=%s",
+      manualEntry.layer,
+      manualEntry.type,
+      manualEntry.name,
+      messageId
+    );
+  }
+
+  return { responseText, conversationId, messageId, checkpointText };
 }
 
 /**
