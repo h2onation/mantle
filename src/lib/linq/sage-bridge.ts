@@ -177,14 +177,13 @@ export async function processTextMessage(
     checkpointApproaching,
   });
 
-  // Append SMS mode instructions — strips checkpoint behavior at the
-  // instruction level rather than modifying buildSystemPrompt internals.
-  const systemPrompt = basePrompt + SMS_MODE_APPENDIX;
+  // Use the same system prompt as web — no SMS-specific modifications
+  const systemPrompt = basePrompt;
 
   // 8. Call Sage non-streaming (text doesn't need SSE)
   const response = await anthropicFetch({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024, // Shorter for text — can increase later
+    max_tokens: 2048,
     system: systemPrompt,
     messages,
   });
