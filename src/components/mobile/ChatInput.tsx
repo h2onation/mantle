@@ -35,8 +35,8 @@ export default function ChatInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const lineHeight = 24;
-    const maxHeight = lineHeight * 3.5; // ~84px — 3.5 lines, partial cutoff signals more text
+    const lineHeight = 26; // 17px * 1.5 line-height ≈ 25.5, round up
+    const maxHeight = lineHeight * 3.5; // ~91px — 3.5 lines, partial cutoff signals more text
     el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
     el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
     // Auto-scroll to bottom so latest transcription text is always visible
@@ -192,10 +192,10 @@ export default function ChatInput({
               top: "50%",
               transform: "translateY(-50%)",
               fontFamily: "var(--font-serif)",
-              fontSize: "15px",
+              fontSize: "16px",
               fontStyle: "italic",
               fontWeight: 400,
-              color: "var(--session-ink-ghost)",
+              color: "var(--session-ink-faded)",
               pointerEvents: "none",
             }}
           >
@@ -260,7 +260,7 @@ export default function ChatInput({
             border: "none",
             outline: "none",
             resize: "none" as const,
-            fontSize: "16px",
+            fontSize: "17px",
             fontWeight: 400,
             lineHeight: 1.5,
             fontFamily: "var(--font-sans)",
@@ -269,12 +269,12 @@ export default function ChatInput({
             color:
               isRecording && voice.isInterim
                 ? "rgba(200, 191, 180, 0.5)"
-                : "var(--session-ink-mid)",
+                : "var(--session-ink-soft)",
             caretColor: isRecording ? "transparent" : "var(--session-sage-soft)",
           }}
         />
 
-        {/* Action button */}
+        {/* Action button — 44px tap target (Apple minimum) */}
         <button
           onClick={handleButtonClick}
           disabled={disabled && buttonMode !== "stop"}
@@ -283,8 +283,8 @@ export default function ChatInput({
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            width: "36px",
-            height: "36px",
+            width: "44px",
+            height: "44px",
             background: "none",
             border: "none",
             cursor:
@@ -312,8 +312,8 @@ export default function ChatInput({
             >
               <div
                 style={{
-                  width: "24px",
-                  height: "24px",
+                  width: "32px",
+                  height: "32px",
                   borderRadius: "50%",
                   backgroundColor: "var(--session-sage-soft)",
                   opacity: 0.8,
@@ -325,26 +325,37 @@ export default function ChatInput({
               >
                 <div
                   style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "1.5px",
-                    backgroundColor: "var(--session-linen)",
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "2px",
+                    backgroundColor: "#FFFFFF",
                   }}
                 />
               </div>
             </div>
           )}
 
-          {/* Send arrow */}
+          {/* Send arrow — active state with sage green circle */}
           {buttonMode === "send" && (
-            <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
+            <div
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                backgroundColor: "var(--session-sage)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                animation: "mantleFadeIn 0.15s ease-out both",
+              }}
+            >
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--session-ink-ghost)"
-                strokeWidth="1.5"
+                stroke="#FFFFFF"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -354,7 +365,7 @@ export default function ChatInput({
             </div>
           )}
 
-          {/* Mic icon */}
+          {/* Mic icon — inactive/ghosted */}
           {(buttonMode === "mic" || buttonMode === "mic-denied") && (
             <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
               <svg

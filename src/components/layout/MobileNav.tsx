@@ -42,18 +42,18 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               background: "none",
               border: "none",
               borderBottom: isActive
-                ? "1px solid var(--session-ink-mid)"
+                ? "1px solid var(--session-ink-soft)"
                 : "1px solid transparent",
               cursor: "pointer",
-              fontFamily: "var(--font-serif)",
-              fontSize: "10px",
-              fontWeight: 400,
-              letterSpacing: "4px",
+              fontFamily: "var(--font-sans)",
+              fontSize: "11px",
+              fontWeight: 500,
+              letterSpacing: "1.5px",
               textTransform: "uppercase",
               lineHeight: 1,
               color: isActive
-                ? "var(--session-ink-mid)"
-                : "var(--session-ink-ghost)",
+                ? "var(--session-ink-soft)"
+                : "var(--session-ink-mid)",
               transition: "all 0.25s ease",
               WebkitTapHighlightColor: "transparent",
             }}
