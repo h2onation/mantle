@@ -163,7 +163,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
           boxSizing: "border-box",
         }}
       >
-        {mode === "forgot" ? (
+        {mode === "forgot" && (
           <>
             {/* Back button — returns to login mode */}
             <button
@@ -292,7 +292,9 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
               </form>
             )}
           </>
-        ) : (
+        )}
+
+        {mode === "login" && (
           <>
             {/* Back button */}
             <button
