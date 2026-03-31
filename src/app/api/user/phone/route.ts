@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   // Check if this phone is already linked to another user
   const { data: existing } = await admin
     .from("phone_numbers")
-    .select("user_id")
+    .select("user_id, verified, linq_chat_id")
     .eq("phone", phone)
     .eq("verified", true)
     .maybeSingle();
@@ -90,6 +90,16 @@ export async function POST(request: NextRequest) {
       { error: "This phone number is already linked to another account" },
       { status: 409 }
     );
+  }
+
+  // If this user already has this phone linked and verified, don't re-send greeting
+  if (existing && existing.user_id === user.id) {
+    console.log("[user/phone] Phone already linked for user=%s — skipping greeting", user.id);
+    return Response.json({
+      ok: true,
+      phone,
+      serviceType: "SMS",
+    });
   }
 
   // Check iMessage capability (non-blocking — store result but don't fail on it)
@@ -116,7 +126,7 @@ export async function POST(request: NextRequest) {
 
   // Create Linq chat — sends the initial greeting
   const chatResult = await createChat(phone, INITIAL_GREETING);
-  if (!chatResult.ok || !chatResult.chatId) {
+  if (!chatResult.ok) {
     console.error(
       "[user/phone] Failed to create Linq chat — trace_id=%s",
       chatResult.traceId
@@ -127,7 +137,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Upsert phone_numbers record
+  // chatId may be null if we can't parse it from response — that's OK,
+  // the webhook will fill it in when the user texts back
+  const linqChatId = chatResult.chatId || null;
+  if (!linqChatId) {
+    console.warn(
+      "[user/phone] Greeting sent but chat_id not in response — will capture from webhook"
+    );
+  }
+
+  // Upsert phone_numbers record — ALWAYS save even without chat_id
   const { data: existingRow } = await admin
     .from("phone_numbers")
     .select("id")
@@ -140,7 +159,7 @@ export async function POST(request: NextRequest) {
       .update({
         phone,
         verified: true,
-        linq_chat_id: chatResult.chatId,
+        linq_chat_id: linqChatId,
         service_type: serviceType,
         linked_at: new Date().toISOString(),
         verification_code: null,
@@ -152,7 +171,7 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       phone,
       verified: true,
-      linq_chat_id: chatResult.chatId,
+      linq_chat_id: linqChatId,
       service_type: serviceType,
       linked_at: new Date().toISOString(),
     });

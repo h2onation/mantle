@@ -110,10 +110,20 @@ export async function sendMessage(
     }
   }
 
-  const data = result.data as { id?: string } | null;
+  // Log full response for debugging
+  console.log(
+    "[linq-sender] sendMessage response ok=%s status=%d chat_id=%s data=%j",
+    result.ok,
+    result.status,
+    chatId,
+    result.data
+  );
+
+  const msgData = result.data as Record<string, unknown> | null;
+  const messageId = (msgData?.id as string) ?? (msgData?.message_id as string) ?? undefined;
   return {
     ok: result.ok,
-    messageId: data?.id,
+    messageId,
     traceId: result.traceId,
   };
 }
@@ -154,10 +164,33 @@ export async function createChat(
     }),
   });
 
-  const data = result.data as { chat_id?: string } | null;
+  // Log the full response so we can see Linq's actual format
+  console.log(
+    "[linq-sender] createChat response ok=%s status=%d data=%j",
+    result.ok,
+    result.status,
+    result.data
+  );
+
+  // Try multiple possible field locations for chat_id
+  const data = result.data as Record<string, unknown> | null;
+  const chatId =
+    (data?.chat_id as string) ??
+    (data?.id as string) ??
+    ((data?.chat as Record<string, unknown>)?.id as string) ??
+    ((data?.data as Record<string, unknown>)?.chat_id as string) ??
+    ((data?.data as Record<string, unknown>)?.id as string) ??
+    undefined;
+
+  if (result.ok && !chatId) {
+    console.warn(
+      "[linq-sender] createChat succeeded but no chat_id found in response — will capture from first webhook"
+    );
+  }
+
   return {
     ok: result.ok,
-    chatId: data?.chat_id,
+    chatId,
     traceId: result.traceId,
   };
 }
