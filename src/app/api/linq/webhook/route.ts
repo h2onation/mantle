@@ -92,10 +92,10 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
       const d = event.data;
       console.error(
         "[linq] delivery_failed message_id=%s chat_id=%s error_code=%s error_reason=%s trace_id=%s",
-        d?.id ?? "unknown",
-        d?.chat_id ?? "unknown",
-        d?.error_code ?? "unknown",
-        d?.error_reason ?? "unknown",
+        (d?.id as string) ?? "unknown",
+        (d?.chat_id as string) ?? "unknown",
+        (d?.error_code as string) ?? "unknown",
+        (d?.error_reason as string) ?? "unknown",
         event.trace_id
       );
       break;
@@ -107,7 +107,7 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
         "[linq] %s trace_id=%s chat_id=%s",
         event.event_type,
         event.trace_id,
-        event.data?.chat_id ?? "unknown"
+        (event.data?.chat_id as string) ?? "unknown"
       );
       break;
 
@@ -122,26 +122,60 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
 
 async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
   const { data } = event;
-  const senderPhone = data?.sender_handle?.handle;
-  const chatId = data?.chat_id;
-  const parts = data?.parts ?? [];
+
+  const sh = data?.sender_handle as Record<string, unknown> | undefined;
+  const sender = data?.sender as Record<string, unknown> | undefined;
+  const chat = data?.chat as Record<string, unknown> | undefined;
+  const msg = data?.message as Record<string, unknown> | undefined;
+
+  // Try multiple possible locations for sender phone
+  const senderPhone =
+    (sh?.handle as string) ??
+    (sender?.handle as string) ??
+    (chat?.display_name as string) ??
+    (data?.from as string) ??
+    null;
+
+  // Try multiple possible locations for chat_id
+  const chatId =
+    (data?.chat_id as string) ??
+    (chat?.id as string) ??
+    (data?.id as string) ??
+    null;
+
+  // Try multiple possible locations for message parts
+  const parts =
+    (data?.parts as Array<{ type: string; value: string }>) ??
+    (msg?.parts as Array<{ type: string; value: string }>) ??
+    [];
+
+  // Also try to extract text from a "body" or "text" field
+  const bodyText = (data?.body as string) ?? (data?.text as string) ?? (msg?.text as string) ?? null;
+
+  console.log(
+    "[linq] inbound_parsed sender=%s chat_id=%s parts=%d body=%s",
+    senderPhone ?? "NOT_FOUND",
+    chatId ?? "NOT_FOUND",
+    (parts as unknown[]).length,
+    bodyText ? String(bodyText).substring(0, 50) : "none"
+  );
 
   if (!senderPhone || !chatId) {
-    console.error("[linq] Missing sender_handle or chat_id in event");
+    console.error("[linq] Missing sender or chat_id after trying all field locations");
     return;
   }
 
-  console.log(
-    "[linq] inbound from=%s chat_id=%s service=%s",
-    senderPhone,
-    chatId,
-    data?.sender_handle?.service
-  );
+  // If we got body text but no parts, synthesize a text part
+  const finalParts = (parts as unknown[]).length > 0
+    ? parts as Array<{ type: string; value: string }>
+    : bodyText
+      ? [{ type: "text", value: String(bodyText) }]
+      : [];
 
   await routeInboundMessage({
     chatId,
-    senderPhone,
-    parts: parts as Array<{ type: string; value: string }>,
+    senderPhone: String(senderPhone),
+    parts: finalParts,
   });
 }
 
@@ -150,30 +184,12 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
 // ---------------------------------------------------------------------------
 
 interface LinqWebhookEvent {
-  api_version: string;
+  api_version?: string;
   event_type: string;
   event_id: string;
-  created_at: string;
-  trace_id: string;
-  data: {
-    id?: string;
-    chat_id?: string;
-    direction?: string;
-    error_code?: string;
-    error_reason?: string;
-    sender_handle?: {
-      handle: string;
-      service: string;
-    };
-    chat?: {
-      id: string;
-      is_group: boolean;
-      owner_handle: string;
-    };
-    parts?: Array<{ type: string; value: string }>;
-    sent_at?: string;
-    [key: string]: unknown;
-  };
+  created_at?: string;
+  trace_id?: string;
+  data: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -212,15 +228,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }
 
-  // Log full event details for debugging
-  console.log(
-    "[linq] event_received type=%s event_id=%s sender=%s chat_id=%s parts=%d",
-    event.event_type,
-    event.event_id,
-    event.data?.sender_handle?.handle ?? "none",
-    event.data?.chat_id ?? "none",
-    event.data?.parts?.length ?? 0
-  );
+  // Log FULL event payload so we can see Linq's actual structure
+  console.log("[linq] FULL_EVENT: %s", JSON.stringify(event));
 
   // Deduplicate
   pruneSeenEvents();
