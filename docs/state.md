@@ -33,7 +33,8 @@
 - Resonant content: URL detection + fetch (5s timeout, HTML text extraction, 3000-word cap). Sage describes content in one sentence, asks what resonated, connects to manual only after user leads. Graceful fallback when fetch fails. Hard rule prevents Sage from fabricating content descriptions when fetch fails or no content is present — guessing from URLs is blocked in base prompt. No UI changes, no new dependencies.
 - PWA Phase 1: web app manifest, app icons (192/512/maskable/apple-touch), standalone display, dark splash screen, "Add to Home Screen" support
 - PWA Phase 2: service worker (precache app shell, stale-while-revalidate for static assets, network-only for /api/* and /auth/*), offline fallback page, SW update detection with in-app "Update available" prompt
-- Typography & contrast polish (2026-03-31): Chat messages bumped from 13-14px to 17px, text colors upgraded to ink-soft (#3D3632) for WCAG AA compliance, send button replaced with sage green filled circle active state (44px tap target), nav bar switched to DM Sans 500, SAGE label scaled up to 12px
+- Typography & contrast polish (2026-03-31): Chat messages bumped from 13-14px to 17px, text colors upgraded to ink-soft (#3D3632) for WCAG AA compliance, send button replaced with sage green filled circle active state (44px tap target), SAGE label scaled up to 12px
+- IA cleanup (2026-03-31): Tightened SAGE label spacing (marginTop -4px) to reduce gap between user message and Sage response, increased bottom nav padding (top 10→14px, bottom 16→20px), switched nav font to Instrument Serif to match MANTLE logo
 
 ## Not Yet Functional
 *Last verified: 2026-03-15*

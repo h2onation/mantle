@@ -656,7 +656,7 @@ export default function MobileSession({
                   >
                     {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
-                      <div style={{ marginBottom: "6px", paddingLeft: "4px" }}>
+                      <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "4px" }}>
                         <span style={sageLabelStyle}>SAGE</span>
                       </div>
                     )}
@@ -750,7 +750,7 @@ export default function MobileSession({
                   {(messages.length === 0 ||
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
-                    <div style={{ marginBottom: "6px", paddingLeft: "4px" }}>
+                    <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "4px" }}>
                       <span style={sageLabelStyle}>SAGE</span>
                     </div>
                   )}
