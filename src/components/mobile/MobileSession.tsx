@@ -16,8 +16,8 @@ const WELCOME_CHIPS = [
 
 const sageLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "12px",
-  fontWeight: 500,
+  fontSize: "9px",
+  fontWeight: 400,
   letterSpacing: "1.5px",
   textTransform: "uppercase" as const,
   color: "var(--session-sage)",
@@ -136,7 +136,7 @@ export default function MobileSession({
         <span style={sageLabelStyle}>SAGE</span>
       </div>
       <p style={{
-        fontFamily: "var(--font-serif)",
+        fontFamily: "var(--font-sans)",
         fontSize: "17px",
         lineHeight: 1.5,
         color: "var(--session-ink-soft)",
@@ -666,7 +666,7 @@ export default function MobileSession({
                         background: "var(--session-sage-tint)",
                         borderRadius: "4px",
                         padding: "12px 14px",
-                        fontFamily: "var(--font-serif)",
+                        fontFamily: "var(--font-sans)",
                         fontSize: "17px",
                         fontWeight: 400,
                         lineHeight: 1.5,
@@ -675,7 +675,7 @@ export default function MobileSession({
                     >
                       <div
                         style={{
-                          fontFamily: "var(--font-serif)",
+                          fontFamily: "var(--font-sans)",
                           fontSize: "17px",
                           fontWeight: 400,
                           lineHeight: 1.5,
