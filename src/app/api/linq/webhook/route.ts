@@ -212,6 +212,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }
 
+  // Log full event details for debugging
+  console.log(
+    "[linq] event_received type=%s event_id=%s sender=%s chat_id=%s parts=%d",
+    event.event_type,
+    event.event_id,
+    event.data?.sender_handle?.handle ?? "none",
+    event.data?.chat_id ?? "none",
+    event.data?.parts?.length ?? 0
+  );
+
   // Deduplicate
   pruneSeenEvents();
   if (seenEvents.has(event.event_id)) {

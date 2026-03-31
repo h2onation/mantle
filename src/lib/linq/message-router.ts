@@ -59,19 +59,50 @@ interface InboundMessageData {
 }
 
 /**
+ * Normalize a phone number to E.164 (+1XXXXXXXXXX) format.
+ * Linq may send numbers in various formats.
+ */
+function normalizePhone(raw: string): string {
+  // Strip everything that isn't a digit or leading +
+  let phone = raw.replace(/[^\d+]/g, "");
+  // Ensure +1 prefix for US numbers
+  if (phone.startsWith("1") && !phone.startsWith("+")) {
+    phone = "+" + phone;
+  } else if (!phone.startsWith("+")) {
+    phone = "+1" + phone;
+  }
+  return phone;
+}
+
+/**
  * Main entry point — called from the webhook handler on "message.received".
  */
 export async function routeInboundMessage(
   data: InboundMessageData
 ): Promise<void> {
-  const { chatId, senderPhone, parts } = data;
+  const { chatId, senderPhone: rawSenderPhone, parts } = data;
+  const senderPhone = normalizePhone(rawSenderPhone);
   const startTime = Date.now();
+
+  console.log(
+    "[linq-router] START chat_id=%s raw_phone=%s normalized_phone=%s parts=%d",
+    chatId,
+    rawSenderPhone,
+    senderPhone,
+    parts.length
+  );
 
   // Extract text content
   const textParts = parts.filter((p) => p.type === "text");
   const textContent = textParts.map((p) => p.value).join("\n").trim();
   const hasMedia = parts.some((p) =>
     ["image", "audio", "video", "attachment"].includes(p.type)
+  );
+
+  console.log(
+    "[linq-router] text=%s has_media=%s",
+    textContent ? textContent.substring(0, 100) : "(empty)",
+    hasMedia
   );
 
   // 1. Check for STOP/START/HELP keywords FIRST
@@ -87,14 +118,23 @@ export async function routeInboundMessage(
 
   // 2. Look up user by phone number
   const admin = createAdminClient();
-  const { data: phoneRow } = await admin
+  const { data: phoneRow, error: lookupError } = await admin
     .from("phone_numbers")
-    .select("user_id, verified, linq_chat_id")
+    .select("user_id, verified, linq_chat_id, phone")
     .eq("phone", senderPhone)
     .eq("verified", true)
     .maybeSingle();
 
+  console.log(
+    "[linq-router] phone_lookup phone=%s found=%s user_id=%s error=%s",
+    senderPhone,
+    !!phoneRow,
+    phoneRow?.user_id ?? "none",
+    lookupError?.message ?? "none"
+  );
+
   if (!phoneRow) {
+    console.log("[linq-router] UNKNOWN_NUMBER — sending unknown number response");
     await handleUnknownNumber(chatId, senderPhone);
     return;
   }
@@ -216,6 +256,11 @@ async function handleUnknownNumber(
   }
 
   unknownNumberCooldown.set(phone, now);
-  await sendMessage(chatId, UNKNOWN_NUMBER_MSG);
-  console.log("[linq-router] unknown_number phone=%s", phone);
+  const sendResult = await sendMessage(chatId, UNKNOWN_NUMBER_MSG);
+  console.log(
+    "[linq-router] unknown_number phone=%s send_ok=%s trace_id=%s",
+    phone,
+    sendResult.ok,
+    sendResult.traceId ?? "unknown"
+  );
 }
