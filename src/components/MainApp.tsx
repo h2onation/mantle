@@ -43,6 +43,8 @@ export default function MainApp() {
     displayName,
     initialized,
     isNewUser,
+    firstSessionCompleted,
+    sessionOrigin,
     sessionSummary,
     lastSessionDate,
     userEmail,
@@ -72,16 +74,27 @@ export default function MainApp() {
     if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
 
+  // Inline sign-in banner state
+  const [bannerAuthRequested, setBannerAuthRequested] = useState(false);
+
   // Auth prompt dismiss: reset promptAuth so next checkpoint can re-trigger
   const handleAuthDismiss = useCallback(() => {
     setAuthDismissed(true);
+    setBannerAuthRequested(false);
     resetPromptAuth();
   }, [resetPromptAuth]);
 
   const handleAuthSuccess = useCallback(() => {
     setAuthDismissed(true);
+    setBannerAuthRequested(false);
     resetPromptAuth();
   }, [resetPromptAuth]);
+
+  // Trigger auth modal from inline sign-in banner
+  const handleSignInPrompt = useCallback(() => {
+    setBannerAuthRequested(true);
+    setAuthDismissed(false);
+  }, []);
 
   const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
     // Build dynamic label
@@ -126,7 +139,7 @@ export default function MainApp() {
     );
   }
 
-  const showAuthModal = isGuest && promptAuth && !authDismissed;
+  const showAuthModal = isGuest && (promptAuth || bannerAuthRequested) && !authDismissed;
 
   return (
     <>
@@ -157,6 +170,10 @@ export default function MainApp() {
             dismissFeedbackModal={dismissFeedbackModal}
             feedbackHint={feedbackHint}
             clearFeedbackHint={clearFeedbackHint}
+            isGuest={isGuest}
+            onSignInPrompt={handleSignInPrompt}
+            firstSessionCompleted={firstSessionCompleted}
+            sessionOrigin={sessionOrigin}
           />
         }
         manualContent={
