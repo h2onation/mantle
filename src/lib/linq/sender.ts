@@ -1,0 +1,156 @@
+// ---------------------------------------------------------------------------
+// Linq API sender — sends messages, typing indicators, and read receipts
+// ---------------------------------------------------------------------------
+
+const API_BASE = "https://api.linqapp.com/api/partner/v3";
+
+function getToken(): string {
+  const token = process.env.LINQ_API_TOKEN;
+  if (!token) throw new Error("LINQ_API_TOKEN is not configured");
+  return token;
+}
+
+function headers(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${getToken()}`,
+    "Content-Type": "application/json",
+  };
+}
+
+interface LinqApiError {
+  code?: number;
+  message?: string;
+  trace_id?: string;
+}
+
+async function linqFetch(
+  path: string,
+  options: RequestInit
+): Promise<{ ok: boolean; status: number; data: unknown; traceId?: string }> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { ...headers(), ...(options.headers as Record<string, string>) },
+  });
+
+  const traceId = res.headers.get("x-trace-id") ?? undefined;
+  let data: unknown = null;
+
+  try {
+    data = await res.json();
+  } catch {
+    // Some endpoints return empty body (typing, read)
+  }
+
+  if (!res.ok) {
+    const err = data as LinqApiError | null;
+    console.error(
+      "[linq-sender] API error %d on %s — trace_id=%s error=%j",
+      res.status,
+      path,
+      traceId ?? err?.trace_id ?? "unknown",
+      err
+    );
+  }
+
+  return { ok: res.ok, status: res.status, data, traceId };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Send a text message to an existing Linq chat.
+ * Retries once after 2 seconds on failure.
+ */
+export async function sendMessage(
+  chatId: string,
+  text: string
+): Promise<{ ok: boolean; messageId?: string; traceId?: string }> {
+  let result = await linqFetch(`/chats/${chatId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      message: {
+        parts: [{ type: "text", value: text }],
+      },
+    }),
+  });
+
+  // Retry once on failure
+  if (!result.ok) {
+    console.warn(
+      "[linq-sender] Send failed (status=%d), retrying in 2s — chat_id=%s trace_id=%s",
+      result.status,
+      chatId,
+      result.traceId ?? "unknown"
+    );
+    await delay(2000);
+    result = await linqFetch(`/chats/${chatId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        message: {
+          parts: [{ type: "text", value: text }],
+        },
+      }),
+    });
+
+    if (!result.ok) {
+      console.error(
+        "[linq-sender] Send retry also failed — chat_id=%s trace_id=%s",
+        chatId,
+        result.traceId ?? "unknown"
+      );
+    }
+  }
+
+  const data = result.data as { id?: string } | null;
+  return {
+    ok: result.ok,
+    messageId: data?.id,
+    traceId: result.traceId,
+  };
+}
+
+/**
+ * Send typing indicator — auto-stops when a message is sent.
+ */
+export async function sendTypingIndicator(chatId: string): Promise<void> {
+  await linqFetch(`/chats/${chatId}/typing`, { method: "POST" });
+}
+
+/**
+ * Mark a chat as read.
+ */
+export async function markAsRead(chatId: string): Promise<void> {
+  await linqFetch(`/chats/${chatId}/read`, { method: "POST" });
+}
+
+/**
+ * Create a new chat (first message to a phone number).
+ * Returns the chat_id for future messages.
+ */
+export async function createChat(
+  toPhone: string,
+  initialMessage: string
+): Promise<{ ok: boolean; chatId?: string; traceId?: string }> {
+  const fromNumber = process.env.LINQ_PHONE_NUMBER;
+  if (!fromNumber) throw new Error("LINQ_PHONE_NUMBER is not configured");
+
+  const result = await linqFetch("/chats", {
+    method: "POST",
+    body: JSON.stringify({
+      from: fromNumber,
+      to: [toPhone],
+      message: {
+        parts: [{ type: "text", value: initialMessage }],
+      },
+    }),
+  });
+
+  const data = result.data as { chat_id?: string } | null;
+  return {
+    ok: result.ok,
+    chatId: data?.chat_id,
+    traceId: result.traceId,
+  };
+}

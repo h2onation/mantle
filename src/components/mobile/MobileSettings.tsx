@@ -65,19 +65,31 @@ export default function MobileSettings({
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
-  const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "verifying" | "linked">("loading");
+  const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "linked">("loading");
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
+  const [linkedService, setLinkedService] = useState<string | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
-  const [codeInput, setCodeInput] = useState("");
   const [phoneBusy, setPhoneBusy] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
+  function formatPhoneDisplay(phone: string): string {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) {
+      const area = digits.slice(1, 4);
+      const prefix = digits.slice(4, 7);
+      const line = digits.slice(7);
+      return `(${area}) ${prefix}-${line}`;
+    }
+    return phone;
+  }
+
   useEffect(() => {
-    fetch("/api/settings/link-phone")
+    fetch("/api/user/phone")
       .then((r) => r.json())
       .then((data) => {
         if (data.phone && data.verified) {
           setLinkedPhone(data.phone);
+          setLinkedService(data.serviceType || null);
           setPhoneState("linked");
         } else {
           setPhoneState("unlinked");
@@ -86,45 +98,23 @@ export default function MobileSettings({
       .catch(() => setPhoneState("unlinked"));
   }, []);
 
-  async function handleSendCode() {
+  async function handleConnectPhone() {
     setPhoneBusy(true);
     setPhoneError(null);
     try {
-      const res = await fetch("/api/settings/link-phone", {
+      const res = await fetch("/api/user/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneInput }),
+        body: JSON.stringify({ phone_number: phoneInput }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setPhoneError(data.error || "Failed to send code");
-        return;
-      }
-      setPhoneState("verifying");
-    } catch {
-      setPhoneError("Network error");
-    } finally {
-      setPhoneBusy(false);
-    }
-  }
-
-  async function handleVerifyCode() {
-    setPhoneBusy(true);
-    setPhoneError(null);
-    try {
-      const res = await fetch("/api/settings/link-phone", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneInput, code: codeInput }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setPhoneError(data.error || "Verification failed");
+        setPhoneError(data.error || "Failed to connect");
         return;
       }
       setLinkedPhone(data.phone);
+      setLinkedService(data.serviceType || null);
       setPhoneState("linked");
-      setCodeInput("");
     } catch {
       setPhoneError("Network error");
     } finally {
@@ -132,11 +122,20 @@ export default function MobileSettings({
     }
   }
 
-  function handleChangePhone() {
-    setPhoneState("input");
-    setPhoneInput("");
-    setCodeInput("");
-    setPhoneError(null);
+  async function handleDisconnect() {
+    setPhoneBusy(true);
+    try {
+      await fetch("/api/user/phone", { method: "DELETE" });
+      setLinkedPhone(null);
+      setLinkedService(null);
+      setPhoneState("unlinked");
+      setPhoneInput("");
+      setPhoneError(null);
+    } catch {
+      setPhoneError("Failed to disconnect");
+    } finally {
+      setPhoneBusy(false);
+    }
   }
 
   function toggleSection(key: string) {
@@ -493,7 +492,7 @@ export default function MobileSettings({
                   .
                 </p>
                 <button
-                  onClick={handleSendCode}
+                  onClick={handleConnectPhone}
                   disabled={phoneBusy || !phoneInput.trim()}
                   style={{
                     width: "100%",
@@ -516,79 +515,13 @@ export default function MobileSettings({
                       margin: 0,
                     }}
                   >
-                    {phoneBusy ? "Sending..." : "Send verification code"}
+                    {phoneBusy ? "Connecting..." : "Connect"}
                   </p>
                 </button>
               </div>
             )}
 
-            {phoneState === "verifying" && (
-              <div>
-                <p
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "9px",
-                    color: "var(--session-ink-ghost)",
-                    letterSpacing: "0.5px",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Code sent to {phoneInput}
-                </p>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
-                  placeholder="6-digit code"
-                  style={{
-                    width: "100%",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "16px",
-                    color: "var(--session-ink-soft)",
-                    background: "rgba(26, 22, 20, 0.03)",
-                    border: "1px solid var(--session-ink-hairline)",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    marginBottom: 8,
-                    textAlign: "center",
-                    letterSpacing: "6px",
-                  }}
-                />
-                <button
-                  onClick={handleVerifyCode}
-                  disabled={phoneBusy || codeInput.length !== 6}
-                  style={{
-                    width: "100%",
-                    background: "none",
-                    border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
-                    borderRadius: 8,
-                    cursor: phoneBusy || codeInput.length !== 6 ? "default" : "pointer",
-                    textAlign: "center",
-                    padding: "10px 0",
-                    opacity: phoneBusy ? 0.5 : 1,
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
-                      color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-sage)",
-                      letterSpacing: "0.5px",
-                      margin: 0,
-                    }}
-                  >
-                    {phoneBusy ? "Verifying..." : "Verify"}
-                  </p>
-                </button>
-              </div>
-            )}
-
-            {phoneState === "linked" && (
+            {phoneState === "linked" && linkedPhone && (
               <div>
                 <div
                   style={{
@@ -607,7 +540,7 @@ export default function MobileSettings({
                         margin: 0,
                       }}
                     >
-                      {linkedPhone}
+                      {formatPhoneDisplay(linkedPhone)}
                     </p>
                     <p
                       style={{
@@ -618,17 +551,19 @@ export default function MobileSettings({
                         margin: "3px 0 0 0",
                       }}
                     >
-                      LINKED
+                      {linkedService ? `CONNECTED · ${linkedService.toUpperCase()}` : "CONNECTED"}
                     </p>
                   </div>
                   <button
-                    onClick={handleChangePhone}
+                    onClick={handleDisconnect}
+                    disabled={phoneBusy}
                     style={{
                       background: "none",
                       border: "1px solid var(--session-ink-hairline)",
                       borderRadius: 6,
-                      cursor: "pointer",
+                      cursor: phoneBusy ? "default" : "pointer",
                       padding: "6px 12px",
+                      opacity: phoneBusy ? 0.5 : 1,
                       WebkitTapHighlightColor: "transparent",
                     }}
                   >
@@ -641,10 +576,21 @@ export default function MobileSettings({
                         margin: 0,
                       }}
                     >
-                      Change
+                      Disconnect
                     </p>
                   </button>
                 </div>
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    color: "var(--session-ink-mid)",
+                    lineHeight: 1.5,
+                    margin: "0 0 10px 0",
+                  }}
+                >
+                  Text {formatPhoneDisplay(process.env.NEXT_PUBLIC_LINQ_PHONE_NUMBER || "")} anytime.
+                </p>
                 <a
                   href="/sage-contact.vcf"
                   download="Sage (Mantle).vcf"
