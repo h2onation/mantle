@@ -721,8 +721,11 @@ export default function MobileSession({
                   >
                     {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
-                      <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
+                      <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={sageLabelStyle}>SAGE</span>
+                        {msg.channel === "text" && (
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
+                        )}
                       </div>
                     )}
                     {/* Bubble */}
@@ -784,6 +787,11 @@ export default function MobileSession({
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
+                  {msg.channel === "text" && (
+                    <div style={{ textAlign: "right", marginBottom: "2px", paddingRight: "2px" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
+                    </div>
+                  )}
                   <p
                     style={{
                       fontFamily: "var(--font-sans)",

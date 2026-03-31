@@ -1,5 +1,7 @@
 # Sage MMS — Build Guide (v3)
 
+> **ARCHIVED**: Twilio has been replaced by Linq as of 2026-03-31. The actual implementation lives in `src/lib/linq/` and `src/app/api/linq/`. This doc is kept for historical reference only.
+
 ## What Changed from v2
 - Sage voice is identical to web app. No "shorter, casual" instruction. smsMode only strips checkpoint sections.
 - Manual consent flow removed. If you linked your phone and have a manual, Sage uses it. Period.

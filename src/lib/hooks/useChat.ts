@@ -234,7 +234,7 @@ export function useChat() {
       // Load messages
       const { data: dbMessages } = await supabase
         .from("messages")
-        .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
+        .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
         .eq("conversation_id", convId)
         .order("created_at", { ascending: true });
 
@@ -245,6 +245,7 @@ export function useChat() {
             id: m.id,
             role: m.role as "user" | "assistant",
             content: m.content,
+            channel: m.channel || null,
             isCheckpoint: m.is_checkpoint || false,
             checkpointMeta: m.checkpoint_meta || null,
           }));
@@ -460,7 +461,7 @@ export function useChat() {
     // Load messages for target conversation
     const { data: dbMessages } = await supabase
       .from("messages")
-      .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
       .eq("conversation_id", targetConversationId)
       .order("created_at", { ascending: true });
 
@@ -503,7 +504,7 @@ export function useChat() {
 
     const { data: dbMessages } = await supabase
       .from("messages")
-      .select("id, role, content, is_checkpoint, checkpoint_meta, created_at")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
       .eq("conversation_id", targetConversationId)
       .order("created_at", { ascending: true });
 
