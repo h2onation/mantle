@@ -16,9 +16,10 @@ const ROTATING_EXAMPLES = [
 interface EntryScreenProps {
   onGetStarted: () => void;
   onLogin: () => void;
+  onSignup: () => void;
 }
 
-export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps) {
+export default function EntryScreen({ onGetStarted, onLogin, onSignup }: EntryScreenProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,6 +146,35 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
         >
           Log in
         </button>
+
+        {/* Create account link */}
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13,
+            color: "var(--session-ink-ghost)",
+            textAlign: "center",
+            marginTop: 16,
+            marginBottom: 0,
+          }}
+        >
+          No account?{" "}
+          <button
+            onClick={onSignup}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "var(--session-sage)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            Create account
+          </button>
+        </p>
 
         {/* Legal links */}
         <div

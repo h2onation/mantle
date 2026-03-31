@@ -6,7 +6,7 @@ import LoginScreen from "./LoginScreen";
 import InfoScreens from "./InfoScreens";
 import SeedScreen from "./SeedScreen";
 
-type ViewName = "entry" | "login" | "onboarding" | "seed";
+type ViewName = "entry" | "login" | "signup" | "onboarding" | "seed";
 
 export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
@@ -37,6 +37,10 @@ export default function OnboardingFlow() {
 
   function handleLogin() {
     fadeToView("login");
+  }
+
+  function handleSignup() {
+    fadeToView("signup");
   }
 
   function handleBackToEntry() {
@@ -87,11 +91,16 @@ export default function OnboardingFlow() {
           <EntryScreen
             onGetStarted={handleGetStarted}
             onLogin={handleLogin}
+            onSignup={handleSignup}
           />
         )}
 
         {currentView === "login" && (
           <LoginScreen onBack={handleBackToEntry} />
+        )}
+
+        {currentView === "signup" && (
+          <LoginScreen onBack={handleBackToEntry} initialMode="signup" />
         )}
 
         {currentView === "onboarding" && (

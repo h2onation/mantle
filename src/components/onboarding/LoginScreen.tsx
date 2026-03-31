@@ -6,14 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 
 interface LoginScreenProps {
   onBack: () => void;
+  initialMode?: "login" | "signup";
 }
 
-export default function LoginScreen({ onBack }: LoginScreenProps) {
+export default function LoginScreen({ onBack, initialMode = "login" }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">(initialMode);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
