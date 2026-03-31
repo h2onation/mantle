@@ -34,7 +34,7 @@
 - PWA Phase 1: web app manifest, app icons (192/512/maskable/apple-touch), standalone display, dark splash screen, "Add to Home Screen" support
 - PWA Phase 2: service worker (precache app shell, stale-while-revalidate for static assets, network-only for /api/* and /auth/*), offline fallback page, SW update detection with in-app "Update available" prompt
 - Typography & contrast polish (2026-03-31): Chat messages bumped from 13-14px to 17px, text colors upgraded to ink-soft (#3D3632) for WCAG AA compliance, send button replaced with sage green filled circle active state (44px tap target), nav bar switched to DM Sans 500, SAGE label scaled up to 12px
-- Manual share & export (2026-03-31): Share button on manual tab generates PDF (jspdf, client-side) and opens native share sheet (Web Share API) with pre-populated message. Falls back to direct download on unsupported browsers. Gating: < 3 entries shows soft nudge before proceeding. Display name fetched from profiles table via /api/manual.
+- Manual share & export (2026-03-31): Warm invitation card at bottom of manual page ("Share how you operate") opens context half-sheet explaining what gets shared, then generates PDF (jspdf, client-side) and opens native share sheet (Web Share API). Falls back to direct download. No gating — always visible. Warm accent palette (#A0734E). Display name fetched from profiles table via /api/manual.
 
 ## Not Yet Functional
 *Last verified: 2026-03-31*
