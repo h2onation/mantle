@@ -62,8 +62,15 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
+  touch-action: manipulation;
   background-color: var(--session-linen);
   color: var(--session-ink);
+}
+
+/* Prevent text selection on non-content UI elements */
+button, nav, [role="tablist"], [role="navigation"] {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Public pages that need scrolling (terms, privacy, sms-opt-in) */

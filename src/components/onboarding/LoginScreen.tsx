@@ -233,7 +233,7 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
                   style={{
                     width: "100%",
                     fontFamily: "var(--font-sans)",
-                    fontSize: 14,
+                    fontSize: 16,
                     color: "var(--session-ink)",
                     backgroundColor: "transparent",
                     border: "none",

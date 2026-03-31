@@ -84,6 +84,22 @@ export default function MobileSession({
     }
   }, [messages, isLoading]);
 
+  // Scroll to bottom when keyboard opens (visualViewport resize)
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    const onResize = () => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   // Reset checkpoint action state when a new checkpoint arrives
   useEffect(() => {
     if (activeCheckpoint && !prevCheckpointRef.current) {
@@ -258,6 +274,7 @@ export default function MobileSession({
             height: "100%",
             overflowY: "auto",
             overflowX: "hidden",
+            willChange: "transform",
             display: "flex",
             flexDirection: "column",
             padding: "20px 16px 24px",

@@ -139,7 +139,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             style={{
               width: "100%",
               fontFamily: "var(--font-sans)",
-              fontSize: 14,
+              fontSize: 16,
               color: "var(--session-ink)",
               backgroundColor: "transparent",
               border: "none",
@@ -178,7 +178,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             style={{
               width: "100%",
               fontFamily: "var(--font-sans)",
-              fontSize: 14,
+              fontSize: 16,
               color: "var(--session-ink)",
               backgroundColor: "transparent",
               border: "none",
