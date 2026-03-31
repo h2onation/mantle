@@ -13,7 +13,7 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
@@ -56,6 +56,27 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
     });
     if (oauthError) {
       setError(oauthError.message);
+    }
+  }
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + "/auth/callback" },
+      });
+      if (error) throw error;
+      router.push("/");
+      router.refresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -478,6 +499,199 @@ export default function LoginScreen({ onBack }: LoginScreenProps) {
               </svg>
               Continue with Google
             </button>
+
+            {/* Sign up link */}
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 13,
+                color: "var(--session-ink-ghost)",
+                textAlign: "center",
+                marginTop: 24,
+              }}
+            >
+              No account?{" "}
+              <button
+                type="button"
+                onClick={() => { setMode("signup"); setError(""); }}
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--session-sage)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Create account
+              </button>
+            </p>
+          </>
+        )}
+
+        {mode === "signup" && (
+          <>
+            {/* Back button */}
+            <button
+              onClick={() => { setMode("login"); setError(""); }}
+              style={backButtonStyle}
+            >
+              {backArrow}
+              Back
+            </button>
+
+            <h1
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: 28,
+                fontWeight: 400,
+                color: "var(--session-ink)",
+                margin: "0 0 32px 0",
+              }}
+            >
+              Create account
+            </h1>
+
+            {error && (
+              <p
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  color: "var(--session-error)",
+                  margin: "0 0 16px 0",
+                }}
+              >
+                {error}
+              </p>
+            )}
+
+            <form onSubmit={handleSignup}>
+              <label
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 8,
+                  fontWeight: 500,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  color: "var(--session-ink-faded)",
+                  marginBottom: 8,
+                }}
+              >
+                EMAIL
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  color: "var(--session-ink)",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  borderBottom: "1px solid var(--session-ink-whisper)",
+                  borderRadius: 0,
+                  padding: "12px 0",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  marginBottom: 28,
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
+              />
+
+              <label
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 8,
+                  fontWeight: 500,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  color: "var(--session-ink-faded)",
+                  marginBottom: 8,
+                }}
+              >
+                PASSWORD
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  color: "var(--session-ink)",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  borderBottom: "1px solid var(--session-ink-whisper)",
+                  borderRadius: 0,
+                  padding: "12px 0",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  marginBottom: 32,
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  padding: "16px 0",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: "var(--session-cream)",
+                  backgroundColor: "var(--session-sage)",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                {loading ? "Creating account..." : "Create account"}
+              </button>
+            </form>
+
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 13,
+                color: "var(--session-ink-ghost)",
+                textAlign: "center",
+                marginTop: 24,
+              }}
+            >
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setError(""); }}
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--session-sage)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Log in
+              </button>
+            </p>
           </>
         )}
       </div>
