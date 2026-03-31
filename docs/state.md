@@ -35,11 +35,11 @@
 - PWA Phase 2: service worker (precache app shell, stale-while-revalidate for static assets, network-only for /api/* and /auth/*), offline fallback page, SW update detection with in-app "Update available" prompt
 - Typography & contrast polish (2026-03-31): Chat messages bumped from 13-14px to 17px, text colors upgraded to ink-soft (#3D3632) for WCAG AA compliance, send button replaced with sage green filled circle active state (44px tap target), SAGE label scaled up to 12px
 - IA cleanup (2026-03-31): Tightened SAGE label spacing (marginTop -4px) to reduce gap between user message and Sage response, increased bottom nav padding (top 10→14px, bottom 16→20px), switched nav font to Instrument Serif to match MANTLE logo
+- Manual share & export (2026-03-31): Share button on manual tab generates PDF (jspdf, client-side) and opens native share sheet (Web Share API) with pre-populated message. Falls back to direct download on unsupported browsers. Gating: < 3 entries shows soft nudge before proceeding. Display name fetched from profiles table via /api/manual.
 
 ## Not Yet Functional
-*Last verified: 2026-03-15*
+*Last verified: 2026-03-31*
 
-- **Export manual**: Display-only in Settings ("PDF or text" label, no handler)
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
 - **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance). SMS consent disclosure added to Settings phone input. Screenshot page at /sms-opt-in-screenshot.

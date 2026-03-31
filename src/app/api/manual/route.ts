@@ -13,12 +13,22 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  const { data: components } = await admin
-    .from("manual_components")
-    .select("id, layer, type, name, content, created_at, updated_at")
-    .eq("user_id", user.id)
-    .order("layer", { ascending: true })
-    .order("type", { ascending: true });
+  const [{ data: components }, { data: profile }] = await Promise.all([
+    admin
+      .from("manual_components")
+      .select("id, layer, type, name, content, created_at, updated_at")
+      .eq("user_id", user.id)
+      .order("layer", { ascending: true })
+      .order("type", { ascending: true }),
+    admin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single(),
+  ]);
 
-  return Response.json({ components: components || [] });
+  const displayName =
+    profile?.display_name || user.email?.split("@")[0] || "User";
+
+  return Response.json({ components: components || [], displayName });
 }

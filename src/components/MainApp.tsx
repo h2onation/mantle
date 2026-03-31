@@ -40,6 +40,7 @@ export default function MainApp() {
     isStreaming,
     activeCheckpoint,
     confirmedComponents,
+    displayName,
     initialized,
     isNewUser,
     sessionSummary,
@@ -159,7 +160,7 @@ export default function MainApp() {
           />
         }
         manualContent={
-          <MobileManual components={confirmedComponents} onExploreWithSage={handleExploreWithSage} />
+          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithSage={handleExploreWithSage} />
         }
         exploreContent={
           <MobileGuidance />

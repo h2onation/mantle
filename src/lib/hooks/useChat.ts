@@ -27,6 +27,7 @@ export function useChat() {
   const [confirmedComponents, setConfirmedComponents] = useState<
     ManualComponent[]
   >([]);
+  const [displayName, setDisplayName] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [sessionSummary, setSessionSummary] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export function useChat() {
       if (res.ok) {
         const data = await res.json();
         setConfirmedComponents(data.components || []);
+        if (data.displayName) setDisplayName(data.displayName);
       }
     } catch (err) {
       console.error("[useChat] Failed to load manual:", err);
@@ -622,6 +624,7 @@ export function useChat() {
     isStreaming,
     activeCheckpoint,
     confirmedComponents,
+    displayName,
     initialized,
     isNewUser,
     userEmail,
