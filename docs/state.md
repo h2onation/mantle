@@ -11,7 +11,7 @@
 *Last verified: 2026-03-31*
 
 **Working end-to-end:**
-- Auth: magic link + Google OAuth, middleware redirect, session refresh
+- Auth: magic link + Google OAuth + email/password signup, middleware redirect, session refresh
 - Onboarding: pre-auth flow (entry → info screens → seed → anonymous auth), dissolve transition into chat, skip for returning users
 - Streaming chat with Sage: SSE, batch rendering, retry on error
 - Sliding window: first 2 + last 48 when > 50 messages
@@ -39,6 +39,8 @@
 - Session opening states (2026-03-31): Four entry states — first-time welcome with chips (once ever, localStorage flag), returning user prompt ("What's on your mind?"), explore (skip to context), existing session (no greeting). `firstSessionCompleted` localStorage flag + `sessionOrigin` state in useChat.
 - Sign-in nudge (2026-03-31): Inline banner below header for anonymous users after 5+ messages. "Sign in to keep your progress" with 24-hour localStorage dismiss cooldown. Triggers existing AuthPromptModal.
 - Manual share & export (2026-03-31): Share button on manual tab generates PDF (jspdf, client-side) and opens native share sheet (Web Share API) with pre-populated message. Falls back to direct download on unsupported browsers. Gating: < 3 entries shows soft nudge before proceeding. Display name fetched from profiles table via /api/manual.
+- Email/password signup (2026-03-31): "Create account" flow in LoginScreen — email + password, no email verification. Toggle between login/signup modes.
+- OAuth redirect fix (2026-03-31): Removed redundant server-side getUser() from page.tsx that caused Google OAuth to redirect back to /login. Middleware already enforces auth; the double-check read stale cookies after middleware token refresh, creating a redirect loop. Page now renders statically.
 
 ## Not Yet Functional
 *Last verified: 2026-03-31*
@@ -48,7 +50,7 @@
 - **MMS / Text Sage**: Fully scoped (see docs/reference/mms-build-guide-v3.md) but not built. Public SMS opt-in page live at /sms (TCR A2P 10DLC CTA compliance). SMS consent disclosure added to Settings phone input. Screenshot page at /sms-opt-in-screenshot.
 
 ## Known Issues
-*Last verified: 2026-03-30*
+*Last verified: 2026-03-31*
 
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word-count heuristic (100+ for returning users, 60+ for first-session) is in the classifier prompt but not enforced in code — if Haiku returns isCheckpoint: true with a valid layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling getUser() on each page request. If user stays on the SPA without page navigation, token could expire. API routes return 401 → redirect to /login as fallback.
