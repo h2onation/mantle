@@ -6,6 +6,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, sendTypingIndicator, markAsRead } from "./sender";
 import { processTextMessage } from "./sage-bridge";
+import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 
 const FALLBACK_MSG =
   "Something went wrong on my end. Try again in a minute, or open the app at trustmantle.com";
@@ -181,6 +182,22 @@ export async function routeInboundMessage(
     new Date().toISOString()
   );
 
+  // 5b. Check for pending checkpoint response (YES/NO/NOT QUITE)
+  const checkpointResponse = await handleCheckpointResponse(
+    admin,
+    userId,
+    textContent,
+    chatId
+  );
+  if (checkpointResponse) {
+    console.log(
+      "[linq-router] checkpoint_response user=%s action=%s",
+      userId,
+      checkpointResponse
+    );
+    return;
+  }
+
   // 6. Route to Sage
   try {
     // Typing indicator fires BEFORE Sage processes
@@ -192,6 +209,11 @@ export async function routeInboundMessage(
     // Mark as read + send response
     await markAsRead(chatId);
     const sendResult = await sendMessage(chatId, result.responseText);
+
+    // Send checkpoint follow-up if present
+    if (result.checkpointText) {
+      await sendMessage(chatId, result.checkpointText);
+    }
 
     console.log(
       "[linq-router] sage_response user=%s conv=%s len=%d latency_ms=%d",
@@ -263,4 +285,108 @@ async function handleUnknownNumber(
     sendResult.ok,
     sendResult.traceId ?? "unknown"
   );
+}
+
+/**
+ * Check if the user's message is a response to a pending checkpoint.
+ * Returns the action taken, or null if this isn't a checkpoint response.
+ */
+async function handleCheckpointResponse(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  text: string,
+  chatId: string
+): Promise<string | null> {
+  const normalized = text.trim().toUpperCase();
+
+  // Only intercept clear checkpoint responses
+  const isYes = normalized === "YES" || normalized === "Y" || normalized === "CONFIRM";
+  const isNo = normalized === "NO" || normalized === "N" || normalized === "DISCARD";
+  const isNotQuite =
+    normalized === "NOT QUITE" ||
+    normalized === "NOTQUITE" ||
+    normalized === "REFINE";
+
+  if (!isYes && !isNo && !isNotQuite) {
+    return null;
+  }
+
+  // Find the user's most recent pending checkpoint
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!conv) return null;
+
+  const { data: pendingMsg } = await admin
+    .from("messages")
+    .select("id, checkpoint_meta")
+    .eq("conversation_id", conv.id)
+    .eq("is_checkpoint", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!pendingMsg?.checkpoint_meta) return null;
+
+  const meta = pendingMsg.checkpoint_meta as Record<string, unknown>;
+  if (meta.status !== "pending") return null;
+
+  if (isYes) {
+    // Confirm — write to manual (same logic as web)
+    const result = await confirmCheckpoint({
+      messageId: pendingMsg.id,
+      conversationId: conv.id,
+      userId,
+    });
+
+    if (result.success) {
+      await sendMessage(chatId, "Written to manual.");
+    } else {
+      console.error("[linq-router] checkpoint_confirm_failed:", result.error);
+      await sendMessage(chatId, "Something went wrong saving that. Try again in the app.");
+    }
+    return "confirmed";
+  }
+
+  if (isNotQuite) {
+    // Refined — Sage will revisit
+    await admin
+      .from("messages")
+      .update({ checkpoint_meta: { ...meta, status: "refined" } })
+      .eq("id", pendingMsg.id);
+
+    await admin.from("messages").insert({
+      conversation_id: conv.id,
+      role: "system",
+      content: "[User wants to refine the checkpoint]",
+    });
+
+    await sendMessage(chatId, "Got it — Sage will revisit this.");
+    return "refined";
+  }
+
+  if (isNo) {
+    // Rejected — discard
+    await admin
+      .from("messages")
+      .update({ checkpoint_meta: { ...meta, status: "rejected" } })
+      .eq("id", pendingMsg.id);
+
+    await admin.from("messages").insert({
+      conversation_id: conv.id,
+      role: "system",
+      content: "[User rejected the checkpoint]",
+    });
+
+    await sendMessage(chatId, "Discarded.");
+    return "rejected";
+  }
+
+  return null;
 }
