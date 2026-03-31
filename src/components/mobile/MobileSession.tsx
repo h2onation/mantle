@@ -16,11 +16,11 @@ const WELCOME_CHIPS = [
 
 const sageLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "7px",
+  fontSize: "12px",
   fontWeight: 500,
-  letterSpacing: "2.5px",
+  letterSpacing: "1.5px",
   textTransform: "uppercase" as const,
-  color: "var(--session-sage-soft)",
+  color: "var(--session-sage)",
 } as const;
 
 interface MobileSessionProps {
@@ -137,9 +137,9 @@ export default function MobileSession({
       </div>
       <p style={{
         fontFamily: "var(--font-serif)",
-        fontSize: "14px",
-        lineHeight: 1.75,
-        color: "var(--session-ink)",
+        fontSize: "17px",
+        lineHeight: 1.5,
+        color: "var(--session-ink-soft)",
         margin: 0,
       }}>
         Welcome. Let&apos;s start small and see where you&apos;re at.
@@ -160,10 +160,10 @@ export default function MobileSession({
               }}
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 400,
                 lineHeight: 1.4,
-                color: "var(--session-ink-mid)",
+                color: "var(--session-ink-soft)",
                 backgroundColor: "var(--session-sage-muted)",
                 border: "1px solid var(--session-sage-border)",
                 borderRadius: "20px",
@@ -434,17 +434,17 @@ export default function MobileSession({
                       style={isPattern
                         ? {
                             fontFamily: "var(--font-sans)",
-                            fontSize: "13px",
+                            fontSize: "15px",
                             fontWeight: 400,
-                            lineHeight: 1.65,
-                            color: "var(--session-ink-mid)",
+                            lineHeight: 1.5,
+                            color: "var(--session-ink-soft)",
                           }
                         : {
                             fontFamily: "var(--font-serif)",
-                            fontSize: "14px",
+                            fontSize: "16px",
                             fontWeight: 400,
-                            lineHeight: 1.75,
-                            color: "var(--session-ink)",
+                            lineHeight: 1.5,
+                            color: "var(--session-ink-soft)",
                           }
                       }
                     >
@@ -667,18 +667,18 @@ export default function MobileSession({
                         borderRadius: "4px",
                         padding: "12px 14px",
                         fontFamily: "var(--font-serif)",
-                        fontSize: "14px",
+                        fontSize: "17px",
                         fontWeight: 400,
-                        lineHeight: 1.65,
+                        lineHeight: 1.5,
                         color: "var(--session-ink-soft)",
                       }}
                     >
                       <div
                         style={{
                           fontFamily: "var(--font-serif)",
-                          fontSize: "14px",
+                          fontSize: "17px",
                           fontWeight: 400,
-                          lineHeight: 1.65,
+                          lineHeight: 1.5,
                           display: "flex",
                           flexDirection: "column",
                           gap: "12px",
@@ -722,10 +722,10 @@ export default function MobileSession({
                   <p
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontSize: "13px",
+                      fontSize: "17px",
                       fontWeight: 400,
-                      lineHeight: 1.55,
-                      color: "var(--session-ink-mid)",
+                      lineHeight: 1.5,
+                      color: "var(--session-ink-soft)",
                       textAlign: "left",
                       margin: 0,
                     }}

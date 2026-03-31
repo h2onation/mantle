@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-03-30*
+*Last verified: 2026-03-31*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -33,6 +33,7 @@
 - Resonant content: URL detection + fetch (5s timeout, HTML text extraction, 3000-word cap). Sage describes content in one sentence, asks what resonated, connects to manual only after user leads. Graceful fallback when fetch fails. Hard rule prevents Sage from fabricating content descriptions when fetch fails or no content is present — guessing from URLs is blocked in base prompt. No UI changes, no new dependencies.
 - PWA Phase 1: web app manifest, app icons (192/512/maskable/apple-touch), standalone display, dark splash screen, "Add to Home Screen" support
 - PWA Phase 2: service worker (precache app shell, stale-while-revalidate for static assets, network-only for /api/* and /auth/*), offline fallback page, SW update detection with in-app "Update available" prompt
+- Typography & contrast polish (2026-03-31): Chat messages bumped from 13-14px to 17px, text colors upgraded to ink-soft (#3D3632) for WCAG AA compliance, send button replaced with sage green filled circle active state (44px tap target), nav bar switched to DM Sans 500, SAGE label scaled up to 12px
 
 ## Not Yet Functional
 *Last verified: 2026-03-15*
@@ -52,7 +53,7 @@
 - ~~**OAuth session leak (FIXED 2026-03-25)**: Auth callback responses could be cached by Vercel CDN, causing one user to receive another user's session cookies on OAuth redirect. Additionally, client hooks (useChat, useIsAdmin) used `getSession()` which reads from cache without server validation. Fix: added `force-dynamic` + `Cache-Control: no-store` to auth callback, replaced all client-side `getSession()` with `getUser()`.~~
 
 ## In-Flight Work
-*Last verified: 2026-03-30*
+*Last verified: 2026-03-31*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
