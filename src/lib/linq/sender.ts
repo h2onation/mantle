@@ -50,6 +50,13 @@ async function linqFetch(
       traceId ?? err?.trace_id ?? "unknown",
       err
     );
+  } else {
+    console.log(
+      "[linq-sender] OK %d on %s — trace_id=%s",
+      res.status,
+      path,
+      traceId ?? "unknown"
+    );
   }
 
   return { ok: res.ok, status: res.status, data, traceId };
