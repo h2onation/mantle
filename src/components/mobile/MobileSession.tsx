@@ -16,11 +16,11 @@ const WELCOME_CHIPS = [
 
 const sageLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 400,
   letterSpacing: "1.5px",
-  textTransform: "uppercase" as const,
-  color: "var(--session-sage)",
+  textTransform: "lowercase" as const,
+  color: "var(--session-sage-soft)",
 } as const;
 
 interface MobileSessionProps {
@@ -29,6 +29,8 @@ interface MobileSessionProps {
   isLoading: boolean;
   isStreaming: boolean;
   isNewUser?: boolean;
+  firstSessionCompleted?: boolean;
+  sessionOrigin?: "new" | "explore" | "existing";
   sessionSummary?: string | null;
   lastSessionDate?: string | null;
   confirmedComponents: ManualComponent[];
@@ -46,6 +48,8 @@ interface MobileSessionProps {
   dismissFeedbackModal?: () => void;
   feedbackHint?: string | null;
   clearFeedbackHint?: () => void;
+  isGuest?: boolean;
+  onSignInPrompt?: () => void;
 }
 
 export default function MobileSession({
@@ -68,10 +72,20 @@ export default function MobileSession({
   dismissFeedbackModal,
   feedbackHint,
   clearFeedbackHint,
+  isGuest,
+  onSignInPrompt,
+  firstSessionCompleted,
+  sessionOrigin,
 }: MobileSessionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [chipsVisible, setChipsVisible] = useState(true);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
+  const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const dismissed = localStorage.getItem("mantle_signin_banner_dismissed");
+    if (!dismissed) return false;
+    return Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000;
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
@@ -123,23 +137,21 @@ export default function MobileSession({
       key="welcome-block"
       style={{
         margin: "16px 0 0 0",
-        padding: "16px 16px 14px",
-        background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-        border: "1px solid var(--session-sage-border)",
-        borderRadius: "8px",
-        boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
+        padding: "16px 18px 14px",
+        background: "var(--session-sage-tint)",
+        borderRadius: "12px",
         animation: "mantleFadeIn 0.6s ease-out",
       }}
     >
       {/* Sage label */}
-      <div style={{ marginBottom: "8px" }}>
+      <div style={{ marginBottom: "2px" }}>
         <span style={sageLabelStyle}>SAGE</span>
       </div>
       <p style={{
-        fontFamily: "var(--font-sans)",
-        fontSize: "17px",
-        lineHeight: 1.5,
-        color: "var(--session-ink-soft)",
+        fontFamily: "var(--font-sage)",
+        fontSize: "16px",
+        lineHeight: 1.55,
+        color: "var(--session-ink-sage)",
         margin: 0,
       }}>
         Welcome. Let&apos;s start small and see where you&apos;re at.
@@ -251,6 +263,62 @@ export default function MobileSession({
         <div style={{ width: "40px" }} />
       </div>
 
+      {/* Sign-in nudge for anonymous users — below header */}
+      {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px",
+            padding: "6px 16px",
+            background: "var(--session-sage-tint)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              color: "var(--session-ink-mid)",
+            }}
+          >
+            Sign in to keep your progress
+          </span>
+          <button
+            onClick={onSignInPrompt}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              fontWeight: 500,
+              color: "var(--session-sage)",
+              padding: 0,
+            }}
+          >
+            Sign in
+          </button>
+          <button
+            onClick={() => {
+              setSignInBannerDismissed(true);
+              localStorage.setItem("mantle_signin_banner_dismissed", String(Date.now()));
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              color: "var(--session-ink-ghost)",
+              padding: 0,
+            }}
+          >
+            Later
+          </button>
+        </div>
+      )}
+
       {/* Messages area wrapper */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {/* Scroll fade overlay */}
@@ -277,21 +345,19 @@ export default function MobileSession({
             willChange: "transform",
             display: "flex",
             flexDirection: "column",
-            padding: "20px 16px 24px",
+            padding: "20px 16px 4px",
             gap: "14px",
           }}
         >
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
-          {/* Welcome block for new users — shows before Sage responds */}
-          {confirmedComponents.length === 0 && hasMessages && !hasAssistantMessage && welcomeBlock}
+          {/* State 1: First-time user welcome (once ever) */}
+          {!firstSessionCompleted && sessionOrigin === "new" && hasMessages && !hasAssistantMessage && welcomeBlock}
+          {!firstSessionCompleted && sessionOrigin === "new" && !hasMessages && !isLoading && welcomeBlock}
 
-          {/* Welcome + chips for new users with no messages */}
-          {confirmedComponents.length === 0 && !hasMessages && !isLoading && welcomeBlock}
-
-          {/* Empty state for returning users */}
-          {confirmedComponents.length > 0 && !hasMessages && !isLoading && (
+          {/* State 2: Returning user, new session */}
+          {firstSessionCompleted && sessionOrigin === "new" && !hasMessages && !isLoading && (
             <div
               style={{
                 display: "flex",
@@ -302,15 +368,14 @@ export default function MobileSession({
             >
               <p
                 style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: "22px",
-                  color: "var(--session-ink-ghost)",
-                  lineHeight: 1.5,
-                  letterSpacing: "-0.3px",
+                  fontFamily: "var(--font-sage)",
+                  fontSize: "16px",
+                  color: "var(--session-ink-sage)",
+                  lineHeight: 1.55,
                   textAlign: "center",
                 }}
               >
-                Ready when you are.
+                What&apos;s on your mind? Or if it helps, I can suggest a starting point.
               </p>
             </div>
           )}
@@ -656,7 +721,7 @@ export default function MobileSession({
                   >
                     {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
-                      <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "4px" }}>
+                      <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
                         <span style={sageLabelStyle}>SAGE</span>
                       </div>
                     )}
@@ -664,21 +729,21 @@ export default function MobileSession({
                     <div
                       style={{
                         background: "var(--session-sage-tint)",
-                        borderRadius: "4px",
-                        padding: "12px 14px",
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "17px",
+                        borderRadius: "12px",
+                        padding: "16px 18px",
+                        fontFamily: "var(--font-sage)",
+                        fontSize: "16px",
                         fontWeight: 400,
-                        lineHeight: 1.5,
-                        color: "var(--session-ink-soft)",
+                        lineHeight: 1.55,
+                        color: "var(--session-ink-sage)",
                       }}
                     >
                       <div
                         style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: "17px",
+                          fontFamily: "var(--font-sage)",
+                          fontSize: "16px",
                           fontWeight: 400,
-                          lineHeight: 1.5,
+                          lineHeight: 1.55,
                           display: "flex",
                           flexDirection: "column",
                           gap: "12px",
@@ -722,10 +787,10 @@ export default function MobileSession({
                   <p
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontSize: "17px",
+                      fontSize: "15.5px",
                       fontWeight: 400,
                       lineHeight: 1.5,
-                      color: "var(--session-ink-soft)",
+                      color: "var(--session-ink-user)",
                       textAlign: "left",
                       margin: 0,
                     }}
@@ -750,15 +815,15 @@ export default function MobileSession({
                   {(messages.length === 0 ||
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
-                    <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "4px" }}>
+                    <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
                       <span style={sageLabelStyle}>SAGE</span>
                     </div>
                   )}
                   <div
                     style={{
                       background: "var(--session-sage-tint)",
-                      borderRadius: "4px",
-                      padding: "12px 14px",
+                      borderRadius: "12px",
+                      padding: "16px 18px",
                       alignSelf: "flex-start",
                     }}
                   >

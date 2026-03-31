@@ -13,6 +13,8 @@
   /* Ink hierarchy */
   --session-ink:         #1A1614;
   --session-ink-soft:    #3D3632;
+  --session-ink-sage:    #524C47;
+  --session-ink-user:    #4A4440;
   --session-ink-mid:     #6B6360;
   --session-ink-faded:   #8A8480;
   --session-ink-ghost:   #B8B2AC;
@@ -24,7 +26,7 @@
   --session-sage-soft:   #7A8B72;
   --session-sage-muted:  rgba(94, 112, 84, 0.10);
   --session-sage-border: rgba(94, 112, 84, 0.22);
-  --session-sage-tint:   rgba(94, 112, 84, 0.04);
+  --session-sage-tint:   rgba(94, 112, 84, 0.06);
 
   /* Navy (pattern accent) */
   --session-navy-bg:      rgba(45, 55, 80, 0.05);

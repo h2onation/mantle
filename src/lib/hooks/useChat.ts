@@ -40,6 +40,11 @@ export function useChat() {
   const [promptAuth, setPromptAuth] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackHint, setFeedbackHint] = useState<string | null>(null);
+  const [sessionOrigin, setSessionOrigin] = useState<"new" | "explore" | "existing">("new");
+  const [firstSessionCompleted, setFirstSessionCompleted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("mantle_first_session_completed") === "true";
+  });
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -217,6 +222,7 @@ export function useChat() {
     }
 
     if (allConversations.length > 0) {
+      setSessionOrigin("existing");
       const latest = allConversations[0];
       setConversationId(latest.id);
       setSessionSummary(latest.summary || null);
@@ -306,6 +312,12 @@ export function useChat() {
         setFeedbackHint("Couldn't send feedback, try again");
       }
       return;
+    }
+
+    // Mark first session as started (persists across sessions)
+    if (!firstSessionCompleted) {
+      setFirstSessionCompleted(true);
+      localStorage.setItem("mantle_first_session_completed", "true");
     }
 
     // Clear previous error and track for retry
@@ -437,6 +449,7 @@ export function useChat() {
     if (isLoading || isStreaming) return;
 
     // Reset current state
+    setSessionOrigin("existing");
     setMessages([]);
     setActiveCheckpoint(null);
     setErrorMessage(null);
@@ -538,6 +551,7 @@ export function useChat() {
     }
 
     // Reset state for new session
+    setSessionOrigin("new");
     setConversationId(null);
     setMessages([]);
     setSessionSummary(null);
@@ -563,6 +577,7 @@ export function useChat() {
     }
 
     // Reset state for new session
+    setSessionOrigin("explore");
     setConversationId(null);
     setMessages([]);
     setSessionSummary(null);
@@ -624,6 +639,8 @@ export function useChat() {
     confirmedComponents,
     initialized,
     isNewUser,
+    firstSessionCompleted,
+    sessionOrigin,
     userEmail,
     sessionSummary,
     lastSessionDate,
