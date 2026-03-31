@@ -147,14 +147,66 @@ export async function POST(request: NextRequest) {
   }
 
   // Upsert phone_numbers record — ALWAYS save even without chat_id
+  console.log("[user/phone] Upserting phone for user=%s phone=%s", user.id, phone);
+
   const { data: existingRow } = await admin
     .from("phone_numbers")
-    .select("id")
+    .select("id, user_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (existingRow) {
-    await admin
+  console.log("[user/phone] Existing row for user=%s: %j", user.id, existingRow);
+
+  // Also check if there's a row with this phone but a different user (old anonymous account)
+  if (!existingRow) {
+    const { data: phoneRow } = await admin
+      .from("phone_numbers")
+      .select("id, user_id")
+      .eq("phone", phone)
+      .maybeSingle();
+
+    if (phoneRow) {
+      console.log(
+        "[user/phone] Found phone row under different user_id=%s, updating to current user=%s",
+        phoneRow.user_id,
+        user.id
+      );
+      const { error: updateError } = await admin
+        .from("phone_numbers")
+        .update({
+          user_id: user.id,
+          phone,
+          verified: true,
+          linq_chat_id: linqChatId,
+          service_type: serviceType,
+          linked_at: new Date().toISOString(),
+          verification_code: null,
+          code_expires_at: null,
+        })
+        .eq("id", phoneRow.id);
+
+      if (updateError) {
+        console.error("[user/phone] UPDATE (reassign) FAILED:", updateError);
+        return Response.json({ error: "Failed to save phone link" }, { status: 500 });
+      }
+    } else {
+      console.log("[user/phone] No existing row — inserting new for user=%s", user.id);
+      const { error: insertError } = await admin.from("phone_numbers").insert({
+        user_id: user.id,
+        phone,
+        verified: true,
+        linq_chat_id: linqChatId,
+        service_type: serviceType,
+        linked_at: new Date().toISOString(),
+      });
+
+      if (insertError) {
+        console.error("[user/phone] INSERT FAILED:", insertError);
+        return Response.json({ error: "Failed to save phone link" }, { status: 500 });
+      }
+    }
+  } else {
+    const { error: updateError } = await admin
       .from("phone_numbers")
       .update({
         phone,
@@ -166,16 +218,21 @@ export async function POST(request: NextRequest) {
         code_expires_at: null,
       })
       .eq("user_id", user.id);
-  } else {
-    await admin.from("phone_numbers").insert({
-      user_id: user.id,
-      phone,
-      verified: true,
-      linq_chat_id: linqChatId,
-      service_type: serviceType,
-      linked_at: new Date().toISOString(),
-    });
+
+    if (updateError) {
+      console.error("[user/phone] UPDATE FAILED:", updateError);
+      return Response.json({ error: "Failed to save phone link" }, { status: 500 });
+    }
   }
+
+  // Verify the write actually worked
+  const { data: verifyRow } = await admin
+    .from("phone_numbers")
+    .select("phone, verified")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  console.log("[user/phone] VERIFY after upsert: %j", verifyRow);
 
   // Save the initial greeting to messages table so it appears in conversation history
   try {
