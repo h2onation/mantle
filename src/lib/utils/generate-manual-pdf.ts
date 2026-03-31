@@ -8,23 +8,6 @@ const MARGIN_RIGHT = 24;
 const MARGIN_TOP = 28;
 const MARGIN_BOTTOM = 32;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-const FOOTER_Y = PAGE_HEIGHT - 16;
-
-function addFooter(doc: jsPDF, name: string) {
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(160, 155, 145);
-    doc.text(
-      `${name}'s Manual · Built with Mantle`,
-      PAGE_WIDTH / 2,
-      FOOTER_Y,
-      { align: "center" }
-    );
-  }
-}
 
 function checkPageBreak(doc: jsPDF, y: number, needed: number): number {
   if (y + needed > PAGE_HEIGHT - MARGIN_BOTTOM) {
@@ -62,20 +45,19 @@ export function generateManualPdf(
 
   let y = MARGIN_TOP;
 
+  // Branding — small, tasteful
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(160, 155, 145);
+  doc.text("Mantle", MARGIN_LEFT, y);
+  y += 10;
+
   // Header
-  doc.setFont("helvetica", "bold");
+  doc.setFont("times", "normal");
   doc.setFontSize(26);
-  doc.setTextColor(45, 40, 35);
+  doc.setTextColor(26, 22, 20);
   doc.text(`${name}'s Manual`, MARGIN_LEFT, y);
   y += 14;
-
-  // Framing text
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(90, 85, 78);
-  const framingText = `This is ${name}'s manual. They built it through conversations over time with the help of Mantle. It's not a diagnosis or a personality test. It's their own words for how they operate. They thought it would be helpful for you to understand how they relate.`;
-  y = wrapAndRender(doc, framingText, MARGIN_LEFT, y, CONTENT_WIDTH, 4.5);
-  y += 6;
 
   // Divider
   doc.setDrawColor(200, 195, 185);
@@ -87,24 +69,24 @@ export function generateManualPdf(
   for (const layer of populatedLayers) {
     // Section title
     y = checkPageBreak(doc, y, 20);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("times", "normal");
     doc.setFontSize(16);
-    doc.setTextColor(45, 40, 35);
+    doc.setTextColor(26, 22, 20);
     doc.text(layer.name, MARGIN_LEFT, y);
     y += 8;
 
     // Narrative (italic)
     if (layer.component) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(10);
-      doc.setTextColor(70, 65, 58);
+      doc.setFont("times", "italic");
+      doc.setFontSize(10.5);
+      doc.setTextColor(74, 68, 64);
       y = wrapAndRender(
         doc,
         layer.component.narrative,
         MARGIN_LEFT,
         y,
         CONTENT_WIDTH,
-        4.5
+        4.8
       );
       y += 4;
     }
@@ -130,7 +112,7 @@ export function generateManualPdf(
       // Pattern description
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.setTextColor(70, 65, 58);
+      doc.setTextColor(74, 68, 64);
       y = wrapAndRender(
         doc,
         pattern.description,
@@ -145,23 +127,26 @@ export function generateManualPdf(
     y += 6;
   }
 
-  // CTA divider
-  y = checkPageBreak(doc, y, 20);
+  // Footer on last page only
+  const lastPage = doc.getNumberOfPages();
+  doc.setPage(lastPage);
+
+  // Footer divider
+  const footerY = PAGE_HEIGHT - 20;
   doc.setDrawColor(200, 195, 185);
-  doc.setLineWidth(0.3);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
-  y += 8;
+  doc.setLineWidth(0.2);
+  doc.line(MARGIN_LEFT, footerY, PAGE_WIDTH - MARGIN_RIGHT, footerY);
 
-  // CTA
+  // Footer text
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(140, 135, 128);
-  const cta =
-    "Mantle helps people build a guide to how they operate. If reading this made you curious about your own patterns, you can start yours at trustthemantle.com";
-  y = wrapAndRender(doc, cta, MARGIN_LEFT, y, CONTENT_WIDTH, 4);
-
-  // Footer on every page
-  addFooter(doc, name);
+  doc.setFontSize(8);
+  doc.setTextColor(160, 155, 145);
+  doc.text(
+    "Built with Mantle \u2014 mantleapp.com",
+    PAGE_WIDTH / 2,
+    footerY + 6,
+    { align: "center" }
+  );
 
   return doc.output("blob");
 }

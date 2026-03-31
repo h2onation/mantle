@@ -20,15 +20,13 @@ export default function MobileManual({ components, displayName, onExploreWithSag
   const isEmpty = layers.every((l) => l.component === null && l.patterns.length === 0);
   const populatedLayers = layers.filter((l) => l.component !== null || l.patterns.length > 0);
   const emptyLayers = layers.filter((l) => l.component === null && l.patterns.length === 0);
-  const entryCount = components.length;
 
-  const [showNudge, setShowNudge] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const doShare = useCallback(async () => {
-    setShowNudge(false);
+  const doExportAndShare = useCallback(async () => {
+    setShowSheet(false);
     setIsGenerating(true);
-    // Yield a frame so the loading overlay paints before the synchronous PDF generation
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
       const currentLayers = buildLayers(components);
@@ -41,14 +39,6 @@ export default function MobileManual({ components, displayName, onExploreWithSag
       setIsGenerating(false);
     }
   }, [displayName, components]);
-
-  const handleShare = useCallback(() => {
-    if (entryCount < 3) {
-      setShowNudge(true);
-    } else {
-      doShare();
-    }
-  }, [entryCount, doShare]);
 
   return (
     <div
@@ -87,46 +77,8 @@ export default function MobileManual({ components, displayName, onExploreWithSag
           MANTLE
         </span>
 
-        {/* Share button — right */}
-        <div style={{ minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {entryCount > 0 && (
-            <button
-              onClick={handleShare}
-              disabled={isGenerating}
-              style={{
-                width: 44,
-                height: 44,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "none",
-                border: "none",
-                cursor: isGenerating ? "default" : "pointer",
-                padding: 0,
-                opacity: isGenerating ? 0.4 : 0.55,
-                transition: "opacity 0.2s ease",
-              }}
-              aria-label="Share manual"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M10 3v10M10 3l3.5 3.5M10 3L6.5 6.5"
-                  stroke="var(--session-ink)"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M4 12v3a2 2 0 002 2h8a2 2 0 002-2v-3"
-                  stroke="var(--session-ink)"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+        {/* Right spacer */}
+        <div style={{ minWidth: "44px", minHeight: "44px" }} />
       </div>
 
       {/* Scroll fade overlay */}
@@ -232,85 +184,202 @@ export default function MobileManual({ components, displayName, onExploreWithSag
             </>
           )}
         </div>
+
+        {/* Share invitation — always visible at bottom */}
+        <div
+          style={{
+            margin: "40px 16px 24px",
+            padding: 24,
+            background: "rgba(166, 139, 107, 0.08)",
+            border: "1px solid rgba(166, 139, 107, 0.15)",
+            borderRadius: 12,
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: 18,
+              fontWeight: 400,
+              color: "#1A1614",
+              margin: "0 0 8px 0",
+              letterSpacing: "-0.2px",
+            }}
+          >
+            Share how you operate
+          </h2>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              color: "#6B6360",
+              lineHeight: 1.55,
+              margin: "0 0 16px 0",
+            }}
+          >
+            Export a read-only version of your manual so someone can understand
+            how you work.
+          </p>
+          <button
+            onClick={() => setShowSheet(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#A0734E",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+            }}
+          >
+            Share your manual
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M5 3l4 4-4 4"
+                stroke="#A0734E"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Nudge modal — shown when < 3 entries */}
-      {showNudge && (
+      {/* Context half-sheet */}
+      {showSheet && (
         <div
           style={{
             position: "fixed",
             inset: 0,
             zIndex: 200,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "var(--session-backdrop-heavy)",
-            padding: "32px",
+            flexDirection: "column",
+            justifyContent: "flex-end",
           }}
         >
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowSheet(false)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundColor: "var(--session-backdrop-heavy)",
+              animation: "sheetBackdropIn 0.2s ease-out both",
+            }}
+          />
+
+          {/* Sheet */}
           <div
             style={{
+              position: "relative",
               backgroundColor: "var(--session-cream)",
-              borderRadius: "16px",
-              padding: "24px",
-              maxWidth: "320px",
-              width: "100%",
+              borderRadius: "20px 20px 0 0",
+              padding: "32px 24px calc(24px + env(safe-area-inset-bottom, 0px))",
+              animation: "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
             }}
           >
+            {/* Drag handle */}
+            <div
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: "rgba(0,0,0,0.12)",
+                margin: "0 auto 24px",
+              }}
+            />
+
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: 20,
+                fontWeight: 400,
+                color: "#1A1614",
+                margin: "0 0 16px 0",
+                letterSpacing: "-0.3px",
+              }}
+            >
+              What gets shared
+            </h2>
+
             <p
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: "14px",
-                color: "var(--session-ink)",
+                fontSize: 15,
+                color: "#4A4440",
                 lineHeight: 1.6,
                 margin: "0 0 20px 0",
               }}
             >
-              Your manual is still early. Sharing works best with more patterns.
-              Keep building, or share what you have?
+              Everything on this page — your sections, your narratives, your
+              patterns — will be exported as a document you can send to anyone.
+              Your conversations with Sage and any session transcripts are never
+              included.
             </p>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button
-                onClick={() => setShowNudge(false)}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "var(--session-ink)",
-                  backgroundColor: "transparent",
-                  border: "1px solid var(--session-ink-hairline)",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                }}
-              >
-                Keep building
-              </button>
-              <button
-                onClick={doShare}
-                style={{
-                  flex: 1,
-                  padding: "10px 0",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "var(--session-ink)",
-                  backgroundColor: "transparent",
-                  border: "1px solid var(--session-ink-hairline)",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                }}
-              >
-                Share what I have
-              </button>
-            </div>
+
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 15,
+                color: "#4A4440",
+                lineHeight: 1.6,
+                margin: "0 0 28px 0",
+              }}
+            >
+              Feel free to send it to yourself first if you want to see how it
+              looks.
+            </p>
+
+            {/* Export button */}
+            <button
+              onClick={doExportAndShare}
+              disabled={isGenerating}
+              style={{
+                width: "100%",
+                padding: 16,
+                fontFamily: "var(--font-sans)",
+                fontSize: 15,
+                fontWeight: 500,
+                color: "#FFFFFF",
+                backgroundColor: isGenerating ? "#C4A888" : "#A0734E",
+                border: "none",
+                borderRadius: 10,
+                cursor: isGenerating ? "default" : "pointer",
+                transition: "background-color 0.2s ease",
+              }}
+            >
+              {isGenerating ? "Preparing your manual..." : "Export and share"}
+            </button>
+
+            {/* Cancel */}
+            <button
+              onClick={() => setShowSheet(false)}
+              style={{
+                display: "block",
+                width: "100%",
+                marginTop: 12,
+                padding: "10px 0",
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                fontWeight: 400,
+                color: "#8A8480",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* Loading overlay */}
-      {isGenerating && (
+      {/* Loading overlay — shown after sheet closes during generation */}
+      {isGenerating && !showSheet && (
         <div
           style={{
             position: "fixed",
