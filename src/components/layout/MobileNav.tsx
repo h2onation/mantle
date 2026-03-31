@@ -25,8 +25,8 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
         display: "flex",
         alignItems: "baseline",
         justifyContent: "space-evenly",
-        paddingTop: "10px",
-        paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+        paddingTop: "14px",
+        paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
         background: "var(--session-linen)",
         zIndex: 100,
       }}
@@ -45,9 +45,9 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
                 ? "1px solid var(--session-ink-soft)"
                 : "1px solid transparent",
               cursor: "pointer",
-              fontFamily: "var(--font-sans)",
+              fontFamily: "var(--font-serif)",
               fontSize: "11px",
-              fontWeight: 500,
+              fontWeight: 400,
               letterSpacing: "1.5px",
               textTransform: "uppercase",
               lineHeight: 1,
