@@ -11,7 +11,7 @@
 *Last verified: 2026-03-31*
 
 **Working end-to-end:**
-- Auth: magic link + Google OAuth + email/password signup, middleware redirect, session refresh
+- Auth: magic link + Google OAuth, middleware redirect, session refresh
 - Onboarding: pre-auth flow (entry → info screens → seed → anonymous auth), dissolve transition into chat, skip for returning users
 - Streaming chat with Sage: SSE, batch rendering, retry on error
 - Sliding window: first 2 + last 48 when > 50 messages
@@ -38,19 +38,18 @@
 - Chat typography system (2026-03-31): Sage messages use Source Serif 4 (--font-sage) at 16px/#524C47/1.55, user messages use DM Sans at 15.5px/#4A4440/1.5. Sage bubbles: 12px radius, sage-tint background. User messages: plain text, no bubble. sage label: 8px lowercase JetBrains Mono #7A8B72. Welcome block unified with standard sage bubble style.
 - Session opening states (2026-03-31): Four entry states — first-time welcome with chips (once ever, localStorage flag), returning user prompt ("What's on your mind?"), explore (skip to context), existing session (no greeting). `firstSessionCompleted` localStorage flag + `sessionOrigin` state in useChat.
 - Sign-in nudge (2026-03-31): Inline banner below header for anonymous users after 5+ messages. "Sign in to keep your progress" with 24-hour localStorage dismiss cooldown. Triggers existing AuthPromptModal.
-- Manual share & export (2026-03-31): Warm invitation card at bottom of manual page ("Share how you operate") opens context half-sheet explaining what gets shared, then generates PDF (jspdf, client-side) and opens native share sheet (Web Share API). Falls back to direct download. No gating — always visible. Warm accent palette (#A0734E). Display name fetched from profiles table via /api/manual.
-- Email/password signup (2026-03-31): "Create account" flow in LoginScreen — email + password, no email verification. Toggle between login/signup modes.
-- OAuth redirect fix (2026-03-31): Removed redundant server-side getUser() from page.tsx that caused Google OAuth to redirect back to /login. Middleware already enforces auth; the double-check read stale cookies after middleware token refresh, creating a redirect loop. Page now renders statically.
+- Manual share & export (2026-03-31): Share button on manual tab generates PDF (jspdf, client-side) and opens native share sheet (Web Share API) with pre-populated message. Falls back to direct download on unsupported browsers. Gating: < 3 entries shows soft nudge before proceeding. Display name fetched from profiles table via /api/manual.
+- Text Sage via Linq (2026-03-31): Full texting integration replacing Twilio. Users link phone in Settings → greeting sent via Linq → text Sage anytime. Same system prompt, model, and max_tokens as web (zero drift). Checkpoint flow works via text: Sage sends insight + "Does this feel right?", user replies YES/NOT QUITE/NO. STOP/START/HELP keywords, crisis detection, rate limiting, phone normalization, cross-channel conversation continuity (text messages visible in web with TEXT badge). Contact card set to "Sage by Mantle" with app icon.
 
 ## Not Yet Functional
 *Last verified: 2026-03-31*
 
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
-- **Text Sage (Linq)**: Core pipeline deployed (webhook, sender, message router, sage bridge, phone linking). Replaced Twilio with Linq API. Webhook signature verification, HMAC-SHA256, dedup, STOP/START/HELP keywords, crisis detection, rate limiting all wired. Phone linking in Settings sends greeting via Linq and stores number. **Still debugging**: end-to-end text response not yet confirmed working — phone linking chat_id parsing and sender response format under investigation. SMS opt-in page at /sms still live.
+- **Text Sage (Linq) — NEEDS MIGRATION**: Requires manual SQL (`ALTER TABLE phone_numbers ADD COLUMN IF NOT EXISTS linq_chat_id text; ALTER TABLE phone_numbers ADD COLUMN IF NOT EXISTS service_type text;`) and Vercel env vars (LINQ_API_TOKEN, LINQ_PHONE_NUMBER, LINQ_WEBHOOK_SECRET, NEXT_PUBLIC_LINQ_PHONE_NUMBER). Phone linking may fail silently without these columns.
 
 ## Known Issues
-*Last verified: 2026-03-31*
+*Last verified: 2026-03-30*
 
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word-count heuristic (100+ for returning users, 60+ for first-session) is in the classifier prompt but not enforced in code — if Haiku returns isCheckpoint: true with a valid layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling getUser() on each page request. If user stays on the SPA without page navigation, token could expire. API routes return 401 → redirect to /login as fallback.
@@ -66,7 +65,7 @@
 - Sage prompt tuning (2026-03-22): Three fixes from second audit — strengthened landing instruction (witnessing vs reframing), added peak-vulnerability closed-question guard, reinforced checkpoint title-last and validation-question rules.
 - Sage prompt tuning (2026-03-23): Eight fixes from third audit targeting checkpoint landing quality. System prompt: abstract stacking hard rule (3 abstract responses → must request scene), checkpoint emission consistency rule, short answer word-count trigger (15/25 word thresholds), checkpoint self-check (4-point verification before emitting manual entry), building-toward signal rewritten as mandatory collection turn, thin vs landed checkpoint example. Extraction: tightened concrete_examples to require narrated scenes not topic references. Quality framework: removed text volume, announcing observations, register mismatch checks.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
-- MMS/Text: Linq integration deployed, replacing Twilio. SMS opt-in page (/sms) still live. A2P 10DLC CTA verification pending. Debugging end-to-end text delivery (phone linking + inbound response pipeline).
+- MMS/Text: Linq integration complete and working. Twilio removed. SMS opt-in page (/sms) still live. A2P 10DLC CTA verification pending. Text checkpoints use Path A only (no Haiku classifier fallback). Verbose debug logging still in webhook — can be cleaned up later.
 - Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
 - Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
 - Sage prompt tuning (2026-03-30): Thirteen fixes from fifth and sixth audits across three evaluation sessions. Abstract stacking: added concrete violation example. Reframe rule: added three WRONG/RIGHT examples. Other-person inner state: upgraded to HARD RULE with example conversion to question. Confirmation questions: banned closed questions that confirm Sage's own hypothesis. Gender: added gender-assumption guard (default to "you"/"they"). Checkpoint delivery: formalized 4-step delivery sequence with violation checks, raised observation minimum to 5-8 sentences, added bind requirement. Checkpoint gating: block checkpoint when user expresses uncertainty about generalization, treat "help me think through it" as exploration invitation not checkpoint permission.
