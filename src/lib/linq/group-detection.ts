@@ -46,16 +46,25 @@ export async function detectAndSetupGroup(
   const existing = await getGroupState(linqChatId);
   if (existing) {
     console.log(
-      "[group-detect] Already tracked chat_id=%s active=%s intro=%s",
+      "[group-detect] Already tracked chat_id=%s active=%s intro=%s mantle_user=%s",
       linqChatId,
       existing.is_active,
-      existing.intro_sent
+      existing.intro_sent,
+      existing.mantle_user_id ?? "none"
     );
-    // Still run intro if it hasn't been sent yet (race recovery)
-    if (!existing.intro_sent && existing.is_active) {
-      await sendIntroduction(linqChatId, existing);
+    // Re-detection path: if the group is active with intro_sent=false and
+    // no mantle_user yet, this is a re-detection attempt — fall through to
+    // re-run identification instead of returning early.
+    if (existing.is_active && !existing.intro_sent && !existing.mantle_user_id) {
+      console.log("[group-detect] re_detection_path chat_id=%s", linqChatId);
+      // Fall through to re-run identification
+    } else {
+      // Normal case: still run intro if it hasn't been sent yet (race recovery)
+      if (!existing.intro_sent && existing.is_active) {
+        await sendIntroduction(linqChatId, existing);
+      }
+      return existing;
     }
-    return existing;
   }
 
   // 2. Get participant list — prefer webhook data, fall back to API
@@ -114,26 +123,41 @@ export async function detectAndSetupGroup(
     uniqueUserIds
   );
 
+  // Helper: create or update group state (re-detection reuses existing record)
+  async function getOrCreateState(
+    mantleUserId: string | null,
+    count: number
+  ): Promise<GroupState> {
+    if (existing) {
+      await updateGroupState(linqChatId, {
+        mantle_user_id: mantleUserId,
+        non_sage_participant_count: count,
+      });
+      return { ...existing, mantle_user_id: mantleUserId, non_sage_participant_count: count };
+    }
+    return createGroupState(linqChatId, mantleUserId, count);
+  }
+
   // 5. Route based on Mantle user count
   if (uniqueUserIds.length === 1) {
     // Exactly one Mantle user — standard group setup
     const userId = uniqueUserIds[0];
-    const state = await createGroupState(linqChatId, userId, participantCount);
+    const state = await getOrCreateState(userId, participantCount);
     await sendIntroduction(linqChatId, state);
     return state;
   }
 
   if (uniqueUserIds.length === 0) {
     // No Mantle users — send notice and deactivate
-    const state = await createGroupState(linqChatId, null, participantCount);
+    const state = await getOrCreateState(null, participantCount);
     await updateGroupState(linqChatId, { is_active: false });
     await sendMessage(linqChatId, INTRO_NO_ACCOUNTS);
     console.log("[group-detect] no_mantle_users chat_id=%s", linqChatId);
-    return state;
+    return { ...state, is_active: false };
   }
 
   // Multiple Mantle users — deferred dual-manual case
-  const state = await createGroupState(linqChatId, null, participantCount);
+  const state = await getOrCreateState(null, participantCount);
   await updateGroupState(linqChatId, { intro_sent: true });
   await sendMessage(linqChatId, INTRO_MULTI_USER);
   console.log(
