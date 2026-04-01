@@ -3,8 +3,9 @@ import * as crypto from "crypto";
 import { routeInboundMessage } from "@/lib/linq/message-router";
 import { detectAndSetupGroup } from "@/lib/linq/group-detection";
 import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
-import { processGroupMessage } from "@/lib/linq/group-bridge";
-import { sendMessage } from "@/lib/linq/sender";
+import { processGroupMessage, saveGroupMessage } from "@/lib/linq/group-bridge";
+import { evaluateGate } from "@/lib/linq/group-gate";
+import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
@@ -121,15 +122,7 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
       break;
 
     case "participant.removed":
-      // Part 6d will add full handling. For now, log it.
-      console.log(
-        "[linq] participant_removed chat_id=%s handle=%s trace_id=%s",
-        (event.data?.chat_id as string) ?? "unknown",
-        (event.data?.handle as string) ??
-          ((event.data?.participant as Record<string, unknown>)?.handle as string) ??
-          "unknown",
-        event.trace_id
-      );
+      await handleParticipantRemoved(event);
       break;
 
     case "chat.created":
@@ -175,6 +168,120 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
     // Extract handles from the event payload if available
     const handles = extractHandlesFromEvent(data);
     await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+  }
+}
+
+/**
+ * Handle participant.removed — detect when someone leaves the group.
+ */
+async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> {
+  const { data } = event;
+  const chatId = (data?.chat_id as string) ?? null;
+  const removedHandle =
+    (data?.handle as string) ??
+    ((data?.participant as Record<string, unknown>)?.handle as string) ??
+    null;
+
+  if (!chatId) {
+    console.error("[linq] participant.removed missing chat_id");
+    return;
+  }
+
+  console.log(
+    "[linq] participant_removed chat_id=%s handle=%s trace_id=%s",
+    chatId,
+    removedHandle ?? "unknown",
+    event.trace_id
+  );
+
+  const groupState = await getGroupState(chatId);
+  if (!groupState || !groupState.is_active) {
+    console.log("[linq] participant_removed ignored — no active group for chat_id=%s", chatId);
+    return;
+  }
+
+  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
+  const normalizedRemoved = removedHandle ? normalizePhone(removedHandle) : null;
+
+  // Case e: Sage was removed
+  if (normalizedRemoved && normalizedRemoved === sagePhone) {
+    console.log("[linq] sage_removed_from_group chat_id=%s", chatId);
+    await updateGroupState(chatId, { is_active: false });
+    return;
+  }
+
+  // Case d: The Mantle user left
+  if (groupState.mantle_user_id && normalizedRemoved) {
+    const admin = (await import("@/lib/supabase/admin")).createAdminClient();
+    const { data: phoneRow } = await admin
+      .from("phone_numbers")
+      .select("user_id")
+      .eq("phone", normalizedRemoved)
+      .eq("verified", true)
+      .maybeSingle();
+
+    if (phoneRow?.user_id === groupState.mantle_user_id) {
+      console.log("[linq] mantle_user_left chat_id=%s user=%s", chatId, groupState.mantle_user_id);
+      await sendMessage(
+        chatId,
+        "Take care! If you're curious about having conversations like this for yourself, check out trustmantle.com"
+      );
+      await updateGroupState(chatId, { is_active: false });
+      return;
+    }
+  }
+
+  // Case c: A non-Mantle participant left
+  const newCount = Math.max(0, (groupState.non_sage_participant_count || 0) - 1);
+  await updateGroupState(chatId, { non_sage_participant_count: newCount });
+
+  if (newCount > 1) {
+    // Other friends remain — just log it
+    console.log(
+      "[linq] non_mantle_participant_left chat_id=%s remaining=%d",
+      chatId,
+      newCount
+    );
+    return;
+  }
+
+  // Potentially just Mantle user + Sage remain — verify via API before closing
+  console.log("[linq] possible_close chat_id=%s — verifying via API", chatId);
+  const chatInfo = await getChatInfo(chatId);
+
+  if (!chatInfo.ok) {
+    // API failed — assume close is correct (safer default)
+    console.warn("[linq] getChatInfo failed on close check — closing group chat_id=%s", chatId);
+    await sendMessage(
+      chatId,
+      "Looks like it's just us. I'm in our regular thread if you want to keep going."
+    );
+    await updateGroupState(chatId, { is_active: false });
+    return;
+  }
+
+  // Count non-Sage participants from the API response
+  const apiNonSage = chatInfo.handles
+    .map((h) => normalizePhone(h))
+    .filter((h) => h && h !== sagePhone);
+
+  if (apiNonSage.length <= 1) {
+    // Confirmed: just Mantle user (or nobody) + Sage
+    await sendMessage(
+      chatId,
+      "Looks like it's just us. I'm in our regular thread if you want to keep going."
+    );
+    await updateGroupState(chatId, { is_active: false });
+    console.log("[linq] group_closed chat_id=%s api_confirmed=%d", chatId, apiNonSage.length);
+  } else {
+    // Counter was wrong — fix it to match reality
+    console.warn(
+      "[linq] counter_mismatch chat_id=%s counter=%d api=%d — fixing",
+      chatId,
+      newCount,
+      apiNonSage.length
+    );
+    await updateGroupState(chatId, { non_sage_participant_count: apiNonSage.length });
   }
 }
 
@@ -289,12 +396,39 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       groupState = await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
     }
 
-    // Inactive group — ignore silently (Part 6d will add reminder logic)
+    // Inactive group — ignore with optional one-time reminder for Mantle user
     if (!groupState || !groupState.is_active) {
-      console.log(
-        "[linq] group_inactive chat_id=%s — ignoring message",
-        chatId
-      );
+      if (groupState?.mantle_user_id && senderPhone) {
+        // Check if sender is the Mantle user
+        const admin = (await import("@/lib/supabase/admin")).createAdminClient();
+        const { data: phoneRow } = await admin
+          .from("phone_numbers")
+          .select("user_id")
+          .eq("phone", normalizePhone(String(senderPhone)))
+          .eq("verified", true)
+          .maybeSingle();
+
+        if (phoneRow?.user_id === groupState.mantle_user_id) {
+          const REMINDER_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+          const lastReminder = groupState.last_inactive_reminder_at
+            ? new Date(groupState.last_inactive_reminder_at).getTime()
+            : 0;
+
+          if (Date.now() - lastReminder > REMINDER_COOLDOWN_MS) {
+            await sendMessage(
+              chatId,
+              "This group ended. I'm in our regular thread if you want to keep going."
+            );
+            await updateGroupState(chatId, {
+              last_inactive_reminder_at: new Date().toISOString(),
+            });
+            console.log("[linq] inactive_reminder_sent chat_id=%s", chatId);
+            return;
+          }
+        }
+      }
+
+      console.log("[linq] group_inactive chat_id=%s — ignoring message", chatId);
       return;
     }
 
@@ -321,35 +455,68 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       (sender?.name as string) ??
       null;
 
-    // Route to group bridge — no typing indicators in groups (Linq 403s)
+    // Increment counter for EVERY group message
+    const currentCount = (groupState.messages_since_sage_spoke || 0) + 1;
+    await updateGroupState(chatId, { messages_since_sage_spoke: currentCount });
+
+    // Run the message gate
+    const gate = evaluateGate(groupTextContent, currentCount);
+    console.log(
+      "[linq] group_gate chat_id=%s decision=%s reason=%s counter=%d",
+      chatId,
+      gate.decision,
+      gate.reason,
+      currentCount
+    );
+
+    if (gate.decision === "SKIP") {
+      // Save message for future context but don't call Sage
+      try {
+        await saveGroupMessage(chatId, String(senderPhone), senderName, groupTextContent);
+      } catch (err) {
+        console.error("[linq] group_save_error chat_id=%s error=%s", chatId,
+          err instanceof Error ? err.message : String(err));
+      }
+      return;
+    }
+
+    // Gate says SEND_TO_SAGE — no typing indicators in groups (Linq 403s)
+    const sageCallStart = Date.now();
     try {
       const result = await processGroupMessage({
         linqChatId: chatId,
         senderPhone: String(senderPhone),
         senderName,
         messageText: groupTextContent,
+        nudgeHint: gate.addNudgeHint,
       });
 
+      const latencyMs = Date.now() - sageCallStart;
+      const outcome = result.responseText ? "responded" : "no_response";
+
       if (result.responseText) {
-        // Sage responded — send and reset counter
         await sendMessage(chatId, result.responseText);
         await updateGroupState(chatId, { messages_since_sage_spoke: 0 });
-        console.log(
-          "[linq] group_sage_response chat_id=%s len=%d",
-          chatId,
-          result.responseText.length
-        );
-      } else {
-        // Sage chose [NO_RESPONSE] — increment counter (don't reset)
-        await updateGroupState(chatId, {
-          messages_since_sage_spoke: (groupState.messages_since_sage_spoke || 0) + 1,
-        });
-        console.log("[linq] group_sage_silent chat_id=%s", chatId);
       }
-    } catch (err) {
-      console.error(
-        "[linq] group_bridge_error chat_id=%s error=%s",
+
+      // Cost logging — track every group Sage API call for threshold tuning
+      console.log(
+        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s outcome=%s latency_ms=%d response_len=%d",
         chatId,
+        currentCount,
+        gate.reason,
+        outcome,
+        latencyMs,
+        result.responseText?.length ?? 0
+      );
+    } catch (err) {
+      const latencyMs = Date.now() - sageCallStart;
+      console.error(
+        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s outcome=error latency_ms=%d error=%s",
+        chatId,
+        currentCount,
+        gate.reason,
+        latencyMs,
         err instanceof Error ? err.message : String(err)
       );
     }
