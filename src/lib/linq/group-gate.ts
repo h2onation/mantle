@@ -33,11 +33,10 @@ export interface GateResult {
  *
  * Rules evaluated in order (first match wins):
  *   1. Direct address ("sage" as whole word) → SEND_TO_SAGE
- *   2. First message after intro (counter == 1) → SEND_TO_SAGE
- *   3. Very short message (< 5 chars) → SKIP
- *   4. Counter < GATE_MIN_MESSAGES → SKIP
- *   5. Counter >= GATE_MIN_MESSAGES and < GATE_NUDGE_MESSAGES → SEND_TO_SAGE
- *   6. Counter >= GATE_NUDGE_MESSAGES → SEND_TO_SAGE with nudge hint
+ *   2. Very short message (< 5 chars) → SKIP
+ *   3. Counter < GATE_MIN_MESSAGES → SKIP
+ *   4. Counter >= GATE_MIN_MESSAGES and < GATE_NUDGE_MESSAGES → SEND_TO_SAGE
+ *   5. Counter >= GATE_NUDGE_MESSAGES → SEND_TO_SAGE with nudge hint
  */
 export function evaluateGate(
   messageText: string,
@@ -48,22 +47,17 @@ export function evaluateGate(
     return { decision: "SEND_TO_SAGE", reason: "direct_address", addNudgeHint: false };
   }
 
-  // Rule b: First message after intro — kick off conversation
-  if (messagesSinceSageSpoke === 1) {
-    return { decision: "SEND_TO_SAGE", reason: "first_after_intro", addNudgeHint: false };
-  }
-
-  // Rule c: Very short message — skip
+  // Rule b: Very short message — skip
   if (messageText.trim().length < GATE_SHORT_MESSAGE_LENGTH) {
     return { decision: "SKIP", reason: "short_message", addNudgeHint: false };
   }
 
-  // Rule d: Too soon after Sage last spoke — let people talk
+  // Rule c: Too soon after Sage last spoke — let people talk
   if (messagesSinceSageSpoke < GATE_MIN_MESSAGES) {
     return { decision: "SKIP", reason: "too_soon", addNudgeHint: false };
   }
 
-  // Rule e/f: Enough messages — send to Sage, with nudge if long gap
+  // Rule d/e: Enough messages — send to Sage, with nudge if long gap
   const addNudge = messagesSinceSageSpoke >= GATE_NUDGE_MESSAGES;
   return {
     decision: "SEND_TO_SAGE",

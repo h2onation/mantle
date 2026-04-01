@@ -15,6 +15,7 @@ export interface ConversationSummaryItem {
   created_at: string;
   updated_at: string;
   message_count: number;
+  is_text_channel?: boolean;
 }
 
 export function useChat() {
@@ -458,6 +459,47 @@ export function useChat() {
     setErrorMessage(null);
     setCheckpointError(null);
 
+    if (targetConversationId === "text-channel") {
+      // Load all text channel messages across all 1:1 conversations.
+      // First get all conversation IDs for this user (excluding groups).
+      const convRes = await fetch("/api/conversations");
+      let convIds: string[] = [];
+      if (convRes.ok) {
+        const data = await convRes.json();
+        convIds = (data.conversations || [])
+          .filter((c: ConversationSummaryItem) => !c.is_text_channel)
+          .map((c: ConversationSummaryItem) => c.id);
+      }
+
+      if (convIds.length > 0) {
+        const { data: dbMessages } = await supabase
+          .from("messages")
+          .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
+          .in("conversation_id", convIds)
+          .eq("channel", "text")
+          .order("created_at", { ascending: true });
+
+        if (dbMessages) {
+          const chatMessages: ChatMessage[] = dbMessages
+            .filter((m) => m.role !== "system")
+            .map((m) => ({
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              channel: m.channel || null,
+              isCheckpoint: m.is_checkpoint || false,
+              checkpointMeta: m.checkpoint_meta || null,
+            }));
+          setMessages(chatMessages);
+        }
+      }
+
+      setConversationId(targetConversationId);
+      setSessionSummary(null);
+      setLastSessionDate(null);
+      return;
+    }
+
     // Load messages for target conversation
     const { data: dbMessages } = await supabase
       .from("messages")
@@ -472,6 +514,7 @@ export function useChat() {
           id: m.id,
           role: m.role as "user" | "assistant",
           content: m.content,
+          channel: m.channel || null,
           isCheckpoint: m.is_checkpoint || false,
           checkpointMeta: m.checkpoint_meta || null,
         }));

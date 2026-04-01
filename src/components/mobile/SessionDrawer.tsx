@@ -134,6 +134,7 @@ export default function SessionDrawer({
         >
           {conversations.map((conv) => {
             const isActive = conv.id === activeConversationId;
+            const isText = conv.is_text_channel === true;
             return (
               <button
                 key={conv.id}
@@ -160,9 +161,25 @@ export default function SessionDrawer({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
                   {conv.title || conv.preview || "Untitled session"}
+                  {isText && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "8px",
+                        color: "var(--session-ink-ghost)",
+                        letterSpacing: "1px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      TEXT
+                    </span>
+                  )}
                 </p>
                 <div style={{ display: "flex", gap: "12px" }}>
                   <span

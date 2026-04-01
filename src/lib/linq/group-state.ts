@@ -11,6 +11,7 @@ export interface GroupState {
   mantle_user_id: string | null;
   is_active: boolean;
   intro_sent: boolean;
+  intro_sent_at: string | null;
   non_sage_participant_count: number;
   messages_since_sage_spoke: number;
   last_inactive_reminder_at: string | null;
@@ -83,6 +84,7 @@ export async function updateGroupState(
       | "mantle_user_id"
       | "is_active"
       | "intro_sent"
+      | "intro_sent_at"
       | "non_sage_participant_count"
       | "messages_since_sage_spoke"
       | "last_inactive_reminder_at"

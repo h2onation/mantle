@@ -18,6 +18,7 @@ import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/sage/sage-pipeline";
 import { getGroupState, type GroupState } from "./group-state";
+import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
 const GROUP_SAGE_TIMEOUT_MS = 15_000;
@@ -52,7 +53,7 @@ interface GroupMessageInput {
 export async function processGroupMessage(
   input: GroupMessageInput
 ): Promise<GroupBridgeResult> {
-  const { linqChatId, senderPhone, senderName, messageText, nudgeHint } = input;
+  const { linqChatId, senderPhone, messageText, nudgeHint } = input;
   const admin = createAdminClient();
 
   // 1. Get group state
@@ -67,8 +68,56 @@ export async function processGroupMessage(
     groupState
   );
 
-  // 3. Save inbound message with sender identity prefix
-  const senderLabel = senderName || senderPhone;
+  // 3. Identify sender and load Mantle user context in parallel.
+  //    Mantle user gets their name as label, others get phone number.
+  let senderLabel = senderPhone;
+  let mantleUserPhone: string | null = null;
+  let mantleUserName: string | null = null;
+  let manualComponents: { layer: number; type: string; name: string; content: string }[] = [];
+
+  if (groupState.mantle_user_id) {
+    // Load phone, profile, and manual in parallel
+    const [phoneResult, profileResult, manualResult] = await Promise.all([
+      admin
+        .from("phone_numbers")
+        .select("phone")
+        .eq("user_id", groupState.mantle_user_id)
+        .eq("verified", true)
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("display_name")
+        .eq("id", groupState.mantle_user_id)
+        .maybeSingle(),
+      admin
+        .from("manual_components")
+        .select("layer, type, name, content")
+        .eq("user_id", groupState.mantle_user_id),
+    ]);
+
+    mantleUserPhone = phoneResult.data?.phone ?? null;
+    const displayName = profileResult.data?.display_name as string | null;
+    mantleUserName = displayName?.split(/\s+/)[0] ?? null;
+    manualComponents = manualResult.data || [];
+
+    // If sender matches Mantle user's phone, use their name
+    if (mantleUserPhone && normalizePhone(senderPhone) === mantleUserPhone && mantleUserName) {
+      senderLabel = mantleUserName;
+    }
+
+    // If phone is unlinked, clear manual (phone unlinked mid-group)
+    if (!mantleUserPhone) {
+      manualComponents = [];
+      console.log(
+        "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
+        linqChatId,
+        groupState.mantle_user_id
+      );
+    }
+  }
+
+  // 4. Save inbound message with sender identity prefix
   const prefixedContent = `[${senderLabel}]: ${messageText}`;
 
   const { error: insertErr } = await admin.from("messages").insert({
@@ -79,7 +128,7 @@ export async function processGroupMessage(
   });
   if (insertErr) console.error("[group-bridge] message_insert_failed chat_id=%s error=%s", linqChatId, insertErr.message);
 
-  // 4. Load conversation history (group messages only — isolated by conversation_id)
+  // 5. Load conversation history (group messages only — isolated by conversation_id)
   const { data: historyRows } = await admin
     .from("messages")
     .select("role, content")
@@ -116,45 +165,6 @@ export async function processGroupMessage(
         ...windowedMessages,
         { role: "user" as const, content: `[${senderLabel}]:${hint}` },
       ];
-    }
-  }
-
-  // 5. Load Mantle user's manual (if single-user group and phone still linked)
-  let manualComponents: { layer: number; type: string; name: string; content: string }[] = [];
-  let mantleUserName: string | null = null;
-
-  if (groupState.mantle_user_id) {
-    // Verify the Mantle user's phone is still linked (they may have unlinked mid-group)
-    const { data: phoneCheck } = await admin
-      .from("phone_numbers")
-      .select("id")
-      .eq("user_id", groupState.mantle_user_id)
-      .eq("verified", true)
-      .limit(1)
-      .maybeSingle();
-
-    if (phoneCheck) {
-      const [manualResult, profileResult] = await Promise.all([
-        admin
-          .from("manual_components")
-          .select("layer, type, name, content")
-          .eq("user_id", groupState.mantle_user_id),
-        admin
-          .from("profiles")
-          .select("display_name")
-          .eq("id", groupState.mantle_user_id)
-          .maybeSingle(),
-      ]);
-
-      manualComponents = manualResult.data || [];
-      const displayName = profileResult.data?.display_name as string | null;
-      mantleUserName = displayName?.split(/\s+/)[0] ?? null;
-    } else {
-      console.log(
-        "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
-        linqChatId,
-        groupState.mantle_user_id
-      );
     }
   }
 
@@ -234,7 +244,30 @@ export async function saveGroupMessage(
   if (!groupState) return;
 
   const conversationId = await getOrCreateGroupConversation(admin, groupState);
-  const senderLabel = senderName || senderPhone;
+
+  // Identify sender — Mantle user gets their name, others get phone number
+  let senderLabel = senderPhone;
+  if (groupState.mantle_user_id) {
+    const { data: phoneRow } = await admin
+      .from("phone_numbers")
+      .select("phone")
+      .eq("user_id", groupState.mantle_user_id)
+      .eq("verified", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (phoneRow && normalizePhone(senderPhone) === phoneRow.phone) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("display_name")
+        .eq("id", groupState.mantle_user_id)
+        .maybeSingle();
+
+      const displayName = profile?.display_name as string | null;
+      senderLabel = displayName?.split(/\s+/)[0] ?? senderPhone;
+    }
+  }
+
   const prefixedContent = `[${senderLabel}]: ${messageText}`;
 
   const { error } = await admin.from("messages").insert({
