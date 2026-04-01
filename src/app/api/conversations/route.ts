@@ -72,5 +72,50 @@ export async function GET() {
     message_count: countMap[c.id] || 0,
   }));
 
+  // Build synthetic "Text with Sage" entry if user has text channel messages.
+  // Exclude group conversations (linq_group_chat_id is not null).
+  const { data: textStats } = await admin
+    .from("messages")
+    .select("content, created_at")
+    .in("conversation_id", convIds)
+    .eq("channel", "text")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (textStats) {
+    // Get count and earliest text message
+    const { count: textCount } = await admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .in("conversation_id", convIds)
+      .eq("channel", "text");
+
+    const { data: firstText } = await admin
+      .from("messages")
+      .select("created_at")
+      .in("conversation_id", convIds)
+      .eq("channel", "text")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const preview = textStats.content.length > 80
+      ? textStats.content.substring(0, 80) + "…"
+      : textStats.content;
+
+    result.unshift({
+      id: "text-channel",
+      status: "active",
+      summary: null,
+      title: "Text with Sage",
+      preview,
+      created_at: firstText?.created_at ?? textStats.created_at,
+      updated_at: textStats.created_at,
+      message_count: textCount || 0,
+      is_text_channel: true,
+    } as typeof result[number]);
+  }
+
   return Response.json({ conversations: result });
 }

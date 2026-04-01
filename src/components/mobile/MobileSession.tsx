@@ -930,7 +930,7 @@ export default function MobileSession({
           if (clearFeedbackHint) clearFeedbackHint();
           sendMessage(text);
         }}
-        disabled={isLoading || isStreaming}
+        disabled={isLoading || isStreaming || conversationId === "text-channel"}
       />
 
       <SessionDrawer
