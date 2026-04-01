@@ -21,8 +21,8 @@ if (!PHONE_NUMBER) {
   process.exit(1);
 }
 
-// Update this URL to your actual Sage logo (square, 256x256px minimum)
-const IMAGE_URL = "https://trustthemantle.com/sage-logo.png";
+// Using the existing app icon (512x512 square)
+const IMAGE_URL = "https://trustthemantle.com/icons/icon-512.png";
 
 async function main() {
   const res = await fetch(
