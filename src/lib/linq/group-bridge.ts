@@ -71,12 +71,13 @@ export async function processGroupMessage(
   const senderLabel = senderName || senderPhone;
   const prefixedContent = `[${senderLabel}]: ${messageText}`;
 
-  await admin.from("messages").insert({
+  const { error: insertErr } = await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "user",
     content: prefixedContent,
     channel: "text",
   });
+  if (insertErr) console.error("[group-bridge] message_insert_failed chat_id=%s error=%s", linqChatId, insertErr.message);
 
   // 4. Load conversation history (group messages only — isolated by conversation_id)
   const { data: historyRows } = await admin
@@ -97,21 +98,23 @@ export async function processGroupMessage(
   // Keep a reasonable window — group chats can get chatty
   let windowedMessages = messages.slice(-30);
 
-  // If nudge hint is active, prepend a system-style user message so Sage
-  // sees it in context. Using a "user" role message with [SYSTEM:] prefix
-  // because Anthropic's messages API alternates user/assistant roles.
+  // If nudge hint is active, append a hint so Sage knows it's been quiet.
+  // Anthropic requires alternating user/assistant roles, so we merge the hint
+  // into an existing user message or add a new one as appropriate.
   if (nudgeHint && windowedMessages.length > 0) {
+    const hint =
+      "\n\n[SYSTEM: It has been several messages since you last spoke. Consider whether there is something worth asking or observing.]";
     const lastMsg = windowedMessages[windowedMessages.length - 1];
     if (lastMsg.role === "user") {
-      // Append hint to the last user message to maintain role alternation
       windowedMessages = [
         ...windowedMessages.slice(0, -1),
-        {
-          role: "user" as const,
-          content:
-            lastMsg.content +
-            "\n\n[SYSTEM: It has been several messages since you last spoke. Consider whether there is something worth asking or observing.]",
-        },
+        { role: "user" as const, content: lastMsg.content + hint },
+      ];
+    } else {
+      // Last message is assistant — safe to add a new user message
+      windowedMessages = [
+        ...windowedMessages,
+        { role: "user" as const, content: `[${senderLabel}]:${hint}` },
       ];
     }
   }
@@ -197,12 +200,13 @@ export async function processGroupMessage(
   }
 
   // 9. Save Sage's response
-  await admin.from("messages").insert({
+  const { error: saveErr } = await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "assistant",
     content: trimmed,
     channel: "text",
   });
+  if (saveErr) console.error("[group-bridge] response_save_failed chat_id=%s error=%s", linqChatId, saveErr.message);
 
   console.log(
     "[group-bridge] response chat_id=%s sender=%s len=%d",
@@ -233,12 +237,13 @@ export async function saveGroupMessage(
   const senderLabel = senderName || senderPhone;
   const prefixedContent = `[${senderLabel}]: ${messageText}`;
 
-  await admin.from("messages").insert({
+  const { error } = await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "user",
     content: prefixedContent,
     channel: "text",
   });
+  if (error) console.error("[group-bridge] save_message_failed chat_id=%s error=%s", linqChatId, error.message);
 }
 
 /**
