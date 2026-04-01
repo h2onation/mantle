@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-03-31*
+*Last verified: 2026-04-01*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -40,13 +40,16 @@
 - Sign-in nudge (2026-03-31): Inline banner below header for anonymous users after 5+ messages. "Sign in to keep your progress" with 24-hour localStorage dismiss cooldown. Triggers existing AuthPromptModal.
 - Manual share & export (2026-03-31): Share button on manual tab generates PDF (jspdf, client-side) and opens native share sheet (Web Share API) with pre-populated message. Falls back to direct download on unsupported browsers. Gating: < 3 entries shows soft nudge before proceeding. Display name fetched from profiles table via /api/manual.
 - Text Sage via Linq (2026-03-31): Full texting integration replacing Twilio. Users link phone in Settings → greeting sent via Linq → text Sage anytime. Shared sage-pipeline.ts ensures zero drift between web and text: checkpoint layer guards, turn-count suppression (5-turn minimum), crisis detection, model/max_tokens constants, conversation context loading, and background extraction all from single source. Checkpoint flow works via text: Sage sends insight, follow-up shows name + "Does this feel right?", user replies YES/NOT QUITE/NO. STOP/START/HELP keywords, rate limiting, phone normalization (shared utility), cross-channel conversation continuity (text messages visible in web with TEXT badge). Contact card set to "Sage by Mantle" with app icon.
+- Group chat detection + facilitation (2026-04-01): Sage detects when added to iMessage groups via participant.added/chat.created webhooks. Identifies Mantle users by phone lookup, sends personalized intro with first name (single user), neutral intro (multi-user), or "no accounts" notice (zero users). Race-safe via unique constraint + intro_sent flag. Group messages route to a dedicated group bridge (group-bridge.ts) with facilitator system prompt: short responses, no advice, no sides, references Mantle user's manual to ask better questions without revealing private details. Sage can output [NO_RESPONSE] to stay quiet. No extraction, no checkpoints, no typing indicators in groups. Group conversations stored in separate conversation records (linq_group_chat_id FK). Message gate (Part 6c) not yet built — Sage currently responds to every group message.
 
 ## Not Yet Functional
-*Last verified: 2026-03-31*
+*Last verified: 2026-04-01*
 
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
-- **Text Sage (Linq) — NEEDS MIGRATION**: Requires manual SQL (`ALTER TABLE phone_numbers ADD COLUMN IF NOT EXISTS linq_chat_id text; ALTER TABLE phone_numbers ADD COLUMN IF NOT EXISTS service_type text;`) and Vercel env vars (LINQ_API_TOKEN, LINQ_PHONE_NUMBER, LINQ_WEBHOOK_SECRET, NEXT_PUBLIC_LINQ_PHONE_NUMBER). Phone linking may fail silently without these columns.
+- **Group chat message gate**: Sage responds to every group message (too chatty). Part 6c will add counter-based filtering so Sage only speaks when it has something to add.
+- **Multi-user group conversations**: Groups with 2+ Mantle users get neutral intro but can't create conversation records (user_id NOT NULL constraint). Facilitator mode only works for single-Mantle-user groups.
+- **Group participant removal**: Logged only. Part 6d will handle deactivation and cleanup.
 
 ## Known Issues
 *Last verified: 2026-03-31*
@@ -58,14 +61,15 @@
 - ~~**OAuth session leak (FIXED 2026-03-25)**: Auth callback responses could be cached by Vercel CDN, causing one user to receive another user's session cookies on OAuth redirect. Additionally, client hooks (useChat, useIsAdmin) used `getSession()` which reads from cache without server validation. Fix: added `force-dynamic` + `Cache-Control: no-store` to auth callback, replaced all client-side `getSession()` with `getUser()`.~~
 
 ## In-Flight Work
-*Last verified: 2026-03-31*
+*Last verified: 2026-04-01*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
 - Sage prompt tuning (2026-03-22): Three fixes from second audit — strengthened landing instruction (witnessing vs reframing), added peak-vulnerability closed-question guard, reinforced checkpoint title-last and validation-question rules.
 - Sage prompt tuning (2026-03-23): Eight fixes from third audit targeting checkpoint landing quality. System prompt: abstract stacking hard rule (3 abstract responses → must request scene), checkpoint emission consistency rule, short answer word-count trigger (15/25 word thresholds), checkpoint self-check (4-point verification before emitting manual entry), building-toward signal rewritten as mandatory collection turn, thin vs landed checkpoint example. Extraction: tightened concrete_examples to require narrated scenes not topic references. Quality framework: removed text volume, announcing observations, register mismatch checks.
 - [Jeff to add: Phase 1 status — what shipped, what's remaining]
-- MMS/Text: Linq integration complete and working. Twilio removed. SMS opt-in page (/sms) still live. A2P 10DLC CTA verification pending. Text checkpoints use Path A only (no Haiku classifier fallback). Shared pipeline refactor complete (2026-03-31): extracted sage-pipeline.ts with 7 shared functions, eliminated 13 duplication points between call-sage.ts and sage-bridge.ts, fixed pattern replacement sort (created_at instead of UUID), added getOrCreateConversation race condition guard, added Anthropic response shape validation, extracted shared normalizePhone utility. Verbose debug logging still in webhook — can be cleaned up later.
+- MMS/Text: Linq integration complete and working. Twilio removed. SMS opt-in page (/sms) still live. A2P 10DLC CTA verification pending. Text checkpoints now use both Path A and Path B (classifier fallback added 2026-04-01). Shared pipeline refactor complete (2026-03-31): extracted sage-pipeline.ts with 7 shared functions, eliminated 13 duplication points between call-sage.ts and sage-bridge.ts, fixed pattern replacement sort (created_at instead of UUID), added getOrCreateConversation race condition guard, added Anthropic response shape validation, extracted shared normalizePhone utility. Verbose debug logging still in webhook — can be cleaned up later.
+- Group chat (Parts 6a+6b shipped 2026-04-01): Detection, intro, and facilitation working. Remaining: 6c (message gate), 6d (participant removal), 6e (edge cases). Webhook subscription updated to include participant.added/removed and chat.created events. Two migrations applied: linq_group_chats table + conversations.linq_group_chat_id column.
 - Linen migration complete (2026-03-20): All dark theme --color-* CSS variables removed, fully migrated to --session-* linen design tokens across globals.css and 12 component files. Zero dark theme references remain.
 - Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
 - Sage prompt tuning (2026-03-30): Thirteen fixes from fifth and sixth audits across three evaluation sessions. Abstract stacking: added concrete violation example. Reframe rule: added three WRONG/RIGHT examples. Other-person inner state: upgraded to HARD RULE with example conversion to question. Confirmation questions: banned closed questions that confirm Sage's own hypothesis. Gender: added gender-assumption guard (default to "you"/"they"). Checkpoint delivery: formalized 4-step delivery sequence with violation checks, raised observation minimum to 5-8 sentences, added bind requirement. Checkpoint gating: block checkpoint when user expresses uncertainty about generalization, treat "help me think through it" as exploration invitation not checkpoint permission.
