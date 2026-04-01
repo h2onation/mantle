@@ -3,16 +3,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { classifyResponse } from "@/lib/sage/classifier";
 import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
-import {
-  runExtraction,
-  formatExtractionForSage,
-  type ExtractionState,
-} from "@/lib/sage/extraction";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
 import { detectUrls } from "@/lib/utils/url-detection";
 import { fetchUrlContent } from "@/lib/utils/fetch-url-content";
 import type { FetchedContent } from "@/lib/utils/fetch-url-content";
+import {
+  SAGE_MODEL,
+  SAGE_MAX_TOKENS,
+  loadConversationContext,
+  fireBackgroundExtraction,
+  handleCrisisDetection,
+  applyCheckpointGates,
+  buildCheckpointMeta,
+} from "@/lib/sage/sage-pipeline";
 
 // ── Extracted pure functions (testable without mocking) ──
 
@@ -223,9 +227,6 @@ export function detectCrisisInUserMessage(message: string): boolean {
   return CRISIS_PHRASES.some((phrase) => lower.includes(phrase));
 }
 
-const CRISIS_RESOURCES =
-  "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
-
 interface CallSageOptions {
   conversationId: string;
   userId: string;
@@ -273,134 +274,28 @@ export function callSage({
           }
         }
 
-        // 2. Parallel DB reads: history + manual components + extraction state + last checkpoint
-        const [historyResult, manualResult, extractionResult, lastCheckpointResult] =
-          await Promise.all([
-            admin
-              .from("messages")
-              .select("role, content, created_at")
-              .eq("conversation_id", convId)
-              .order("created_at", { ascending: true }),
-            admin
-              .from("manual_components")
-              .select("layer, type, name, content")
-              .eq("user_id", userId),
-            admin
-              .from("conversations")
-              .select("extraction_state, summary")
-              .eq("id", convId)
-              .single(),
-            admin
-              .from("messages")
-              .select("created_at")
-              .eq("conversation_id", convId)
-              .eq("is_checkpoint", true)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ]);
+        // 2. Load shared conversation context (DB reads + user state + derived flags)
+        const ctx = await loadConversationContext(admin, convId, userId);
+        const {
+          messages,
+          manualComponents,
+          previousExtraction,
+          sessionSummary,
+          isReturningUser,
+          isFirstCheckpoint,
+          sessionCount,
+          turnsSinceCheckpoint,
+          extractionForSage,
+          turnCount,
+          hasPatternEligibleLayer,
+          checkpointApproaching,
+        } = ctx;
 
-        // 3. Build history from DB messages
-        const history = mapSystemMessages(historyResult.data || []);
-
-        // 4. Sliding window: first 2 + last 48 if over 50
-        let messages = applySlidingWindow(history);
-
-        if (messages.length === 0) {
-          messages = [{ role: "user", content: "[Session started]" }];
-        }
-
-        const manualComponents = manualResult.data;
-
-        // 4b. Compute turns since last checkpoint
-        let turnsSinceCheckpoint = Infinity;
-        if (lastCheckpointResult.data) {
-          const cpTime = lastCheckpointResult.data.created_at;
-          const userMsgsSince = (historyResult.data || []).filter(
-            (m: { role: string; created_at?: string }) =>
-              m.role === "user" && m.created_at && m.created_at > cpTime
-          ).length;
-          turnsSinceCheckpoint = userMsgsSince;
-        }
-
-        // 5. Determine returning user + session context
-        const isReturningUser =
-          (manualComponents && manualComponents.length > 0) || false;
-        const isFirstCheckpoint = !isReturningUser;
-
-        // Session summary already loaded in the parallel fetch above
-        const sessionSummary: string | null =
-          extractionResult.data?.summary ?? null;
-        let sessionCount = 1;
-
-        if (isReturningUser) {
-          // Only need conversation count — fire a single query
-          const { count } = await admin
-            .from("conversations")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", userId);
-
-          sessionCount = count || 1;
-        }
-
-        // 6. Extraction state from parallel fetch
-        const previousExtraction: ExtractionState | null =
-          extractionResult.data?.extraction_state ?? null;
-
-        // 7. Fire extraction in background — runs in parallel with Sage stream.
-        //    Sage uses the PREVIOUS turn's extraction state (already loaded).
-        //    Updated state saves to DB for the next turn.
+        // 3. Fire extraction in background
         const hasUserContent =
           message !== null && message !== "[Session started]";
-
         if (hasUserContent) {
-          runExtraction(
-            messages,
-            previousExtraction,
-            manualComponents || [],
-            isFirstCheckpoint
-          )
-            .then(async (newState) => {
-              // Re-read current extraction_state to pick up any discovery_mode
-              // changes made by confirmCheckpoint() while extraction was running.
-              const { data: currentConv } = await admin
-                .from("conversations")
-                .select("extraction_state")
-                .eq("id", convId)
-                .single();
-
-              if (currentConv?.extraction_state) {
-                const currentState =
-                  currentConv.extraction_state as ExtractionState;
-                // Preserve the current discovery_mode (may have been flipped by confirmCheckpoint)
-                for (let i = 1; i <= 5; i++) {
-                  if (newState.layers[i] && currentState.layers[i]) {
-                    newState.layers[i].discovery_mode =
-                      currentState.layers[i].discovery_mode;
-                  }
-                }
-                // Preserve confirmed_patterns (managed by confirmCheckpoint, not extraction)
-                newState.confirmed_patterns =
-                  currentState.confirmed_patterns || [];
-              }
-
-              const { error } = await admin
-                .from("conversations")
-                .update({ extraction_state: newState })
-                .eq("id", convId);
-
-              if (error)
-                console.error(
-                  "[callSage] Failed to save extraction state:",
-                  error
-                );
-            })
-            .catch((err) =>
-              console.error(
-                "[callSage] Background extraction failed:",
-                err
-              )
-            );
+          fireBackgroundExtraction(ctx, admin);
         }
 
         // 7b. URL detection — runs first, takes priority over transcript detection
@@ -425,36 +320,9 @@ export function callSage({
         const transcriptDetection =
           message && !urlDetection?.hasUrl ? detectTranscript(message) : null;
 
-        // 8. Build system prompt using PREVIOUS extraction state (no waiting)
-        const extractionForSage = previousExtraction
-          ? formatExtractionForSage(
-              previousExtraction,
-              isFirstCheckpoint,
-              manualComponents || []
-            )
-          : "";
-
-        // Derive conditional-loading flags from data already in memory
-        const turnCount = messages.length;
-        const confirmedComponentCount = (manualComponents || []).filter(
-          (c) => c.type === "component"
-        ).length;
-        const hasPatternEligibleLayer = previousExtraction && confirmedComponentCount >= 3
-          ? Object.values(previousExtraction.layers).some(
-              (l) => l.discovery_mode === "pattern"
-            )
-          : false;
-        const checkpointApproaching = previousExtraction
-          ? Object.values(previousExtraction.layers).some(
-              (l) =>
-                l.signal === "emerging" ||
-                l.signal === "explored" ||
-                l.signal === "checkpoint_ready"
-            )
-          : false;
-
+        // 8. Build system prompt (derived flags already computed in ctx)
         const systemPrompt = buildSystemPrompt({
-          manualComponents: manualComponents || [],
+          manualComponents,
           isReturningUser,
           sessionSummary,
           extractionContext: extractionForSage,
@@ -510,8 +378,8 @@ export function callSage({
         };
 
         const rawStream = await anthropicStream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2048,
+          model: SAGE_MODEL,
+          max_tokens: SAGE_MAX_TOKENS,
           system: systemPrompt,
           messages,
         });
@@ -570,40 +438,20 @@ export function callSage({
         const entryStart = fullText.indexOf("|||MANUAL_ENTRY|||");
 
         // 10b. Crisis detection — output validation + logging
-        if (message !== null && detectCrisisInUserMessage(message)) {
-          const sageIncluded988 = fullText.includes("988");
-
-          if (!sageIncluded988) {
-            fullText += CRISIS_RESOURCES;
-            conversationalText += CRISIS_RESOURCES;
-
-            // Flush the appended crisis resources to the client
-            flushSafe(CRISIS_RESOURCES);
+        if (message !== null) {
+          const crisis = handleCrisisDetection(
+            message,
+            conversationalText,
+            convId,
+            userId,
+            admin
+          );
+          if (crisis.crisisDetected && crisis.responseText !== conversationalText) {
+            // Crisis resources were appended — flush to client
+            const appended = crisis.responseText.slice(conversationalText.length);
+            flushSafe(appended);
           }
-
-          console.log("[callSage] CRISIS DETECTED", {
-            timestamp: new Date().toISOString(),
-            conversation_id: convId,
-            crisis_detected: true,
-            sage_included_988: sageIncluded988,
-          });
-
-          admin
-            .from("safety_events")
-            .insert({
-              conversation_id: convId,
-              user_id: userId,
-              crisis_detected: true,
-              sage_included_988: sageIncluded988,
-              created_at: new Date().toISOString(),
-            })
-            .then(({ error }) => {
-              if (error)
-                console.error(
-                  "[callSage] Failed to log safety event:",
-                  error
-                );
-            });
+          conversationalText = crisis.responseText;
         }
 
         // 11. Save Sage's response (conversational part only)
@@ -651,7 +499,7 @@ export function callSage({
             previousExtraction?.current_thread || "checkpoint reached...";
         } else {
           // No manual entry — run classifier as normal
-          const last4 = history.slice(-4);
+          const last4 = messages.slice(-4);
           const recentText = last4
             .map((m) => `${m.role}: ${m.content}`)
             .join("\n\n");
@@ -675,38 +523,20 @@ export function callSage({
           processingText = classification.processingText;
         }
 
-        // 12b. Hard guard: enforce component/pattern layer rules.
-        //      Rule 1: First entry on any layer must be a component.
-        //      Rule 2: Only one component per layer — force to pattern if component exists.
+        // 12b. Shared checkpoint gates (layer guards + turn-count suppression)
         if (isCheckpoint && checkpointLayer) {
-          const layerHasComponent = (manualComponents || []).some(
-            (c) => c.layer === checkpointLayer && c.type === "component"
+          const gateResult = applyCheckpointGates(
+            { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
+            manualComponents,
+            turnsSinceCheckpoint
           );
-
-          if (checkpointType === "pattern" && !layerHasComponent) {
-            // Rule 1: No component on this layer yet — force to component
-            checkpointType = "component";
-            if (manualEntry) {
-              manualEntry.type = "component";
-            }
-          } else if (checkpointType === "component" && layerHasComponent) {
-            // Rule 2: Component already exists — force to pattern
-            checkpointType = "pattern";
-            if (manualEntry) {
-              manualEntry.type = "pattern";
-            }
+          isCheckpoint = gateResult.isCheckpoint;
+          checkpointLayer = gateResult.layer;
+          checkpointType = gateResult.type;
+          checkpointName = gateResult.name;
+          if (manualEntry && gateResult.isCheckpoint && gateResult.type !== manualEntry.type) {
+            manualEntry.type = gateResult.type!;
           }
-        }
-
-        // 12b2. Suppress checkpoint if fewer than 5 user turns since last
-        if (isCheckpoint && turnsSinceCheckpoint < 5) {
-          if (process.env.NODE_ENV !== "production") {
-            console.log("[sage-debug] Checkpoint suppressed: %d turns since last (minimum 5)", turnsSinceCheckpoint);
-          }
-          isCheckpoint = false;
-          checkpointLayer = null;
-          checkpointType = null;
-          checkpointName = null;
         }
 
         // 12b-log. Checkpoint detection debug log (dev only)
@@ -762,18 +592,11 @@ export function callSage({
 
           if (isCheckpoint) {
             updateData.is_checkpoint = true;
-            updateData.checkpoint_meta = {
-              layer: checkpointLayer,
-              type: checkpointType,
-              name: composedEntry?.name || manualEntry?.name || checkpointName,
-              status: "pending",
-              composed_content:
-                manualEntry?.content || composedEntry?.content || null,
-              composed_name:
-                manualEntry?.name || composedEntry?.name || null,
-              changelog:
-                manualEntry?.changelog || composedEntry?.changelog || null,
-            };
+            updateData.checkpoint_meta = buildCheckpointMeta(
+              { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
+              manualEntry,
+              composedEntry
+            );
           }
 
           await admin

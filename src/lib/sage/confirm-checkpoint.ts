@@ -180,7 +180,7 @@ export async function confirmCheckpoint({
     // 2. Check for existing content on this layer
     const { data: existingComponents } = await admin
       .from("manual_components")
-      .select("id, layer, type, name, content")
+      .select("id, layer, type, name, content, created_at")
       .eq("user_id", userId)
       .eq("layer", meta.layer);
 
@@ -207,7 +207,7 @@ export async function confirmCheckpoint({
       if (existingPatterns.length >= 2) {
         // Max 2 patterns per layer — replace the oldest one
         const oldest = existingPatterns.sort(
-          (a, b) => a.id.localeCompare(b.id)
+          (a, b) => (a.created_at || "").localeCompare(b.created_at || "")
         )[0];
 
         // Archive before replacing

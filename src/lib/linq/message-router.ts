@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, sendTypingIndicator, markAsRead } from "./sender";
 import { processTextMessage } from "./sage-bridge";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const FALLBACK_MSG =
   "Something went wrong on my end. Try again in a minute, or open the app at trustmantle.com";
@@ -57,22 +58,6 @@ interface InboundMessageData {
   chatId: string;
   senderPhone: string;
   parts: Array<{ type: string; value: string }>;
-}
-
-/**
- * Normalize a phone number to E.164 (+1XXXXXXXXXX) format.
- * Linq may send numbers in various formats.
- */
-function normalizePhone(raw: string): string {
-  // Strip everything that isn't a digit or leading +
-  let phone = raw.replace(/[^\d+]/g, "");
-  // Ensure +1 prefix for US numbers
-  if (phone.startsWith("1") && !phone.startsWith("+")) {
-    phone = "+" + phone;
-  } else if (!phone.startsWith("+")) {
-    phone = "+1" + phone;
-  }
-  return phone;
 }
 
 /**
