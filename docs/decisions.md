@@ -164,5 +164,33 @@
 
 **Status**: Settled  
 **Context**: Long conversations exceed the model's context budget. A windowing strategy is needed to keep conversation history within token limits while preserving the most useful context.  
-**Decision**: When history exceeds 50 messages, include the first 2 messages and the last 48. Implemented in `call-sage.ts`.  
+**Decision**: When history exceeds 50 messages, include the first 2 messages and the last 48. Implemented in `call-sage.ts`.
 **Consequences**: The first 2 messages preserve the session's opening context (what the user came in with, Sage's initial framing). The last 48 preserve recent conversational flow. The gap in the middle is acceptable because extraction state carries cumulative analysis of the dropped messages. Simpler than embedding-based retrieval, which would add latency and complexity for a marginal improvement at current conversation lengths. Revisit if users regularly exceed 100+ messages per session.
+
+## ADR-024: Shared Pipeline Over Parallel Implementations
+
+**Status**: Settled
+**Context**: The text (Linq) and web paths through Sage duplicated ~280 lines of identical logic — DB reads, user state derivation, extraction firing, crisis detection, checkpoint gates, model constants. The text path was missing checkpoint layer guards and turn-count suppression, causing drift in checkpoint behavior.
+**Decision**: Extract shared logic into `sage-pipeline.ts`. Both `call-sage.ts` (web) and `sage-bridge.ts` (text) import from the same module. Web-specific logic (streaming, Path B classification/composition, SSE events, URL/transcript detection) stays in call-sage. Text-specific logic (non-streaming fetch, checkpoint text formatting) stays in sage-bridge.
+**Consequences**: Seven shared functions replace 13 duplication points. Rule changes (new gate, model upgrade, crisis phrase) happen in one place. Text path now enforces the same checkpoint rules as web. Tradeoff: an additional import layer adds one level of indirection. But the alternative — maintaining two copies of identical rules — already caused a real bug (missing layer guards in text). The indirection cost is trivial compared to the drift risk.
+
+## ADR-025: Text Checkpoint Shows Name Only
+
+**Status**: Settled
+**Context**: When Sage detects a checkpoint via text, the original implementation sent a follow-up message containing the full `manualEntry.content` (150-250 words) plus the name and confirmation prompt. But Sage's conversational response already presented the insight in natural language — the user was reading the same content twice in different formats.
+**Decision**: The checkpoint follow-up text shows only the proposed name and the confirmation question ("Does this feel right?" / "Does this resonate?"), not the full composed content. The user already read the insight in Sage's response.
+**Consequences**: Cleaner text experience — one message with the insight, one short message asking for confirmation. Matches the web app's pattern where the checkpoint card shows the name prominently and the content is secondary. Tradeoff: the user can't re-read the exact composed content before confirming. In practice this is fine because (a) the conversational text and composed content are very similar, and (b) the user can always check their manual in the app afterward.
+
+## ADR-026: Text Checkpoint Language Matches Text Context
+
+**Status**: Settled
+**Context**: The web app uses button labels "Yes, write to manual" / "Not quite" / "Not at all". The text path originally used "Reply YES to write to manual, NOT QUITE if it needs refining, or NO to discard." User feedback suggested aligning language but the button labels don't map cleanly to text replies.
+**Decision**: Keep text-appropriate language. "Reply YES to write to manual, NOT QUITE to refine, or NO to discard." Do not force web button labels ("Not at all") into the text context where users need clear single-word reply instructions.
+**Consequences**: Text and web have slightly different surface language but identical underlying behavior (confirmed/refined/rejected). The text variant prioritizes clarity of instruction (what to type) over exact label matching. Accepted keywords are broad: YES/Y/CONFIRM, NOT QUITE/NOTQUITE/REFINE, NO/N/DISCARD.
+
+## ADR-027: Race Condition Guard Over Database Locks
+
+**Status**: Settled
+**Context**: `getOrCreateConversation()` in the text path has a read-then-write pattern vulnerable to race conditions when two texts arrive simultaneously. Options: (A) database-level advisory locks, (B) unique constraints with upsert, (C) retry-on-failure pattern.
+**Decision**: Retry-on-failure. If the insert fails (another request won), re-query to find the winning conversation.
+**Consequences**: No database schema changes needed. No advisory lock complexity. The retry adds one extra query in the rare concurrent case. Tradeoff: doesn't prevent two conversations from being created if the database has no unique constraint on (user_id, status=active). In practice, Supabase allows multiple active conversations per user by design (session history feature), so the worst case is two active conversations — not data corruption. The retry ensures both messages land in the same conversation.
