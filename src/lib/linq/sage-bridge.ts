@@ -16,7 +16,7 @@ import {
   detectCrisisInUserMessage,
   parseManualEntryBlock,
 } from "@/lib/sage/call-sage";
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+
 
 const CRISIS_RESOURCES =
   "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
