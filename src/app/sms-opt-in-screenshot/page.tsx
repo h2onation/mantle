@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function SmsOptInScreenshot() {
@@ -48,9 +49,11 @@ export default function SmsOptInScreenshot() {
           margin: "0 auto 32px auto",
         }}
       >
-        <img
+        <Image
           src="/sms-opt-in.png"
           alt="Screenshot of SMS opt-in flow in the Mantle app Settings page"
+          width={320}
+          height={568}
           style={{ maxWidth: "100%", height: "auto" }}
         />
       </div>

@@ -287,7 +287,8 @@ export function applyCheckpointGates(
     return { isCheckpoint: false, layer: null, type: null, name: null };
   }
 
-  let { layer, type, name } = manualEntry;
+  const { layer, name } = manualEntry;
+  let { type } = manualEntry;
 
   // Rule 1 & 2: layer guards
   const layerHasComponent = manualComponents.some(
