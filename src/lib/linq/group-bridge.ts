@@ -20,6 +20,7 @@ import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/sage/sage-pipeline";
 import { getGroupState, type GroupState } from "./group-state";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
+const GROUP_SAGE_TIMEOUT_MS = 15_000;
 
 export interface GroupBridgeResult {
   /** Sage's response text, or null if Sage chose not to respond */
@@ -32,6 +33,8 @@ interface GroupMessageInput {
   senderPhone: string;
   senderName: string | null;
   messageText: string;
+  /** When true, prepend a nudge hint so Sage knows it's been quiet for a while */
+  nudgeHint?: boolean;
 }
 
 /**
@@ -49,7 +52,7 @@ interface GroupMessageInput {
 export async function processGroupMessage(
   input: GroupMessageInput
 ): Promise<GroupBridgeResult> {
-  const { linqChatId, senderPhone, senderName, messageText } = input;
+  const { linqChatId, senderPhone, senderName, messageText, nudgeHint } = input;
   const admin = createAdminClient();
 
   // 1. Get group state
@@ -92,28 +95,64 @@ export async function processGroupMessage(
     }));
 
   // Keep a reasonable window — group chats can get chatty
-  const windowedMessages = messages.slice(-30);
+  let windowedMessages = messages.slice(-30);
 
-  // 5. Load Mantle user's manual (if single-user group)
+  // If nudge hint is active, prepend a system-style user message so Sage
+  // sees it in context. Using a "user" role message with [SYSTEM:] prefix
+  // because Anthropic's messages API alternates user/assistant roles.
+  if (nudgeHint && windowedMessages.length > 0) {
+    const lastMsg = windowedMessages[windowedMessages.length - 1];
+    if (lastMsg.role === "user") {
+      // Append hint to the last user message to maintain role alternation
+      windowedMessages = [
+        ...windowedMessages.slice(0, -1),
+        {
+          role: "user" as const,
+          content:
+            lastMsg.content +
+            "\n\n[SYSTEM: It has been several messages since you last spoke. Consider whether there is something worth asking or observing.]",
+        },
+      ];
+    }
+  }
+
+  // 5. Load Mantle user's manual (if single-user group and phone still linked)
   let manualComponents: { layer: number; type: string; name: string; content: string }[] = [];
   let mantleUserName: string | null = null;
 
   if (groupState.mantle_user_id) {
-    const [manualResult, profileResult] = await Promise.all([
-      admin
-        .from("manual_components")
-        .select("layer, type, name, content")
-        .eq("user_id", groupState.mantle_user_id),
-      admin
-        .from("profiles")
-        .select("display_name")
-        .eq("id", groupState.mantle_user_id)
-        .maybeSingle(),
-    ]);
+    // Verify the Mantle user's phone is still linked (they may have unlinked mid-group)
+    const { data: phoneCheck } = await admin
+      .from("phone_numbers")
+      .select("id")
+      .eq("user_id", groupState.mantle_user_id)
+      .eq("verified", true)
+      .limit(1)
+      .maybeSingle();
 
-    manualComponents = manualResult.data || [];
-    const displayName = profileResult.data?.display_name as string | null;
-    mantleUserName = displayName?.split(/\s+/)[0] ?? null;
+    if (phoneCheck) {
+      const [manualResult, profileResult] = await Promise.all([
+        admin
+          .from("manual_components")
+          .select("layer, type, name, content")
+          .eq("user_id", groupState.mantle_user_id),
+        admin
+          .from("profiles")
+          .select("display_name")
+          .eq("id", groupState.mantle_user_id)
+          .maybeSingle(),
+      ]);
+
+      manualComponents = manualResult.data || [];
+      const displayName = profileResult.data?.display_name as string | null;
+      mantleUserName = displayName?.split(/\s+/)[0] ?? null;
+    } else {
+      console.log(
+        "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
+        linqChatId,
+        groupState.mantle_user_id
+      );
+    }
   }
 
   // 6. Build system prompt with group context
@@ -132,13 +171,16 @@ export async function processGroupMessage(
     },
   });
 
-  // 7. Call Sage (non-streaming, same as 1:1 text path)
-  const response = await anthropicFetch({
-    model: SAGE_MODEL,
-    max_tokens: SAGE_MAX_TOKENS,
-    system: systemPrompt,
-    messages: windowedMessages,
-  });
+  // 7. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
+  const response = await anthropicFetch(
+    {
+      model: SAGE_MODEL,
+      max_tokens: SAGE_MAX_TOKENS,
+      system: systemPrompt,
+      messages: windowedMessages,
+    },
+    GROUP_SAGE_TIMEOUT_MS
+  );
 
   const fullText =
     response.content?.[0]?.text || "Something went wrong on my end.";
@@ -170,6 +212,33 @@ export async function processGroupMessage(
   );
 
   return { responseText: trimmed, conversationId };
+}
+
+/**
+ * Save a group message without calling Sage. Used when the message gate
+ * returns SKIP — the message is stored for future context but Sage doesn't
+ * see it in real time.
+ */
+export async function saveGroupMessage(
+  linqChatId: string,
+  senderPhone: string,
+  senderName: string | null,
+  messageText: string
+): Promise<void> {
+  const admin = createAdminClient();
+  const groupState = await getGroupState(linqChatId);
+  if (!groupState) return;
+
+  const conversationId = await getOrCreateGroupConversation(admin, groupState);
+  const senderLabel = senderName || senderPhone;
+  const prefixedContent = `[${senderLabel}]: ${messageText}`;
+
+  await admin.from("messages").insert({
+    conversation_id: conversationId,
+    role: "user",
+    content: prefixedContent,
+    channel: "text",
+  });
 }
 
 /**

@@ -130,7 +130,8 @@ export async function loadConversationContext(
     const { count } = await admin
       .from("conversations")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("linq_group_chat_id", null);
     sessionCount = count || 1;
   }
 

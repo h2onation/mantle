@@ -19,11 +19,12 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  // Load all conversations for this user
+  // Load all 1:1 conversations for this user (exclude group conversations)
   const { data: conversations, error: convError } = await admin
     .from("conversations")
     .select("id, status, summary, created_at, updated_at")
     .eq("user_id", user.id)
+    .is("linq_group_chat_id", null)
     .order("updated_at", { ascending: false });
 
   if (convError) {
