@@ -343,7 +343,27 @@ function extractHandlesFromEvent(
     ((data?.chat as Record<string, unknown>)?.handles as string[]) ??
     (data?.participants as string[]) ??
     [];
-  return Array.isArray(handles) ? handles.map(String) : [];
+  const result = Array.isArray(handles) ? handles.map(String) : [];
+
+  // Also capture owner_handle — Linq may put the group creator here
+  // instead of in the handles array
+  const ownerHandle =
+    ((data?.owner_handle as Record<string, unknown>)?.handle as string) ??
+    (((data?.chat as Record<string, unknown>)?.owner_handle as Record<string, unknown>)?.handle as string) ??
+    null;
+  if (ownerHandle && !result.includes(ownerHandle)) {
+    result.push(ownerHandle);
+  }
+
+  // Also capture sender_handle — the person who triggered the event
+  const senderHandle =
+    ((data?.sender_handle as Record<string, unknown>)?.handle as string) ??
+    null;
+  if (senderHandle && !result.includes(senderHandle)) {
+    result.push(senderHandle);
+  }
+
+  return result;
 }
 
 async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
@@ -409,32 +429,56 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       groupState = await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
     }
 
-    // Inactive group — ignore with optional one-time reminder for Mantle user
+    // Inactive group — check if we should re-detect or ignore
     if (!groupState || !groupState.is_active) {
-      if (groupState?.mantle_user_id && senderPhone) {
-        // Check if sender is the Mantle user
-        if (await isMantleUserPhone(normalizePhone(String(senderPhone)), groupState.mantle_user_id)) {
-          const REMINDER_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
-          const lastReminder = groupState.last_inactive_reminder_at
-            ? new Date(groupState.last_inactive_reminder_at).getTime()
-            : 0;
+      // Re-detection: if group was deactivated because no Mantle accounts were
+      // found (mantle_user_id is null), and the message mentions Sage, re-run
+      // detection — a user may have linked their phone since the first attempt.
+      const messageText =
+        parts.filter((p: { type: string }) => p.type === "text")
+          .map((p: { type: string; value: string }) => p.value).join(" ") || bodyText || "";
+      const mentionsSage = /\bsage\b/i.test(messageText);
 
-          if (Date.now() - lastReminder > REMINDER_COOLDOWN_MS) {
-            await sendMessage(
-              chatId,
-              "This group ended. I'm in our regular thread if you want to keep going."
-            );
-            await updateGroupState(chatId, {
-              last_inactive_reminder_at: new Date().toISOString(),
-            });
-            console.log("[linq] inactive_reminder_sent chat_id=%s", chatId);
-            return;
+      if (groupState && !groupState.mantle_user_id && mentionsSage) {
+        console.log("[linq] re_detecting_inactive_group chat_id=%s sender=%s", chatId, senderPhone);
+        // Reset group state so detectAndSetupGroup re-runs from scratch
+        await updateGroupState(chatId, { is_active: true, intro_sent: false });
+        const handles = extractHandlesFromEvent(data);
+        const redetected = await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+        if (redetected?.is_active && redetected?.mantle_user_id) {
+          console.log("[linq] re_detection_success chat_id=%s user=%s", chatId, redetected.mantle_user_id);
+          groupState = redetected;
+          // Fall through to normal group message handling below
+        } else {
+          console.log("[linq] re_detection_still_no_users chat_id=%s", chatId);
+          return;
+        }
+      } else {
+        // Truly inactive — optional reminder for Mantle user, then ignore
+        if (groupState?.mantle_user_id && senderPhone) {
+          if (await isMantleUserPhone(normalizePhone(String(senderPhone)), groupState.mantle_user_id)) {
+            const REMINDER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+            const lastReminder = groupState.last_inactive_reminder_at
+              ? new Date(groupState.last_inactive_reminder_at).getTime()
+              : 0;
+
+            if (Date.now() - lastReminder > REMINDER_COOLDOWN_MS) {
+              await sendMessage(
+                chatId,
+                "This group ended. I'm in our regular thread if you want to keep going."
+              );
+              await updateGroupState(chatId, {
+                last_inactive_reminder_at: new Date().toISOString(),
+              });
+              console.log("[linq] inactive_reminder_sent chat_id=%s", chatId);
+              return;
+            }
           }
         }
-      }
 
-      console.log("[linq] group_inactive chat_id=%s — ignoring message", chatId);
-      return;
+        console.log("[linq] group_inactive chat_id=%s — ignoring message", chatId);
+        return;
+      }
     }
 
     // Extract text content for the group bridge

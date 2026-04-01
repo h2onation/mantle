@@ -180,15 +180,27 @@ export async function getChatInfo(
     (data?.participants as string[]) ??
     [];
 
+  // Also capture owner_handle — Linq sometimes puts the group creator here
+  // instead of in the handles array
+  const ownerHandle =
+    ((data?.owner_handle as Record<string, unknown>)?.handle as string) ??
+    (((data?.chat as Record<string, unknown>)?.owner_handle as Record<string, unknown>)?.handle as string) ??
+    null;
+
+  const allHandles = [...handlesRaw.map(String)];
+  if (ownerHandle && !allHandles.includes(ownerHandle)) {
+    allHandles.push(ownerHandle);
+  }
+
   // Detect group flag
   const isGroup =
     (data?.is_group as boolean) ??
     ((data?.chat as Record<string, unknown>)?.is_group as boolean) ??
-    handlesRaw.length > 2;
+    allHandles.length > 2;
 
   return {
     ok: true,
-    handles: handlesRaw.map(String),
+    handles: allHandles,
     isGroup,
     traceId: result.traceId,
   };
