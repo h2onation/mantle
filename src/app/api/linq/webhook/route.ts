@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { routeInboundMessage } from "@/lib/linq/message-router";
 import { detectAndSetupGroup } from "@/lib/linq/group-detection";
 import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
@@ -9,6 +10,28 @@ import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
+
+// Sage's normalized phone — computed once at module level
+function getSagePhone(): string {
+  return normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
+}
+
+/**
+ * Check if a phone number belongs to a specific Mantle user.
+ */
+async function isMantleUserPhone(
+  phone: string,
+  mantleUserId: string
+): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("phone_numbers")
+    .select("user_id")
+    .eq("phone", phone)
+    .eq("verified", true)
+    .maybeSingle();
+  return data?.user_id === mantleUserId;
+}
 
 // ---------------------------------------------------------------------------
 // Linq webhook endpoint
@@ -162,8 +185,7 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
   );
 
   // If the added participant is Sage, this is a group we need to set up
-  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
-  if (addedHandle && normalizePhone(addedHandle) === sagePhone) {
+  if (addedHandle && normalizePhone(addedHandle) === getSagePhone()) {
     console.log("[linq] sage_added_to_group chat_id=%s", chatId);
     // Extract handles from the event payload if available
     const handles = extractHandlesFromEvent(data);
@@ -200,11 +222,10 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
     return;
   }
 
-  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
   const normalizedRemoved = removedHandle ? normalizePhone(removedHandle) : null;
 
   // Case e: Sage was removed
-  if (normalizedRemoved && normalizedRemoved === sagePhone) {
+  if (normalizedRemoved && normalizedRemoved === getSagePhone()) {
     console.log("[linq] sage_removed_from_group chat_id=%s", chatId);
     await updateGroupState(chatId, { is_active: false });
     return;
@@ -212,15 +233,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
 
   // Case d: The Mantle user left
   if (groupState.mantle_user_id && normalizedRemoved) {
-    const admin = (await import("@/lib/supabase/admin")).createAdminClient();
-    const { data: phoneRow } = await admin
-      .from("phone_numbers")
-      .select("user_id")
-      .eq("phone", normalizedRemoved)
-      .eq("verified", true)
-      .maybeSingle();
-
-    if (phoneRow?.user_id === groupState.mantle_user_id) {
+    if (await isMantleUserPhone(normalizedRemoved, groupState.mantle_user_id)) {
       console.log("[linq] mantle_user_left chat_id=%s user=%s", chatId, groupState.mantle_user_id);
       await sendMessage(
         chatId,
@@ -263,7 +276,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   // Count non-Sage participants from the API response
   const apiNonSage = chatInfo.handles
     .map((h) => normalizePhone(h))
-    .filter((h) => h && h !== sagePhone);
+    .filter((h) => h && h !== getSagePhone());
 
   if (apiNonSage.length <= 1) {
     // Confirmed: just Mantle user (or nobody) + Sage
@@ -400,15 +413,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     if (!groupState || !groupState.is_active) {
       if (groupState?.mantle_user_id && senderPhone) {
         // Check if sender is the Mantle user
-        const admin = (await import("@/lib/supabase/admin")).createAdminClient();
-        const { data: phoneRow } = await admin
-          .from("phone_numbers")
-          .select("user_id")
-          .eq("phone", normalizePhone(String(senderPhone)))
-          .eq("verified", true)
-          .maybeSingle();
-
-        if (phoneRow?.user_id === groupState.mantle_user_id) {
+        if (await isMantleUserPhone(normalizePhone(String(senderPhone)), groupState.mantle_user_id)) {
           const REMINDER_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
           const lastReminder = groupState.last_inactive_reminder_at
             ? new Date(groupState.last_inactive_reminder_at).getTime()
