@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 
 export async function POST(request: Request) {
   // 1. Authenticate
@@ -76,16 +77,7 @@ export async function POST(request: Request) {
       .update({ checkpoint_meta: updatedMeta })
       .eq("id", messageId);
 
-    const systemContent =
-      action === "rejected"
-        ? "[User rejected the checkpoint]"
-        : "[User wants to refine the checkpoint]";
-
-    await admin.from("messages").insert({
-      conversation_id: conversationId,
-      role: "system",
-      content: systemContent,
-    });
+    await insertCheckpointActionMessage(admin, conversationId, action);
   }
 
   // 4. Detect if this is a guest's first confirmed checkpoint → promptAuth

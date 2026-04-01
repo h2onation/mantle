@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
 import { routeInboundMessage } from "@/lib/linq/message-router";
+import { detectAndSetupGroup } from "@/lib/linq/group-detection";
+import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
+import { processGroupMessage } from "@/lib/linq/group-bridge";
+import { sendMessage } from "@/lib/linq/sender";
+import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
 
@@ -111,6 +116,26 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
       );
       break;
 
+    case "participant.added":
+      await handleParticipantAdded(event);
+      break;
+
+    case "participant.removed":
+      // Part 6d will add full handling. For now, log it.
+      console.log(
+        "[linq] participant_removed chat_id=%s handle=%s trace_id=%s",
+        (event.data?.chat_id as string) ?? "unknown",
+        (event.data?.handle as string) ??
+          ((event.data?.participant as Record<string, unknown>)?.handle as string) ??
+          "unknown",
+        event.trace_id
+      );
+      break;
+
+    case "chat.created":
+      await handleChatCreated(event);
+      break;
+
     default:
       console.log(
         "[linq] unhandled_event type=%s event_id=%s",
@@ -118,6 +143,87 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
         event.event_id
       );
   }
+}
+
+/**
+ * Handle participant.added — detect if Sage was added to a group.
+ */
+async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
+  const { data } = event;
+  const chatId = (data?.chat_id as string) ?? null;
+  const addedHandle =
+    (data?.handle as string) ??
+    ((data?.participant as Record<string, unknown>)?.handle as string) ??
+    null;
+
+  if (!chatId) {
+    console.error("[linq] participant.added missing chat_id");
+    return;
+  }
+
+  console.log(
+    "[linq] participant_added chat_id=%s handle=%s trace_id=%s",
+    chatId,
+    addedHandle ?? "unknown",
+    event.trace_id
+  );
+
+  // If the added participant is Sage, this is a group we need to set up
+  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
+  if (addedHandle && normalizePhone(addedHandle) === sagePhone) {
+    console.log("[linq] sage_added_to_group chat_id=%s", chatId);
+    // Extract handles from the event payload if available
+    const handles = extractHandlesFromEvent(data);
+    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+  }
+}
+
+/**
+ * Handle chat.created — detect if a new group chat was created.
+ */
+async function handleChatCreated(event: LinqWebhookEvent): Promise<void> {
+  const { data } = event;
+  const chatId =
+    (data?.chat_id as string) ??
+    (data?.id as string) ??
+    ((data?.chat as Record<string, unknown>)?.id as string) ??
+    null;
+  const isGroup =
+    (data?.is_group as boolean) ??
+    ((data?.chat as Record<string, unknown>)?.is_group as boolean) ??
+    false;
+
+  if (!chatId) {
+    console.error("[linq] chat.created missing chat_id");
+    return;
+  }
+
+  console.log(
+    "[linq] chat_created chat_id=%s is_group=%s trace_id=%s",
+    chatId,
+    isGroup,
+    event.trace_id
+  );
+
+  if (isGroup) {
+    const handles = extractHandlesFromEvent(data);
+    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+  }
+}
+
+/**
+ * Try to extract participant handles from a webhook event payload.
+ * Linq may include them in various locations.
+ */
+function extractHandlesFromEvent(
+  data: Record<string, unknown>
+): string[] {
+  const handles =
+    (data?.handles as string[]) ??
+    ((data?.chat as Record<string, unknown>)?.handles as string[]) ??
+    (data?.participants as string[]) ??
+    [];
+  return Array.isArray(handles) ? handles.map(String) : [];
 }
 
 async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
@@ -162,6 +268,91 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
 
   if (!senderPhone || !chatId) {
     console.error("[linq] Missing sender or chat_id after trying all field locations");
+    return;
+  }
+
+  // Check if this is a group message
+  const isGroup =
+    (data?.is_group as boolean) ??
+    ((chat as Record<string, unknown>)?.is_group as boolean) ??
+    false;
+
+  if (isGroup) {
+    // Check if we have a group state already
+    let groupState = await getGroupState(chatId);
+
+    if (!groupState) {
+      // Unknown group — run detection first (Scenario B: message arrived before
+      // participant.added webhook). Detection creates state and sends intro.
+      console.log("[linq] group_message_from_unknown_chat chat_id=%s — running detection", chatId);
+      const handles = extractHandlesFromEvent(data);
+      groupState = await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+    }
+
+    // Inactive group — ignore silently (Part 6d will add reminder logic)
+    if (!groupState || !groupState.is_active) {
+      console.log(
+        "[linq] group_inactive chat_id=%s — ignoring message",
+        chatId
+      );
+      return;
+    }
+
+    // Extract text content for the group bridge
+    const groupTextParts = parts.filter(
+      (p: { type: string }) => p.type === "text"
+    );
+    const groupTextContent = (
+      groupTextParts.map((p: { type: string; value: string }) => p.value).join("\n") ||
+      bodyText ||
+      ""
+    ).trim();
+
+    if (!groupTextContent) {
+      console.log("[linq] group_empty_message chat_id=%s sender=%s", chatId, senderPhone);
+      return;
+    }
+
+    // Extract sender name from webhook payload if available
+    const senderName =
+      (sh?.display_name as string) ??
+      (sender?.display_name as string) ??
+      (sh?.name as string) ??
+      (sender?.name as string) ??
+      null;
+
+    // Route to group bridge — no typing indicators in groups (Linq 403s)
+    try {
+      const result = await processGroupMessage({
+        linqChatId: chatId,
+        senderPhone: String(senderPhone),
+        senderName,
+        messageText: groupTextContent,
+      });
+
+      if (result.responseText) {
+        // Sage responded — send and reset counter
+        await sendMessage(chatId, result.responseText);
+        await updateGroupState(chatId, { messages_since_sage_spoke: 0 });
+        console.log(
+          "[linq] group_sage_response chat_id=%s len=%d",
+          chatId,
+          result.responseText.length
+        );
+      } else {
+        // Sage chose [NO_RESPONSE] — increment counter (don't reset)
+        await updateGroupState(chatId, {
+          messages_since_sage_spoke: (groupState.messages_since_sage_spoke || 0) + 1,
+        });
+        console.log("[linq] group_sage_silent chat_id=%s", chatId);
+      }
+    } catch (err) {
+      console.error(
+        "[linq] group_bridge_error chat_id=%s error=%s",
+        chatId,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
     return;
   }
 

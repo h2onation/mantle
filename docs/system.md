@@ -28,6 +28,46 @@ User message
 
 **Extraction is fire-and-forget**: `runExtraction()` fires as a background Promise, never awaited. It writes to `conversations.extraction_state` (JSONB column) asynchronously. It never blocks Sage's stream.
 
+## Multi-Channel Architecture (Web + Text)
+
+Sage runs on two channels: web (streaming SSE) and text (Linq SMS, non-streaming). Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
+
+### Shared pipeline (`sage-pipeline.ts`)
+
+All Sage decision logic lives here and is imported by both paths:
+
+- `loadConversationContext()` — parallel DB reads, message mapping, derived flags
+- `buildPromptOptionsFromContext()` — canonical context → prompt options mapping
+- `fireBackgroundExtraction()` — async extraction (background, non-blocking)
+- `handleCrisisDetection()` — crisis phrase detection + 988 resource append
+- `applyCheckpointGates()` — layer guards + turn-count suppression
+- `buildCheckpointMeta()` — checkpoint metadata shape
+- `insertCheckpointActionMessage()` — canonical system messages for confirm/reject/refine
+
+Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `parseManualEntryBlock()`, `detectCrisisInUserMessage()`.
+
+Checkpoint detection uses the same two paths on both channels: Path A (Sage outputs `|||MANUAL_ENTRY|||` block) and Path B (classifier fallback + Sonnet composition via `composeManualEntry()`).
+
+### What differs by channel (intentional)
+
+| Concern | Web | Text |
+|---------|-----|------|
+| Delivery | Streaming SSE (`anthropicStream`) | Blocking (`anthropicFetch`) |
+| Auth | Supabase session | Phone number lookup |
+| URL/transcript detection | Yes (`detectUrls`, `detectTranscript`) | No (SMS limitation) |
+| Exploration mode | Yes (`explorationContext`) | No |
+| Guest prompt auth | Yes (`promptAuth` flag) | No |
+| Checkpoint confirmation | UI buttons → POST `/api/checkpoint/confirm` | Keyword interception (YES/NO/NOT QUITE) |
+| Post-checkpoint | `callSage({ message: null })` streaming | `processTextMessage(null)` non-streaming |
+
+### Rules for adding features
+
+1. **Check `sage-pipeline.ts` first.** If logic could apply to both channels, it belongs there. Not in `call-sage.ts` or `sage-bridge.ts`.
+2. **Channel-specific code stays in the channel.** Streaming, delimiter buffers, keyword detection — these are delivery concerns, not pipeline logic.
+3. **New prompt fields go through `buildPromptOptionsFromContext()`.** Web can layer on channel-specific fields (exploration, transcript, URL) via spread. Text gets the base automatically.
+4. **New checkpoint actions go through `insertCheckpointActionMessage()`.** Never hardcode system message strings — they must stay in sync with `mapSystemMessages()`.
+5. **Test both paths after pipeline changes.** A change to `sage-pipeline.ts` affects web and text simultaneously.
+
 ## Extraction Layer Detail
 
 The extraction layer is a Sonnet call that runs per turn and produces a structured research brief. It tracks:

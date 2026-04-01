@@ -12,6 +12,7 @@ import {
   SAGE_MODEL,
   SAGE_MAX_TOKENS,
   loadConversationContext,
+  buildPromptOptionsFromContext,
   fireBackgroundExtraction,
   handleCrisisDetection,
   applyCheckpointGates,
@@ -280,15 +281,9 @@ export function callSage({
           messages,
           manualComponents,
           previousExtraction,
-          sessionSummary,
-          isReturningUser,
           isFirstCheckpoint,
-          sessionCount,
           turnsSinceCheckpoint,
-          extractionForSage,
           turnCount,
-          hasPatternEligibleLayer,
-          checkpointApproaching,
         } = ctx;
 
         // 3. Fire extraction in background
@@ -320,22 +315,14 @@ export function callSage({
         const transcriptDetection =
           message && !urlDetection?.hasUrl ? detectTranscript(message) : null;
 
-        // 8. Build system prompt (derived flags already computed in ctx)
+        // 8. Build system prompt (shared base + web-specific fields)
         const systemPrompt = buildSystemPrompt({
-          manualComponents,
-          isReturningUser,
-          sessionSummary,
-          extractionContext: extractionForSage,
-          isFirstCheckpoint,
-          sessionCount,
+          ...buildPromptOptionsFromContext(ctx),
           explorationContext,
           transcriptContext: transcriptDetection,
           contentContext: urlDetection?.hasUrl
             ? { urlDetection, fetchedContent }
             : null,
-          turnCount,
-          hasPatternEligibleLayer,
-          checkpointApproaching,
         });
 
         // 8b. Debug logging (dev only)

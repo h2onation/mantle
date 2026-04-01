@@ -6,10 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { parseManualEntryBlock } from "@/lib/sage/call-sage";
+import { classifyResponse } from "@/lib/sage/classifier";
+import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
 import {
   SAGE_MODEL,
   SAGE_MAX_TOKENS,
   loadConversationContext,
+  buildPromptOptionsFromContext,
   fireBackgroundExtraction,
   handleCrisisDetection,
   applyCheckpointGates,
@@ -24,51 +27,52 @@ interface SageBridgeResult {
 }
 
 /**
- * Processes an inbound text message through the Sage pipeline.
- * Reuses the same extraction, prompt building, and conversation logic
- * as the web app, but collects the response non-streaming and skips
- * checkpoint classification (Path A only — no Haiku classifier fallback).
+ * Processes a text-channel Sage interaction. Handles two cases:
+ *
+ * 1. User message (messageText provided): Save message, load context,
+ *    call Sage, handle extraction/crisis/checkpoints. Full pipeline.
+ *
+ * 2. Post-checkpoint follow-up (messageText is null): Load context
+ *    (which includes the system message from confirmCheckpoint), call
+ *    Sage so it generates the tee-up response. Same as web's
+ *    callSage({ message: null }).
  */
 export async function processTextMessage(
   userId: string,
-  messageText: string
+  messageText: string | null,
+  existingConversationId?: string
 ): Promise<SageBridgeResult> {
   const admin = createAdminClient();
 
   // 1. Find or create the user's active conversation
-  const conversationId = await getOrCreateConversation(admin, userId);
+  const conversationId =
+    existingConversationId ?? (await getOrCreateConversation(admin, userId));
 
-  // 2. Save the inbound message with channel: "text"
-  const { error: insertError } = await admin.from("messages").insert({
-    conversation_id: conversationId,
-    role: "user",
-    content: messageText,
-    channel: "text",
-  });
+  // 2. Save the inbound message (skip when message is null — post-checkpoint)
+  if (messageText !== null) {
+    const { error: insertError } = await admin.from("messages").insert({
+      conversation_id: conversationId,
+      role: "user",
+      content: messageText,
+      channel: "text",
+    });
 
-  if (insertError) {
-    console.error("[sage-bridge] Failed to save user message:", insertError);
-    throw new Error("Failed to save message");
+    if (insertError) {
+      console.error("[sage-bridge] Failed to save user message:", insertError);
+      throw new Error("Failed to save message");
+    }
   }
 
   // 3. Load shared conversation context (same DB reads + rules as web)
   const ctx = await loadConversationContext(admin, conversationId, userId);
 
-  // 4. Fire extraction in background (same as web — doesn't block response)
-  fireBackgroundExtraction(ctx, admin);
+  // 4. Fire extraction in background (only for real user messages)
+  if (messageText !== null) {
+    fireBackgroundExtraction(ctx, admin);
+  }
 
-  // 5. Build system prompt (text doesn't pass explorationContext/transcriptContext/contentContext)
-  const systemPrompt = buildSystemPrompt({
-    manualComponents: ctx.manualComponents,
-    isReturningUser: ctx.isReturningUser,
-    sessionSummary: ctx.sessionSummary,
-    extractionContext: ctx.extractionForSage,
-    isFirstCheckpoint: ctx.isFirstCheckpoint,
-    sessionCount: ctx.sessionCount,
-    turnCount: ctx.turnCount,
-    hasPatternEligibleLayer: ctx.hasPatternEligibleLayer,
-    checkpointApproaching: ctx.checkpointApproaching,
-  });
+  // 5. Build system prompt (shared options from context, no channel-specific fields)
+  const systemPrompt = buildSystemPrompt(buildPromptOptionsFromContext(ctx));
 
   // 6. Call Sage non-streaming (text doesn't need SSE)
   const response = await anthropicFetch({
@@ -81,12 +85,29 @@ export async function processTextMessage(
   const fullText =
     response.content?.[0]?.text || "Something went wrong on my end.";
 
-  // Parse manual entry block if present (same parser as web)
+  // 7. For post-checkpoint calls, just save and return — no checkpoint/crisis handling
+  if (messageText === null) {
+    await admin.from("messages").insert({
+      conversation_id: conversationId,
+      role: "assistant",
+      content: fullText,
+      channel: "text",
+    });
+
+    return {
+      responseText: fullText,
+      conversationId,
+      messageId: null,
+      checkpointText: null,
+    };
+  }
+
+  // 8. Parse manual entry block if present (same parser as web)
   const parsed = parseManualEntryBlock(fullText);
   let responseText = parsed.conversationalText;
   const manualEntry = parsed.manualEntry;
 
-  // 7. Crisis detection (shared with web)
+  // 9. Crisis detection (shared with web)
   const crisis = handleCrisisDetection(
     messageText,
     responseText,
@@ -96,7 +117,7 @@ export async function processTextMessage(
   );
   responseText = crisis.responseText;
 
-  // 8. Save Sage's response with channel: "text"
+  // 10. Save Sage's response with channel: "text"
   const { data: savedResponse } = await admin
     .from("messages")
     .insert({
@@ -126,58 +147,118 @@ export async function processTextMessage(
       });
   }
 
-  // 9. Handle checkpoint — apply shared gates, save metadata, build confirmation text
+  // 11. Checkpoint detection — same two-path logic as web (call-sage.ts)
+  //     Path A: Sage produced |||MANUAL_ENTRY||| block → use metadata directly
+  //     Path B: No block → run classifier fallback → compose if checkpoint
   let checkpointText: string | null = null;
+  let isCheckpoint = false;
+  let checkpointLayer: number | null = null;
+  let checkpointType: string | null = null;
+  let checkpointName: string | null = null;
 
-  if (manualEntry && messageId) {
-    // Apply shared checkpoint gates (layer guards + turn-count suppression)
+  if (manualEntry) {
+    // Path A — Sage provided all metadata
+    isCheckpoint = true;
+    checkpointLayer = manualEntry.layer;
+    checkpointType = manualEntry.type;
+    checkpointName = manualEntry.name;
+  } else if (messageId) {
+    // Path B — run classifier as fallback (same as web)
+    const last4 = ctx.messages.slice(-4);
+    const recentText = last4.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+    const isFirstSession = !ctx.manualComponents || ctx.manualComponents.length === 0;
+    const layersWithComponents = (ctx.manualComponents || [])
+      .filter((c) => c.type === "component")
+      .map((c) => c.layer);
+
+    const classification = await classifyResponse(
+      responseText,
+      recentText,
+      isFirstSession,
+      layersWithComponents
+    );
+
+    isCheckpoint = classification.isCheckpoint;
+    checkpointLayer = classification.layer;
+    checkpointType = classification.type;
+    checkpointName = classification.name;
+  }
+
+  // 11b. Shared checkpoint gates (layer guards + turn-count suppression)
+  if (isCheckpoint && checkpointLayer) {
     const gateResult = applyCheckpointGates(
-      manualEntry,
+      { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
       ctx.manualComponents,
       ctx.turnsSinceCheckpoint
     );
-
-    if (gateResult.isCheckpoint) {
-      // Update manualEntry type if gates corrected it
-      if (gateResult.type !== manualEntry.type) {
-        manualEntry.type = gateResult.type!;
-      }
-
-      // Save checkpoint metadata (shared builder — same shape as web)
-      const meta = buildCheckpointMeta(gateResult, manualEntry, null);
-
-      await admin
-        .from("messages")
-        .update({
-          is_checkpoint: true,
-          checkpoint_meta: meta,
-        })
-        .eq("id", messageId);
-
-      // Build the text checkpoint message — only show name + question
-      // (the user already read the insight in Sage's conversational response)
-      const isPattern = gateResult.type === "pattern";
-      const question = isPattern ? "Does this resonate?" : "Does this feel right?";
-      const name = meta.name || manualEntry.name;
-      checkpointText =
-        `${question}\n\n` +
-        `"${name}"\n\n` +
-        `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
-
-      console.log(
-        "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s message_id=%s",
-        gateResult.layer,
-        gateResult.type,
-        name,
-        messageId
-      );
-    } else {
-      console.log(
-        "[sage-bridge] checkpoint_suppressed layer=%d turns_since=%d",
-        manualEntry.layer,
-        ctx.turnsSinceCheckpoint
-      );
+    isCheckpoint = gateResult.isCheckpoint;
+    checkpointLayer = gateResult.layer;
+    checkpointType = gateResult.type;
+    checkpointName = gateResult.name;
+    if (manualEntry && gateResult.isCheckpoint && gateResult.type !== manualEntry.type) {
+      manualEntry.type = gateResult.type!;
     }
+  }
+
+  // 11c. Path B composition — compose content when classifier detected checkpoint
+  //      but Sage didn't produce a manual entry block (same as web)
+  let composedEntry: { content: string; name: string; changelog: string } | null = null;
+  const hasComposedContent = manualEntry?.content && manualEntry.content.length > 0;
+
+  if (isCheckpoint && checkpointLayer && !hasComposedContent) {
+    try {
+      const existingLayerContent = (ctx.manualComponents || []).filter(
+        (c) => c.layer === checkpointLayer
+      );
+
+      composedEntry = await composeManualEntry({
+        checkpointText: responseText,
+        conversationHistory: ctx.messages,
+        languageBank: ctx.previousExtraction?.language_bank || [],
+        layer: checkpointLayer,
+        type: (checkpointType as "component" | "pattern") || "component",
+        name: checkpointName,
+        existingLayerContent: existingLayerContent.length > 0 ? existingLayerContent : undefined,
+      });
+    } catch (err) {
+      console.error("[sage-bridge] Path B composition failed:", err);
+    }
+  }
+
+  // 11d. Save checkpoint metadata and build confirmation text
+  if (isCheckpoint && checkpointLayer && messageId) {
+    const meta = buildCheckpointMeta(
+      { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
+      manualEntry,
+      composedEntry
+    );
+
+    await admin
+      .from("messages")
+      .update({
+        is_checkpoint: true,
+        checkpoint_meta: meta,
+      })
+      .eq("id", messageId);
+
+    // Build the text checkpoint message — only show name + question
+    // (the user already read the insight in Sage's conversational response)
+    const isPattern = checkpointType === "pattern";
+    const question = isPattern ? "Does this resonate?" : "Does this feel right?";
+    const name = meta.name || checkpointName || "Untitled";
+    checkpointText =
+      `${question}\n\n` +
+      `"${name}"\n\n` +
+      `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
+
+    console.log(
+      "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s via=%s message_id=%s",
+      checkpointLayer,
+      checkpointType,
+      name,
+      manualEntry ? "Path A" : "Path B",
+      messageId
+    );
   }
 
   return { responseText, conversationId, messageId, checkpointText };
@@ -193,11 +274,13 @@ async function getOrCreateConversation(
   admin: ReturnType<typeof createAdminClient>,
   userId: string
 ): Promise<string> {
+  // Exclude group conversations — they have linq_group_chat_id set
   const { data: existing } = await admin
     .from("conversations")
     .select("id")
     .eq("user_id", userId)
     .eq("status", "active")
+    .is("linq_group_chat_id", null)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -221,6 +304,7 @@ async function getOrCreateConversation(
       .select("id")
       .eq("user_id", userId)
       .eq("status", "active")
+      .is("linq_group_chat_id", null)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();

@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, sendTypingIndicator, markAsRead } from "./sender";
 import { processTextMessage } from "./sage-bridge";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const FALLBACK_MSG =
@@ -331,7 +332,17 @@ async function handleCheckpointResponse(
     });
 
     if (result.success) {
-      await sendMessage(chatId, "Written to manual.");
+      // Call Sage to generate post-checkpoint tee-up (same as web path).
+      // Sage sees "[User confirmed the checkpoint]" in history and responds
+      // with acknowledgment + "Two directions" fork.
+      await sendTypingIndicator(chatId);
+      try {
+        const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
+        await sendMessage(chatId, followUp);
+      } catch (err) {
+        console.error("[linq-router] post_checkpoint_sage_failed:", err);
+        await sendMessage(chatId, "Written to manual.");
+      }
     } else {
       console.error("[linq-router] checkpoint_confirm_failed:", result.error);
       await sendMessage(chatId, "Something went wrong saving that. Try again in the app.");
@@ -346,13 +357,17 @@ async function handleCheckpointResponse(
       .update({ checkpoint_meta: { ...meta, status: "refined" } })
       .eq("id", pendingMsg.id);
 
-    await admin.from("messages").insert({
-      conversation_id: conv.id,
-      role: "system",
-      content: "[User wants to refine the checkpoint]",
-    });
+    await insertCheckpointActionMessage(admin, conv.id, "refined");
 
-    await sendMessage(chatId, "Got it — Sage will revisit this.");
+    // Call Sage so it responds to the refinement request naturally
+    await sendTypingIndicator(chatId);
+    try {
+      const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
+      await sendMessage(chatId, followUp);
+    } catch (err) {
+      console.error("[linq-router] post_refine_sage_failed:", err);
+      await sendMessage(chatId, "Got it — Sage will revisit this.");
+    }
     return "refined";
   }
 
@@ -363,13 +378,17 @@ async function handleCheckpointResponse(
       .update({ checkpoint_meta: { ...meta, status: "rejected" } })
       .eq("id", pendingMsg.id);
 
-    await admin.from("messages").insert({
-      conversation_id: conv.id,
-      role: "system",
-      content: "[User rejected the checkpoint]",
-    });
+    await insertCheckpointActionMessage(admin, conv.id, "rejected");
 
-    await sendMessage(chatId, "Discarded.");
+    // Call Sage so it acknowledges and moves on naturally
+    await sendTypingIndicator(chatId);
+    try {
+      const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
+      await sendMessage(chatId, followUp);
+    } catch (err) {
+      console.error("[linq-router] post_reject_sage_failed:", err);
+      await sendMessage(chatId, "Discarded.");
+    }
     return "rejected";
   }
 

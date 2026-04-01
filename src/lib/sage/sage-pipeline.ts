@@ -175,6 +175,27 @@ export async function loadConversationContext(
   };
 }
 
+// ── 1b. Build prompt options from context ──────────────────────────────────
+//
+// Single source of truth for the context → BuildPromptOptions mapping.
+// Both web (call-sage.ts) and text (sage-bridge.ts) call this, then web
+// layers on its channel-specific fields (explorationContext, transcriptContext,
+// contentContext). Adding a new field to BuildPromptOptions? Add it here once.
+
+export function buildPromptOptionsFromContext(ctx: ConversationContext) {
+  return {
+    manualComponents: ctx.manualComponents,
+    isReturningUser: ctx.isReturningUser,
+    sessionSummary: ctx.sessionSummary,
+    extractionContext: ctx.extractionForSage,
+    isFirstCheckpoint: ctx.isFirstCheckpoint,
+    sessionCount: ctx.sessionCount,
+    turnCount: ctx.turnCount,
+    hasPatternEligibleLayer: ctx.hasPatternEligibleLayer,
+    checkpointApproaching: ctx.checkpointApproaching,
+  };
+}
+
 // ── 2. Background extraction ────────────────────────────────────────────────
 
 /**
@@ -313,6 +334,35 @@ export function applyCheckpointGates(
   }
 
   return { isCheckpoint: true, layer, type, name };
+}
+
+// ── 4b. Checkpoint action system message ────────────────────────────────────
+//
+// Single source of truth for the system messages inserted after checkpoint
+// actions. These strings must stay in sync with mapSystemMessages() in
+// call-sage.ts — if you change the wording here, update the mapping there.
+
+const CHECKPOINT_ACTION_MESSAGES: Record<string, string> = {
+  confirmed: "[User confirmed the checkpoint]",
+  rejected: "[User rejected the checkpoint]",
+  refined: "[User wants to refine the checkpoint]",
+};
+
+/**
+ * Insert the canonical system message for a checkpoint action.
+ * Used by: confirmCheckpoint (confirmed), checkpoint/confirm/route (rejected/refined),
+ * and message-router (text path rejected/refined).
+ */
+export async function insertCheckpointActionMessage(
+  admin: ReturnType<typeof createAdminClient>,
+  conversationId: string,
+  action: "confirmed" | "rejected" | "refined"
+): Promise<void> {
+  await admin.from("messages").insert({
+    conversation_id: conversationId,
+    role: "system",
+    content: CHECKPOINT_ACTION_MESSAGES[action],
+  });
 }
 
 // ── 5. Checkpoint meta builder ──────────────────────────────────────────────

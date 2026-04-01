@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
+import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import type { ExtractionState } from "@/lib/sage/extraction";
 
 // ─── Manual entry composition (Sonnet) ─────────────────────────────────────
@@ -355,12 +356,8 @@ export async function confirmCheckpoint({
         .eq("id", conversationId);
     }
 
-    // 4. Insert system message
-    await admin.from("messages").insert({
-      conversation_id: conversationId,
-      role: "system",
-      content: "[User confirmed the checkpoint]",
-    });
+    // 4. Insert system message (shared helper — single source of truth)
+    await insertCheckpointActionMessage(admin, conversationId, "confirmed");
 
     return { success: true, componentId: componentId || undefined };
   } catch (err) {

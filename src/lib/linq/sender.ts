@@ -143,6 +143,58 @@ export async function markAsRead(chatId: string): Promise<void> {
 }
 
 /**
+ * Get chat info including participant handles.
+ * Used by group detection to identify participants.
+ * Retries once after 2 seconds on failure.
+ */
+export async function getChatInfo(
+  chatId: string
+): Promise<{ ok: boolean; handles: string[]; isGroup: boolean; traceId?: string }> {
+  let result = await linqFetch(`/chats/${chatId}`, { method: "GET" });
+
+  if (!result.ok) {
+    console.warn(
+      "[linq-sender] getChatInfo failed (status=%d), retrying in 2s — chat_id=%s",
+      result.status,
+      chatId
+    );
+    await delay(2000);
+    result = await linqFetch(`/chats/${chatId}`, { method: "GET" });
+  }
+
+  if (!result.ok) {
+    console.error(
+      "[linq-sender] getChatInfo retry also failed — chat_id=%s trace_id=%s",
+      chatId,
+      result.traceId ?? "unknown"
+    );
+    return { ok: false, handles: [], isGroup: false, traceId: result.traceId };
+  }
+
+  const data = result.data as Record<string, unknown> | null;
+
+  // Extract handles array — try multiple possible field locations
+  const handlesRaw =
+    (data?.handles as string[]) ??
+    ((data?.chat as Record<string, unknown>)?.handles as string[]) ??
+    (data?.participants as string[]) ??
+    [];
+
+  // Detect group flag
+  const isGroup =
+    (data?.is_group as boolean) ??
+    ((data?.chat as Record<string, unknown>)?.is_group as boolean) ??
+    handlesRaw.length > 2;
+
+  return {
+    ok: true,
+    handles: handlesRaw.map(String),
+    isGroup,
+    traceId: result.traceId,
+  };
+}
+
+/**
  * Create a new chat (first message to a phone number).
  * Returns the chat_id for future messages.
  */
