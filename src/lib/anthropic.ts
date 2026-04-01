@@ -39,7 +39,11 @@ export async function anthropicFetch(
       throw new Error(`Anthropic API ${res.status}: ${errBody}`);
     }
 
-    return (await res.json()) as AnthropicResponse;
+    const json = await res.json().catch(() => null);
+    if (!json?.content?.[0]) {
+      throw new Error("Anthropic API returned unexpected response shape");
+    }
+    return json as AnthropicResponse;
   } finally {
     clearTimeout(timer);
   }

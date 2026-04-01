@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createChat } from "@/lib/linq/sender";
+import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
 
@@ -60,13 +61,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Normalize: strip spaces/dashes/parens, ensure +1 prefix
-  let phone = rawPhone.replace(/[\s\-().]/g, "");
-  if (phone.startsWith("1") && !phone.startsWith("+")) {
-    phone = "+" + phone;
-  } else if (!phone.startsWith("+")) {
-    phone = "+1" + phone;
-  }
+  // Normalize: strip non-digits, ensure +1 prefix
+  const phone = normalizePhone(rawPhone);
 
   if (!/^\+1\d{10}$/.test(phone)) {
     return Response.json(
