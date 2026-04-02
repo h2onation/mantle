@@ -189,7 +189,8 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
     console.log("[linq] sage_added_to_group chat_id=%s", chatId);
     // Extract handles from the event payload if available
     const handles = extractHandlesFromEvent(data);
-    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+    // Silent: don't send "no accounts" yet — message.received will have fuller handle data
+    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined, { silent: true });
   }
 }
 
@@ -327,7 +328,8 @@ async function handleChatCreated(event: LinqWebhookEvent): Promise<void> {
 
   if (isGroup) {
     const handles = extractHandlesFromEvent(data);
-    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
+    // Silent: don't send "no accounts" yet — message.received will have fuller handle data
+    await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined, { silent: true });
   }
 }
 

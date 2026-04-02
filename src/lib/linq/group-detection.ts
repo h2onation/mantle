@@ -40,8 +40,10 @@ const INTRO_SETUP_FAILED =
  */
 export async function detectAndSetupGroup(
   linqChatId: string,
-  webhookHandles?: string[]
+  webhookHandles?: string[],
+  options?: { silent?: boolean }
 ): Promise<GroupState | null> {
+  const silent = options?.silent ?? false;
   // 1. Check if we already have a record for this group
   const existing = await getGroupState(linqChatId);
   if (existing) {
@@ -72,13 +74,15 @@ export async function detectAndSetupGroup(
   if (handles.length === 0) {
     const chatInfo = await getChatInfo(linqChatId);
     if (!chatInfo.ok) {
-      // API failed after retry — send error and mark inactive
+      // API failed after retry — mark inactive, only notify on real messages
       console.error(
         "[group-detect] getChatInfo failed for chat_id=%s trace_id=%s",
         linqChatId,
         chatInfo.traceId
       );
-      await sendMessage(linqChatId, INTRO_SETUP_FAILED);
+      if (!silent) {
+        await sendMessage(linqChatId, INTRO_SETUP_FAILED);
+      }
       const state = await createGroupState(linqChatId, null, 0);
       await updateGroupState(linqChatId, { is_active: false });
       return state;
@@ -148,11 +152,16 @@ export async function detectAndSetupGroup(
   }
 
   if (uniqueUserIds.length === 0) {
-    // No Mantle users — send notice and deactivate
+    // No Mantle users — deactivate. Only send the notice when triggered by
+    // an actual message (silent=false). Formation events (chat.created,
+    // participant.added) stay quiet because more events with fuller handle
+    // lists typically arrive moments later.
     const state = await getOrCreateState(null, participantCount);
     await updateGroupState(linqChatId, { is_active: false });
-    await sendMessage(linqChatId, INTRO_NO_ACCOUNTS);
-    console.log("[group-detect] no_mantle_users chat_id=%s", linqChatId);
+    if (!silent) {
+      await sendMessage(linqChatId, INTRO_NO_ACCOUNTS);
+    }
+    console.log("[group-detect] no_mantle_users chat_id=%s silent=%s", linqChatId, silent);
     return { ...state, is_active: false };
   }
 
