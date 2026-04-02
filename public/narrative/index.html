@@ -89,7 +89,10 @@ body {
   <div class="gate-badge">Mantle</div>
   <div class="gate-title">Private Preview</div>
   <div class="gate-sub">Enter the access code to continue.</div>
-  <input type="password" class="gate-input" id="codeInput" placeholder="Access code" onkeydown="if(event.key==='Enter')checkCode()">
+  <div style="position:relative">
+    <input type="password" class="gate-input" id="codeInput" placeholder="Access code" onkeydown="if(event.key==='Enter')checkCode()">
+    <button type="button" id="togglePw" onclick="togglePassword()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:13px;color:#b5b0a8;font-family:'DM Sans',sans-serif;font-weight:500;padding:4px">Show</button>
+  </div>
   <button class="gate-btn" onclick="checkCode()">Continue</button>
   <div class="gate-error" id="errorMsg">That code doesn't match. Check your email and try again.</div>
   <div class="gate-note">Questions? Reply to the email that brought you here.</div>
@@ -98,6 +101,14 @@ body {
 <script>
 // Change this to whatever password you want
 const ACCESS_CODE = 'understandingwmantle26';
+
+function togglePassword() {
+  const input = document.getElementById('codeInput');
+  const btn = document.getElementById('togglePw');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? 'Show' : 'Hide';
+}
 
 function checkCode() {
   const input = document.getElementById('codeInput');
