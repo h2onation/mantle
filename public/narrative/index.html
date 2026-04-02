@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantle — Private Preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #faf9f6;
+  color: #1a1816;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+}
+.gate {
+  text-align: center;
+  max-width: 360px;
+}
+.gate-badge {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #4a6b4a;
+  margin-bottom: 24px;
+}
+.gate-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.gate-sub {
+  font-size: 14px;
+  color: #8a8279;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.gate-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #e5e0d8;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 2px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.gate-input:focus { border-color: #b8ccb8; }
+.gate-input.error { border-color: #c87070; }
+.gate-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #4a6b4a;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.gate-btn:hover { background: #3d5a3d; }
+.gate-error {
+  font-size: 13px;
+  color: #c87070;
+  margin-top: 12px;
+  display: none;
+}
+.gate-note {
+  font-size: 11px;
+  color: #b5b0a8;
+  margin-top: 24px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate-badge">Mantle</div>
+  <div class="gate-title">Private Preview</div>
+  <div class="gate-sub">Enter the access code to continue.</div>
+  <input type="password" class="gate-input" id="codeInput" placeholder="Access code" onkeydown="if(event.key==='Enter')checkCode()">
+  <button class="gate-btn" onclick="checkCode()">Continue</button>
+  <div class="gate-error" id="errorMsg">That code doesn't match. Check your email and try again.</div>
+  <div class="gate-note">Questions? Reply to the email that brought you here.</div>
+</div>
+
+<script>
+// Change this to whatever password you want
+const ACCESS_CODE = 'mantle2026';
+
+function checkCode() {
+  const input = document.getElementById('codeInput');
+  const error = document.getElementById('errorMsg');
+  
+  if (input.value.toLowerCase().trim() === ACCESS_CODE) {
+    // Redirect to the intro page
+    window.location.href = 'mantle_intro.html';
+  } else {
+    input.classList.add('error');
+    error.style.display = 'block';
+    setTimeout(() => {
+      input.classList.remove('error');
+      error.style.display = 'none';
+    }, 3000);
+  }
+}
+</script>
+</body>
+</html>

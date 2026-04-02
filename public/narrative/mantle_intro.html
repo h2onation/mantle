@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#faf9f6;--text:#1a1816;--text-body:#3d3833;--text-dim:#8a8279;--text-light:#b5b0a8;--border:#e5e0d8;--sage:#4a6b4a;--sage-bg:#f0f5f0;--sage-border:#b8ccb8;--user-bg:#1a1816;--user-text:#fff}
+body{font-family:'Source Serif 4',Georgia,serif;background:var(--bg);color:var(--text);line-height:1.8;-webkit-font-smoothing:antialiased}
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:60px 32px}
+.hero-badge{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sage);margin-bottom:32px;opacity:0;animation:fadeUp .8s ease forwards .2s}
+.hero-title{font-size:clamp(32px,5.5vw,52px);font-weight:300;line-height:1.25;max-width:660px;margin-bottom:28px;letter-spacing:-.5px;opacity:0;animation:fadeUp .8s ease forwards .4s}
+.hero-title em{font-style:italic;font-weight:400}
+.hero-sub{font-size:17px;color:var(--text-body);max-width:480px;line-height:1.8;opacity:0;animation:fadeUp .8s ease forwards .6s}
+.hero-scroll{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-light);letter-spacing:1px;margin-top:48px;opacity:0;animation:fadeUp .8s ease forwards .8s}
+.hero-scroll .arr{display:block;margin:8px auto 0;font-size:18px;animation:float 2s ease-in-out infinite}
+.scene{max-width:580px;margin:0 auto;padding:60px 28px}
+.scene-label{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--sage);margin-bottom:16px}
+.scene-heading{font-size:22px;font-weight:400;line-height:1.4;margin-bottom:8px}
+.scene-sub{font-size:15px;color:var(--text-dim);margin-bottom:20px;line-height:1.7}
+.divider{max-width:580px;margin:0 auto;height:1px;background:var(--border)}
+.chat-flow{display:flex;flex-direction:column;gap:14px}
+.bubble-row{display:flex;flex-direction:column}
+.bubble-row.user{align-items:flex-end}
+.bubble-row.sage{align-items:flex-start}
+.bubble-name{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;padding:0 4px}
+.bubble-name.sage-name{color:var(--sage)}
+.bubble-name.user-name{color:var(--text-dim)}
+.bubble{padding:16px 20px;border-radius:16px;font-size:15.5px;line-height:1.75;max-width:88%}
+.bubble p{margin-bottom:8px}
+.bubble p:last-child{margin-bottom:0}
+.bubble-user{background:#e8e5df;color:var(--text);border-bottom-right-radius:4px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:400}
+.bubble-sage{background:var(--sage-bg);color:var(--text-body);border:1px solid var(--sage-border);border-bottom-left-radius:4px;font-family:'Source Serif 4',Georgia,serif}
+.chat-gap{text-align:center;padding:24px 0;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-dim);letter-spacing:.3px;display:flex;align-items:center;gap:16px}
+.chat-gap::before,.chat-gap::after{content:'';flex:1;height:1px;background:var(--border)}
+.extraction{display:flex;flex-direction:column;align-items:center;gap:16px;margin:40px 0 24px}
+.extraction-arrow{width:40px;height:40px;border-radius:50%;background:var(--sage-bg);border:1.5px solid var(--sage-border);display:flex;align-items:center;justify-content:center;color:var(--sage);font-size:18px}
+.extraction-label{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--sage);letter-spacing:.5px}
+.thread-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:28px}
+.thread-card-label{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-light);margin-bottom:14px}
+.thread-card-cat{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:#5872a8;background:#eef3f9;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:14px}
+.thread-card-sentence{font-size:18px;font-style:italic;line-height:1.5;margin-bottom:14px}
+.thread-card-body{font-size:14px;color:var(--text-body);line-height:1.8;margin-bottom:14px}
+.thread-card-ask{padding:12px 16px;background:#f7f5f2;border-radius:8px;font-size:13px;line-height:1.7;color:var(--text-body)}
+.tc-ask-row{margin-bottom:4px}
+.tc-ask-row:last-child{margin-bottom:0}
+.tc-icon{margin-right:6px}
+.tc-icon.h{color:#6a9a6a}
+.tc-icon.w{color:#b07050}
+.journey-cards{display:flex;flex-direction:column;gap:10px;margin-top:32px}
+.jcard{display:flex;align-items:center;gap:16px;padding:18px 22px;background:#fff;border:1.5px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:all .15s}
+.jcard:hover{border-color:var(--sage-border);background:var(--sage-bg)}
+.jcard-num{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--sage);background:var(--sage-bg);border:1.5px solid var(--sage-border);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.jcard-body{flex:1}
+.jcard-title{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700}
+.jcard-desc{font-size:13px;color:var(--text-dim);margin-top:2px}
+.jcard-arr{color:var(--text-light);font-size:18px;flex-shrink:0}
+.footer{text-align:center;padding:40px 32px 60px;border-top:1px solid var(--border);max-width:580px;margin:0 auto}
+.footer p{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--text-light);line-height:2}
+
+/* Feature grid */
+.feature-grid{display:flex;flex-direction:column;gap:20px;margin-top:28px}
+.feature-item{display:flex;gap:16px;align-items:flex-start}
+.feature-icon{font-size:20px;margin-top:2px;flex-shrink:0;width:32px;text-align:center}
+.feature-content{flex:1}
+.feature-title{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+.feature-desc{font-size:14px;color:var(--text-dim);line-height:1.7}
+
+/* Scenario tiles */
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px}
+
+/* Why different */
+.why-list{display:flex;flex-direction:column;gap:24px;margin-top:28px}
+.why-item{display:flex;flex-direction:column;gap:4px;padding-left:16px;border-left:2px solid var(--sage-border)}
+.why-title{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.why-desc{font-size:14px;color:var(--text-dim);line-height:1.7}
+.scenario-tile{padding:20px;background:#fff;border:1px solid var(--border);border-radius:10px;transition:all .15s}
+.scenario-tile:hover{border-color:var(--sage-border);background:var(--sage-bg)}
+.scenario-tile-title{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.scenario-tile-desc{font-size:13px;color:var(--text-dim);line-height:1.7}
+
+/* Closer */
+.closer{text-align:center;padding:80px 32px;max-width:580px;margin:0 auto}
+.closer-text{font-size:clamp(24px,4vw,32px);font-weight:300;line-height:1.4;letter-spacing:-.3px;margin-bottom:16px}
+.closer-sub{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--sage);letter-spacing:.3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">Mantle</div>
+  <div class="hero-title">There's a more complete version of you that <em>hasn't been visible yet</em></div>
+  <div class="hero-sub">Mantle helps you find the language, organize the patterns, and share that understanding with yourself and the people who matter.</div>
+  <div class="hero-scroll">Watch it happen<span class="arr">↓</span></div>
+</div>
+
+<div class="scene">
+  <div class="scene-label">Meet Quinn</div>
+  <div class="scene-heading">In a relationship with Riley. They are not currently speaking because a dinner with Riley's mom just went sideways.</div>
+  <div class="scene-sub">Quinn locks themselves in the bedroom and opens Mantle. Riley doesn't know how to navigate.</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">The Conversation</div>
+
+  <div class="chat-flow">
+    <div class="bubble-row user">
+      <div class="bubble-name user-name">Quinn</div>
+      <div class="bubble bubble-user">Riley's mom called while we were driving to the restaurant we'd planned. She invited us to dinner at her place instead. I froze. Riley said "it's just dinner." We barely talked the rest of the night.</div>
+    </div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage">When you say you froze, what was happening inside?</div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">I had a plan. I knew where we were going, how long we'd be there. When that changed it's like the map got erased. I needed time to build a new one.</div>
+    </div>
+
+    <div class="chat-gap">8 exchanges later</div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage">You described something similar when sprint planning changed last month. Is there a pattern here?</div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">Yes. I just never had the words for it.</div>
+    </div>
+
+    <div class="chat-gap">Sage proposes a pattern</div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage"><p>I'd like to reflect something back to you. Across a few of our conversations, I'm seeing the same shape:</p><p><em>"When plans change without warning, I freeze. It looks like resistance. It's actually recalculation.</em></p><p><em>My brain builds a map for what's going to happen. When the plan changes, the map gets erased and I need a few minutes to build a new one. That's all that's happening. But in those few minutes I go still, and the people around me read that as inflexible. 'Why can't you just go with the flow?' Because the flow requires a map and you just erased mine."</em></p><p>Does that resonate? If it does, would you like to add it to your manual?</p></div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">That's exactly it. Yes. Add it.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">What Mantle Built</div>
+  <div class="scene-heading">Quinn feels seen. The pattern resonates. He confirms it to his manual.</div>
+
+  <div class="extraction">
+    <div class="extraction-arrow">↓</div>
+    <div class="extraction-label">Validated by Quinn · Written to manual</div>
+  </div>
+
+  <div class="thread-card">
+    <div class="thread-card-label">New entry</div>
+    <div class="thread-card-cat">Some of my patterns</div>
+    <div class="thread-card-sentence">"When plans change without warning, I freeze. It looks like resistance. It's actually recalculation."</div>
+    <div class="thread-card-body">My brain builds a map for what's going to happen. When the plan changes, the map gets erased and I need a few minutes to build a new one. That's all that's happening. But in those few minutes I go still, and the people around me read that as inflexible. "Why can't you just go with the flow?" Because the flow requires a map and you just erased mine.</div>
+    <div class="thread-card-ask">
+      <div class="tc-ask-row"><span class="tc-icon h">↑</span> Even 10 minutes warning. "Plans might change." That's enough to loosen the map before it breaks.</div>
+      <div class="tc-ask-row"><span class="tc-icon w">↓</span> "It's not a big deal." Dismisses what's actually happening, and the freeze deepens.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">Over Time</div>
+  <div class="scene-heading">More conversations. More patterns. The manual grows.</div>
+  <div class="scene-sub">Quinn talks to Sage about overwhelm after work, sensory overload at parties, the way they show love through research instead of words. Each conversation adds another entry. 18 entries across 5 sections. A guide to how Quinn operates, written entirely in Quinn's voice.</div>
+  <div class="journey-cards">
+    <a class="jcard" href="quinn_manual_v4.html">
+      <div class="jcard-num">→</div>
+      <div class="jcard-body">
+        <div class="jcard-title">Read Quinn's Manual</div>
+        <div class="jcard-desc">18 entries across 5 sections. Includes "ask sage" for readers.</div>
+      </div>
+      <div class="jcard-arr">→</div>
+    </a>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">The Sharing Moment</div>
+  <div class="scene-heading">Quinn shares the pattern they wrote with Mantle with Riley.</div>
+  <div class="scene-sub">Riley reads it. This is the thing Quinn has never been able to explain during a fight, after a fight, or in therapy. But here it is. Clear. In Quinn's words. Written when Quinn had the space to find them.</div>
+  <div class="scene-sub" style="color:var(--text-body);font-style:italic;font-size:17px">"You needed a new map. That's all that was happening."</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">The Other Side</div>
+  <div class="scene-heading">Riley uses Sage to understand Quinn in real time.</div>
+  <div class="scene-sub">Two weeks later. Quinn shuts down after work. Door closed. No words. Riley's chest tightens. Their instinct says follow, ask, fix. But Riley now has access to Quinn's manual through Sage. Instead of knocking, Riley opens Mantle and asks for help navigating the moment.</div>
+
+  <div class="chat-flow">
+    <div class="bubble-row user">
+      <div class="bubble-name user-name">Riley</div>
+      <div class="bubble bubble-user">Quinn just came home and went straight to the bedroom. Door closed. No words. I don't know if I did something wrong or if it was work or what. I feel like I'm about to spiral.</div>
+    </div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage">What happened right before they came home? Had you been texting during the day? Any tension earlier?</div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">No that's the thing. Everything was fine. Normal texts. Then they walk in and it's like I don't exist. My chest is tight and I want to go knock on the door but last time I did that it made everything worse.</div>
+    </div>
+
+    <div class="chat-gap">5 exchanges later</div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage"><p>From what I understand about Quinn, this looks more like recovery than withdrawal. After a long day of being "on," shutting down is how their system resets. It's not about you.</p><p>I know the silence feels like something is wrong. It might help to reframe it: the fact that Quinn can drop the mask around you means you're the safe person. Everyone else gets the performance.</p><p>Does that match what you've seen?</p></div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">Yeah actually it does. They're always more talkative around other people than with me. I thought that meant something bad.</div>
+    </div>
+
+    <div class="bubble-row sage">
+      <div class="bubble-name sage-name">sage</div>
+      <div class="bubble bubble-sage"><p>It might mean the opposite. One thing that could help right now: instead of knocking, try sending a short text. Something like "no rush, I'm here." A text lets Quinn know you care without adding input to a system that's already full.</p><p>Then maybe make dinner, put on some music, and give it an hour. Would that feel doable for you?</p></div>
+    </div>
+
+    <div class="bubble-row user">
+      <div class="bubble bubble-user">I can do that.</div>
+    </div>
+  </div>
+
+  <div class="scene-sub" style="margin-top:32px">Riley sends the text. Makes dinner. Puts on music. An hour later, Quinn comes out and sits next to them on the couch. Neither says anything for a while. Then Quinn says "work was a lot today." That's enough. They're back.</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">Riley Builds Their Own</div>
+  <div class="scene-heading">Riley is dyslexic and highly empathetic. They start talking to Sage too.</div>
+  <div class="scene-sub">Riley's manual captures different patterns: filling silence when someone goes quiet, absorbing other people's emotions, thinking out loud to find the answer, showing love through presence instead of words. 16 entries. A different brain, different friction, same structure.</div>
+  <div class="journey-cards">
+    <a class="jcard" href="riley_manual_v1.html">
+      <div class="jcard-num">→</div>
+      <div class="jcard-body">
+        <div class="jcard-title">Read Riley's Manual</div>
+        <div class="jcard-desc">16 entries across 5 sections. A highly empathetic dyslexic's guide.</div>
+      </div>
+      <div class="jcard-arr">→</div>
+    </a>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="scene">
+  <div class="scene-label">Two Manuals Meet</div>
+  <div class="scene-heading">Riley's manual shows one side. Quinn's shows the other. Mantle sees the full picture.</div>
+  <div class="scene-sub">Individually, each manual explains how one person operates. Together, they reveal something neither person can see alone: the patterns they co-create. Quinn withdraws to process. Riley pursues to feel safe. Each response triggers the other. Neither person is the problem. The interaction between their patterns is.</div>
+  <div class="scene-sub">The shared guide surfaces these loops, shows where they strengthen each other, and suggests how they could navigate the places they get stuck.</div>
+  <div class="journey-cards">
+    <a class="jcard" href="quinn_riley_shared.html">
+      <div class="jcard-num">→</div>
+      <div class="jcard-body">
+        <div class="jcard-title">Read Quinn & Riley's Shared Guide</div>
+        <div class="jcard-desc">Strengths, loops, navigation, and what they're still learning together.</div>
+      </div>
+      <div class="jcard-arr">→</div>
+    </a>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FEATURE RECAP -->
+<div class="scene">
+  <div class="scene-label">What Mantle Does</div>
+  <div class="scene-heading">Everything you just saw, in one place.</div>
+
+  <div class="feature-grid">
+    <div class="feature-item">
+      <div class="feature-icon">💬</div>
+      <div class="feature-content">
+        <div class="feature-title">Talk to Sage</div>
+        <div class="feature-desc">Process a situation. Sage asks questions, surfaces patterns, and helps you find language for things you've always felt.</div>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">📄</div>
+      <div class="feature-content">
+        <div class="feature-title">Build your manual</div>
+        <div class="feature-desc">Patterns accumulate over sessions. You validate every entry. The manual grows as your understanding deepens.</div>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🔗</div>
+      <div class="feature-content">
+        <div class="feature-title">Share what matters</div>
+        <div class="feature-desc">Share a single thread or the full manual. You control what's visible. Private moments stay private unless you choose otherwise.</div>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🗣</div>
+      <div class="feature-content">
+        <div class="feature-title">Readers ask Sage</div>
+        <div class="feature-desc">Someone reading your manual can ask Sage questions. Sage responds using only what you've written and validated. No interpretation.</div>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🤝</div>
+      <div class="feature-content">
+        <div class="feature-title">Two manuals meet</div>
+        <div class="feature-desc">When two people share, Mantle surfaces the loops between them: where they strengthen each other, where they get stuck, and how they could navigate.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- WHY THIS IS DIFFERENT -->
+<div class="scene">
+  <div class="scene-label">Why This Is Different</div>
+  <div class="scene-heading">Built differently to work differently.</div>
+
+  <div class="why-list">
+    <div class="why-item">
+      <div class="why-title">Discovery through conversation, not a test</div>
+      <div class="why-desc">You don't answer 50 questions and get a label. You process real situations and discover patterns you didn't know you had.</div>
+    </div>
+    <div class="why-item">
+      <div class="why-title">It remembers everything</div>
+      <div class="why-desc">Sage holds every conversation across months. A freeze in March connects to a shutdown in January. No human can run that query across their own history.</div>
+    </div>
+    <div class="why-item">
+      <div class="why-title">It connects patterns across your life</div>
+      <div class="why-desc">A work conflict, a fight with your partner, and anxiety before a family dinner might all stem from the same pattern. You experience them as separate. Sage sees the thread.</div>
+    </div>
+    <div class="why-item">
+      <div class="why-title">It translates for someone else</div>
+      <div class="why-desc">Every other tool keeps the insight inside you. Mantle produces a document someone else can read and understand without you in the room.</div>
+    </div>
+    <div class="why-item">
+      <div class="why-title">Two people's understanding can meet</div>
+      <div class="why-desc">Two journals can't talk to each other. Two therapy sessions can't cross-reference. Two manuals can. The system sees the loops between people that neither can see alone.</div>
+    </div>
+    <div class="why-item">
+      <div class="why-title">It compounds</div>
+      <div class="why-desc">Session 1 is helpful. Session 10 is transformative. Each conversation benefits from everything before it. The understanding deepens with use.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SCENARIOS -->
+<div class="scene">
+  <div class="scene-label">Where Else This Goes</div>
+  <div class="scene-heading">Here are other situations where Mantle can help. Quinn and Riley are just one story.</div>
+
+  <div class="scenario-grid">
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">Parent and adult child</div>
+      <div class="scenario-tile-desc">Bridge decades of misunderstanding with a document that explains what was never easy to say out loud.</div>
+    </div>
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">Workplace</div>
+      <div class="scenario-tile-desc">Share specific threads with a manager so the environment changes instead of you.</div>
+    </div>
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">Self-discovery</div>
+      <div class="scenario-tile-desc">No diagnosis needed. See your patterns named for the first time and understand why you do what you do.</div>
+    </div>
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">Therapy head start</div>
+      <div class="scenario-tile-desc">Bring your manual to your first session and skip the six weeks of building context.</div>
+    </div>
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">New relationship</div>
+      <div class="scenario-tile-desc">Share a few threads early as a way of saying: I want you to understand me and I'm willing to be honest.</div>
+    </div>
+    <div class="scenario-tile">
+      <div class="scenario-tile-title">Life transition</div>
+      <div class="scenario-tile-desc">Moving, changing careers, becoming a parent. Understand which of your patterns will help and which ones will be tested.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- CLOSER -->
+<div class="closer">
+  <div class="closer-text">The understanding was always there.<br>It just didn't have a way out.</div>
+  <div class="closer-sub">Mantle gives it one.</div>
+</div>
+
+<div class="footer">
+  <p>Mantle · The Good Riff, Inc.</p>
+  <p>A self-understanding platform. Not a clinical tool.</p>
+</div>
+
+</body>
+</html>

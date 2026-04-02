@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quinn & Riley — Shared Manual</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #fcfbf9;
+  --border: #eae6df;
+  --text: #1a1816;
+  --text-body: #3d3833;
+  --text-dim: #9a9590;
+  --text-light: #b5b0a8;
+
+  --quinn: #5872a8;
+  --quinn-bg: #eef3f9;
+  --riley: #c4922e;
+  --riley-bg: #fdf8ec;
+  --shared: #6a9a6a;
+  --shared-bg: #eff6ef;
+  --loop: #b07050;
+  --loop-bg: #fdf3ea;
+  --grow: #888;
+  --grow-bg: #f4f3f1;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.8;
+  padding: 48px 24px 72px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 700px; margin: 0 auto; }
+
+/* Back nav */
+.back-nav {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 200;
+  transition: all 0.15s;
+}
+.back-nav:hover { color: var(--text); border-color: #ccc8c0; background: #f0ede8; }
+.back-arrow { font-size: 15px; }
+
+/* Header */
+.manual-header { margin-bottom: 40px; }
+.manual-owner {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.manual-subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+.manual-intro {
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--text-body);
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Filter */
+.filter-section { margin: 36px 0 44px; }
+.filter-intro {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.filter-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding: 12px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.filter-bar.scrolled { border-bottom-color: var(--border); }
+
+.chip {
+  font-family: 'DM Sans', sans-serif;
+  padding: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.chip-name { font-size: 11px; font-weight: 600; line-height: 1.3; }
+.chip-count { font-size: 10px; font-weight: 500; opacity: 0.6; }
+.chip:hover { border-color: #ccc8c0; background: #f7f5f2; }
+.chip.active { background: #f0ede8; font-weight: 600; }
+.chip[data-cat="1"].active { border-color: var(--shared); color: var(--shared); }
+.chip[data-cat="2"].active { border-color: var(--shared); color: var(--shared); }
+.chip[data-cat="3"].active { border-color: var(--loop); color: var(--loop); }
+.chip[data-cat="4"].active { border-color: var(--quinn); color: var(--quinn); }
+.chip[data-cat="5"].active { border-color: var(--grow); color: var(--grow); }
+
+.chip-all {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-light);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.chip-all:hover { border-color: #ccc8c0; background: #f7f5f2; }
+.chip-all.active { border-color: var(--text); color: var(--text); background: #f0ede8; }
+
+/* Sections */
+.category { margin-bottom: 56px; }
+.category-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.category-label .cat-line { flex: 1; height: 1px; background: var(--border); }
+
+/* Thread */
+.thread { margin-bottom: 40px; }
+.thread:last-child { margin-bottom: 0; }
+.thread-divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+.thread-sentence {
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.55;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+.thread-body {
+  font-size: 15.5px;
+  color: var(--text-body);
+  line-height: 1.9;
+}
+.thread-body p { margin-bottom: 12px; }
+.thread-body p:last-child { margin-bottom: 0; }
+
+/* Two-voice blocks */
+.voice-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+.voice-block {
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.voice-block .voice-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.voice-quinn {
+  background: var(--quinn-bg);
+  border-left: 3px solid var(--quinn);
+}
+.voice-quinn .voice-name { color: var(--quinn); }
+.voice-riley {
+  background: var(--riley-bg);
+  border-left: 3px solid var(--riley);
+}
+.voice-riley .voice-name { color: var(--riley); }
+
+/* Sage insight */
+.sage-insight {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: var(--shared-bg);
+  border-left: 3px solid var(--shared);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-body);
+}
+.sage-insight .sage-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--shared);
+  margin-bottom: 6px;
+}
+
+/* Navigation suggestion */
+.nav-suggestion {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: #f7f5f2;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-body);
+}
+.nav-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--shared);
+  margin-bottom: 6px;
+}
+.nav-step {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.nav-step:last-child { margin-bottom: 0; }
+.nav-num {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--shared);
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 18px;
+}
+
+/* Wired-different comparison */
+.wired-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.wired-card {
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.wired-card .wired-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.wired-card.quinn-card {
+  background: var(--quinn-bg);
+  border-top: 2px solid var(--quinn);
+}
+.wired-card.quinn-card .wired-name { color: var(--quinn); }
+.wired-card.riley-card {
+  background: var(--riley-bg);
+  border-top: 2px solid var(--riley);
+}
+.wired-card.riley-card .wired-name { color: var(--riley); }
+
+.wired-row-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+/* Footer */
+.manual-footer {
+  text-align: center;
+  padding: 40px 0 0;
+  border-top: 1px solid var(--border);
+}
+.manual-footer p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--text-light);
+  line-height: 2;
+}
+.sage-generated {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--text-light);
+  font-style: italic;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+<a href="mantle_intro.html" class="back-nav"><span class="back-arrow">←</span> Back to story</a>
+<div class="container">
+
+<div class="manual-header">
+  <div class="manual-owner">Quinn & Riley</div>
+  <div class="manual-subtitle">A shared operating guide</div>
+  <div class="manual-intro">
+    This guide was generated by Sage from both of your individual manuals. Think of it as a starting point for a conversation, not the final word. Sage drew connections between patterns you've each already validated and organized them into something you can read together. Some of it will feel exactly right. Some of it you'll want to edit, rewrite, or remove entirely. It's your document now. You can also use Sage to help refine any section, add what's missing, or work through something that came up while reading.
+  </div>
+  <div class="sage-generated">Generated by Sage from Quinn's manual (18 entries) and Riley's manual (16 entries)</div>
+</div>
+
+<div class="filter-section">
+  <div class="filter-intro">Select a section to explore how you operate together.</div>
+  <div class="filter-bar" id="filterBar">
+    <button class="chip" data-cat="1" onclick="filterCat('1', this)"><span class="chip-name">Our strengths</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="2" onclick="filterCat('2', this)"><span class="chip-name">How we could navigate</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="3" onclick="filterCat('3', this)"><span class="chip-name">Our patterns</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="4" onclick="filterCat('4', this)"><span class="chip-name">How we're wired differently</span><span class="chip-count">4 entries</span></button>
+    <button class="chip" data-cat="5" onclick="filterCat('5', this)"><span class="chip-name">Still learning</span><span class="chip-count">2 entries</span></button>
+    <button class="chip-all active" onclick="filterAll(this)">All</button>
+  </div>
+</div>
+
+<!-- 1. OUR COMPLEMENTARY STRENGTHS -->
+<div class="category" data-cat-section="1">
+  <div class="category-label" style="color:var(--shared)">Our complementary strengths <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Riley sees the overload coming before Quinn knows it's there. Quinn gives Riley the honest feedback nobody else will."</div>
+    <div class="thread-body">
+      <p>Riley's empathy picks up Quinn's approaching shutdown 30 minutes before Quinn can name it. A shift in posture, shorter responses, a jaw tightening. Riley reads it and can intervene quietly: "we can leave whenever." Quinn doesn't have to explain. They don't have to ask. Someone already saw.</p>
+      <p>In the other direction, Quinn's directness gives Riley something rare: a person who will never perform agreement. When Riley asks "what do you think?" and Quinn says "that won't work," Riley knows it's real. No hedging. No social politeness. In a world where Riley's empathy makes them absorb everyone else's feelings, Quinn's honesty is a fixed point they can trust.</p>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Quinn's precision and Riley's intuition solve different halves of the same problem."</div>
+    <div class="thread-body">
+      <p>When they're making a decision together, Riley leaps to the answer and Quinn maps the path to get there. Riley says "I think we should do this" and can't explain why. Quinn asks the questions that turn the intuition into a plan. Neither is complete without the other. Riley without Quinn has instincts with no structure. Quinn without Riley has structure with no starting point.</p>
+      <p>Their best decisions happen when Riley talks it out and Quinn listens for the pattern underneath the ramble. The moment Quinn says "I think what you're saying is..." and names it precisely, Riley lights up. That's the collaboration working.</p>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Quinn's unmasking is Riley's evidence of trust. Riley's attentiveness is Quinn's evidence of safety."</div>
+    <div class="thread-body">
+      <p>Quinn performs for the world and stops performing with Riley. That silence, the dropping of the mask, is how Quinn says "you're safe." Riley, who reads every micro-signal in a room, recognizes this for what it is. They don't need Quinn to be animated. They can feel the difference between shutdown and rest.</p>
+      <p>Riley's close attention, the noticing of small changes, the blanket without asking, the "we can leave whenever," tells Quinn something their nervous system rarely hears: someone is paying attention and I don't have to ask for it. For a person who struggles to name their needs in real time, having a partner who reads them without words is profound.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 2. HOW WE COULD NAVIGATE -->
+<div class="category" data-cat-section="2">
+  <div class="category-label" style="color:var(--shared)">How we could navigate <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"When Quinn goes quiet and Riley wants to talk"</div>
+    <div class="thread-body">
+      <p>This is your most frequent collision. Quinn's system demands silence to process. Riley's system demands connection to feel safe. Both responses are automatic. Neither is wrong. But each one triggers the other.</p>
+    </div>
+    <div class="voice-pair">
+      <div class="voice-block voice-quinn">
+        <div class="voice-name">Quinn's experience</div>
+        Input is maxed. Every question adds to the overload. I need the noise to stop so I can find what I actually think. When Riley follows me and asks what's wrong, I don't have an answer and the pressure to produce one makes the shutdown worse.
+      </div>
+      <div class="voice-block voice-riley">
+        <div class="voice-name">Riley's experience</div>
+        The silence feels dangerous. My body reads it as rejection even when my brain knows better. I fill the space because the quiet is unbearable. Every minute without a signal, my anxiety builds. I'm not pressuring. I'm drowning.
+      </div>
+    </div>
+    <div class="nav-suggestion">
+      <div class="nav-label">A way through</div>
+      <div class="nav-step"><span class="nav-num">1.</span> Quinn gives a signal before going quiet. One sentence: "I need a minute, it's not about you." This costs Quinn very little and gives Riley's nervous system the anchor it needs.</div>
+      <div class="nav-step"><span class="nav-num">2.</span> Riley sends one text: "I'm here when you're ready." Then puts on music, starts cooking, or does something with their hands. The body needs to be busy or the waiting becomes unbearable.</div>
+      <div class="nav-step"><span class="nav-num">3.</span> Quinn comes back when ready. An hour is typical. When Quinn re-engages, Riley doesn't ask "what was that about?" Quinn shares what they found in the silence on their own terms.</div>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Quinn has written: "The person who waits gets the most thoughtful version of me." Riley has written: "A small signal before going quiet saves me hours of spinning." The solution is already in your manuals. The signal is the bridge between Quinn's need for silence and Riley's need for safety.
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"When Riley writes a long message and Quinn responds with three words"</div>
+    <div class="thread-body">
+      <p>Riley expresses care through words. Quinn expresses care through action. When these two languages collide over text, both people feel unmet.</p>
+    </div>
+    <div class="voice-pair">
+      <div class="voice-block voice-riley">
+        <div class="voice-name">Riley's experience</div>
+        I wrote three paragraphs about how I've been feeling. It took me an hour because writing is hard for me, which means the effort was enormous. Quinn responded "yeah I hear you." My heart sank. Did they even read it?
+      </div>
+      <div class="voice-block voice-quinn">
+        <div class="voice-name">Quinn's experience</div>
+        I read every word. I felt it. But I don't know how to match Riley's emotional language in writing. "Yeah I hear you" was my honest response. I heard them. I didn't have more words. I would have said it better in person but the conversation was happening over text and that's not my medium.
+      </div>
+    </div>
+    <div class="nav-suggestion">
+      <div class="nav-label">A way through</div>
+      <div class="nav-step"><span class="nav-num">1.</span> When Riley needs to share something emotional, call instead of text. Riley's words land better spoken. Quinn receives better in real time than reading.</div>
+      <div class="nav-step"><span class="nav-num">2.</span> If it has to be text, Riley leads with the most important thing in the first sentence. Quinn's processing is more likely to catch the headline than the full essay.</div>
+      <div class="nav-step"><span class="nav-num">3.</span> Quinn, when you get a long message and can't match it: "I read this and I want to talk about it tonight" is better than "yeah I hear you." It signals receipt without requiring real-time emotional output.</div>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Riley has written: "I called them 10 minutes later and talked for an hour. That's where my real response lived." Quinn has written: "When I do arrive at what I feel, it's unusually precise." You're both capable of deep emotional exchange. The channel matters more than the willingness.
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"When plans change and Quinn freezes while Riley reads the freeze as something worse"</div>
+    <div class="thread-body">
+      <p>An unexpected change hits. Quinn's internal map gets erased and they go still. Riley, whose empathy is always scanning, reads the freeze instantly but interprets it through their own lens: something is wrong, I need to fix this, are they upset with me?</p>
+    </div>
+    <div class="voice-pair">
+      <div class="voice-block voice-quinn">
+        <div class="voice-name">Quinn's experience</div>
+        The plan changed. I need a few minutes to recalculate. I'm not upset. I'm not angry. I'm rebuilding the map. But I can't explain that while I'm building it. The freeze IS the process.
+      </div>
+      <div class="voice-block voice-riley">
+        <div class="voice-name">Riley's experience</div>
+        I can feel Quinn lock up. Their shoulders tighten, their face goes flat. My body registers it as a threat signal. I want to make it better immediately. "Are you okay? Do you want to just skip it? What do you need?" I'm asking because I care. But each question is another input on a system that's already overloaded.
+      </div>
+    </div>
+    <div class="nav-suggestion">
+      <div class="nav-label">A way through</div>
+      <div class="nav-step"><span class="nav-num">1.</span> Riley: name what you see without asking a question. "I can see you're recalculating" instead of "are you okay?" Naming it shows Quinn they're understood. Questions demand output.</div>
+      <div class="nav-step"><span class="nav-num">2.</span> Quinn: if you can, a physical signal. Hand squeeze. Small nod. Anything that says "I'm here, I'm just processing" without requiring words.</div>
+      <div class="nav-step"><span class="nav-num">3.</span> Both: give it 10 minutes before doing anything else. Quinn's recalculation is fast when it's not interrupted. Riley's anxiety peaks and then falls if there's a signal that the freeze isn't about them.</div>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Riley has written: "I could feel Quinn starting to fade 30 minutes before they said anything. I leaned over and said 'we can leave whenever.'" You've already done this well once. The Feb 2 dinner was the version without the protocol. The Jan 25 dinner with friends was the version with it. You know the difference.
+    </div>
+  </div>
+</div>
+
+<!-- 3. OUR PATTERNS -->
+<div class="category" data-cat-section="3">
+  <div class="category-label" style="color:var(--loop)">Our patterns <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"The pursue-withdraw loop"</div>
+    <div class="thread-body">
+      <p>Quinn withdraws to process. Riley pursues to feel safe. Quinn's withdrawal triggers Riley's pursuit. Riley's pursuit deepens Quinn's withdrawal. The loop can run for hours or days. Neither person is the cause. The interaction between their patterns is.</p>
+      <p>This is the pattern underneath most of your friction. The content changes (chores, plans, a comment at dinner) but the shape is the same: one person goes inward, the other goes outward, and each response triggers the other.</p>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Quinn has described this loop in 3 separate entries. Riley has described it in 2. Both of you can name it. The gap isn't awareness. It's interruption. You see the loop after it runs. The work is catching it while it's starting.
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"The 'I'm fine' / 'you're not fine' standoff"</div>
+    <div class="thread-body">
+      <p>Quinn says "I'm fine" and means "I'm processing." Riley hears "I'm fine" and their body screams "that's not true, I can feel it." Riley is technically right. Quinn isn't "fine" in the way most people use the word. But Quinn isn't lying either. They're using "fine" as a placeholder for "I don't have language yet."</p>
+      <p>The standoff happens because Riley's empathy detects the emotion Quinn hasn't labeled, and Riley's instinct is to name it. But naming it for Quinn can feel like being told what you feel before you've figured it out yourself.</p>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Quinn has written: "The delay is the cost. The clarity is the payoff." Riley has written: "Trust that I'm picking up something real." You're both right. Quinn IS feeling something. Riley IS detecting it accurately. The conflict isn't about who's right. It's about timing. Riley reads it now. Quinn names it later. The bridge is Riley saying "I can feel something's happening. Take your time" instead of "you're not fine."
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"The solving vs listening collision"</div>
+    <div class="thread-body">
+      <p>Riley shares something they're struggling with. Quinn immediately generates solutions. Riley feels managed, not loved. Quinn feels confused because the solution was an act of care.</p>
+      <p>Meanwhile, when Quinn is struggling, Riley asks 5 follow-up questions. Quinn feels interrogated. Riley feels like they're showing interest.</p>
+      <p>Both are doing their version of "I care." Both are landing as the opposite.</p>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Quinn has written: "Researching your problem for hours is how my brain says I love you." Riley has written: "I ask questions because I care, not because I'm interrogating." You're both showing care in your native language. The other person is receiving it in theirs. The gap isn't intent. It's translation.
+    </div>
+  </div>
+</div>
+
+<!-- 4. HOW WE'RE WIRED DIFFERENTLY -->
+<div class="category" data-cat-section="4">
+  <div class="category-label" style="color:var(--quinn)">How we're wired differently <span class="cat-line"></span></div>
+
+  <div class="wired-row-label">Processing</div>
+  <div class="wired-compare">
+    <div class="wired-card quinn-card">
+      <div class="wired-name">Quinn</div>
+      Processes internally. Needs silence to think. Arrives at clarity slowly but precisely. "I don't know yet" is the honest answer, not avoidance.
+    </div>
+    <div class="wired-card riley-card">
+      <div class="wired-name">Riley</div>
+      Processes externally. Needs to talk to think. Arrives at clarity through rambling and contradiction. "I don't know what I think until I hear myself say it."
+    </div>
+  </div>
+
+  <div class="wired-row-label">Communication</div>
+  <div class="wired-compare">
+    <div class="wired-card quinn-card">
+      <div class="wired-name">Quinn</div>
+      Direct. Literal. No subtext. Strong in writing, weaker in real-time emotional language. Short messages mean complete thoughts, not disinterest.
+    </div>
+    <div class="wired-card riley-card">
+      <div class="wired-name">Riley</div>
+      Reads tone and body before words. Strong verbally, struggles with writing. Short texts mean low bandwidth, not low interest. Will always prefer a call.
+    </div>
+  </div>
+
+  <div class="wired-row-label">Sensory</div>
+  <div class="wired-compare">
+    <div class="wired-card quinn-card">
+      <div class="wired-name">Quinn</div>
+      Sound and light sensitivity. Can't filter competing inputs. Groups are draining. Quiet environments are infrastructure, not preference.
+    </div>
+    <div class="wired-card riley-card">
+      <div class="wired-name">Riley</div>
+      Emotional sensitivity. Absorbs others' feelings involuntarily. Crowds drain through empathy overload, not sensory overload. Needs to sort "is this mine?" at the end of the day.
+    </div>
+  </div>
+
+  <div class="wired-row-label">Showing care</div>
+  <div class="wired-compare">
+    <div class="wired-card quinn-card">
+      <div class="wired-name">Quinn</div>
+      Solves problems. Remembers details. Shows up with precision. Love looks like a researched solution or the exact thing you mentioned once. Unmasking is the ultimate act of trust.
+    </div>
+    <div class="wired-card riley-card">
+      <div class="wired-name">Riley</div>
+      Shows up physically. Notices everything. Love looks like driving an hour to bring you soup, or sitting on the floor next to you in silence. Asks questions to stay close.
+    </div>
+  </div>
+</div>
+
+<!-- 5. WHAT WE'RE STILL LEARNING -->
+<div class="category" data-cat-section="5">
+  <div class="category-label" style="color:var(--grow)">What we're still learning <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"How to interrupt the loop in real time, not just name it afterward"</div>
+    <div class="thread-body">
+      <p>You can both describe the pursue-withdraw pattern clearly. Quinn has written about it. Riley has written about it. Sage has surfaced it multiple times. Awareness isn't the gap. Interruption is.</p>
+      <p>The loop starts in the body before it reaches the brain. Quinn's shoulders tighten. Riley's chest constricts. By the time either of you is thinking about it consciously, the pattern is already running. The next edge is catching the body signal, not the thought. Quinn noticing "my shoulders just tightened, I'm about to go inward." Riley noticing "my chest just constricted, I'm about to pursue."</p>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      This is the frontier for both of you. The pattern is fully mapped. The protocols are clear. What's left is the half-second between the trigger and the response. That's where change lives.
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"How to receive care in the other person's language without needing it translated first"</div>
+    <div class="thread-body">
+      <p>Quinn shows love through solutions. Riley shows love through presence. Both of you understand this intellectually. But in the moment, Quinn still wishes Riley would solve instead of sit, and Riley still wishes Quinn would hold instead of research. Knowing your partner's language and feeling loved by it are two different things.</p>
+      <p>The growth edge isn't learning to show care differently. It's learning to receive care in the form it arrives. Quinn letting Riley's silent presence land as love. Riley letting Quinn's researched solution land as devotion. Not because it's your language. Because you've learned to hear theirs.</p>
+    </div>
+    <div class="sage-insight">
+      <div class="sage-label">What Sage sees</div>
+      Quinn wrote: "When Alex puts a blanket on me without asking, that's one of the kindest things anyone has ever done." Riley wrote: "I sat on the floor next to them for 45 minutes. Later they said it was the most helpful thing anyone had done in months." You're already receiving each other's language. It happens in the quiet moments. The work is trusting it in the loud ones.
+    </div>
+  </div>
+</div>
+
+<div class="manual-footer">
+  <p>Quinn & Riley's Shared Operating Guide · Generated by Sage</p>
+  <p>From Quinn's manual (18 entries) and Riley's manual (16 entries)</p>
+  <p>This guide surfaces patterns from both manuals. It is not a clinical assessment or relationship evaluation.</p>
+</div>
+
+</div>
+
+<script>
+function filterAll(btn) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.chip-all').forEach(c => c.classList.add('active'));
+  document.querySelectorAll('.category').forEach(s => s.style.display = 'block');
+}
+function filterCat(cat, btn) {
+  document.querySelectorAll('.chip, .chip-all').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.category').forEach(s => {
+    s.style.display = s.getAttribute('data-cat-section') === cat ? 'block' : 'none';
+  });
+}
+window.addEventListener('scroll', () => {
+  const bar = document.getElementById('filterBar');
+  bar.classList.toggle('scrolled', window.scrollY > 200);
+});
+</script>
+</body>
+</html>

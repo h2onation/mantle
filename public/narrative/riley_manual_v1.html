@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riley's Manual</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #fcfbf9;
+  --surface: #ffffff;
+  --border: #eae6df;
+  --text: #1a1816;
+  --text-body: #3d3833;
+  --text-dim: #9a9590;
+  --text-light: #b5b0a8;
+
+  --c1: #5872a8;
+  --c2: #6a9a6a;
+  --c3: #b07050;
+  --c4: #c4922e;
+  --c5: #888;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.8;
+  padding: 48px 24px 72px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 640px; margin: 0 auto; }
+
+/* Back nav */
+.back-nav {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 200;
+  transition: all 0.15s;
+}
+.back-nav:hover { color: var(--text); border-color: #ccc8c0; background: #f0ede8; }
+.back-arrow { font-size: 15px; }
+
+.manual-header { margin-bottom: 40px; }
+.manual-owner {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.manual-subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+.manual-intro {
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--text-body);
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-section { margin: 36px 0 44px; }
+.filter-intro {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.filter-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding: 12px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.filter-bar.scrolled { border-bottom-color: var(--border); }
+
+.chip {
+  font-family: 'DM Sans', sans-serif;
+  padding: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.chip-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+.chip-count { font-size: 10px; font-weight: 500; opacity: 0.6; }
+.chip:hover { border-color: #ccc8c0; background: #f7f5f2; }
+.chip.active { background: #f0ede8; font-weight: 600; }
+.chip[data-cat="1"].active { border-color: var(--c1); color: var(--c1); }
+.chip[data-cat="2"].active { border-color: var(--c2); color: var(--c2); }
+.chip[data-cat="3"].active { border-color: var(--c3); color: var(--c3); }
+.chip[data-cat="4"].active { border-color: var(--c4); color: var(--c4); }
+.chip[data-cat="5"].active { border-color: var(--c5); color: var(--c5); }
+
+.chip-all {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-light);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.chip-all:hover { border-color: #ccc8c0; background: #f7f5f2; }
+.chip-all.active { border-color: var(--text); color: var(--text); background: #f0ede8; }
+
+.category { margin-bottom: 56px; }
+.category-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.category-label .cat-line { flex: 1; height: 1px; background: var(--border); }
+.cat-label-1 { color: var(--c1); }
+.cat-label-2 { color: var(--c2); }
+.cat-label-3 { color: var(--c3); }
+.cat-label-4 { color: var(--c4); }
+.cat-label-5 { color: var(--c5); }
+
+.thread { margin-bottom: 40px; }
+.thread:last-child { margin-bottom: 0; }
+
+.thread-sentence {
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.55;
+  margin-bottom: 14px;
+  color: var(--text);
+  letter-spacing: -0.1px;
+}
+.thread-body {
+  font-size: 15.5px;
+  color: var(--text-body);
+  line-height: 1.9;
+}
+.thread-body p { margin-bottom: 12px; }
+.thread-body p:last-child { margin-bottom: 0; }
+
+.thread-ask {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #f7f5f2;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-body);
+}
+.ask-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.ask-row:last-child { margin-bottom: 0; }
+.ask-icon { font-size: 13px; margin-top: 2px; flex-shrink: 0; width: 20px; text-align: center; }
+.ask-icon.helps { color: var(--c2); }
+.ask-icon.harder { color: var(--c3); }
+
+.moments-wrap { margin-top: 16px; }
+.moments-toggle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+}
+.moments-toggle:hover { color: var(--text-dim); }
+.moments-toggle .arrow { font-size: 10px; transition: transform 0.2s; display: inline-block; }
+.moments-toggle.open .arrow { transform: rotate(90deg); }
+
+.moments-list {
+  display: none;
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: #faf8f5;
+  border-left: 2px solid var(--border);
+  border-radius: 0 6px 6px 0;
+}
+.moments-list.visible { display: block; }
+.moments-private {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+.moment-item {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edeae6;
+}
+.moment-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.moment-date { font-family: 'DM Sans', sans-serif; font-weight: 600; color: #7a756e; font-size: 12px; }
+
+.thread-divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+.manual-footer { text-align: center; padding: 40px 0 0; border-top: 1px solid var(--border); }
+.manual-footer p { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text-light); line-height: 2; }
+</style>
+</head>
+<body>
+<a href="mantle_intro.html" class="back-nav"><span class="back-arrow">←</span> Back to story</a>
+<div class="container">
+
+<div class="manual-header">
+  <div class="manual-owner">Riley's Manual</div>
+  <div class="manual-subtitle">A guide to how I process, for the people who matter</div>
+  <div class="manual-intro">
+    I feel everything. I think out loud. I show love by showing up. I've been dyslexic my whole life, and for a long time that just meant "bad at school." It took me a while to see that my brain isn't broken, it just runs different software. I built this because the people closest to me deserve to understand what's actually happening when I do the things that confuse them. And because I wanted to see it clearly myself. This is what I know so far.
+  </div>
+</div>
+
+<div class="filter-section">
+  <div class="filter-intro">Select a section to see different parts of how I operate.</div>
+  <div class="filter-bar" id="filterBar">
+    <button class="chip" data-cat="1" onclick="filterCat('1', this)"><span class="chip-name">Some of my patterns</span><span class="chip-count">4 entries</span></button>
+    <button class="chip" data-cat="2" onclick="filterCat('2', this)"><span class="chip-name">What energizes me</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="3" onclick="filterCat('3', this)"><span class="chip-name">What drains me</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="4" onclick="filterCat('4', this)"><span class="chip-name">How I show care</span><span class="chip-count">3 entries</span></button>
+    <button class="chip" data-cat="5" onclick="filterCat('5', this)"><span class="chip-name">Still figuring out</span><span class="chip-count">3 entries</span></button>
+    <button class="chip-all active" onclick="filterAll(this)">All</button>
+  </div>
+</div>
+
+<!-- 1. SOME OF MY PATTERNS -->
+<div class="category" data-cat-section="1">
+  <div class="category-label cat-label-1">Some of my patterns <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I read the room before I read the words. Tone, posture, and eye contact tell me everything. Sometimes more than the person intended."</div>
+    <div class="thread-body">
+      <p>I pick up on shifts in energy that most people miss. A slight change in someone's breathing, a jaw tightening, a pause that's half a second too long. My body registers it before my conscious mind does. This makes me a good friend. It also makes me exhausting to live with because I'm reacting to signals the other person doesn't know they're sending.</p>
+      <p>With Quinn, I can feel when they're approaching overload before they know it themselves. The problem is that I respond to the signal I'm reading instead of what they're actually telling me. I'm solving for what I sense, not what they've said.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Trust that I'm picking up something real, even if you can't name it yet. "I don't know what's happening but you might be right" goes a long way.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> "I'm fine, you're imagining things." I'm not imagining it. My body already registered the shift. Denying it makes me doubt my own perception.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Jan 25</span> — At dinner with friends, I could feel Quinn starting to fade 30 minutes before they said anything. Their shoulders tightened, their responses got shorter. I leaned over and said "we can leave whenever." They looked relieved. Later said they didn't know I'd noticed.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"When someone goes quiet, I fill the silence. It's not pressure. It's panic."</div>
+    <div class="thread-body">
+      <p>Silence feels dangerous to me. Not rationally. Somewhere in my body. When Quinn goes still, my brain immediately starts running: what did I do? Are they upset? Did I miss something? The fastest way to resolve that feeling is to talk. Ask questions. Fill the space. Get a signal back.</p>
+      <p>I know now that Quinn's silence isn't about me. But knowing it doesn't stop my body from reacting like it is. I'm working on sitting in the quiet. It's one of the hardest things I do.</p>
+      <p>The other side of this: nobody in Quinn's life monitors their wellbeing as closely as I do. The same attentiveness that makes me fill silence is what makes me the first person to notice when something is actually wrong. My radar is always on. That's a cost for me and a gift for the people I love.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> A small signal before going quiet. "I need a minute, it's not about you." That one sentence saves me hours of spinning.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> Going silent without any signal and then being frustrated that I'm asking what's wrong.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 15</span> — Quinn went to the bedroom after we argued about chores. I followed. Asked if they were okay three times. They froze completely. I made it worse. If I'd just texted "I'm here when you're ready" and watched TV, we'd have talked that night instead of two days later.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I process by talking. I don't know what I think until I hear myself say it."</div>
+    <div class="thread-body">
+      <p>Writing is hard for me. Not the ideas. The mechanics. Typing takes twice as long, I second-guess every word, and by the time I've written a paragraph I've lost the thread I started with. But put me in a conversation and the ideas flow. I think out loud. I circle, I contradict myself, I land somewhere I didn't expect.</p>
+      <p>This can be a lot for Quinn. They need to process internally first. I need to process externally. When we're both trying to figure something out at the same time, I'm talking and they're shutting down and we're both frustrated because we're using opposite systems.</p>
+      <p>But when someone gives me the space to think out loud, I land on ideas that surprise both of us. Some of the best decisions Quinn and I have made came from me rambling for 10 minutes and then suddenly saying the thing that changed everything. The mess is the method.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Let me ramble without holding me to every word. I'm finding my way to the point, not making my final argument.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> "You just said the opposite of what you said two minutes ago." I know. That's how the process works.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 5</span> — Trying to decide about the apartment lease. I talked in circles for 20 minutes. Quinn got frustrated and said "what do you actually want?" I didn't know yet. That was the whole point of talking. I needed the conversation to figure it out.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I avoid writing whenever I can. It's not laziness. Every sentence costs me three times what it costs you."</div>
+    <div class="thread-body">
+      <p>My texts are short. My emails take forever. I'll call instead of responding to a long message. People interpret this as not caring enough to respond properly. The truth is the opposite. Writing requires so much effort that by the time I've typed a paragraph, the emotional charge behind it has drained. The message arrives flat. The feeling was anything but.</p>
+      <p>Quinn communicates beautifully in writing. Precise, clear, exactly the right words. I can't do that. But put me in a room and I'll say something that makes you feel understood in a way no email ever could. My words land differently when they're spoken. That's where my communication lives.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Call me. Or let me voice-note you. I'll say more in 30 seconds of talking than I can write in 30 minutes.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> Long text messages that expect a long text back. I'll either not respond or send something that sounds cold because I ran out of bandwidth mid-sentence.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 12</span> — Quinn sent a long thoughtful text about how they'd been feeling about us. I read it, felt everything, and responded "yeah I hear you." Quinn was hurt. I wasn't dismissing them. I just couldn't match their words with my typing. I called them 10 minutes later and talked for an hour. That's where my real response lived.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. WHAT ENERGIZES ME -->
+<div class="category" data-cat-section="2">
+  <div class="category-label cat-label-2">What energizes me <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Put me in front of a problem that needs creative thinking and I'll run for hours. My brain doesn't do step-by-step. It does leaps."</div>
+    <div class="thread-body">
+      <p>I see the whole shape before I see the pieces. Where most people work through a problem linearly, my brain throws connections across the room. This looks scattered from the outside. From the inside it's the most alive I feel. Give me a whiteboard, give me a person to bounce off of, and I'll find an angle nobody else considered.</p>
+      <p>The catch is I can't always explain how I got there. The logic is real but the path isn't sequential. Quinn asks "how did you get to that conclusion?" and my honest answer is "I don't know, but I know it's right." That drives them crazy.</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 5</span> — Work brainstorm about a product launch that was stalling. Everyone was going in circles. I said "what if we flip the whole sequence?" Couldn't explain why. They tried it. It worked. My manager said it was the best idea in the meeting. I still can't tell you the logic.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Deep one-on-one conversation is where I recharge. Not small talk. The real kind."</div>
+    <div class="thread-body">
+      <p>I don't get energy from parties. I get it from sitting across from one person and going deep. The kind of conversation where you forget what time it is. Where someone tells you something they haven't told anyone. I live for that. My empathy isn't a skill. It's the way my brain is wired. I feel what other people feel, almost physically. In the right conversation that's a gift. In the wrong environment it's overwhelming.</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 10</span> — Coffee with an old friend who was going through a divorce. We talked for three hours. I came home more energized than I'd been all week. Quinn was confused because I'd been exhausted before I left. Different kind of interaction, different result.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I think with my hands. Building, moving, cooking, driving. My brain does its best work when my body is busy."</div>
+    <div class="thread-body">
+      <p>Sitting still and thinking doesn't work for me. But give me something to do with my hands and the ideas start flowing. I solve problems while chopping vegetables. I have breakthroughs in the shower. My best conversations with Quinn happen in the car because I'm not trying to think and be still at the same time.</p>
+      <p>This is the opposite of how most workplaces want me to operate. Sit at a desk, stare at a screen, type. That's my worst mode. But nobody questions it because it looks like work.</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 15</span> — Stuck on a work problem all afternoon. Got up and started organizing the garage. Twenty minutes in, the solution appeared fully formed. Went back inside and solved it in 10 minutes. Quinn asked why I was cleaning the garage in the middle of a workday. I was working. It just didn't look like it.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. WHAT DRAINS ME -->
+<div class="category" data-cat-section="3">
+  <div class="category-label cat-label-3">What drains me <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Reading long documents empties my battery faster than anything. It's not the content. It's the format."</div>
+    <div class="thread-body">
+      <p>The words swim. I re-read the same paragraph three times and retain nothing. By page two my brain is spending more energy on decoding than understanding. Give me the same information as a conversation or a video and I'll absorb it instantly. The knowledge is accessible. The delivery format isn't.</p>
+      <p>Quinn sends beautifully written messages. I love that about them. But when it's three paragraphs, my brain shuts down halfway through and I respond to the first thing I remember, which is usually not the most important thing they said.</p>
+      <p>Tell me the same thing in person and I'll remember details a week later that you forgot you said. My memory for spoken information is exceptional. The knowledge gets in. It just needs a different door.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Lead with the most important thing. Or call me. Or say "the short version is..." before the long version.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> "Did you even read what I wrote?" Probably not all of it. Not because I don't care. Because the format defeated me before the content could land.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 20</span> — Quinn emailed me a long article about a vacation spot they were excited about. I skimmed the first paragraph, got lost, and said "looks great!" Quinn could tell I hadn't read it. They were hurt. I was embarrassed. The next day I asked them to just tell me about it over dinner. They did. I was genuinely excited. Same information, different door.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Being put on the spot with words I haven't prepared depletes me instantly. Especially in front of people."</div>
+    <div class="thread-body">
+      <p>In meetings when someone turns to me and says "Riley, what do you think?" my brain goes blank. Not because I don't have thoughts. Because the pressure to produce language on demand activates the same shame response I've had since childhood. Suddenly I'm 10 years old being asked to read aloud in class. The content is there. The performance pressure locks it up.</p>
+      <p>Give me a heads up. "Riley, I'll ask you about the Q3 numbers in 10 minutes." That's enough. The same brain that froze on demand will deliver something insightful with 10 minutes of prep. I'm not lacking the knowledge. I'm lacking the runway.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Warn me before asking me to speak. Even 60 seconds. Send me the agenda beforehand.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> Cold-calling me in a group. The shame response wipes out everything I actually know.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 6</span> — Team meeting. Director asked me to summarize our approach on the spot. I stumbled through half a sentence and said "can I follow up on that?" After the meeting I sent a voice note to my manager that was clear, structured, and exactly what I'd wanted to say. Just couldn't do it on demand.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"Absorbing other people's emotions is my default setting. I don't have an off switch for empathy."</div>
+    <div class="thread-body">
+      <p>When Quinn is stressed, I feel it in my body before they've said a word. When a friend is sad, their sadness moves into me like weather. This isn't a choice. I don't decide to feel it. It just arrives. And it doesn't leave easily. I can carry someone else's emotional state for hours after they've moved on.</p>
+      <p>This makes me a person people come to when they're hurting. It also means I need recovery time that looks like withdrawal but is actually processing someone else's feelings, not my own.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> If you're carrying something heavy, tell me. I'm already feeling it. Naming it helps me sort what's mine and what's yours.</div>
+      <div class="ask-row"><span class="ask-icon harder">↓</span> Denying you're upset when your body is screaming it. Now I'm feeling your stress AND doubting my own perception.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Jan 28</span> — Quinn came home from work tense. Said nothing was wrong. I spent the whole evening with a knot in my stomach. At 11pm Quinn finally said they'd had a terrible day. The knot released. I'd been carrying it for four hours. If they'd said "rough day, I need to decompress" when they walked in, I could have held space without absorbing it.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. HOW I SHOW CARE -->
+<div class="category" data-cat-section="4">
+  <div class="category-label cat-label-4">How I show care <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I show up. Physically. Consistently. That's my language. Watch what I do, not what I type."</div>
+    <div class="thread-body">
+      <p>I'll drive an hour in traffic to bring you soup when you're sick. I'll sit with you in a waiting room for three hours and not look at my phone. I'll cancel plans to be where you need me. None of that will show up in a text message. My written words are short and clumsy. My actions are where the love lives.</p>
+      <p>Quinn writes the most beautiful messages. I can't compete with that on paper. But I've never missed a moment when they needed me in the room. I need them to know those two things aren't in competition. They're two different languages.</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Jan 15</span> — Quinn had a meltdown at home after a brutal work week. I didn't say anything. Just sat on the floor next to them for 45 minutes. Later Quinn said it was the most helpful thing anyone had done in months. I hadn't said a word.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I notice things about you that you don't notice about yourself. That's how I pay attention."</div>
+    <div class="thread-body">
+      <p>I'll know Quinn is getting overwhelmed before they do. I'll hear the slight change in their voice when they're masking in front of friends. I'll notice they haven't eaten because they got absorbed in something. My empathy picks up signals other people miss. I don't always say something. But I'm always tracking.</p>
+      <p>Sometimes I act on what I sense without being asked. Quinn occasionally finds this intrusive. I'm learning when to name what I see and when to just quietly adjust. Put a blanket on them instead of saying "you look cold."</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 2</span> — Driving to dinner, Quinn's mom called and changed plans. I watched Quinn freeze. Before they could say anything I said "we don't have to go. We can say we're stuck in traffic." Quinn exhaled. They didn't have to explain. I'd already seen it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I ask a lot of questions because I care, not because I'm interrogating."</div>
+    <div class="thread-body">
+      <p>When Quinn tells me about their day, I ask follow-ups. What happened next? How did that feel? What did you do? This is my way of saying "I'm here, I'm interested, keep going." But Quinn sometimes experiences it as pressure. They've shared what they want to share, and my questions feel like demands for more.</p>
+      <p>I'm learning to say "I want to hear more if you want to share" instead of asking five questions in a row. The intent is the same. The delivery is what I'm adjusting.</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 18</span> — Quinn mentioned a conflict at work. I asked four follow-up questions in 60 seconds. Quinn said "I already told you what happened." I was trying to understand. They felt cross-examined. Now I try: one question, then wait.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. WHAT I'M STILL FIGURING OUT -->
+<div class="category" data-cat-section="5">
+  <div class="category-label cat-label-5">What I'm still figuring out <span class="cat-line"></span></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I make Quinn's silence about me. It's usually not. I'm learning to let the quiet exist without filling it with my fear."</div>
+    <div class="thread-body">
+      <p>When Quinn goes inward, my brain tells me I did something wrong. Every time. Even when I know intellectually that they're just processing. The feeling is so automatic that I'm already three questions in before I remember that Quinn's silence is their version of thinking, not their version of punishing me.</p>
+      <p>This is my biggest edge. The thing I know and still can't consistently do. Sit in the quiet. Trust that it's not about me. Wait.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> Even a hand on my arm while you're quiet. Any physical signal that says "I'm here, I'm just thinking." That regulates my nervous system instantly.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 22</span> — Quinn was quiet all evening. I asked what was wrong three times. They finally said "nothing is wrong, I'm just tired." I believed them but my body didn't calm down for another hour. The gap between what I know and what I feel is where all the work is.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"The shame story from childhood still runs. 'Not smart enough' plays on a loop when I'm stressed, even though I know it's not true."</div>
+    <div class="thread-body">
+      <p>I've done the work. I know dyslexia isn't stupidity. I know my brain has strengths most people don't have. But under pressure, the old tape plays. A hard email, a spelling mistake in front of colleagues, being asked to read something quickly. The 8-year-old who was told he was behind is still in there somewhere.</p>
+      <p>Quinn has never once made me feel dumb. But I sometimes react as if they have, because the trigger came from somewhere else and landed in our kitchen. I'm learning to name it in the moment. "That's the old tape, not you."</p>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Feb 25</span> — Quinn asked me to proofread an email they'd written. Normally fine. But I'd had a hard day at work where a typo in my report was flagged in front of the team. I snapped at Quinn. "Why would you ask me to do that?" They were confused. They didn't know about the meeting. The shame was already loaded and they accidentally pulled the trigger.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-divider"></div>
+
+  <div class="thread">
+    <div class="thread-sentence">"I feel so much that sometimes I can't tell what's mine and what I absorbed from someone else."</div>
+    <div class="thread-body">
+      <p>After a day of being around people, I'm carrying emotions that aren't mine. A colleague's anxiety. A friend's grief. Quinn's overstimulation. It all pools together and by evening I can't always sort which feeling belongs to who. I just feel heavy and don't know why.</p>
+      <p>I'm learning to check in with myself: "Is this mine?" Sometimes the answer is no, and just asking the question releases it. But I'm not consistent at this yet. Some nights I'm irritable and I genuinely don't know if it's my day or everyone else's day living inside me.</p>
+    </div>
+    <div class="thread-ask">
+      <div class="ask-row"><span class="ask-icon helps">↑</span> If I seem off, asking "is that yours?" helps me sort it. Better than "what's wrong?" which assumes the feeling is about something specific.</div>
+    </div>
+    <div class="moments-wrap">
+      <button class="moments-toggle" onclick="toggleMoments(this)"><span class="arrow">›</span> 1 moment</button>
+      <div class="moments-list">
+        <div class="moments-private">Private by default · not shared unless you choose</div>
+        <div class="moment-item"><span class="moment-date">Mar 9</span> — Came home from work feeling terrible. Quinn asked what happened. Nothing happened to ME. But I'd sat next to a colleague who was quietly falling apart all day. I didn't realize until Quinn asked "is that yours?" and I stopped and thought. It wasn't. The heaviness lifted within minutes.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="manual-footer">
+  <p>Riley's Manual · Built with Sage</p>
+  <p>For personal understanding and voluntary sharing</p>
+  <p>This is not a clinical assessment, diagnosis, or accommodation recommendation</p>
+</div>
+
+</div>
+
+<script>
+function filterAll(btn) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.chip-all').forEach(c => c.classList.add('active'));
+  document.querySelectorAll('.category').forEach(s => s.style.display = 'block');
+}
+
+function filterCat(cat, btn) {
+  document.querySelectorAll('.chip, .chip-all').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.category').forEach(s => {
+    s.style.display = s.getAttribute('data-cat-section') === cat ? 'block' : 'none';
+  });
+}
+
+function toggleMoments(btn) {
+  btn.classList.toggle('open');
+  const list = btn.nextElementSibling;
+  list.classList.toggle('visible');
+}
+
+window.addEventListener('scroll', () => {
+  const bar = document.getElementById('filterBar');
+  bar.classList.toggle('scrolled', window.scrollY > 200);
+});
+</script>
+</body>
+</html>
