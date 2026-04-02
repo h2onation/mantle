@@ -38,22 +38,20 @@ body {
 
 /* Back nav */
 .back-nav {
-  position: fixed;
-  top: 16px;
-  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 40px auto 0;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-dim);
   text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  padding: 12px 24px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  z-index: 200;
   transition: all 0.15s;
 }
 .back-nav:hover { color: var(--text); border-color: #ccc8c0; background: #f0ede8; }
@@ -591,7 +589,6 @@ body.chat-open .sage-fab { display: none; }
 </style>
 </head>
 <body>
-<a href="/narrative/mantle_intro.html" class="back-nav"><span class="back-arrow">←</span> Back to story</a>
 <div class="container">
 
 <div class="manual-header">
@@ -974,6 +971,7 @@ body.chat-open .sage-fab { display: none; }
   <p>Quinn's Manual · Built with Sage</p>
   <p>For personal understanding and voluntary sharing</p>
   <p>This is not a clinical assessment, diagnosis, or accommodation recommendation</p>
+  <a href="/narrative/mantle_intro.html" class="back-nav"><span class="back-arrow">←</span> Back to story</a>
 </div>
 
 </div>
