@@ -1,23 +1,36 @@
 // ---------------------------------------------------------------------------
-// Group message gate — decides whether to call Sage for a group message.
+// Group message gate — scoring-based filter for group messages.
 //
 // The gate is the first filter. Even when it says SEND_TO_SAGE, Sage can
 // still output [NO_RESPONSE] as a second filter.
 //
-// KNOWN LIMITATION: The counter is message-based only. It does not account
-// for time between messages. A rapid argument and a slow thoughtful exchange
-// hit the same thresholds differently. Time-based decay is a future
-// improvement (e.g., reset counter if > 10 minutes since last message).
+// Scoring signals (all regex/string, zero API cost):
+//   - Emotional weight keywords → +3
+//   - Questions / bids for engagement → +3
+//   - Substantial message length → +1 or +2
+//   - Brief reactions (< 5 chars) → block
+//
+// Counter remains as safety net so Sage never goes silent forever.
+// Cooldown prevents double-responding to rapid messages.
 // ---------------------------------------------------------------------------
 
-/** Minimum messages before Sage is eligible to respond (unless directly addressed) */
+/** Minimum messages before counter lowers the scoring threshold */
 export const GATE_MIN_MESSAGES = 3;
 
-/** After this many messages without Sage speaking, add a nudge hint to context */
+/** After this many messages without Sage, auto-send with nudge */
 export const GATE_NUDGE_MESSAGES = 6;
 
-/** Messages shorter than this (after trim) are treated as brief reactions */
+/** Messages shorter than this are treated as brief reactions */
 export const GATE_SHORT_MESSAGE_LENGTH = 5;
+
+/** Score needed to trigger Sage (lowered to GATE_REDUCED_THRESHOLD after GATE_MIN_MESSAGES) */
+export const GATE_SCORE_THRESHOLD = 3;
+
+/** Reduced threshold once counter hits GATE_MIN_MESSAGES — any substance gets through */
+export const GATE_REDUCED_THRESHOLD = 1;
+
+/** Minimum ms between Sage responses (only direct address bypasses) */
+export const GATE_COOLDOWN_MS = 30_000;
 
 export type GateDecision = "SEND_TO_SAGE" | "SKIP";
 
@@ -26,42 +39,97 @@ export interface GateResult {
   reason: string;
   /** When true, prepend a nudge hint to Sage's context */
   addNudgeHint: boolean;
+  /** The computed score for logging/debugging */
+  score: number;
+}
+
+// Emotional weight keywords — compiled once at module load
+const EMOTION_RE = /\b(feel|feeling|felt|worried|frustrat\w*|insecure|afraid|hurt|scared|anxious|overwhelm\w*|confus\w*|ashamed|lonely|angry|sad|vulnerable|struggling|stuck|lost|embarrass\w*|nervous|uncertain|torn|helpless)\b/i;
+
+// Engagement bids — questions directed at the room
+const BID_RE = /\b(what do you (all |guys )?think|thoughts\??|right\??|does that make sense|you know\??|any ideas|help me|i don'?t know)\b/i;
+
+/**
+ * Score a message on conversational signals.
+ * Pure function, zero cost — regex and string length only.
+ */
+export function scoreMessage(messageText: string): number {
+  const text = messageText.trim();
+  let score = 0;
+
+  // Emotional weight
+  if (EMOTION_RE.test(text)) score += 3;
+
+  // Engagement bids or substantial questions (question mark after 40+ chars)
+  if (BID_RE.test(text) || (text.length >= 40 && text.includes("?"))) {
+    score += 3;
+  }
+
+  // Message substance (length)
+  if (text.length >= 200) score += 2;
+  else if (text.length >= 80) score += 1;
+
+  return score;
 }
 
 /**
  * Decide whether a group message should be forwarded to Sage.
  *
- * Rules evaluated in order (first match wins):
- *   1. Direct address ("sage" as whole word) → SEND_TO_SAGE
- *   2. Very short message (< 5 chars) → SKIP
- *   3. Counter < GATE_MIN_MESSAGES → SKIP
- *   4. Counter >= GATE_MIN_MESSAGES and < GATE_NUDGE_MESSAGES → SEND_TO_SAGE
- *   5. Counter >= GATE_NUDGE_MESSAGES → SEND_TO_SAGE with nudge hint
+ * Evaluation order:
+ *   1. Direct address ("sage") → always SEND
+ *   2. Very short message (< 5 chars) → always SKIP
+ *   3. Cooldown active (< 30s since Sage spoke) → SKIP
+ *   4. Counter >= GATE_NUDGE_MESSAGES → SEND with nudge
+ *   5. Score >= threshold → SEND (threshold drops after GATE_MIN_MESSAGES)
+ *   6. Otherwise → SKIP
  */
 export function evaluateGate(
   messageText: string,
-  messagesSinceSageSpoke: number
+  messagesSinceSageSpoke: number,
+  lastSageSpokeAt?: Date | null
 ): GateResult {
-  // Rule a: Direct address — always respond
+  const SKIP = (reason: string, score: number): GateResult =>
+    ({ decision: "SKIP", reason, addNudgeHint: false, score });
+  const SEND = (reason: string, score: number, nudge = false): GateResult =>
+    ({ decision: "SEND_TO_SAGE", reason, addNudgeHint: nudge, score });
+
+  // 1. Direct address — always respond (bypasses cooldown)
   if (/\bsage\b/i.test(messageText)) {
-    return { decision: "SEND_TO_SAGE", reason: "direct_address", addNudgeHint: false };
+    return SEND("direct_address", 0);
   }
 
-  // Rule b: Very short message — skip
+  // 2. Very short message — skip
   if (messageText.trim().length < GATE_SHORT_MESSAGE_LENGTH) {
-    return { decision: "SKIP", reason: "short_message", addNudgeHint: false };
+    return SKIP("short_message", 0);
   }
 
-  // Rule c: Too soon after Sage last spoke — let people talk
-  if (messagesSinceSageSpoke < GATE_MIN_MESSAGES) {
-    return { decision: "SKIP", reason: "too_soon", addNudgeHint: false };
+  // 3. Cooldown — if Sage just spoke, let people talk
+  if (lastSageSpokeAt) {
+    const elapsed = Date.now() - lastSageSpokeAt.getTime();
+    if (elapsed < GATE_COOLDOWN_MS) {
+      return SKIP("cooldown", 0);
+    }
   }
 
-  // Rule d/e: Enough messages — send to Sage, with nudge if long gap
-  const addNudge = messagesSinceSageSpoke >= GATE_NUDGE_MESSAGES;
-  return {
-    decision: "SEND_TO_SAGE",
-    reason: addNudge ? "nudge" : "eligible",
-    addNudgeHint: addNudge,
-  };
+  const score = scoreMessage(messageText);
+
+  // 4. Long silence — auto-send with nudge
+  if (messagesSinceSageSpoke >= GATE_NUDGE_MESSAGES) {
+    return SEND("nudge", score, true);
+  }
+
+  // 5. Score check — threshold drops after enough messages
+  const threshold = messagesSinceSageSpoke >= GATE_MIN_MESSAGES
+    ? GATE_REDUCED_THRESHOLD
+    : GATE_SCORE_THRESHOLD;
+
+  if (score >= threshold) {
+    const reason = messagesSinceSageSpoke >= GATE_MIN_MESSAGES
+      ? "eligible_score"
+      : "high_score";
+    return SEND(reason, score);
+  }
+
+  // 6. Not enough signal — skip
+  return SKIP("low_score", score);
 }
