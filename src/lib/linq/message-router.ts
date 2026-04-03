@@ -16,7 +16,7 @@ const FALLBACK_MSG =
 const UNKNOWN_NUMBER_MSG =
   "This is Sage by Mantle. I don't have this number connected to an account. " +
   "If you have a Mantle account, connect your number in Settings. " +
-  "If you're new, start at trustmantle.com";
+  "If you're new, start at trustthemantle.com";
 
 const MEDIA_ONLY_MSG =
   "I can only read text messages right now. If you want to talk something through, " +
