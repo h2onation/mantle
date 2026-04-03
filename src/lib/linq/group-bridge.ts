@@ -11,73 +11,67 @@
 //   - No typing indicators (Linq 403s on group typing)
 //   - Handles [NO_RESPONSE] token (Sage can choose to stay quiet)
 //   - Sender identity prefixed on each message so Sage knows who said what
+//
+// Latency design: The webhook handler calls prefetchGroupContext() once,
+// then passes the result to both processGroupMessage and saveGroupMessage.
+// This eliminates redundant DB queries and parallelizes independent lookups.
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/sage/sage-pipeline";
-import { getGroupState, type GroupState } from "./group-state";
+import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
 const GROUP_SAGE_TIMEOUT_MS = 15_000;
 
-export interface GroupBridgeResult {
-  /** Sage's response text, or null if Sage chose not to respond */
-  responseText: string | null;
-  conversationId: string;
-}
+// ---------------------------------------------------------------------------
+// Pre-fetched context — loaded once in the webhook handler, shared by both
+// the SEND and SKIP paths.
+// ---------------------------------------------------------------------------
 
-interface GroupMessageInput {
-  linqChatId: string;
-  senderPhone: string;
-  senderName: string | null;
-  messageText: string;
-  /** When true, prepend a nudge hint so Sage knows it's been quiet for a while */
-  nudgeHint?: boolean;
+export interface PreFetchedContext {
+  groupState: GroupState;
+  conversationId: string;
+  senderLabel: string;
+  mantleUserName: string | null;
+  manualComponents: { layer: number; type: string; name: string; content: string }[];
 }
 
 /**
- * Process a group chat message through Sage (facilitator mode).
+ * Load everything both processGroupMessage and saveGroupMessage need,
+ * in a single parallel batch. Called once per message in the webhook handler.
  *
- * 1. Finds or creates the group's conversation record
- * 2. Saves the inbound message with sender identity prefix
- * 3. Loads the Mantle user's manual (if single-user group)
- * 4. Calls Sage with the group system prompt
- * 5. Checks for [NO_RESPONSE] — returns null if Sage stays quiet
- * 6. Saves and returns Sage's response
- *
- * No extraction. No checkpoints. No typing indicators.
+ * DB queries (all in parallel):
+ *   - getOrCreateGroupConversation
+ *   - phone_numbers lookup (for sender label)
+ *   - profiles lookup (for display name)
+ *   - manual_components lookup (for Sage's system prompt)
  */
-export async function processGroupMessage(
-  input: GroupMessageInput
-): Promise<GroupBridgeResult> {
-  const { linqChatId, senderPhone, messageText, nudgeHint } = input;
+export async function prefetchGroupContext(
+  groupState: GroupState,
+  senderPhone: string
+): Promise<PreFetchedContext> {
   const admin = createAdminClient();
 
-  // 1. Get group state
-  const groupState = await getGroupState(linqChatId);
-  if (!groupState) {
-    throw new Error(`No group state for chat_id=${linqChatId}`);
+  if (!groupState.mantle_user_id) {
+    // No Mantle user — only need conversation ID
+    const conversationId = await getOrCreateGroupConversation(admin, groupState);
+    return {
+      groupState,
+      conversationId,
+      senderLabel: senderPhone,
+      mantleUserName: null,
+      manualComponents: [],
+    };
   }
 
-  // 2. Find or create the group's conversation
-  const conversationId = await getOrCreateGroupConversation(
-    admin,
-    groupState
-  );
-
-  // 3. Identify sender and load Mantle user context in parallel.
-  //    Mantle user gets their name as label, others get phone number.
-  let senderLabel = senderPhone;
-  let mantleUserPhone: string | null = null;
-  let mantleUserName: string | null = null;
-  let manualComponents: { layer: number; type: string; name: string; content: string }[] = [];
-
-  if (groupState.mantle_user_id) {
-    // Load phone, profile, and manual in parallel
-    const [phoneResult, profileResult, manualResult] = await Promise.all([
+  // All four queries are independent — run in parallel
+  const [conversationId, phoneResult, profileResult, manualResult] =
+    await Promise.all([
+      getOrCreateGroupConversation(admin, groupState),
       admin
         .from("phone_numbers")
         .select("phone")
@@ -96,28 +90,77 @@ export async function processGroupMessage(
         .eq("user_id", groupState.mantle_user_id),
     ]);
 
-    mantleUserPhone = phoneResult.data?.phone ?? null;
-    const displayName = profileResult.data?.display_name as string | null;
-    mantleUserName = displayName?.split(/\s+/)[0] ?? null;
-    manualComponents = manualResult.data || [];
+  const mantleUserPhone = phoneResult.data?.phone ?? null;
+  const displayName = profileResult.data?.display_name as string | null;
+  const mantleUserName = displayName?.split(/\s+/)[0] ?? null;
+  let manualComponents = manualResult.data || [];
 
-    // If sender matches Mantle user's phone, use their name
-    if (mantleUserPhone && normalizePhone(senderPhone) === mantleUserPhone && mantleUserName) {
-      senderLabel = mantleUserName;
-    }
-
-    // If phone is unlinked, clear manual (phone unlinked mid-group)
-    if (!mantleUserPhone) {
-      manualComponents = [];
-      console.log(
-        "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
-        linqChatId,
-        groupState.mantle_user_id
-      );
-    }
+  // Determine sender label
+  let senderLabel = senderPhone;
+  if (
+    mantleUserPhone &&
+    normalizePhone(senderPhone) === mantleUserPhone &&
+    mantleUserName
+  ) {
+    senderLabel = mantleUserName;
   }
 
-  // 4. Save inbound message with sender identity prefix
+  // If phone is unlinked, clear manual (phone unlinked mid-group)
+  if (!mantleUserPhone) {
+    manualComponents = [];
+    console.log(
+      "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
+      groupState.linq_chat_id,
+      groupState.mantle_user_id
+    );
+  }
+
+  return {
+    groupState,
+    conversationId,
+    senderLabel,
+    mantleUserName,
+    manualComponents,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export interface GroupBridgeResult {
+  /** Sage's response text, or null if Sage chose not to respond */
+  responseText: string | null;
+  conversationId: string;
+}
+
+interface GroupMessageInput {
+  linqChatId: string;
+  senderPhone: string;
+  messageText: string;
+  /** When true, prepend a nudge hint so Sage knows it's been quiet for a while */
+  nudgeHint?: boolean;
+  /** Pre-fetched context from prefetchGroupContext() */
+  prefetched: PreFetchedContext;
+}
+
+/**
+ * Process a group chat message through Sage (facilitator mode).
+ *
+ * Uses pre-fetched context to avoid redundant DB queries.
+ * Remaining DB work: insert message, load history.
+ *
+ * No extraction. No checkpoints. No typing indicators.
+ */
+export async function processGroupMessage(
+  input: GroupMessageInput
+): Promise<GroupBridgeResult> {
+  const { linqChatId, messageText, nudgeHint, prefetched } = input;
+  const { conversationId, senderLabel, mantleUserName, manualComponents } =
+    prefetched;
+  const admin = createAdminClient();
+
+  // 1. Save inbound message with sender identity prefix
   const prefixedContent = `[${senderLabel}]: ${messageText}`;
 
   const { error: insertErr } = await admin.from("messages").insert({
@@ -126,9 +169,14 @@ export async function processGroupMessage(
     content: prefixedContent,
     channel: "text",
   });
-  if (insertErr) console.error("[group-bridge] message_insert_failed chat_id=%s error=%s", linqChatId, insertErr.message);
+  if (insertErr)
+    console.error(
+      "[group-bridge] message_insert_failed chat_id=%s error=%s",
+      linqChatId,
+      insertErr.message
+    );
 
-  // 5. Load conversation history (group messages only — isolated by conversation_id)
+  // 2. Load conversation history (must come after insert to include new message)
   const { data: historyRows } = await admin
     .from("messages")
     .select("role, content")
@@ -138,7 +186,9 @@ export async function processGroupMessage(
   const messages: { role: "user" | "assistant"; content: string }[] = (
     historyRows || []
   )
-    .filter((m: { role: string }) => m.role === "user" || m.role === "assistant")
+    .filter(
+      (m: { role: string }) => m.role === "user" || m.role === "assistant"
+    )
     .map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -168,7 +218,7 @@ export async function processGroupMessage(
     }
   }
 
-  // 6. Build system prompt with group context
+  // 3. Build system prompt with group context
   const systemPrompt = buildSystemPrompt({
     manualComponents,
     isReturningUser: false,
@@ -184,7 +234,7 @@ export async function processGroupMessage(
     },
   });
 
-  // 7. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
+  // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
   const response = await anthropicFetch(
     {
       model: SAGE_MODEL,
@@ -199,7 +249,7 @@ export async function processGroupMessage(
     response.content?.[0]?.text || "Something went wrong on my end.";
   const trimmed = fullText.trim();
 
-  // 8. Check for [NO_RESPONSE]
+  // 5. Check for [NO_RESPONSE]
   if (trimmed === NO_RESPONSE_TOKEN) {
     console.log(
       "[group-bridge] no_response chat_id=%s sender=%s",
@@ -209,14 +259,19 @@ export async function processGroupMessage(
     return { responseText: null, conversationId };
   }
 
-  // 9. Save Sage's response
+  // 6. Save Sage's response
   const { error: saveErr } = await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "assistant",
     content: trimmed,
     channel: "text",
   });
-  if (saveErr) console.error("[group-bridge] response_save_failed chat_id=%s error=%s", linqChatId, saveErr.message);
+  if (saveErr)
+    console.error(
+      "[group-bridge] response_save_failed chat_id=%s error=%s",
+      linqChatId,
+      saveErr.message
+    );
 
   console.log(
     "[group-bridge] response chat_id=%s sender=%s len=%d",
@@ -232,52 +287,33 @@ export async function processGroupMessage(
  * Save a group message without calling Sage. Used when the message gate
  * returns SKIP — the message is stored for future context but Sage doesn't
  * see it in real time.
+ *
+ * Uses pre-fetched context — just a single DB insert.
  */
 export async function saveGroupMessage(
-  linqChatId: string,
-  senderPhone: string,
-  senderName: string | null,
+  prefetched: PreFetchedContext,
   messageText: string
 ): Promise<void> {
   const admin = createAdminClient();
-  const groupState = await getGroupState(linqChatId);
-  if (!groupState) return;
-
-  const conversationId = await getOrCreateGroupConversation(admin, groupState);
-
-  // Identify sender — Mantle user gets their name, others get phone number
-  let senderLabel = senderPhone;
-  if (groupState.mantle_user_id) {
-    const { data: phoneRow } = await admin
-      .from("phone_numbers")
-      .select("phone")
-      .eq("user_id", groupState.mantle_user_id)
-      .eq("verified", true)
-      .limit(1)
-      .maybeSingle();
-
-    if (phoneRow && normalizePhone(senderPhone) === phoneRow.phone) {
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("display_name")
-        .eq("id", groupState.mantle_user_id)
-        .maybeSingle();
-
-      const displayName = profile?.display_name as string | null;
-      senderLabel = displayName?.split(/\s+/)[0] ?? senderPhone;
-    }
-  }
-
-  const prefixedContent = `[${senderLabel}]: ${messageText}`;
+  const prefixedContent = `[${prefetched.senderLabel}]: ${messageText}`;
 
   const { error } = await admin.from("messages").insert({
-    conversation_id: conversationId,
+    conversation_id: prefetched.conversationId,
     role: "user",
     content: prefixedContent,
     channel: "text",
   });
-  if (error) console.error("[group-bridge] save_message_failed chat_id=%s error=%s", linqChatId, error.message);
+  if (error)
+    console.error(
+      "[group-bridge] save_message_failed chat_id=%s error=%s",
+      prefetched.groupState.linq_chat_id,
+      error.message
+    );
 }
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Find or create a conversation record for this group chat.
@@ -299,13 +335,7 @@ async function getOrCreateGroupConversation(
   if (existing) return existing.id;
 
   // Create a new conversation for this group
-  // user_id is required — use the mantle_user_id if available
   if (!groupState.mantle_user_id) {
-    // Multi-user groups: we still need a user_id for the FK constraint.
-    // Use the group's id as a marker — the conversation won't be loaded
-    // by any 1:1 flow because linq_group_chat_id is set.
-    // For now, multi-user groups without a mantle_user_id can't create
-    // a conversation. Log and throw.
     console.error(
       "[group-bridge] Cannot create conversation for multi-user group: %s",
       groupState.linq_chat_id

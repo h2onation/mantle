@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { routeInboundMessage } from "@/lib/linq/message-router";
 import { detectAndSetupGroup } from "@/lib/linq/group-detection";
 import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
-import { processGroupMessage, saveGroupMessage } from "@/lib/linq/group-bridge";
+import { processGroupMessage, saveGroupMessage, prefetchGroupContext } from "@/lib/linq/group-bridge";
 import { evaluateGate } from "@/lib/linq/group-gate";
 import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
@@ -498,32 +498,31 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       return;
     }
 
-    // Extract sender name from webhook payload if available
-    const senderName =
-      (sh?.display_name as string) ??
-      (sender?.display_name as string) ??
-      (sh?.name as string) ??
-      (sender?.name as string) ??
-      null;
-
-    // Increment counter for EVERY group message
+    // Increment counter and prefetch context in parallel
     const currentCount = (groupState.messages_since_sage_spoke || 0) + 1;
-    await updateGroupState(chatId, { messages_since_sage_spoke: currentCount });
+    const [, prefetched] = await Promise.all([
+      updateGroupState(chatId, { messages_since_sage_spoke: currentCount }),
+      prefetchGroupContext(groupState, String(senderPhone)),
+    ]);
 
-    // Run the message gate
-    const gate = evaluateGate(groupTextContent, currentCount);
+    // Run the scoring-based message gate
+    const lastSageSpokeAt = groupState.last_sage_spoke_at
+      ? new Date(groupState.last_sage_spoke_at)
+      : null;
+    const gate = evaluateGate(groupTextContent, currentCount, lastSageSpokeAt);
     console.log(
-      "[linq] group_gate chat_id=%s decision=%s reason=%s counter=%d",
+      "[linq] group_gate chat_id=%s decision=%s reason=%s counter=%d score=%d",
       chatId,
       gate.decision,
       gate.reason,
-      currentCount
+      currentCount,
+      gate.score
     );
 
     if (gate.decision === "SKIP") {
       // Save message for future context but don't call Sage
       try {
-        await saveGroupMessage(chatId, String(senderPhone), senderName, groupTextContent);
+        await saveGroupMessage(prefetched, groupTextContent);
       } catch (err) {
         console.error("[linq] group_save_error chat_id=%s error=%s", chatId,
           err instanceof Error ? err.message : String(err));
@@ -537,9 +536,9 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       const result = await processGroupMessage({
         linqChatId: chatId,
         senderPhone: String(senderPhone),
-        senderName,
         messageText: groupTextContent,
         nudgeHint: gate.addNudgeHint,
+        prefetched,
       });
 
       const latencyMs = Date.now() - sageCallStart;
@@ -547,15 +546,19 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
 
       if (result.responseText) {
         await sendMessage(chatId, result.responseText);
-        await updateGroupState(chatId, { messages_since_sage_spoke: 0 });
+        await updateGroupState(chatId, {
+          messages_since_sage_spoke: 0,
+          last_sage_spoke_at: new Date().toISOString(),
+        });
       }
 
       // Cost logging — track every group Sage API call for threshold tuning
       console.log(
-        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s outcome=%s latency_ms=%d response_len=%d",
+        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
         chatId,
         currentCount,
         gate.reason,
+        gate.score,
         outcome,
         latencyMs,
         result.responseText?.length ?? 0

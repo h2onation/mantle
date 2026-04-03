@@ -15,6 +15,7 @@ export interface GroupState {
   non_sage_participant_count: number;
   messages_since_sage_spoke: number;
   last_inactive_reminder_at: string | null;
+  last_sage_spoke_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +89,7 @@ export async function updateGroupState(
       | "non_sage_participant_count"
       | "messages_since_sage_spoke"
       | "last_inactive_reminder_at"
+      | "last_sage_spoke_at"
     >
   >
 ): Promise<void> {
