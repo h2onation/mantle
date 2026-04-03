@@ -23,7 +23,7 @@ import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const INTRO_NO_ACCOUNTS =
   "This is Sage by Mantle. I don't have any connected accounts in this group. " +
-  "If you have a Mantle account, connect your number at trustmantle.com";
+  "If you have a Mantle account, connect your number at trustthemantle.com";
 
 const INTRO_MULTI_USER =
   "Hey, I'm Sage. I know some of you from Mantle, but in a group I keep " +

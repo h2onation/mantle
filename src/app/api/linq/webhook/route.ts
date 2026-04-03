@@ -238,7 +238,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
       console.log("[linq] mantle_user_left chat_id=%s user=%s", chatId, groupState.mantle_user_id);
       await sendMessage(
         chatId,
-        "Take care! If you're curious about having conversations like this for yourself, check out trustmantle.com"
+        "Take care! If you're curious about having conversations like this for yourself, check out trustthemantle.com"
       );
       await updateGroupState(chatId, { is_active: false });
       return;

@@ -11,7 +11,7 @@ import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const FALLBACK_MSG =
-  "Something went wrong on my end. Try again in a minute, or open the app at trustmantle.com";
+  "Something went wrong on my end. Try again in a minute, or open the app at trustthemantle.com";
 
 const UNKNOWN_NUMBER_MSG =
   "This is Sage by Mantle. I don't have this number connected to an account. " +
