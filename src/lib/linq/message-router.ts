@@ -11,7 +11,7 @@ import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const FALLBACK_MSG =
-  "Something went wrong on my end. Try again in a minute, or open the app at trustmantle.com";
+  "Something went wrong on my end. Try again in a minute, or open the app at trustthemantle.com";
 
 const UNKNOWN_NUMBER_MSG =
   "This is Sage by Mantle. I don't have this number connected to an account. " +
@@ -29,7 +29,7 @@ const KEYWORD_RESPONSES: Record<string, string> = {
   STOP: "You've been disconnected from Sage. You can reconnect anytime in the Mantle app.",
   START:
     "To reconnect with Sage, open the Mantle app and link your phone number in Settings.",
-  HELP: "This is Sage by Mantle. Text me anytime. Reply STOP to disconnect. For the full experience, open Mantle at trustmantle.com",
+  HELP: "This is Sage by Mantle. Text me anytime. Reply STOP to disconnect. For the full experience, open Mantle at trustthemantle.com",
 };
 
 // Rate limit: one unknown-number response per phone per 24 hours.
