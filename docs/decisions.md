@@ -194,3 +194,24 @@
 **Context**: `getOrCreateConversation()` in the text path has a read-then-write pattern vulnerable to race conditions when two texts arrive simultaneously. Options: (A) database-level advisory locks, (B) unique constraints with upsert, (C) retry-on-failure pattern.
 **Decision**: Retry-on-failure. If the insert fails (another request won), re-query to find the winning conversation.
 **Consequences**: No database schema changes needed. No advisory lock complexity. The retry adds one extra query in the rare concurrent case. Tradeoff: doesn't prevent two conversations from being created if the database has no unique constraint on (user_id, status=active). In practice, Supabase allows multiple active conversations per user by design (session history feature), so the worst case is two active conversations — not data corruption. The retry ensures both messages land in the same conversation.
+
+## ADR-028: ND Pivot — Existing manual_components Are Left in Place
+
+**Status**: Settled (2026-04-06)
+**Context**: PR1 of the ND migration renames the five manual layers from the general framework ("What Drives You", "Your Self Perception", etc.) to the autism-specific framework ("Some of My Patterns", "How I Process Things", etc.). Existing rows in `manual_components` reference layer ids 1-5 with content written under the old framework. Three options were considered: (a) leave rows in place; entries display under new section names; (b) archive existing rows behind a `framework_version` column; (c) per-user opt-in reset on first post-migration session.
+**Decision**: Leave them in place (option a). The beta has effectively zero existing autistic users with confirmed manuals — the affected accounts are test accounts and Jeff's own. No schema change, no archive logic, no migration code.
+**Consequences**: Zero-cost migration for content. The handful of legacy entries will display under their new layer names. If a real user complains post-launch with a meaningfully populated pre-pivot manual, revisit this decision then. Avoids building a `framework_version` column and archive flow that would only ever serve a single user transition.
+
+## ADR-029: ND Pivot — Layer Names Centralized in src/lib/manual/layers.ts
+
+**Status**: Settled (2026-04-06)
+**Context**: Layer names were duplicated across 5+ files (`extraction.ts`, `system-prompt.ts`, `classifier.ts`, `confirm-checkpoint.ts`, `layer-definitions.ts`, plus tests and docs). The Feb 2026 layer rename and the Apr 2026 ND pivot both required touching these strings file by file. `.claude/DRIFT_LOG.md` exists in part because of this drift.
+**Decision**: Single source of truth at `src/lib/manual/layers.ts`. Exports `LAYERS` (full definitions including names, descriptions, dimensions, examples), `LAYER_NAMES` (id → name lookup), `LAYER_COUNT`, and `getLayer(id)`. Every consumer (extraction prompt builder, system prompt, classifier, confirm-checkpoint, mobile UI) imports from this file. Prompts interpolate the canonical block instead of hardcoding strings.
+**Consequences**: Renaming a layer is a one-line change in `layers.ts`. Drift between UI and Sage code is structurally impossible — they both read the same constant. Tests assert against `LAYER_NAMES[N]` rather than literal strings, so a future rename never silently breaks assertions. Cost: one new file, minor refactor of five existing files. Offset: every future layer change touches one file instead of twelve.
+
+## ADR-030: ND Pivot — sage_mode Column With Single Value, Forward-Compatible Seam
+
+**Status**: Settled (2026-04-06)
+**Context**: PR1 ships ND-only voice. The plan needs to support adding additional voice modes (general, ADHD-specific, etc.) later without re-plumbing the call chain. Options: (a) hardcode autism voice in the prompt and add the seam later; (b) add the seam now even though there's only one value; (c) build a full mode registry with branching now.
+**Decision**: Option (b). Add `sage_mode text` column to `profiles` (nullable, check constraint allows only `'autistic'` for now). Migration lives at `supabase/add-sage-mode.sql` per the existing convention. Thread `sageMode` through `ConversationContext` → `BuildPromptOptions` → `buildSystemPrompt`, defaulting null to `'autistic'`. Voice content remains hardcoded autism-only in PR2a/PR2b. The seam exists but does not branch yet.
+**Consequences**: Adding a second voice mode in the future is a content change, not a plumbing change — extend the check constraint, add a branch in `buildSystemPrompt`, done. The single-value plumbing is a small amount of "future-facing" code, but it lives behind type-safe interfaces (`SageMode = 'autistic'`) so a second mode added later gets caught by the compiler at every consumer site.

@@ -2,16 +2,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import type { ExtractionState } from "@/lib/sage/extraction";
+import { LAYER_NAMES } from "@/lib/manual/layers";
 
 // ─── Manual entry composition (Sonnet) ─────────────────────────────────────
-
-const LAYER_NAMES: Record<number, string> = {
-  1: "What Drives You",
-  2: "Your Self Perception",
-  3: "Your Reaction System",
-  4: "How You Operate",
-  5: "Your Relationship to Others",
-};
 
 interface ComposeManualEntryOptions {
   checkpointText: string;

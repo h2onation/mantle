@@ -12,15 +12,17 @@ Mantle is a mobile web app where an AI conversationalist called **Sage** has dee
 
 ## The five layers
 
+> Canonical layer definitions live in `src/lib/manual/layers.ts` — single source of truth. All consumers (Sage prompts, classifier, mobile UI, tests) import from there.
+
 | Layer | Name | What it captures |
 |-------|------|-----------------|
-| 1 | What Drives You | Core motivations, values, what energizes you |
-| 2 | Your Self Perception | How you see yourself, identity narratives |
-| 3 | Your Reaction System | Emotional patterns, triggers, stress responses |
-| 4 | How You Operate | Work style, decision-making, daily rhythms |
-| 5 | Your Relationship to Others | Attachment style, social patterns, boundaries |
+| 1 | Some of My Patterns | What behavior means when the user can't explain it in the moment — silence, freezing, shutdown, masking, signals others misread |
+| 2 | How I Process Things | Sensory experience, how change lands, how information gets taken in, what overload looks and feels like |
+| 3 | What Helps | What the user needs to function — alone time, routine, environment, recovery, structure (non-negotiable, not preference) |
+| 4 | How I Show Up with People | How the user connects, handles conflict, shows care, what withdrawal and closeness look like from their side |
+| 5 | Where I'm Strong | What the user brings when conditions are right — strengths in context, not in isolation |
 
-Each layer can hold **1 component** (the core insight) and up to **2 patterns** (specific behavioral tendencies). A fully complete manual has 5 components and up to 10 patterns.
+Each layer can hold **1 component** (the integrated portrait) and up to **2 patterns** (specific recurring loops). A fully complete manual has 5 components and up to 10 patterns.
 
 ---
 

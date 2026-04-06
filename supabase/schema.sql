@@ -5,6 +5,9 @@ create extension if not exists "uuid-ossp";
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   display_name text,
+  -- Sage voice mode. Currently only 'autistic'. Null defaults to autistic.
+  -- Added in supabase/add-sage-mode.sql.
+  sage_mode text check (sage_mode is null or sage_mode in ('autistic')),
   created_at timestamptz default now() not null
 );
 

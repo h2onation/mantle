@@ -7,6 +7,7 @@ import ChatInput from "./ChatInput";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
+import { LAYER_NAMES } from "@/lib/manual/layers";
 
 const WELCOME_CHIPS = [
   "I have questions about how this works",
@@ -392,14 +393,6 @@ export default function MobileSession({
 
               // Checkpoint / Pattern card rendering
               if (isCheckpoint) {
-                const LAYER_NAMES: Record<number, string> = {
-                  1: "WHAT DRIVES YOU",
-                  2: "YOUR SELF PERCEPTION",
-                  3: "YOUR REACTION SYSTEM",
-                  4: "HOW YOU OPERATE",
-                  5: "YOUR RELATIONSHIP TO OTHERS",
-                };
-
                 const checkpointLayer = isPendingCheckpoint
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;

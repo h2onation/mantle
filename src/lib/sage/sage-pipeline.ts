@@ -14,6 +14,7 @@ import {
   applySlidingWindow,
   detectCrisisInUserMessage,
 } from "@/lib/sage/call-sage";
+import type { SageMode } from "@/lib/sage/system-prompt";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ export interface ConversationContext {
   turnCount: number;
   hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
+  sageMode: SageMode;
 }
 
 export interface CheckpointGateResult {
@@ -71,31 +73,46 @@ export async function loadConversationContext(
   conversationId: string,
   userId: string
 ): Promise<ConversationContext> {
-  const [historyResult, manualResult, extractionResult, lastCheckpointResult] =
-    await Promise.all([
-      admin
-        .from("messages")
-        .select("role, content, created_at")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true }),
-      admin
-        .from("manual_components")
-        .select("layer, type, name, content")
-        .eq("user_id", userId),
-      admin
-        .from("conversations")
-        .select("extraction_state, summary")
-        .eq("id", conversationId)
-        .single(),
-      admin
-        .from("messages")
-        .select("created_at")
-        .eq("conversation_id", conversationId)
-        .eq("is_checkpoint", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    historyResult,
+    manualResult,
+    extractionResult,
+    lastCheckpointResult,
+    profileResult,
+  ] = await Promise.all([
+    admin
+      .from("messages")
+      .select("role, content, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true }),
+    admin
+      .from("manual_components")
+      .select("layer, type, name, content")
+      .eq("user_id", userId),
+    admin
+      .from("conversations")
+      .select("extraction_state, summary")
+      .eq("id", conversationId)
+      .single(),
+    admin
+      .from("messages")
+      .select("created_at")
+      .eq("conversation_id", conversationId)
+      .eq("is_checkpoint", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("profiles")
+      .select("sage_mode")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
+
+  // Voice mode. Null/missing → 'autistic' (the only mode that ships in PR1).
+  // The seam exists so future modes can be added without re-plumbing.
+  const sageMode: SageMode =
+    (profileResult.data?.sage_mode as SageMode) || "autistic";
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -173,6 +190,7 @@ export async function loadConversationContext(
     turnCount,
     hasPatternEligibleLayer,
     checkpointApproaching,
+    sageMode,
   };
 }
 
@@ -194,6 +212,7 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     turnCount: ctx.turnCount,
     hasPatternEligibleLayer: ctx.hasPatternEligibleLayer,
     checkpointApproaching: ctx.checkpointApproaching,
+    sageMode: ctx.sageMode,
   };
 }
 

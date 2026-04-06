@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import type { BuildPromptOptions } from "@/lib/sage/system-prompt";
+import { LAYER_NAMES } from "@/lib/manual/layers";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
@@ -117,7 +118,7 @@ describe("buildSystemPrompt", () => {
           { layer: 1, type: "component", name: null, content: "Layer 1 content" },
         ],
       });
-      expect(result).toContain("What Drives You");
+      expect(result).toContain(LAYER_NAMES[1]);
     });
 
     it("renders layer 5 name correctly", () => {
@@ -126,7 +127,7 @@ describe("buildSystemPrompt", () => {
           { layer: 5, type: "component", name: null, content: "Layer 5 content" },
         ],
       });
-      expect(result).toContain("Your Relationship to Others");
+      expect(result).toContain(LAYER_NAMES[5]);
     });
 
     it("includes the name in quotes when component has a name", () => {
@@ -304,7 +305,7 @@ describe("buildSystemPrompt", () => {
         explorationContext: {
           type: "pattern",
           layerId: 3,
-          layerName: "Your Reaction System",
+          layerName: LAYER_NAMES[3],
           name: "The Shutdown Loop",
           content: "When challenged by authority, you freeze and withdraw.",
         },
@@ -318,7 +319,7 @@ describe("buildSystemPrompt", () => {
         explorationContext: {
           type: "component",
           layerId: 1,
-          layerName: "What Drives You",
+          layerName: LAYER_NAMES[1],
           content: "You need autonomy above all else. Control over your own direction.",
         },
       });
@@ -331,7 +332,7 @@ describe("buildSystemPrompt", () => {
         explorationContext: {
           type: "empty_layer",
           layerId: 4,
-          layerName: "How You Operate",
+          layerName: LAYER_NAMES[4],
           content: "This layer covers your working patterns and decision-making style.",
         },
       });
@@ -344,7 +345,7 @@ describe("buildSystemPrompt", () => {
         explorationContext: {
           type: "pattern",
           layerId: 2,
-          layerName: "Your Self Perception",
+          layerName: LAYER_NAMES[2],
           name: "The Fixer",
           content: "You default to fixing others.",
         },
