@@ -114,10 +114,12 @@ erDiagram
 
 ## The five layers
 
+> Canonical definitions: `src/lib/manual/layers.ts`
+
 | Layer | Name |
 |-------|------|
-| 1 | What Drives You |
-| 2 | Your Self Perception |
-| 3 | Your Reaction System |
-| 4 | How You Operate |
-| 5 | Your Relationship to Others |
+| 1 | Some of My Patterns |
+| 2 | How I Process Things |
+| 3 | What Helps |
+| 4 | How I Show Up with People |
+| 5 | Where I'm Strong |

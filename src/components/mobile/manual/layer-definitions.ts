@@ -1,4 +1,5 @@
 import type { ManualComponent } from "@/lib/types";
+import { LAYERS } from "@/lib/manual/layers";
 
 export interface Pattern {
   id: string;
@@ -19,33 +20,16 @@ export interface Layer {
   isNew?: boolean;
 }
 
-const LAYER_DEFINITIONS: Omit<Layer, "component" | "patterns">[] = [
-  {
-    id: 1,
-    name: "What Drives You",
-    about: "Your core needs and values \u2014 the things you organize your life around, often without realizing it. When these are met, you feel grounded. When they\u2019re threatened, your patterns activate.",
-  },
-  {
-    id: 2,
-    name: "Your Self Perception",
-    about: "How you see yourself \u2014 the beliefs you hold about who you are, what you deserve, and what you\u2019re capable of. These beliefs act as filters on everything you experience.",
-  },
-  {
-    id: 3,
-    name: "Your Reaction System",
-    about: "How you process pressure, conflict, and emotional intensity. The internal operating system that activates when things get difficult \u2014 your default responses before conscious choice kicks in.",
-  },
-  {
-    id: 4,
-    name: "How You Operate",
-    about: "Your functional patterns \u2014 how you think, decide, manage energy, and handle complexity. The day-to-day machinery of how you move through the world.",
-  },
-  {
-    id: 5,
-    name: "Your Relationship to Others",
-    about: "How you connect, communicate, build trust, and repair. The relational layer \u2014 how others actually experience you, and the patterns that play out between people.",
-  },
-];
+// Adapter from the canonical LAYERS definition (src/lib/manual/layers.ts) to
+// the shape this UI expects. The "about" field maps to LayerDefinition.description.
+// LAYERS is the source of truth — never hardcode layer names here.
+const LAYER_DEFINITIONS: Omit<Layer, "component" | "patterns">[] = LAYERS.map(
+  (l) => ({
+    id: l.id,
+    name: l.name,
+    about: l.description,
+  })
+);
 
 export function buildLayers(components: ManualComponent[]): Layer[] {
   return LAYER_DEFINITIONS.map((def) => {

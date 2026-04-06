@@ -2,6 +2,11 @@ import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import type { FetchedContent } from "@/lib/utils/fetch-url-content";
 import type { UrlDetection } from "@/lib/utils/url-detection";
+import { LAYER_NAMES } from "@/lib/manual/layers";
+
+/** Voice mode for Sage. Currently only 'autistic' ships, but the seam exists
+ *  so future voice modes can be added without re-plumbing the call chain. */
+export type SageMode = "autistic";
 
 interface ManualComponent {
   layer: number;
@@ -26,6 +31,8 @@ export interface BuildPromptOptions {
   turnCount: number;
   hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
+  /** Voice mode. Defaults to 'autistic' when omitted. */
+  sageMode?: SageMode;
   groupContext?: {
     mantleUserName: string | null;
     hasManualContext: boolean;
@@ -46,8 +53,13 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     turnCount,
     hasPatternEligibleLayer,
     checkpointApproaching,
+    sageMode = "autistic",
     groupContext,
   } = options;
+  // sageMode currently has only one value ('autistic'). The seam exists so
+  // PR2a/PR2b can branch voice content here without re-plumbing the call chain.
+  // Reference it so unused-var lints stay quiet.
+  void sageMode;
 
   // ─── Group chat prompt (completely separate from 1:1 Sage) ────────────
   if (groupContext) {
@@ -62,15 +74,8 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // ─── Manual contents ─────────────────────────────────────────────────────
   if (manualComponents.length > 0) {
     dynamicContext += "\nCONFIRMED MANUAL\n";
-    const layerNames: Record<number, string> = {
-      1: "What Drives You",
-      2: "Your Self Perception",
-      3: "Your Reaction System",
-      4: "How You Operate",
-      5: "Your Relationship to Others",
-    };
     for (const comp of manualComponents) {
-      dynamicContext += `Layer ${comp.layer} (${layerNames[comp.layer]}) — ${comp.type}`;
+      dynamicContext += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]}) — ${comp.type}`;
       if (comp.name) dynamicContext += ` — "${comp.name}"`;
       dynamicContext += `:\n${comp.content}\n\n`;
     }
@@ -650,15 +655,8 @@ MANUAL CONTEXT RULES:
 
 CONFIRMED MANUAL
 `;
-    const layerNames: Record<number, string> = {
-      1: "What Drives You",
-      2: "Your Self Perception",
-      3: "Your Reaction System",
-      4: "How You Operate",
-      5: "Your Relationship to Others",
-    };
     for (const comp of manualComponents) {
-      prompt += `Layer ${comp.layer} (${layerNames[comp.layer]}) — ${comp.type}`;
+      prompt += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]}) — ${comp.type}`;
       if (comp.name) prompt += ` — "${comp.name}"`;
       prompt += `:\n${comp.content}\n\n`;
     }

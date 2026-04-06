@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatExtractionForSage, type ExtractionState } from "@/lib/sage/extraction";
+import { LAYER_NAMES } from "@/lib/manual/layers";
 
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
   return {
@@ -61,11 +62,11 @@ describe("formatExtractionForSage", () => {
     it("renders all 5 layers with correct names", () => {
       const state = makeState();
       const result = formatExtractionForSage(state, false);
-      expect(result).toContain("L1 (What Drives You)");
-      expect(result).toContain("L2 (Your Self Perception)");
-      expect(result).toContain("L3 (Your Reaction System)");
-      expect(result).toContain("L4 (How You Operate)");
-      expect(result).toContain("L5 (Your Relationship to Others)");
+      // Assert against LAYER_NAMES (single source of truth) so this test
+      // never silently drifts when the canonical layer names change.
+      for (let i = 1; i <= 5; i++) {
+        expect(result).toContain(`L${i} (${LAYER_NAMES[i]})`);
+      }
     });
 
     it("includes material snippets (last 3) for layers with material", () => {
@@ -381,7 +382,7 @@ describe("formatExtractionForSage", () => {
         },
       });
       const result = formatExtractionForSage(state, false);
-      expect(result).toContain("L1 (What Drives You): explored [pattern mode]");
+      expect(result).toContain(`L1 (${LAYER_NAMES[1]}): explored [pattern mode]`);
     });
 
     it("does NOT show [pattern mode] when discovery_mode is 'component'", () => {

@@ -8,6 +8,18 @@ Key areas that drift:
 - New localStorage keys
 - Dead feature cleanup (e.g. removing `calibration_ratings` from schema)
 
+**2026-04-06 — ND pivot PR1: layer rename, extraction rewrite, sage_mode seam**
+- Layer names migrated from general framework to autism-specific: 1=Some of My Patterns, 2=How I Process Things, 3=What Helps, 4=How I Show Up with People, 5=Where I'm Strong.
+- New single source of truth: `src/lib/manual/layers.ts` exports `LAYERS`, `LAYER_NAMES`, `LAYER_COUNT`, `getLayer()`. Every consumer (extraction, system-prompt, classifier, confirm-checkpoint, mobile UI) now imports from this file. Hardcoded layer name records removed from 5 files.
+- `src/components/mobile/manual/layer-definitions.ts` refactored to map from `LAYERS`.
+- `extraction.ts` `EXTRACTION_SYSTEM` rewritten end-to-end: clinical framework guardrail at top, layer model interpolated from `LAYER_MODEL_BLOCK`, dimensions block built from `LAYERS`, language bank rewritten with autistic-specific categories (sensory/masking/shutdown/system/body/bind), depth tracking includes somatic, checkpoint gate references somatic/sensory, section-specific functional analysis chain framings (L1/2/4 standard, L3 needs-when-unmet, L5 conditions-for-activation), NO CLINICAL LANGUAGE rule, NEXT PROMPT prefers somatic.
+- `system-prompt.ts`: exported `SageMode = 'autistic'` type, added `sageMode?: SageMode` to `BuildPromptOptions` (defaults to 'autistic', threaded but not yet branched in PR1).
+- `sage-pipeline.ts` `loadConversationContext()` now fetches `profiles.sage_mode` in the parallel batch and threads it through `ConversationContext` and `buildPromptOptionsFromContext`.
+- New migration: `supabase/add-sage-mode.sql` adds `profiles.sage_mode text` with check constraint allowing only `'autistic'`. `schema.sql` reference dump updated.
+- Tests updated to assert against `LAYER_NAMES[N]` rather than literal strings (`extraction.test.ts`, `system-prompt.test.ts`).
+- Docs updated: `intent.md` rewritten for autism audience, `state.md` beta target updated, `decisions.md` adds ADR-028 (existing manual_components left in place), ADR-029 (layer name centralization), ADR-030 (sage_mode forward-compatible seam).
+- Voice content rewrite (autistic-specific language, tone, examples) is PR2a/PR2b.
+
 **2026-03-09 — Sage Opening: chip-based routing replaces seed text**
 - `SeedScreen.tsx`: Removed textarea and seed text storage. Now renders age checkbox + "Begin" button only.
 - `MainApp.tsx`: Removed seed handoff useEffect (no more sessionStorage seed text).

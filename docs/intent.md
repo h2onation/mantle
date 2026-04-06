@@ -8,19 +8,19 @@
 
 ## Product Thesis
 
-You have patterns you've never named. Mantle finds them.
+You've spent your life translating yourself for people who didn't have the manual. Mantle helps you write the one you needed.
 
-Think about the last time you had a reaction that surprised even you — where afterward you thought, why did that hit me so hard. That's knowable. There's a whole mechanic underneath it: a trigger, a reason it exists, why it keeps firing. But your conscious mind blinks away from its own machinery. You can feel the pattern — the same fight, the same avoidance, the same overreaction — but you can't see the wiring underneath it.
+Mantle is built for late-diagnosed autistic adults, ages 25 to 45. People who learned to function before they learned what was actually happening underneath. People who can describe the situation but not the wiring. People who've been told their behavior means one thing when it actually meant another — and have stopped trying to explain.
 
-And even when you get a glimpse — a moment of clarity in the shower, a realization at 2am — it's easy to lose. The insight fades. The pattern stays.
+The first audience is autism level 1 and AuDHD: high-masking, high-context, often articulate, often exhausted. People who recognize that what looks like resistance is recalculation, what looks like withdrawal is shutdown, what looks like a preference is a non-negotiable need. They have the experience. They don't always have language for it.
 
 People come to Mantle for three reasons, sometimes all at once:
 
-1. **They want to see their wiring.** Not a personality label. A mechanical explanation of how they actually work — what triggers them, what they do, what it costs, where it comes from.
-2. **They want to change.** They're tired of the same loops. The same fight, the same shutdown, the same overcorrection. They want to catch the pattern before it runs.
-3. **They have a situation right now.** Something happening with a partner, at work, with a parent. They need to think through it and they want something sharper than journaling and more available than therapy.
+1. **They want a map of their own system.** What actually happens in their body when plans change. Why certain rooms drain them. What "going offline" looks like from the inside. The mechanics, not the labels.
+2. **They want something they can hand to other people.** A manual that explains how they work, in their own language, without having to perform calm or translate themselves in real time.
+3. **They have a situation right now.** Sensory overload at work, a conflict with a partner, an exchange that didn't land. They need to think it through and they want something sharper than journaling and more available than therapy.
 
-Sage helps with all three in the same conversation. The situation is what brings someone in. The map is what keeps them coming back. And the accumulation — session 5 being sharper than session 1 because Sage remembers your patterns and connects them to new situations — is what no other tool can do.
+Sage helps with all three in the same conversation. The situation is what brings someone in. The map is what keeps them coming back. And the accumulation — session 5 being sharper than session 1 because Sage remembers their patterns and connects them to new situations — is what no other tool can do.
 
 The manual is not the pitch. It's the moat. Users discover its value through accumulation, not explanation.
 
@@ -40,13 +40,15 @@ Sage is grounded in three published clinical frameworks used as self-reflection 
 
 ## The Five-Layer Manual
 
-The manual is structured in five layers, each capturing a different dimension of how someone operates:
+> Canonical layer definitions live in `src/lib/manual/layers.ts` — single source of truth. Renaming a layer is a one-line change there. Do not duplicate layer names in other files.
 
-1. **What Drives You**: Core needs, motivations, what has to be present for things to work
-2. **Your Self-Perception**: How they see themselves, the gap between identity and behavior
-3. **Your Reaction System**: Coping strategies, protective patterns, what happens under stress
-4. **How You Operate**: Working style, decision-making patterns, how they move through the world
-5. **Your Relationship to Others**: Relational patterns, attachment behaviors, how they connect
+The manual is structured in five layers (also called sections in user-facing copy), each capturing a different dimension of how an autistic adult actually operates:
+
+1. **Some of My Patterns**: What behavior means when you can't explain it in the moment. Silence, freezing, shutdown, masking — the signals other people misread.
+2. **How I Process Things**: Sensory experience, how change lands, how information gets taken in, what overload looks and feels like.
+3. **What Helps**: What you need to function. Alone time, routine, environment, recovery, structure — and why these are non-negotiable, not preferences.
+4. **How I Show Up with People**: How you connect, handle conflict, show care. What withdrawal and closeness actually look like from your side.
+5. **Where I'm Strong**: What you bring when conditions are right. Strengths in context, not in isolation.
 
 Each layer can have 1 component (the integrated portrait, 150-250 words) and up to 2 patterns (specific recurring loops, 80-150 words each). Components always come first — they provide the frame that gives patterns meaning.
 
@@ -87,7 +89,7 @@ The intended experience: user describes a situation. Sage deepens into what's un
 
 ### Success Criteria
 
-After the build, recruit 10 users from Reddit communities (r/attachment_theory, r/SchemaTherapy, r/CPTSD, r/selfimprovement). People with active interpersonal situations, not casual browsers.
+After the build, recruit 10 late-diagnosed autistic adults, ages 25 to 45. People with an active situation they're trying to think through, not casual browsers. (Recruitment channels are a separate concern — the audience description here is the user we're building for, not where we find them.)
 
 **The test**: Do 3+ out of 10 return for a 3rd session unprompted within 2 weeks?
 
@@ -105,6 +107,6 @@ The retention mechanic is accumulation. The manual gets richer. Sage gets sharpe
 
 ## Sections to Add (flagged, not yet written)
 
-- **Target user profile**: Who this person is, what they've tried, where they are. Psychologically curious, has done some self-work, functional but stuck on the same loops, has a specific situation.
+- **Target user profile**: Late-diagnosed autistic adults, ages 25 to 45. Often AuDHD. High-masking, high-context, often articulate about other people but not themselves. Have learned to function before they learned what was happening underneath. Stuck explaining themselves to people who don't have the right frame.
 - **Competitive positioning**: What Mantle does that ChatGPT (no memory), therapy apps (scripted CBT), journaling apps (no pattern mapping), and personality tests (static snapshot) don't. The living manual and cross-session accumulation.
 - **Vision / north star**: Where this goes beyond Phase 2. Pattern collision maps between two people's manuals. Third-party perspectives in conversations. Real-time situation navigation. Not a roadmap, just a direction.
