@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-04-01*
+*Last verified: 2026-04-06*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -43,9 +43,10 @@
 - Session drawer text channel (2026-04-01): "Text with Sage" entry at top of session drawer aggregates all text messages across conversations. Shows TEXT badge, message count, latest preview. Read-only view (chat input disabled). Synthetic "text-channel" ID handled by conversations API and useChat hook.
 - Narrative presentation (2026-04-02): Static HTML pages at /narrative/ for investor/demo storytelling. Password gate (client-side, code: mantle2026) → product story walkthrough (Quinn & Riley scenario) → three fictional demo manuals (Quinn, Riley, shared operating guide). Five standalone HTML files in public/narrative/, no build dependencies. All cross-links use relative paths.
 - Group chat Sage (2026-04-01): Full group chat facilitation. Sage detects when added to iMessage groups via participant.added/chat.created webhooks. Identifies Mantle users by phone lookup (including owner_handle and sender_handle from Linq payloads), sends personalized intro. Facilitator system prompt (short, no advice, no sides, references manual for better questions). Scoring-based message gate (2026-04-03): emotional keywords (+3), engagement bids (+3), message length (+1/+2) — score >= 3 punches through counter immediately for vulnerability and questions; counter lowers threshold after 3 messages, auto-sends at 6+; 30-second cooldown prevents double-responding (direct address bypasses). Replaces old dumb counter. 21 unit tests. Sage can output [NO_RESPONSE] to stay quiet. Participant removal: farewell on Mantle user exit, API-verified group closing when last friend leaves, inactive group reminder (1x/24h). Re-detection: if a group was deactivated due to "no accounts" and a later message mentions Sage, detection re-runs to pick up newly linked phones. Hardened: 15s Sage timeout, phone unlink verification, structured cost logging, group conversations excluded from web app. No extraction, no checkpoints, no typing indicators in groups. Silent formation events (2026-04-01): chat.created and participant.added no longer send "no connected accounts" immediately — they save state silently and let message.received handle notifications, fixing duplicate intro race condition. Latency reduction (2026-04-03): prefetchGroupContext() loads conversation ID, phone, profile, manual in one parallel batch; counter update parallelized with prefetch; SEND path ~6→3 sequential round-trips, SKIP path ~7→2. Migration: last_sage_spoke_at column on linq_group_chats.
+- ND pivot PR1 (2026-04-06): Five manual layers renamed from general framework to autism-specific — 1=Some of My Patterns, 2=How I Process Things, 3=What Helps, 4=How I Show Up with People, 5=Where I'm Strong. New single source of truth at `src/lib/manual/layers.ts` (LAYERS, LAYER_NAMES, LAYER_COUNT, getLayer). Six consumers refactored to import from it — extraction, system-prompt, classifier, confirm-checkpoint, layer-definitions, MobileSession (checkpoint card label fix — it was still rendering the old names as a local record). Full `EXTRACTION_SYSTEM` rewrite with clinical framework guardrail, autistic-specific language bank (sensory/masking/shutdown/system/body/bind), somatic depth tracking, section-specific functional analysis chain framings (L1/2/4 standard, L3 needs-when-unmet, L5 conditions-for-activation), NO CLINICAL LANGUAGE rule. New `SageMode = 'autistic'` type and `profiles.sage_mode` column threaded through `ConversationContext` → `BuildPromptOptions` → `buildSystemPrompt` as a forward-compatible seam for future voice modes. Migration `supabase/add-sage-mode.sql` must be applied to each Supabase project before deploy. Docs: intent.md rewritten for autism audience; decisions.md adds ADR-028 (legacy manual_components left in place), ADR-029 (layer SSOT), ADR-030 (sage_mode seam). Voice content rewrite (tone, examples, voice-specific rules) ships in PR2a/PR2b.
 
 ## Not Yet Functional
-*Last verified: 2026-04-01*
+*Last verified: 2026-04-06*
 
 - **Guidance tab**: Locked until 1 confirmed component. Unlocked state is placeholder only.
 - **"Still true?" label**: Visible on manual components but no click handler
@@ -61,7 +62,7 @@
 - ~~**OAuth session leak (FIXED 2026-03-25)**: Auth callback responses could be cached by Vercel CDN, causing one user to receive another user's session cookies on OAuth redirect. Additionally, client hooks (useChat, useIsAdmin) used `getSession()` which reads from cache without server validation. Fix: added `force-dynamic` + `Cache-Control: no-store` to auth callback, replaced all client-side `getSession()` with `getUser()`.~~
 
 ## In-Flight Work
-*Last verified: 2026-04-01*
+*Last verified: 2026-04-06*
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
@@ -74,13 +75,14 @@
 - Sage prompt tuning (2026-03-25): Two fixes from fourth audit — no-declare-reframe hard rule (convert "The difficulty isn't X, it's Y" to questions), no-name-before-scene hard rule (block mechanism naming until user narrates a specific moment). Short-answer protocol strengthened to mandatory.
 - Sage prompt tuning (2026-03-30): Thirteen fixes from fifth and sixth audits across three evaluation sessions. Abstract stacking: added concrete violation example. Reframe rule: added three WRONG/RIGHT examples. Other-person inner state: upgraded to HARD RULE with example conversion to question. Confirmation questions: banned closed questions that confirm Sage's own hypothesis. Gender: added gender-assumption guard (default to "you"/"they"). Checkpoint delivery: formalized 4-step delivery sequence with violation checks, raised observation minimum to 5-8 sentences, added bind requirement. Checkpoint gating: block checkpoint when user expresses uncertainty about generalization, treat "help me think through it" as exploration invitation not checkpoint permission.
 - PWA Phase 1+2 (2026-03-30): Installable app (manifest, icons, meta tags) + service worker (offline fallback, asset caching, update prompt). No npm dependencies added. Phase 3 (standalone polish, auth flow testing, splash screens) pending device QA.
+- ND pivot (2026-04-06): PR1 shipped (layer rename, extraction rewrite, sage_mode seam, layer SSOT). PR2a/PR2b (Sage voice content rewrite — autistic-specific tone, examples, voice-specific rules in system-prompt.ts and rules.md) next. PR3 (user-facing "section" rename and any remaining UI polish) after that. Migration `supabase/add-sage-mode.sql` must be applied to Supabase before the merged code runs against production data.
 - [Jeff to add: any other active workstreams]
 
 ## Beta Users
 *Last verified: 2026-03-15*
 
 - [Jeff to fill: current beta user count, any active testers, recruitment status]
-- Target: 10 users from Reddit (r/attachment_theory, r/SchemaTherapy, r/CPTSD, r/selfimprovement)
+- Target: 10 late-diagnosed autistic adults, ages 25 to 45 (often AuDHD). Audience defined by demographic and lived experience, not by recruitment channel.
 - Success metric: 3+ out of 10 return for 3rd session unprompted within 2 weeks
 
 ## Test Suite
