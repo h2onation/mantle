@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
 import type { BuildPromptOptions } from "@/lib/sage/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
+import {
+  VOICE_RULES,
+  BANNED_PHRASES,
+  EXAMPLE_REGISTER,
+} from "@/lib/sage/voice-autistic";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
@@ -526,9 +531,9 @@ describe("buildSystemPrompt", () => {
 
   // ─── New content blocks ──────────────────────────────────────────────────
   describe("new content blocks", () => {
-    it("always contains ENCOURAGE DEPTH text", () => {
+    it("always contains SHORT ANSWERS walkthrough invitation", () => {
       const result = build();
-      expect(result).toContain("Give me the full version");
+      expect(result).toContain("Can you walk me through what happened, step by step?");
     });
 
     it("always contains DEEPENING MOVES scene-invitation guidance", () => {
@@ -539,6 +544,160 @@ describe("buildSystemPrompt", () => {
     it("BUILDING TOWARD SIGNAL contains signal-naming instruction when present", () => {
       const result = build({ checkpointApproaching: true });
       expect(result).toContain("There's a thread running through everything you've described");
+    });
+  });
+
+  // ─── PR2a voice content (autistic mode) ────────────────────────────────
+  //
+  // These tests assert that the single-source-of-truth voice content in
+  // src/lib/sage/voice-autistic.ts appears verbatim in the prompt. Never
+  // duplicate strings between the test and the voice file — if a rule or
+  // banned phrase is missing from the prompt, the test should fail via the
+  // imported constant, not a hardcoded literal.
+  describe("PR2a: autistic voice content", () => {
+    describe("clinical framework guardrail", () => {
+      it("contains CLINICAL FRAMEWORK GUARDRAIL section header", () => {
+        const result = build();
+        expect(result).toContain("CLINICAL FRAMEWORK GUARDRAIL");
+      });
+
+      it("instructs never to reference Schema/Attachment/Functional Analysis by name", () => {
+        const result = build();
+        expect(result).toContain("Schema Therapy");
+        expect(result).toContain("Attachment Theory");
+        expect(result).toContain("Functional Analysis");
+        expect(result).toContain("never reference these frameworks by name");
+      });
+
+      it("contains clinical-to-behavioral rewrite examples", () => {
+        const result = build();
+        expect(result).toContain("fear of abandonment");
+        expect(result).toContain("emotional avoidance");
+      });
+
+      it("guardrail lives inside LEGAL BOUNDARIES (override authority)", () => {
+        const result = build();
+        const legalIdx = result.indexOf("LEGAL BOUNDARIES");
+        const guardrailIdx = result.indexOf("CLINICAL FRAMEWORK GUARDRAIL");
+        expect(legalIdx).toBeGreaterThanOrEqual(0);
+        expect(guardrailIdx).toBeGreaterThan(legalIdx);
+      });
+    });
+
+    describe("voice rules from voice-autistic.ts", () => {
+      it("contains VOICE RULES section header", () => {
+        const result = build();
+        expect(result).toContain("VOICE RULES");
+      });
+
+      it("contains every entry from VOICE_RULES (single source of truth)", () => {
+        const result = build();
+        expect(VOICE_RULES.length).toBeGreaterThan(0);
+        for (const rule of VOICE_RULES) {
+          expect(result).toContain(rule);
+        }
+      });
+
+      it("renders voice rules as numbered list", () => {
+        const result = build();
+        // First rule should be "1. <rule>"
+        expect(result).toContain(`1. ${VOICE_RULES[0]}`);
+        // Last rule should be "<n>. <rule>"
+        expect(result).toContain(`${VOICE_RULES.length}. ${VOICE_RULES[VOICE_RULES.length - 1]}`);
+      });
+
+      it("OLD voice headline 'Warm but precise' is gone", () => {
+        const result = build();
+        expect(result).not.toContain("Warm but precise");
+        expect(result).not.toContain("The edge is honesty, not softness");
+      });
+    });
+
+    describe("banned phrases from voice-autistic.ts", () => {
+      it("contains BANNED PHRASES section header", () => {
+        const result = build();
+        expect(result).toContain("BANNED PHRASES");
+      });
+
+      it("contains every entry from BANNED_PHRASES (single source of truth)", () => {
+        const result = build();
+        expect(BANNED_PHRASES.length).toBeGreaterThan(0);
+        for (const phrase of BANNED_PHRASES) {
+          expect(result).toContain(phrase);
+        }
+      });
+
+      it("contains the generic-chatbot principle line", () => {
+        const result = build();
+        expect(result).toContain("If the sentence could come from a generic therapy chatbot");
+      });
+    });
+
+    describe("example register from voice-autistic.ts", () => {
+      it("contains EXAMPLE REGISTER section header", () => {
+        const result = build();
+        expect(result).toContain("EXAMPLE REGISTER");
+      });
+
+      it("contains every example utterance", () => {
+        const result = build();
+        for (const { line } of EXAMPLE_REGISTER) {
+          expect(result).toContain(line);
+        }
+      });
+    });
+
+    describe("somatic-first deepening", () => {
+      it("CONVERSATION APPROACH defaults to body/situational over emotional", () => {
+        const result = build();
+        expect(result).toContain("what did your body do");
+        expect(result).toContain("Default to somatic and situational questions before emotional ones");
+      });
+
+      it("SHORT ANSWERS protocol uses walkthrough framing, not patronizing language", () => {
+        const result = build();
+        expect(result).toContain("Direct and brief is a valid mode");
+        expect(result).toContain("Never patronize");
+        // Removed patronizing language from old version
+        expect(result).not.toContain("You're being honest but concise");
+      });
+    });
+
+    describe("structural snapshot", () => {
+      // Ordered list of top-level section headers that must appear in the
+      // default prompt in this order. If PR2b (or any future edit) accidentally
+      // deletes a section, this snapshot catches it. Update this list
+      // deliberately — a diff here should be a conscious decision.
+      const EXPECTED_SECTIONS = [
+        "VOICE",
+        "VOICE RULES",
+        "BANNED PHRASES",
+        "EXAMPLE REGISTER",
+        "LEGAL BOUNDARIES",
+        "CLINICAL FRAMEWORK GUARDRAIL",
+        "HARD RULES",
+        "CLINICAL MATERIAL IN CONVERSATION",
+        "CHECKPOINT LANGUAGE",
+        "PROFESSIONAL REFERRAL",
+        "CRISIS PROTOCOL",
+        "CONVERSATION APPROACH",
+        "DEEPENING MOVES",
+        "FIRST MESSAGE",
+        "SHORT ANSWERS",
+      ];
+
+      it("all expected sections appear in order in the default prompt", () => {
+        const result = build({ turnCount: 1 });
+        let cursor = 0;
+        for (const section of EXPECTED_SECTIONS) {
+          const idx = result.indexOf(section, cursor);
+          expect(
+            idx,
+            `Section "${section}" missing or out of order (cursor=${cursor})`
+          ).toBeGreaterThanOrEqual(cursor);
+          cursor = idx + section.length;
+        }
+      });
     });
   });
 });
