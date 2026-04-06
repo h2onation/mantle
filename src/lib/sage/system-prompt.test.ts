@@ -71,7 +71,7 @@ describe("buildSystemPrompt", () => {
     it("contains checkpoint language guidance", () => {
       const result = build();
       expect(result).toContain("CHECKPOINT LANGUAGE");
-      expect(result).toContain("write behavior not labels");
+      expect(result).toContain("write behavior and body not labels");
     });
 
     it("contains professional referral guidance", () => {
@@ -663,6 +663,138 @@ describe("buildSystemPrompt", () => {
       });
     });
 
+    // ─── PR2b: Sage voice mechanics layer ────────────────────────────────
+    describe("PR2b: sage voice mechanics (checkpoint composition)", () => {
+      // Build with checkpoint instructions turned on so the delivery sequence,
+      // composition voice, manual entry format, and self-check blocks render.
+      function buildCheckpointMode() {
+        return build({ checkpointApproaching: true, turnCount: 5 });
+      }
+
+      describe("CHECKPOINT LANGUAGE block is ND-rewritten", () => {
+        it("still contains the CHECKPOINT LANGUAGE header", () => {
+          expect(buildCheckpointMode()).toContain("CHECKPOINT LANGUAGE");
+        });
+
+        it("preserves the user's sensory words verbatim rule", () => {
+          const result = buildCheckpointMode();
+          expect(result).toContain('"Too loud" stays "too loud."');
+          expect(result).toContain('"Buzzing" stays "buzzing."');
+          expect(result).toContain('"Went offline" stays "went offline."');
+        });
+
+        it("does not contain the old clinical examples", () => {
+          const result = buildCheckpointMode();
+          expect(result).not.toContain("avoidant attachment");
+          expect(result).not.toContain("emotional dysregulation");
+        });
+
+        it("uses autism-resonant rewrite examples", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/second version of you switches on/i);
+        });
+      });
+
+      describe("CHECKPOINT DELIVERY SEQUENCE requires somatic anchoring", () => {
+        it("observation step names body/somatic anchoring as required", () => {
+          const result = buildCheckpointMode();
+          // The observation item (step 2) must mention body or somatic anchoring
+          expect(result).toMatch(/anchor in (their|the) body/i);
+        });
+
+        it("flags a bodiless checkpoint as too cerebral", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/no body in it|too cerebral|bodiless/i);
+        });
+      });
+
+      describe("CHECKPOINT COMPOSITION VOICE is ND-specific", () => {
+        it("contains the header", () => {
+          expect(buildCheckpointMode()).toContain("CHECKPOINT COMPOSITION VOICE");
+        });
+
+        it("contains autism-resonant WRONG/RIGHT example (masking)", () => {
+          const result = buildCheckpointMode();
+          // WRONG version labels "masking" as a behavior
+          expect(result).toMatch(/engage in masking behaviors/i);
+          // RIGHT version describes the second-version mechanism
+          expect(result).toMatch(/a second version of you switches on/i);
+          expect(result).toMatch(/your jaw is buzzing/i);
+        });
+
+        it("does not contain the old non-autistic examples", () => {
+          const result = buildCheckpointMode();
+          expect(result).not.toContain("You grew up in a house");
+          expect(result).not.toContain("track uncertainty in your relationship");
+          expect(result).not.toContain("need to understand in order to feel safe");
+        });
+
+        it("THIN example uses clinical autism-framework labels (to show as anti-pattern)", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/You mask to fit in at work/);
+        });
+
+        it("LANDED example uses sensory and system words verbatim", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/buzzing starts in your jaw/i);
+          expect(result).toMatch(/can't talk, can't cook, can't answer a text/i);
+          expect(result).toMatch(/dark room/i);
+        });
+      });
+
+      describe("Five principles include somatic anchoring", () => {
+        it("has a principle named 'Anchor in the body'", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/Anchor in the body/i);
+        });
+
+        it("names specific sensory words as required carry-throughs", () => {
+          const result = buildCheckpointMode();
+          // The principles should explicitly list sensory vocabulary
+          expect(result).toMatch(/buzzing/);
+          expect(result).toMatch(/shut down/);
+          expect(result).toMatch(/too loud/);
+        });
+
+        it("forbids translation into clinical terms in the principles", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/Do not translate/i);
+        });
+      });
+
+      describe("MANUAL ENTRY FORMAT rules require somatic anchor", () => {
+        it("makes somatic anchor explicitly required", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/Somatic anchor required/i);
+        });
+
+        it("bans clinical framework names in manual entries", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/No clinical framework names/i);
+          // A few specific ones should be called out
+          expect(result).toMatch(/executive dysfunction/);
+          expect(result).toMatch(/rejection sensitive dysphoria/i);
+        });
+
+        it("pattern format mentions body in the chain", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/trigger → body\/internal → response → payoff → cost/i);
+        });
+      });
+
+      describe("CHECKPOINT SELF-CHECK adds a body-anchor check", () => {
+        it("mentions verify all five", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/verify all five/i);
+        });
+
+        it("has a check for somatic anchor in the entry itself", () => {
+          const result = buildCheckpointMode();
+          expect(result).toMatch(/somatic anchor in the entry/i);
+        });
+      });
+    });
+
     describe("structural snapshot", () => {
       // Ordered list of top-level section headers that must appear in the
       // default prompt in this order. If PR2b (or any future edit) accidentally
@@ -690,6 +822,29 @@ describe("buildSystemPrompt", () => {
         const result = build({ turnCount: 1 });
         let cursor = 0;
         for (const section of EXPECTED_SECTIONS) {
+          const idx = result.indexOf(section, cursor);
+          expect(
+            idx,
+            `Section "${section}" missing or out of order (cursor=${cursor})`
+          ).toBeGreaterThanOrEqual(cursor);
+          cursor = idx + section.length;
+        }
+      });
+
+      // Checkpoint-mode sections only render when checkpoint instructions are
+      // active. Verify those appear in order too.
+      const EXPECTED_CHECKPOINT_SECTIONS = [
+        "MANUAL ENTRY FORMAT",
+        "CHECKPOINTS",
+        "CHECKPOINT DELIVERY SEQUENCE",
+        "CHECKPOINT COMPOSITION VOICE",
+        "CHECKPOINT SELF-CHECK",
+      ];
+
+      it("all checkpoint-mode sections appear in order when checkpointApproaching is true", () => {
+        const result = build({ checkpointApproaching: true, turnCount: 5 });
+        let cursor = 0;
+        for (const section of EXPECTED_CHECKPOINT_SECTIONS) {
           const idx = result.indexOf(section, cursor);
           expect(
             idx,

@@ -208,13 +208,14 @@ Generate a short placeholder phrase (3-6 words, lowercase, ending with "...") fo
 Examples: "what happened after that..." / "what did your body do..." / "when did this start..." / "what stopped you..." / "what was the input like..."
 
 6. SAGE BRIEF
-Write a short paragraph (3-5 sentences) orienting Sage:
-- What the user is actually describing underneath the surface topic (in behavioral or somatic terms — never clinical labels)
+Write a short paragraph (3-5 sentences) orienting Sage. The brief feeds directly into Sage's next turn and into the manual entry if a checkpoint lands, so its vocabulary has to be the user's own:
+- What the user is actually describing underneath the surface topic (in behavioral and somatic terms — what their body did, what their system was doing, what the input was like — never clinical labels)
+- Which of the user's exact sensory or system words are load-bearing (e.g. "buzzing," "too loud," "went offline," "shut down," "went still," "full," "tight"). Name them so Sage can carry them forward verbatim.
 - What the most charged or unresolved piece is
 - What Sage should push on vs leave alone
-- Whether a checkpoint is approaching and what it would cover
+- Whether a checkpoint is approaching and what body and bind it would anchor on
 
-Use the user's own language wherever possible. If you reach for a clinical word ("anxiety," "trauma," "avoidance"), stop and rewrite using what the user actually said.
+Use the user's own language wherever possible. If you reach for a clinical word ("anxiety," "trauma," "avoidance," "dysregulation," "masking," "sensory overwhelm"), stop and rewrite using what the user actually said. "Masking" becomes "the version of you that switches on in rooms." "Sensory overwhelm" becomes "too much input, jaw started buzzing." If the user did not describe a body response, the brief should flag that gap — Sage needs to ask about the body before a checkpoint can land.
 
 7. CLINICAL FLAG
 A lightweight signal that tells Sage when to engage legal guardrails. Two levels:
