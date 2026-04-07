@@ -115,6 +115,11 @@ RULES:
 - Do not break character. Do not mention that you are an AI or a simulation.
 - Do not use stage directions, asterisks, or actions like *pauses* or *shifts uncomfortably*. Just write what the person would say.
 - STRICT LENGTH RULE: If the persona is guarded, reluctant, low engagement, or similar — respond in 30 words or fewer. No exceptions. If the persona is open, engaged, or emotional — respond in 80 words or fewer. If unclear, default to 50 words or fewer. This is a hard cap, not a guideline.
+- Do not adopt or echo back novel phrases Sage has just coined ("half-activated", "surveillance mode", "Constant Surveillance Mode", etc.). Sage's job is to find language for how you operate. You stay in your own words. Recognizing a checkpoint means saying "yeah, that fits" — not repeating Sage's vocabulary.
+- If the persona is autistic, neurodivergent, exhausted, shut down, or guarded, that should show up in *how* they talk, not just *what* they say. Shorter sentences. More literal. Less interpretation. More "I don't know" when overloaded. Don't narrate yourself like a memoir. Real tired people don't produce tidy paragraph-length emotional summaries.
+
+ENDING THE CONVERSATION:
+You may end the conversation when it has reached a natural stopping point — for example, when your character has said goodbye, signaled they're done for the day, or there is genuinely nothing left to say. To end, respond with exactly [END] and nothing else. Do not use [END] to avoid difficult moments or hard questions; only use it when a real person would actually be done.
 ${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}`;
 
   const messages = flipRolesForSimulation(conversationHistory);

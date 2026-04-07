@@ -179,6 +179,17 @@ export async function POST(request: Request) {
             history
           );
 
+          // Natural session end: Haiku decided the conversation is over.
+          if (userMessage.trim() === "[END]") {
+            emit(controller, {
+              type: "turn",
+              turn,
+              conversationId,
+              preview: "[END]",
+            });
+            break;
+          }
+
           emit(controller, {
             type: "turn",
             turn,

@@ -129,9 +129,15 @@ export default function MobileSession({
   }
 
   const hasMessages = messages.length > 0;
-  const hasAssistantMessage = messages.some(m => m.role === "assistant");
 
-  // Welcome block — shown to new users (no confirmed manual entries)
+  // Welcome block — shown to new users (no confirmed manual entries).
+  // The paragraph explanation persists as the first Sage message in the
+  // conversation; only the transition line and chips hide once any message
+  // is sent.
+  const showWelcomePanel =
+    !firstSessionCompleted &&
+    sessionOrigin === "new" &&
+    confirmedComponents.length === 0;
   const showChips = chipsVisible && !hasMessages;
   const welcomeBlock = (
     <div
@@ -163,9 +169,14 @@ export default function MobileSession({
         <p style={{ margin: "0 0 12px 0" }}>
           <strong style={{ fontWeight: 600 }}>Write to your manual directly.</strong> If you already know something about how you work, you can start there. Something like &ldquo;I spend a lot of energy managing social situations and most people don&rsquo;t realize it.&rdquo;
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: showChips ? "0 0 12px 0" : 0 }}>
           <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. Sage will help organize what you&rsquo;re saying and surface patterns as they come up.
         </p>
+        {showChips && (
+          <p style={{ margin: 0 }}>
+            There is no wrong place to start. Start typing or select one of the following.
+          </p>
+        )}
       </div>
       {showChips && (
         <div style={{
@@ -363,9 +374,10 @@ export default function MobileSession({
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
-          {/* State 1: First-time user welcome (once ever) */}
-          {!firstSessionCompleted && sessionOrigin === "new" && hasMessages && !hasAssistantMessage && welcomeBlock}
-          {!firstSessionCompleted && sessionOrigin === "new" && !hasMessages && !isLoading && welcomeBlock}
+          {/* State 1: First-time user welcome — persists as the first Sage
+              message in the conversation. Renders above all messages so it
+              never reorders relative to user/Sage turns. */}
+          {showWelcomePanel && welcomeBlock}
 
           {/* State 2: Returning user, new session */}
           {firstSessionCompleted && sessionOrigin === "new" && !hasMessages && !isLoading && (
@@ -709,10 +721,6 @@ export default function MobileSession({
 
               // Sage message — tinted bubble with serif text
               if (!isUser) {
-                // First-session welcome block: show above Sage's first message
-                const isFirstAssistant = !messages.slice(0, i).some(m => m.role === "assistant");
-                const showWelcomeBlock = isFirstAssistant && confirmedComponents.length === 0;
-
                 const sagePanel = (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -766,15 +774,6 @@ export default function MobileSession({
                     </div>
                   </div>
                 );
-
-                if (showWelcomeBlock) {
-                  return (
-                    <>
-                      {welcomeBlock}
-                      {sagePanel}
-                    </>
-                  );
-                }
 
                 return sagePanel;
               }
