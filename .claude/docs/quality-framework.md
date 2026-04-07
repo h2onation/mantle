@@ -53,7 +53,7 @@ Minor = style deviation.
 - [ ] **Title**: Uses metaphor, "The [Noun]" formula, or outside 4-8 words. Should describe mechanism in plain language.
 - [ ] **Title positioning**: Delivered before observation instead of last.
 - [ ] **Missing validation question**: Didn't ask "what would you change or sharpen?" or equivalent.
-- [ ] **Framing inside card**: |||MANUAL_ENTRY||| block contains framing, validation questions, or anything other than polished manual text.
+- [ ] **Framing inside card**: Quality checks are enforced server-side via `validateMaterialQuality` (pre-emit gate) and `validateComposedEntry` (post-composition validator). The composed manual entry should contain only polished manual text — no framing, validation questions, or meta-commentary.
 - [ ] **Cross-layer**: Single checkpoint spans multiple layers.
 - [ ] **Refinement as new**: Presented refinement of confirmed content as a new checkpoint.
 - [ ] **Type mismatch**: Used "pattern" on a layer with no confirmed component.

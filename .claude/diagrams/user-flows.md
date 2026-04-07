@@ -19,11 +19,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[User and Sage are in conversation] --> B{Sage detects<br/>checkpoint-worthy moment}
-    B -- "Path A: Sage composes inline" --> C["Sage includes |||MANUAL_ENTRY||| block<br/>(suppressed from user view)"]
-    B -- "Path B: Haiku detects post-stream" --> D["Haiku classifier flags checkpoint<br/>Sonnet composes polished entry"]
-    C --> E["Checkpoint card appears inline in chat"]
-    D --> E
+    A[User and Sage are in conversation] --> B[Sage responds]
+    B --> D["Haiku classifier flags candidate turn<br/>Sonnet composes polished entry server-side"]
+    D --> E["Checkpoint card appears inline in chat"]
     E --> F{User response}
     F -- Confirm --> G["Entry saved to manual_components"]
     G --> H["System message logged:<br/>'User confirmed the checkpoint'"]

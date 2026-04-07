@@ -210,11 +210,11 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("FIRST MESSAGE");
     });
 
-    it("contains chip-based routing instructions for all three paths", () => {
+    it("contains chip-based routing instructions for all three options", () => {
       const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("PATH A");
-      expect(result).toContain("PATH B");
-      expect(result).toContain("PATH C");
+      expect(result).toContain("OPTION A");
+      expect(result).toContain("OPTION B");
+      expect(result).toContain("OPTION C");
       expect(result).toContain("CONVERGENCE");
     });
 
