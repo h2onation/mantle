@@ -31,9 +31,7 @@ flowchart TD
     CP -- "object" --> CPDATA["isCheckpoint: true<br/>layer: 1-5<br/>type: component|pattern<br/>name: string"]
     MC --> PT["processingText: tracking phrase"]
     MC --> NP["nextPrompt: placeholder hint"]
-    MC --> CC{"cleanContent: string or null"}
-    CC -- "non-null" --> DELIM["Delimiter was found —<br/>this is the text WITHOUT<br/>the |||MANUAL_ENTRY||| block"]
-    CC -- "null" --> FULL["No delimiter —<br/>full text already shown"]
+    MC --> CC["cleanContent: full Sage response<br/>(checkpoints are always composed<br/>server-side after the classifier flags them)"]
 ```
 
 ## Error handling
