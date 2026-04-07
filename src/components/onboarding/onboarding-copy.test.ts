@@ -83,6 +83,14 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("mantle_onboarding_completed");
     });
 
+    it("clears first-session flags before creating a fresh anonymous user", () => {
+      // Prevents a browser that previously completed a first session from
+      // treating a brand-new anonymous user as returning and skipping the
+      // welcome block with chips.
+      expect(src).toContain('removeItem("mantle_first_session_completed")');
+      expect(src).toContain('removeItem("mantle_signin_banner_dismissed")');
+    });
+
     it("does NOT contain old 'works best when' headline", () => {
       expect(src).not.toContain("works best when you");
     });
