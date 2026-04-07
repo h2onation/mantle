@@ -104,6 +104,7 @@ export default function PrivacyPolicy() {
             product experience.
           </li>
         </ul>
+        <p>Your conversations are not used to train AI models.</p>
         <p>
           We do not sell your personal information. We do not share your data
           with third parties for marketing purposes.
@@ -130,9 +131,9 @@ export default function PrivacyPolicy() {
           are stored in Supabase, a cloud database provider.
         </p>
         <p>
-          <strong>Twilio:</strong> if you use the MMS feature, your phone number
-          and message content are transmitted through Twilio&apos;s messaging
-          infrastructure.
+          <strong>SMS/MMS provider:</strong> if you use the text messaging
+          feature, your phone number and message content are transmitted through
+          our SMS infrastructure provider.
         </p>
         <p>
           <strong>Vercel:</strong> the application is hosted on Vercel&apos;s
@@ -159,6 +160,24 @@ export default function PrivacyPolicy() {
           account is active. You can delete your account at any time through the
           app&apos;s Settings, which removes all associated data including
           conversations, manual entries, and linked phone numbers.
+        </p>
+        <p>You can export your manual at any time through the app.</p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
+          Sharing
+        </h2>
+        <p>
+          When you share your manual, the recipient can view the sections you
+          chose to share. You control what is visible. You can revoke access at
+          any time. Revoking access removes the recipient&apos;s ability to view
+          your manual. Recipients cannot modify your manual.
         </p>
 
         <h2
