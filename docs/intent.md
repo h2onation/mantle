@@ -50,7 +50,7 @@ The manual is structured in five layers (also called sections in user-facing cop
 4. **How I Show Up with People**: How you connect, handle conflict, show care. What withdrawal and closeness actually look like from your side.
 5. **Where I'm Strong**: What you bring when conditions are right. Strengths in context, not in isolation.
 
-Each layer can have 1 component (the integrated portrait, 150-250 words) and up to 2 patterns (specific recurring loops, 80-150 words each). Components always come first — they provide the frame that gives patterns meaning.
+Each layer can hold many entries (80-300 words each, dense flowing prose). There is no per-layer cap and no type discriminator — Sage writes to a layer whenever there is something worth writing.
 
 *Note: The five-layer structure is the current architecture but may evolve as the product matures. See decisions.md ADR-015 for the rationale behind the current design.*
 

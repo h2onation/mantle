@@ -17,8 +17,8 @@ User message
       → EXTRACTION (Sonnet): analyzes the message, updates research brief, saves for NEXT turn
       → SAGE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
   → After Sage finishes:
-      → If Sage included a |||MANUAL_ENTRY||| block → skip classifier (Path A)
-      → If not → run CLASSIFIER (Haiku) to check if response was a checkpoint (Path B)
+      → CLASSIFIER (Haiku) decides if the response is a checkpoint
+      → If checkpoint: composeManualEntry (Sonnet) writes the polished entry server-side
   → message_complete event sent to frontend
 ```
 
@@ -44,9 +44,9 @@ All Sage decision logic lives here and is imported by both paths:
 - `buildCheckpointMeta()` — checkpoint metadata shape
 - `insertCheckpointActionMessage()` — canonical system messages for confirm/reject/refine
 
-Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `parseManualEntryBlock()`, `detectCrisisInUserMessage()`.
+Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
 
-Checkpoint detection uses the same two paths on both channels: Path A (Sage outputs `|||MANUAL_ENTRY|||` block) and Path B (classifier fallback + Sonnet composition via `composeManualEntry()`).
+Checkpoint detection runs on both channels via the same flow: Haiku classifier on every Sage response, then `composeManualEntry()` (Sonnet) when a checkpoint is detected.
 
 ### What differs by channel (intentional)
 
@@ -76,7 +76,6 @@ The extraction layer is a Sonnet call that runs per turn and produces a structur
 - **Layer signals**: Per-layer progress from `none` → `emerging` → `explored` → `checkpoint_ready`. Only advances forward. Resets on a layer only after a checkpoint is confirmed on that layer.
 - **Depth tracking**: Where the conversation currently sits — surface, behavior, feeling, mechanism, origin.
 - **Checkpoint gate**: Quality assessment of whether enough material exists for a meaningful checkpoint. Based on material quality (concrete examples, mechanism, charged language), NOT turn count.
-- **Pattern tracking**: When a layer's component is confirmed and the layer flips to pattern mode, extraction tracks chain elements (trigger, response, payoff, cost, internal experience) and a recurrence count.
 - **Mode recommendation**: situation_led (default), direct_exploration (2+ layers confirmed), synthesis (all 5 confirmed). See rules.md "Conversation Modes" for what Sage does in each mode.
 - **Sage brief**: 3-5 sentence field note orienting Sage for its next response.
 - **Next prompt**: 3-6 word placeholder hint for the text input field.
@@ -95,8 +94,8 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
     [layerId]: {
       signal: "none" | "emerging" | "explored" | "checkpoint_ready",
       material: string[],
-      dimensions: string[],
-      discovery_mode: "component" | "pattern"
+      examples: string[],
+      dimensions: string[]
     }
   },
   language_bank: [                   // cumulative across session
@@ -106,21 +105,12 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
   current_thread: string,            // one-sentence summary of what's underneath
   mode: "situation_led" | "direct_exploration" | "synthesis",
   checkpoint_gate: {
-    ready: boolean,
-    strongest_layer: number | null,
-    target_type: "component" | "pattern",
-    // ... criteria booleans (has_concrete_examples, has_mechanism, etc.)
+    concrete_examples: number,
+    has_mechanism: boolean,
+    has_charged_language: boolean,
+    has_behavior_driver_link: boolean,
+    strongest_layer: number | null
   },
-  pattern_tracking: {
-    active: boolean,
-    layer: number | null,
-    label: string,
-    chain_elements: string[],        // populated elements
-    recurrence_count: number
-  },
-  confirmed_patterns: [              // archived after pattern confirmation
-    { layer: number, name: string, chain_elements: string[] }
-  ],
   sage_brief: string,                // 3-5 sentence field note
   next_prompt: string,               // 3-6 word input placeholder
   clinical_flag: { level: "none" | "caution" | "crisis" }
@@ -131,22 +121,14 @@ Do not add fields without checking this structure first. The extraction prompt m
 
 ## Checkpoint Lifecycle
 
-Checkpoints are the core mechanic: Sage reflects a pattern, the user confirms, and it writes to the manual. Two detection paths, both ending at the same confirmation flow.
-
-**Path A (preferred) — Sage includes the manual entry inline:**
-Sage appends a `|||MANUAL_ENTRY|||` block at the end of its response containing the polished manual text, layer, type, name, and changelog. A streaming delimiter buffer in `call-sage.ts` catches this block and prevents it from reaching the user. Classifier is skipped entirely. All metadata comes from Sage directly. See rules.md "Checkpoint and Manual Entry Voice" for the quality rules governing what goes in the entry.
-
-**Path B (fallback) — Haiku classifier detects the checkpoint:**
-When Sage doesn't produce a manual entry block, the Haiku classifier runs post-stream on every response. If it detects a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. This ensures `composed_content` is populated at creation time.
+Checkpoints are the core mechanic: Sage reflects something the user has shown, the user confirms, and it writes to the manual. The Haiku classifier runs post-stream on every Sage response. If it flags the response as a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. `composed_content` is always populated before confirmation.
 
 **On confirmation:**
-1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta` (always populated by Path A or B)
-2. Archives existing layer content to `manual_changelog` if updating
-3. Writes composed narrative to `manual_components`
+1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta`
+2. Inserts a new row in `manual_components` (no upsert — layers can hold many entries)
+3. Updates the source message's `checkpoint_meta.status` to "confirmed"
 4. Inserts system message "[User confirmed the checkpoint]"
-5. If component confirmed: flips layer `discovery_mode` from "component" to "pattern"
-6. If pattern confirmed: archives chain_elements to `confirmed_patterns`, resets `pattern_tracking`
-7. No API call to Anthropic. Confirmation is instant.
+5. No API call to Anthropic. Confirmation is instant.
 
 **System messages in history**: System messages like "[User confirmed the checkpoint]" are mapped to synthetic user messages in conversation history so Sage sees them naturally. For example, the confirm message becomes "I confirmed that checkpoint. That resonates."
 
@@ -154,24 +136,15 @@ When Sage doesn't produce a manual entry block, the Haiku classifier runs post-s
 
 These are the rules that prevent the highest-severity bugs. Every one represents a bug that either already happened or would be catastrophic.
 
-- `composed_content` must NEVER be null on confirmed checkpoints. Three defenses: (1) Sage produces `|||MANUAL_ENTRY|||` block at turnCount > 1 (Path A), (2) `call-sage.ts` calls `composeManualEntry()` when classifier detects checkpoint without block (Path B), (3) `confirmCheckpoint()` falls back to raw message content as safety net.
-- Crisis text must never appear in manual entries. Stripped in `confirmCheckpoint()` fallback path.
-- `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForSage`).
+- `composed_content` must NEVER be null on confirmed checkpoints. `composeManualEntry()` always runs server-side after the classifier flags a checkpoint, so `checkpoint_meta.composed_content` is populated before the confirmation card is shown. `confirmCheckpoint()` falls back to raw message content as a safety net.
+- Crisis text must never appear in manual entries.
+- `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForSage` and the server-side `validateMaterialQuality` gate).
 - Checkpoint gate is quality-based (concrete examples + mechanism + charged language), never turn-based.
 - First-checkpoint gate is intentionally lighter to enable the teaching moment.
-- First checkpoint on any layer is ALWAYS type "component". The TYPE RULE is enforced four ways: system prompt instruction → extraction `target_type` → hard guard in `call-sage.ts` → safety net in `confirmCheckpoint()`.
 
-## Layer Discovery Rules
+## Manual Entries
 
-Each of the five manual layers goes through two phases:
-
-1. **Component mode** (default): Extraction looks for broad material across the dimension. First checkpoint on the layer produces a component — an integrated portrait of how the person operates on that dimension.
-
-2. **Pattern mode** (after component confirmation): `discovery_mode` flips to "pattern". Extraction now tracks chain elements for specific behavioral loops. Patterns require a parent component to exist. Max 2 patterns per layer, 10 total across the manual.
-
-See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count requirements for both types.
-
-**Pattern quality gate**: `has_trigger AND has_response AND (has_payoff OR has_cost)`. This is extraction's job (boolean classification). Recurrence confirmation (at least 2 distinct examples of the same loop) is Sage's job — it's a judgment call that a boolean classifier would get wrong regularly.
+There is one entry shape. Layers can hold many entries — there is no per-layer cap, no type discriminator, no pattern/component split. The classifier picks the strongest layer; composition writes the entry; the user confirms. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
 
 ## Sage Prompt Assembly
 
@@ -181,14 +154,12 @@ The system prompt is built dynamically by `buildSystemPrompt()`. Different secti
 |---------------|-----------|
 | Voice, Legal, Conversation Approach, Deepening, Adapting | Always |
 | How to use extraction context | turnCount > 1 |
-| Manual Entry Format (|||MANUAL_ENTRY||| instructions) | turnCount > 1 |
 | Progress Signals | turnCount > 2 |
 | First Message (3-path routing: questions / help starting / specific situation) | turnCount ≤ 1 AND new user |
 | First Session | New user (no manual components, not returning) |
 | Checkpoints, Composition Voice, Post-Checkpoint | checkpointApproaching OR returning user |
 | First Checkpoint teaching moment | isFirstCheckpoint AND checkpointApproaching |
 | Building Toward Signal | checkpointApproaching |
-| Patterns (chain walk, recurrence, delivery, saturation) | Any layer has confirmed component (pattern-eligible) |
 | Returning User | isReturningUser (has manual_components) |
 | Readiness Gate | 3+ manual components confirmed |
 | Confirmed Manual contents | Any manual components exist |
@@ -213,8 +184,8 @@ Pattern: server client authenticates the user, admin client does all database wo
 
 All streaming responses (chat and checkpoint confirm) use three event types:
 
-- `text_delta`: Streamed token by token. The delimiter buffer suppresses `|||MANUAL_ENTRY|||` content from reaching the client.
-- `message_complete`: Final event. Carries checkpoint data, `cleanContent` (text with manual entry block stripped), `nextPrompt` (extraction's suggested input placeholder), and `processingText`.
+- `text_delta`: Streamed token by token directly to the client.
+- `message_complete`: Final event. Carries checkpoint data, `nextPrompt` (extraction's suggested input placeholder), and `processingText`.
 - `error`: Emitted on failure, stream closes.
 
 Client parses via `parseSSEStream` in `src/lib/utils/sse-parser.ts`. Text is NOT streamed incrementally to the UI — it's buffered and shown in one shot after parsing completes.
@@ -234,7 +205,6 @@ Not defined in schema.sql, only in code. Stored as JSONB on the `messages` table
 ```json
 {
   "layer": 1-5,
-  "type": "component" | "pattern",
   "name": "The Proposed Name" | null,
   "status": "pending" | "confirmed" | "rejected" | "refined",
   "composed_content": "polished manual entry text" | null,
@@ -245,9 +215,7 @@ Not defined in schema.sql, only in code. Stored as JSONB on the `messages` table
 
 ## Manual Component Accumulation
 
-- **Components**: Exactly 1 per layer per user (max 5 total). Upsert replaces existing. Enforced by partial unique index `unique_component_per_layer`.
-- **Patterns**: Max 2 per layer per user. Same name replaces. 3rd pattern archives oldest to `manual_changelog`. Enforced by partial unique index `unique_pattern_name_per_layer`.
-- Upsert uses select-then-insert/update (not `ON CONFLICT`) because partial unique indexes make standard upsert unreliable.
+Layers can hold many entries. Confirmation is always an insert — there is no upsert, no per-layer cap, no replacement rule. The `manual_changelog` table is reserved for explicit edits to existing entries (current write paths do not exercise it).
 
 ## Migration Protocols
 

@@ -20,40 +20,12 @@
 **Decision**: Accept the lag. Do not add sequential dependency.  
 **Consequences**: Sage responds to what the user just said (it has the raw conversation history) but its strategic context (which layers to explore, whether a checkpoint is approaching) is one turn behind. Since extraction state is cumulative (turns 1-7 contain everything from turns 1-6 plus one new turn), the practical difference is negligible. The alternative — running extraction first — would double the time-to-first-token and make the product feel sluggish.
 
-## ADR-003: Inline Composition Over Separate API Call
+## ADR-003: Server-Side Composition After Classifier
 
 **Status**: Settled  
-**Context**: When Sage delivers a checkpoint, a polished manual entry needs to be composed. Options: (A) Sage composes the entry inline as part of the same response, or (B) a separate Sonnet call composes it afterward.  
-**Decision**: Sage composes inline using |||MANUAL_ENTRY||| delimiter blocks (Path A). A separate Sonnet call exists as a fallback (Path B) for when Sage doesn't produce the block.  
-**Consequences**: Path A is cheaper (no additional API call), faster (no additional latency), and produces better entries (Sage has the full emotional context of the conversation moment). Path B exists because Sage doesn't always produce the block — sometimes the classifier catches a checkpoint that Sage didn't explicitly flag. Having both paths ensures `composed_content` is never null at confirmation time.
-
-## ADR-004: Single Pattern Tracking Over Multi-Pattern
-
-**Status**: Settled  
-**Context**: The extraction layer could track multiple emerging patterns simultaneously on a single layer. This would require the model to decide, per turn, whether new material is a new pattern or a variant of the current one.  
-**Decision**: Track one emerging pattern at a time per layer. Historical material carries forward in the cumulative extraction state — nothing is discarded when a pattern is confirmed or rejected. The single tracking slot means one *active* focus, not a reset of context.  
-**Consequences**: Simpler extraction (fewer judgment calls for a boolean classifier). When a second pattern surfaces, the material lives in the conversation transcript and Sage circles back to it after the current pattern resolves. Previously tracked material remains in the extraction state and can seed future patterns. The tradeoff: Sage must actively manage multiple threads, which it does well as a conversationalist but can't delegate to the extraction layer.
-
-## ADR-005: Component-Before-Pattern Hierarchy
-
-**Status**: Settled  
-**Context**: Patterns are specific behavioral loops within a layer. Components are the integrated portrait of the layer. A pattern without a parent component is an orphan — "The Exit Impulse" only makes sense after the component establishes that autonomy is the core need.  
-**Decision**: A layer's first checkpoint is always a component. Pattern checkpoints only fire on layers with a confirmed component. Material that looks like a pattern on a layer without a component feeds the component instead.  
-**Consequences**: Enforced four ways (system prompt TYPE RULE → extraction `target_type` → hard guard in `call-sage.ts` → safety net in `confirmCheckpoint()`). Means the manual always builds frame-first, detail-second. Users never see an isolated pattern without context.
-
-## ADR-006: Recurrence Is Sage's Judgment
-
-**Status**: Settled  
-**Context**: A pattern requires at least two distinct examples of the same behavioral loop. The extraction layer could try to count recurrence, but deciding whether a new story is "a distinct situation with the same trigger-response structure" or elaboration on the same story is genuinely hard.  
-**Decision**: Recurrence confirmation is Sage's responsibility. The extraction layer tracks chain element booleans (has_trigger, has_response, etc). Sage, which has the full conversation and nuance, judges whether the loop has actually recurred.  
-**Consequences**: Extraction stays simple and reliable (boolean classification). Sage probes for recurrence naturally before presenting a pattern checkpoint. If the user can't identify a second instance, Sage moves on without pressure.
-
-## ADR-007: chain_elements Derived, Not Co-Authored
-
-**Status**: Settled  
-**Context**: Pattern manual entries have both a narrative (what the user reads) and structured chain_elements (what the system uses for matching and synthesis). If Sage writes both simultaneously, they can drift out of sync.  
-**Decision**: The narrative is the source of truth. chain_elements are derived from the narrative via a lightweight extraction pass after each pattern write.  
-**Consequences**: One source of truth, one derived index. Eliminates sync drift. The extraction pass runs once per pattern write (negligible cost). Sage doesn't have to worry about maintaining structural consistency — it writes good prose, and the system extracts the structured data.
+**Context**: When Sage delivers a checkpoint, a polished manual entry needs to be composed. Earlier the architecture had Sage compose inline using `|||MANUAL_ENTRY|||` delimiter blocks (Path A) with a separate Sonnet fallback (Path B). This split produced two divergent code paths and inconsistent entry quality depending on which path fired.  
+**Decision**: A Haiku classifier runs on every Sage response post-stream. When it flags a checkpoint, a separate Sonnet call (`composeManualEntry`) writes the polished entry from the conversational text plus the language bank. There is no inline delimiter, no Path A/B split. `composed_content` is always populated server-side before the confirmation card is shown.  
+**Consequences**: One code path. Consistent entry quality regardless of how the checkpoint was detected. Cost is one additional Sonnet call per checkpoint (rare event). Sage's conversational response is no longer responsible for producing structured output, which simplifies its prompt and lets it focus on voice. `confirmCheckpoint()` keeps a raw-content fallback as a defensive safety net only.
 
 ## ADR-008: Raw Fetch Over Anthropic SDK
 
@@ -108,8 +80,8 @@
 
 **Status**: Settled (may evolve)  
 **Context**: The manual needed a structure that captures the full picture of how someone operates without becoming either too shallow (one-page summary) or too fragmented (dozens of unconnected observations).  
-**Decision**: Five layers grounded in clinical frameworks — drives, self-perception, reaction system, operating style, relational patterns. Each with 1 component and up to 2 patterns.  
-**Consequences**: 5 components (max) + 10 patterns (max) = 15 entries total. Dense enough to be useful, bounded enough to complete. The five layers map to real dimensions of human behavior: what you need, how you see yourself, how you cope, how you work, how you relate. Grounded in Schema Therapy (layers 1-2), behavioral analysis (layer 3), and Attachment Theory (layer 5), with layer 4 as the practical synthesis. This structure may evolve as the product matures and user feedback reveals whether five layers is the right granularity.
+**Decision**: Five layers grounded in clinical frameworks — drives, self-perception, reaction system, operating style, relational patterns. Layers can hold many entries; there is no per-layer cap.  
+**Consequences**: Dense enough to be useful, bounded enough to complete. The five layers map to real dimensions of human behavior: what you need, how you see yourself, how you cope, how you work, how you relate. Grounded in Schema Therapy (layers 1-2), behavioral analysis (layer 3), and Attachment Theory (layer 5), with layer 4 as the practical synthesis. This structure may evolve as the product matures and user feedback reveals whether five layers is the right granularity.
 
 ## ADR-016: User as Author
 
@@ -177,7 +149,7 @@
 ## ADR-025: Text Checkpoint Shows Name Only
 
 **Status**: Settled
-**Context**: When Sage detects a checkpoint via text, the original implementation sent a follow-up message containing the full `manualEntry.content` (150-250 words) plus the name and confirmation prompt. But Sage's conversational response already presented the insight in natural language — the user was reading the same content twice in different formats.
+**Context**: When Sage detects a checkpoint via text, the original implementation sent a follow-up message containing the full composed entry plus the name and confirmation prompt. But Sage's conversational response already presented the insight in natural language — the user was reading the same content twice in different formats.
 **Decision**: The checkpoint follow-up text shows only the proposed name and the confirmation question ("Does this feel right?" / "Does this resonate?"), not the full composed content. The user already read the insight in Sage's response.
 **Consequences**: Cleaner text experience — one message with the insight, one short message asking for confirmation. Matches the web app's pattern where the checkpoint card shows the name prominently and the content is secondary. Tradeoff: the user can't re-read the exact composed content before confirming. In practice this is fine because (a) the conversational text and composed content are very similar, and (b) the user can always check their manual in the app afterward.
 
@@ -215,3 +187,10 @@
 **Context**: PR1 ships ND-only voice. The plan needs to support adding additional voice modes (general, ADHD-specific, etc.) later without re-plumbing the call chain. Options: (a) hardcode autism voice in the prompt and add the seam later; (b) add the seam now even though there's only one value; (c) build a full mode registry with branching now.
 **Decision**: Option (b). Add `sage_mode text` column to `profiles` (nullable, check constraint allows only `'autistic'` for now). Migration lives at `supabase/add-sage-mode.sql` per the existing convention. Thread `sageMode` through `ConversationContext` → `BuildPromptOptions` → `buildSystemPrompt`, defaulting null to `'autistic'`. Voice content remains hardcoded autism-only in PR2a/PR2b. The seam exists but does not branch yet.
 **Consequences**: Adding a second voice mode in the future is a content change, not a plumbing change — extend the check constraint, add a branch in `buildSystemPrompt`, done. The single-value plumbing is a small amount of "future-facing" code, but it lives behind type-safe interfaces (`SageMode = 'autistic'`) so a second mode added later gets caught by the compiler at every consumer site.
+
+## ADR-031: Remove Pattern Feature, Single Entry Type
+
+**Status**: Settled (2026-04-07)
+**Context**: The earlier architecture distinguished "components" (the integrated portrait of a layer) from "patterns" (specific behavioral loops within a layer), with a four-way enforcement chain (system prompt TYPE RULE → extraction `target_type` → call-sage hard guard → confirm-checkpoint safety net), single-pattern tracking per layer, recurrence detection, derived `chain_elements`, a `discovery_mode` flip from "component" to "pattern" after the first confirmed entry, and a saturation rule capping each layer at 1 component + 2 patterns. In practice the type discriminator was the source of most checkpoint pipeline bugs, the component-vs-pattern distinction was invisible to users (they just saw "manual entries"), and the saturation cap prevented Sage from writing additional material when a layer had more to say.
+**Decision**: Remove the pattern feature entirely. Every manual entry is the same shape. Layers can hold many entries with no cap, no type discriminator, no discovery mode flip, no recurrence gate, no chain walk, no saturation rule, no pattern-specific composition or validation. The classifier only decides which of the five layers an entry belongs in. User-facing copy that says "patterns" stays as product language — this is an internal architecture change, not a product rename.
+**Consequences**: One entry shape simplifies the entire pipeline. The four-way TYPE RULE enforcement chain is gone, eliminating an entire class of pipeline bugs. Sage writes to the manual whenever it has something worth writing, judged by quality (concrete examples, mechanism, charged language) rather than by component-vs-pattern hierarchy. ADR-003 (inline composition Path A/B), ADR-004 (single pattern tracking), ADR-005 (component-before-pattern), ADR-006 (recurrence is Sage's judgment), and ADR-007 (chain_elements derived) are all superseded — their pre-removal entries are deleted from this document. The 1+2 cap from ADR-015 is also lifted. No data migration was needed because there was no real user data.
