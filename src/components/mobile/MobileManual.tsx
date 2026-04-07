@@ -17,9 +17,7 @@ interface MobileManualProps {
 export default function MobileManual({ components, displayName, onExploreWithSage }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
-  const isEmpty = layers.every((l) => l.component === null && l.patterns.length === 0);
-  const populatedLayers = layers.filter((l) => l.component !== null || l.patterns.length > 0);
-  const emptyLayers = layers.filter((l) => l.component === null && l.patterns.length === 0);
+  const isEmpty = layers.every((l) => l.threads.length === 0);
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -122,76 +120,28 @@ export default function MobileManual({ components, displayName, onExploreWithSag
           Your Manual
         </h1>
 
-        {/* Empty state atmospheric text */}
-        {isEmpty && (
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "15px",
-              color: "var(--session-ink-ghost)",
-              margin: "0 0 0 0",
-              padding: "0 20px",
-              maxWidth: 310,
-              lineHeight: 1.6,
-              letterSpacing: "-0.1px",
-              animation: "manualAtmoFadeIn 1.8s ease-out 0.5s both",
-            }}
-          >
-            Sage is learning how you operate. Your manual will take shape as you
-            talk.
-          </p>
-        )}
-
-        {/* Layer list */}
-        <div style={{ marginTop: isEmpty ? 32 : 0, position: "relative" }}>
-          {isEmpty ? (
-            <div style={{ padding: "0 20px" }}>
-              {layers.map((layer) => <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />)}
-            </div>
-          ) : (
-            <>
-              {/* Populated layers — with horizontal padding */}
-              <div style={{ padding: "0 16px" }}>
-                {populatedLayers.map((layer) => (
-                  <PopulatedLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
-                ))}
-              </div>
-
-              {/* Upcoming label + empty layers below populated */}
-              {emptyLayers.length > 0 && (
-                <>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "7px",
-                      fontWeight: 500,
-                      letterSpacing: "2px",
-                      textTransform: "uppercase",
-                      color: "var(--session-ink-faded)",
-                      margin: 0,
-                      padding: "20px 20px 10px",
-                    }}
-                  >
-                    UPCOMING
-                  </p>
-                  <div style={{ padding: "0 20px" }}>
-                    {emptyLayers.map((layer) => (
-                      <EmptyLayer key={layer.id} layer={layer} onExploreWithSage={onExploreWithSage} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
+        {/* Layer list — unified ordering, populated and empty render side by side */}
+        <div style={{ padding: "0 20px", position: "relative" }}>
+          {layers.map((layer) =>
+            layer.threads.length > 0 ? (
+              <PopulatedLayer
+                key={layer.id}
+                layer={layer}
+                onExploreWithSage={onExploreWithSage}
+              />
+            ) : (
+              <EmptyLayer key={layer.id} layer={layer} />
+            )
           )}
         </div>
 
-        {/* Share invitation — always visible at bottom */}
+        {/* Share invitation — only when at least one entry exists */}
+        {!isEmpty && (
         <div
           style={{
-            margin: "40px 16px 24px",
-            padding: 24,
-            background: "rgba(166, 139, 107, 0.08)",
-            border: "1px solid rgba(166, 139, 107, 0.15)",
+            margin: "40px 20px 24px",
+            padding: "1.25rem",
+            background: "rgba(0, 0, 0, 0.03)",
             borderRadius: 12,
           }}
         >
@@ -200,7 +150,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
               fontFamily: "var(--font-serif)",
               fontSize: 18,
               fontWeight: 400,
-              color: "#1A1614",
+              color: "var(--session-ink)",
               margin: "0 0 8px 0",
               letterSpacing: "-0.2px",
             }}
@@ -211,13 +161,13 @@ export default function MobileManual({ components, displayName, onExploreWithSag
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: 14,
-              color: "#6B6360",
+              color: "var(--session-ink-soft)",
               lineHeight: 1.55,
               margin: "0 0 16px 0",
             }}
           >
-            Export a read-only version of your manual so someone can understand
-            how you work.
+            Share a version of your manual so someone can understand how you
+            work.
           </p>
           <button
             onClick={() => setShowSheet(true)}
@@ -247,6 +197,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
             </svg>
           </button>
         </div>
+        )}
       </div>
 
       {/* Context half-sheet */}
