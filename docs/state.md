@@ -95,7 +95,7 @@
 ## Test Suite
 *Last verified: 2026-04-06*
 
-- Test count: 275 (down from 308 after prompt-hardening consolidation — `call-sage.test.ts` trimmed as shared logic moved into `sage-pipeline.test.ts`; added 18 new sage-pipeline tests for validateMaterialQuality / validateComposedEntry / applyCheckpointGates material-quality gate)
+- Test count: 305 (prompt hardening added 18 new sage-pipeline tests for validateMaterialQuality / validateComposedEntry / applyCheckpointGates material-quality gate; call-sage.test.ts trimmed as shared logic moved into sage-pipeline.test.ts)
 - All pass, < 1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
