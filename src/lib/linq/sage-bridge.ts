@@ -5,7 +5,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import { parseManualEntryBlock } from "@/lib/sage/call-sage";
 import { classifyResponse } from "@/lib/sage/classifier";
 import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
 import {
@@ -102,10 +101,8 @@ export async function processTextMessage(
     };
   }
 
-  // 8. Parse manual entry block if present (same parser as web)
-  const parsed = parseManualEntryBlock(fullText);
-  let responseText = parsed.conversationalText;
-  const manualEntry = parsed.manualEntry;
+  // 8. Conversational text is the full response (no inline sentinel).
+  let responseText = fullText;
 
   // 9. Crisis detection (shared with web)
   const crisis = handleCrisisDetection(
@@ -147,23 +144,15 @@ export async function processTextMessage(
       });
   }
 
-  // 11. Checkpoint detection — same two-path logic as web (call-sage.ts)
-  //     Path A: Sage produced |||MANUAL_ENTRY||| block → use metadata directly
-  //     Path B: No block → run classifier fallback → compose if checkpoint
+  // 11. Checkpoint detection — always run the classifier on the conversational
+  //     text. Composition is handled server-side by composeManualEntry below.
   let checkpointText: string | null = null;
   let isCheckpoint = false;
   let checkpointLayer: number | null = null;
   let checkpointType: string | null = null;
   let checkpointName: string | null = null;
 
-  if (manualEntry) {
-    // Path A — Sage provided all metadata
-    isCheckpoint = true;
-    checkpointLayer = manualEntry.layer;
-    checkpointType = manualEntry.type;
-    checkpointName = manualEntry.name;
-  } else if (messageId) {
-    // Path B — run classifier as fallback (same as web)
+  if (messageId) {
     const last4 = ctx.messages.slice(-4);
     const recentText = last4.map((m) => `${m.role}: ${m.content}`).join("\n\n");
     const isFirstSession = !ctx.manualComponents || ctx.manualComponents.length === 0;
@@ -195,17 +184,13 @@ export async function processTextMessage(
     checkpointLayer = gateResult.layer;
     checkpointType = gateResult.type;
     checkpointName = gateResult.name;
-    if (manualEntry && gateResult.isCheckpoint && gateResult.type !== manualEntry.type) {
-      manualEntry.type = gateResult.type!;
-    }
   }
 
-  // 11c. Path B composition — compose content when classifier detected checkpoint
-  //      but Sage didn't produce a manual entry block (same as web)
+  // 11c. Composition — always compose the manual entry server-side when a
+  //      checkpoint is detected so composed_content is ready at confirmation.
   let composedEntry: { content: string; name: string; changelog: string } | null = null;
-  const hasComposedContent = manualEntry?.content && manualEntry.content.length > 0;
 
-  if (isCheckpoint && checkpointLayer && !hasComposedContent) {
+  if (isCheckpoint && checkpointLayer) {
     try {
       const existingLayerContent = (ctx.manualComponents || []).filter(
         (c) => c.layer === checkpointLayer
@@ -221,7 +206,7 @@ export async function processTextMessage(
         existingLayerContent: existingLayerContent.length > 0 ? existingLayerContent : undefined,
       });
     } catch (err) {
-      console.error("[sage-bridge] Path B composition failed:", err);
+      console.error("[sage-bridge] Composition failed:", err);
     }
   }
 
@@ -229,7 +214,6 @@ export async function processTextMessage(
   if (isCheckpoint && checkpointLayer && messageId) {
     const meta = buildCheckpointMeta(
       { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
-      manualEntry,
       composedEntry
     );
 
@@ -252,11 +236,10 @@ export async function processTextMessage(
       `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
 
     console.log(
-      "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s via=%s message_id=%s",
+      "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s message_id=%s",
       checkpointLayer,
       checkpointType,
       name,
-      manualEntry ? "Path A" : "Path B",
       messageId
     );
   }

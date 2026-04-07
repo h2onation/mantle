@@ -75,120 +75,6 @@ export function applySlidingWindow(
   return messages;
 }
 
-/**
- * Parses the |||MANUAL_ENTRY||| ... |||END_MANUAL_ENTRY||| block
- * from Sage's full response text. Returns the conversational text
- * (before delimiter) and the parsed manual entry JSON (if valid).
- */
-export function parseManualEntryBlock(fullText: string): {
-  conversationalText: string;
-  manualEntry: {
-    layer: number;
-    type: string;
-    name: string;
-    content: string;
-    changelog: string;
-  } | null;
-} {
-  const entryDelimiter = "|||MANUAL_ENTRY|||";
-  const endDelimiter = "|||END_MANUAL_ENTRY|||";
-  const entryStart = fullText.indexOf(entryDelimiter);
-
-  if (entryStart === -1) {
-    return { conversationalText: fullText, manualEntry: null };
-  }
-
-  const conversationalText = fullText.substring(0, entryStart).trimEnd();
-  const jsonStart = entryStart + entryDelimiter.length;
-  const jsonEnd = fullText.indexOf(endDelimiter);
-
-  if (jsonEnd === -1) {
-    return { conversationalText, manualEntry: null };
-  }
-
-  const jsonStr = fullText.substring(jsonStart, jsonEnd).trim();
-  try {
-    return { conversationalText, manualEntry: JSON.parse(jsonStr) };
-  } catch {
-    return { conversationalText, manualEntry: null };
-  }
-}
-
-/**
- * Creates a streaming delimiter buffer that prefix-matches against a delimiter string.
- * Holds back tokens that could be the start of the delimiter so the client
- * never sees the delimiter or anything after it.
- */
-export function createDelimiterBuffer(delimiter: string) {
-  let pendingBuffer = "";
-  let delimiterFound = false;
-
-  return {
-    /**
-     * Process an incoming text chunk. Returns the safe text to flush
-     * (text confirmed NOT to be part of the delimiter).
-     * Returns null if the delimiter has been found (suppress all further output)
-     * or if nothing safe to flush yet.
-     */
-    process(text: string): string | null {
-      if (delimiterFound) return null;
-
-      pendingBuffer += text;
-
-      // Check if pending buffer contains the full delimiter
-      const delimIdx = pendingBuffer.indexOf(delimiter);
-      if (delimIdx !== -1) {
-        const safe = pendingBuffer.substring(0, delimIdx);
-        delimiterFound = true;
-        pendingBuffer = "";
-        return safe || null;
-      }
-
-      // Check if the end of the pending buffer could be the start of the delimiter
-      let prefixMatch = 0;
-      for (
-        let i = 1;
-        i <= Math.min(pendingBuffer.length, delimiter.length);
-        i++
-      ) {
-        if (pendingBuffer.endsWith(delimiter.substring(0, i))) {
-          prefixMatch = i;
-        }
-      }
-
-      if (prefixMatch > 0) {
-        // Hold back the potential prefix, flush everything before it
-        const safe = pendingBuffer.substring(
-          0,
-          pendingBuffer.length - prefixMatch
-        );
-        pendingBuffer = pendingBuffer.substring(
-          pendingBuffer.length - prefixMatch
-        );
-        return safe || null;
-      }
-
-      // No match possible — flush everything
-      const safe = pendingBuffer;
-      pendingBuffer = "";
-      return safe;
-    },
-
-    /** Flush any remaining buffered text (call at stream end) */
-    flush(): string | null {
-      if (delimiterFound) return null;
-      const remaining = pendingBuffer;
-      pendingBuffer = "";
-      return remaining || null;
-    },
-
-    /** Whether the delimiter has been found */
-    get found(): boolean {
-      return delimiterFound;
-    },
-  };
-}
-
 // Crisis phrases — must be specific enough to avoid false positives.
 // Removed overly broad phrases that trigger on normal relationship distress:
 //   "make it stop", "can't do this anymore", "don't want to be here"
@@ -350,9 +236,9 @@ export function callSage({
           }
         }
 
-        // 9. Stream Sage response with delimiter buffer
+        // 9. Stream Sage response (no inline manual-entry sentinel — composition
+        //    is always handled server-side after the stream completes).
         let fullText = "";
-        const delimBuffer = createDelimiterBuffer("|||MANUAL_ENTRY|||");
 
         const flushSafe = (text: string) => {
           if (text) {
@@ -396,19 +282,13 @@ export function callSage({
               ) {
                 const text = event.delta.text;
                 fullText += text;
-
-                const safe = delimBuffer.process(text);
-                if (safe) flushSafe(safe);
+                flushSafe(text);
               }
             } catch {
               // Skip malformed SSE lines
             }
           }
         }
-
-        // Flush any remaining buffer that wasn't a delimiter
-        const remaining = delimBuffer.flush();
-        if (remaining) flushSafe(remaining);
 
         if (!fullText) {
           emitError(
@@ -418,11 +298,8 @@ export function callSage({
           return;
         }
 
-        // 10. Parse and strip manual entry block if present
-        const parsed = parseManualEntryBlock(fullText);
-        const { manualEntry } = parsed;
-        let conversationalText = parsed.conversationalText;
-        const entryStart = fullText.indexOf("|||MANUAL_ENTRY|||");
+        // 10. Conversational text is the full Sage response (no inline sentinel).
+        let conversationalText = fullText;
 
         // 10b. Crisis detection — output validation + logging
         if (message !== null) {
@@ -467,25 +344,15 @@ export function callSage({
             });
         }
 
-        // 12. Classification: skip Haiku classifier when manual entry is present
-        //     (Sage already decided it's a checkpoint and provided all metadata)
+        // 12. Classification: always run the classifier on the conversational text.
+        //     Composition is handled separately by composeManualEntry below.
         let isCheckpoint = false;
         let checkpointLayer: number | null = null;
         let checkpointType: string | null = null;
         let checkpointName: string | null = null;
         let processingText = "listening...";
 
-        if (manualEntry) {
-          // Manual entry = Sage produced a checkpoint with all metadata
-          isCheckpoint = true;
-          checkpointLayer = manualEntry.layer;
-          checkpointType = manualEntry.type;
-          checkpointName = manualEntry.name;
-          // Derive processingText from extraction brief instead of Haiku call
-          processingText =
-            previousExtraction?.current_thread || "checkpoint reached...";
-        } else {
-          // No manual entry — run classifier as normal
+        {
           const last4 = messages.slice(-4);
           const recentText = last4
             .map((m) => `${m.role}: ${m.content}`)
@@ -521,31 +388,26 @@ export function callSage({
           checkpointLayer = gateResult.layer;
           checkpointType = gateResult.type;
           checkpointName = gateResult.name;
-          if (manualEntry && gateResult.isCheckpoint && gateResult.type !== manualEntry.type) {
-            manualEntry.type = gateResult.type!;
-          }
         }
 
         // 12b-log. Checkpoint detection debug log (dev only)
         if (process.env.NODE_ENV !== "production") {
           console.log("[sage-debug] %s", isCheckpoint
-            ? `CHECKPOINT: L${checkpointLayer} ${checkpointType} "${checkpointName}" via ${manualEntry ? "Path A" : "Path B"}`
+            ? `CHECKPOINT: L${checkpointLayer} ${checkpointType} "${checkpointName}"`
             : "No checkpoint this turn");
         }
 
-        // 12c. Path B composition: when classifier detected a checkpoint but
-        //      Sage didn't produce a |||MANUAL_ENTRY||| block, compose the
-        //      manual entry now so composed_content is ready at confirmation.
+        // 12c. Composition: when the classifier detects a checkpoint, always
+        //      compose the polished manual entry server-side so composed_content
+        //      is ready at confirmation. The main Sage prompt no longer carries
+        //      composition rules — they live in confirm-checkpoint.ts.
         let composedEntry: {
           content: string;
           name: string;
           changelog: string;
         } | null = null;
 
-        const hasComposedContent =
-          manualEntry?.content && manualEntry.content.length > 0;
-
-        if (isCheckpoint && checkpointLayer && !hasComposedContent) {
+        if (isCheckpoint && checkpointLayer) {
           try {
             const existingLayerContent = (manualComponents || []).filter(
               (c) => c.layer === checkpointLayer
@@ -565,7 +427,7 @@ export function callSage({
             });
           } catch (err) {
             console.error(
-              "[callSage] Path B composition failed, saving without composed_content:",
+              "[callSage] Composition failed, saving without composed_content:",
               err
             );
           }
@@ -581,7 +443,6 @@ export function callSage({
             updateData.is_checkpoint = true;
             updateData.checkpoint_meta = buildCheckpointMeta(
               { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
-              manualEntry,
               composedEntry
             );
           }
@@ -611,8 +472,6 @@ export function callSage({
               checkpoint,
               processingText,
               nextPrompt: previousExtraction?.next_prompt || "",
-              cleanContent:
-                entryStart !== -1 ? conversationalText : undefined,
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )

@@ -393,16 +393,15 @@ export async function insertCheckpointActionMessage(
  */
 export function buildCheckpointMeta(
   gateResult: CheckpointGateResult,
-  manualEntry: { content?: string; name?: string; changelog?: string } | null,
   composedEntry: { content: string; name: string; changelog: string } | null
 ): CheckpointMeta {
   return {
     layer: gateResult.layer,
     type: gateResult.type,
-    name: composedEntry?.name || manualEntry?.name || gateResult.name,
+    name: composedEntry?.name || gateResult.name,
     status: "pending",
-    composed_content: manualEntry?.content || composedEntry?.content || null,
-    composed_name: manualEntry?.name || composedEntry?.name || null,
-    changelog: manualEntry?.changelog || composedEntry?.changelog || null,
+    composed_content: composedEntry?.content || null,
+    composed_name: composedEntry?.name || null,
+    changelog: composedEntry?.changelog || null,
   };
 }

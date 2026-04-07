@@ -18,7 +18,7 @@ interface ComposeManualEntryOptions {
 
 /**
  * Calls Sonnet to compose a polished manual entry from a checkpoint reflection.
- * Used when Sage didn't produce an inline |||MANUAL_ENTRY||| block (Path B).
+ * Always invoked server-side after the classifier flags a checkpoint.
  * Returns null on failure — caller should fall back gracefully.
  */
 export async function composeManualEntry(

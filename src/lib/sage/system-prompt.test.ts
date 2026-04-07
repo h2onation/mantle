@@ -763,23 +763,22 @@ describe("buildSystemPrompt", () => {
         });
       });
 
-      describe("MANUAL ENTRY FORMAT rules require somatic anchor", () => {
-        it("makes somatic anchor explicitly required", () => {
+      describe("manual entry composition rules live server-side, not in the prompt", () => {
+        it("does not contain the |||MANUAL_ENTRY||| sentinel anywhere", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/Somatic anchor required/i);
+          expect(result).not.toContain("|||MANUAL_ENTRY|||");
+          expect(result).not.toContain("|||END_MANUAL_ENTRY|||");
         });
 
-        it("bans clinical framework names in manual entries", () => {
+        it("does not contain the MANUAL ENTRY FORMAT header", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/No clinical framework names/i);
-          // A few specific ones should be called out
-          expect(result).toMatch(/executive dysfunction/);
-          expect(result).toMatch(/rejection sensitive dysphoria/i);
+          expect(result).not.toContain("MANUAL ENTRY FORMAT");
         });
 
-        it("pattern format mentions body in the chain", () => {
+        it("does not narrate the JSON schema fields (layer/type/name/changelog) as instruction", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/trigger → body\/internal → response → payoff → cost/i);
+          expect(result).not.toMatch(/"changelog" field/);
+          expect(result).not.toMatch(/TYPE RULE/);
         });
       });
 
@@ -834,7 +833,6 @@ describe("buildSystemPrompt", () => {
       // Checkpoint-mode sections only render when checkpoint instructions are
       // active. Verify those appear in order too.
       const EXPECTED_CHECKPOINT_SECTIONS = [
-        "MANUAL ENTRY FORMAT",
         "CHECKPOINTS",
         "CHECKPOINT DELIVERY SEQUENCE",
         "CHECKPOINT COMPOSITION VOICE",
