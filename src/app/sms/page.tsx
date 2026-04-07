@@ -56,8 +56,8 @@ export default function SmsPage() {
           What You&apos;ll Receive
         </h2>
         <p>
-          Personalized behavioral insights and conversation prompts from Sage,
-          your AI guide on Mantle.
+          Text with Sage. Same conversations, same manual, over text message.
+          Reply STOP anytime.
         </p>
 
         <h2

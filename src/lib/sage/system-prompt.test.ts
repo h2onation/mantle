@@ -211,12 +211,37 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("FIRST MESSAGE");
     });
 
-    it("contains chip-based routing instructions for all three paths", () => {
+    it("does NOT contain legacy PATH A/B/C routing (dropped in PR3)", () => {
       const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("PATH A");
-      expect(result).toContain("PATH B");
-      expect(result).toContain("PATH C");
-      expect(result).toContain("CONVERGENCE");
+      expect(result).not.toContain("PATH A");
+      expect(result).not.toContain("PATH B");
+      expect(result).not.toContain("PATH C");
+      expect(result).not.toContain("CONVERGENCE");
+    });
+
+    it("describes unified free-form first-message handling", () => {
+      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      expect(result).toContain("free-form opener");
+      expect(result).toContain("progressive narrowing");
+      expect(result).toContain("Do not reference the chip");
+    });
+
+    it("contains framework-question guidance", () => {
+      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      expect(result).toContain("published behavioral and psychological frameworks");
+      expect(result).toContain("I don't label them for you");
+    });
+
+    it("does NOT name internal frameworks in user-facing first-message guidance", () => {
+      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      // Framework names may appear elsewhere in the prompt as internal structure,
+      // but the first-message framework guidance must not hand them to the user.
+      const firstMsgIdx = result.indexOf("FIRST MESSAGE");
+      const nextSectionIdx = result.indexOf("MANUAL ENTRY FORMAT", firstMsgIdx);
+      const firstMsgSlice = result.slice(firstMsgIdx, nextSectionIdx > -1 ? nextSectionIdx : undefined);
+      // Internal framework names are allowed as a parenthetical list of things the user MIGHT ask about,
+      // but Sage must be told not to name them back. Verify the redirect instruction is present.
+      expect(firstMsgSlice).toContain("don't label them");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {

@@ -54,10 +54,11 @@ export default function TermsOfService() {
           What Mantle Is
         </h2>
         <p>
-          Mantle is a structured self-understanding platform. Sage is an AI
-          conversationalist that helps you identify behavioral patterns through
-          conversation. Your confirmed patterns are stored in a User Manual that
-          you control.
+          Mantle is a self-understanding platform. It is not a mental health
+          service, clinical tool, or diagnostic instrument. Sage does not
+          diagnose, assess, or treat any condition. The manual is a
+          self-authored document. It is not clinical documentation and should
+          not be used as a legal accommodation document.
         </p>
 
         <h2

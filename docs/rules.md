@@ -182,13 +182,16 @@ When "work with it" leads to 5+ turns of problem-solving without new manual mate
 
 ## Marketing Language
 
-Frame the user as the agent: "build your manual," "see your patterns," "understand how you operate." Language should center on self-understanding, self-discovery, structured self-reflection.
+Frame the user as the agent. Language centers on self-understanding, how they work, how they process, how they're wired.
 
-### Do Not Use
-Assessment. Diagnosis. Clinical. Therapeutic. Treatment. Therapy alternative. Mental health tool. AI therapist. Behavioral assessment. Psychological evaluation. "Identifies your issues." "Detects your emotional patterns." "I don't have filters."
+### Use
+self-understanding · build your manual · see your patterns · share how you work · how you process · how you're wired · map your operating system · navigate situations
+
+### Never use
+assessment · diagnosis · clinical · therapeutic · treatment · AI therapist · mental health tool · condition · disorder · deficit · struggle with · suffer from · therapy alternative · behavioral assessment · psychological evaluation · "identifies your issues" · "detects your emotional patterns" · "I don't have filters"
 
 ### Test
-Read any piece of copy and ask: "Could a reasonable person interpret this as Mantle offering mental health services?" If yes, rewrite.
+Read any piece of copy and ask: "Could a reasonable person interpret this as Mantle offering mental health services, or as describing the user through a deficit lens?" If yes, rewrite.
 
 ## Design System
 

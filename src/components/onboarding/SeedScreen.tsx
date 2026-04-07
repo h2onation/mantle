@@ -17,10 +17,6 @@ export default function SeedScreen() {
     setSubmitting(true);
     setError("");
 
-    // Store flags
-    localStorage.setItem("mantle_age_confirmed", "true");
-    localStorage.setItem("mantle_onboarding_completed", "true");
-
     // Create anonymous auth session
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInAnonymously();
@@ -79,34 +75,27 @@ export default function SeedScreen() {
           BEFORE YOU START
         </div>
 
-        {/* Headline */}
-        <h1
+        {/* Body — 3 paragraphs */}
+        <div
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 26,
+            fontSize: 16,
             fontWeight: 400,
-            lineHeight: 1.25,
-            letterSpacing: "-0.3px",
-            color: "var(--session-ink)",
-            margin: "0 0 10px 0",
-          }}
-        >
-          This works best when you&apos;re honest and undistracted.
-        </h1>
-
-        {/* Body */}
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 15,
-            fontWeight: 400,
-            lineHeight: 1.5,
+            lineHeight: 1.55,
             color: "var(--session-ink-mid)",
-            margin: "0 0 24px 0",
+            marginBottom: 24,
           }}
         >
-          Set aside about 15 minutes. Find a place where you can think clearly. Sage will meet you where you&apos;re at with a few questions to get started, then go deeper. The more you bring, the more precise your manual becomes.
-        </p>
+          <p style={{ margin: "0 0 14px 0" }}>
+            Sage is AI. It identifies patterns using published frameworks as a guide. It doesn&rsquo;t diagnose anything and it&rsquo;s not trying to fix how you work.
+          </p>
+          <p style={{ margin: "0 0 14px 0" }}>
+            You&rsquo;re the authority on your own experience. Nothing goes in your manual unless you say it&rsquo;s accurate.
+          </p>
+          <p style={{ margin: 0 }}>
+            Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. You can leave and come back whenever.
+          </p>
+        </div>
 
         {/* Age checkbox */}
         <label
@@ -150,7 +139,7 @@ export default function SeedScreen() {
               color: "var(--session-ink-mid)",
             }}
           >
-            I am 18 or older
+            I&rsquo;m 18 or older
           </span>
         </label>
 
@@ -165,7 +154,7 @@ export default function SeedScreen() {
             margin: "0 0 18px 0",
           }}
         >
-          Sage is an AI tool that helps you articulate what you already sense but haven&apos;t organized. It&apos;s not therapy. No agenda, no diagnosis, just your patterns and a map of your behaviors organized through conversation.
+          Sage is a great complement to therapy, coaching, or any work you&rsquo;re already doing on yourself. It&rsquo;s not a replacement for professional support.
         </p>
 
         {/* Error message */}
