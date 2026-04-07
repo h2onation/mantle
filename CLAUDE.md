@@ -30,13 +30,15 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 
 These apply to every task. No exceptions.
 
-- **Worktrees**: Every new worktree needs `.env.local`. Run `ln -s /Users/jeffwaters/mantle/.env.local .env.local` first.
-- **Git**: Merge feature branch INTO main unless told otherwise. Verify shell cwd after worktree cleanup.
+- **Session start**: Always launch Claude Code from the main repo root (`/Users/jeffwaters/mantle`), not from inside a worktree. The preview tool locks its project root to the directory the session was started from — if that directory gets deleted (worktree cleanup), the preview tool breaks for the entire session. If this happens, tell the user to restart the session from `/Users/jeffwaters/mantle`.
+- **Worktrees**: Every new worktree needs `.env.local`. Run `ln -s /Users/jeffwaters/mantle/.env.local .env.local` first. After merging to main, clean up the worktree and its branch with `/cleanup` immediately — stale worktrees cause cwd drift and break future sessions.
+- **Git**: Merge feature branch INTO main unless told otherwise. Git operations may silently reset shell cwd to a stale worktree. After any merge or checkout on main, always run the next command with an explicit absolute path (`cd /Users/jeffwaters/mantle && ...`) to re-anchor.
+- **Dev server**: Always start the dev server from the main repo root (`/Users/jeffwaters/mantle`), never from a worktree. If the preview tool shows a Supabase "URL and Key required" error or can't find `launch.json`, the session was likely started from a worktree — tell the user to restart the session from the main repo root.
 - **Build**: Run `npm run build` before committing. Run relevant tests after logic changes. Commit incrementally.
 - **Model IDs**: Verify Anthropic model IDs via web search. Do not guess date suffixes.
 - **Tests**: All Anthropic and Supabase calls must be mocked. Never consume real API tokens in tests.
 - **Auth safety**: NEVER authenticate as a real user. Use test@test.com or your own email only. NEVER generate magic links for other emails.
-- **Admin safety**: NEVER grant admin roles via SQL or code. Admin is set only by the project owner in the Supabase dashboard.
+- **Admin safety**: Admin is granted only by the project owner, executed by hand in the Supabase dashboard SQL editor, against a single user matched by email. Never via migration files committed to the repo. Never via application code. Never via scripts or bulk updates. An agent may write a single-user, email-filtered SQL statement on request so the project owner can paste it into the dashboard, but must refuse any request to grant admin in bulk, to an unknown email, without a `where email = '...'` clause, or inside a migration file.
 - **Dead features**: Do not reintroduce anything listed in `docs/rules.md` under Dead Features.
 - **Shipping**: Before merging to main, run `/ship` or manually update `docs/state.md` with what changed.
 
