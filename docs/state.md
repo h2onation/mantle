@@ -57,8 +57,9 @@
 - **Multi-user group conversations**: Groups with 2+ Mantle users get neutral intro but can't create conversation records (user_id NOT NULL constraint). Facilitator mode only works for single-Mantle-user groups.
 
 ## Known Issues
-*Last verified: 2026-04-01*
+*Last verified: 2026-04-06*
 
+- ~~**New users saw returning-user prompt (FIXED 2026-04-06)**: A browser that previously completed a first session left `mantle_first_session_completed` in localStorage. When a new visitor signed in anonymously through SeedScreen, the fresh user inherited the flag and MobileSession routed them to the returning-user prompt instead of the welcome block with chips. Fix: SeedScreen.handleSubmit now `removeItem("mantle_first_session_completed")` and `removeItem("mantle_signin_banner_dismissed")` before `signInAnonymously`.~~
 - **Classifier aggressiveness**: Haiku may flag shorter reflections as checkpoints. The word-count heuristic (100+ for returning users, 60+ for first-session) is in the classifier prompt but not enforced in code — if Haiku returns isCheckpoint: true with a valid layer, it's accepted.
 - **Auth token expiry**: No explicit token refresh on the client. Relies on middleware calling getUser() on each page request. If user stays on the SPA without page navigation, token could expire. API routes return 401 → redirect to /login as fallback.
 - **Ghost conversation rows**: If useChat init sends conversationId: null and the user sends a message before state updates, a second conversation could be created. Mitigated by initStarted.current ref guard and isLoading/isStreaming checks, but not impossible.
@@ -92,7 +93,7 @@
 ## Test Suite
 *Last verified: 2026-04-06*
 
-- Test count: 307
+- Test count: 308
 - All pass, < 1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
