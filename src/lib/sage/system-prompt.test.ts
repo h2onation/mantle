@@ -555,32 +555,33 @@ describe("buildSystemPrompt", () => {
   // banned phrase is missing from the prompt, the test should fail via the
   // imported constant, not a hardcoded literal.
   describe("PR2a: autistic voice content", () => {
-    describe("clinical framework guardrail", () => {
-      it("contains CLINICAL FRAMEWORK GUARDRAIL section header", () => {
+    describe("clinical framework guardrail (post-hardening)", () => {
+      it("does NOT name Schema Therapy / Attachment Theory / Functional Analysis in user-facing prompt", () => {
         const result = build();
-        expect(result).toContain("CLINICAL FRAMEWORK GUARDRAIL");
+        expect(result).not.toContain("Schema Therapy");
+        expect(result).not.toContain("Attachment Theory");
+        expect(result).not.toContain("Functional Analysis");
       });
 
-      it("instructs never to reference Schema/Attachment/Functional Analysis by name", () => {
+      it("does NOT contain the old CLINICAL FRAMEWORK GUARDRAIL header", () => {
         const result = build();
-        expect(result).toContain("Schema Therapy");
-        expect(result).toContain("Attachment Theory");
-        expect(result).toContain("Functional Analysis");
-        expect(result).toContain("never reference these frameworks by name");
+        expect(result).not.toContain("CLINICAL FRAMEWORK GUARDRAIL");
       });
 
-      it("contains clinical-to-behavioral rewrite examples", () => {
+      it("does NOT contain the old rewrite examples (fear of abandonment, emotional avoidance)", () => {
         const result = build();
-        expect(result).toContain("fear of abandonment");
-        expect(result).toContain("emotional avoidance");
+        expect(result).not.toContain("fear of abandonment");
+        expect(result).not.toContain("emotional avoidance");
       });
 
-      it("guardrail lives inside LEGAL BOUNDARIES (override authority)", () => {
+      it("keeps a short 'no clinical terminology' line inside LEGAL BOUNDARIES", () => {
         const result = build();
         const legalIdx = result.indexOf("LEGAL BOUNDARIES");
-        const guardrailIdx = result.indexOf("CLINICAL FRAMEWORK GUARDRAIL");
+        const noClinicalIdx = result.indexOf(
+          "Never use clinical terminology in user-facing output"
+        );
         expect(legalIdx).toBeGreaterThanOrEqual(0);
-        expect(guardrailIdx).toBeGreaterThan(legalIdx);
+        expect(noClinicalIdx).toBeGreaterThan(legalIdx);
       });
     });
 
@@ -806,7 +807,6 @@ describe("buildSystemPrompt", () => {
         "BANNED PHRASES",
         "EXAMPLE REGISTER",
         "LEGAL BOUNDARIES",
-        "CLINICAL FRAMEWORK GUARDRAIL",
         "HARD RULES",
         "CLINICAL MATERIAL IN CONVERSATION",
         "CHECKPOINT LANGUAGE",
