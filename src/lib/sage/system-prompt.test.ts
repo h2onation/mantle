@@ -396,12 +396,12 @@ describe("buildSystemPrompt", () => {
     it("contains pattern saturation handling when pattern eligible", () => {
       const result = build({ hasPatternEligibleLayer: true });
       expect(result).toContain("PATTERN SATURATION");
-      expect(result).toContain("SATURATED: 2/2 patterns");
+      expect(result).toContain("already has two named loops");
     });
 
     it("CHECKPOINTS uses research-assistant language instead of hard gate when both shown", () => {
       const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
-      expect(result).toContain("Use the extraction context as your research assistant, not your permission slip");
+      expect(result).toContain("Use the brief as your research assistant, not your permission slip");
       expect(result).not.toContain("Only deliver a checkpoint when");
     });
 
