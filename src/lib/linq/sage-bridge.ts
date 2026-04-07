@@ -16,6 +16,7 @@ import {
   handleCrisisDetection,
   applyCheckpointGates,
   buildCheckpointMeta,
+  validateComposedEntry,
 } from "@/lib/sage/sage-pipeline";
 
 interface SageBridgeResult {
@@ -173,12 +174,14 @@ export async function processTextMessage(
     checkpointName = classification.name;
   }
 
-  // 11b. Shared checkpoint gates (layer guards + turn-count suppression)
+  // 11b. Shared checkpoint gates (layer guards + material quality + turn-count)
   if (isCheckpoint && checkpointLayer) {
     const gateResult = applyCheckpointGates(
       { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
       ctx.manualComponents,
-      ctx.turnsSinceCheckpoint
+      ctx.turnsSinceCheckpoint,
+      ctx.previousExtraction,
+      ctx.isFirstCheckpoint
     );
     isCheckpoint = gateResult.isCheckpoint;
     checkpointLayer = gateResult.layer;
@@ -205,6 +208,19 @@ export async function processTextMessage(
         name: checkpointName,
         existingLayerContent: existingLayerContent.length > 0 ? existingLayerContent : undefined,
       });
+
+      if (composedEntry?.content) {
+        const validation = validateComposedEntry(
+          composedEntry.content,
+          (checkpointType as "component" | "pattern") || "component"
+        );
+        if (!validation.ok) {
+          console.warn(
+            "[sage-bridge] Composed entry structural drift: %s",
+            validation.warnings.join("; ")
+          );
+        }
+      }
     } catch (err) {
       console.error("[sage-bridge] Composition failed:", err);
     }

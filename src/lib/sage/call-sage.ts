@@ -17,6 +17,7 @@ import {
   handleCrisisDetection,
   applyCheckpointGates,
   buildCheckpointMeta,
+  validateComposedEntry,
 } from "@/lib/sage/sage-pipeline";
 
 // ── Extracted pure functions (testable without mocking) ──
@@ -377,12 +378,14 @@ export function callSage({
           processingText = classification.processingText;
         }
 
-        // 12b. Shared checkpoint gates (layer guards + turn-count suppression)
+        // 12b. Shared checkpoint gates (layer guards + material quality + turn-count)
         if (isCheckpoint && checkpointLayer) {
           const gateResult = applyCheckpointGates(
             { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
             manualComponents,
-            turnsSinceCheckpoint
+            turnsSinceCheckpoint,
+            previousExtraction,
+            isFirstCheckpoint
           );
           isCheckpoint = gateResult.isCheckpoint;
           checkpointLayer = gateResult.layer;
@@ -425,6 +428,20 @@ export function callSage({
                   ? existingLayerContent
                   : undefined,
             });
+
+            // Soft post-validation: log structural drift without blocking.
+            if (composedEntry?.content) {
+              const validation = validateComposedEntry(
+                composedEntry.content,
+                (checkpointType as "component" | "pattern") || "component"
+              );
+              if (!validation.ok) {
+                console.warn(
+                  "[callSage] Composed entry structural drift: %s",
+                  validation.warnings.join("; ")
+                );
+              }
+            }
           } catch (err) {
             console.error(
               "[callSage] Composition failed, saving without composed_content:",

@@ -1,0 +1,286 @@
+import { describe, it, expect } from "vitest";
+import {
+  validateMaterialQuality,
+  validateComposedEntry,
+  applyCheckpointGates,
+} from "@/lib/sage/sage-pipeline";
+import type { ExtractionState } from "@/lib/sage/extraction";
+
+function makeExtractionState(
+  overrides?: Partial<ExtractionState>
+): ExtractionState {
+  return {
+    layers: {
+      1: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      2: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      3: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      4: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+      5: { signal: "none", material: [], examples: [], dimensions: [], discovery_mode: "component" },
+    },
+    language_bank: [],
+    depth: "surface",
+    current_thread: "",
+    mode: "situation_led",
+    checkpoint_gate: {
+      concrete_examples: 0,
+      has_mechanism: false,
+      has_charged_language: false,
+      has_behavior_driver_link: false,
+      strongest_layer: null,
+      target_type: "component",
+    },
+    clinical_flag: { active: false, level: "none", note: "" },
+    pattern_tracking: {
+      active: false,
+      layer: null,
+      label: "",
+      chain_elements: [],
+      recurrence_count: 0,
+    },
+    confirmed_patterns: [],
+    next_prompt: "",
+    sage_brief: "",
+    ...overrides,
+  };
+}
+
+describe("validateMaterialQuality", () => {
+  it("returns ok when state is null (no signal yet)", () => {
+    const result = validateMaterialQuality(null, false, "component");
+    expect(result.ok).toBe(true);
+  });
+
+  it("blocks during crisis regardless of other criteria", () => {
+    const state = makeExtractionState({
+      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
+      checkpoint_gate: {
+        concrete_examples: 5,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = validateMaterialQuality(state, false, "component");
+    expect(result.ok).toBe(false);
+    expect(result.reasons[0]).toMatch(/crisis/i);
+  });
+
+  it("requires 2 scenes for the standard component gate", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 1,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = validateMaterialQuality(state, false, "component");
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/concrete scenes/);
+  });
+
+  it("requires 1 scene for the first-checkpoint gate", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 1,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: false,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = validateMaterialQuality(state, true, "component");
+    expect(result.ok).toBe(true);
+  });
+
+  it("first-checkpoint gate fails when neither mechanism nor link is present", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 1,
+        has_mechanism: false,
+        has_charged_language: true,
+        has_behavior_driver_link: false,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = validateMaterialQuality(state, true, "component");
+    expect(result.ok).toBe(false);
+  });
+
+  it("standard gate passes when all four criteria are met", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = validateMaterialQuality(state, false, "component");
+    expect(result.ok).toBe(true);
+  });
+
+  it("pattern gate requires 2 recurrences and 3 chain elements", () => {
+    const state = makeExtractionState({
+      pattern_tracking: {
+        active: true,
+        layer: 1,
+        label: "loop",
+        chain_elements: [
+          { element: "trigger", content: "x", source: "y" },
+          { element: "response", content: "x", source: "y" },
+        ],
+        recurrence_count: 1,
+      },
+    });
+    const result = validateMaterialQuality(state, false, "pattern");
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/recurrence/);
+    expect(result.reasons.join(" ")).toMatch(/chain/);
+  });
+
+  it("pattern gate passes when both criteria are met", () => {
+    const state = makeExtractionState({
+      pattern_tracking: {
+        active: true,
+        layer: 1,
+        label: "loop",
+        chain_elements: [
+          { element: "trigger", content: "x", source: "y" },
+          { element: "response", content: "x", source: "y" },
+          { element: "cost", content: "x", source: "y" },
+        ],
+        recurrence_count: 2,
+      },
+    });
+    const result = validateMaterialQuality(state, false, "pattern");
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("validateComposedEntry", () => {
+  const goodComponent = `You walk into a room and a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the end of the day the buzzing starts in your jaw and your thoughts get slower. By the time you get home you can't talk, can't cook, can't answer a text. You lose the evening and you call it being tired. The version that shows up at work is legible. The version that comes home is gone. You can't stop running the second version because the real one got flagged as too much a long time ago. The cost is that almost nobody in your life has met the real one, including you on the days when you come home and go straight to the dark room.`;
+
+  it("passes for a well-formed component with body anchor", () => {
+    const result = validateComposedEntry(goodComponent, "component");
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("warns when component is too short", () => {
+    const result = validateComposedEntry(
+      "You shut down. Your jaw goes tight. That's it.",
+      "component"
+    );
+    expect(result.ok).toBe(false);
+    expect(result.warnings.join(" ")).toMatch(/too short/);
+  });
+
+  it("warns when component has no somatic anchor word", () => {
+    const cerebral = Array(160).fill("You think about it carefully").join(". ") + ".";
+    const result = validateComposedEntry(cerebral, "component");
+    expect(result.warnings.join(" ")).toMatch(/no somatic anchor/);
+  });
+
+  it("warns when a clinical label leaks through", () => {
+    const text = goodComponent + " This is your trauma response.";
+    const result = validateComposedEntry(text, "component");
+    expect(result.warnings.join(" ")).toMatch(/clinical label/);
+  });
+
+  it("warns when a time reference leaks through", () => {
+    const text = goodComponent + " Right now this is happening.";
+    const result = validateComposedEntry(text, "component");
+    expect(result.warnings.join(" ")).toMatch(/time reference/);
+  });
+
+  it("uses pattern word ranges for type=pattern", () => {
+    const shortPattern =
+      "When the boss raises his voice, your jaw goes tight and your thoughts slow. You freeze and stop talking. It buys you a second of safety. The cost is the meeting moves on without you.";
+    const result = validateComposedEntry(shortPattern, "pattern");
+    // Around 40 words — under the 60 floor, should warn
+    expect(result.warnings.join(" ")).toMatch(/too short/);
+  });
+});
+
+describe("applyCheckpointGates with material quality", () => {
+  it("blocks a checkpoint when extraction state shows insufficient material", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 0,
+        has_mechanism: false,
+        has_charged_language: false,
+        has_behavior_driver_link: false,
+        strongest_layer: null,
+        target_type: "component",
+      },
+    });
+    const result = applyCheckpointGates(
+      { layer: 1, type: "component", name: "test" },
+      [],
+      10, // plenty of turns since last checkpoint
+      state,
+      false
+    );
+    expect(result.isCheckpoint).toBe(false);
+  });
+
+  it("permits the checkpoint when extraction state confirms quality", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = applyCheckpointGates(
+      { layer: 1, type: "component", name: "test" },
+      [],
+      10,
+      state,
+      false
+    );
+    expect(result.isCheckpoint).toBe(true);
+  });
+
+  it("still applies the turn-count gate after material quality passes", () => {
+    const state = makeExtractionState({
+      checkpoint_gate: {
+        concrete_examples: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+        target_type: "component",
+      },
+    });
+    const result = applyCheckpointGates(
+      { layer: 1, type: "component", name: "test" },
+      [],
+      2, // too soon since last checkpoint
+      state,
+      false
+    );
+    expect(result.isCheckpoint).toBe(false);
+  });
+
+  it("preserves backward compatibility when extraction state is omitted", () => {
+    const result = applyCheckpointGates(
+      { layer: 1, type: "component", name: "test" },
+      [],
+      10
+    );
+    expect(result.isCheckpoint).toBe(true);
+  });
+});

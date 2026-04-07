@@ -702,74 +702,23 @@ describe("buildSystemPrompt", () => {
         });
       });
 
-      describe("CHECKPOINT DELIVERY SEQUENCE requires somatic anchoring", () => {
-        it("observation step names body/somatic anchoring as required", () => {
+      describe("CHECKPOINTS section keeps embodiment guidance without enforcement scaffolding", () => {
+        it("still talks about anchoring in the body and the user's exact words", () => {
           const result = buildCheckpointMode();
-          // The observation item (step 2) must mention body or somatic anchoring
-          expect(result).toMatch(/anchor in (their|the) body/i);
+          // The CHECKPOINTS section directs embodiment without listing
+          // a numbered checklist or violation language.
+          expect(result).toMatch(/body/i);
+          expect(result).toMatch(/bind/i);
+          expect(result).toMatch(/recognition, not diagnosis/i);
         });
 
-        it("flags a bodiless checkpoint as too cerebral", () => {
+        it("instructs Sage to wait for confirmation before writing", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/no body in it|too cerebral|bodiless/i);
+          expect(result).toMatch(/Never write to the manual until/i);
         });
       });
 
-      describe("CHECKPOINT COMPOSITION VOICE is ND-specific", () => {
-        it("contains the header", () => {
-          expect(buildCheckpointMode()).toContain("CHECKPOINT COMPOSITION VOICE");
-        });
-
-        it("contains autism-resonant WRONG/RIGHT example (masking)", () => {
-          const result = buildCheckpointMode();
-          // WRONG version labels "masking" as a behavior
-          expect(result).toMatch(/engage in masking behaviors/i);
-          // RIGHT version describes the second-version mechanism
-          expect(result).toMatch(/a second version of you switches on/i);
-          expect(result).toMatch(/your jaw is buzzing/i);
-        });
-
-        it("does not contain the old non-autistic examples", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("You grew up in a house");
-          expect(result).not.toContain("track uncertainty in your relationship");
-          expect(result).not.toContain("need to understand in order to feel safe");
-        });
-
-        it("THIN example uses clinical autism-framework labels (to show as anti-pattern)", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/You mask to fit in at work/);
-        });
-
-        it("LANDED example uses sensory and system words verbatim", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/buzzing starts in your jaw/i);
-          expect(result).toMatch(/can't talk, can't cook, can't answer a text/i);
-          expect(result).toMatch(/dark room/i);
-        });
-      });
-
-      describe("Five principles include somatic anchoring", () => {
-        it("has a principle named 'Anchor in the body'", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/Anchor in the body/i);
-        });
-
-        it("names specific sensory words as required carry-throughs", () => {
-          const result = buildCheckpointMode();
-          // The principles should explicitly list sensory vocabulary
-          expect(result).toMatch(/buzzing/);
-          expect(result).toMatch(/shut down/);
-          expect(result).toMatch(/too loud/);
-        });
-
-        it("forbids translation into clinical terms in the principles", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/Do not translate/i);
-        });
-      });
-
-      describe("manual entry composition rules live server-side, not in the prompt", () => {
+      describe("manual entry composition and enforcement live server-side, not in the prompt", () => {
         it("does not contain the |||MANUAL_ENTRY||| sentinel anywhere", () => {
           const result = buildCheckpointMode();
           expect(result).not.toContain("|||MANUAL_ENTRY|||");
@@ -786,17 +735,32 @@ describe("buildSystemPrompt", () => {
           expect(result).not.toMatch(/"changelog" field/);
           expect(result).not.toMatch(/TYPE RULE/);
         });
-      });
 
-      describe("CHECKPOINT SELF-CHECK adds a body-anchor check", () => {
-        it("mentions verify all five", () => {
+        it("does not contain the deleted CHECKPOINT DELIVERY SEQUENCE numbered checklist", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/verify all five/i);
+          expect(result).not.toContain("CHECKPOINT DELIVERY SEQUENCE");
+          expect(result).not.toMatch(/If you delivered the headline before step 2/i);
+          expect(result).not.toMatch(/you violated/i);
         });
 
-        it("has a check for somatic anchor in the entry itself", () => {
+        it("does not contain the deleted CHECKPOINT SELF-CHECK enumerated list", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/somatic anchor in the entry/i);
+          expect(result).not.toContain("CHECKPOINT SELF-CHECK");
+          expect(result).not.toMatch(/verify all five/i);
+        });
+
+        it("does not contain the deleted CHECKPOINT COMPOSITION VOICE / THIN vs LANDED examples", () => {
+          const result = buildCheckpointMode();
+          expect(result).not.toContain("CHECKPOINT COMPOSITION VOICE");
+          expect(result).not.toContain("THIN vs LANDED");
+          expect(result).not.toMatch(/buzzing starts in your jaw/i);
+          expect(result).not.toMatch(/dark room/i);
+        });
+
+        it("does not contain the deleted Five principles enumerated list", () => {
+          const result = buildCheckpointMode();
+          expect(result).not.toMatch(/Five principles for strong checkpoints/i);
+          expect(result).not.toMatch(/Anchor in the body/i);
         });
       });
     });
@@ -840,9 +804,6 @@ describe("buildSystemPrompt", () => {
       // active. Verify those appear in order too.
       const EXPECTED_CHECKPOINT_SECTIONS = [
         "CHECKPOINTS",
-        "CHECKPOINT DELIVERY SEQUENCE",
-        "CHECKPOINT COMPOSITION VOICE",
-        "CHECKPOINT SELF-CHECK",
       ];
 
       it("all checkpoint-mode sections appear in order when checkpointApproaching is true", () => {
