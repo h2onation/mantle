@@ -17,8 +17,8 @@ User message
       → EXTRACTION (Sonnet): analyzes the message, updates research brief, saves for NEXT turn
       → SAGE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
   → After Sage finishes:
-      → If Sage included a |||MANUAL_ENTRY||| block → skip classifier (Path A)
-      → If not → run CLASSIFIER (Haiku) to check if response was a checkpoint (Path B)
+      → CLASSIFIER (Haiku) checks whether the response is a checkpoint
+      → If yes → composeManualEntry() (Sonnet) writes the polished manual entry server-side
   → message_complete event sent to frontend
 ```
 
@@ -44,9 +44,9 @@ All Sage decision logic lives here and is imported by both paths:
 - `buildCheckpointMeta()` — checkpoint metadata shape
 - `insertCheckpointActionMessage()` — canonical system messages for confirm/reject/refine
 
-Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `parseManualEntryBlock()`, `detectCrisisInUserMessage()`.
+Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
 
-Checkpoint detection uses the same two paths on both channels: Path A (Sage outputs `|||MANUAL_ENTRY|||` block) and Path B (classifier fallback + Sonnet composition via `composeManualEntry()`).
+Checkpoint detection uses a single path on both channels: the Haiku classifier flags candidate turns and `composeManualEntry()` (Sonnet) writes the polished manual entry server-side.
 
 ### What differs by channel (intentional)
 
@@ -131,16 +131,13 @@ Do not add fields without checking this structure first. The extraction prompt m
 
 ## Checkpoint Lifecycle
 
-Checkpoints are the core mechanic: Sage reflects a pattern, the user confirms, and it writes to the manual. Two detection paths, both ending at the same confirmation flow.
+Checkpoints are the core mechanic: Sage reflects a pattern, the user confirms, and it writes to the manual. A single detection path feeds the confirmation flow.
 
-**Path A (preferred) — Sage includes the manual entry inline:**
-Sage appends a `|||MANUAL_ENTRY|||` block at the end of its response containing the polished manual text, layer, type, name, and changelog. A streaming delimiter buffer in `call-sage.ts` catches this block and prevents it from reaching the user. Classifier is skipped entirely. All metadata comes from Sage directly. See rules.md "Checkpoint and Manual Entry Voice" for the quality rules governing what goes in the entry.
-
-**Path B (fallback) — Haiku classifier detects the checkpoint:**
-When Sage doesn't produce a manual entry block, the Haiku classifier runs post-stream on every response. If it detects a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. This ensures `composed_content` is populated at creation time.
+**Detection — Haiku classifier + server-side composition:**
+After Sage's response completes, the Haiku classifier runs on every turn. If it detects a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. This ensures `composed_content` is populated at creation time. Sage never emits manual-entry blocks inline — composition is server-side only. See rules.md "Checkpoint and Manual Entry Voice" for the quality rules governing what goes in the entry.
 
 **On confirmation:**
-1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta` (always populated by Path A or B)
+1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta` (populated at detection time)
 2. Archives existing layer content to `manual_changelog` if updating
 3. Writes composed narrative to `manual_components`
 4. Inserts system message "[User confirmed the checkpoint]"
@@ -154,12 +151,12 @@ When Sage doesn't produce a manual entry block, the Haiku classifier runs post-s
 
 These are the rules that prevent the highest-severity bugs. Every one represents a bug that either already happened or would be catastrophic.
 
-- `composed_content` must NEVER be null on confirmed checkpoints. Three defenses: (1) Sage produces `|||MANUAL_ENTRY|||` block at turnCount > 1 (Path A), (2) `call-sage.ts` calls `composeManualEntry()` when classifier detects checkpoint without block (Path B), (3) `confirmCheckpoint()` falls back to raw message content as safety net.
+- `composed_content` must NEVER be null on confirmed checkpoints. Two defenses: (1) `call-sage.ts` calls `composeManualEntry()` whenever the classifier detects a checkpoint, (2) `confirmCheckpoint()` falls back to raw message content as safety net.
 - Crisis text must never appear in manual entries. Stripped in `confirmCheckpoint()` fallback path.
 - `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForSage`).
 - Checkpoint gate is quality-based (concrete examples + mechanism + charged language), never turn-based.
 - First-checkpoint gate is intentionally lighter to enable the teaching moment.
-- First checkpoint on any layer is ALWAYS type "component". The TYPE RULE is enforced four ways: system prompt instruction → extraction `target_type` → hard guard in `call-sage.ts` → safety net in `confirmCheckpoint()`.
+- First checkpoint on any layer is ALWAYS type "component". The TYPE RULE is enforced three ways: extraction `target_type` → hard guard in `call-sage.ts` → safety net in `confirmCheckpoint()`.
 
 ## Layer Discovery Rules
 
@@ -181,7 +178,7 @@ The system prompt is built dynamically by `buildSystemPrompt()`. Different secti
 |---------------|-----------|
 | Voice, Legal, Conversation Approach, Deepening, Adapting | Always |
 | How to use extraction context | turnCount > 1 |
-| Manual Entry Format (|||MANUAL_ENTRY||| instructions) | turnCount > 1 |
+| Manual Entry Format (composition voice rules used by `composeManualEntry()`) | turnCount > 1 |
 | Progress Signals | turnCount > 2 |
 | First Message (3-path routing: questions / help starting / specific situation) | turnCount ≤ 1 AND new user |
 | First Session | New user (no manual components, not returning) |
@@ -213,8 +210,8 @@ Pattern: server client authenticates the user, admin client does all database wo
 
 All streaming responses (chat and checkpoint confirm) use three event types:
 
-- `text_delta`: Streamed token by token. The delimiter buffer suppresses `|||MANUAL_ENTRY|||` content from reaching the client.
-- `message_complete`: Final event. Carries checkpoint data, `cleanContent` (text with manual entry block stripped), `nextPrompt` (extraction's suggested input placeholder), and `processingText`.
+- `text_delta`: Streamed token by token from Sage's response.
+- `message_complete`: Final event. Carries checkpoint data, `cleanContent` (the full Sage response), `nextPrompt` (extraction's suggested input placeholder), and `processingText`.
 - `error`: Emitted on failure, stream closes.
 
 Client parses via `parseSSEStream` in `src/lib/utils/sse-parser.ts`. Text is NOT streamed incrementally to the UI — it's buffered and shown in one shot after parsing completes.

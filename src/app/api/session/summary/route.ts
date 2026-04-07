@@ -3,6 +3,11 @@ export const runtime = "edge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateSessionSummary } from "@/lib/sage/generate-summary";
+import {
+  sessionSummaryHour,
+  checkLimit,
+  rateLimitedResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -12,6 +17,11 @@ export async function POST(request: Request) {
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = await checkLimit(sessionSummaryHour, user.id);
+  if (!limit.success) {
+    return rateLimitedResponse(limit);
   }
 
   const { conversationId } = (await request.json()) as {

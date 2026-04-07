@@ -16,6 +16,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.3",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "jspdf": "^4.2.1",
     "next": "14.2.15",
     "react": "^18",

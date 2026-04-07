@@ -40,6 +40,18 @@ These apply to every task. No exceptions.
 - **Dead features**: Do not reintroduce anything listed in `docs/rules.md` under Dead Features.
 - **Shipping**: Before merging to main, run `/ship` or manually update `docs/state.md` with what changed.
 
+## Security Rules
+
+- Never log user message content, phone numbers, or auth tokens. Log event types, IDs, and counts only.
+- The Sage system prompt must be written as if a user will read it. No clinical framework names, no extraction schema names, no operational meta-commentary about what Sage is doing underneath.
+- RLS must be enabled on every table that holds user data. No exceptions.
+- Every API route that reads or writes user data must verify auth via `supabase.auth.getUser()` and scope all queries by the authenticated user ID.
+- All routes that call the Anthropic API must have rate limiting.
+- Never use the Supabase service role key in client-side code.
+- Never put secrets in `NEXT_PUBLIC_` variables.
+- Shared links must use UUIDv4 tokens, never sequential IDs.
+- The only code path that may set `phone_numbers.verified = true` is the OTP verify route after hash comparison.
+
 ## Commands
 
 - `/ship` — Merge to main with state.md update gate. Build, test, update state, merge.

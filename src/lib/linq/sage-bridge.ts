@@ -102,7 +102,7 @@ export async function processTextMessage(
     };
   }
 
-  // 8. Conversational text is the full response (no inline sentinel).
+  // 8. Conversational text is the full response.
   let responseText = fullText;
 
   // 9. Crisis detection (shared with web)
