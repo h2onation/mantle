@@ -17,9 +17,9 @@ interface MobileManualProps {
 export default function MobileManual({ components, displayName, onExploreWithSage }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
-  const isEmpty = layers.every((l) => l.component === null && l.patterns.length === 0);
-  const populatedLayers = layers.filter((l) => l.component !== null || l.patterns.length > 0);
-  const emptyLayers = layers.filter((l) => l.component === null && l.patterns.length === 0);
+  const isEmpty = layers.every((l) => l.entries.length === 0);
+  const populatedLayers = layers.filter((l) => l.entries.length > 0);
+  const emptyLayers = layers.filter((l) => l.entries.length === 0);
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);

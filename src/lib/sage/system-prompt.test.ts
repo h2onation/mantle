@@ -329,10 +329,10 @@ describe("buildSystemPrompt", () => {
 
   // ─── Exploration context ─────────────────────────────────────────────────
   describe("exploration context", () => {
-    it("contains 'EXPLORATION FOCUS' and the pattern name for type 'pattern'", () => {
+    it("contains 'EXPLORATION FOCUS' and the entry name for type 'entry'", () => {
       const result = build({
         explorationContext: {
-          type: "pattern",
+          type: "entry",
           layerId: 3,
           layerName: LAYER_NAMES[3],
           name: "The Shutdown Loop",
@@ -343,12 +343,13 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("The Shutdown Loop");
     });
 
-    it("contains the component narrative for type 'component'", () => {
+    it("contains the entry content for type 'entry'", () => {
       const result = build({
         explorationContext: {
-          type: "component",
+          type: "entry",
           layerId: 1,
           layerName: LAYER_NAMES[1],
+          name: "Autonomy Drive",
           content: "You need autonomy above all else. Control over your own direction.",
         },
       });
@@ -372,7 +373,7 @@ describe("buildSystemPrompt", () => {
     it("contains 'Do NOT run entry sequences' (exploration early return)", () => {
       const result = build({
         explorationContext: {
-          type: "pattern",
+          type: "entry",
           layerId: 2,
           layerName: LAYER_NAMES[2],
           name: "The Fixer",

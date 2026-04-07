@@ -15,7 +15,6 @@ export interface ChatMessage {
 export interface ManualComponent {
   id?: string;
   layer: number;
-  type: string;
   name: string | null;
   content: string;
   created_at?: string;
@@ -24,7 +23,6 @@ export interface ManualComponent {
 export interface ActiveCheckpoint {
   messageId: string;
   layer: number;
-  type: string;
   name: string | null;
   content: string;
 }
@@ -32,7 +30,7 @@ export interface ActiveCheckpoint {
 export interface ExplorationContext {
   layerId: number;
   layerName: string;
-  type: "pattern" | "component" | "empty_layer";
+  type: "entry" | "empty_layer";
   name?: string;
   content: string;
 }

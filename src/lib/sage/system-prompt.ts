@@ -499,17 +499,12 @@ ${dynamicContext}`;
     let explorationBlock = "\nEXPLORATION FOCUS\n";
     explorationBlock += "The user clicked 'Explore with Sage' on a specific part of their manual.\n\n";
 
-    if (explorationContext.type === "pattern") {
-      explorationBlock += `They want to explore the pattern "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
-      explorationBlock += `Pattern description: ${explorationContext.content}\n\n`;
-      explorationBlock += "Open by referencing this pattern directly. Use their language from the description. ";
-      explorationBlock += "Ask a specific question pulling them into a concrete, recent moment where this pattern was active. ";
-      explorationBlock += "Don't explain the pattern back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
-    } else if (explorationContext.type === "component") {
-      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
-      explorationBlock += `Component narrative: ${explorationContext.content}\n\n`;
-      explorationBlock += "Pick the thread with the most tension or unexplored depth. ";
-      explorationBlock += "Don't summarize the narrative. Ask a question that takes them from the general picture into a specific, recent situation.\n";
+    if (explorationContext.type === "entry") {
+      explorationBlock += `They want to explore the entry "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
+      explorationBlock += `Entry content: ${explorationContext.content}\n\n`;
+      explorationBlock += "Open by referencing this entry directly. Use their language from it. ";
+      explorationBlock += "Ask a specific question pulling them into a concrete, recent moment connected to it. ";
+      explorationBlock += "Don't explain the entry back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
     } else if (explorationContext.type === "empty_layer") {
       explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which is empty.\n`;
       explorationBlock += `Layer description: ${explorationContext.content}\n\n`;

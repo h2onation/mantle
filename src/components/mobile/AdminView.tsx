@@ -795,8 +795,7 @@ export default function AdminView() {
                       if (msg.role === "system") return null;
 
                       const isCheckpoint = msg.is_checkpoint && msg.checkpoint_meta;
-                      const cpMeta = msg.checkpoint_meta as { layer?: number; type?: string; name?: string; status?: string } | null;
-                      const isPattern = cpMeta?.type === "pattern";
+                      const cpMeta = msg.checkpoint_meta as { layer?: number; name?: string; status?: string } | null;
 
                       // Checkpoint card
                       if (isCheckpoint && msg.role === "assistant") {
@@ -804,12 +803,8 @@ export default function AdminView() {
                           <div
                             key={msg.id}
                             style={{
-                              background: isPattern
-                                ? "var(--session-navy-bg)"
-                                : "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                              border: isPattern
-                                ? "1px solid var(--session-navy-border)"
-                                : "1px solid var(--session-sage-border)",
+                              background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
+                              border: "1px solid var(--session-sage-border)",
                               borderRadius: 8,
                               padding: "16px 16px 14px",
                               margin: "12px 0",
@@ -822,11 +817,11 @@ export default function AdminView() {
                                 fontSize: "7px",
                                 letterSpacing: "2px",
                                 textTransform: "uppercase",
-                                color: isPattern ? "var(--session-navy-label)" : "var(--session-sage-soft)",
+                                color: "var(--session-sage-soft)",
                                 marginBottom: 8,
                               }}
                             >
-                              {isPattern ? "PATTERN" : "COMPONENT"} · LAYER {cpMeta?.layer ?? ""}
+                              ENTRY · LAYER {cpMeta?.layer ?? ""}
                               {cpMeta?.status ? ` · ${cpMeta.status.toUpperCase()}` : ""}
                             </div>
 
@@ -837,7 +832,7 @@ export default function AdminView() {
                                   fontFamily: "var(--font-serif)",
                                   fontSize: "17px",
                                   fontWeight: 400,
-                                  color: isPattern ? "var(--session-navy-label)" : "var(--session-ink)",
+                                  color: "var(--session-ink)",
                                   lineHeight: 1.3,
                                   marginBottom: 8,
                                 }}
@@ -849,10 +844,10 @@ export default function AdminView() {
                             {/* Content */}
                             <div
                               style={{
-                                fontFamily: isPattern ? "var(--font-sans)" : "var(--font-serif)",
-                                fontSize: isPattern ? "13px" : "14px",
-                                lineHeight: isPattern ? 1.65 : 1.75,
-                                color: isPattern ? "var(--session-ink-faded)" : "var(--session-ink-soft)",
+                                fontFamily: "var(--font-serif)",
+                                fontSize: "14px",
+                                lineHeight: 1.75,
+                                color: "var(--session-ink-soft)",
                                 whiteSpace: "pre-line",
                               }}
                             >
@@ -885,7 +880,7 @@ export default function AdminView() {
                                     color: "var(--session-ink-faded)",
                                     marginTop: 4,
                                     padding: 8,
-                                    background: isPattern ? "rgba(45, 55, 80, 0.06)" : "var(--session-sage-tint)",
+                                    background: "var(--session-sage-tint)",
                                     borderRadius: 6,
                                     whiteSpace: "pre-wrap",
                                     overflow: "auto",
@@ -1093,8 +1088,8 @@ export default function AdminView() {
 
 function AdminManualView({ components }: { components: ManualComponent[] }) {
   const layers = buildLayers(components);
-  const populatedLayers = layers.filter((l) => l.component !== null || l.patterns.length > 0);
-  const emptyLayers = layers.filter((l) => l.component === null && l.patterns.length === 0);
+  const populatedLayers = layers.filter((l) => l.entries.length > 0);
+  const emptyLayers = layers.filter((l) => l.entries.length === 0);
   const isEmpty = populatedLayers.length === 0;
 
   if (isEmpty) {
