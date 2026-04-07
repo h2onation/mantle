@@ -6,7 +6,6 @@ export interface ChatMessage {
   isCheckpoint?: boolean;
   checkpointMeta?: {
     layer: number;
-    type: string;
     name: string | null;
     status: string;
   } | null;

@@ -144,7 +144,6 @@ export function useChat() {
             isCheckpoint: true,
             checkpointMeta: {
               layer: completeEvent!.checkpoint!.layer,
-              type: completeEvent!.checkpoint!.type,
               name: completeEvent!.checkpoint!.name,
               status: "pending",
             },
