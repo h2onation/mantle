@@ -86,7 +86,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             lineHeight: 1.2,
           }}
         >
-          Save your manual
+          Keep your manual
         </h2>
 
         {/* Body */}
@@ -99,7 +99,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             lineHeight: 1.5,
           }}
         >
-          Create an account to keep your progress. Access your manual from any device.
+          Create an account so you don&rsquo;t lose what you&rsquo;ve built.
         </p>
 
         {error && (
@@ -300,7 +300,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
             textAlign: "center",
           }}
         >
-          Already have an account? Your current session will continue &mdash; create a new account to save this work.
+          Already have an account? Your current session will continue. Create a new account to save this work.
         </p>
       </div>
     </div>

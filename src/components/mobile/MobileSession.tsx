@@ -10,9 +10,9 @@ import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
 const WELCOME_CHIPS = [
-  "I have questions about how this works",
-  "I\u2019m ready but could use help finding a starting point",
-  "I have a specific situation on my mind",
+  "I have a situation I want to work through",
+  "I know something about myself I want to capture",
+  "I just need to think out loud",
 ] as const;
 
 const sageLabelStyle = {
@@ -148,15 +148,25 @@ export default function MobileSession({
       <div style={{ marginBottom: "2px" }}>
         <span style={sageLabelStyle}>SAGE</span>
       </div>
-      <p style={{
+      <div style={{
         fontFamily: "var(--font-sage)",
         fontSize: "16px",
         lineHeight: 1.55,
         color: "var(--session-ink-sage)",
-        margin: 0,
       }}>
-        Welcome. Let&apos;s start small and see where you&apos;re at.
-      </p>
+        <p style={{ margin: "0 0 12px 0" }}>
+          This is where you talk to Sage. There are a few ways to use it.
+        </p>
+        <p style={{ margin: "0 0 12px 0" }}>
+          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell Sage what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
+        </p>
+        <p style={{ margin: "0 0 12px 0" }}>
+          <strong style={{ fontWeight: 600 }}>Write to your manual directly.</strong> If you already know something about how you work, you can start there. Something like &ldquo;I spend a lot of energy managing social situations and most people don&rsquo;t realize it.&rdquo;
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. Sage will help organize what you&rsquo;re saying and surface patterns as they come up.
+        </p>
+      </div>
       {showChips && (
         <div style={{
           display: "flex",
@@ -283,7 +293,7 @@ export default function MobileSession({
               color: "var(--session-ink-mid)",
             }}
           >
-            Sign in to keep your progress
+            Create an account to keep your manual
           </span>
           <button
             onClick={onSignInPrompt}
@@ -298,7 +308,7 @@ export default function MobileSession({
               padding: 0,
             }}
           >
-            Sign in
+            Create account
           </button>
           <button
             onClick={() => {
@@ -376,7 +386,7 @@ export default function MobileSession({
                   textAlign: "center",
                 }}
               >
-                What&apos;s on your mind? Or if it helps, I can suggest a starting point.
+                What&rsquo;s going on? Or we can pick up where we left off.
               </p>
             </div>
           )}

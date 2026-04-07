@@ -51,34 +51,29 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           HOW IT WORKS
         </div>
 
-        {/* Headline */}
-        <h1
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 30,
-            fontWeight: 400,
-            lineHeight: 1.2,
-            letterSpacing: "-0.3px",
-            color: "var(--session-ink)",
-            margin: "0 0 20px 0",
-          }}
-        >
-          You talk through a situation. Sage finds the pattern underneath.
-        </h1>
-
-        {/* Body */}
-        <p
+        {/* Body — 4 paragraphs */}
+        <div
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: 16,
             fontWeight: 400,
-            lineHeight: 1.6,
+            lineHeight: 1.55,
             color: "var(--session-ink-mid)",
-            margin: 0,
           }}
         >
-          Sage listens, pushes deeper, and builds a behavioral map in the background. When it sees something worth naming, it surfaces for your review. What you confirm becomes part of your manual, a structured model of how you operate. Each conversation sharpens the picture.
-        </p>
+          <p style={{ margin: "0 0 16px 0" }}>
+            You&rsquo;ll build a manual. A guide to how you operate, in your own words.
+          </p>
+          <p style={{ margin: "0 0 16px 0" }}>
+            You build it by talking to Sage. Sage is an AI that helps you navigate situations in your life. A conflict, a reaction, something you can&rsquo;t stop thinking about.
+          </p>
+          <p style={{ margin: "0 0 16px 0" }}>
+            Over time, Sage identifies patterns in how you process and communicate, guided by published frameworks. When it sees something worth naming, it reflects it back. You decide if it&rsquo;s accurate.
+          </p>
+          <p style={{ margin: 0 }}>
+            Your manual is yours. Use it to navigate whatever comes up. Or share specific parts with specific people in a way you control.
+          </p>
+        </div>
       </div>
 
       {/* Bottom nav */}

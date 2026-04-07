@@ -6,7 +6,7 @@ export async function shareManual(
   const fileName = `${safeName}s_manual.pdf`;
   const file = new File([pdfBlob], fileName, { type: "application/pdf" });
 
-  const shareText = `${name} shared their manual with you. It describes how they process, relate, and make decisions, in their own words. Built with Mantle, which uses conversation to develop a fuller picture of how you operate.`;
+  const shareText = `${name} shared their manual with you. This is a guide to how they work, written in their own words. Each entry was confirmed by them as accurate. You can ask Sage questions about anything in this manual.`;
 
   // Try native share sheet (works on iOS Safari, Android Chrome, etc.)
   if (typeof navigator !== "undefined" && navigator.share) {
