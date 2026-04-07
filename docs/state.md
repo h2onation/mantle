@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-04-06*
+*Last verified: 2026-04-07*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -22,7 +22,7 @@
 - Bottom nav: 4 tabs (session, manual, guidance, settings), hides on keyboard open
 - Session summary: Haiku, fire-and-forget on stale sessions (> 30 min)
 - Session history: side drawer, browse/switch past sessions, start new session
-- Dev simulate: Settings → "Simulate user" → auto-runs conversation until checkpoint
+- Dev simulate: Settings → "Simulate user" → auto-runs conversation until checkpoint. Hardened 2026-04-07: persona may emit `[END]` to terminate at a natural stopping point (kills the goodbye/emoji loops that previously ran to MAX_TURNS=40); simulate-user prompt now forbids echoing Sage's freshly coined phrases and tells the persona that cognitive style (autistic/exhausted/guarded) should show up in *how* they talk, not just what they say. Production Sage prompt unchanged.
 - Dev reset: deletes all user data (not profile/auth) + localStorage clear
 - Crisis protocol: detects crisis language, provides 988 + Crisis Text Line
 - Voice input (Deepgram): auto-scroll during transcription, 3.5-line max height on input
@@ -68,6 +68,10 @@
 
 ## In-Flight Work
 *Last verified: 2026-04-07*
+
+- Welcome block ordering fix (2026-04-07): The PR3 first-session welcome block was being rendered in two places — at the top of the message list when there was no Sage reply yet, and inline above Sage's first message once she replied. The second render moved the block *below* the user's first message, breaking the intended sequence (welcome block → user types → chips/transition line disappear → Sage responds). Fixed in `MobileSession.tsx`: single render at the top of the message list gated on `showWelcomePanel = !firstSessionCompleted && sessionOrigin === "new" && confirmedComponents.length === 0`; the explanation paragraphs persist as the first item throughout the conversation. The transition line ("There is no wrong place to start...") and the three chips are now gated together on `chipsVisible && !hasMessages`, so they hide as a unit the moment any message is sent. Removed the duplicate inline render and the now-unused `hasAssistantMessage` local. No tests touched (the fix is render-condition logic; tsc clean, full test suite still 305 passing).
+- Worktree env auto-symlink (2026-04-07): Dev infra fix. The existing PostToolUse hook on EnterWorktree silently failed for some worktree creation paths (raw `git worktree add`, missing `tool_result.metadata.worktree_path`) because it swallowed errors with `2>/dev/null` and fell back to `$PWD` which resolves to the main repo. Added `.claude/hooks/session-start-env.sh` as a SessionStart hook that self-heals every session: if cwd is a worktree under `.claude/worktrees/` and `.env.local` is missing, link it from main. Idempotent. Hardened the existing `post-worktree-env.sh` to fail loud on stderr and refuse the buggy `$PWD` fallback. No production code touched.
+
 
 - Documentation system migration — complete. Five-doc system (system, rules, intent, decisions, state) + CLAUDE.md router + /ship command with state.md gate.
 - Sage prompt tuning (2026-03-17): Five fixes from conversation quality audit — replaced conciseness rule with depth/presence goal, added receive-land-ask rhythm to deepening moves, softened closed-question rule, added checkpoint depth test, enforced post-confirmation path forward.
