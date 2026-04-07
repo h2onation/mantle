@@ -78,6 +78,12 @@ export default function TermsOfService() {
           the 988 Suicide and Crisis Lifeline (call or text 988) or the Crisis
           Text Line (text HOME to 741741).
         </p>
+        <p>
+          Sage does not assess or pathologize any condition. The manual is a
+          self-authored document reflecting your own understanding of how you
+          work. It is not clinical documentation and should not be used as a
+          legal accommodation document or submitted as medical evidence.
+        </p>
 
         <h2
           style={{
@@ -138,6 +144,28 @@ export default function TermsOfService() {
           The conversations you have with Sage and the User Manual entries you
           confirm belong to you. We do not claim ownership of your content. We
           use your content only to provide and improve the Sage experience.
+        </p>
+        <p>
+          If you share your manual, you control what is visible and who can see
+          it.
+        </p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
+          Sharing
+        </h2>
+        <p>
+          You may choose to share parts of your manual with others. Shared
+          content is view-only. Recipients may ask Sage questions about your
+          shared manual. Sage will only reference content you have explicitly
+          shared. You can revoke sharing at any time. Recipients cannot modify
+          your manual.
         </p>
 
         <h2
