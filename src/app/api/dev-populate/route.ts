@@ -63,11 +63,10 @@ export async function POST(request: Request) {
   // Wipe existing manual_components so each call gives exactly the state you specify
   await admin.from("manual_components").delete().eq("user_id", userId);
 
-  // Insert one component per requested layer
+  // Insert one entry per requested layer
   const rows = validLayers.map((layer) => ({
     user_id: userId,
     layer,
-    type: "component" as const,
     name: null,
     content: LAYER_CONTENT[layer] || `Layer ${layer} content placeholder.`,
   }));
@@ -79,32 +78,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Failed to insert components" }, { status: 500 });
   }
 
-  // Insert sample patterns for layers that have content (max 2 per layer)
-  const PATTERN_CONTENT: Record<number, { name: string; content: string }[]> = {
-    1: [
-      { name: "the 2am override", content: "When something matters to you and someone pushes back, you go silent in the moment — then reconstruct alone at 2am. The override isn't rebellion. It's the only channel where you let yourself care fully without risking exposure." },
-    ],
-    3: [
-      { name: "the fair point reflex", content: "\"Fair point\" is your exit line. You use it when the stakes feel too high to show investment. It buys you time to retreat, but it costs you the chance to be seen as someone who stands for things. The people who matter most read it as passivity." },
-      { name: "the private channel", content: "Your most genuine engagement happens in private — midnight emails, solo redesigns, quiet adjustments. This is where the real you operates with full conviction. But routing everything through a private channel means nobody witnesses your actual intensity." },
-    ],
-  };
-
-  const patternRows = validLayers.flatMap((layer) =>
-    (PATTERN_CONTENT[layer] || []).map((p) => ({
-      user_id: userId,
-      layer,
-      type: "pattern" as const,
-      name: p.name,
-      content: p.content,
-    }))
-  );
-
-  if (patternRows.length > 0) {
-    await admin.from("manual_components").insert(patternRows);
-  }
-
-  // Update extraction_state discovery_mode for populated layers
+  // Mark populated layers as explored in extraction_state
   const { data: activeConv } = await admin
     .from("conversations")
     .select("id, extraction_state")
@@ -120,7 +94,6 @@ export async function POST(request: Request) {
     if (layers) {
       for (const layer of validLayers) {
         if (layers[layer]) {
-          layers[layer].discovery_mode = "pattern";
           layers[layer].signal = "explored";
         }
       }
@@ -131,5 +104,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return Response.json({ ok: true, count: validLayers.length + patternRows.length });
+  return Response.json({ ok: true, count: validLayers.length });
 }
