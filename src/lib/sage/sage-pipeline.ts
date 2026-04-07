@@ -313,16 +313,82 @@ export function handleCrisisDetection(
 // ── 4. Checkpoint gates ─────────────────────────────────────────────────────
 
 /**
- * Apply layer guards and turn-count suppression to a detected checkpoint.
+ * Pre-emit material-quality gate. Re-checks the extraction state's
+ * quality criteria server-side BEFORE we let a flagged checkpoint
+ * proceed to manual-entry composition. This enforces the same self-check
+ * the conversation prompt used to spell out, but silently and outside
+ * the leaked surface area.
+ *
+ * Standard gate: 2+ scenes, mechanism, charged language, behavior↔driver link.
+ * First-checkpoint gate (lighter): 1 scene + charged language + (mechanism OR link).
+ * Pattern gate: 2+ recurrences and 3+ chain elements filled.
+ *
+ * Returns { ok, reasons } so callers can log without echoing the
+ * gate vocabulary back to the user.
+ */
+export function validateMaterialQuality(
+  extractionState: ExtractionState | null,
+  isFirstCheckpoint: boolean,
+  flaggedType: string | null
+): { ok: boolean; reasons: string[] } {
+  if (!extractionState) {
+    return { ok: true, reasons: [] };
+  }
+
+  const cf = extractionState.clinical_flag;
+  if (cf?.active && cf.level === "crisis") {
+    return { ok: false, reasons: ["crisis active — checkpoint blocked"] };
+  }
+
+  const gate = extractionState.checkpoint_gate;
+  const reasons: string[] = [];
+
+  if (flaggedType === "pattern") {
+    const pt = extractionState.pattern_tracking;
+    const recurrence = pt?.recurrence_count || 0;
+    const chainCount = pt?.chain_elements?.length || 0;
+    if (recurrence < 2) reasons.push(`pattern recurrence ${recurrence}/2`);
+    if (chainCount < 3) reasons.push(`pattern chain ${chainCount}/3`);
+    return { ok: reasons.length === 0, reasons };
+  }
+
+  // Component gate
+  const minExamples = isFirstCheckpoint ? 1 : 2;
+  if (gate.concrete_examples < minExamples) {
+    reasons.push(
+      `concrete scenes ${gate.concrete_examples}/${minExamples}`
+    );
+  }
+  if (!gate.has_charged_language) {
+    reasons.push("no charged language captured");
+  }
+  if (isFirstCheckpoint) {
+    if (!gate.has_mechanism && !gate.has_behavior_driver_link) {
+      reasons.push("no mechanism or behavior-driver link");
+    }
+  } else {
+    if (!gate.has_mechanism) reasons.push("no mechanism");
+    if (!gate.has_behavior_driver_link) reasons.push("no behavior-driver link");
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Apply layer guards, material-quality gate, and turn-count suppression
+ * to a detected checkpoint.
  *
  * Rule 1: First entry on any layer must be a component.
  * Rule 2: Only one component per layer — force to pattern after.
- * Rule 3: Suppress if fewer than 5 user turns since last checkpoint.
+ * Rule 3: Material quality must meet the gate (validateMaterialQuality).
+ * Rule 4: Suppress if fewer than 5 user turns since last checkpoint.
  */
 export function applyCheckpointGates(
   manualEntry: { layer: number; type: string; name: string } | null,
   manualComponents: ManualComponent[],
-  turnsSinceCheckpoint: number
+  turnsSinceCheckpoint: number,
+  extractionState?: ExtractionState | null,
+  isFirstCheckpoint?: boolean
 ): CheckpointGateResult {
   if (!manualEntry) {
     return { isCheckpoint: false, layer: null, type: null, name: null };
@@ -342,7 +408,25 @@ export function applyCheckpointGates(
     type = "pattern";
   }
 
-  // Rule 3: turn-count suppression
+  // Rule 3: material-quality pre-emit gate (silent, server-side)
+  if (extractionState !== undefined) {
+    const quality = validateMaterialQuality(
+      extractionState ?? null,
+      isFirstCheckpoint ?? false,
+      type
+    );
+    if (!quality.ok) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          "[sage-pipeline] Checkpoint suppressed by material-quality gate: %s",
+          quality.reasons.join("; ")
+        );
+      }
+      return { isCheckpoint: false, layer: null, type: null, name: null };
+    }
+  }
+
+  // Rule 4: turn-count suppression
   if (turnsSinceCheckpoint < 5) {
     if (process.env.NODE_ENV !== "production") {
       console.log(
@@ -354,6 +438,76 @@ export function applyCheckpointGates(
   }
 
   return { isCheckpoint: true, layer, type, name };
+}
+
+// ── 4c. Composed-entry post-validation ──────────────────────────────────────
+
+/**
+ * Body/system words we expect to see in a composed manual entry.
+ * If a user described a sensation in conversation, the entry should
+ * carry it through. Used as a soft signal — logged, not blocked —
+ * because the composer prompt already requires a somatic anchor.
+ */
+const SOMATIC_WORD_PATTERNS = [
+  /\bbuzz/i, /\btight/i, /\bheav/i, /\bcrash/i, /\bshut(?:\s|-)?down/i,
+  /\bwent\s+(?:still|offline|gone|blank|silent)/i, /\bfull\b/i,
+  /\bfloody?\b/i, /\boverload/i, /\btoo\s+(?:loud|much|close|bright|fast)/i,
+  /\bjaw\b/i, /\bchest\b/i, /\bbody\b/i, /\bsystem\b/i, /\bfrozen\b/i,
+  /\bnumb/i, /\bblank/i, /\bquiet/i, /\bdark\s+room/i, /\bwave\b/i,
+  /\bsharp/i, /\bslow/i, /\bgray\s*out/i, /\bwall\b/i,
+];
+
+/**
+ * Soft post-composition validator. Checks the composed manual entry
+ * against the rules the composer is supposed to enforce. Returns
+ * { ok, warnings } so the caller can log structural drift without
+ * blocking the entry. Word counts are inclusive ranges.
+ */
+export function validateComposedEntry(
+  content: string,
+  type: "component" | "pattern"
+): { ok: boolean; warnings: string[] } {
+  const warnings: string[] = [];
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+
+  if (type === "component") {
+    if (wordCount < 150) warnings.push(`component too short: ${wordCount}/150`);
+    if (wordCount > 300) warnings.push(`component too long: ${wordCount}/250`);
+  } else {
+    if (wordCount < 60) warnings.push(`pattern too short: ${wordCount}/80`);
+    if (wordCount > 180) warnings.push(`pattern too long: ${wordCount}/150`);
+  }
+
+  const hasSomaticAnchor = SOMATIC_WORD_PATTERNS.some((re) => re.test(content));
+  if (!hasSomaticAnchor) {
+    warnings.push("no somatic anchor word detected");
+  }
+
+  // Clinical-label leak check: terms the composer is explicitly told to avoid.
+  const CLINICAL_LEAKS = [
+    /\bdysregulation\b/i, /\bsensory processing disorder\b/i,
+    /\bexecutive dysfunction\b/i, /\brejection sensitive dysphoria\b/i,
+    /\battachment style\b/i, /\bschema\b/i, /\btrauma response\b/i,
+    /\bdissociation\b/i, /\bavoidance\b/i,
+  ];
+  for (const re of CLINICAL_LEAKS) {
+    if (re.test(content)) {
+      warnings.push(`clinical label leaked: ${re.source}`);
+    }
+  }
+
+  // Time-reference leak check.
+  const TIME_LEAKS = [
+    /\bright now\b/i, /\bcurrently\b/i, /\bat this point\b/i,
+    /\bat this stage\b/i, /\bthese days\b/i, /\bthis week\b/i,
+  ];
+  for (const re of TIME_LEAKS) {
+    if (re.test(content)) {
+      warnings.push(`time reference leaked: ${re.source}`);
+    }
+  }
+
+  return { ok: warnings.length === 0, warnings };
 }
 
 // ── 4b. Checkpoint action system message ────────────────────────────────────
@@ -393,16 +547,15 @@ export async function insertCheckpointActionMessage(
  */
 export function buildCheckpointMeta(
   gateResult: CheckpointGateResult,
-  manualEntry: { content?: string; name?: string; changelog?: string } | null,
   composedEntry: { content: string; name: string; changelog: string } | null
 ): CheckpointMeta {
   return {
     layer: gateResult.layer,
     type: gateResult.type,
-    name: composedEntry?.name || manualEntry?.name || gateResult.name,
+    name: composedEntry?.name || gateResult.name,
     status: "pending",
-    composed_content: manualEntry?.content || composedEntry?.content || null,
-    composed_name: manualEntry?.name || composedEntry?.name || null,
-    changelog: manualEntry?.changelog || composedEntry?.changelog || null,
+    composed_content: composedEntry?.content || null,
+    composed_name: composedEntry?.name || null,
+    changelog: composedEntry?.changelog || null,
   };
 }

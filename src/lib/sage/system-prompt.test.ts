@@ -84,7 +84,6 @@ describe("buildSystemPrompt", () => {
       const result = build();
       expect(result).toContain("CRISIS PROTOCOL");
       expect(result).toContain("988");
-      expect(result).toContain("741741");
     });
 
     it("LEGAL BOUNDARIES appears before CHECKPOINTS when checkpoints are shown", () => {
@@ -421,12 +420,12 @@ describe("buildSystemPrompt", () => {
     it("contains pattern saturation handling when pattern eligible", () => {
       const result = build({ hasPatternEligibleLayer: true });
       expect(result).toContain("PATTERN SATURATION");
-      expect(result).toContain("SATURATED: 2/2 patterns");
+      expect(result).toContain("already has two named loops");
     });
 
     it("CHECKPOINTS uses research-assistant language instead of hard gate when both shown", () => {
       const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
-      expect(result).toContain("Use the extraction context as your research assistant, not your permission slip");
+      expect(result).toContain("Use the brief as your research assistant, not your permission slip");
       expect(result).not.toContain("Only deliver a checkpoint when");
     });
 
@@ -440,14 +439,21 @@ describe("buildSystemPrompt", () => {
 
   // ─── Conditional section loading ─────────────────────────────────────────
   describe("conditional section loading", () => {
-    it("excludes HOW TO USE EXTRACTION on turnCount 1", () => {
+    it("excludes the language-reuse reminder on turnCount 1", () => {
       const result = build({ turnCount: 1 });
-      expect(result).not.toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).not.toContain("Their phrase is more powerful than your paraphrase");
     });
 
-    it("includes HOW TO USE EXTRACTION on turnCount 2+", () => {
+    it("includes the language-reuse reminder on turnCount 2+", () => {
       const result = build({ turnCount: 2 });
-      expect(result).toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).toContain("Their phrase is more powerful than your paraphrase");
+    });
+
+    it("does not contain the deleted HOW TO USE meta block", () => {
+      const result = build({ turnCount: 5 });
+      expect(result).not.toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).not.toContain("Field notes:");
+      expect(result).not.toContain("Layer signals:");
     });
 
     it("excludes CHECKPOINTS when checkpointApproaching is false and not returning", () => {
@@ -580,32 +586,33 @@ describe("buildSystemPrompt", () => {
   // banned phrase is missing from the prompt, the test should fail via the
   // imported constant, not a hardcoded literal.
   describe("PR2a: autistic voice content", () => {
-    describe("clinical framework guardrail", () => {
-      it("contains CLINICAL FRAMEWORK GUARDRAIL section header", () => {
+    describe("clinical framework guardrail (post-hardening)", () => {
+      it("does NOT name Schema Therapy / Attachment Theory / Functional Analysis in user-facing prompt", () => {
         const result = build();
-        expect(result).toContain("CLINICAL FRAMEWORK GUARDRAIL");
+        expect(result).not.toContain("Schema Therapy");
+        expect(result).not.toContain("Attachment Theory");
+        expect(result).not.toContain("Functional Analysis");
       });
 
-      it("instructs never to reference Schema/Attachment/Functional Analysis by name", () => {
+      it("does NOT contain the old CLINICAL FRAMEWORK GUARDRAIL header", () => {
         const result = build();
-        expect(result).toContain("Schema Therapy");
-        expect(result).toContain("Attachment Theory");
-        expect(result).toContain("Functional Analysis");
-        expect(result).toContain("never reference these frameworks by name");
+        expect(result).not.toContain("CLINICAL FRAMEWORK GUARDRAIL");
       });
 
-      it("contains clinical-to-behavioral rewrite examples", () => {
+      it("does NOT contain the old rewrite examples (fear of abandonment, emotional avoidance)", () => {
         const result = build();
-        expect(result).toContain("fear of abandonment");
-        expect(result).toContain("emotional avoidance");
+        expect(result).not.toContain("fear of abandonment");
+        expect(result).not.toContain("emotional avoidance");
       });
 
-      it("guardrail lives inside LEGAL BOUNDARIES (override authority)", () => {
+      it("keeps a short 'no clinical terminology' line inside LEGAL BOUNDARIES", () => {
         const result = build();
         const legalIdx = result.indexOf("LEGAL BOUNDARIES");
-        const guardrailIdx = result.indexOf("CLINICAL FRAMEWORK GUARDRAIL");
+        const noClinicalIdx = result.indexOf(
+          "Never use clinical terminology in user-facing output"
+        );
         expect(legalIdx).toBeGreaterThanOrEqual(0);
-        expect(guardrailIdx).toBeGreaterThan(legalIdx);
+        expect(noClinicalIdx).toBeGreaterThan(legalIdx);
       });
     });
 
@@ -720,102 +727,65 @@ describe("buildSystemPrompt", () => {
         });
       });
 
-      describe("CHECKPOINT DELIVERY SEQUENCE requires somatic anchoring", () => {
-        it("observation step names body/somatic anchoring as required", () => {
+      describe("CHECKPOINTS section keeps embodiment guidance without enforcement scaffolding", () => {
+        it("still talks about anchoring in the body and the user's exact words", () => {
           const result = buildCheckpointMode();
-          // The observation item (step 2) must mention body or somatic anchoring
-          expect(result).toMatch(/anchor in (their|the) body/i);
+          // The CHECKPOINTS section directs embodiment without listing
+          // a numbered checklist or violation language.
+          expect(result).toMatch(/body/i);
+          expect(result).toMatch(/bind/i);
+          expect(result).toMatch(/recognition, not diagnosis/i);
         });
 
-        it("flags a bodiless checkpoint as too cerebral", () => {
+        it("instructs Sage to wait for confirmation before writing", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/no body in it|too cerebral|bodiless/i);
-        });
-      });
-
-      describe("CHECKPOINT COMPOSITION VOICE is ND-specific", () => {
-        it("contains the header", () => {
-          expect(buildCheckpointMode()).toContain("CHECKPOINT COMPOSITION VOICE");
-        });
-
-        it("contains autism-resonant WRONG/RIGHT example (masking)", () => {
-          const result = buildCheckpointMode();
-          // WRONG version labels "masking" as a behavior
-          expect(result).toMatch(/engage in masking behaviors/i);
-          // RIGHT version describes the second-version mechanism
-          expect(result).toMatch(/a second version of you switches on/i);
-          expect(result).toMatch(/your jaw is buzzing/i);
-        });
-
-        it("does not contain the old non-autistic examples", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("You grew up in a house");
-          expect(result).not.toContain("track uncertainty in your relationship");
-          expect(result).not.toContain("need to understand in order to feel safe");
-        });
-
-        it("THIN example uses clinical autism-framework labels (to show as anti-pattern)", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/You mask to fit in at work/);
-        });
-
-        it("LANDED example uses sensory and system words verbatim", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/buzzing starts in your jaw/i);
-          expect(result).toMatch(/can't talk, can't cook, can't answer a text/i);
-          expect(result).toMatch(/dark room/i);
+          expect(result).toMatch(/Never write to the manual until/i);
         });
       });
 
-      describe("Five principles include somatic anchoring", () => {
-        it("has a principle named 'Anchor in the body'", () => {
+      describe("manual entry composition and enforcement live server-side, not in the prompt", () => {
+        it("does not contain the |||MANUAL_ENTRY||| sentinel anywhere", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/Anchor in the body/i);
+          expect(result).not.toContain("|||MANUAL_ENTRY|||");
+          expect(result).not.toContain("|||END_MANUAL_ENTRY|||");
         });
 
-        it("names specific sensory words as required carry-throughs", () => {
+        it("does not contain the MANUAL ENTRY FORMAT header", () => {
           const result = buildCheckpointMode();
-          // The principles should explicitly list sensory vocabulary
-          expect(result).toMatch(/buzzing/);
-          expect(result).toMatch(/shut down/);
-          expect(result).toMatch(/too loud/);
+          expect(result).not.toContain("MANUAL ENTRY FORMAT");
         });
 
-        it("forbids translation into clinical terms in the principles", () => {
+        it("does not narrate the JSON schema fields (layer/type/name/changelog) as instruction", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/Do not translate/i);
-        });
-      });
-
-      describe("MANUAL ENTRY FORMAT rules require somatic anchor", () => {
-        it("makes somatic anchor explicitly required", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/Somatic anchor required/i);
+          expect(result).not.toMatch(/"changelog" field/);
+          expect(result).not.toMatch(/TYPE RULE/);
         });
 
-        it("bans clinical framework names in manual entries", () => {
+        it("does not contain the deleted CHECKPOINT DELIVERY SEQUENCE numbered checklist", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/No clinical framework names/i);
-          // A few specific ones should be called out
-          expect(result).toMatch(/executive dysfunction/);
-          expect(result).toMatch(/rejection sensitive dysphoria/i);
+          expect(result).not.toContain("CHECKPOINT DELIVERY SEQUENCE");
+          expect(result).not.toMatch(/If you delivered the headline before step 2/i);
+          expect(result).not.toMatch(/you violated/i);
         });
 
-        it("pattern format mentions body in the chain", () => {
+        it("does not contain the deleted CHECKPOINT SELF-CHECK enumerated list", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/trigger → body\/internal → response → payoff → cost/i);
-        });
-      });
-
-      describe("CHECKPOINT SELF-CHECK adds a body-anchor check", () => {
-        it("mentions verify all five", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/verify all five/i);
+          expect(result).not.toContain("CHECKPOINT SELF-CHECK");
+          expect(result).not.toMatch(/verify all five/i);
         });
 
-        it("has a check for somatic anchor in the entry itself", () => {
+        it("does not contain the deleted CHECKPOINT COMPOSITION VOICE / THIN vs LANDED examples", () => {
           const result = buildCheckpointMode();
-          expect(result).toMatch(/somatic anchor in the entry/i);
+          expect(result).not.toContain("CHECKPOINT COMPOSITION VOICE");
+          expect(result).not.toContain("THIN vs LANDED");
+          expect(result).not.toMatch(/buzzing starts in your jaw/i);
+          expect(result).not.toMatch(/dark room/i);
+        });
+
+        it("does not contain the deleted Five principles enumerated list", () => {
+          const result = buildCheckpointMode();
+          expect(result).not.toMatch(/Five principles for strong checkpoints/i);
+          expect(result).not.toMatch(/Anchor in the body/i);
         });
       });
     });
@@ -831,7 +801,6 @@ describe("buildSystemPrompt", () => {
         "BANNED PHRASES",
         "EXAMPLE REGISTER",
         "LEGAL BOUNDARIES",
-        "CLINICAL FRAMEWORK GUARDRAIL",
         "HARD RULES",
         "CLINICAL MATERIAL IN CONVERSATION",
         "CHECKPOINT LANGUAGE",
@@ -859,11 +828,7 @@ describe("buildSystemPrompt", () => {
       // Checkpoint-mode sections only render when checkpoint instructions are
       // active. Verify those appear in order too.
       const EXPECTED_CHECKPOINT_SECTIONS = [
-        "MANUAL ENTRY FORMAT",
         "CHECKPOINTS",
-        "CHECKPOINT DELIVERY SEQUENCE",
-        "CHECKPOINT COMPOSITION VOICE",
-        "CHECKPOINT SELF-CHECK",
       ];
 
       it("all checkpoint-mode sections appear in order when checkpointApproaching is true", () => {

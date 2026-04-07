@@ -453,35 +453,61 @@ export async function runExtraction(
 
 // ─── Format extraction state as context for Sage ─────────────────────────────
 
+// Maps internal signal codes to human-readable descriptions.
+// Keeps schema names out of the rendered prompt.
+const SIGNAL_LABEL: Record<string, string> = {
+  none: "untouched",
+  emerging: "starting to surface",
+  explored: "well explored",
+  checkpoint_ready: "ready to be reflected back",
+};
+
+// Maps chain element keys to plain-English questions they answer.
+const CHAIN_LABEL: Record<string, string> = {
+  trigger: "What sets it off",
+  internal_experience: "What happens inside",
+  response: "What you do",
+  payoff: "What it gives you",
+  cost: "What it costs",
+};
+
+const CHAIN_ORDER = [
+  "trigger",
+  "internal_experience",
+  "response",
+  "payoff",
+  "cost",
+] as const;
+
 export function formatExtractionForSage(
   state: ExtractionState,
   isFirstCheckpoint: boolean,
   manualComponents?: { layer: number; type: string; name: string | null; content: string }[]
 ): string {
-  let context = "\n── EXTRACTION CONTEXT ──\n\n";
+  let context = "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\n";
 
   if (state.sage_brief) {
-    context += `FIELD NOTES\n${state.sage_brief}\n\n`;
+    context += `What's underneath this conversation:\n${state.sage_brief}\n\n`;
   }
 
-  context += "LAYER SIGNALS\n";
+  context += "Where the conversation has touched:\n";
   for (let i = 1; i <= 5; i++) {
     const layer = state.layers[i];
     if (!layer) continue;
-    context += `L${i} (${LAYER_NAMES[i]}): ${layer.signal}`;
+    const label = SIGNAL_LABEL[layer.signal] || layer.signal;
+    context += `- ${LAYER_NAMES[i]}: ${label}`;
     if (layer.discovery_mode === "pattern") {
-      // Check if this layer is saturated (2 patterns already confirmed)
       const layerPatternCount = manualComponents
         ? manualComponents.filter((c) => c.layer === i && c.type === "pattern").length
         : 0;
       if (layerPatternCount >= 2) {
-        context += ` [pattern mode — SATURATED: 2/2 patterns]`;
+        context += ". This layer already has two named loops — don't propose a third here.";
       } else {
-        context += ` [pattern mode]`;
+        context += ". This layer is open to looking for a recurring loop.";
       }
     }
     if (layer.material.length > 0) {
-      context += ` — ${layer.material.slice(-3).join("; ")}`;
+      context += ` Recent threads: ${layer.material.slice(-3).join("; ")}.`;
     }
     context += "\n";
   }
@@ -492,36 +518,34 @@ export function formatExtractionForSage(
     .slice(-15);
 
   if (chargedLanguage.length > 0) {
-    context += "USER'S OWN LANGUAGE (use these. They're more powerful than your paraphrase)\n";
+    context += "Phrases the user has used (their words carry weight — use them, don't paraphrase):\n";
     for (const entry of chargedLanguage) {
-      context += `"${entry.phrase}" [${entry.charge}] — re: ${entry.context}\n`;
+      context += `"${entry.phrase}" — re: ${entry.context}\n`;
     }
     context += "\n";
   }
 
-  // Clinical flag — placed before checkpoint gate so Sage sees it first
+  // Clinical flag — surfaced first so Sage notices before reflecting
   const cf = state.clinical_flag;
   if (cf && cf.active) {
     if (cf.level === "crisis") {
-      context += `⚠ CRISIS: ${cf.note}. Stop building. Acknowledge. Provide 988 and Crisis Text Line. Do not checkpoint.\n\n`;
+      context += `Safety note: ${cf.note}. Stop building. Acknowledge without interpretation, share 988 (call or text), and do not reflect anything back.\n\n`;
     } else if (cf.level === "caution") {
-      context += `⚠ CLINICAL CAUTION: ${cf.note}. Stay in behavioral description. Offer professional referral if scope is exceeded.\n\n`;
+      context += `Care note: ${cf.note}. Stay in behavioral description. Offer a professional referral if this is exceeding what a manual can hold.\n\n`;
     }
   }
 
-  // Checkpoint gate evaluation — blocked when clinical_flag is crisis
+  // Checkpoint readiness — phrased as a hint, not a gate
   const gate = state.checkpoint_gate;
   const isCrisis = cf && cf.active && cf.level === "crisis";
   const pt = state.pattern_tracking;
   const isPatternGate = gate.target_type === "pattern";
 
-  // Pattern gate: recurrence >= 2 AND at least 3 of 5 chain elements filled
   const patternChainCount = pt?.chain_elements?.length || 0;
   const patternGateReady = isPatternGate && !isCrisis &&
     (pt?.recurrence_count || 0) >= 2 &&
     patternChainCount >= 3;
 
-  // Component gate (standard or first-checkpoint)
   const componentGateReady = !isPatternGate && !isCrisis && (
     isFirstCheckpoint
       ? gate.concrete_examples >= 1 &&
@@ -536,84 +560,89 @@ export function formatExtractionForSage(
   const gateReady = patternGateReady || componentGateReady;
 
   if (isPatternGate) {
-    context += `PATTERN GATE: ${patternGateReady ? "MET" : "NOT MET"}`;
-    if (!patternGateReady) {
-      const missing: string[] = [];
-      if ((pt?.recurrence_count || 0) < 2) missing.push("need more recurrence (2+ instances)");
-      if (patternChainCount < 3) missing.push(`chain incomplete (${patternChainCount}/3 minimum elements)`);
-      context += ` — missing: ${missing.join(", ")}`;
+    if (patternGateReady) {
+      context += `There's enough material here to name a recurring loop. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}, and the loop the user is describing is "${pt?.label || "unnamed"}".`;
     } else {
-      context += ` — layer: L${gate.strongest_layer}, pattern: "${pt?.label || "unnamed"}"`;
+      const missing: string[] = [];
+      if ((pt?.recurrence_count || 0) < 2)
+        missing.push("you need to hear the loop in at least one more situation");
+      if (patternChainCount < 3)
+        missing.push(`the loop is still missing key parts (${patternChainCount} of 3 minimum filled in)`);
+      context += `Not enough yet to name a recurring loop. ${missing.join(". ")}.`;
     }
   } else {
-    context += `CHECKPOINT: ${gateReady ? "READY" : "NOT READY"}`;
-    if (!gateReady) {
+    if (gateReady) {
+      context += `There's enough material here to reflect a piece back. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}.`;
+    } else {
       const missing: string[] = [];
       const minExamples = isFirstCheckpoint ? 1 : 2;
-      if (gate.concrete_examples < minExamples)
-        missing.push(`need ${minExamples - gate.concrete_examples} more concrete example(s)`);
-      if (!gate.has_mechanism && !isFirstCheckpoint) missing.push("haven't reached mechanism yet");
-      if (!gate.has_charged_language) missing.push("no charged user language captured");
+      if (gate.concrete_examples < minExamples) {
+        const need = minExamples - gate.concrete_examples;
+        missing.push(`you need ${need} more concrete scene${need === 1 ? "" : "s"} the user has walked you through`);
+      }
+      if (!gate.has_mechanism && !isFirstCheckpoint)
+        missing.push("you haven't reached the mechanism underneath the behavior yet");
+      if (!gate.has_charged_language)
+        missing.push("you haven't captured a phrase from the user that carries weight");
       if (!gate.has_behavior_driver_link && !gate.has_mechanism)
-        missing.push("no behavior-to-driver link yet");
-      context += ` — missing: ${missing.join(", ")}`;
-    } else {
-      context += ` — strongest layer: L${gate.strongest_layer}`;
+        missing.push("you haven't connected what they do to what's driving it");
+      context += `Not enough yet to reflect a piece back. ${missing.join(". ")}.`;
     }
   }
   context += "\n";
 
   if (isFirstCheckpoint && gateReady && !isPatternGate) {
     context +=
-      "FIRST CHECKPOINT: This is the user's first checkpoint ever. After your observation, include the instructional wrapper explaining what just happened and how confirmation works. See prompt instructions.\n";
+      "Note: this would be the user's very first reflection. After your observation, include the one-time wrapper explaining how confirmation works.\n";
   }
 
-  // Pattern chain status — shows Sage what's been collected
+  // Recurring loop being tracked — natural prose form
   if (pt && pt.active && pt.chain_elements && pt.chain_elements.length > 0) {
-    context += `\nPATTERN CHAIN: "${pt.label || "unnamed"}" (L${pt.layer}, ${pt.recurrence_count} instance(s))\n`;
-    const chainOrder: Array<"trigger" | "internal_experience" | "response" | "payoff" | "cost"> = [
-      "trigger", "internal_experience", "response", "payoff", "cost"
-    ];
-    for (const el of chainOrder) {
+    const layerName = LAYER_NAMES[pt.layer || 0] || "an unnamed area";
+    context += `\nYou're tracking a recurring loop called "${pt.label || "unnamed"}" on ${layerName}. The user has described it ${pt.recurrence_count} time${pt.recurrence_count === 1 ? "" : "s"} so far.\n`;
+    for (const el of CHAIN_ORDER) {
       const found = pt.chain_elements.find((c) => c.element === el);
+      const label = CHAIN_LABEL[el];
       if (found) {
-        context += `  ✓ ${el}: ${found.content} ("${found.source}")\n`;
+        context += `  ${label}: ${found.content} ("${found.source}")\n`;
       } else {
-        context += `  ○ ${el}: not yet identified\n`;
+        context += `  ${label}: not yet known\n`;
       }
     }
     context += "\n";
   }
 
   // When checkpoint is ready and the target layer already has content,
-  // give Sage the existing content so it can compose an aware manual entry
+  // surface it so the reflection accounts for it.
   if (gateReady && gate.strongest_layer && manualComponents) {
     const layerContent = manualComponents.filter(
       (c) => c.layer === gate.strongest_layer
     );
     if (layerContent.length > 0) {
-      context += "\nEXISTING CONTENT ON TARGET LAYER (your manual entry must account for this):\n";
+      context += `\nWhat's already in the manual on ${LAYER_NAMES[gate.strongest_layer]}:\n`;
       for (const comp of layerContent) {
-        context += `[${comp.type}${comp.name ? ` — "${comp.name}"` : ""}]\n`;
+        const label = comp.type === "pattern" ? "Recurring loop" : "Core piece";
+        context += `${label}${comp.name ? ` — "${comp.name}"` : ""}\n`;
         context += `${comp.content}\n\n`;
       }
-      context += "Your manual entry should integrate with or deepen this existing content. If new material contradicts it, name the tension. Do not flatten it.\n";
+      context += "Your reflection should build on or deepen this. If something new contradicts it, name the tension instead of flattening it.\n";
     }
   }
 
-  // Confirmed patterns with chain elements — gives Sage structural memory
+  // Already-confirmed loops — natural form
   if (state.confirmed_patterns && state.confirmed_patterns.length > 0) {
-    context += "\nCONFIRMED PATTERNS (reference these in conversation. They're part of the manual)\n";
+    context += "\nLoops already confirmed in the manual (you can reference these naturally):\n";
     for (const cp of state.confirmed_patterns) {
-      context += `L${cp.layer} — "${cp.name}": `;
+      const layerName = LAYER_NAMES[cp.layer] || "unnamed";
+      context += `- On ${layerName}, "${cp.name}": `;
       const chainSummary = cp.chain_elements
-        .map((el) => `${el.element}: ${el.content}`)
-        .join(" → ");
+        .map((el) => `${CHAIN_LABEL[el.element] || el.element}: ${el.content}`)
+        .join(". ");
       context += chainSummary + "\n";
     }
     context += "\n";
 
-    // Cross-layer refs: show connections between confirmed patterns across layers
+    // Cross-layer connections — surface shared triggers
     if (state.confirmed_patterns.length >= 2) {
       const triggers = state.confirmed_patterns
         .filter((p) => p.chain_elements.some((e) => e.element === "trigger"))
@@ -624,23 +653,22 @@ export function formatExtractionForSage(
         }));
 
       if (triggers.length >= 2) {
-        context += "CROSS-LAYER CONNECTIONS\n";
-        context += "These patterns may share triggers or costs. Look for connections:\n";
+        context += "These loops may share something in common — look for connections between them:\n";
         for (const t of triggers) {
-          context += `  L${t.layer} "${t.name}" trigger: ${t.trigger}\n`;
+          context += `  - On ${LAYER_NAMES[t.layer] || "unnamed"}, "${t.name}" — sets off when: ${t.trigger}\n`;
         }
         context += "\n";
       }
     }
   }
 
-  context += `DEPTH: ${state.depth} | MODE: ${state.mode}\n`;
+  context += `How deep this conversation has gone: ${state.depth}. Current approach: ${state.mode}.\n`;
 
   if (state.current_thread) {
-    context += `THREAD: ${state.current_thread}\n`;
+    context += `What's actually being explored right now: ${state.current_thread}\n`;
   }
 
-  context += "── END EXTRACTION CONTEXT ──\n";
+  context += "── END BRIEF ──\n";
 
   return context;
 }
