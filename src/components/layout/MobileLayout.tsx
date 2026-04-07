@@ -5,7 +5,6 @@ import MobileNav, { type MobileTab } from "./MobileNav";
 interface MobileLayoutProps {
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
-  exploreContent: React.ReactNode;
   settingsContent: React.ReactNode;
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
@@ -14,7 +13,6 @@ interface MobileLayoutProps {
 export default function MobileLayout({
   sessionContent,
   manualContent,
-  exploreContent,
   settingsContent,
   activeTab,
   onTabChange,
@@ -53,7 +51,6 @@ export default function MobileLayout({
           {([
             ["session", sessionContent],
             ["manual", manualContent],
-            ["explore", exploreContent],
             ["settings", settingsContent],
           ] as const).map(([tab, content]) => (
             <div

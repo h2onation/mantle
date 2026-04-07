@@ -8,7 +8,6 @@ import type { MobileTab } from "@/components/layout/MobileNav";
 import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
-import MobileGuidance from "@/components/mobile/MobileGuidance";
 import MobileSettings from "@/components/mobile/MobileSettings";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
@@ -178,9 +177,6 @@ export default function MainApp() {
         }
         manualContent={
           <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithSage={handleExploreWithSage} />
-        }
-        exploreContent={
-          <MobileGuidance />
         }
         settingsContent={
           <MobileSettings

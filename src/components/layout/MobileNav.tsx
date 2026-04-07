@@ -1,11 +1,10 @@
 "use client";
 
-export type MobileTab = "session" | "manual" | "explore" | "settings";
+export type MobileTab = "session" | "manual" | "settings";
 
 const TABS: { id: MobileTab; label: string }[] = [
   { id: "session", label: "Session" },
   { id: "manual", label: "Manual" },
-  { id: "explore", label: "Explore" },
   { id: "settings", label: "Settings" },
 ];
 
