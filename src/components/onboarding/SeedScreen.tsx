@@ -17,6 +17,13 @@ export default function SeedScreen() {
     setSubmitting(true);
     setError("");
 
+    // Reset first-session localStorage flags before creating a fresh
+    // anonymous user. Otherwise a browser that previously completed a
+    // first session will treat this brand-new anonymous user as returning
+    // and skip the welcome block with chips.
+    localStorage.removeItem("mantle_first_session_completed");
+    localStorage.removeItem("mantle_signin_banner_dismissed");
+
     // Create anonymous auth session
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInAnonymously();
