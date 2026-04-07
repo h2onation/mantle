@@ -84,7 +84,6 @@ describe("buildSystemPrompt", () => {
       const result = build();
       expect(result).toContain("CRISIS PROTOCOL");
       expect(result).toContain("988");
-      expect(result).toContain("741741");
     });
 
     it("LEGAL BOUNDARIES appears before CHECKPOINTS when checkpoints are shown", () => {
@@ -415,14 +414,21 @@ describe("buildSystemPrompt", () => {
 
   // ─── Conditional section loading ─────────────────────────────────────────
   describe("conditional section loading", () => {
-    it("excludes HOW TO USE EXTRACTION on turnCount 1", () => {
+    it("excludes the language-reuse reminder on turnCount 1", () => {
       const result = build({ turnCount: 1 });
-      expect(result).not.toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).not.toContain("Their phrase is more powerful than your paraphrase");
     });
 
-    it("includes HOW TO USE EXTRACTION on turnCount 2+", () => {
+    it("includes the language-reuse reminder on turnCount 2+", () => {
       const result = build({ turnCount: 2 });
-      expect(result).toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).toContain("Their phrase is more powerful than your paraphrase");
+    });
+
+    it("does not contain the deleted HOW TO USE meta block", () => {
+      const result = build({ turnCount: 5 });
+      expect(result).not.toContain("HOW TO USE THE EXTRACTION CONTEXT");
+      expect(result).not.toContain("Field notes:");
+      expect(result).not.toContain("Layer signals:");
     });
 
     it("excludes CHECKPOINTS when checkpointApproaching is false and not returning", () => {
