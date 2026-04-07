@@ -94,7 +94,7 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithS
             onExploreWithSage({
               layerId,
               layerName,
-              type: thread.kind,
+              type: "entry",
               name: thread.name,
               content: thread.body,
             });

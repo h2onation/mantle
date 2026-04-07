@@ -11,7 +11,6 @@ const LAYER_GUIDE = LAYERS.map(
 interface ClassificationResult {
   isCheckpoint: boolean;
   layer: number | null;
-  type: "component" | "pattern" | null;
   name: string | null;
   processingText: string;
 }
@@ -19,7 +18,6 @@ interface ClassificationResult {
 const FALLBACK: ClassificationResult = {
   isCheckpoint: false,
   layer: null,
-  type: null,
   name: null,
   processingText: "listening...",
 };
@@ -41,7 +39,6 @@ export function cleanAndParseClassification(
   const result: ClassificationResult = {
     isCheckpoint: Boolean(parsed.is_checkpoint),
     layer: parsed.layer ?? null,
-    type: parsed.type ?? null,
     name: parsed.name ?? null,
     processingText: parsed.processing_text || "listening...",
   };
@@ -57,13 +54,12 @@ export function cleanAndParseClassification(
 export async function classifyResponse(
   sageResponse: string,
   recentMessages: string,
-  isFirstSession?: boolean,
-  layersWithComponents?: number[]
+  isFirstSession?: boolean
 ): Promise<ClassificationResult> {
   try {
     const checkpointThreshold = isFirstSession
-      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where Sage proposes a component or pattern of the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single-thread observation with one concrete example qualifies as a checkpoint. Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`
-      : `A checkpoint is a sustained reflection (usually 100+ words) where Sage proposes a component or pattern of the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`;
+      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where Sage proposes an entry for the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single-thread observation with one concrete example qualifies as a checkpoint. Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`
+      : `A checkpoint is a sustained reflection (usually 100+ words) where Sage proposes an entry for the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`;
 
     const response = await anthropicFetch({
       model: "claude-haiku-4-5-20251001",
@@ -75,14 +71,12 @@ export async function classifyResponse(
 2. PROCESSING TEXT: Generate a short phrase (5-12 words) representing what Sage is currently tracking. Should sound like internal notes. Examples: "trust patterns... conditional, earned not given" or "the shutdown is protection, not avoidance" or "seeing a loop forming around control and withdrawal"
 
 Respond with ONLY this JSON, no markdown, no backticks:
-{"is_checkpoint":true/false,"layer":null or 1 or 2 or 3 or 4 or 5,"type":null or "component" or "pattern","name":null or "The Proposed Name","processing_text":"short tracking phrase"}
+{"is_checkpoint":true/false,"layer":null or 1 or 2 or 3 or 4 or 5,"name":null or "The Proposed Name","processing_text":"short tracking phrase"}
 
 Layer guide:
 ${LAYER_GUIDE}
 
-If checkpoint: pick strongest layer. Recurring loop (trigger → response → cost) = "pattern". Broader narrative = "component". Extract headline if present.
-
-TYPE RULE: The first entry on any layer MUST be "component". Only classify as "pattern" if the layer already has a confirmed component.${layersWithComponents && layersWithComponents.length > 0 ? ` Layers with confirmed components (eligible for patterns): ${layersWithComponents.join(", ")}. All other layers: type must be "component".` : ` No layers have confirmed components yet. Type is always "component".`}`,
+If checkpoint: pick the strongest layer the entry belongs to. Extract headline if present. Layers can hold many entries — there's no "first entry" rule.`,
       messages: [
         {
           role: "user",

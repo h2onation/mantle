@@ -81,26 +81,19 @@ create policy "Users can update own messages"
   on public.messages for update
   using (conversation_id in (select id from public.conversations where user_id = auth.uid()));
 
--- Manual components (USER-level, not conversation-level)
+-- Manual entries (USER-level, not conversation-level).
+-- A user can have many entries per layer. Sage decides when an entry is worth
+-- writing; the classifier decides which of the five layers it belongs in.
 create table public.manual_components (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   layer integer not null check (layer in (1, 2, 3, 4, 5)),
-  type text not null check (type in ('component', 'pattern')),
   name text,
   content text not null,
   source_message_id uuid references public.messages(id),
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
-
--- One component per layer per user
-create unique index unique_component_per_layer
-  on public.manual_components (user_id, layer) where type = 'component';
-
--- One pattern per name per layer per user (names normalized to lowercase)
-create unique index unique_pattern_name_per_layer
-  on public.manual_components (user_id, layer, name) where type = 'pattern';
 
 alter table public.manual_components enable row level security;
 
@@ -136,7 +129,6 @@ create table public.manual_changelog (
   user_id uuid references public.profiles(id) on delete cascade not null,
   component_id uuid not null,
   layer integer not null check (layer in (1, 2, 3, 4, 5)),
-  type text not null check (type in ('component', 'pattern')),
   name text,
   previous_content text not null,
   new_content text not null,

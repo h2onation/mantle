@@ -130,7 +130,6 @@ export function useChat() {
       setActiveCheckpoint({
         messageId: completeEvent.messageId,
         layer: completeEvent.checkpoint.layer,
-        type: completeEvent.checkpoint.type,
         name: completeEvent.checkpoint.name,
         content: displayContent,
       });
@@ -145,7 +144,6 @@ export function useChat() {
             isCheckpoint: true,
             checkpointMeta: {
               layer: completeEvent!.checkpoint!.layer,
-              type: completeEvent!.checkpoint!.type,
               name: completeEvent!.checkpoint!.name,
               status: "pending",
             },
@@ -423,14 +421,12 @@ export function useChat() {
       }
 
       if (action === "confirmed") {
-        // Add to confirmed components locally (optimistic update)
-        // All checkpoints write as "component" type (one per layer)
+        // Add to confirmed entries locally (optimistic update)
         setConfirmedComponents((prev) => [
           ...prev,
           {
             id: activeCheckpoint.messageId,
             layer: activeCheckpoint.layer,
-            type: "component",
             name: null,
             content: activeCheckpoint.content,
             created_at: new Date().toISOString(),
@@ -590,7 +586,6 @@ export function useChat() {
         setActiveCheckpoint({
           messageId: lastMsg.id,
           layer: lastMsg.checkpoint_meta.layer,
-          type: lastMsg.checkpoint_meta.type,
           name: lastMsg.checkpoint_meta.name,
           content: lastMsg.content,
         });

@@ -76,7 +76,6 @@ describe("confirmCheckpoint", () => {
         content: "Some text",
         checkpoint_meta: {
           layer: 1,
-          type: "component",
           name: "Test",
           status: "confirmed",
           composed_content: null,
@@ -97,7 +96,6 @@ describe("confirmCheckpoint", () => {
         content: "Fallback text",
         checkpoint_meta: {
           layer: 1,
-          type: "component",
           name: "Test",
           status: "pending",
           composed_content: "Polished manual entry",
@@ -127,7 +125,6 @@ describe("confirmCheckpoint", () => {
         content: "Conversational checkpoint text",
         checkpoint_meta: {
           layer: 2,
-          type: "component",
           name: "Fallback Name",
           status: "pending",
           composed_content: null,
@@ -155,7 +152,6 @@ describe("confirmCheckpoint", () => {
         content: "Some text",
         checkpoint_meta: {
           layer: 1,
-          type: "component",
           name: null,
           status: "pending",
           composed_content: "Content",
@@ -183,7 +179,6 @@ describe("confirmCheckpoint", () => {
         content: "Text",
         checkpoint_meta: {
           layer: 3,
-          type: "component",
           name: "New Component",
           status: "pending",
           composed_content: "Fresh content",
@@ -205,7 +200,6 @@ describe("confirmCheckpoint", () => {
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
     expect(insertData.layer).toBe(3);
-    expect(insertData.type).toBe("component");
   });
 
   it("updates checkpoint_meta status to confirmed", async () => {
@@ -214,7 +208,6 @@ describe("confirmCheckpoint", () => {
         content: "Text",
         checkpoint_meta: {
           layer: 1,
-          type: "component",
           name: "Test",
           status: "pending",
           composed_content: "Content",
@@ -248,7 +241,6 @@ describe("confirmCheckpoint", () => {
         content: "Text",
         checkpoint_meta: {
           layer: 1,
-          type: "component",
           name: "Test",
           status: "pending",
           composed_content: "Content",

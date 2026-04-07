@@ -150,34 +150,28 @@ export async function processTextMessage(
   let checkpointText: string | null = null;
   let isCheckpoint = false;
   let checkpointLayer: number | null = null;
-  let checkpointType: string | null = null;
   let checkpointName: string | null = null;
 
   if (messageId) {
     const last4 = ctx.messages.slice(-4);
     const recentText = last4.map((m) => `${m.role}: ${m.content}`).join("\n\n");
     const isFirstSession = !ctx.manualComponents || ctx.manualComponents.length === 0;
-    const layersWithComponents = (ctx.manualComponents || [])
-      .filter((c) => c.type === "component")
-      .map((c) => c.layer);
 
     const classification = await classifyResponse(
       responseText,
       recentText,
-      isFirstSession,
-      layersWithComponents
+      isFirstSession
     );
 
     isCheckpoint = classification.isCheckpoint;
     checkpointLayer = classification.layer;
-    checkpointType = classification.type;
     checkpointName = classification.name;
   }
 
-  // 11b. Shared checkpoint gates (layer guards + material quality + turn-count)
+  // 11b. Shared checkpoint gates (material quality + turn-count)
   if (isCheckpoint && checkpointLayer) {
     const gateResult = applyCheckpointGates(
-      { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
+      { layer: checkpointLayer, name: checkpointName || "" },
       ctx.manualComponents,
       ctx.turnsSinceCheckpoint,
       ctx.previousExtraction,
@@ -185,7 +179,6 @@ export async function processTextMessage(
     );
     isCheckpoint = gateResult.isCheckpoint;
     checkpointLayer = gateResult.layer;
-    checkpointType = gateResult.type;
     checkpointName = gateResult.name;
   }
 
@@ -204,16 +197,12 @@ export async function processTextMessage(
         conversationHistory: ctx.messages,
         languageBank: ctx.previousExtraction?.language_bank || [],
         layer: checkpointLayer,
-        type: (checkpointType as "component" | "pattern") || "component",
         name: checkpointName,
         existingLayerContent: existingLayerContent.length > 0 ? existingLayerContent : undefined,
       });
 
       if (composedEntry?.content) {
-        const validation = validateComposedEntry(
-          composedEntry.content,
-          (checkpointType as "component" | "pattern") || "component"
-        );
+        const validation = validateComposedEntry(composedEntry.content);
         if (!validation.ok) {
           console.warn(
             "[sage-bridge] Composed entry structural drift: %s",
@@ -229,7 +218,7 @@ export async function processTextMessage(
   // 11d. Save checkpoint metadata and build confirmation text
   if (isCheckpoint && checkpointLayer && messageId) {
     const meta = buildCheckpointMeta(
-      { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
+      { isCheckpoint, layer: checkpointLayer, name: checkpointName },
       composedEntry
     );
 
@@ -243,18 +232,15 @@ export async function processTextMessage(
 
     // Build the text checkpoint message — only show name + question
     // (the user already read the insight in Sage's conversational response)
-    const isPattern = checkpointType === "pattern";
-    const question = isPattern ? "Does this resonate?" : "Does this feel right?";
     const name = meta.name || checkpointName || "Untitled";
     checkpointText =
-      `${question}\n\n` +
+      `Does this feel right?\n\n` +
       `"${name}"\n\n` +
       `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
 
     console.log(
-      "[sage-bridge] checkpoint_detected layer=%d type=%s name=%s message_id=%s",
+      "[sage-bridge] checkpoint_detected layer=%d name=%s message_id=%s",
       checkpointLayer,
-      checkpointType,
       name,
       messageId
     );

@@ -4,7 +4,6 @@ export interface MessageCompleteEvent {
   checkpoint: {
     isCheckpoint: boolean;
     layer: number;
-    type: string;
     name: string | null;
   } | null;
   processingText: string;

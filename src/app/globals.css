@@ -28,14 +28,6 @@
   --session-sage-border: rgba(94, 112, 84, 0.22);
   --session-sage-tint:   rgba(94, 112, 84, 0.06);
 
-  /* Navy (pattern accent) */
-  --session-navy-bg:      rgba(45, 55, 80, 0.05);
-  --session-navy-border:  rgba(45, 55, 80, 0.16);
-  --session-navy-label:   #3D4A60;
-  --session-navy-btn:     #556275;
-  --session-navy-glow:    rgba(70, 85, 115, 0.16);
-  --session-navy-divider: rgba(45, 55, 80, 0.10);
-
   /* Error */
   --session-error:        #B5564D;
   --session-error-ghost:  rgba(181, 86, 77, 0.12);

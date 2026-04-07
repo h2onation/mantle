@@ -39,9 +39,7 @@ export function generateManualPdf(
   layers: Layer[]
 ): Blob {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const populatedLayers = layers.filter(
-    (l) => l.component !== null || l.patterns.length > 0
-  );
+  const populatedLayers = layers.filter((l) => l.threads.length > 0);
 
   let y = MARGIN_TOP;
 
@@ -75,33 +73,17 @@ export function generateManualPdf(
     doc.text(layer.name, MARGIN_LEFT, y);
     y += 8;
 
-    // Narrative (italic)
-    if (layer.component) {
-      doc.setFont("times", "italic");
-      doc.setFontSize(10.5);
-      doc.setTextColor(74, 68, 64);
-      y = wrapAndRender(
-        doc,
-        layer.component.narrative,
-        MARGIN_LEFT,
-        y,
-        CONTENT_WIDTH,
-        4.8
-      );
-      y += 4;
-    }
-
-    // Patterns
-    for (const pattern of layer.patterns) {
+    // Entries
+    for (const entry of layer.threads) {
       y = checkPageBreak(doc, y, 16);
 
-      // Pattern name (bold)
+      // Entry name (bold)
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(55, 50, 45);
       y = wrapAndRender(
         doc,
-        pattern.name,
+        entry.name,
         MARGIN_LEFT + 4,
         y,
         CONTENT_WIDTH - 4,
@@ -109,13 +91,13 @@ export function generateManualPdf(
       );
       y += 1;
 
-      // Pattern description
+      // Entry content
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(74, 68, 64);
       y = wrapAndRender(
         doc,
-        pattern.description,
+        entry.body,
         MARGIN_LEFT + 4,
         y,
         CONTENT_WIDTH - 4,

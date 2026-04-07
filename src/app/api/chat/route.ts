@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       explorationContext?: {
         layerId: number;
         layerName: string;
-        type: "pattern" | "component" | "empty_layer";
+        type: "entry" | "empty_layer";
         name?: string;
         content: string;
       };

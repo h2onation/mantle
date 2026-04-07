@@ -413,50 +413,26 @@ export default function MobileSession({
                 activeCheckpoint &&
                 activeCheckpoint.messageId === msg.id;
 
-              // Checkpoint / Pattern card rendering
+              // Checkpoint card rendering
               if (isCheckpoint) {
                 const checkpointLayer = isPendingCheckpoint
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                const isPattern = isPendingCheckpoint
-                  ? activeCheckpoint?.type === "pattern"
-                  : msg.checkpointMeta?.type === "pattern";
-
-                const patternName = isPendingCheckpoint
-                  ? activeCheckpoint?.name
-                  : msg.checkpointMeta?.name;
-
-                const primaryBg = isPattern
-                  ? "var(--session-navy-btn)"
-                  : "var(--session-sage-soft)";
-
-                const accentColor = isPattern
-                  ? "var(--session-navy-label)"
-                  : "var(--session-sage)";
+                const primaryBg = "var(--session-sage-soft)";
+                const accentColor = "var(--session-sage)";
 
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
                       animation: "checkpointFadeIn 0.45s ease both",
-                      ...(isPattern
-                        ? {
-                            background: "var(--session-navy-bg)",
-                            border: "1px solid var(--session-navy-border)",
-                            borderRadius: "8px",
-                            boxShadow: "0 6px 36px var(--session-navy-glow), 0 2px 6px rgba(26,22,20,0.04)",
-                            padding: "16px 16px 14px",
-                            margin: "12px 0",
-                          }
-                        : {
-                            background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                            border: "1px solid var(--session-sage-border)",
-                            borderRadius: "8px",
-                            boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
-                            padding: "16px 16px 14px",
-                            margin: "20px 0 12px",
-                          }),
+                      background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
+                      border: "1px solid var(--session-sage-border)",
+                      borderRadius: "8px",
+                      boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
+                      padding: "16px 16px 14px",
+                      margin: "20px 0 12px",
                     }}
                   >
                     {/* Layer name header */}
@@ -486,47 +462,21 @@ export default function MobileSession({
                         letterSpacing: "2px",
                         textTransform: "uppercase",
                         color: accentColor,
-                        marginBottom: isPattern ? "12px" : "14px",
+                        marginBottom: "14px",
                       }}
                     >
-                      {isPattern ? "PATTERN" : "CHECKPOINT"}
+                      CHECKPOINT
                     </div>
-
-                    {/* Pattern name */}
-                    {isPattern && patternName && (
-                      <div
-                        style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "17px",
-                          fontWeight: 400,
-                          letterSpacing: "-0.2px",
-                          lineHeight: 1.3,
-                          color: "var(--session-ink)",
-                          marginBottom: "14px",
-                        }}
-                      >
-                        {patternName}
-                      </div>
-                    )}
 
                     {/* Body text */}
                     <div
-                      style={isPattern
-                        ? {
-                            fontFamily: "var(--font-sans)",
-                            fontSize: "15px",
-                            fontWeight: 400,
-                            lineHeight: 1.5,
-                            color: "var(--session-ink-soft)",
-                          }
-                        : {
-                            fontFamily: "var(--font-serif)",
-                            fontSize: "16px",
-                            fontWeight: 400,
-                            lineHeight: 1.5,
-                            color: "var(--session-ink-soft)",
-                          }
-                      }
+                      style={{
+                        fontFamily: "var(--font-serif)",
+                        fontSize: "16px",
+                        fontWeight: 400,
+                        lineHeight: 1.5,
+                        color: "var(--session-ink-soft)",
+                      }}
                     >
                       {renderMarkdown(msg.content)}
                     </div>
@@ -536,11 +486,9 @@ export default function MobileSession({
                       <>
                         <div
                           style={{
-                            marginTop: isPattern ? "16px" : "18px",
+                            marginTop: "18px",
                             paddingTop: "12px",
-                            borderTop: isPattern
-                              ? "1px solid var(--session-navy-divider)"
-                              : "1px solid rgba(94, 112, 84, 0.1)",
+                            borderTop: "1px solid rgba(94, 112, 84, 0.1)",
                           }}
                         >
                           <p
@@ -552,7 +500,7 @@ export default function MobileSession({
                               margin: "0 0 12px 0",
                             }}
                           >
-                            {isPattern ? "Does this resonate?" : "Does this feel right?"}
+                            Does this feel right?
                           </p>
 
                           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -638,9 +586,7 @@ export default function MobileSession({
                         style={{
                           marginTop: "16px",
                           paddingTop: "12px",
-                          borderTop: isPattern
-                            ? "1px solid var(--session-navy-divider)"
-                            : "1px solid rgba(94, 112, 84, 0.1)",
+                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
                           animation: "checkpointFadeIn 0.4s ease-out both",
                         }}
                       >
@@ -669,9 +615,7 @@ export default function MobileSession({
                         style={{
                           marginTop: "16px",
                           paddingTop: "12px",
-                          borderTop: isPattern
-                            ? "1px solid var(--session-navy-divider)"
-                            : "1px solid rgba(94, 112, 84, 0.1)",
+                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
                         }}
                       >
                         <span

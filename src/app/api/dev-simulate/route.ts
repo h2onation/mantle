@@ -19,7 +19,6 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
   checkpoint: {
     isCheckpoint: boolean;
     layer: number;
-    type: string;
     name: string | null;
   } | null;
   processingText: string | null;
@@ -33,7 +32,6 @@ async function consumeSageStream(stream: ReadableStream): Promise<{
   let checkpoint: {
     isCheckpoint: boolean;
     layer: number;
-    type: string;
     name: string | null;
   } | null = null;
   let processingText: string | null = null;
