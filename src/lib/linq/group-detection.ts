@@ -114,7 +114,7 @@ export async function detectAndSetupGroup(
     .eq("verified", true);
 
   if (lookupError) {
-    console.error("[group-detect] Phone lookup failed:", lookupError);
+    console.error("[group-detect] Phone lookup failed");
   }
 
   const mantleUsers = phoneRows ?? [];

@@ -38,6 +38,11 @@ const unknownNumberCooldown = new Map<string, number>();
 const UNKNOWN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Rate limit: max 20 messages per user per 5 minutes.
+//
+// In-memory rate limiter for the SMS/Linq inbound path. This runs
+// independently of the Upstash HTTP rate limiter on /api/chat because
+// Linq webhook messages bypass the chat API route entirely. This is
+// the SMS path's own defense-in-depth.
 const userMessageCounts = new Map<string, { count: number; windowStart: number }>();
 const USER_RATE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const USER_RATE_MAX = 20;
@@ -72,10 +77,8 @@ export async function routeInboundMessage(
   const startTime = Date.now();
 
   console.log(
-    "[linq-router] START chat_id=%s raw_phone=%s normalized_phone=%s parts=%d",
+    "[linq-router] START chat_id=%s parts=%d",
     chatId,
-    rawSenderPhone,
-    senderPhone,
     parts.length
   );
 
@@ -87,8 +90,8 @@ export async function routeInboundMessage(
   );
 
   console.log(
-    "[linq-router] text=%s has_media=%s",
-    textContent ? textContent.substring(0, 100) : "(empty)",
+    "[linq-router] parsed has_text=%s has_media=%s",
+    !!textContent,
     hasMedia
   );
 
@@ -99,13 +102,13 @@ export async function routeInboundMessage(
       await unlinkPhone(senderPhone);
     }
     await sendMessage(chatId, KEYWORD_RESPONSES[keyword]);
-    console.log("[linq-router] keyword=%s phone=%s", keyword, senderPhone);
+    console.log("[linq-router] keyword=%s", keyword);
     return;
   }
 
   // 2. Look up user by phone number
   const admin = createAdminClient();
-  const { data: phoneRow, error: lookupError } = await admin
+  const { data: phoneRow } = await admin
     .from("phone_numbers")
     .select("user_id, verified, linq_chat_id, phone")
     .eq("phone", senderPhone)
@@ -113,11 +116,9 @@ export async function routeInboundMessage(
     .maybeSingle();
 
   console.log(
-    "[linq-router] phone_lookup phone=%s found=%s user_id=%s error=%s",
-    senderPhone,
+    "[linq-router] phone_lookup found=%s user_id=%s",
     !!phoneRow,
-    phoneRow?.user_id ?? "none",
-    lookupError?.message ?? "none"
+    phoneRow?.user_id ?? "none"
   );
 
   if (!phoneRow) {
@@ -242,9 +243,9 @@ async function unlinkPhone(phone: string): Promise<void> {
     .eq("phone", phone);
 
   if (error) {
-    console.error("[linq-router] unlink_failed phone=%s error=%s", phone, error.message);
+    console.error("[linq-router] unlink_failed error_type=%s", error.code ?? "unknown");
   } else {
-    console.log("[linq-router] phone_unlinked phone=%s", phone);
+    console.log("[linq-router] phone_unlinked");
   }
 }
 
@@ -259,15 +260,14 @@ async function handleUnknownNumber(
   const lastSent = unknownNumberCooldown.get(phone);
 
   if (lastSent && now - lastSent < UNKNOWN_COOLDOWN_MS) {
-    console.log("[linq-router] unknown_cooldown phone=%s", phone);
+    console.log("[linq-router] unknown_cooldown");
     return;
   }
 
   unknownNumberCooldown.set(phone, now);
   const sendResult = await sendMessage(chatId, UNKNOWN_NUMBER_MSG);
   console.log(
-    "[linq-router] unknown_number phone=%s send_ok=%s trace_id=%s",
-    phone,
+    "[linq-router] unknown_number send_ok=%s trace_id=%s",
     sendResult.ok,
     sendResult.traceId ?? "unknown"
   );

@@ -344,6 +344,24 @@ export function useChat() {
         return;
       }
 
+      // Anonymous checkpoint conversion gate: server returns 200 JSON
+      // ({ blocked: true, reason: "signup_required" }) instead of an SSE
+      // stream. Show the conversion prompt and drop the optimistic user
+      // message — do NOT render an error or a Sage reply.
+      const contentType = res.headers.get("content-type") || "";
+      if (res.ok && contentType.includes("application/json")) {
+        const body = await res.json().catch(() => null);
+        if (body?.blocked && body?.reason === "signup_required") {
+          setMessages((prev) => {
+            const updated = [...prev];
+            if (updated[updated.length - 1]?.role === "user") updated.pop();
+            return updated;
+          });
+          setPromptAuth(true);
+          return;
+        }
+      }
+
       if (!res.ok) {
         setErrorMessage("Something went wrong. Try again.");
         return;

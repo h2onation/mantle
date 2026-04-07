@@ -401,11 +401,9 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
   const bodyText = (data?.body as string) ?? (data?.text as string) ?? (msg?.text as string) ?? null;
 
   console.log(
-    "[linq] inbound_parsed sender=%s chat_id=%s parts=%d body=%s",
-    senderPhone ?? "NOT_FOUND",
+    "[linq] inbound_parsed chat_id=%s parts=%d",
     chatId ?? "NOT_FOUND",
-    (parts as unknown[]).length,
-    bodyText ? String(bodyText).substring(0, 50) : "none"
+    (parts as unknown[]).length
   );
 
   if (!senderPhone || !chatId) {
@@ -442,7 +440,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       const mentionsSage = /\bsage\b/i.test(messageText);
 
       if (groupState && !groupState.mantle_user_id && mentionsSage) {
-        console.log("[linq] re_detecting_inactive_group chat_id=%s sender=%s", chatId, senderPhone);
+        console.log("[linq] re_detecting_inactive_group chat_id=%s", chatId);
         // Reset group state so detectAndSetupGroup re-runs from scratch
         await updateGroupState(chatId, { is_active: true, intro_sent: false });
         const handles = extractHandlesFromEvent(data);
@@ -494,7 +492,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     ).trim();
 
     if (!groupTextContent) {
-      console.log("[linq] group_empty_message chat_id=%s sender=%s", chatId, senderPhone);
+      console.log("[linq] group_empty_message chat_id=%s", chatId);
       return;
     }
 
@@ -640,8 +638,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }
 
-  // Log FULL event payload so we can see Linq's actual structure
-  console.log("[linq] FULL_EVENT: %s", JSON.stringify(event));
+  console.log("[linq] webhook event_type=%s event_id=%s", event.event_type, event.event_id);
 
   // Deduplicate
   pruneSeenEvents();

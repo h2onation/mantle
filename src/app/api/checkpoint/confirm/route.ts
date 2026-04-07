@@ -5,6 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { callSage } from "@/lib/sage/call-sage";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
+import {
+  checkpointConfirmHour,
+  checkLimit,
+  rateLimitedResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   // 1. Authenticate
@@ -15,6 +20,11 @@ export async function POST(request: Request) {
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = await checkLimit(checkpointConfirmHour, user.id);
+  if (!limit.success) {
+    return rateLimitedResponse(limit);
   }
 
   const admin = createAdminClient();

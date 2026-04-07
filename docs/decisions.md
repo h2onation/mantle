@@ -22,10 +22,12 @@
 
 ## ADR-003: Inline Composition Over Separate API Call
 
-**Status**: Settled  
-**Context**: When Sage delivers a checkpoint, a polished manual entry needs to be composed. Options: (A) Sage composes the entry inline as part of the same response, or (B) a separate Sonnet call composes it afterward.  
-**Decision**: Sage composes inline using |||MANUAL_ENTRY||| delimiter blocks (Path A). A separate Sonnet call exists as a fallback (Path B) for when Sage doesn't produce the block.  
+**Status**: Superseded — Path A (inline `|||MANUAL_ENTRY|||` composition) was eliminated. All checkpoints now route through the Haiku classifier + server-side `composeManualEntry()` Sonnet call. The original ADR is preserved below for history.
+**Context**: When Sage delivers a checkpoint, a polished manual entry needs to be composed. Options: (A) Sage composes the entry inline as part of the same response, or (B) a separate Sonnet call composes it afterward.
+**Decision**: Sage composes inline using |||MANUAL_ENTRY||| delimiter blocks (Path A). A separate Sonnet call exists as a fallback (Path B) for when Sage doesn't produce the block.
 **Consequences**: Path A is cheaper (no additional API call), faster (no additional latency), and produces better entries (Sage has the full emotional context of the conversation moment). Path B exists because Sage doesn't always produce the block — sometimes the classifier catches a checkpoint that Sage didn't explicitly flag. Having both paths ensures `composed_content` is never null at confirmation time.
+
+**Why superseded**: Inline composition leaked operational meta-commentary into Sage's user-facing voice (the prompt had to teach Sage to emit `|||MANUAL_ENTRY|||` blocks, which made the system prompt user-readable in a way that violated the "no operational meta" rule). Eliminating Path A let the Sage prompt stay in pure conversational voice, with composition handled entirely server-side after the classifier decides a checkpoint has landed. The single-path flow is slightly more expensive per checkpoint but produces a cleaner separation between conversation and composition.
 
 ## ADR-004: Single Pattern Tracking Over Multi-Pattern
 
@@ -171,7 +173,7 @@
 
 **Status**: Settled
 **Context**: The text (Linq) and web paths through Sage duplicated ~280 lines of identical logic — DB reads, user state derivation, extraction firing, crisis detection, checkpoint gates, model constants. The text path was missing checkpoint layer guards and turn-count suppression, causing drift in checkpoint behavior.
-**Decision**: Extract shared logic into `sage-pipeline.ts`. Both `call-sage.ts` (web) and `sage-bridge.ts` (text) import from the same module. Web-specific logic (streaming, Path B classification/composition, SSE events, URL/transcript detection) stays in call-sage. Text-specific logic (non-streaming fetch, checkpoint text formatting) stays in sage-bridge.
+**Decision**: Extract shared logic into `sage-pipeline.ts`. Both `call-sage.ts` (web) and `sage-bridge.ts` (text) import from the same module. Web-specific logic (streaming, classifier + `composeManualEntry()` invocation, SSE events, URL/transcript detection) stays in call-sage. Text-specific logic (non-streaming fetch, checkpoint text formatting) stays in sage-bridge.
 **Consequences**: Seven shared functions replace 13 duplication points. Rule changes (new gate, model upgrade, crisis phrase) happen in one place. Text path now enforces the same checkpoint rules as web. Tradeoff: an additional import layer adds one level of indirection. But the alternative — maintaining two copies of identical rules — already caused a real bug (missing layer guards in text). The indirection cost is trivial compared to the drift risk.
 
 ## ADR-025: Text Checkpoint Shows Name Only

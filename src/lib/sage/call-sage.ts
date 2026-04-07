@@ -299,7 +299,7 @@ export function callSage({
           return;
         }
 
-        // 10. Conversational text is the full Sage response (no inline sentinel).
+        // 10. Conversational text is the full Sage response.
         let conversationalText = fullText;
 
         // 10b. Crisis detection — output validation + logging

@@ -65,8 +65,10 @@ export default function MobileSettings({
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
-  const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "linked">("loading");
+  const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "code" | "linked">("loading");
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
+  const [pendingPhone, setPendingPhone] = useState<string>("");
+  const [codeInput, setCodeInput] = useState("");
   const [linkedService, setLinkedService] = useState<string | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
   const [phoneBusy, setPhoneBusy] = useState(false);
@@ -101,19 +103,52 @@ export default function MobileSettings({
   async function handleConnectPhone() {
     setPhoneBusy(true);
     setPhoneError(null);
+    const phoneToSend = phoneInput || pendingPhone;
     try {
       const res = await fetch("/api/user/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: phoneInput }),
+        body: JSON.stringify({ phone_number: phoneToSend }),
       });
       const data = await res.json();
       if (!res.ok) {
         setPhoneError(data.error || "Failed to connect");
         return;
       }
-      setLinkedPhone(data.phone);
-      setLinkedService(data.serviceType || null);
+      // Server may report the phone is already verified for this user —
+      // jump straight to linked state.
+      if (data.verified === true) {
+        setLinkedPhone(phoneToSend);
+        setPhoneState("linked");
+        return;
+      }
+      // Otherwise we sent an OTP; advance to the code-entry step.
+      setPendingPhone(phoneToSend);
+      setCodeInput("");
+      setPhoneState("code");
+    } catch {
+      setPhoneError("Network error");
+    } finally {
+      setPhoneBusy(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    setPhoneBusy(true);
+    setPhoneError(null);
+    try {
+      const res = await fetch("/api/user/phone/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: pendingPhone, code: codeInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPhoneError(data.error || "Verification failed");
+        return;
+      }
+      setLinkedPhone(pendingPhone);
+      setCodeInput("");
       setPhoneState("linked");
     } catch {
       setPhoneError("Network error");
@@ -515,8 +550,92 @@ export default function MobileSettings({
                       margin: 0,
                     }}
                   >
-                    {phoneBusy ? "Connecting..." : "Connect"}
+                    {phoneBusy ? "Sending code..." : "Send code"}
                   </p>
+                </button>
+              </div>
+            )}
+
+            {phoneState === "code" && (
+              <div>
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    color: "#8a8480",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  We sent a 6-digit code to {pendingPhone}. Code expires in 10 minutes.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  style={{
+                    width: "100%",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "16px",
+                    letterSpacing: "4px",
+                    textAlign: "center",
+                    color: "var(--session-ink)",
+                    background: "rgba(26, 22, 20, 0.03)",
+                    border: "1px solid var(--session-ink-hairline)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: 10,
+                  }}
+                />
+                <button
+                  onClick={handleVerifyCode}
+                  disabled={phoneBusy || codeInput.length !== 6}
+                  style={{
+                    width: "100%",
+                    background: "none",
+                    border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+                    borderRadius: 8,
+                    cursor: phoneBusy || codeInput.length !== 6 ? "default" : "pointer",
+                    textAlign: "center",
+                    padding: "10px 0",
+                    opacity: phoneBusy ? 0.5 : 1,
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px",
+                      color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                      letterSpacing: "0.5px",
+                      margin: 0,
+                    }}
+                  >
+                    {phoneBusy ? "Verifying..." : "Verify"}
+                  </p>
+                </button>
+                <button
+                  onClick={handleConnectPhone}
+                  disabled={phoneBusy}
+                  style={{
+                    width: "100%",
+                    background: "none",
+                    border: "none",
+                    cursor: phoneBusy ? "default" : "pointer",
+                    padding: "10px 0 0 0",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    color: "#6e6a66",
+                    textDecoration: "underline",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  Resend code
                 </button>
               </div>
             )}
