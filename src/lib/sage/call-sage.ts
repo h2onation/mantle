@@ -349,7 +349,6 @@ export function callSage({
         //     Composition is handled separately by composeManualEntry below.
         let isCheckpoint = false;
         let checkpointLayer: number | null = null;
-        let checkpointType: string | null = null;
         let checkpointName: string | null = null;
         let processingText = "listening...";
 
@@ -361,27 +360,22 @@ export function callSage({
 
           const isFirstSession =
             !manualComponents || manualComponents.length === 0;
-          const layersWithComponents = (manualComponents || [])
-            .filter((c) => c.type === "component")
-            .map((c) => c.layer);
           const classification = await classifyResponse(
             conversationalText,
             recentText,
-            isFirstSession,
-            layersWithComponents
+            isFirstSession
           );
 
           isCheckpoint = classification.isCheckpoint;
           checkpointLayer = classification.layer;
-          checkpointType = classification.type;
           checkpointName = classification.name;
           processingText = classification.processingText;
         }
 
-        // 12b. Shared checkpoint gates (layer guards + material quality + turn-count)
+        // 12b. Shared checkpoint gates (material quality + turn-count)
         if (isCheckpoint && checkpointLayer) {
           const gateResult = applyCheckpointGates(
-            { layer: checkpointLayer, type: checkpointType || "component", name: checkpointName || "" },
+            { layer: checkpointLayer, name: checkpointName || "" },
             manualComponents,
             turnsSinceCheckpoint,
             previousExtraction,
@@ -389,14 +383,13 @@ export function callSage({
           );
           isCheckpoint = gateResult.isCheckpoint;
           checkpointLayer = gateResult.layer;
-          checkpointType = gateResult.type;
           checkpointName = gateResult.name;
         }
 
         // 12b-log. Checkpoint detection debug log (dev only)
         if (process.env.NODE_ENV !== "production") {
           console.log("[sage-debug] %s", isCheckpoint
-            ? `CHECKPOINT: L${checkpointLayer} ${checkpointType} "${checkpointName}"`
+            ? `CHECKPOINT: L${checkpointLayer} "${checkpointName}"`
             : "No checkpoint this turn");
         }
 
@@ -421,7 +414,6 @@ export function callSage({
               conversationHistory: messages,
               languageBank: previousExtraction?.language_bank || [],
               layer: checkpointLayer,
-              type: (checkpointType as "component" | "pattern") || "component",
               name: checkpointName,
               existingLayerContent:
                 existingLayerContent.length > 0
@@ -431,10 +423,7 @@ export function callSage({
 
             // Soft post-validation: log structural drift without blocking.
             if (composedEntry?.content) {
-              const validation = validateComposedEntry(
-                composedEntry.content,
-                (checkpointType as "component" | "pattern") || "component"
-              );
+              const validation = validateComposedEntry(composedEntry.content);
               if (!validation.ok) {
                 console.warn(
                   "[callSage] Composed entry structural drift: %s",
@@ -459,7 +448,7 @@ export function callSage({
           if (isCheckpoint) {
             updateData.is_checkpoint = true;
             updateData.checkpoint_meta = buildCheckpointMeta(
-              { isCheckpoint, layer: checkpointLayer, type: checkpointType, name: checkpointName },
+              { isCheckpoint, layer: checkpointLayer, name: checkpointName },
               composedEntry
             );
           }
@@ -475,7 +464,6 @@ export function callSage({
           ? {
               isCheckpoint: true,
               layer: checkpointLayer,
-              type: checkpointType,
               name: checkpointName,
             }
           : null;

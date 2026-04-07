@@ -37,7 +37,7 @@ export interface PreFetchedContext {
   conversationId: string;
   senderLabel: string;
   mantleUserName: string | null;
-  manualComponents: { layer: number; type: string; name: string; content: string }[];
+  manualComponents: { layer: number; name: string; content: string }[];
 }
 
 /**
@@ -86,7 +86,7 @@ export async function prefetchGroupContext(
         .maybeSingle(),
       admin
         .from("manual_components")
-        .select("layer, type, name, content")
+        .select("layer, name, content")
         .eq("user_id", groupState.mantle_user_id),
     ]);
 
@@ -226,7 +226,6 @@ export async function processGroupMessage(
     extractionContext: "",
     isFirstCheckpoint: false,
     turnCount: windowedMessages.length,
-    hasPatternEligibleLayer: false,
     checkpointApproaching: false,
     groupContext: {
       mantleUserName,

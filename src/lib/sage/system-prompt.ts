@@ -15,7 +15,6 @@ export type SageMode = "autistic";
 
 interface ManualComponent {
   layer: number;
-  type: string;
   name: string | null;
   content: string;
 }
@@ -34,7 +33,6 @@ export interface BuildPromptOptions {
     fetchedContent: FetchedContent | null;
   } | null;
   turnCount: number;
-  hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
   /** Voice mode. Defaults to 'autistic' when omitted. */
   sageMode?: SageMode;
@@ -56,7 +54,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     transcriptContext,
     contentContext,
     turnCount,
-    hasPatternEligibleLayer,
     checkpointApproaching,
     sageMode = "autistic",
     groupContext,
@@ -81,7 +78,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   if (manualComponents.length > 0) {
     dynamicContext += "\nCONFIRMED MANUAL\n";
     for (const comp of manualComponents) {
-      dynamicContext += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]}) — ${comp.type}`;
+      dynamicContext += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
       if (comp.name) dynamicContext += ` — "${comp.name}"`;
       dynamicContext += `:\n${comp.content}\n\n`;
     }
@@ -388,38 +385,6 @@ This is the user's FIRST checkpoint. Before your observation, deliver a one-sent
 Then offer the headline last.
 
 This instructional wrapper only appears on the FIRST checkpoint. Every checkpoint after is: framing sentence → observation → headline → validation question. No wrapper.
-` : ""}${hasPatternEligibleLayer ? `
-PATTERNS
-
-After a layer has a confirmed component, that layer is open for a recurring-loop reflection. Your brief will tell you when a layer is in this state and will surface any loop you're already tracking — what sets it off, what happens inside, what the user does, what it gives them, and what it costs.
-
-Patterns are different from components. Components describe the landscape: who they are. Patterns describe the loops: what keeps happening.
-
-PATTERN FLOW:
-1. RECURRENCE CONFIRMATION: Before proposing a pattern, the user must have described the same behavioral loop in at least two distinct situations. Your brief will tell you how many instances you've heard. Don't checkpoint a pattern with fewer than 2 instances.
-
-2. CHAIN WALK: When you notice a recurring loop forming, walk the user through the missing pieces. Your brief shows which parts of the loop are already known and which are still blank. Ask questions that target the gaps:
-   - Missing what sets it off → "What sets this off? Is there a moment right before it starts?"
-   - Missing what happens inside → "What happens inside you when that hits?"
-   - Missing what they do → "And then what do you do?"
-   - Missing what it gives them → "What does that give you in the moment? What does it protect?"
-   - Missing what it costs → "What does it cost you when you do that?"
-
-3. PATTERN CHECKPOINT: When the brief says there's enough material to name a recurring loop, deliver a pattern checkpoint. Before presenting, signal the shift: "I want to try naming something I keep seeing in what you've described. Tell me where it's off." Same rules as component checkpoints, but the structure follows the loop:
-   - Name what sets it off and what happens inside
-   - Walk through what they do
-   - Name both what it gives them and what it costs
-   - Offer the pattern name last: "I'd call this [name]. Does that fit?"
-   - The manual entry type is "pattern", not "component"
-
-4. FIRST PATTERN TEACHING: The first time you deliver a pattern checkpoint for a user (they have components but no patterns yet), add a brief frame: "This is different from what we've built before. Components are the landscape: who you are. Patterns are the loops: what keeps running. This one looks like it has a cost you haven't fully priced."
-
-5. DISCONFIRMATION: If the user says a proposed pattern doesn't fit, don't force it. Ask what's wrong. The pattern might need different framing, or it might not be a real pattern, just a one-off. Move on if they're not seeing it.
-
-6. PATTERN SATURATION: When the brief notes that a layer already has two named loops, that layer is full. Do not propose a third pattern. Instead:
-   - If the user is still exploring that territory, deepen an existing pattern: "We've mapped two patterns on this layer. Want to go deeper on one of them, or shift to something else?"
-   - Redirect naturally to an under-explored layer.
-   - If the new loop genuinely replaces an existing pattern (user explicitly says an old one doesn't fit anymore), you can propose it as a replacement. The old one will be archived.
 ` : ""}${showCheckpointInstructions ? `
 POST-CHECKPOINT
 After a confirmed checkpoint (you'll see "[User confirmed the checkpoint]" in history), acknowledge what just happened before presenting the fork. One sentence that recognizes the significance, then the two directions. Example: "That's in your manual now. First piece of how you operate, written in your own words. Two directions:" Do not just say "Your manual just updated." Mark the moment.
@@ -570,7 +535,7 @@ MANUAL CONTEXT RULES:
 CONFIRMED MANUAL
 `;
     for (const comp of manualComponents) {
-      prompt += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]}) — ${comp.type}`;
+      prompt += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
       if (comp.name) prompt += ` — "${comp.name}"`;
       prompt += `:\n${comp.content}\n\n`;
     }

@@ -17,7 +17,6 @@ describe("buildSystemPrompt", () => {
     extractionContext: "",
     isFirstCheckpoint: false,
     turnCount: 5,
-    hasPatternEligibleLayer: false,
     checkpointApproaching: false,
   };
 
@@ -33,14 +32,13 @@ describe("buildSystemPrompt", () => {
 
     it("contains 'You are Sage' with all parameters populated", () => {
       const result = build({
-        manualComponents: [{ layer: 1, type: "component", name: "Test", content: "Test content" }],
+        manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
         isReturningUser: true,
         sessionSummary: "Previous summary",
         extractionContext: "Some extraction context",
         isFirstCheckpoint: true,
         sessionCount: 3,
         checkpointApproaching: true,
-        hasPatternEligibleLayer: true,
       });
       expect(result).toContain("You are Sage");
     });
@@ -109,7 +107,7 @@ describe("buildSystemPrompt", () => {
     it("contains 'CONFIRMED MANUAL' and the component content when entries exist", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: "Autonomy Drive", content: "You need control over your own direction." },
+          { layer: 1, name: "Autonomy Drive", content: "You need control over your own direction." },
         ],
       });
       expect(result).toContain("CONFIRMED MANUAL");
@@ -119,7 +117,7 @@ describe("buildSystemPrompt", () => {
     it("renders layer 1 name correctly", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: null, content: "Layer 1 content" },
+          { layer: 1, name: null, content: "Layer 1 content" },
         ],
       });
       expect(result).toContain(LAYER_NAMES[1]);
@@ -128,7 +126,7 @@ describe("buildSystemPrompt", () => {
     it("renders layer 5 name correctly", () => {
       const result = build({
         manualComponents: [
-          { layer: 5, type: "component", name: null, content: "Layer 5 content" },
+          { layer: 5, name: null, content: "Layer 5 content" },
         ],
       });
       expect(result).toContain(LAYER_NAMES[5]);
@@ -137,7 +135,7 @@ describe("buildSystemPrompt", () => {
     it("includes the name in quotes when component has a name", () => {
       const result = build({
         manualComponents: [
-          { layer: 2, type: "component", name: "The Fixer", content: "Some content" },
+          { layer: 2, name: "The Fixer", content: "Some content" },
         ],
       });
       expect(result).toContain('"The Fixer"');
@@ -146,7 +144,7 @@ describe("buildSystemPrompt", () => {
     it("does NOT include quotes or 'null' when component name is null", () => {
       const result = build({
         manualComponents: [
-          { layer: 3, type: "pattern", name: null, content: "Pattern content" },
+          { layer: 3, name: null, content: "Pattern content" },
         ],
       });
       // The line should end with the type, no trailing quotes
@@ -251,7 +249,7 @@ describe("buildSystemPrompt", () => {
     it("does NOT contain FIRST MESSAGE when user has manual components", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: "Test", content: "Content" },
+          { layer: 1, name: "Test", content: "Content" },
         ],
         isReturningUser: true,
         turnCount: 1,
@@ -296,7 +294,7 @@ describe("buildSystemPrompt", () => {
     it("does NOT contain first session text when manualComponents has entries", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: "Test", content: "Content" },
+          { layer: 1, name: "Test", content: "Content" },
         ],
         isReturningUser: true,
       });
@@ -389,55 +387,6 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Pattern system ────────────────────────────────────────────────────────
-  describe("pattern system", () => {
-    it("contains PATTERNS section when hasPatternEligibleLayer is true", () => {
-      const result = build({ hasPatternEligibleLayer: true });
-      expect(result).toContain("PATTERNS");
-      expect(result).toContain("RECURRENCE CONFIRMATION");
-      expect(result).toContain("CHAIN WALK");
-      expect(result).toContain("PATTERN CHECKPOINT");
-    });
-
-    it("does NOT contain PATTERNS section when hasPatternEligibleLayer is false", () => {
-      const result = build({ hasPatternEligibleLayer: false });
-      expect(result).not.toContain("RECURRENCE CONFIRMATION");
-      expect(result).not.toContain("CHAIN WALK");
-      expect(result).not.toContain("PATTERN CHECKPOINT");
-    });
-
-    it("contains first pattern teaching instruction when pattern eligible", () => {
-      const result = build({ hasPatternEligibleLayer: true });
-      expect(result).toContain("FIRST PATTERN TEACHING");
-      expect(result).toContain("Components are the landscape");
-      expect(result).toContain("Patterns are the loops");
-    });
-
-    it("contains pattern disconfirmation guidance when pattern eligible", () => {
-      const result = build({ hasPatternEligibleLayer: true });
-      expect(result).toContain("DISCONFIRMATION");
-    });
-
-    it("contains pattern saturation handling when pattern eligible", () => {
-      const result = build({ hasPatternEligibleLayer: true });
-      expect(result).toContain("PATTERN SATURATION");
-      expect(result).toContain("already has two named loops");
-    });
-
-    it("CHECKPOINTS uses research-assistant language instead of hard gate when both shown", () => {
-      const result = build({ checkpointApproaching: true, hasPatternEligibleLayer: true });
-      expect(result).toContain("Use the brief as your research assistant, not your permission slip");
-      expect(result).not.toContain("Only deliver a checkpoint when");
-    });
-
-    it("PATTERNS section appears before POST-CHECKPOINT when both shown", () => {
-      const result = build({ hasPatternEligibleLayer: true, checkpointApproaching: true });
-      const patternsIdx = result.indexOf("PATTERNS");
-      const postCheckpointIdx = result.indexOf("POST-CHECKPOINT");
-      expect(patternsIdx).toBeLessThan(postCheckpointIdx);
-    });
-  });
-
   // ─── Conditional section loading ─────────────────────────────────────────
   describe("conditional section loading", () => {
     it("excludes the language-reuse reminder on turnCount 1", () => {
@@ -485,8 +434,8 @@ describe("buildSystemPrompt", () => {
     it("excludes READINESS GATE when fewer than 3 components", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: null, content: "c1" },
-          { layer: 2, type: "component", name: null, content: "c2" },
+          { layer: 1, name: null, content: "c1" },
+          { layer: 2, name: null, content: "c2" },
         ],
       });
       expect(result).not.toContain("READINESS GATE");
@@ -495,9 +444,9 @@ describe("buildSystemPrompt", () => {
     it("includes READINESS GATE when 3+ components", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, type: "component", name: null, content: "c1" },
-          { layer: 2, type: "component", name: null, content: "c2" },
-          { layer: 3, type: "component", name: null, content: "c3" },
+          { layer: 1, name: null, content: "c1" },
+          { layer: 2, name: null, content: "c2" },
+          { layer: 3, name: null, content: "c3" },
         ],
         isReturningUser: true,
       });

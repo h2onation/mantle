@@ -26,7 +26,7 @@ const CRISIS_RESOURCES =
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type ManualComponent = { layer: number; type: string; name: string; content: string };
+type ManualComponent = { layer: number; name: string; content: string };
 
 export interface ConversationContext {
   messages: { role: "user" | "assistant"; content: string }[];
@@ -40,7 +40,6 @@ export interface ConversationContext {
   conversationId: string;
   extractionForSage: string;
   turnCount: number;
-  hasPatternEligibleLayer: boolean;
   checkpointApproaching: boolean;
   sageMode: SageMode;
 }
@@ -48,13 +47,11 @@ export interface ConversationContext {
 export interface CheckpointGateResult {
   isCheckpoint: boolean;
   layer: number | null;
-  type: string | null;
   name: string | null;
 }
 
 export interface CheckpointMeta {
   layer: number | null;
-  type: string | null;
   name: string | null;
   status: "pending";
   composed_content: string | null;
@@ -87,7 +84,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("manual_components")
-      .select("layer, type, name, content")
+      .select("layer, name, content")
       .eq("user_id", userId),
     admin
       .from("conversations")
@@ -158,15 +155,6 @@ export async function loadConversationContext(
     : "";
 
   const turnCount = messages.length;
-  const confirmedComponentCount = manualComponents.filter(
-    (c) => c.type === "component"
-  ).length;
-  const hasPatternEligibleLayer =
-    previousExtraction && confirmedComponentCount >= 3
-      ? Object.values(previousExtraction.layers).some(
-          (l) => l.discovery_mode === "pattern"
-        )
-      : false;
   const checkpointApproaching = previousExtraction
     ? Object.values(previousExtraction.layers).some(
         (l) =>
@@ -188,7 +176,6 @@ export async function loadConversationContext(
     conversationId,
     extractionForSage,
     turnCount,
-    hasPatternEligibleLayer,
     checkpointApproaching,
     sageMode,
   };
@@ -210,7 +197,6 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     isFirstCheckpoint: ctx.isFirstCheckpoint,
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
-    hasPatternEligibleLayer: ctx.hasPatternEligibleLayer,
     checkpointApproaching: ctx.checkpointApproaching,
     sageMode: ctx.sageMode,
   };
@@ -220,7 +206,6 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
 
 /**
  * Fire extraction in background — runs in parallel, doesn't block response.
- * Preserves discovery_mode and confirmed_patterns set by confirmCheckpoint().
  */
 export function fireBackgroundExtraction(
   ctx: ConversationContext,
@@ -233,23 +218,6 @@ export function fireBackgroundExtraction(
     ctx.isFirstCheckpoint
   )
     .then(async (newState) => {
-      const { data: currentConv } = await admin
-        .from("conversations")
-        .select("extraction_state")
-        .eq("id", ctx.conversationId)
-        .single();
-
-      if (currentConv?.extraction_state) {
-        const currentState = currentConv.extraction_state as ExtractionState;
-        for (let i = 1; i <= 5; i++) {
-          if (newState.layers[i] && currentState.layers[i]) {
-            newState.layers[i].discovery_mode =
-              currentState.layers[i].discovery_mode;
-          }
-        }
-        newState.confirmed_patterns = currentState.confirmed_patterns || [];
-      }
-
       const { error } = await admin
         .from("conversations")
         .update({ extraction_state: newState })
@@ -321,15 +289,13 @@ export function handleCrisisDetection(
  *
  * Standard gate: 2+ scenes, mechanism, charged language, behavior↔driver link.
  * First-checkpoint gate (lighter): 1 scene + charged language + (mechanism OR link).
- * Pattern gate: 2+ recurrences and 3+ chain elements filled.
  *
  * Returns { ok, reasons } so callers can log without echoing the
  * gate vocabulary back to the user.
  */
 export function validateMaterialQuality(
   extractionState: ExtractionState | null,
-  isFirstCheckpoint: boolean,
-  flaggedType: string | null
+  isFirstCheckpoint: boolean
 ): { ok: boolean; reasons: string[] } {
   if (!extractionState) {
     return { ok: true, reasons: [] };
@@ -343,16 +309,6 @@ export function validateMaterialQuality(
   const gate = extractionState.checkpoint_gate;
   const reasons: string[] = [];
 
-  if (flaggedType === "pattern") {
-    const pt = extractionState.pattern_tracking;
-    const recurrence = pt?.recurrence_count || 0;
-    const chainCount = pt?.chain_elements?.length || 0;
-    if (recurrence < 2) reasons.push(`pattern recurrence ${recurrence}/2`);
-    if (chainCount < 3) reasons.push(`pattern chain ${chainCount}/3`);
-    return { ok: reasons.length === 0, reasons };
-  }
-
-  // Component gate
   const minExamples = isFirstCheckpoint ? 1 : 2;
   if (gate.concrete_examples < minExamples) {
     reasons.push(
@@ -375,45 +331,30 @@ export function validateMaterialQuality(
 }
 
 /**
- * Apply layer guards, material-quality gate, and turn-count suppression
- * to a detected checkpoint.
+ * Apply material-quality gate and turn-count suppression to a detected checkpoint.
  *
- * Rule 1: First entry on any layer must be a component.
- * Rule 2: Only one component per layer — force to pattern after.
- * Rule 3: Material quality must meet the gate (validateMaterialQuality).
- * Rule 4: Suppress if fewer than 5 user turns since last checkpoint.
+ * Rule 1: Material quality must meet the gate (validateMaterialQuality).
+ * Rule 2: Suppress if fewer than 5 user turns since last checkpoint.
  */
 export function applyCheckpointGates(
-  manualEntry: { layer: number; type: string; name: string } | null,
-  manualComponents: ManualComponent[],
+  manualEntry: { layer: number; name: string } | null,
+  _manualComponents: ManualComponent[],
   turnsSinceCheckpoint: number,
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean
 ): CheckpointGateResult {
+  void _manualComponents;
   if (!manualEntry) {
-    return { isCheckpoint: false, layer: null, type: null, name: null };
+    return { isCheckpoint: false, layer: null, name: null };
   }
 
   const { layer, name } = manualEntry;
-  let { type } = manualEntry;
 
-  // Rule 1 & 2: layer guards
-  const layerHasComponent = manualComponents.some(
-    (c) => c.layer === layer && c.type === "component"
-  );
-
-  if (type === "pattern" && !layerHasComponent) {
-    type = "component";
-  } else if (type === "component" && layerHasComponent) {
-    type = "pattern";
-  }
-
-  // Rule 3: material-quality pre-emit gate (silent, server-side)
+  // Rule 1: material-quality pre-emit gate (silent, server-side)
   if (extractionState !== undefined) {
     const quality = validateMaterialQuality(
       extractionState ?? null,
-      isFirstCheckpoint ?? false,
-      type
+      isFirstCheckpoint ?? false
     );
     if (!quality.ok) {
       if (process.env.NODE_ENV !== "production") {
@@ -422,11 +363,11 @@ export function applyCheckpointGates(
           quality.reasons.join("; ")
         );
       }
-      return { isCheckpoint: false, layer: null, type: null, name: null };
+      return { isCheckpoint: false, layer: null, name: null };
     }
   }
 
-  // Rule 4: turn-count suppression
+  // Rule 2: turn-count suppression
   if (turnsSinceCheckpoint < 5) {
     if (process.env.NODE_ENV !== "production") {
       console.log(
@@ -434,10 +375,10 @@ export function applyCheckpointGates(
         turnsSinceCheckpoint
       );
     }
-    return { isCheckpoint: false, layer: null, type: null, name: null };
+    return { isCheckpoint: false, layer: null, name: null };
   }
 
-  return { isCheckpoint: true, layer, type, name };
+  return { isCheckpoint: true, layer, name };
 }
 
 // ── 4c. Composed-entry post-validation ──────────────────────────────────────
@@ -464,19 +405,13 @@ const SOMATIC_WORD_PATTERNS = [
  * blocking the entry. Word counts are inclusive ranges.
  */
 export function validateComposedEntry(
-  content: string,
-  type: "component" | "pattern"
+  content: string
 ): { ok: boolean; warnings: string[] } {
   const warnings: string[] = [];
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
-  if (type === "component") {
-    if (wordCount < 150) warnings.push(`component too short: ${wordCount}/150`);
-    if (wordCount > 300) warnings.push(`component too long: ${wordCount}/250`);
-  } else {
-    if (wordCount < 60) warnings.push(`pattern too short: ${wordCount}/80`);
-    if (wordCount > 180) warnings.push(`pattern too long: ${wordCount}/150`);
-  }
+  if (wordCount < 80) warnings.push(`entry too short: ${wordCount}/80`);
+  if (wordCount > 300) warnings.push(`entry too long: ${wordCount}/300`);
 
   const hasSomaticAnchor = SOMATIC_WORD_PATTERNS.some((re) => re.test(content));
   if (!hasSomaticAnchor) {
@@ -551,7 +486,6 @@ export function buildCheckpointMeta(
 ): CheckpointMeta {
   return {
     layer: gateResult.layer,
-    type: gateResult.type,
     name: composedEntry?.name || gateResult.name,
     status: "pending",
     composed_content: composedEntry?.content || null,
