@@ -14,7 +14,7 @@
     "autofix": "claude -p 'Run npm run build. If there are TypeScript errors, fix them. If there are missing dependencies, install them. Then run the build again to confirm it passes.' --allowedTools 'Edit,Read,Bash,Write'"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.1.0",
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.39.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",

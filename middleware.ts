@@ -1,11 +1,12 @@
-import { createServerClient, type CookieMethods } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+  // Single response object that Supabase's setAll callback will mutate
+  // by writing cookies onto. Recreated only when request cookies change,
+  // following the canonical Supabase pattern.
+  let supabaseResponse = NextResponse.next({
+    request,
   });
 
   const supabase = createServerClient(
@@ -13,31 +14,32 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+        setAll(cookiesToSet) {
+          // Update request cookies first so any downstream code that
+          // reads cookies on this request sees the refreshed values.
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          // Recreate the response once with the updated request, then
+          // copy every cookie onto it. Recreating per-cookie loses
+          // earlier writes — that was the bug.
+          supabaseResponse = NextResponse.next({
+            request,
           });
-          response.cookies.set({ name, value, ...options });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
-        remove(name: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value: "", ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value: "", ...options });
-        },
-      } as CookieMethods,
+      },
     }
   );
 
+  // IMPORTANT: do not put any logic between createServerClient and getUser().
+  // Supabase docs warn this is the most common source of "users randomly
+  // logged out" bugs.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -54,10 +56,10 @@ export async function middleware(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    return response;
+    return supabaseResponse;
   }
 
-  // Allow /login, /auth/callback, and static files
+  // Allow /login, /auth/callback, and other public routes through
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/reset-password" ||
@@ -68,16 +70,32 @@ export async function middleware(request: NextRequest) {
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectWithSupabaseCookies(url, supabaseResponse);
   }
 
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    return redirectWithSupabaseCookies(url, supabaseResponse);
   }
 
-  return response;
+  return supabaseResponse;
+}
+
+// When middleware needs to redirect, the new response has no cookies on it
+// by default. If Supabase refreshed the session inside getUser(), those
+// refreshed cookies live on supabaseResponse — and would be silently dropped
+// unless we copy them onto the redirect. Per Supabase's "advanced guide" this
+// is the canonical fix for "user randomly logged out after redirect".
+function redirectWithSupabaseCookies(
+  url: URL,
+  supabaseResponse: NextResponse
+): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie);
+  });
+  return redirect;
 }
 
 export const config = {
