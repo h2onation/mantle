@@ -48,6 +48,22 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Diagnostic for OAuth double-login bug — shapes/counts only, no PII.
+  if (pathname === "/" || pathname === "/login") {
+    const sbCookies = request.cookies
+      .getAll()
+      .filter((c) => c.name.startsWith("sb-"));
+    console.log(
+      "[middleware]",
+      JSON.stringify({
+        path: pathname,
+        hasUser: !!user,
+        sbCookieCount: sbCookies.length,
+        hasAuthToken: sbCookies.some((c) => c.name.includes("auth-token")),
+      })
+    );
+  }
+
   // Block non-admin access to admin API routes
   const isAdminRoute = pathname.startsWith("/api/admin");
   if (isAdminRoute) {
@@ -61,13 +77,13 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Allow /login, /auth/callback, and other public routes through
+  // Public routes that don't require auth. /auth/callback is excluded
+  // from the matcher above, so it never reaches this check.
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname === "/privacy" ||
-    pathname === "/terms" ||
-    pathname.startsWith("/auth/callback");
+    pathname === "/terms";
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -102,6 +118,10 @@ function redirectWithSupabaseCookies(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|api(?!/admin)).*)",
+    // Skip /auth/callback entirely — Supabase's advanced SSR guide
+    // warns against running getUser() on the callback request because
+    // it races with exchangeCodeForSession. The route handler at
+    // src/app/auth/callback/route.ts manages its own cookies.
+    "/((?!_next/static|_next/image|favicon\\.ico|auth/callback|api(?!/admin)).*)",
   ],
 };

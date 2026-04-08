@@ -25,6 +25,27 @@ export async function GET(request: Request) {
     "no-store, no-cache, must-revalidate"
   );
 
+  // Diagnostic logging for the OAuth double-login bug — no PII, only
+  // shapes and counts. Safe to ship.
+  const incomingCookieNames = cookies()
+    .getAll()
+    .map((c) => c.name)
+    .filter((n) => n.startsWith("sb-"));
+  console.log(
+    "[auth/callback] start",
+    JSON.stringify({
+      hasCode: !!code,
+      hasNext: !!next,
+      sbCookieCount: incomingCookieNames.length,
+      hasVerifier: incomingCookieNames.some((n) =>
+        n.includes("code-verifier")
+      ),
+      hasAuthToken: incomingCookieNames.some((n) =>
+        n.includes("auth-token")
+      ),
+    })
+  );
+
   if (code) {
     const cookieStore = cookies();
 
@@ -56,6 +77,16 @@ export async function GET(request: Request) {
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    console.log(
+      "[auth/callback] exchange",
+      JSON.stringify({
+        ok: !error,
+        errorName: error?.name ?? null,
+        errorStatus: (error as { status?: number } | null)?.status ?? null,
+        responseCookieCount: response.cookies.getAll().length,
+      })
+    );
 
     if (error) {
       const errorRedirect = NextResponse.redirect(
