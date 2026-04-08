@@ -196,15 +196,13 @@ export function useChat() {
       }
     }
 
-    // Wait for auth — use getUser() (server-validated) instead of
-    // getSession() which reads from cache and can return stale tokens.
+    // Middleware is the auth gate — if we're rendering, we're authed.
+    // The previous client-side getUser() check here was redundant and
+    // raced with cookie propagation after OAuth, causing bounces.
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!authUser) {
-      router.push("/login");
-      return;
-    }
+    if (!authUser) return;
 
     setUserEmail(authUser.email || "");
     setIsGuest(authUser.is_anonymous === true);
