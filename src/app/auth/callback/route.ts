@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerClient, type CookieMethods } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 // Prevent any edge/CDN caching of this route — each OAuth callback
@@ -11,10 +11,12 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next");
 
-  const redirectTo = next && next.startsWith("/")
-    ? `${origin}${next}`
-    : origin;
+  const redirectTo =
+    next && next.startsWith("/") ? `${origin}${next}` : origin;
 
+  // Create the redirect response up front so the Supabase setAll callback
+  // can write Set-Cookie headers onto it. The response object is reused
+  // across all setAll calls — recreating it would lose earlier cookies.
   const response = NextResponse.redirect(redirectTo);
   response.headers.set(
     "Cache-Control",
@@ -24,26 +26,30 @@ export async function GET(request: Request) {
   if (code) {
     const cookieStore = cookies();
 
-    // Create a Supabase client that writes cookies to BOTH the
-    // cookieStore (for downstream server components) and the
-    // redirect response (so the browser receives them).
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
+          getAll() {
+            return cookieStore.getAll();
           },
-          set(name: string, value: string, options: Record<string, unknown>) {
-            cookieStore.set({ name, value, ...options });
-            response.cookies.set({ name, value, ...options });
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Write to the cookieStore so any downstream Server
+              // Component reading cookies on this request sees the
+              // refreshed values.
+              try {
+                cookieStore.set({ name, value, ...options });
+              } catch {
+                // Server Components can't write cookies — ignore.
+              }
+              // Write to the redirect response so the browser actually
+              // receives the Set-Cookie headers.
+              response.cookies.set({ name, value, ...options });
+            });
           },
-          remove(name: string, options: Record<string, unknown>) {
-            cookieStore.set({ name, value: "", ...options });
-            response.cookies.set({ name, value: "", ...options });
-          },
-        } as CookieMethods,
+        },
       }
     );
 
