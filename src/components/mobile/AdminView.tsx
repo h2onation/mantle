@@ -301,6 +301,28 @@ export default function AdminView() {
     );
   }
 
+  async function addToBeta(
+    email: string,
+    waitlistId?: string
+  ): Promise<"added" | "already_exists"> {
+    const res = await fetch("/api/admin/beta-allowlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, waitlist_id: waitlistId }),
+    });
+    if (!res.ok) throw new Error("Failed to add to beta");
+    const data = await res.json();
+    // If a waitlist row was updated to "invited", reflect it locally
+    if (data.result === "added" && waitlistId) {
+      setWaitlistItems((prev) =>
+        prev.map((row) =>
+          row.id === waitlistId ? { ...row, status: "invited" as const } : row
+        )
+      );
+    }
+    return data.result;
+  }
+
   async function markBetaFeedbackRead(id: string) {
     const res = await fetch("/api/admin/beta-feedback", {
       method: "PATCH",
@@ -601,6 +623,7 @@ export default function AdminView() {
               <WaitlistTab
                 items={waitlistItems}
                 onChangeStatus={changeWaitlistStatus}
+                onAddToBeta={addToBeta}
               />
             )}
             {topTab === "feedback" && (
