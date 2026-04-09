@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
   // 5. Send the OTP via Linq. Keep the message text terse — no other content.
   const sendResult = await createChat(
     phone,
-    `Your Mantle verification code is: ${otp}. This code expires in 10 minutes.`
+    `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`
   );
   if (!sendResult.ok) {
     console.error(

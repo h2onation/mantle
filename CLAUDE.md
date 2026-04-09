@@ -1,6 +1,6 @@
-# Mantle
+# mywalnut
 
-Mantle is a mobile-first AI app where an AI called Sage builds a five-layer behavioral model ("User Manual") through deep conversation. Nothing enters the manual unless the user confirms it.
+mywalnut is a mobile-first AI app where an AI called Sage builds a five-layer behavioral model ("User Manual") through deep conversation. Nothing enters the manual unless the user confirms it.
 
 Stack: Next.js 14 · Supabase · Anthropic API (raw fetch, no SDK) · Vercel Edge Runtime. Mobile-first with multiple entry points (app, text, web).
 

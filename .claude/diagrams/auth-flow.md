@@ -45,7 +45,7 @@ flowchart TD
     C --> D[AuthPromptModal appears]
     D --> E{Method chosen?}
     E -- Email --> F["updateUser({ email, password })"]
-    E -- Google --> G["Set mantle_pending_conversion flag"]
+    E -- Google --> G["Set mywalnut_pending_conversion flag"]
     G --> H["linkIdentity({ provider: 'google' })"]
     H --> I[Google consent screen]
     I --> J[Return to app]

@@ -59,8 +59,8 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
     // anonymous user. Otherwise a browser that previously completed a
     // first session will treat this brand-new anonymous user as returning
     // and skip the welcome block with chips.
-    localStorage.removeItem("mantle_first_session_completed");
-    localStorage.removeItem("mantle_signin_banner_dismissed");
+    localStorage.removeItem("mw_first_session_completed");
+    localStorage.removeItem("mw_signin_banner_dismissed");
 
     // Create anonymous auth session
     const { error: authError } = await supabase.auth.signInAnonymously();
@@ -96,7 +96,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           paddingLeft: 15,
         }}
       >
-        MANTLE
+        MYWALNUT
       </div>
 
       {/* Spacer pushes content to bottom */}

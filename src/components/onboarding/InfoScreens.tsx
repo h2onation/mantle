@@ -28,7 +28,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           paddingLeft: 15,
         }}
       >
-        MANTLE
+        MYWALNUT
       </div>
 
       {/* Spacer pushes content to bottom */}

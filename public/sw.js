@@ -1,8 +1,8 @@
-// Mantle Service Worker
+// mywalnut Service Worker
 // Manual implementation — no library dependencies
 
-const PRECACHE = 'mantle-precache-v2';
-const RUNTIME = 'mantle-runtime-v2';
+const PRECACHE = 'mw-precache-v1';
+const RUNTIME = 'mw-runtime-v1';
 // Only precache static files. Never precache auth-dependent pages
 // like / or /login — they return different content based on session.
 const PRECACHE_URLS = ['/offline.html'];

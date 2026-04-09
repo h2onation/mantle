@@ -1,12 +1,12 @@
-# Mantle — System Map
+# mywalnut — System Map
 
 *Written for a non-technical product lead. No code knowledge required.*
 
 ---
 
-## What Mantle is
+## What mywalnut is
 
-Mantle is a mobile web app where an AI conversationalist called **Sage** has deep, reflective conversations with users. Through these conversations, Sage gradually builds a five-layer behavioral model called the **User Manual** — a structured portrait of who you are and how you operate. Nothing enters the manual unless the user explicitly confirms it.
+mywalnut is a mobile web app where an AI conversationalist called **Sage** has deep, reflective conversations with users. Through these conversations, Sage gradually builds a five-layer behavioral model called the **User Manual** — a structured portrait of who you are and how you operate. Nothing enters the manual unless the user explicitly confirms it.
 
 ---
 

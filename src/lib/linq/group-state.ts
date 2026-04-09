@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export interface GroupState {
   id: string;
   linq_chat_id: string;
-  mantle_user_id: string | null;
+  owner_user_id: string | null;
   is_active: boolean;
   intro_sent: boolean;
   intro_sent_at: string | null;
@@ -46,7 +46,7 @@ export async function getGroupState(
  */
 export async function createGroupState(
   linqChatId: string,
-  mantleUserId: string | null,
+  ownerUserId: string | null,
   participantCount: number
 ): Promise<GroupState> {
   const admin = createAdminClient();
@@ -54,7 +54,7 @@ export async function createGroupState(
     .from("linq_group_chats")
     .insert({
       linq_chat_id: linqChatId,
-      mantle_user_id: mantleUserId,
+      owner_user_id: ownerUserId,
       non_sage_participant_count: participantCount,
     })
     .select("*")
@@ -82,7 +82,7 @@ export async function updateGroupState(
   updates: Partial<
     Pick<
       GroupState,
-      | "mantle_user_id"
+      | "owner_user_id"
       | "is_active"
       | "intro_sent"
       | "intro_sent_at"

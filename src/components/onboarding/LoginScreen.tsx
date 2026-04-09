@@ -160,7 +160,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
           paddingLeft: 15,
         }}
       >
-        MANTLE
+        MYWALNUT
       </div>
 
       {/* Content */}

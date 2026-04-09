@@ -8,13 +8,13 @@
 
 ## Product Thesis
 
-You've spent your life translating yourself for people who didn't have the manual. Mantle helps you write the one you needed.
+You've spent your life translating yourself for people who didn't have the manual. mywalnut helps you write the one you needed.
 
-Mantle is built for late-diagnosed autistic adults, ages 25 to 45. People who learned to function before they learned what was actually happening underneath. People who can describe the situation but not the wiring. People who've been told their behavior means one thing when it actually meant another — and have stopped trying to explain.
+mywalnut is built for late-diagnosed autistic adults, ages 25 to 45. People who learned to function before they learned what was actually happening underneath. People who can describe the situation but not the wiring. People who've been told their behavior means one thing when it actually meant another — and have stopped trying to explain.
 
 The first audience is autism level 1 and AuDHD: high-masking, high-context, often articulate, often exhausted. People who recognize that what looks like resistance is recalculation, what looks like withdrawal is shutdown, what looks like a preference is a non-negotiable need. They have the experience. They don't always have language for it.
 
-People come to Mantle for three reasons, sometimes all at once:
+People come to mywalnut for three reasons, sometimes all at once:
 
 1. **They want a map of their own system.** What actually happens in their body when plans change. Why certain rooms drain them. What "going offline" looks like from the inside. The mechanics, not the labels.
 2. **They want something they can hand to other people.** A manual that explains how they work, in their own language, without having to perform calm or translate themselves in real time.
@@ -108,5 +108,5 @@ The retention mechanic is accumulation. The manual gets richer. Sage gets sharpe
 ## Sections to Add (flagged, not yet written)
 
 - **Target user profile**: Late-diagnosed autistic adults, ages 25 to 45. Often AuDHD. High-masking, high-context, often articulate about other people but not themselves. Have learned to function before they learned what was happening underneath. Stuck explaining themselves to people who don't have the right frame.
-- **Competitive positioning**: What Mantle does that ChatGPT (no memory), therapy apps (scripted CBT), journaling apps (no pattern mapping), and personality tests (static snapshot) don't. The living manual and cross-session accumulation.
+- **Competitive positioning**: What mywalnut does that ChatGPT (no memory), therapy apps (scripted CBT), journaling apps (no pattern mapping), and personality tests (static snapshot) don't. The living manual and cross-session accumulation.
 - **Vision / north star**: Where this goes beyond Phase 2. Pattern collision maps between two people's manuals. Third-party perspectives in conversations. Real-time situation navigation. Not a roadmap, just a direction.

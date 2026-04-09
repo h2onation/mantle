@@ -62,7 +62,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           paddingLeft: 15,
         }}
       >
-        MANTLE
+        MYWALNUT
       </div>
 
       {/* Spacer pushes content to bottom */}

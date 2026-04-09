@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 // Persistent feedback button for logged-in users. Sits in the
 // top-right slot of the phone frame — both MobileSession and
 // MobileManual headers leave a 40-44px spacer there for symmetry,
-// so the button slots in cleanly without overlapping the MANTLE
+// so the button slots in cleanly without overlapping the MYWALNUT
 // logo or the hamburger menu. The admin overlay (z-index 300)
 // covers this button while it's open, so we don't need extra
 // logic to hide it on the admin "page".

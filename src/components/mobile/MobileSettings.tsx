@@ -509,7 +509,7 @@ export default function MobileSettings({
                   }}
                 >
                   By entering your phone number, you agree to receive text messages
-                  from Sage by Mantle. Message frequency varies. Msg &amp; data rates
+                  from Sage by mywalnut. Message frequency varies. Msg &amp; data rates
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
@@ -712,7 +712,7 @@ export default function MobileSettings({
                 </p>
                 <a
                   href="/sage-contact.vcf"
-                  download="Sage (Mantle).vcf"
+                  download="Sage (mywalnut).vcf"
                   style={{
                     display: "block",
                     width: "100%",

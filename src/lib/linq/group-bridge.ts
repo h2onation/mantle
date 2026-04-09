@@ -36,7 +36,7 @@ export interface PreFetchedContext {
   groupState: GroupState;
   conversationId: string;
   senderLabel: string;
-  mantleUserName: string | null;
+  ownerUserName: string | null;
   manualComponents: { layer: number; name: string; content: string }[];
 }
 
@@ -56,14 +56,14 @@ export async function prefetchGroupContext(
 ): Promise<PreFetchedContext> {
   const admin = createAdminClient();
 
-  if (!groupState.mantle_user_id) {
-    // No Mantle user — only need conversation ID
+  if (!groupState.owner_user_id) {
+    // No owner user — only need conversation ID
     const conversationId = await getOrCreateGroupConversation(admin, groupState);
     return {
       groupState,
       conversationId,
       senderLabel: senderPhone,
-      mantleUserName: null,
+      ownerUserName: null,
       manualComponents: [],
     };
   }
@@ -75,43 +75,43 @@ export async function prefetchGroupContext(
       admin
         .from("phone_numbers")
         .select("phone")
-        .eq("user_id", groupState.mantle_user_id)
+        .eq("user_id", groupState.owner_user_id)
         .eq("verified", true)
         .limit(1)
         .maybeSingle(),
       admin
         .from("profiles")
         .select("display_name")
-        .eq("id", groupState.mantle_user_id)
+        .eq("id", groupState.owner_user_id)
         .maybeSingle(),
       admin
         .from("manual_components")
         .select("layer, name, content")
-        .eq("user_id", groupState.mantle_user_id),
+        .eq("user_id", groupState.owner_user_id),
     ]);
 
-  const mantleUserPhone = phoneResult.data?.phone ?? null;
+  const ownerUserPhone = phoneResult.data?.phone ?? null;
   const displayName = profileResult.data?.display_name as string | null;
-  const mantleUserName = displayName?.split(/\s+/)[0] ?? null;
+  const ownerUserName = displayName?.split(/\s+/)[0] ?? null;
   let manualComponents = manualResult.data || [];
 
   // Determine sender label
   let senderLabel = senderPhone;
   if (
-    mantleUserPhone &&
-    normalizePhone(senderPhone) === mantleUserPhone &&
-    mantleUserName
+    ownerUserPhone &&
+    normalizePhone(senderPhone) === ownerUserPhone &&
+    ownerUserName
   ) {
-    senderLabel = mantleUserName;
+    senderLabel = ownerUserName;
   }
 
   // If phone is unlinked, clear manual (phone unlinked mid-group)
-  if (!mantleUserPhone) {
+  if (!ownerUserPhone) {
     manualComponents = [];
     console.log(
-      "[group-bridge] mantle_user_phone_unlinked chat_id=%s user=%s — skipping manual",
+      "[group-bridge] owner_user_phone_unlinked chat_id=%s user=%s — skipping manual",
       groupState.linq_chat_id,
-      groupState.mantle_user_id
+      groupState.owner_user_id
     );
   }
 
@@ -119,7 +119,7 @@ export async function prefetchGroupContext(
     groupState,
     conversationId,
     senderLabel,
-    mantleUserName,
+    ownerUserName,
     manualComponents,
   };
 }
@@ -156,7 +156,7 @@ export async function processGroupMessage(
   input: GroupMessageInput
 ): Promise<GroupBridgeResult> {
   const { linqChatId, messageText, nudgeHint, prefetched } = input;
-  const { conversationId, senderLabel, mantleUserName, manualComponents } =
+  const { conversationId, senderLabel, ownerUserName, manualComponents } =
     prefetched;
   const admin = createAdminClient();
 
@@ -228,7 +228,7 @@ export async function processGroupMessage(
     turnCount: windowedMessages.length,
     checkpointApproaching: false,
     groupContext: {
-      mantleUserName,
+      ownerUserName,
       hasManualContext: manualComponents.length > 0,
     },
   });
@@ -334,7 +334,7 @@ async function getOrCreateGroupConversation(
   if (existing) return existing.id;
 
   // Create a new conversation for this group
-  if (!groupState.mantle_user_id) {
+  if (!groupState.owner_user_id) {
     console.error(
       "[group-bridge] Cannot create conversation for multi-user group: %s",
       groupState.linq_chat_id
@@ -345,7 +345,7 @@ async function getOrCreateGroupConversation(
   const { data: created, error } = await admin
     .from("conversations")
     .insert({
-      user_id: groupState.mantle_user_id,
+      user_id: groupState.owner_user_id,
       status: "active",
       linq_group_chat_id: groupState.id,
     })

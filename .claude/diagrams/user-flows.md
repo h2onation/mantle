@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    A["Visit mantle"] --> B["/login — splash screen"]
+    A["Visit mywalnut"] --> B["/login — splash screen"]
     B --> C["'Get Started' button"]
     C --> D["'How It Works' screen"]
     D --> E["'Before You Start' screen<br/>(age gate, no text input)"]

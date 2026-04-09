@@ -17,11 +17,11 @@ function getSagePhone(): string {
 }
 
 /**
- * Check if a phone number belongs to a specific Mantle user.
+ * Check if a phone number belongs to a specific owner user.
  */
-async function isMantleUserPhone(
+async function isOwnerUserPhone(
   phone: string,
-  mantleUserId: string
+  ownerUserId: string
 ): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -30,7 +30,7 @@ async function isMantleUserPhone(
     .eq("phone", phone)
     .eq("verified", true)
     .maybeSingle();
-  return data?.user_id === mantleUserId;
+  return data?.user_id === ownerUserId;
 }
 
 // ---------------------------------------------------------------------------
@@ -232,34 +232,34 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
     return;
   }
 
-  // Case d: The Mantle user left
-  if (groupState.mantle_user_id && normalizedRemoved) {
-    if (await isMantleUserPhone(normalizedRemoved, groupState.mantle_user_id)) {
-      console.log("[linq] mantle_user_left chat_id=%s user=%s", chatId, groupState.mantle_user_id);
+  // Case d: The owner user left
+  if (groupState.owner_user_id && normalizedRemoved) {
+    if (await isOwnerUserPhone(normalizedRemoved, groupState.owner_user_id)) {
+      console.log("[linq] owner_user_left chat_id=%s user=%s", chatId, groupState.owner_user_id);
       await sendMessage(
         chatId,
-        "Take care! If you're curious about having conversations like this for yourself, check out trustthemantle.com"
+        "Take care! If you're curious about having conversations like this for yourself, check out mywalnut.app"
       );
       await updateGroupState(chatId, { is_active: false });
       return;
     }
   }
 
-  // Case c: A non-Mantle participant left
+  // Case c: A non-owner participant left
   const newCount = Math.max(0, (groupState.non_sage_participant_count || 0) - 1);
   await updateGroupState(chatId, { non_sage_participant_count: newCount });
 
   if (newCount > 1) {
     // Other friends remain — just log it
     console.log(
-      "[linq] non_mantle_participant_left chat_id=%s remaining=%d",
+      "[linq] non_owner_participant_left chat_id=%s remaining=%d",
       chatId,
       newCount
     );
     return;
   }
 
-  // Potentially just Mantle user + Sage remain — verify via API before closing
+  // Potentially just owner user + Sage remain — verify via API before closing
   console.log("[linq] possible_close chat_id=%s — verifying via API", chatId);
   const chatInfo = await getChatInfo(chatId);
 
@@ -280,7 +280,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
     .filter((h) => h && h !== getSagePhone());
 
   if (apiNonSage.length <= 1) {
-    // Confirmed: just Mantle user (or nobody) + Sage
+    // Confirmed: just owner user (or nobody) + Sage
     await sendMessage(
       chatId,
       "Looks like it's just us. I'm in our regular thread if you want to keep going."
@@ -431,22 +431,22 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
 
     // Inactive group — check if we should re-detect or ignore
     if (!groupState || !groupState.is_active) {
-      // Re-detection: if group was deactivated because no Mantle accounts were
-      // found (mantle_user_id is null), and the message mentions Sage, re-run
+      // Re-detection: if group was deactivated because no owner accounts were
+      // found (owner_user_id is null), and the message mentions Sage, re-run
       // detection — a user may have linked their phone since the first attempt.
       const messageText =
         parts.filter((p: { type: string }) => p.type === "text")
           .map((p: { type: string; value: string }) => p.value).join(" ") || bodyText || "";
       const mentionsSage = /\bsage\b/i.test(messageText);
 
-      if (groupState && !groupState.mantle_user_id && mentionsSage) {
+      if (groupState && !groupState.owner_user_id && mentionsSage) {
         console.log("[linq] re_detecting_inactive_group chat_id=%s", chatId);
         // Reset group state so detectAndSetupGroup re-runs from scratch
         await updateGroupState(chatId, { is_active: true, intro_sent: false });
         const handles = extractHandlesFromEvent(data);
         const redetected = await detectAndSetupGroup(chatId, handles.length > 0 ? handles : undefined);
-        if (redetected?.is_active && redetected?.mantle_user_id) {
-          console.log("[linq] re_detection_success chat_id=%s user=%s", chatId, redetected.mantle_user_id);
+        if (redetected?.is_active && redetected?.owner_user_id) {
+          console.log("[linq] re_detection_success chat_id=%s user=%s", chatId, redetected.owner_user_id);
           groupState = redetected;
           // Fall through to normal group message handling below
         } else {
@@ -454,9 +454,9 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
           return;
         }
       } else {
-        // Truly inactive — optional reminder for Mantle user, then ignore
-        if (groupState?.mantle_user_id && senderPhone) {
-          if (await isMantleUserPhone(normalizePhone(String(senderPhone)), groupState.mantle_user_id)) {
+        // Truly inactive — optional reminder for owner user, then ignore
+        if (groupState?.owner_user_id && senderPhone) {
+          if (await isOwnerUserPhone(normalizePhone(String(senderPhone)), groupState.owner_user_id)) {
             const REMINDER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
             const lastReminder = groupState.last_inactive_reminder_at
               ? new Date(groupState.last_inactive_reminder_at).getTime()

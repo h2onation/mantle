@@ -35,11 +35,11 @@
 - Session opening states (2026-03-31): First-time welcome with chips, returning user prompt, explore mode, existing session resume. `firstSessionCompleted` localStorage flag.
 - Sign-in nudge (2026-03-31): Inline banner for anonymous users after 5+ messages, 24-hour dismiss cooldown.
 - Manual share & export (2026-03-31): PDF generation (jspdf) + native share sheet. Falls back to direct download. Gating: < 3 entries shows soft nudge.
-- Manual page (2026-04-07, updated 2026-04-09): Flat section headers (name + "N entries" count + hairline rule). Entries as thread cards (line-clamp 3, expand inline, "Explore further with Sage" link). Empty sections show only muted title + "0 entries" + divider. First-visit intro modal (gated by `mantle_manual_intro_seen` localStorage) explains the manual and offers "Talk to Sage" or "Got it." Share CTA visible only when entries exist.
+- Manual page (2026-04-07, updated 2026-04-09): Flat section headers (name + "N entries" count + hairline rule). Entries as thread cards (line-clamp 3, expand inline, "Explore further with Sage" link). Empty sections show only muted title + "0 entries" + divider. First-visit intro modal (gated by `mywalnut_manual_intro_seen` localStorage) explains the manual and offers "Talk to Sage" or "Got it." Share CTA visible only when entries exist.
 - Text Sage via Linq (2026-03-31): Full texting integration replacing Twilio. Shared `sage-pipeline.ts` ensures zero drift between web and text. Checkpoint flow works via text (YES/NOT QUITE/NO). STOP/START/HELP keywords, rate limiting, cross-channel continuity (TEXT badge in web).
 - Session drawer text channel (2026-04-01): Aggregated text message view at top of session drawer. Read-only, synthetic "text-channel" ID.
 - Narrative presentation (2026-04-02): Static HTML pages at /narrative/ for investor/demo storytelling. Password-gated, five standalone files.
-- Group chat Sage (2026-04-01, gate 2026-04-03): Sage detects iMessage groups via Linq webhooks. Facilitator mode (short, no advice, references manual). Scoring-based message gate (emotion/bid keywords, message length, cooldown). Participant removal handling, inactive reminders. Single-Mantle-user groups only.
+- Group chat Sage (2026-04-01, gate 2026-04-03): Sage detects iMessage groups via Linq webhooks. Facilitator mode (short, no advice, references manual). Scoring-based message gate (emotion/bid keywords, message length, cooldown). Participant removal handling, inactive reminders. Single-mywalnut-user groups only.
 - ND pivot (2026-04-06, 4 PRs): Layer rename to autism-specific (SSOT at `src/lib/manual/layers.ts`). Sage voice rewrite (`voice-autistic.ts`: somatic-first, sensory-verbatim, clinical framework ban). Checkpoint composition requires somatic anchor. All onboarding/legal/marketing copy rewritten for ND audience. Unified first-message handling (legacy Path A/B/C dropped). Quality framework rewrite for autistic-mode audit. `profiles.sage_mode` column for future voice modes.
 - Legal page updates (2026-04-06): Privacy Policy + Terms of Service updated — provider-agnostic SMS, "not used to train AI" line, sharing sections, non-clinical/non-accommodation disclaimer.
 - Closed-beta entry + onboarding gate (2026-04-08): Entry screen shows "Log in" + "Join the waitlist." Post-login onboarding for new users (`profiles.onboarding_completed_at`). Fails open on API error. Migration: `20260408_add_onboarding_completed_at.sql`.
@@ -52,7 +52,7 @@
 ## Not Yet Functional
 *Last verified: 2026-04-07*
 
-- **Multi-user group conversations**: Groups with 2+ Mantle users get neutral intro but can't create conversation records (user_id NOT NULL constraint). Facilitator mode only works for single-Mantle-user groups.
+- **Multi-user group conversations**: Groups with 2+ mywalnut users get neutral intro but can't create conversation records (user_id NOT NULL constraint). Facilitator mode only works for single-mywalnut-user groups.
 
 ## Known Issues
 *Last verified: 2026-04-07*

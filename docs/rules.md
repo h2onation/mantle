@@ -9,7 +9,7 @@
 
 ## Product Identity
 
-Mantle is a **structured self-understanding platform**. Not therapy. Not a mental health service. Not a diagnostic tool. Not a clinical assessment platform. Not a substitute for professional care.
+mywalnut is a **structured self-understanding platform**. Not therapy. Not a mental health service. Not a diagnostic tool. Not a clinical assessment platform. Not a substitute for professional care.
 
 This is not a disclaimer bolted onto a product that functions differently. The product architecture reflects this identity at every level. The user is the author. Sage is the facilitator. The manual is a self-authored document, not an AI-generated assessment.
 
@@ -25,13 +25,13 @@ This is not a disclaimer bolted onto a product that functions differently. The p
 
 ### The Core Regulatory Line
 
-Every state law we've reviewed draws the same distinction: between AI that provides or performs mental health services, and tools that help people understand themselves. The first category is being restricted. The second is not. Mantle is built to fall clearly on the self-understanding side.
+Every state law we've reviewed draws the same distinction: between AI that provides or performs mental health services, and tools that help people understand themselves. The first category is being restricted. The second is not. mywalnut is built to fall clearly on the self-understanding side.
 
 ### Regulatory Approach
 
-Mantle operates one way. There is no watered-down version for restrictive states. If a state's law doesn't allow Mantle to function as built — with Sage asking deep questions, surfacing patterns, and helping users apply their own behavioral model to live situations — Mantle doesn't launch there.
+mywalnut operates one way. There is no watered-down version for restrictive states. If a state's law doesn't allow mywalnut to function as built — with Sage asking deep questions, surfacing patterns, and helping users apply their own behavioral model to live situations — mywalnut doesn't launch there.
 
-Before launch, implement geo-restriction for states where the legal framework doesn't accommodate the product. IP-based with self-reported state confirmation at account creation. This is a business decision, not a concession that Mantle is a clinical tool.
+Before launch, implement geo-restriction for states where the legal framework doesn't accommodate the product. IP-based with self-reported state confirmation at account creation. This is a business decision, not a concession that mywalnut is a clinical tool.
 
 Review state-level legislation quarterly. If a state moves toward restrictions that would require flattening Sage, block that state rather than adapting the product.
 
@@ -190,7 +190,7 @@ self-understanding · build your manual · see your patterns · share how you wo
 assessment · diagnosis · clinical · therapeutic · treatment · AI therapist · mental health tool · condition · disorder · deficit · struggle with · suffer from · therapy alternative · behavioral assessment · psychological evaluation · "identifies your issues" · "detects your emotional patterns" · "I don't have filters"
 
 ### Test
-Read any piece of copy and ask: "Could a reasonable person interpret this as Mantle offering mental health services, or as describing the user through a deficit lens?" If yes, rewrite.
+Read any piece of copy and ask: "Could a reasonable person interpret this as mywalnut offering mental health services, or as describing the user through a deficit lens?" If yes, rewrite.
 
 ## Design System
 

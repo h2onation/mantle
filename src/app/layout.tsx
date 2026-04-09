@@ -31,13 +31,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Mantle",
+  title: "mywalnut",
   description: "Understand how you operate.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Mantle",
+    title: "mywalnut",
   },
   icons: {
     icon: [

@@ -37,7 +37,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
   async function handleGoogle() {
     setError("");
     // Store flag so we can detect the conversion on redirect return
-    localStorage.setItem("mantle_pending_conversion", "true");
+    localStorage.setItem("mw_pending_conversion", "true");
     const { error: linkError } = await supabase.auth.linkIdentity({
       provider: "google",
       options: {
@@ -45,7 +45,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
       },
     });
     if (linkError) {
-      localStorage.removeItem("mantle_pending_conversion");
+      localStorage.removeItem("mw_pending_conversion");
       setError(linkError.message);
     }
     // If no error, browser redirects to Google

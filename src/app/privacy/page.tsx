@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Mantle",
+  title: "Privacy Policy — mywalnut",
 };
 
 export default function PrivacyPolicy() {
@@ -39,8 +39,8 @@ export default function PrivacyPolicy() {
         </p>
 
         <p>
-          Mantle (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;)
-          operates the Sage conversational platform at trustthemantle.com. This
+          mywalnut (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;)
+          operates the Sage conversational platform at mywalnut.app. This
           policy describes how we collect, use, and protect your information.
         </p>
 
@@ -77,7 +77,7 @@ export default function PrivacyPolicy() {
         </p>
         <p>
           <strong>Usage data:</strong> basic analytics such as session frequency
-          and feature usage. We do not track your activity outside of Mantle.
+          and feature usage. We do not track your activity outside of mywalnut.
         </p>
 
         <h2
@@ -230,7 +230,7 @@ export default function PrivacyPolicy() {
         </h2>
         <p>
           You may request access to, correction of, or deletion of your personal
-          data by contacting us at jeff@trustthemantle.com. We will respond
+          data by contacting us at jeff@mywalnut.app. We will respond
           within 30 days.
         </p>
 
@@ -245,7 +245,7 @@ export default function PrivacyPolicy() {
           Changes
         </h2>
         <p>
-          We may update this policy from time to time. Continued use of Mantle
+          We may update this policy from time to time. Continued use of mywalnut
           after changes constitutes acceptance.
         </p>
 
@@ -259,7 +259,7 @@ export default function PrivacyPolicy() {
         >
           Contact
         </h2>
-        <p>jeff@trustthemantle.com</p>
+        <p>jeff@mywalnut.app</p>
 
         <div
           style={{
@@ -269,14 +269,14 @@ export default function PrivacyPolicy() {
           }}
         >
           <a
-            href="https://trustthemantle.com"
+            href="https://mywalnut.app"
             style={{
               color: "var(--session-sage)",
               textDecoration: "none",
               fontSize: 13,
             }}
           >
-            trustthemantle.com
+            mywalnut.app
           </a>
         </div>
       </div>

@@ -10,7 +10,7 @@
 CREATE TABLE IF NOT EXISTS linq_group_chats (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   linq_chat_id text NOT NULL,
-  mantle_user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  owner_user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   is_active boolean NOT NULL DEFAULT true,
   intro_sent boolean NOT NULL DEFAULT false,
   non_sage_participant_count integer NOT NULL DEFAULT 0,
@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS linq_group_chats (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_linq_group_chats_chat_id
   ON linq_group_chats (linq_chat_id);
 
--- Fast lookup by Mantle user for admin/debugging.
-CREATE INDEX IF NOT EXISTS idx_linq_group_chats_user
-  ON linq_group_chats (mantle_user_id);
+-- Fast lookup by owner user for admin/debugging.
+CREATE INDEX IF NOT EXISTS idx_linq_group_chats_owner
+  ON linq_group_chats (owner_user_id);
 
 -- RLS: admin-only for now. No user-facing queries on this table.
 ALTER TABLE linq_group_chats ENABLE ROW LEVEL SECURITY;

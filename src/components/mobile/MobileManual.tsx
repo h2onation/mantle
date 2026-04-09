@@ -8,7 +8,7 @@ import type { ManualComponent, ExplorationContext } from "@/lib/types";
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 
-const MANUAL_INTRO_KEY = "mantle_manual_intro_seen";
+const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
 interface MobileManualProps {
   components: ManualComponent[];
@@ -89,7 +89,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
             paddingLeft: "15px",
           }}
         >
-          MANTLE
+          MYWALNUT
         </span>
 
         {/* Right spacer */}

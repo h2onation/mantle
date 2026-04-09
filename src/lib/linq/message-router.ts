@@ -11,12 +11,12 @@ import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const FALLBACK_MSG =
-  "Something went wrong on my end. Try again in a minute, or open the app at trustthemantle.com";
+  "Something went wrong on my end. Try again in a minute, or open the app at mywalnut.app";
 
 const UNKNOWN_NUMBER_MSG =
-  "This is Sage by Mantle. I don't have this number connected to an account. " +
-  "If you have a Mantle account, connect your number in Settings. " +
-  "If you're new, start at trustthemantle.com";
+  "This is Sage by mywalnut. I don't have this number connected to an account. " +
+  "If you have a mywalnut account, connect your number in Settings. " +
+  "If you're new, start at mywalnut.app";
 
 const MEDIA_ONLY_MSG =
   "I can only read text messages right now. If you want to talk something through, " +
@@ -26,10 +26,10 @@ const RATE_LIMIT_MSG =
   "I'm still here, just need a moment to keep up. Give me a minute.";
 
 const KEYWORD_RESPONSES: Record<string, string> = {
-  STOP: "You've been disconnected from Sage. You can reconnect anytime in the Mantle app.",
+  STOP: "You've been disconnected from Sage. You can reconnect anytime in the mywalnut app.",
   START:
-    "To reconnect with Sage, open the Mantle app and link your phone number in Settings.",
-  HELP: "This is Sage by Mantle. Text me anytime. Reply STOP to disconnect. For the full experience, open Mantle at trustthemantle.com",
+    "To reconnect with Sage, open the mywalnut app and link your phone number in Settings.",
+  HELP: "This is Sage by mywalnut. Text me anytime. Reply STOP to disconnect. For the full experience, open mywalnut at mywalnut.app",
 };
 
 // Rate limit: one unknown-number response per phone per 24 hours.

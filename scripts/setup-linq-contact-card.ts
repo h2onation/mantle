@@ -1,6 +1,6 @@
 /**
  * One-time script to set the Linq contact card for the Sage phone number.
- * Makes the number show up as "Sage by Mantle" with a logo in iMessage.
+ * Makes the number show up as "Sage by mywalnut" with a logo in iMessage.
  * Run: npx tsx scripts/setup-linq-contact-card.ts
  *
  * Only needs to run once per Linq phone number. Re-run if you change
@@ -22,7 +22,7 @@ if (!PHONE_NUMBER) {
 }
 
 // Using the existing app icon (512x512 square)
-const IMAGE_URL = "https://trustthemantle.com/icons/icon-512.png";
+const IMAGE_URL = "https://mywalnut.app/icons/icon-512.png";
 
 async function main() {
   const res = await fetch(
@@ -36,7 +36,7 @@ async function main() {
       body: JSON.stringify({
         phone_number: PHONE_NUMBER,
         first_name: "Sage",
-        last_name: "by Mantle",
+        last_name: "by mywalnut",
         image_url: IMAGE_URL,
       }),
     }
@@ -52,7 +52,7 @@ async function main() {
 
   console.log("Contact card set successfully!");
   console.log(JSON.stringify(body, null, 2));
-  console.log("\nSage will show up as 'Sage by Mantle' in iMessage.");
+  console.log("\nSage will show up as 'Sage by mywalnut' in iMessage.");
 }
 
 main();

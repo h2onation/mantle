@@ -29,10 +29,29 @@ export default function MainApp() {
     useState<OnboardingStatus>("loading");
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
+  // One-time migration: rename mantle_* localStorage keys to mw_*
+  useEffect(() => {
+    if (localStorage.getItem("mw_keys_migrated")) return;
+    const renames: [string, string][] = [
+      ["mantle_pending_conversion", "mw_pending_conversion"],
+      ["mantle_first_session_completed", "mw_first_session_completed"],
+      ["mantle_signin_banner_dismissed", "mw_signin_banner_dismissed"],
+      ["mantle_manual_intro_seen", "mw_manual_intro_seen"],
+    ];
+    for (const [oldKey, newKey] of renames) {
+      const val = localStorage.getItem(oldKey);
+      if (val !== null) {
+        localStorage.setItem(newKey, val);
+        localStorage.removeItem(oldKey);
+      }
+    }
+    localStorage.setItem("mw_keys_migrated", "1");
+  }, []);
+
   // Clean up post-OAuth conversion flag
   useEffect(() => {
-    if (localStorage.getItem("mantle_pending_conversion") === "true") {
-      localStorage.removeItem("mantle_pending_conversion");
+    if (localStorage.getItem("mw_pending_conversion") === "true") {
+      localStorage.removeItem("mw_pending_conversion");
     }
   }, []);
 
@@ -277,7 +296,7 @@ export default function MainApp() {
               margin: 0,
               letterSpacing: "-0.3px",
               position: "relative",
-              animation: "mantleFadeIn 0.5s ease-out both",
+              animation: "mwFadeIn 0.5s ease-out both",
             }}
           >
             Let&apos;s explore further
@@ -292,7 +311,7 @@ export default function MainApp() {
                 margin: 0,
                 letterSpacing: "-0.2px",
                 position: "relative",
-                animation: "mantleFadeIn 0.7s ease-out 0.15s both",
+                animation: "mwFadeIn 0.7s ease-out 0.15s both",
               }}
             >
               {explorationLabel}

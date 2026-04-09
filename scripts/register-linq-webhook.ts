@@ -15,7 +15,7 @@ if (!API_TOKEN) {
 }
 
 const TARGET_URL =
-  "https://trustthemantle.com/api/linq/webhook?version=2026-02-03";
+  "https://mywalnut.app/api/linq/webhook?version=2026-02-03";
 
 async function main() {
   const res = await fetch(

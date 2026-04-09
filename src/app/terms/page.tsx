@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Mantle",
+  title: "Terms of Service — mywalnut",
 };
 
 export default function TermsOfService() {
@@ -39,8 +39,8 @@ export default function TermsOfService() {
         </p>
 
         <p>
-          These terms govern your use of Mantle and the Sage conversational
-          platform at trustthemantle.com.
+          These terms govern your use of mywalnut and the Sage conversational
+          platform at mywalnut.app.
         </p>
 
         <h2
@@ -51,10 +51,10 @@ export default function TermsOfService() {
             margin: "32px 0 12px 0",
           }}
         >
-          What Mantle Is
+          What mywalnut Is
         </h2>
         <p>
-          Mantle is a self-understanding platform. It is not a mental health
+          mywalnut is a self-understanding platform. It is not a mental health
           service, clinical tool, or diagnostic instrument. Sage does not
           diagnose, assess, or treat any condition. The manual is a
           self-authored document. It is not clinical documentation and should
@@ -69,10 +69,10 @@ export default function TermsOfService() {
             margin: "32px 0 12px 0",
           }}
         >
-          What Mantle Is Not
+          What mywalnut Is Not
         </h2>
         <p>
-          Mantle is not therapy, counseling, or a mental health service. Sage is
+          mywalnut is not therapy, counseling, or a mental health service. Sage is
           not a therapist, counselor, or medical professional. Sage does not
           diagnose conditions, prescribe treatments, or provide clinical
           interventions. If you are experiencing a mental health crisis, contact
@@ -97,7 +97,7 @@ export default function TermsOfService() {
           Accounts
         </h2>
         <p>
-          You must be at least 18 years old to use Mantle. You are responsible
+          You must be at least 18 years old to use mywalnut. You are responsible
           for maintaining the security of your account credentials. One account
           per person.
         </p>
@@ -114,7 +114,7 @@ export default function TermsOfService() {
         </h2>
         <p>
           By linking your phone number and texting Sage, you consent to receive
-          MMS messages from Mantle. Messages are conversational responses
+          MMS messages from mywalnut. Messages are conversational responses
           initiated by you.
         </p>
         <ul style={{ paddingLeft: 20, margin: "0 0 16px 0" }}>
@@ -122,11 +122,11 @@ export default function TermsOfService() {
           <li>Message and data rates may apply.</li>
           <li>To opt out: text STOP at any time.</li>
           <li>
-            For help: text HELP or email jeff@trustthemantle.com.
+            For help: text HELP or email jeff@mywalnut.app.
           </li>
         </ul>
         <p>
-          You may also be invited to group text conversations by other Mantle
+          You may also be invited to group text conversations by other mywalnut
           users. You will receive one introductory message. You can decline to
           participate by not responding or by texting STOP.
         </p>
@@ -198,7 +198,7 @@ export default function TermsOfService() {
           Acceptable Use
         </h2>
         <p>
-          Do not use Mantle to harm, harass, or impersonate others. Do not
+          Do not use mywalnut to harm, harass, or impersonate others. Do not
           attempt to manipulate Sage into producing harmful content. Do not
           invite others to group conversations without their knowledge or against
           their wishes.
@@ -215,7 +215,7 @@ export default function TermsOfService() {
           Privacy
         </h2>
         <p>
-          Your use of Mantle is also governed by our{" "}
+          Your use of mywalnut is also governed by our{" "}
           <a
             href="/privacy"
             style={{ color: "var(--session-sage)", textDecoration: "none" }}
@@ -265,7 +265,7 @@ export default function TermsOfService() {
         >
           Contact
         </h2>
-        <p>jeff@trustthemantle.com</p>
+        <p>jeff@mywalnut.app</p>
 
         <div
           style={{
@@ -275,14 +275,14 @@ export default function TermsOfService() {
           }}
         >
           <a
-            href="https://trustthemantle.com"
+            href="https://mywalnut.app"
             style={{
               color: "var(--session-sage)",
               textDecoration: "none",
               fontSize: 13,
             }}
           >
-            trustthemantle.com
+            mywalnut.app
           </a>
         </div>
       </div>

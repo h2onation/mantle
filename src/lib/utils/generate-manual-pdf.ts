@@ -47,7 +47,7 @@ export function generateManualPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(160, 155, 145);
-  doc.text("Mantle", MARGIN_LEFT, y);
+  doc.text("mywalnut", MARGIN_LEFT, y);
   y += 10;
 
   // Header
@@ -124,7 +124,7 @@ export function generateManualPdf(
   doc.setFontSize(8);
   doc.setTextColor(160, 155, 145);
   doc.text(
-    "Built with Mantle \u2014 mantleapp.com",
+    "Built with mywalnut \u2014 mywalnut.app",
     PAGE_WIDTH / 2,
     footerY + 6,
     { align: "center" }

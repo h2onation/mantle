@@ -45,7 +45,7 @@ function WaitlistContent({ notAllowlisted }: { notAllowlisted: boolean }) {
           paddingLeft: 15,
         }}
       >
-        MANTLE
+        MYWALNUT
       </div>
 
       <div
@@ -99,8 +99,8 @@ function WaitlistContent({ notAllowlisted }: { notAllowlisted: boolean }) {
           }}
         >
           {notAllowlisted
-            ? "Mantle is invite-only right now. Drop your email and we'll reach out when there's a spot."
-            : "Mantle is in early access. Drop your email and we'll reach out when there's a spot."}
+            ? "mywalnut is invite-only right now. Drop your email and we'll reach out when there's a spot."
+            : "mywalnut is in early access. Drop your email and we'll reach out when there's a spot."}
         </p>
 
         <WaitlistForm />

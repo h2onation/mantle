@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
             paddingLeft: 15,
           }}
         >
-          MANTLE
+          MYWALNUT
         </div>
 
         {/* Content */}

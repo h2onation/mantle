@@ -79,7 +79,7 @@ export async function fetchUrlContent(url: string): Promise<FetchedContent> {
     const res = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; MantleBot/1.0; +https://getmantle.app)",
+          "Mozilla/5.0 (compatible; MywalnutBot/1.0; +https://mywalnut.app)",
         Accept: "text/html,application/xhtml+xml,text/plain",
       },
       signal: controller.signal,

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SMS Messages from Sage — Mantle",
+  title: "SMS Messages from Sage — mywalnut",
   description:
-    "Personalized behavioral insights and conversation prompts from Sage, your AI guide on Mantle.",
+    "Personalized behavioral insights and conversation prompts from Sage, your AI guide on mywalnut.",
 };
 
 export default function SmsPage() {
@@ -42,7 +42,7 @@ export default function SmsPage() {
             margin: "0 0 32px 0",
           }}
         >
-          Program name: Sage by Mantle
+          Program name: Sage by mywalnut
         </p>
 
         <h2
@@ -73,10 +73,10 @@ export default function SmsPage() {
         <p>
           Create an account at{" "}
           <a
-            href="https://trustthemantle.com"
+            href="https://mywalnut.app"
             style={{ color: "var(--session-sage)", textDecoration: "none" }}
           >
-            trustthemantle.com
+            mywalnut.app
           </a>
           , go to Settings, enter your phone number, and complete SMS
           verification.

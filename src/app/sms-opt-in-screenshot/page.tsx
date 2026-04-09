@@ -36,7 +36,7 @@ export default function SmsOptInScreenshot() {
         }}
       >
         Below is a screenshot of how users opt in to receive SMS messages from
-        Sage within the Mantle app.
+        Sage within the mywalnut app.
       </p>
 
       <div
@@ -51,7 +51,7 @@ export default function SmsOptInScreenshot() {
       >
         <Image
           src="/sms-opt-in.png"
-          alt="Screenshot of SMS opt-in flow in the Mantle app Settings page"
+          alt="Screenshot of SMS opt-in flow in the mywalnut app Settings page"
           width={320}
           height={568}
           style={{ maxWidth: "100%", height: "auto" }}

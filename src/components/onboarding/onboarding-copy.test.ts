@@ -87,8 +87,8 @@ describe("PR3 onboarding copy pass", () => {
       // Prevents a browser that previously completed a first session from
       // treating a brand-new anonymous user as returning and skipping the
       // welcome block with chips.
-      expect(src).toContain('removeItem("mantle_first_session_completed")');
-      expect(src).toContain('removeItem("mantle_signin_banner_dismissed")');
+      expect(src).toContain('removeItem("mw_first_session_completed")');
+      expect(src).toContain('removeItem("mw_signin_banner_dismissed")');
     });
 
     it("does NOT contain old 'works best when' headline", () => {
@@ -173,7 +173,7 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/app/terms/page.tsx");
 
     it("uses new product description", () => {
-      expect(src).toContain("Mantle is a self-understanding platform.");
+      expect(src).toContain("mywalnut is a self-understanding platform.");
       expect(src).toContain("legal accommodation document");
     });
   });

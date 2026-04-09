@@ -13,7 +13,7 @@ import {
 export const runtime = "nodejs";
 
 const INITIAL_GREETING =
-  "Hey, it's Sage by Mantle. You're connected. Text me anytime something's on your mind. " +
+  "Hey, it's Sage by mywalnut. You're connected. Text me anytime something's on your mind. " +
   "I remember everything from our conversations in the app too. " +
   "If something needs more space, I'll let you know. " +
   "Msg frequency varies. Msg & data rates may apply. Reply HELP for info. Reply STOP to disconnect.";

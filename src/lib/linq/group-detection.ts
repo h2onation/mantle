@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Group chat detection — identifies Mantle users and sends introductions.
+// Group chat detection — identifies owner users and sends introductions.
 //
 // Called from the webhook handler when:
 //   - participant.added fires with Sage's phone number
@@ -22,11 +22,11 @@ import {
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const INTRO_NO_ACCOUNTS =
-  "This is Sage by Mantle. I don't have any connected accounts in this group. " +
-  "If you have a Mantle account, connect your number at trustthemantle.com";
+  "This is Sage by mywalnut. I don't have any connected accounts in this group. " +
+  "If you have a mywalnut account, connect your number at mywalnut.app";
 
 const INTRO_MULTI_USER =
-  "Hey, I'm Sage. I know some of you from Mantle, but in a group I keep " +
+  "Hey, I'm Sage. I know some of you from mywalnut, but in a group I keep " +
   "things neutral and don't draw on what I know about anyone individually.";
 
 const INTRO_SETUP_FAILED =
@@ -48,16 +48,16 @@ export async function detectAndSetupGroup(
   const existing = await getGroupState(linqChatId);
   if (existing) {
     console.log(
-      "[group-detect] Already tracked chat_id=%s active=%s intro=%s mantle_user=%s",
+      "[group-detect] Already tracked chat_id=%s active=%s intro=%s owner_user=%s",
       linqChatId,
       existing.is_active,
       existing.intro_sent,
-      existing.mantle_user_id ?? "none"
+      existing.owner_user_id ?? "none"
     );
     // Re-detection path: if the group is active with intro_sent=false and
-    // no mantle_user yet, this is a re-detection attempt — fall through to
+    // no owner_user yet, this is a re-detection attempt — fall through to
     // re-run identification instead of returning early.
-    if (existing.is_active && !existing.intro_sent && !existing.mantle_user_id) {
+    if (existing.is_active && !existing.intro_sent && !existing.owner_user_id) {
       console.log("[group-detect] re_detection_path chat_id=%s", linqChatId);
       // Fall through to re-run identification
     } else {
@@ -105,7 +105,7 @@ export async function detectAndSetupGroup(
     nonSageHandles
   );
 
-  // 4. Look up Mantle users among participants
+  // 4. Look up owner users among participants
   const admin = createAdminClient();
   const { data: phoneRows, error: lookupError } = await admin
     .from("phone_numbers")
@@ -117,11 +117,11 @@ export async function detectAndSetupGroup(
     console.error("[group-detect] Phone lookup failed");
   }
 
-  const mantleUsers = phoneRows ?? [];
-  const uniqueUserIds = Array.from(new Set(mantleUsers.map((r) => r.user_id)));
+  const ownerUsers = phoneRows ?? [];
+  const uniqueUserIds = Array.from(new Set(ownerUsers.map((r) => r.user_id)));
 
   console.log(
-    "[group-detect] chat_id=%s mantle_users=%d user_ids=%j",
+    "[group-detect] chat_id=%s owner_users=%d user_ids=%j",
     linqChatId,
     uniqueUserIds.length,
     uniqueUserIds
@@ -129,22 +129,22 @@ export async function detectAndSetupGroup(
 
   // Helper: create or update group state (re-detection reuses existing record)
   async function getOrCreateState(
-    mantleUserId: string | null,
+    ownerUserId: string | null,
     count: number
   ): Promise<GroupState> {
     if (existing) {
       await updateGroupState(linqChatId, {
-        mantle_user_id: mantleUserId,
+        owner_user_id: ownerUserId,
         non_sage_participant_count: count,
       });
-      return { ...existing, mantle_user_id: mantleUserId, non_sage_participant_count: count };
+      return { ...existing, owner_user_id: ownerUserId, non_sage_participant_count: count };
     }
-    return createGroupState(linqChatId, mantleUserId, count);
+    return createGroupState(linqChatId, ownerUserId, count);
   }
 
-  // 5. Route based on Mantle user count
+  // 5. Route based on owner user count
   if (uniqueUserIds.length === 1) {
-    // Exactly one Mantle user — standard group setup
+    // Exactly one owner user — standard group setup
     const userId = uniqueUserIds[0];
     const state = await getOrCreateState(userId, participantCount);
     await sendIntroduction(linqChatId, state);
@@ -152,7 +152,7 @@ export async function detectAndSetupGroup(
   }
 
   if (uniqueUserIds.length === 0) {
-    // No Mantle users — deactivate. Only send the notice when triggered by
+    // No owner users — deactivate. Only send the notice when triggered by
     // an actual message (silent=false). Formation events (chat.created,
     // participant.added) stay quiet because more events with fuller handle
     // lists typically arrive moments later.
@@ -161,16 +161,16 @@ export async function detectAndSetupGroup(
     if (!silent) {
       await sendMessage(linqChatId, INTRO_NO_ACCOUNTS);
     }
-    console.log("[group-detect] no_mantle_users chat_id=%s silent=%s", linqChatId, silent);
+    console.log("[group-detect] no_owner_users chat_id=%s silent=%s", linqChatId, silent);
     return { ...state, is_active: false };
   }
 
-  // Multiple Mantle users — deferred dual-manual case
+  // Multiple owner users — deferred dual-manual case
   const state = await getOrCreateState(null, participantCount);
   await updateGroupState(linqChatId, { intro_sent: true });
   await sendMessage(linqChatId, INTRO_MULTI_USER);
   console.log(
-    "[group-detect] multi_mantle_users chat_id=%s count=%d",
+    "[group-detect] multi_owner_users chat_id=%s count=%d",
     linqChatId,
     uniqueUserIds.length
   );
@@ -178,24 +178,24 @@ export async function detectAndSetupGroup(
 }
 
 /**
- * Send the introduction message for a single-Mantle-user group.
+ * Send the introduction message for a single-owner-user group.
  * Sets intro_sent BEFORE sending to prevent duplicates from racing handlers.
  */
 async function sendIntroduction(
   linqChatId: string,
   state: GroupState
 ): Promise<void> {
-  if (state.intro_sent || !state.mantle_user_id) return;
+  if (state.intro_sent || !state.owner_user_id) return;
 
   // Set intro_sent first — prevents duplicate intros from race conditions
   await updateGroupState(linqChatId, { intro_sent: true });
 
-  // Look up Mantle user's display name for the intro
+  // Look up owner user's display name for the intro
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
     .select("display_name")
-    .eq("id", state.mantle_user_id)
+    .eq("id", state.owner_user_id)
     .maybeSingle();
 
   // Extract first name from display_name (take first word)
@@ -203,8 +203,8 @@ async function sendIntroduction(
   const firstName = displayName?.split(/\s+/)[0] ?? null;
 
   const introText = firstName
-    ? `Hey, I'm Sage by Mantle. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
-    : "Hey, I'm Sage by Mantle. I'll use what I know to ask better questions, but I won't share details from private conversations.";
+    ? `Hey, I'm Sage by mywalnut. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
+    : "Hey, I'm Sage by mywalnut. I'll use what I know to ask better questions, but I won't share details from private conversations.";
 
   const result = await sendMessage(linqChatId, introText);
 
@@ -212,7 +212,7 @@ async function sendIntroduction(
     console.log(
       "[group-detect] intro_sent chat_id=%s user=%s name=%s",
       linqChatId,
-      state.mantle_user_id,
+      state.owner_user_id,
       firstName ?? "(no name)"
     );
   } else {

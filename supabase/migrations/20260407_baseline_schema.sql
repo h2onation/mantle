@@ -131,7 +131,7 @@ ALTER TABLE public.safety_events ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.linq_group_chats (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   linq_chat_id text NOT NULL UNIQUE,
-  mantle_user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  owner_user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   is_active boolean NOT NULL DEFAULT true,
   intro_sent boolean NOT NULL DEFAULT false,
   intro_sent_at timestamptz,

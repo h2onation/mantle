@@ -30,7 +30,7 @@
 ### Step 4: Configure webhook
 1. Phone Numbers → Active Numbers → click yours
 2. Messaging → "A message comes in":
-   - Webhook, `https://trustthemantle.com/api/sms/incoming`, HTTP POST
+   - Webhook, `https://mywalnut.app/api/sms/incoming`, HTTP POST
 3. Save
 
 ### Step 5: Credentials and env vars
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   try {
     // Validate Twilio signature to prevent spoofed requests
     const twilioSignature = request.headers.get("x-twilio-signature") || "";
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL || "https://trustthemantle.com"}/api/sms/incoming`;
+    const url = `${process.env.NEXT_PUBLIC_SITE_URL || "https://mywalnut.app"}/api/sms/incoming`;
     const formData = await request.formData();
     const params: Record<string, string> = {};
     formData.forEach((value, key) => { params[key] = value as string; });
@@ -185,7 +185,7 @@ No code (initiate):
 - Normalize phone (strip spaces, ensure +1 prefix)
 - Generate 6-digit code
 - Upsert phone_numbers: { user_id, phone, verified: false, verification_code: code, code_expires_at: now + 10 min }
-- Send via Twilio: "Your Mantle code: ${code}"
+- Send via Twilio: "Your mywalnut code: ${code}"
 - Return { ok: true, status: "code_sent" }
 
 Code present (verify):
@@ -196,7 +196,7 @@ Code present (verify):
 FILE 2: public/sage-contact.vcf
 BEGIN:VCARD
 VERSION:3.0
-FN:Sage (Mantle)
+FN:Sage (mywalnut)
 TEL;TYPE=CELL:+1XXXXXXXXXX
 END:VCARD
 (Hardcode your actual Twilio number)
@@ -251,11 +251,11 @@ FLOW:
    Log: "[sms] Incoming from %s: %s"
 
 2. IDENTIFY: Look up From in phone_numbers where verified = true using the admin client.
-   - Not found → send "I don't recognize this number. Link your phone at trustthemantle.com" → return TwiML
+   - Not found → send "I don't recognize this number. Link your phone at mywalnut.app" → return TwiML
    - Found → have user_id
 
 3. LOAD MANUAL: Load manual_components for this user_id using admin client.
-   - Empty → send "You don't have manual content yet. Build your manual at trustthemantle.com first." → return TwiML
+   - Empty → send "You don't have manual content yet. Build your manual at mywalnut.app first." → return TwiML
 
 4. FIND OR CREATE CONVERSATION: Look for an existing conversation for this user where channel = 'mms' and status = 'active', ordered by updated_at desc.
    - If none exists, create one: insert into conversations { user_id, status: 'active', channel: 'mms' } (you may need to add channel to the conversations table — if so, add ALTER TABLE conversations ADD COLUMN IF NOT EXISTS channel text DEFAULT 'web' to the migration above)
@@ -298,7 +298,7 @@ Add smsMode?: boolean to BuildPromptOptions.
 When smsMode is true:
 - Skip these sections: MANUAL ENTRY FORMAT, CHECKPOINTS, CHECKPOINT COMPOSITION VOICE, FIRST CHECKPOINT, POST-CHECKPOINT, BUILDING TOWARD SIGNAL, PATTERNS, PROGRESS SIGNALS, FIRST SESSION
 - Keep everything else: VOICE, LEGAL, CONVERSATION APPROACH, DEEPENING MOVES, ADAPTING, SHORT ANSWERS
-- Append one line at the end of the prompt: "You are responding via text message. No checkpoint formatting or manual entry blocks. If something comes up worth deeper exploration, say: 'This is worth exploring deeper. Open Mantle when you have 20 minutes.'"
+- Append one line at the end of the prompt: "You are responding via text message. No checkpoint formatting or manual entry blocks. If something comes up worth deeper exploration, say: 'This is worth exploring deeper. Open mywalnut when you have 20 minutes.'"
 - That's it. Same Sage. Same voice. Same depth. Just no checkpoints.
 
 Do not duplicate the pipeline. Import buildSystemPrompt and call anthropicFetch directly. The webhook is a thin wrapper.

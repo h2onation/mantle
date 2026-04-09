@@ -45,7 +45,7 @@ export function useChat() {
   const [sessionOrigin, setSessionOrigin] = useState<"new" | "explore" | "existing">("new");
   const [firstSessionCompleted, setFirstSessionCompleted] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("mantle_first_session_completed") === "true";
+    return localStorage.getItem("mw_first_session_completed") === "true";
   });
 
   const initStarted = useRef(false);
@@ -325,7 +325,7 @@ export function useChat() {
     // Mark first session as started (persists across sessions)
     if (!firstSessionCompleted) {
       setFirstSessionCompleted(true);
-      localStorage.setItem("mantle_first_session_completed", "true");
+      localStorage.setItem("mw_first_session_completed", "true");
     }
 
     // Clear previous error and track for retry

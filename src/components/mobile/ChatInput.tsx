@@ -307,7 +307,7 @@ export default function ChatInput({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                animation: "mantleFadeIn 0.15s ease-out both",
+                animation: "mwFadeIn 0.15s ease-out both",
               }}
             >
               <div
@@ -346,7 +346,7 @@ export default function ChatInput({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                animation: "mantleFadeIn 0.15s ease-out both",
+                animation: "mwFadeIn 0.15s ease-out both",
               }}
             >
               <svg
@@ -367,7 +367,7 @@ export default function ChatInput({
 
           {/* Mic icon — inactive/ghosted */}
           {(buttonMode === "mic" || buttonMode === "mic-denied") && (
-            <div style={{ animation: "mantleFadeIn 0.15s ease-out both" }}>
+            <div style={{ animation: "mwFadeIn 0.15s ease-out both" }}>
               <svg
                 width="18"
                 height="18"

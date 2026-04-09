@@ -236,16 +236,16 @@ Two version constants in `src/lib/version.ts`: `APP_VERSION` (all `src/` except 
 
 Pre-auth flow on `/login`. Four views: entry → login → onboarding → seed.
 
-New users go through info screens then a seed screen where they type their opening thought. The app calls `signInAnonymously()`, stores the seed text in `sessionStorage` (key: `mantle_seed_text`), and redirects to `/`. MainApp reads and removes the seed, sending it as the first message.
+New users go through info screens then a seed screen where they type their opening thought. The app calls `signInAnonymously()`, stores the seed text in `sessionStorage` (key: `mywalnut_seed_text`), and redirects to `/`. MainApp reads and removes the seed, sending it as the first message.
 
-Guest-to-real conversion: After first checkpoint confirm, backend detects `user.is_anonymous` and returns `promptAuth: true` in SSE. AuthPromptModal handles email (`updateUser`) or Google (`linkIdentity` with `mantle_pending_conversion` localStorage flag).
+Guest-to-real conversion: After first checkpoint confirm, backend detects `user.is_anonymous` and returns `promptAuth: true` in SSE. AuthPromptModal handles email (`updateUser`) or Google (`linkIdentity` with `mywalnut_pending_conversion` localStorage flag).
 
 ## Storage Keys
 
 Do not create keys that conflict with these. They control onboarding and auth flow.
 
-localStorage: `mantle_onboarding_completed` (prevents re-showing onboarding), `mantle_age_confirmed` (legal age gate), `mantle_pending_conversion` (flags Google OAuth redirect in progress).  
-sessionStorage: `mantle_seed_text` (seed text handoff from onboarding to MainApp, consumed and removed on use).
+localStorage: `mywalnut_onboarding_completed` (prevents re-showing onboarding), `mywalnut_age_confirmed` (legal age gate), `mywalnut_pending_conversion` (flags Google OAuth redirect in progress).  
+sessionStorage: `mywalnut_seed_text` (seed text handoff from onboarding to MainApp, consumed and removed on use).
 
 ## Admin Access
 

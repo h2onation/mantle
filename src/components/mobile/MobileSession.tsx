@@ -83,7 +83,7 @@ export default function MobileSession({
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
-    const dismissed = localStorage.getItem("mantle_signin_banner_dismissed");
+    const dismissed = localStorage.getItem("mw_signin_banner_dismissed");
     if (!dismissed) return false;
     return Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000;
   });
@@ -147,7 +147,7 @@ export default function MobileSession({
         padding: "16px 18px 14px",
         background: "var(--session-sage-tint)",
         borderRadius: "12px",
-        animation: "mantleFadeIn 0.6s ease-out",
+        animation: "mwFadeIn 0.6s ease-out",
       }}
     >
       {/* Sage label */}
@@ -278,7 +278,7 @@ export default function MobileSession({
             paddingLeft: "15px",
           }}
         >
-          MANTLE
+          MYWALNUT
         </span>
 
         {/* Right spacer */}
@@ -324,7 +324,7 @@ export default function MobileSession({
           <button
             onClick={() => {
               setSignInBannerDismissed(true);
-              localStorage.setItem("mantle_signin_banner_dismissed", String(Date.now()));
+              localStorage.setItem("mw_signin_banner_dismissed", String(Date.now()));
             }}
             style={{
               background: "none",
