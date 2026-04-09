@@ -16,11 +16,10 @@ const ROTATING_EXAMPLES = [
 ];
 
 interface EntryScreenProps {
-  onGetStarted: () => void;
   onLogin: () => void;
 }
 
-export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps) {
+export default function EntryScreen({ onLogin }: EntryScreenProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,9 +117,9 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
           {ROTATING_EXAMPLES[activeIndex]}
         </div>
 
-        {/* Get started button */}
+        {/* Log in button (primary) */}
         <button
-          onClick={onGetStarted}
+          onClick={onLogin}
           style={{
             width: "100%",
             padding: "16px 0",
@@ -132,30 +131,33 @@ export default function EntryScreen({ onGetStarted, onLogin }: EntryScreenProps)
             border: "none",
             borderRadius: 8,
             cursor: "pointer",
-            marginBottom: 12,
-          }}
-        >
-          Get started
-        </button>
-
-        {/* Log in button */}
-        <button
-          onClick={onLogin}
-          style={{
-            width: "100%",
-            padding: "16px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            fontWeight: 500,
-            color: "var(--session-ink-mid)",
-            backgroundColor: "transparent",
-            border: "1px solid var(--session-ink-whisper)",
-            borderRadius: 8,
-            cursor: "pointer",
+            marginBottom: 14,
           }}
         >
           Log in
         </button>
+
+        {/* Waitlist link (secondary) */}
+        <div
+          style={{
+            textAlign: "center",
+            fontFamily: "var(--font-sans)",
+            fontSize: 13,
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          <a
+            href="/waitlist"
+            style={{
+              color: "var(--session-ink-mid)",
+              textDecoration: "none",
+              borderBottom: "1px solid var(--session-ink-whisper)",
+              paddingBottom: 1,
+            }}
+          >
+            Join the waitlist
+          </a>
+        </div>
 
         {/* Legal links */}
         <div

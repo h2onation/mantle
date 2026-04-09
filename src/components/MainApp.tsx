@@ -10,9 +10,11 @@ import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileSettings from "@/components/mobile/MobileSettings";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
+import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
 
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
+type OnboardingStatus = "loading" | "needed" | "complete";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -23,6 +25,8 @@ export default function MainApp() {
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
+  const [onboardingStatus, setOnboardingStatus] =
+    useState<OnboardingStatus>("loading");
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // Clean up post-OAuth conversion flag
@@ -30,6 +34,37 @@ export default function MainApp() {
     if (localStorage.getItem("mantle_pending_conversion") === "true") {
       localStorage.removeItem("mantle_pending_conversion");
     }
+  }, []);
+
+  // Onboarding gate. Fresh beta signups must pass through the
+  // InfoScreens + SeedScreen disclaimers once before reaching the
+  // app. Fail open on error: a transient API failure must not lock
+  // a logged-in beta user out.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/onboarding-status");
+        if (!res.ok) {
+          console.error(
+            "[MainApp] onboarding-status returned",
+            res.status,
+            "— failing open"
+          );
+          if (!cancelled) setOnboardingStatus("complete");
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        setOnboardingStatus(data.completed ? "complete" : "needed");
+      } catch (err) {
+        console.error("[MainApp] onboarding-status fetch failed:", err);
+        if (!cancelled) setOnboardingStatus("complete");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const {
@@ -127,13 +162,24 @@ export default function MainApp() {
     }
   }, [loadConversation]);
 
-  if (!initialized) {
+  // While the onboarding-status check is in flight, show the same
+  // blank linen splash as the !initialized state. The check is fast
+  // (single auth + profile read) so this is barely visible.
+  if (onboardingStatus === "loading" || !initialized) {
     return (
       <div
         style={{
           height: "100dvh",
           backgroundColor: "var(--session-linen)",
         }}
+      />
+    );
+  }
+
+  if (onboardingStatus === "needed") {
+    return (
+      <PostLoginOnboarding
+        onComplete={() => setOnboardingStatus("complete")}
       />
     );
   }
