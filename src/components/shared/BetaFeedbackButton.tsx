@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Persistent feedback button for logged-in users. Renders inside the
-// phone-frame so it stays anchored to the app on desktop. The admin
-// overlay (z-index 300) covers this button while it's open, so we
-// don't need extra logic to hide it on the admin "page".
+// Persistent feedback button for logged-in users. Sits in the
+// top-right slot of the phone frame — both MobileSession and
+// MobileManual headers leave a 40-44px spacer there for symmetry,
+// so the button slots in cleanly without overlapping the MANTLE
+// logo or the hamburger menu. The admin overlay (z-index 300)
+// covers this button while it's open, so we don't need extra
+// logic to hide it on the admin "page".
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -77,29 +80,53 @@ export default function BetaFeedbackButton() {
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         aria-label="Send feedback"
+        title="Send feedback"
         style={{
           position: "absolute",
-          right: 14,
-          // Clear MobileNav (~50px) + iOS safe area
-          bottom: "calc(62px + env(safe-area-inset-bottom, 0px))",
+          // Sit inside the 40-44px header spacer slot (header padding
+          // is 12px top, 16-24px right). Anchor to the right edge of
+          // that slot.
+          top: 16,
+          right: 20,
           zIndex: 110,
-          fontFamily: "var(--font-mono)",
-          fontSize: "9px",
-          letterSpacing: "1.5px",
-          textTransform: "uppercase",
+          width: 32,
+          height: 32,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           color: "var(--session-ink-ghost)",
-          background: "rgba(255, 255, 255, 0.7)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          border: "1px solid var(--session-ink-hairline)",
+          background: "none",
+          border: "none",
           borderRadius: 999,
-          padding: "6px 11px",
+          padding: 0,
           cursor: "pointer",
           WebkitTapHighlightColor: "transparent",
-          boxShadow: "0 1px 2px rgba(26, 22, 20, 0.04)",
+          transition: "color 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.color =
+            "var(--session-ink-mid)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.color =
+            "var(--session-ink-ghost)";
         }}
       >
-        Feedback
+        {/* Speech bubble glyph — subtle, matches the hairline weight
+            of the hamburger menu on the opposite side of the header. */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M2.5 4.25a1.75 1.75 0 0 1 1.75-1.75h7.5a1.75 1.75 0 0 1 1.75 1.75v5a1.75 1.75 0 0 1-1.75 1.75H7L4 13.5v-2.75a1.75 1.75 0 0 1-1.5-1.73v-4.77z" />
+        </svg>
       </button>
 
       {open && (
@@ -109,10 +136,10 @@ export default function BetaFeedbackButton() {
           aria-label="Send feedback"
           style={{
             position: "absolute",
-            right: 14,
-            bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
+            top: 56,
+            right: 16,
             zIndex: 111,
-            width: "min(280px, calc(100% - 28px))",
+            width: "min(280px, calc(100% - 32px))",
             background: "var(--session-cream)",
             border: "1px solid var(--session-ink-hairline)",
             borderRadius: 12,

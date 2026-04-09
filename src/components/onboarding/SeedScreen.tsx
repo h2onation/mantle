@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SeedScreen() {
+interface SeedScreenProps {
+  // When provided, SeedScreen runs in post-login mode: instead of
+  // creating an anonymous account, it writes onboarding_completed_at
+  // on the existing authenticated user's profile and calls onComplete.
+  // When omitted, the legacy anonymous-signup flow runs.
+  onComplete?: () => void;
+}
+
+export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -17,6 +25,36 @@ export default function SeedScreen() {
     setSubmitting(true);
     setError("");
 
+    const supabase = createClient();
+
+    // Branch on auth state. Post-login flow (real beta user finishing
+    // first-time onboarding) writes a timestamp to profiles. Legacy
+    // anonymous flow (currently unreachable from the entry screen but
+    // kept in place for follow-up cleanup) creates an anonymous account.
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    if (user) {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("id", user.id);
+
+      if (updateError) {
+        console.error("[SeedScreen] profile update failed:", updateError);
+        setError("Something went wrong. Try again.");
+        setSubmitting(false);
+        return;
+      }
+
+      if (onComplete) {
+        onComplete();
+      } else {
+        router.push("/");
+      }
+      return;
+    }
+
     // Reset first-session localStorage flags before creating a fresh
     // anonymous user. Otherwise a browser that previously completed a
     // first session will treat this brand-new anonymous user as returning
@@ -25,7 +63,6 @@ export default function SeedScreen() {
     localStorage.removeItem("mantle_signin_banner_dismissed");
 
     // Create anonymous auth session
-    const supabase = createClient();
     const { error: authError } = await supabase.auth.signInAnonymously();
     if (authError) {
       console.error("[SeedScreen] signInAnonymously failed:", authError);

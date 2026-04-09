@@ -31,10 +31,6 @@ export default function OnboardingFlow() {
     }, duration);
   }, []);
 
-  function handleGetStarted() {
-    fadeToView("onboarding");
-  }
-
   function handleLogin() {
     fadeToView("login");
   }
@@ -84,10 +80,7 @@ export default function OnboardingFlow() {
         }}
       >
         {currentView === "entry" && (
-          <EntryScreen
-            onGetStarted={handleGetStarted}
-            onLogin={handleLogin}
-          />
+          <EntryScreen onLogin={handleLogin} />
         )}
 
         {currentView === "login" && (
