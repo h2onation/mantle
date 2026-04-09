@@ -8,19 +8,36 @@ import type { ManualComponent, ExplorationContext } from "@/lib/types";
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 
+const MANUAL_INTRO_KEY = "mantle_manual_intro_seen";
+
 interface MobileManualProps {
   components: ManualComponent[];
   displayName: string;
   onExploreWithSage?: (context: ExplorationContext) => void;
+  onNavigateToSession?: () => void;
 }
 
-export default function MobileManual({ components, displayName, onExploreWithSage }: MobileManualProps) {
+export default function MobileManual({ components, displayName, onExploreWithSage, onNavigateToSession }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
   const isEmpty = layers.every((l) => l.threads.length === 0);
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem(MANUAL_INTRO_KEY);
+  });
+
+  function dismissIntro() {
+    localStorage.setItem(MANUAL_INTRO_KEY, "1");
+    setShowIntroModal(false);
+  }
+
+  function handleTalkToSage() {
+    dismissIntro();
+    onNavigateToSession?.();
+  }
 
   const doExportAndShare = useCallback(async () => {
     setShowSheet(false);
@@ -352,6 +369,107 @@ export default function MobileManual({ components, displayName, onExploreWithSag
           >
             Preparing your manual...
           </p>
+        </div>
+      )}
+
+      {/* First-visit intro modal */}
+      {showIntroModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 400,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "var(--session-backdrop-heavy)",
+          }}
+        >
+          <div
+            style={{
+              width: "calc(100% - 48px)",
+              maxWidth: 380,
+              backgroundColor: "var(--session-cream)",
+              borderRadius: 12,
+              padding: "32px 24px",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: 17,
+                fontWeight: 400,
+                color: "var(--session-ink)",
+                lineHeight: 1.55,
+                margin: "0 0 16px 0",
+                letterSpacing: "-0.2px",
+              }}
+            >
+              This is your manual. It&apos;s a guide to how you operate, built
+              from your conversations with Sage.
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.6,
+                margin: "0 0 12px 0",
+              }}
+            >
+              Each section fills in as you talk. Sage will surface patterns,
+              reflect them back, and you decide what&apos;s accurate. Nothing
+              writes without your say.            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.6,
+                margin: "0 0 28px 0",
+              }}
+            >
+              Start a conversation and your manual will take shape.
+            </p>
+
+            <button
+              onClick={handleTalkToSage}
+              style={{
+                width: "100%",
+                padding: 14,
+                fontFamily: "var(--font-sans)",
+                fontSize: 15,
+                fontWeight: 500,
+                color: "var(--session-cream)",
+                backgroundColor: "var(--session-sage)",
+                border: "none",
+                borderRadius: 10,
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              Talk to Sage
+            </button>
+            <button
+              onClick={dismissIntro}
+              style={{
+                display: "block",
+                width: "100%",
+                marginTop: 10,
+                padding: "10px 0",
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                fontWeight: 400,
+                color: "var(--session-ink-ghost)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
     </div>

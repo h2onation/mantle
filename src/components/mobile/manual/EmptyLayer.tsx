@@ -21,7 +21,6 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
           justifyContent: "space-between",
           paddingBottom: 8,
           borderBottom: "0.5px solid var(--session-ink-hairline)",
-          marginBottom: 12,
         }}
       >
         <h2
@@ -49,19 +48,6 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
           0 entries
         </span>
       </div>
-
-      <p
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: 13,
-          fontWeight: 400,
-          color: "var(--session-ink-ghost)",
-          lineHeight: 1.5,
-          margin: 0,
-        }}
-      >
-        {layer.emptyHelper}
-      </p>
     </section>
   );
 }

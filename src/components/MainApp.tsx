@@ -224,7 +224,7 @@ export default function MainApp() {
           />
         }
         manualContent={
-          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithSage={handleExploreWithSage} />
+          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithSage={handleExploreWithSage} onNavigateToSession={() => setActiveTab("session")} />
         }
         settingsContent={
           <MobileSettings
