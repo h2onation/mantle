@@ -67,14 +67,12 @@
 ## In-Flight Work
 *Last verified: 2026-04-09*
 
-- A2P 10DLC CTA verification pending (Linq/SMS)
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
 - Migration `20260408_add_onboarding_completed_at.sql` not yet run in Supabase dashboard
 - Migration `20260409_rename_mantle_user_id.sql` not yet run in Supabase dashboard — must run before deploying brand migration code
 - Upstash Redis setup needed for rate limiting to enforce in production
-- Linq webhook re-registration needed (new URL: mywalnut.app/api/linq/webhook)
-- Linq contact card update needed ("Sage by mywalnut")
+- Linq deprecation: moving away from Linq SMS provider
 
 ## Beta Users
 *Last verified: 2026-03-15*
