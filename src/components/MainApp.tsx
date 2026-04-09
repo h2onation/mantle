@@ -162,10 +162,12 @@ export default function MainApp() {
     }
   }, [loadConversation]);
 
-  // While the onboarding-status check is in flight, show the same
-  // blank linen splash as the !initialized state. The check is fast
-  // (single auth + profile read) so this is barely visible.
-  if (onboardingStatus === "loading" || !initialized) {
+  // Only block render on useChat init. The onboarding-status check
+  // is allowed to resolve in the background — if it comes back as
+  // "needed" we swap in PostLoginOnboarding then. Blocking on the
+  // status check turned the splash into a hard wall when the fetch
+  // didn't resolve quickly enough on first paint.
+  if (!initialized) {
     return (
       <div
         style={{
