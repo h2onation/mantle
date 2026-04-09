@@ -48,6 +48,7 @@
 - Sage prompt hardening (2026-04-06): Moved sensitive logic out of system prompt into server-side code. `validateMaterialQuality` pre-emit gate, `validateComposedEntry` post-validator. ~75 lines of enforcement scaffolding pruned from prompt.
 - Security hardening (2026-04-07): Upstash rate limiting on chat/summary/checkpoint/OTP routes (fails open if env vars missing). Anon Gate B at 2 manual_components. OTP phone verification (SHA-256, 6-digit, 10-min TTL). PII logging cleanup.
 - Sage prompt tuning (7 rounds, 2026-03-17 through 2026-04-07): Abstract stacking rule, receive-land-ask rhythm, checkpoint delivery sequence (verbatim body/sensory word required, open validation question, 4-8 word headline), post-checkpoint advisory mode, clinical-label-in-negation rule, one-question-per-turn enforcement, therapy-ism bans ("sit with," "lean into," "hold space for").
+- Brand migration Mantle → mywalnut (2026-04-09): 52 files across app, API, Sage prompt, Linq SMS, legal pages, onboarding, PWA manifest, service worker, scripts, docs. DB column `mantle_user_id` → `owner_user_id` (migration `20260409_rename_mantle_user_id.sql`). localStorage keys `mantle_*` → `mw_*` with one-time migration shim. Domain `mywalnut.app`. External steps: Supabase redirect URLs, Linq webhook re-registration, contact card update.
 
 ## Not Yet Functional
 *Last verified: 2026-04-07*
@@ -70,7 +71,10 @@
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
 - Migration `20260408_add_onboarding_completed_at.sql` not yet run in Supabase dashboard
+- Migration `20260409_rename_mantle_user_id.sql` not yet run in Supabase dashboard — must run before deploying brand migration code
 - Upstash Redis setup needed for rate limiting to enforce in production
+- Linq webhook re-registration needed (new URL: mywalnut.app/api/linq/webhook)
+- Linq contact card update needed ("Sage by mywalnut")
 
 ## Beta Users
 *Last verified: 2026-03-15*
