@@ -196,13 +196,21 @@ export function useChat() {
       }
     }
 
-    // Middleware is the auth gate — if we're rendering, we're authed.
-    // The previous client-side getUser() check here was redundant and
-    // raced with cookie propagation after OAuth, causing bounces.
+    // Middleware is the primary auth gate, but production has shown
+    // that Vercel can serve `/` without running middleware in some
+    // cases (statically prerendered + edge cache). If we ever land
+    // here without an auth user, bounce to /login ourselves instead
+    // of silently leaving `initialized=false`, which wedges MainApp
+    // on the linen splash forever (see 2026-04-08 blank-page bug).
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!authUser) return;
+    if (!authUser) {
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
+      }
+      return;
+    }
 
     setUserEmail(authUser.email || "");
     setIsGuest(authUser.is_anonymous === true);
