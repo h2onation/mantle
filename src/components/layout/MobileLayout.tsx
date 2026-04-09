@@ -1,6 +1,7 @@
 "use client";
 
 import MobileNav, { type MobileTab } from "./MobileNav";
+import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 
 interface MobileLayoutProps {
   sessionContent: React.ReactNode;
@@ -72,6 +73,7 @@ export default function MobileLayout({
             </div>
           ))}
           <MobileNav activeTab={activeTab} onTabChange={onTabChange} />
+          <BetaFeedbackButton />
         </div>
       </div>
     </div>

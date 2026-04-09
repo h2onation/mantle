@@ -62,6 +62,11 @@ export const checkpointConfirmHour = makeLimiter(20, "1 h", "rl:checkpoint-confi
 export const phoneOtpSendHour = makeLimiter(5, "1 h", "rl:phone-otp-send");
 export const phoneOtpVerifyTenMin = makeLimiter(5, "10 m", "rl:phone-otp-verify");
 
+// Public, unauthenticated waitlist submissions — keyed by IP since there is
+// no user. 3/hour is generous enough for legitimate retries (typo + resubmit)
+// while making spam expensive.
+export const waitlistSubmitHour = makeLimiter(3, "1 h", "rl:waitlist");
+
 const ALLOW_OPEN: RateLimitResult = {
   success: true,
   limit: 0,

@@ -7,6 +7,14 @@ import PopulatedLayer from "./manual/PopulatedLayer";
 import EmptyLayer from "./manual/EmptyLayer";
 import { renderMarkdown } from "@/lib/utils/format";
 import type { ManualComponent } from "@/lib/types";
+import UsersTab, { type AdminUserOverview } from "./admin/UsersTab";
+import WaitlistTab, {
+  type WaitlistRow,
+  type WaitlistStatus,
+} from "./admin/WaitlistTab";
+import BetaFeedbackTab, {
+  type BetaFeedbackRow,
+} from "./admin/BetaFeedbackTab";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -18,6 +26,8 @@ interface AdminUser {
   component_count: number;
   is_anonymous: boolean;
   created_at: string;
+  last_active: string | null;
+  last_conversation_at: string | null;
 }
 
 interface AdminConversation {
@@ -64,7 +74,8 @@ interface AdminFeedbackItem {
   created_at: string;
 }
 
-type AdminViewState = "hidden" | "profile";
+type AdminViewState = "hidden" | "tabs" | "profile";
+type TopTab = "users" | "waitlist" | "feedback";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -209,6 +220,14 @@ export default function AdminView() {
   const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([]);
   const [feedbackLoaded, setFeedbackLoaded] = useState(false);
 
+  // Top-level admin tabs (Users / Waitlist / Feedback). The existing
+  // per-user audit flow is reached by clicking a row in the Users tab.
+  const [topTab, setTopTab] = useState<TopTab>("users");
+  const [waitlistItems, setWaitlistItems] = useState<WaitlistRow[]>([]);
+  const [waitlistLoaded, setWaitlistLoaded] = useState(false);
+  const [betaFeedbackItems, setBetaFeedbackItems] = useState<BetaFeedbackRow[]>([]);
+  const [betaFeedbackUnreadCount, setBetaFeedbackUnreadCount] = useState(0);
+
   if (!isAdmin) return null;
 
   // ── Data fetching ────────────────────────────────────────────────
@@ -216,16 +235,26 @@ export default function AdminView() {
   async function loadAdminUsers() {
     setAdminLoading(true);
     try {
-      // Load users and global feedback in parallel
-      const [usersRes, feedbackRes] = await Promise.all([
+      // Load users, the existing per-user feedback table, AND beta_feedback
+      // in parallel. The beta_feedback fetch populates the unread badge on
+      // the top-level Feedback tab so it's visible before the user clicks
+      // into the tab.
+      const [usersRes, feedbackRes, betaFbRes] = await Promise.all([
         fetch("/api/admin/users"),
         !feedbackLoaded ? fetch("/api/admin/feedback") : Promise.resolve(null),
+        fetch("/api/admin/beta-feedback"),
       ]);
 
       if (feedbackRes && feedbackRes.ok) {
         const fbData = await feedbackRes.json();
         setFeedbackItems(fbData.feedback || []);
         setFeedbackLoaded(true);
+      }
+
+      if (betaFbRes.ok) {
+        const data = await betaFbRes.json();
+        setBetaFeedbackItems(data.items || []);
+        setBetaFeedbackUnreadCount(data.unread_count || 0);
       }
 
       if (!usersRes.ok) {
@@ -235,16 +264,83 @@ export default function AdminView() {
       const data = await usersRes.json();
       const users: AdminUser[] = data.users || [];
       setAdminUsers(users);
-      if (users.length > 0) {
-        // Auto-open first user — openUserProfile manages its own loading state
-        openUserProfile(users[0]);
-      } else {
-        setAdminLoading(false);
-      }
+
+      // Land on the top-level tab bar (Users tab by default). The user
+      // chooses which user to drill into instead of being auto-opened.
+      setTopTab("users");
+      setAdminView("tabs");
+      setAdminLoading(false);
     } catch (err) {
       console.error("[admin] Failed to load users:", err);
       setAdminLoading(false);
     }
+  }
+
+  async function loadWaitlist() {
+    if (waitlistLoaded) return;
+    try {
+      const res = await fetch("/api/admin/waitlist");
+      if (!res.ok) return;
+      const data = await res.json();
+      setWaitlistItems(data.items || []);
+      setWaitlistLoaded(true);
+    } catch (err) {
+      console.error("[admin] Failed to load waitlist:", err);
+    }
+  }
+
+  async function changeWaitlistStatus(id: string, status: WaitlistStatus) {
+    const res = await fetch("/api/admin/waitlist", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    if (!res.ok) throw new Error("Failed to update waitlist status");
+    setWaitlistItems((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, status } : row))
+    );
+  }
+
+  async function markBetaFeedbackRead(id: string) {
+    const res = await fetch("/api/admin/beta-feedback", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) return;
+    setBetaFeedbackItems((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, is_read: true } : row))
+    );
+    setBetaFeedbackUnreadCount((n) => Math.max(0, n - 1));
+  }
+
+  function selectUserFromTab(u: AdminUserOverview) {
+    // The Users tab passes a row out; convert to the local AdminUser shape
+    // (they're structurally identical but typed separately to keep the tab
+    // component decoupled from this file).
+    openUserProfile({
+      id: u.id,
+      display_name: u.display_name,
+      email: u.email,
+      conversation_count: u.conversation_count,
+      component_count: u.component_count,
+      is_anonymous: u.is_anonymous,
+      created_at: u.created_at,
+      last_active: u.last_active,
+      last_conversation_at: u.last_conversation_at,
+    });
+  }
+
+  function backToTabs() {
+    // Return from a per-user profile to the top-level tab bar without
+    // closing the overlay or forgetting which top tab was active.
+    setAdminView("tabs");
+    setSelectedUser(null);
+    setSelectedConversation(null);
+    setConversationMessages([]);
+    setExtractionState(null);
+    setUserConversations([]);
+    setUserManual([]);
   }
 
   async function openUserProfile(user: AdminUser) {
@@ -335,16 +431,6 @@ export default function AdminView() {
     }
   }
 
-  function closeProfile() {
-    setAdminView("hidden");
-    setSelectedUser(null);
-    setSelectedConversation(null);
-    setConversationMessages([]);
-    setExtractionState(null);
-    setUserConversations([]);
-    setUserManual([]);
-  }
-
   // ── Shared styles ────────────────────────────────────────────────
 
   const listItemStyle = {
@@ -390,6 +476,143 @@ export default function AdminView() {
         </button>
       )}
 
+      {/* ── Top-level admin tabs overlay ─────────────────────────── */}
+      {adminView === "tabs" && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            background: "var(--session-linen)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Top bar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              padding: "12px 16px",
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() => setAdminView("hidden")}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                color: "var(--session-error)",
+                letterSpacing: "1px",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              CLOSE
+            </button>
+          </div>
+
+          {/* Admin banner */}
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "var(--session-error)",
+              textAlign: "center",
+              padding: "8px 0",
+              borderTop: "1px solid var(--session-error-ghost)",
+              borderBottom: "1px solid var(--session-error-ghost)",
+              background: "var(--session-error-banner)",
+              flexShrink: 0,
+            }}
+          >
+            READ ONLY — ADMIN VIEW
+          </div>
+
+          {/* Top-level tab bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 28,
+              padding: "14px 0",
+              flexShrink: 0,
+              borderBottom: "1px solid var(--session-ink-hairline)",
+            }}
+          >
+            {(["users", "waitlist", "feedback"] as const).map((tab) => {
+              const active = topTab === tab;
+              const label =
+                tab === "users"
+                  ? "Users"
+                  : tab === "waitlist"
+                  ? "Waitlist"
+                  : `Feedback${betaFeedbackUnreadCount > 0 ? ` (${betaFeedbackUnreadCount})` : ""}`;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setTopTab(tab);
+                    if (tab === "waitlist" && !waitlistLoaded) loadWaitlist();
+                  }}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "1.5px",
+                    textTransform: "uppercase",
+                    color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
+                    background: "none",
+                    border: "none",
+                    borderBottom: active
+                      ? "1px solid var(--session-ink)"
+                      : "1px solid transparent",
+                    padding: "4px 2px",
+                    cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab content */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "8px 16px 24px",
+            }}
+          >
+            {topTab === "users" && (
+              <UsersTab
+                users={adminUsers as AdminUserOverview[]}
+                onSelectUser={selectUserFromTab}
+              />
+            )}
+            {topTab === "waitlist" && (
+              <WaitlistTab
+                items={waitlistItems}
+                onChangeStatus={changeWaitlistStatus}
+              />
+            )}
+            {topTab === "feedback" && (
+              <BetaFeedbackTab
+                items={betaFeedbackItems}
+                onMarkRead={markBetaFeedbackRead}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Full-screen profile overlay ─────────────────────────── */}
       {adminView === "profile" && selectedUser && (
         <div
@@ -413,7 +636,7 @@ export default function AdminView() {
             }}
           >
             <button
-              onClick={closeProfile}
+              onClick={backToTabs}
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",

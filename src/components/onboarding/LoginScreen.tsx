@@ -17,6 +17,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
   const [mode, setMode] = useState<"login" | "signup" | "forgot">(initialMode);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [notAllowlisted, setNotAllowlisted] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -63,15 +64,25 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setNotAllowlisted(false);
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin + "/auth/callback" },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-      if (error) throw error;
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 403 && data?.error === "not_allowlisted") {
+        setNotAllowlisted(true);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(data?.error || "An error occurred");
+      }
+
       router.push("/");
       router.refresh();
     } catch (err: unknown) {
@@ -568,6 +579,41 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
               >
                 {error}
               </p>
+            )}
+
+            {notAllowlisted && (
+              <div
+                style={{
+                  border: "1px solid var(--session-ink-whisper)",
+                  borderRadius: 8,
+                  padding: 16,
+                  marginBottom: 24,
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: 15,
+                    color: "var(--session-ink-mid)",
+                    lineHeight: 1.5,
+                    margin: "0 0 12px 0",
+                  }}
+                >
+                  We&apos;re in early access right now. Join the waitlist to get notified when there&apos;s a spot.
+                </p>
+                <a
+                  href="/waitlist"
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "var(--session-sage)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Join the waitlist →
+                </a>
+              </div>
             )}
 
             <form onSubmit={handleSignup}>

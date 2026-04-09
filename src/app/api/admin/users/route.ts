@@ -54,16 +54,47 @@ export async function GET() {
 
     const userIds = allProfiles.map((p) => p.id);
 
-    // Count conversations per user
+    // Count conversations per user + track last conversation timestamp.
     const { data: conversations } = await admin
       .from("conversations")
-      .select("user_id")
+      .select("id, user_id, updated_at")
       .in("user_id", userIds);
 
     const convCounts: Record<string, number> = {};
+    const lastConvAtMap: Record<string, string> = {};
+    const convToUserId: Record<string, string> = {};
     if (conversations) {
       for (const c of conversations) {
         convCounts[c.user_id] = (convCounts[c.user_id] || 0) + 1;
+        if (
+          !lastConvAtMap[c.user_id] ||
+          c.updated_at > lastConvAtMap[c.user_id]
+        ) {
+          lastConvAtMap[c.user_id] = c.updated_at;
+        }
+        convToUserId[c.id] = c.user_id;
+      }
+    }
+
+    // Compute last active per user via messages.created_at, joined back to
+    // the user via the conversation. messages has no user_id column so we
+    // map message → conversation → user in JS. Fine for the small admin
+    // user count; revisit if it grows.
+    const lastActiveMap: Record<string, string> = {};
+    const convIds = Object.keys(convToUserId);
+    if (convIds.length > 0) {
+      const { data: messages } = await admin
+        .from("messages")
+        .select("conversation_id, created_at")
+        .in("conversation_id", convIds);
+      if (messages) {
+        for (const m of messages) {
+          const uid = convToUserId[m.conversation_id];
+          if (!uid) continue;
+          if (!lastActiveMap[uid] || m.created_at > lastActiveMap[uid]) {
+            lastActiveMap[uid] = m.created_at;
+          }
+        }
       }
     }
 
@@ -88,6 +119,8 @@ export async function GET() {
       component_count: compCounts[p.id] || 0,
       is_anonymous: anonMap[p.id] || false,
       created_at: createdMap[p.id] || "",
+      last_active: lastActiveMap[p.id] || null,
+      last_conversation_at: lastConvAtMap[p.id] || null,
     }));
 
     return Response.json({ users });
