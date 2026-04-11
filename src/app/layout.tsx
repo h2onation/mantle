@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, DM_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import dynamic from "next/dynamic";
+
+const AgentationDev = dynamic(() => import("agentation").then((m) => ({ default: m.Agentation })), { ssr: false });
 
 const instrumentSerif = Instrument_Serif({
   weight: "400",
@@ -67,6 +70,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
         {children}
+        {process.env.NODE_ENV === "development" && <AgentationDev endpoint="http://localhost:4747" />}
       </body>
     </html>
   );
