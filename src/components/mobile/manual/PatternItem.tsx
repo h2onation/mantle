@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { Thread } from "./layer-definitions";
 import type { ExplorationContext } from "@/lib/types";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface ThreadCardProps {
   thread: Thread;
@@ -112,7 +113,7 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithS
             cursor: "pointer",
           }}
         >
-          Explore further with Sage →
+          Explore further with {PERSONA_NAME} →
         </button>
       )}
     </div>

@@ -8,6 +8,7 @@ import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const WELCOME_CHIPS = [
   "I have a situation I want to work through",
@@ -152,7 +153,7 @@ export default function MobileSession({
     >
       {/* Sage label */}
       <div style={{ marginBottom: "2px" }}>
-        <span style={sageLabelStyle}>SAGE</span>
+        <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
       <div style={{
         fontFamily: "var(--font-sage)",
@@ -161,16 +162,16 @@ export default function MobileSession({
         color: "var(--session-ink-sage)",
       }}>
         <p style={{ margin: "0 0 12px 0" }}>
-          This is where you talk to Sage. There are a few ways to use it.
+          This is where you talk to {PERSONA_NAME}. There are a few ways to use it.
         </p>
         <p style={{ margin: "0 0 12px 0" }}>
-          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell Sage what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
+          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell {PERSONA_NAME} what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
         </p>
         <p style={{ margin: "0 0 12px 0" }}>
           <strong style={{ fontWeight: 600 }}>Write to your manual directly.</strong> If you already know something about how you work, you can start there. Something like &ldquo;I spend a lot of energy managing social situations and most people don&rsquo;t realize it.&rdquo;
         </p>
         <p style={{ margin: showChips ? "0 0 12px 0" : 0 }}>
-          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. Sage will help organize what you&rsquo;re saying and surface patterns as they come up.
+          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. {PERSONA_NAME} will help organize what you&rsquo;re saying and surface patterns as they come up.
         </p>
         {showChips && (
           <p style={{ margin: 0 }}>
@@ -603,7 +604,7 @@ export default function MobileSession({
                           }}
                         >
                           {checkpointActionState === "confirmed" && "Written to manual"}
-                          {checkpointActionState === "refined" && "Sage will revisit this"}
+                          {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
                           {checkpointActionState === "rejected" && "Discarded"}
                         </span>
                       </div>
@@ -631,7 +632,7 @@ export default function MobileSession({
                           }}
                         >
                           {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
-                          {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
+                          {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
                           {msg.checkpointMeta.status === "rejected" && "Discarded"}
                         </span>
                       </div>
@@ -677,7 +678,7 @@ export default function MobileSession({
                     {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={sageLabelStyle}>SAGE</span>
+                        <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
@@ -770,7 +771,7 @@ export default function MobileSession({
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
                     <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
-                      <span style={sageLabelStyle}>SAGE</span>
+                      <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                     </div>
                   )}
                   <div
@@ -946,7 +947,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             margin: "0 0 20px 0",
           }}
         >
-          This message went directly to Jeff and won&apos;t affect your conversation with Sage.
+          This message went directly to Jeff and won&apos;t affect your conversation with {PERSONA_NAME}.
         </p>
         <button
           onClick={onClose}
@@ -963,7 +964,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             cursor: "pointer",
           }}
         >
-          Back to Sage
+          Back to {PERSONA_NAME}
         </button>
       </div>
     </div>

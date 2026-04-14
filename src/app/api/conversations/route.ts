@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 function extractTitle(summary: string | null): string | null {
   if (!summary) return null;
@@ -108,7 +109,7 @@ export async function GET() {
       id: "text-channel",
       status: "active",
       summary: null,
-      title: "Text with Sage",
+      title: `Text with ${PERSONA_NAME}`,
       preview,
       created_at: firstText?.created_at ?? textStats.created_at,
       updated_at: textStats.created_at,

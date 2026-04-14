@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export const metadata: Metadata = {
-  title: "SMS Messages from Sage — mywalnut",
-  description:
-    "Personalized behavioral insights and conversation prompts from Sage, your AI guide on mywalnut.",
+  title: `SMS Messages from ${PERSONA_NAME_FORMAL} — mywalnut`,
+  description: `Personalized behavioral insights and conversation prompts from ${PERSONA_NAME_FORMAL}, your AI guide on mywalnut.`,
 };
 
 export default function SmsPage() {
@@ -34,7 +34,7 @@ export default function SmsPage() {
             margin: "0 0 8px 0",
           }}
         >
-          SMS Messages from Sage
+          SMS Messages from {PERSONA_NAME_FORMAL}
         </h1>
         <p
           style={{
@@ -42,7 +42,7 @@ export default function SmsPage() {
             margin: "0 0 32px 0",
           }}
         >
-          Program name: Sage by mywalnut
+          Program name: {PERSONA_NAME_FORMAL} by mywalnut
         </p>
 
         <h2
@@ -56,7 +56,7 @@ export default function SmsPage() {
           What You&apos;ll Receive
         </h2>
         <p>
-          Text with Sage. Same conversations, same manual, over text message.
+          Text with {PERSONA_NAME_FORMAL}. Same conversations, same manual, over text message.
           Reply STOP anytime.
         </p>
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export const metadata: Metadata = {
   title: "Terms of Service — mywalnut",
@@ -39,7 +40,7 @@ export default function TermsOfService() {
         </p>
 
         <p>
-          These terms govern your use of mywalnut and the Sage conversational
+          These terms govern your use of mywalnut and the {PERSONA_NAME_FORMAL} conversational
           platform at mywalnut.app.
         </p>
 
@@ -55,7 +56,7 @@ export default function TermsOfService() {
         </h2>
         <p>
           mywalnut is a self-understanding platform. It is not a mental health
-          service, clinical tool, or diagnostic instrument. Sage does not
+          service, clinical tool, or diagnostic instrument. {PERSONA_NAME_FORMAL} does not
           diagnose, assess, or treat any condition. The manual is a
           self-authored document. It is not clinical documentation and should
           not be used as a legal accommodation document.
@@ -72,15 +73,15 @@ export default function TermsOfService() {
           What mywalnut Is Not
         </h2>
         <p>
-          mywalnut is not therapy, counseling, or a mental health service. Sage is
-          not a therapist, counselor, or medical professional. Sage does not
+          mywalnut is not therapy, counseling, or a mental health service. {PERSONA_NAME_FORMAL} is
+          not a therapist, counselor, or medical professional. {PERSONA_NAME_FORMAL} does not
           diagnose conditions, prescribe treatments, or provide clinical
           interventions. If you are experiencing a mental health crisis, contact
           the 988 Suicide and Crisis Lifeline (call or text 988) or the Crisis
           Text Line (text HOME to 741741).
         </p>
         <p>
-          Sage does not assess or pathologize any condition. The manual is a
+          {PERSONA_NAME_FORMAL} does not assess or pathologize any condition. The manual is a
           self-authored document reflecting your own understanding of how you
           work. It is not clinical documentation and should not be used as a
           legal accommodation document or submitted as medical evidence.
@@ -113,7 +114,7 @@ export default function TermsOfService() {
           MMS Messaging
         </h2>
         <p>
-          By linking your phone number and texting Sage, you consent to receive
+          By linking your phone number and texting {PERSONA_NAME_FORMAL}, you consent to receive
           MMS messages from mywalnut. Messages are conversational responses
           initiated by you.
         </p>
@@ -142,9 +143,9 @@ export default function TermsOfService() {
           Your Content
         </h2>
         <p>
-          The conversations you have with Sage and the User Manual entries you
+          The conversations you have with {PERSONA_NAME_FORMAL} and the User Manual entries you
           confirm belong to you. We do not claim ownership of your content. We
-          use your content only to provide and improve the Sage experience.
+          use your content only to provide and improve the {PERSONA_NAME_FORMAL} experience.
         </p>
         <p>
           If you share your manual, you control what is visible and who can see
@@ -163,8 +164,8 @@ export default function TermsOfService() {
         </h2>
         <p>
           You may choose to share parts of your manual with others. Shared
-          content is view-only. Recipients may ask Sage questions about your
-          shared manual. Sage will only reference content you have explicitly
+          content is view-only. Recipients may ask {PERSONA_NAME_FORMAL} questions about your
+          shared manual. {PERSONA_NAME_FORMAL} will only reference content you have explicitly
           shared. You can revoke sharing at any time. Recipients cannot modify
           your manual.
         </p>
@@ -180,11 +181,11 @@ export default function TermsOfService() {
           Limitations
         </h2>
         <p>
-          Sage&apos;s reflections are based on patterns identified in your
+          {PERSONA_NAME_FORMAL}&apos;s reflections are based on patterns identified in your
           conversations. They may not always be accurate. You have full control
           over what gets written to your manual — nothing is saved without your
           confirmation. We make no guarantees about the accuracy, completeness,
-          or usefulness of Sage&apos;s observations.
+          or usefulness of {PERSONA_NAME_FORMAL}&apos;s observations.
         </p>
 
         <h2
@@ -199,7 +200,7 @@ export default function TermsOfService() {
         </h2>
         <p>
           Do not use mywalnut to harm, harass, or impersonate others. Do not
-          attempt to manipulate Sage into producing harmful content. Do not
+          attempt to manipulate {PERSONA_NAME_FORMAL} into producing harmful content. Do not
           invite others to group conversations without their knowledge or against
           their wishes.
         </p>

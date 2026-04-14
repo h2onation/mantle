@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export default function SmsOptInScreenshot() {
   return (
@@ -36,7 +37,7 @@ export default function SmsOptInScreenshot() {
         }}
       >
         Below is a screenshot of how users opt in to receive SMS messages from
-        Sage within the mywalnut app.
+        {" "}{PERSONA_NAME_FORMAL} within the mywalnut app.
       </p>
 
       <div

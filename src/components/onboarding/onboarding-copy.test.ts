@@ -49,13 +49,15 @@ describe("PR3 onboarding copy pass", () => {
 
     it("contains all 4 body paragraphs", () => {
       expect(src).toContain("You&rsquo;ll build a manual.");
-      expect(src).toContain("You build it by talking to Sage.");
-      expect(src).toContain("Over time, Sage identifies patterns");
+      // Persona name is interpolated via PERSONA_NAME constant; assert the
+      // surrounding copy without the name.
+      expect(src).toContain("You build it by talking to {PERSONA_NAME}.");
+      expect(src).toContain("identifies patterns");
       expect(src).toContain("Your manual is yours.");
     });
 
-    it("does NOT contain the old 'Sage finds the pattern underneath' headline", () => {
-      expect(src).not.toContain("Sage finds the pattern underneath");
+    it("does NOT contain the old 'finds the pattern underneath' headline", () => {
+      expect(src).not.toContain("finds the pattern underneath");
     });
   });
 
@@ -64,7 +66,8 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/onboarding/SeedScreen.tsx");
 
     it("contains all 3 body paragraphs", () => {
-      expect(src).toContain("Sage is AI. It identifies patterns using published frameworks");
+      // Persona name is interpolated via PERSONA_NAME constant.
+      expect(src).toContain("{PERSONA_NAME} is AI. It identifies patterns using published frameworks");
       expect(src).toContain("You&rsquo;re the authority on your own experience.");
       expect(src).toContain("Short answers are fine.");
     });
@@ -75,7 +78,8 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("uses new disclaimer about complement to therapy", () => {
-      expect(src).toContain("Sage is a great complement to therapy");
+      // Persona name is interpolated via PERSONA_NAME constant.
+      expect(src).toContain("{PERSONA_NAME} is a great complement to therapy");
     });
 
     it("does NOT set dead localStorage keys", () => {
@@ -131,7 +135,8 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("contains new welcome block with three bold labels", () => {
-      expect(src).toContain("This is where you talk to Sage.");
+      // Persona name is interpolated via PERSONA_NAME constant.
+      expect(src).toContain("This is where you talk to {PERSONA_NAME}.");
       expect(src).toContain("Navigate a situation.");
       expect(src).toContain("Write to your manual directly.");
       expect(src).toContain("Just get it out.");

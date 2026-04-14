@@ -5,6 +5,7 @@ import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import AdminView from "@/components/mobile/AdminView";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 interface MobileSettingsProps {
   userEmail: string;
@@ -431,10 +432,10 @@ export default function MobileSettings({
       )}
 
       {/* ─── Text Sage ─────────────────────────────────────────── */}
-      <SectionHeader label="TEXT SAGE" isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
+      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
 
       {openSections.has("textsage") && (
-        <SettingsRow title="Text Sage" noBorder>
+        <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
             {phoneState === "loading" && (
               <p
@@ -472,7 +473,7 @@ export default function MobileSettings({
                     margin: 0,
                   }}
                 >
-                  Link your phone to text Sage
+                  Link your phone to text {PERSONA_NAME}
                 </p>
               </button>
             )}
@@ -509,7 +510,7 @@ export default function MobileSettings({
                   }}
                 >
                   By entering your phone number, you agree to receive text messages
-                  from Sage by mywalnut. Message frequency varies. Msg &amp; data rates
+                  from {PERSONA_NAME_FORMAL} by mywalnut. Message frequency varies. Msg &amp; data rates
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
@@ -712,7 +713,7 @@ export default function MobileSettings({
                 </p>
                 <a
                   href="/sage-contact.vcf"
-                  download="Sage (mywalnut).vcf"
+                  download={`${PERSONA_NAME_FORMAL} (mywalnut).vcf`}
                   style={{
                     display: "block",
                     width: "100%",
@@ -734,7 +735,7 @@ export default function MobileSettings({
                       margin: 0,
                     }}
                   >
-                    Add Sage to contacts
+                    Add {PERSONA_NAME} to contacts
                   </p>
                 </a>
               </div>
@@ -771,8 +772,8 @@ export default function MobileSettings({
         >
           Send Jeff feedback directly — just type{" "}
           <strong style={{ color: "var(--session-ink-faded)" }}>/feedback</strong>{" "}
-          followed by your message in any Sage session. It goes straight to Jeff
-          and won&apos;t affect your conversation with Sage.
+          followed by your message in any {PERSONA_NAME} session. It goes straight to Jeff
+          and won&apos;t affect your conversation with {PERSONA_NAME}.
         </p>
       </div>
 

@@ -7,6 +7,7 @@ import PopulatedLayer from "./manual/PopulatedLayer";
 import type { ManualComponent, ExplorationContext } from "@/lib/types";
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
@@ -285,7 +286,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
             >
               Everything on this page — your sections, your narratives, your
               patterns — will be exported as a document you can send to anyone.
-              Your conversations with Sage and any session transcripts are never
+              Your conversations with {PERSONA_NAME} and any session transcripts are never
               included.
             </p>
 
@@ -406,7 +407,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
               }}
             >
               This is your manual. It&apos;s a guide to how you operate, built
-              from your conversations with Sage.
+              from your conversations with {PERSONA_NAME}.
             </p>
             <p
               style={{
@@ -417,7 +418,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
                 margin: "0 0 12px 0",
               }}
             >
-              Each section fills in as you talk. Sage will surface patterns,
+              Each section fills in as you talk. {PERSONA_NAME} will surface patterns,
               reflect them back, and you decide what&apos;s accurate. Nothing
               writes without your say.            </p>
             <p
@@ -448,7 +449,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
                 WebkitTapHighlightColor: "transparent",
               }}
             >
-              Talk to Sage
+              Talk to {PERSONA_NAME}
             </button>
             <button
               onClick={dismissIntro}

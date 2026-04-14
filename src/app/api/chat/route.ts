@@ -11,6 +11,7 @@ import {
   checkLimits,
   rateLimitedResponse,
 } from "@/lib/rate-limit";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MAX_MESSAGE_LENGTH = 4000;
 const ANON_CHECKPOINT_LIMIT = 2;
@@ -66,8 +67,7 @@ export async function POST(request: Request) {
         return Response.json({
           blocked: true,
           reason: "signup_required",
-          message:
-            "You've started building your manual. Create an account to keep what you've built and continue with Sage.",
+          message: `You've started building your manual. Create an account to keep what you've built and continue with ${PERSONA_NAME}.`,
         });
       }
     }

@@ -1,5 +1,7 @@
 "use client";
 
+import { PERSONA_NAME } from "@/lib/persona/config";
+
 interface InfoScreensProps {
   onNavigateToSeed: () => void;
   onBack: () => void;
@@ -65,10 +67,10 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
             You&rsquo;ll build a manual. A guide to how you operate, in your own words.
           </p>
           <p style={{ margin: "0 0 16px 0" }}>
-            You build it by talking to Sage. Sage is an AI that helps you navigate situations in your life. A conflict, a reaction, something you can&rsquo;t stop thinking about.
+            You build it by talking to {PERSONA_NAME}. {PERSONA_NAME} is an AI that helps you navigate situations in your life. A conflict, a reaction, something you can&rsquo;t stop thinking about.
           </p>
           <p style={{ margin: "0 0 16px 0" }}>
-            Over time, Sage identifies patterns in how you process and communicate, guided by published frameworks. When it sees something worth naming, it reflects it back. You decide if it&rsquo;s accurate.
+            Over time, {PERSONA_NAME} identifies patterns in how you process and communicate, guided by published frameworks. When it sees something worth naming, it reflects it back. You decide if it&rsquo;s accurate.
           </p>
           <p style={{ margin: 0 }}>
             Your manual is yours. Use it to navigate whatever comes up. Or share specific parts with specific people in a way you control.

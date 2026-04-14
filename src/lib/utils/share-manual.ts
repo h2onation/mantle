@@ -1,3 +1,5 @@
+import { PERSONA_NAME } from "@/lib/persona/config";
+
 export async function shareManual(
   pdfBlob: Blob,
   name: string
@@ -6,7 +8,7 @@ export async function shareManual(
   const fileName = `${safeName}s_manual.pdf`;
   const file = new File([pdfBlob], fileName, { type: "application/pdf" });
 
-  const shareText = `${name} shared their manual with you. This is a guide to how they work, written in their own words. Each entry was confirmed by them as accurate. You can ask Sage questions about anything in this manual.`;
+  const shareText = `${name} shared their manual with you. This is a guide to how they work, written in their own words. Each entry was confirmed by them as accurate. You can ask ${PERSONA_NAME} questions about anything in this manual.`;
 
   // Try native share sheet (works on iOS Safari, Android Chrome, etc.)
   if (typeof navigator !== "undefined" && navigator.share) {

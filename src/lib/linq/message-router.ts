@@ -9,12 +9,13 @@ import { processTextMessage } from "./sage-bridge";
 import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 const FALLBACK_MSG =
   "Something went wrong on my end. Try again in a minute, or open the app at mywalnut.app";
 
 const UNKNOWN_NUMBER_MSG =
-  "This is Sage by mywalnut. I don't have this number connected to an account. " +
+  `This is ${PERSONA_NAME_FORMAL} by mywalnut. I don't have this number connected to an account. ` +
   "If you have a mywalnut account, connect your number in Settings. " +
   "If you're new, start at mywalnut.app";
 
@@ -26,10 +27,10 @@ const RATE_LIMIT_MSG =
   "I'm still here, just need a moment to keep up. Give me a minute.";
 
 const KEYWORD_RESPONSES: Record<string, string> = {
-  STOP: "You've been disconnected from Sage. You can reconnect anytime in the mywalnut app.",
+  STOP: `You've been disconnected from ${PERSONA_NAME_FORMAL}. You can reconnect anytime in the mywalnut app.`,
   START:
-    "To reconnect with Sage, open the mywalnut app and link your phone number in Settings.",
-  HELP: "This is Sage by mywalnut. Text me anytime. Reply STOP to disconnect. For the full experience, open mywalnut at mywalnut.app",
+    `To reconnect with ${PERSONA_NAME_FORMAL}, open the mywalnut app and link your phone number in Settings.`,
+  HELP: `This is ${PERSONA_NAME_FORMAL} by mywalnut. Text me anytime. Reply STOP to disconnect. For the full experience, open mywalnut at mywalnut.app`,
 };
 
 // Rate limit: one unknown-number response per phone per 24 hours.
@@ -366,7 +367,7 @@ async function handleCheckpointResponse(
       await sendMessage(chatId, followUp);
     } catch (err) {
       console.error("[linq-router] post_refine_sage_failed:", err);
-      await sendMessage(chatId, "Got it — Sage will revisit this.");
+      await sendMessage(chatId, `Got it — ${PERSONA_NAME_FORMAL} will revisit this.`);
     }
     return "refined";
   }
