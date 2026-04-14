@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { callSage } from "@/lib/sage/call-sage";
+import { callSage } from "@/lib/persona/call-persona";
 import {
   chatAuthMinute,
   chatAuthDay,

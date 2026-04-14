@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { cleanAndParseClassification } from "@/lib/sage/classifier";
+import { cleanAndParseClassification } from "@/lib/persona/classifier";
 
 describe("cleanAndParseClassification", () => {
   it("parses clean JSON correctly", () => {
@@ -71,7 +71,7 @@ describe("classifyResponse (mocked API)", () => {
     }));
 
     // Dynamic import after mock is set up
-    const { classifyResponse } = await import("@/lib/sage/classifier");
+    const { classifyResponse } = await import("@/lib/persona/classifier");
     const result = await classifyResponse("sage text", "recent text");
     expect(result).toEqual({
       isCheckpoint: false,

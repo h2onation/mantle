@@ -17,15 +17,15 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
-vi.mock("@/lib/sage/call-sage", () => ({
+vi.mock("@/lib/persona/call-persona", () => ({
   callSage: () => new ReadableStream({ start(c) { c.close(); } }),
 }));
 
-vi.mock("@/lib/sage/confirm-checkpoint", () => ({
+vi.mock("@/lib/persona/confirm-checkpoint", () => ({
   confirmCheckpoint: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock("@/lib/sage/sage-pipeline", () => ({
+vi.mock("@/lib/persona/persona-pipeline", () => ({
   insertCheckpointActionMessage: vi.fn().mockResolvedValue(undefined),
 }));
 

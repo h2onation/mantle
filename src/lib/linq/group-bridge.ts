@@ -19,8 +19,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/sage/sage-pipeline";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/persona/persona-pipeline";
 import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 

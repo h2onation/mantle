@@ -7,7 +7,7 @@ import {
   renderVoiceRules,
   renderBannedPhrases,
   renderExampleRegister,
-} from "@/lib/sage/voice-autistic";
+} from "@/lib/persona/voice-autistic";
 
 /** Voice mode for Sage. Currently only 'autistic' ships, but the seam exists
  *  so future voice modes can be added without re-plumbing the call chain. */

@@ -1,8 +1,8 @@
 import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import { classifyResponse } from "@/lib/sage/classifier";
-import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { classifyResponse } from "@/lib/persona/classifier";
+import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
 import { detectUrls } from "@/lib/utils/url-detection";
@@ -18,7 +18,7 @@ import {
   applyCheckpointGates,
   buildCheckpointMeta,
   validateComposedEntry,
-} from "@/lib/sage/sage-pipeline";
+} from "@/lib/persona/persona-pipeline";
 
 // ── Extracted pure functions (testable without mocking) ──
 

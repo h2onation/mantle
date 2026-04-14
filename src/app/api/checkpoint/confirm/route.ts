@@ -2,9 +2,9 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { callSage } from "@/lib/sage/call-sage";
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
-import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
+import { callSage } from "@/lib/persona/call-persona";
+import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
+import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import {
   checkpointConfirmHour,
   checkLimit,

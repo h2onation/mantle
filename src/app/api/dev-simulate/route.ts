@@ -2,12 +2,12 @@ export const runtime = "edge";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { callSage, mapSystemMessages } from "@/lib/sage/call-sage";
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { callSage, mapSystemMessages } from "@/lib/persona/call-persona";
+import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import {
   generateSimulatedUserMessage,
   parseCheckpointIntent,
-} from "@/lib/sage/simulate-user";
+} from "@/lib/persona/simulate-user";
 
 /**
  * Consume a callSage ReadableStream internally, extracting the full text

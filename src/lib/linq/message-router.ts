@@ -5,9 +5,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, sendTypingIndicator, markAsRead } from "./sender";
-import { processTextMessage } from "./sage-bridge";
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
-import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
+import { processTextMessage } from "./persona-bridge";
+import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
+import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 

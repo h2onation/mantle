@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatExtractionForSage, type ExtractionState } from "@/lib/sage/extraction";
+import { formatExtractionForSage, type ExtractionState } from "@/lib/persona/extraction";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {

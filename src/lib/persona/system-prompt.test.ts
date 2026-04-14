@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import type { BuildPromptOptions } from "@/lib/sage/system-prompt";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
   BANNED_PHRASES,
   EXAMPLE_REGISTER,
-} from "@/lib/sage/voice-autistic";
+} from "@/lib/persona/voice-autistic";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags

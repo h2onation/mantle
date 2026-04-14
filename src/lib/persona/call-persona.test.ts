@@ -3,7 +3,7 @@ import {
   applySlidingWindow,
   mapSystemMessages,
   detectCrisisInUserMessage,
-} from "@/lib/sage/call-sage";
+} from "@/lib/persona/call-persona";
 
 // ── applySlidingWindow ──
 

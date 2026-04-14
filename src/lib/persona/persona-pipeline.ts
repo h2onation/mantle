@@ -8,13 +8,13 @@ import {
   runExtraction,
   formatExtractionForSage,
   type ExtractionState,
-} from "@/lib/sage/extraction";
+} from "@/lib/persona/extraction";
 import {
   mapSystemMessages,
   applySlidingWindow,
   detectCrisisInUserMessage,
-} from "@/lib/sage/call-sage";
-import type { SageMode } from "@/lib/sage/system-prompt";
+} from "@/lib/persona/call-persona";
+import type { SageMode } from "@/lib/persona/system-prompt";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

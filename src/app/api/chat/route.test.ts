@@ -33,7 +33,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
-vi.mock("@/lib/sage/call-sage", () => ({
+vi.mock("@/lib/persona/call-persona", () => ({
   callSage: () => new ReadableStream({ start(c) { c.close(); } }),
 }));
 

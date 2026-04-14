@@ -4,9 +4,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import { classifyResponse } from "@/lib/sage/classifier";
-import { composeManualEntry } from "@/lib/sage/confirm-checkpoint";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { classifyResponse } from "@/lib/persona/classifier";
+import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import {
   SAGE_MODEL,
   SAGE_MAX_TOKENS,
@@ -17,7 +17,7 @@ import {
   applyCheckpointGates,
   buildCheckpointMeta,
   validateComposedEntry,
-} from "@/lib/sage/sage-pipeline";
+} from "@/lib/persona/persona-pipeline";
 
 interface SageBridgeResult {
   responseText: string;

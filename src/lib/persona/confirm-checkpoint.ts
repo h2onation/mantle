@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { insertCheckpointActionMessage } from "@/lib/sage/sage-pipeline";
+import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
 // ─── Manual entry composition (Sonnet) ─────────────────────────────────────

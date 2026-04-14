@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateSessionSummary } from "@/lib/sage/generate-summary";
+import { generateSessionSummary } from "@/lib/persona/generate-summary";
 
 export async function POST(request: Request) {
   const supabase = createClient();
