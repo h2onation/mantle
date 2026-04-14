@@ -204,7 +204,7 @@ export async function routeInboundMessage(
     }
 
     console.log(
-      "[linq-router] sage_response user=%s conv=%s len=%d latency_ms=%d",
+      "[linq-router] persona_response user=%s conv=%s len=%d latency_ms=%d",
       userId,
       result.conversationId,
       result.responseText.length,
@@ -222,7 +222,7 @@ export async function routeInboundMessage(
   } catch (err) {
     const latencyMs = Date.now() - startTime;
     console.error(
-      "[linq-router] sage_error user=%s latency_ms=%d error=%s",
+      "[linq-router] persona_error user=%s latency_ms=%d error=%s",
       userId,
       latencyMs,
       err instanceof Error ? err.message : String(err)

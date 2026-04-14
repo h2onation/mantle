@@ -552,7 +552,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
 
       // Cost logging — track every group Sage API call for threshold tuning
       console.log(
-        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
+        "[linq] GROUP_PERSONA_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
         chatId,
         currentCount,
         gate.reason,
@@ -564,7 +564,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     } catch (err) {
       const latencyMs = Date.now() - personaCallStart;
       console.error(
-        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s outcome=error latency_ms=%d error=%s",
+        "[linq] GROUP_PERSONA_CALL chat_id=%s counter=%d gate_reason=%s outcome=error latency_ms=%d error=%s",
         chatId,
         currentCount,
         gate.reason,

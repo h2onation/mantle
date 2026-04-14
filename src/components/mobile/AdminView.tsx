@@ -7,6 +7,7 @@ import PopulatedLayer from "./manual/PopulatedLayer";
 import EmptyLayer from "./manual/EmptyLayer";
 import { renderMarkdown } from "@/lib/utils/format";
 import type { ManualComponent } from "@/lib/types";
+import { PERSONA_NAME } from "@/lib/persona/config";
 import UsersTab, { type AdminUserOverview } from "./admin/UsersTab";
 import WaitlistTab, {
   type WaitlistRow,
@@ -1193,7 +1194,7 @@ export default function AdminView() {
                               marginBottom: 8,
                             }}
                           >
-                            SAGE
+                            {PERSONA_NAME.toUpperCase()}
                           </div>
                           <div
                             style={{
