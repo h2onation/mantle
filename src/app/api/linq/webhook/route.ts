@@ -5,7 +5,7 @@ import { routeInboundMessage } from "@/lib/linq/message-router";
 import { detectAndSetupGroup } from "@/lib/linq/group-detection";
 import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
 import { processGroupMessage, saveGroupMessage, prefetchGroupContext } from "@/lib/linq/group-bridge";
-import { evaluateGate } from "@/lib/linq/group-gate";
+import { evaluateGate, mentionsPersona } from "@/lib/linq/group-gate";
 import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
@@ -437,7 +437,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       const messageText =
         parts.filter((p: { type: string }) => p.type === "text")
           .map((p: { type: string; value: string }) => p.value).join(" ") || bodyText || "";
-      const mentionsSage = /\bsage\b/i.test(messageText);
+      const mentionsSage = mentionsPersona(messageText);
 
       if (groupState && !groupState.owner_user_id && mentionsSage) {
         console.log("[linq] re_detecting_inactive_group chat_id=%s", chatId);

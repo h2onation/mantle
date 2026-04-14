@@ -1,3 +1,5 @@
+import { PERSONA_NAME } from "@/lib/persona/config";
+
 // ---------------------------------------------------------------------------
 // Group message gate — scoring-based filter for group messages.
 //
@@ -28,6 +30,20 @@ export const GATE_SCORE_THRESHOLD = 3;
 
 /** Reduced threshold once counter hits GATE_MIN_MESSAGES — any substance gets through */
 export const GATE_REDUCED_THRESHOLD = 1;
+
+/**
+ * Detects direct address of the persona in group-chat text.
+ * Matches the current brand name (PERSONA_NAME) plus a "sage" transition
+ * fallback so users who still type the old name during the rebrand get
+ * routed correctly. Case-insensitive, word-boundary matched.
+ *
+ * TODO: remove the "sage" alternation once the rebrand has settled and
+ * telemetry shows no meaningful volume of old-name mentions.
+ */
+export function mentionsPersona(text: string): boolean {
+  const escaped = PERSONA_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b(${escaped}|sage)\\b`, "i").test(text);
+}
 
 /** Minimum ms between Sage responses (only direct address bypasses) */
 export const GATE_COOLDOWN_MS = 30_000;
@@ -93,8 +109,11 @@ export function evaluateGate(
   const SEND = (reason: string, score: number, nudge = false): GateResult =>
     ({ decision: "SEND_TO_SAGE", reason, addNudgeHint: nudge, score });
 
-  // 1. Direct address — always respond (bypasses cooldown)
-  if (/\bsage\b/i.test(messageText)) {
+  // 1. Direct address — always respond (bypasses cooldown).
+  // Matches the current brand name (PERSONA_NAME) plus a "sage" transition
+  // fallback so users who still type the old name during rebrand get routed
+  // correctly. TODO: remove the "sage" alternation once the rebrand settles.
+  if (mentionsPersona(messageText)) {
     return SEND("direct_address", 0);
   }
 
