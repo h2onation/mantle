@@ -1,5 +1,6 @@
 import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { classifyResponse } from "@/lib/persona/classifier";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
@@ -294,7 +295,7 @@ export function callPersona({
         if (!fullText) {
           emitError(
             controller,
-            "Sage lost the thread. Try sending that again."
+            `${PERSONA_NAME} lost the thread. Try sending that again.`
           );
           return;
         }
@@ -487,8 +488,8 @@ export function callPersona({
         const isTimeout =
           err instanceof Error && err.name === "AbortError";
         const msg = isTimeout
-          ? "Sage took too long to respond. Try again."
-          : "Sage lost the thread. Try sending that again.";
+          ? `${PERSONA_NAME} took too long to respond. Try again.`
+          : `${PERSONA_NAME} lost the thread. Try sending that again.`;
         console.error("[callPersona] Error:", err);
         emitError(controller, msg);
       }

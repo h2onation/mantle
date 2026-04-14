@@ -11,8 +11,8 @@ import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
 
-// Sage's normalized phone — computed once at module level
-function getSagePhone(): string {
+// Persona's normalized phone — computed once at module level
+function getPersonaPhone(): string {
   return normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
 }
 
@@ -185,7 +185,7 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
   );
 
   // If the added participant is Sage, this is a group we need to set up
-  if (addedHandle && normalizePhone(addedHandle) === getSagePhone()) {
+  if (addedHandle && normalizePhone(addedHandle) === getPersonaPhone()) {
     console.log("[linq] persona_added_to_group chat_id=%s", chatId);
     // Extract handles from the event payload if available
     const handles = extractHandlesFromEvent(data);
@@ -226,7 +226,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   const normalizedRemoved = removedHandle ? normalizePhone(removedHandle) : null;
 
   // Case e: Sage was removed
-  if (normalizedRemoved && normalizedRemoved === getSagePhone()) {
+  if (normalizedRemoved && normalizedRemoved === getPersonaPhone()) {
     console.log("[linq] persona_removed_from_group chat_id=%s", chatId);
     await updateGroupState(chatId, { is_active: false });
     return;
@@ -275,27 +275,27 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   }
 
   // Count non-Sage participants from the API response
-  const apiNonSage = chatInfo.handles
+  const apiNonPersona = chatInfo.handles
     .map((h) => normalizePhone(h))
-    .filter((h) => h && h !== getSagePhone());
+    .filter((h) => h && h !== getPersonaPhone());
 
-  if (apiNonSage.length <= 1) {
+  if (apiNonPersona.length <= 1) {
     // Confirmed: just owner user (or nobody) + Sage
     await sendMessage(
       chatId,
       "Looks like it's just us. I'm in our regular thread if you want to keep going."
     );
     await updateGroupState(chatId, { is_active: false });
-    console.log("[linq] group_closed chat_id=%s api_confirmed=%d", chatId, apiNonSage.length);
+    console.log("[linq] group_closed chat_id=%s api_confirmed=%d", chatId, apiNonPersona.length);
   } else {
     // Counter was wrong — fix it to match reality
     console.warn(
       "[linq] counter_mismatch chat_id=%s counter=%d api=%d — fixing",
       chatId,
       newCount,
-      apiNonSage.length
+      apiNonPersona.length
     );
-    await updateGroupState(chatId, { non_persona_participant_count: apiNonSage.length });
+    await updateGroupState(chatId, { non_persona_participant_count: apiNonPersona.length });
   }
 }
 

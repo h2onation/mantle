@@ -35,7 +35,7 @@ export default function MobileManual({ components, displayName, onExploreWithPer
     setShowIntroModal(false);
   }
 
-  function handleTalkToSage() {
+  function handleTalkToPersona() {
     dismissIntro();
     onNavigateToSession?.();
   }
@@ -434,7 +434,7 @@ export default function MobileManual({ components, displayName, onExploreWithPer
             </p>
 
             <button
-              onClick={handleTalkToSage}
+              onClick={handleTalkToPersona}
               style={{
                 width: "100%",
                 padding: 14,

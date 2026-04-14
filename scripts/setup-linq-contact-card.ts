@@ -53,7 +53,7 @@ async function main() {
 
   console.log("Contact card set successfully!");
   console.log(JSON.stringify(body, null, 2));
-  console.log("\nSage will show up as 'Sage by mywalnut' in iMessage.");
+  console.log(`\n${PERSONA_NAME_FORMAL} will show up as '${PERSONA_NAME_FORMAL} by mywalnut' in iMessage.`);
 }
 
 main();

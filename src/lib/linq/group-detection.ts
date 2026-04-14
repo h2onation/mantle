@@ -93,17 +93,17 @@ export async function detectAndSetupGroup(
 
   // 3. Identify participants
   const personaPhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
-  const nonSageHandles = handles
+  const nonPersonaHandles = handles
     .map((h) => normalizePhone(h))
     .filter((h) => h && h !== personaPhone);
 
-  const participantCount = nonSageHandles.length;
+  const participantCount = nonPersonaHandles.length;
 
   console.log(
     "[group-detect] chat_id=%s participants=%d handles=%j",
     linqChatId,
     participantCount,
-    nonSageHandles
+    nonPersonaHandles
   );
 
   // 4. Look up owner users among participants
@@ -111,7 +111,7 @@ export async function detectAndSetupGroup(
   const { data: phoneRows, error: lookupError } = await admin
     .from("phone_numbers")
     .select("user_id, phone")
-    .in("phone", nonSageHandles)
+    .in("phone", nonPersonaHandles)
     .eq("verified", true);
 
   if (lookupError) {

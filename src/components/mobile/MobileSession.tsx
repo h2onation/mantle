@@ -656,7 +656,7 @@ export default function MobileSession({
               }
 
               // Sequence detection: is this the first sage message in a run?
-              const isFirstInSageSequence = (() => {
+              const isFirstInPersonaSequence = (() => {
                 if (msg.role !== "assistant") return false;
                 if (i === 0) return true;
                 const prev = messages[i - 1];
@@ -676,7 +676,7 @@ export default function MobileSession({
                     }}
                   >
                     {/* Sage label — first in sequence only */}
-                    {isFirstInSageSequence && (
+                    {isFirstInPersonaSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (

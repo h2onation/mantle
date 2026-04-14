@@ -25,7 +25,7 @@ import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
-const GROUP_SAGE_TIMEOUT_MS = 15_000;
+const GROUP_PERSONA_TIMEOUT_MS = 15_000;
 
 // ---------------------------------------------------------------------------
 // Pre-fetched context — loaded once in the webhook handler, shared by both
@@ -241,7 +241,7 @@ export async function processGroupMessage(
       system: systemPrompt,
       messages: windowedMessages,
     },
-    GROUP_SAGE_TIMEOUT_MS
+    GROUP_PERSONA_TIMEOUT_MS
   );
 
   const fullText =
