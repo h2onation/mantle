@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mantle — Private Preview</title>
+<title>mywalnut — Private Preview</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -86,7 +86,7 @@ body {
 </head>
 <body>
 <div class="gate" id="gate">
-  <div class="gate-badge">Mantle</div>
+  <div class="gate-badge">mywalnut</div>
   <div class="gate-title">Private Preview</div>
   <div class="gate-sub">Enter the access code to continue.</div>
   <div style="position:relative">
@@ -100,7 +100,7 @@ body {
 
 <script>
 // Change this to whatever password you want
-const ACCESS_CODE = 'understandingwmantle26';
+const ACCESS_CODE = 'understandingwmywalnut26';
 
 function togglePassword() {
   const input = document.getElementById('codeInput');
@@ -116,7 +116,7 @@ function checkCode() {
   
   if (input.value.toLowerCase().trim() === ACCESS_CODE) {
     // Redirect to the intro page
-    window.location.href = '/narrative/mantle_intro.html';
+    window.location.href = '/narrative/mywalnut_intro.html';
   } else {
     input.classList.add('error');
     error.style.display = 'block';
