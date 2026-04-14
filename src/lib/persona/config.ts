@@ -5,8 +5,8 @@
  * Internal code uses "persona" as the technical identifier — this
  * constant is the public-facing label rendered to users.
  *
- * Currently "Sage" during transition. Target: "mywalnut" (the AI
- * collapses into the platform identity — no separate persona name)
+ * Currently "Jove". Renamed from "Sage" on 2026-04-14. Target: "mywalnut"
+ * (the AI collapses into the platform identity — no separate persona name)
  * once all user-facing strings are wired through this constant.
  *
  * Rebrand checklist when changing this value:
@@ -22,10 +22,10 @@
  *      assert the literal current name — expected to fail and prompt
  *      conscious review; update their assertions to use PERSONA_NAME.
  */
-export const PERSONA_NAME = "Sage";
+export const PERSONA_NAME = "Jove";
 
 /**
  * Capitalized form for SMS messages, vCard, legal pages.
  * Keep in sync with PERSONA_NAME.
  */
-export const PERSONA_NAME_FORMAL = "Sage";
+export const PERSONA_NAME_FORMAL = "Jove";

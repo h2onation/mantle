@@ -26,11 +26,11 @@ describe("buildSystemPrompt", () => {
 
   // ─── Base prompt ─────────────────────────────────────────────────────────
   describe("base prompt always present", () => {
-    it("contains 'You are Sage' regardless of parameters", () => {
-      expect(build()).toContain("You are Sage");
+    it("contains 'You are Jove' regardless of parameters", () => {
+      expect(build()).toContain("You are Jove");
     });
 
-    it("contains 'You are Sage' with all parameters populated", () => {
+    it("contains 'You are Jove' with all parameters populated", () => {
       const result = build({
         manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
         isReturningUser: true,
@@ -40,7 +40,7 @@ describe("buildSystemPrompt", () => {
         sessionCount: 3,
         checkpointApproaching: true,
       });
-      expect(result).toContain("You are Sage");
+      expect(result).toContain("You are Jove");
     });
   });
 
