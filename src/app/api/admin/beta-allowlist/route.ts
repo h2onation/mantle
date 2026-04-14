@@ -1,6 +1,62 @@
 import { verifyAdmin } from "@/lib/admin/verify-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export async function GET() {
+  try {
+    const { isAdmin } = await verifyAdmin();
+    if (!isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("beta_allowlist")
+      .select("id, email, notes, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[admin/beta-allowlist] select error:", error.message);
+      return Response.json({ error: "Failed to load" }, { status: 500 });
+    }
+
+    return Response.json({ items: data ?? [] });
+  } catch (err) {
+    console.error("[admin/beta-allowlist] unexpected error:", err);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { isAdmin } = await verifyAdmin();
+    if (!isAdmin) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return Response.json({ error: "missing_id" }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("beta_allowlist")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("[admin/beta-allowlist] delete error:", error.message);
+      return Response.json({ error: "Failed to remove" }, { status: 500 });
+    }
+
+    return Response.json({ result: "removed" });
+  } catch (err) {
+    console.error("[admin/beta-allowlist] unexpected error:", err);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { isAdmin } = await verifyAdmin();
@@ -50,6 +106,8 @@ export async function POST(request: Request) {
       console.error("[admin/beta-allowlist] insert error:", insertError.message);
       return Response.json({ error: "Failed to add" }, { status: 500 });
     }
+
+    console.log("[admin/beta-allowlist] inserted email=%s", email);
 
     // If a waitlist_id was provided, also update that row's status to "invited"
     const waitlistId = body.waitlist_id;
