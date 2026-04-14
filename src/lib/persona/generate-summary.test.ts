@@ -7,9 +7,9 @@ describe("buildTranscript", () => {
     expect(result).toBe("User: Hello");
   });
 
-  it("labels assistant messages as 'Sage'", () => {
+  it("labels assistant messages as 'Jove'", () => {
     const result = buildTranscript([{ role: "assistant", content: "Hi there" }]);
-    expect(result).toBe("Sage: Hi there");
+    expect(result).toBe("Jove: Hi there");
   });
 
   it("labels system messages as 'System'", () => {
@@ -23,7 +23,7 @@ describe("buildTranscript", () => {
       { role: "assistant", content: "Hi" },
       { role: "user", content: "How are you" },
     ]);
-    expect(result).toBe("User: Hello\n\nSage: Hi\n\nUser: How are you");
+    expect(result).toBe("User: Hello\n\nJove: Hi\n\nUser: How are you");
   });
 
   it("returns empty string for empty array", () => {
