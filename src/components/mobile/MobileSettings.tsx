@@ -712,7 +712,7 @@ export default function MobileSettings({
                   Text {formatPhoneDisplay(process.env.NEXT_PUBLIC_LINQ_PHONE_NUMBER || "")} anytime.
                 </p>
                 <a
-                  href="/sage-contact.vcf"
+                  href="/persona-contact.vcf"
                   download={`${PERSONA_NAME_FORMAL} (mywalnut).vcf`}
                   style={{
                     display: "block",
