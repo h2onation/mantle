@@ -246,8 +246,8 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   }
 
   // Case c: A non-owner participant left
-  const newCount = Math.max(0, (groupState.non_sage_participant_count || 0) - 1);
-  await updateGroupState(chatId, { non_sage_participant_count: newCount });
+  const newCount = Math.max(0, (groupState.non_persona_participant_count || 0) - 1);
+  await updateGroupState(chatId, { non_persona_participant_count: newCount });
 
   if (newCount > 1) {
     // Other friends remain — just log it
@@ -295,7 +295,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
       newCount,
       apiNonSage.length
     );
-    await updateGroupState(chatId, { non_sage_participant_count: apiNonSage.length });
+    await updateGroupState(chatId, { non_persona_participant_count: apiNonSage.length });
   }
 }
 
@@ -497,15 +497,15 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     }
 
     // Increment counter and prefetch context in parallel
-    const currentCount = (groupState.messages_since_sage_spoke || 0) + 1;
+    const currentCount = (groupState.messages_since_persona_spoke || 0) + 1;
     const [, prefetched] = await Promise.all([
-      updateGroupState(chatId, { messages_since_sage_spoke: currentCount }),
+      updateGroupState(chatId, { messages_since_persona_spoke: currentCount }),
       prefetchGroupContext(groupState, String(senderPhone)),
     ]);
 
     // Run the scoring-based message gate
-    const lastSageSpokeAt = groupState.last_sage_spoke_at
-      ? new Date(groupState.last_sage_spoke_at)
+    const lastSageSpokeAt = groupState.last_persona_spoke_at
+      ? new Date(groupState.last_persona_spoke_at)
       : null;
     const gate = evaluateGate(groupTextContent, currentCount, lastSageSpokeAt);
     console.log(
@@ -545,8 +545,8 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       if (result.responseText) {
         await sendMessage(chatId, result.responseText);
         await updateGroupState(chatId, {
-          messages_since_sage_spoke: 0,
-          last_sage_spoke_at: new Date().toISOString(),
+          messages_since_persona_spoke: 0,
+          last_persona_spoke_at: new Date().toISOString(),
         });
       }
 

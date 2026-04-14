@@ -136,9 +136,9 @@ export async function detectAndSetupGroup(
     if (existing) {
       await updateGroupState(linqChatId, {
         owner_user_id: ownerUserId,
-        non_sage_participant_count: count,
+        non_persona_participant_count: count,
       });
-      return { ...existing, owner_user_id: ownerUserId, non_sage_participant_count: count };
+      return { ...existing, owner_user_id: ownerUserId, non_persona_participant_count: count };
     }
     return createGroupState(linqChatId, ownerUserId, count);
   }

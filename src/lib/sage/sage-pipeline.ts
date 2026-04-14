@@ -101,7 +101,7 @@ export async function loadConversationContext(
       .maybeSingle(),
     admin
       .from("profiles")
-      .select("sage_mode")
+      .select("persona_mode")
       .eq("id", userId)
       .maybeSingle(),
   ]);
@@ -109,7 +109,7 @@ export async function loadConversationContext(
   // Voice mode. Null/missing → 'autistic' (the only mode that ships in PR1).
   // The seam exists so future modes can be added without re-plumbing.
   const sageMode: SageMode =
-    (profileResult.data?.sage_mode as SageMode) || "autistic";
+    (profileResult.data?.persona_mode as SageMode) || "autistic";
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -258,7 +258,7 @@ export function handleCrisisDetection(
     conversation_id: conversationId,
     user_id: userId,
     crisis_detected: true,
-    sage_included_988: sageIncluded988,
+    persona_included_988: sageIncluded988,
   });
 
   admin
@@ -267,7 +267,7 @@ export function handleCrisisDetection(
       conversation_id: conversationId,
       user_id: userId,
       crisis_detected: true,
-      sage_included_988: sageIncluded988,
+      persona_included_988: sageIncluded988,
       created_at: new Date().toISOString(),
     })
     .then(({ error }) => {
