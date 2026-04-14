@@ -10,6 +10,9 @@
 ## Deployed Features
 *Last verified: 2026-04-14*
 
+- Persona rename Sage → Jove (2026-04-14): `PERSONA_NAME` / `PERSONA_NAME_FORMAL` flipped in `src/lib/persona/config.ts`. Abstraction held — system prompt, summary transcript labels, error strings, checkpoint prompts, simulation prompts, SMS templating, and group-gate direct-address regex all pick up the new name automatically. Hand-touched untemplated literals: `public/persona-contact.vcf` FN field, `public/offline.html` brand copy, `public/narrative/*.html` (4 investor/demo pages — visible text flipped, CSS class tokens like `.bubble-sage` / `--sage` preserved). Value-bound test assertions in `system-prompt.test.ts` and `generate-summary.test.ts` updated. `group-gate.ts` keeps `|sage` alternation as a transition fallback so old iMessage groups using "sage" as direct address still route correctly. `APP_VERSION` 2.10.0 → 2.11.0, `PERSONA_VERSION` 2.4.0 → 2.5.0 (Anthropic prompt cache invalidates on first call after deploy). Deferred: `sage_brief` JSONB key in extraction state — needs its own dual-read migration.
+- Narrative pages brand fix (2026-04-14): `public/narrative/mantle_intro.html` → `mywalnut_intro.html`, access code `understandingwmantle26` → `understandingwmywalnut26`, 15 Mantle brand references flipped across `index.html` and the intro page. Old preview links and old access code will 404 / reject (small audience, acceptable break).
+
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
 - Onboarding: pre-auth flow (entry → info screens → seed → anonymous auth), dissolve transition into chat, skip for returning users
