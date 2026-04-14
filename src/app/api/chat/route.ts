@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { callSage } from "@/lib/sage/call-sage";
+import { callPersona } from "@/lib/persona/call-persona";
 import {
   chatAuthMinute,
   chatAuthDay,
@@ -11,6 +11,7 @@ import {
   checkLimits,
   rateLimitedResponse,
 } from "@/lib/rate-limit";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MAX_MESSAGE_LENGTH = 4000;
 const ANON_CHECKPOINT_LIMIT = 2;
@@ -66,8 +67,7 @@ export async function POST(request: Request) {
         return Response.json({
           blocked: true,
           reason: "signup_required",
-          message:
-            "You've started building your manual. Create an account to keep what you've built and continue with Sage.",
+          message: `You've started building your manual. Create an account to keep what you've built and continue with ${PERSONA_NAME}.`,
         });
       }
     }
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Stream response
-    const stream = callSage({
+    const stream = callPersona({
       conversationId: convId,
       userId: user.id,
       message,

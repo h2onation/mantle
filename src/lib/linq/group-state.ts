@@ -12,10 +12,10 @@ export interface GroupState {
   is_active: boolean;
   intro_sent: boolean;
   intro_sent_at: string | null;
-  non_sage_participant_count: number;
-  messages_since_sage_spoke: number;
+  non_persona_participant_count: number;
+  messages_since_persona_spoke: number;
   last_inactive_reminder_at: string | null;
-  last_sage_spoke_at: string | null;
+  last_persona_spoke_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,7 +55,7 @@ export async function createGroupState(
     .insert({
       linq_chat_id: linqChatId,
       owner_user_id: ownerUserId,
-      non_sage_participant_count: participantCount,
+      non_persona_participant_count: participantCount,
     })
     .select("*")
     .single();
@@ -86,10 +86,10 @@ export async function updateGroupState(
       | "is_active"
       | "intro_sent"
       | "intro_sent_at"
-      | "non_sage_participant_count"
-      | "messages_since_sage_spoke"
+      | "non_persona_participant_count"
+      | "messages_since_persona_spoke"
       | "last_inactive_reminder_at"
-      | "last_sage_spoke_at"
+      | "last_persona_spoke_at"
     >
   >
 ): Promise<void> {

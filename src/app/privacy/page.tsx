@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — mywalnut",
@@ -40,7 +41,7 @@ export default function PrivacyPolicy() {
 
         <p>
           mywalnut (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;)
-          operates the Sage conversational platform at mywalnut.app. This
+          operates the {PERSONA_NAME_FORMAL} conversational platform at mywalnut.app. This
           policy describes how we collect, use, and protect your information.
         </p>
 
@@ -61,19 +62,19 @@ export default function PrivacyPolicy() {
         </p>
         <p>
           <strong>Phone number:</strong> if you choose to link your phone number
-          to text Sage via MMS. Your number is verified via SMS and stored
+          to text {PERSONA_NAME_FORMAL} via MMS. Your number is verified via SMS and stored
           securely.
         </p>
         <p>
           <strong>Conversation data:</strong> the messages you exchange with
-          Sage, both on the web app and via text message. This includes text
+          {PERSONA_NAME_FORMAL}, both on the web app and via text message. This includes text
           content and any behavioral patterns identified during your
           conversations.
         </p>
         <p>
           <strong>Manual content:</strong> the components and patterns that make
           up your User Manual, which you review and confirm during conversations
-          with Sage.
+          with {PERSONA_NAME_FORMAL}.
         </p>
         <p>
           <strong>Usage data:</strong> basic analytics such as session frequency
@@ -93,14 +94,14 @@ export default function PrivacyPolicy() {
 
         <ul style={{ paddingLeft: 20, margin: "0 0 16px 0" }}>
           <li>
-            To provide the Sage conversational experience and build your User
+            To provide the {PERSONA_NAME_FORMAL} conversational experience and build your User
             Manual.
           </li>
           <li>
             To send you text messages when you initiate a conversation via MMS.
           </li>
           <li>
-            To improve the quality of Sage&apos;s responses and the overall
+            To improve the quality of {PERSONA_NAME_FORMAL}&apos;s responses and the overall
             product experience.
           </li>
         </ul>
@@ -123,7 +124,7 @@ export default function PrivacyPolicy() {
 
         <p>
           <strong>Anthropic:</strong> your conversation content is processed by
-          Anthropic&apos;s Claude language model to generate Sage&apos;s
+          Anthropic&apos;s Claude language model to generate {PERSONA_NAME_FORMAL}&apos;s
           responses. Anthropic&apos;s usage policies apply to this processing.
         </p>
         <p>
@@ -192,7 +193,7 @@ export default function PrivacyPolicy() {
         </h2>
         <p>
           If you link your phone number, you consent to receiving text messages
-          from Sage at the number you provided. Messages are sent only in
+          from {PERSONA_NAME_FORMAL} at the number you provided. Messages are sent only in
           response to conversations you initiate. You can stop receiving messages
           at any time by texting STOP. Message and data rates may apply. Message
           frequency varies based on your usage. No mobile information
@@ -271,7 +272,7 @@ export default function PrivacyPolicy() {
           <a
             href="https://mywalnut.app"
             style={{
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}

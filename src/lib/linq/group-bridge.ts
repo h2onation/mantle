@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Group chat Sage bridge — facilitator mode for group text conversations.
+// Group chat persona bridge — facilitator mode for group text conversations.
 //
-// Follows the same import pattern as sage-bridge.ts: shared logic lives in
-// sage-pipeline.ts, channel-specific concerns stay here.
+// Follows the same import pattern as persona-bridge.ts: shared logic lives in
+// persona-pipeline.ts, channel-specific concerns stay here.
 //
 // Key differences from the 1:1 bridge:
 //   - Uses the group system prompt (facilitator, not deep conversation)
@@ -19,13 +19,13 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/sage/sage-pipeline";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/persona-pipeline";
 import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
-const GROUP_SAGE_TIMEOUT_MS = 15_000;
+const GROUP_PERSONA_TIMEOUT_MS = 15_000;
 
 // ---------------------------------------------------------------------------
 // Pre-fetched context — loaded once in the webhook handler, shared by both
@@ -236,12 +236,12 @@ export async function processGroupMessage(
   // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
   const response = await anthropicFetch(
     {
-      model: SAGE_MODEL,
-      max_tokens: SAGE_MAX_TOKENS,
+      model: PERSONA_MODEL,
+      max_tokens: PERSONA_MAX_TOKENS,
       system: systemPrompt,
       messages: windowedMessages,
     },
-    GROUP_SAGE_TIMEOUT_MS
+    GROUP_PERSONA_TIMEOUT_MS
   );
 
   const fullText =

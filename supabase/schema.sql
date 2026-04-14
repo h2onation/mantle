@@ -5,9 +5,10 @@ create extension if not exists "uuid-ossp";
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   display_name text,
-  -- Sage voice mode. Currently only 'autistic'. Null defaults to autistic.
-  -- Added in supabase/add-sage-mode.sql.
-  sage_mode text check (sage_mode is null or sage_mode in ('autistic')),
+  -- AI persona voice mode. Currently only 'autistic'. Null defaults to autistic.
+  -- Renamed from sage_mode in
+  -- supabase/migrations/20260414_rename_sage_to_persona.sql.
+  persona_mode text check (persona_mode is null or persona_mode in ('autistic')),
   created_at timestamptz default now() not null
 );
 
@@ -156,7 +157,7 @@ create table public.safety_events (
   conversation_id uuid references public.conversations(id) on delete cascade not null,
   user_id uuid references public.profiles(id) on delete cascade not null,
   crisis_detected boolean default true,
-  sage_included_988 boolean,
+  persona_included_988 boolean,
   created_at timestamptz default now() not null
 );
 

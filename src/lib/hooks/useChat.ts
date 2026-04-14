@@ -170,7 +170,7 @@ export function useChat() {
     if (initStarted.current) return;
     initStarted.current = true;
 
-    async function triggerSageOpener(existingConversationId: string | null) {
+    async function triggerPersonaOpener(existingConversationId: string | null) {
       setIsLoading(true);
       try {
         const res = await fetch("/api/chat", {
@@ -265,7 +265,7 @@ export function useChat() {
       if (nonSystemMessages.length === 0) {
         // Show the chat UI immediately, let opener stream in live
         setInitialized(true);
-        await triggerSageOpener(convId);
+        await triggerPersonaOpener(convId);
       } else {
         // Check if last message is older than 30 minutes — refresh summary if so
         const lastMsg = dbMessages![dbMessages!.length - 1];

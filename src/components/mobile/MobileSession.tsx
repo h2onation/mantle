@@ -8,6 +8,7 @@ import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const WELCOME_CHIPS = [
   "I have a situation I want to work through",
@@ -15,13 +16,13 @@ const WELCOME_CHIPS = [
   "I just need to think out loud",
 ] as const;
 
-const sageLabelStyle = {
+const personaLabelStyle = {
   fontFamily: "var(--font-mono)",
   fontSize: "8px",
   fontWeight: 400,
   letterSpacing: "1.5px",
   textTransform: "lowercase" as const,
-  color: "var(--session-sage-soft)",
+  color: "var(--session-persona-soft)",
 } as const;
 
 interface MobileSessionProps {
@@ -145,32 +146,32 @@ export default function MobileSession({
       style={{
         margin: "16px 0 0 0",
         padding: "16px 18px 14px",
-        background: "var(--session-sage-tint)",
+        background: "var(--session-persona-tint)",
         borderRadius: "12px",
         animation: "mwFadeIn 0.6s ease-out",
       }}
     >
       {/* Sage label */}
       <div style={{ marginBottom: "2px" }}>
-        <span style={sageLabelStyle}>SAGE</span>
+        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
       <div style={{
-        fontFamily: "var(--font-sage)",
+        fontFamily: "var(--font-persona)",
         fontSize: "16px",
         lineHeight: 1.55,
-        color: "var(--session-ink-sage)",
+        color: "var(--session-ink-persona)",
       }}>
         <p style={{ margin: "0 0 12px 0" }}>
-          This is where you talk to Sage. There are a few ways to use it.
+          This is where you talk to {PERSONA_NAME}. There are a few ways to use it.
         </p>
         <p style={{ margin: "0 0 12px 0" }}>
-          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell Sage what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
+          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell {PERSONA_NAME} what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
         </p>
         <p style={{ margin: "0 0 12px 0" }}>
           <strong style={{ fontWeight: 600 }}>Write to your manual directly.</strong> If you already know something about how you work, you can start there. Something like &ldquo;I spend a lot of energy managing social situations and most people don&rsquo;t realize it.&rdquo;
         </p>
         <p style={{ margin: showChips ? "0 0 12px 0" : 0 }}>
-          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. Sage will help organize what you&rsquo;re saying and surface patterns as they come up.
+          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. {PERSONA_NAME} will help organize what you&rsquo;re saying and surface patterns as they come up.
         </p>
         {showChips && (
           <p style={{ margin: 0 }}>
@@ -198,8 +199,8 @@ export default function MobileSession({
                 fontWeight: 400,
                 lineHeight: 1.4,
                 color: "var(--session-ink-soft)",
-                backgroundColor: "var(--session-sage-muted)",
-                border: "1px solid var(--session-sage-border)",
+                backgroundColor: "var(--session-persona-muted)",
+                border: "1px solid var(--session-persona-border)",
                 borderRadius: "20px",
                 padding: "10px 16px",
                 cursor: "pointer",
@@ -294,7 +295,7 @@ export default function MobileSession({
             justifyContent: "center",
             gap: "12px",
             padding: "6px 16px",
-            background: "var(--session-sage-tint)",
+            background: "var(--session-persona-tint)",
           }}
         >
           <span
@@ -315,7 +316,7 @@ export default function MobileSession({
               fontFamily: "var(--font-sans)",
               fontSize: "12px",
               fontWeight: 500,
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               padding: 0,
             }}
           >
@@ -391,9 +392,9 @@ export default function MobileSession({
             >
               <p
                 style={{
-                  fontFamily: "var(--font-sage)",
+                  fontFamily: "var(--font-persona)",
                   fontSize: "16px",
-                  color: "var(--session-ink-sage)",
+                  color: "var(--session-ink-persona)",
                   lineHeight: 1.55,
                   textAlign: "center",
                 }}
@@ -419,8 +420,8 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                const primaryBg = "var(--session-sage-soft)";
-                const accentColor = "var(--session-sage)";
+                const primaryBg = "var(--session-persona-soft)";
+                const accentColor = "var(--session-persona)";
 
                 return (
                   <div
@@ -428,7 +429,7 @@ export default function MobileSession({
                     style={{
                       animation: "checkpointFadeIn 0.45s ease both",
                       background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                      border: "1px solid var(--session-sage-border)",
+                      border: "1px solid var(--session-persona-border)",
                       borderRadius: "8px",
                       boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
                       padding: "16px 16px 14px",
@@ -444,7 +445,7 @@ export default function MobileSession({
                           fontWeight: 400,
                           letterSpacing: "3px",
                           textTransform: "uppercase",
-                          color: "var(--cp-text-accent, var(--session-sage-soft))",
+                          color: "var(--cp-text-accent, var(--session-persona-soft))",
                           marginBottom: "12px",
                           lineHeight: 1,
                         }}
@@ -603,7 +604,7 @@ export default function MobileSession({
                           }}
                         >
                           {checkpointActionState === "confirmed" && "Written to manual"}
-                          {checkpointActionState === "refined" && "Sage will revisit this"}
+                          {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
                           {checkpointActionState === "rejected" && "Discarded"}
                         </span>
                       </div>
@@ -631,7 +632,7 @@ export default function MobileSession({
                           }}
                         >
                           {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
-                          {msg.checkpointMeta.status === "refined" && "Sage will revisit this"}
+                          {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
                           {msg.checkpointMeta.status === "rejected" && "Discarded"}
                         </span>
                       </div>
@@ -655,7 +656,7 @@ export default function MobileSession({
               }
 
               // Sequence detection: is this the first sage message in a run?
-              const isFirstInSageSequence = (() => {
+              const isFirstInPersonaSequence = (() => {
                 if (msg.role !== "assistant") return false;
                 if (i === 0) return true;
                 const prev = messages[i - 1];
@@ -665,7 +666,7 @@ export default function MobileSession({
 
               // Sage message — tinted bubble with serif text
               if (!isUser) {
-                const sagePanel = (
+                const personaPanel = (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
@@ -675,9 +676,9 @@ export default function MobileSession({
                     }}
                   >
                     {/* Sage label — first in sequence only */}
-                    {isFirstInSageSequence && (
+                    {isFirstInPersonaSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={sageLabelStyle}>SAGE</span>
+                        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
@@ -686,19 +687,19 @@ export default function MobileSession({
                     {/* Bubble */}
                     <div
                       style={{
-                        background: "var(--session-sage-tint)",
+                        background: "var(--session-persona-tint)",
                         borderRadius: "12px",
                         padding: "16px 18px",
-                        fontFamily: "var(--font-sage)",
+                        fontFamily: "var(--font-persona)",
                         fontSize: "16px",
                         fontWeight: 400,
                         lineHeight: 1.55,
-                        color: "var(--session-ink-sage)",
+                        color: "var(--session-ink-persona)",
                       }}
                     >
                       <div
                         style={{
-                          fontFamily: "var(--font-sage)",
+                          fontFamily: "var(--font-persona)",
                           fontSize: "16px",
                           fontWeight: 400,
                           lineHeight: 1.55,
@@ -719,7 +720,7 @@ export default function MobileSession({
                   </div>
                 );
 
-                return sagePanel;
+                return personaPanel;
               }
 
               // User message — right-positioned, left-justified text
@@ -770,12 +771,12 @@ export default function MobileSession({
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
                     <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
-                      <span style={sageLabelStyle}>SAGE</span>
+                      <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                     </div>
                   )}
                   <div
                     style={{
-                      background: "var(--session-sage-tint)",
+                      background: "var(--session-persona-tint)",
                       borderRadius: "12px",
                       padding: "16px 18px",
                       alignSelf: "flex-start",
@@ -789,9 +790,9 @@ export default function MobileSession({
                             width: "5px",
                             height: "5px",
                             borderRadius: "50%",
-                            backgroundColor: "var(--session-sage-soft)",
+                            backgroundColor: "var(--session-persona-soft)",
                             opacity: 0.5,
-                            animation: "sagePulse 2.4s ease-in-out infinite",
+                            animation: "personaPulse 2.4s ease-in-out infinite",
                             animationDelay: `${dotIdx * 0.35}s`,
                           }}
                         />
@@ -840,7 +841,7 @@ export default function MobileSession({
                       fontFamily: "var(--font-sans)",
                       fontSize: "13px",
                       fontWeight: 500,
-                      color: "var(--session-sage)",
+                      color: "var(--session-persona)",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -946,7 +947,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             margin: "0 0 20px 0",
           }}
         >
-          This message went directly to Jeff and won&apos;t affect your conversation with Sage.
+          This message went directly to Jeff and won&apos;t affect your conversation with {PERSONA_NAME}.
         </p>
         <button
           onClick={onClose}
@@ -963,7 +964,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             cursor: "pointer",
           }}
         >
-          Back to Sage
+          Back to {PERSONA_NAME}
         </button>
       </div>
     </div>

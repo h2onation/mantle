@@ -7,11 +7,11 @@ import type { ExplorationContext } from "@/lib/types";
 
 interface PopulatedLayerProps {
   layer: Layer;
-  onExploreWithSage?: (context: ExplorationContext) => void;
+  onExploreWithPersona?: (context: ExplorationContext) => void;
   readOnly?: boolean;
 }
 
-export default function PopulatedLayer({ layer, onExploreWithSage, readOnly }: PopulatedLayerProps) {
+export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }: PopulatedLayerProps) {
   const count = layer.threads.length;
   const countLabel = count === 1 ? "1 entry" : `${count} entries`;
 
@@ -67,7 +67,7 @@ export default function PopulatedLayer({ layer, onExploreWithSage, readOnly }: P
             thread={thread}
             layerId={layer.id}
             layerName={layer.name}
-            onExploreWithSage={onExploreWithSage}
+            onExploreWithPersona={onExploreWithPersona}
             readOnly={readOnly}
           />
         ))}

@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt } from "@/lib/sage/system-prompt";
-import type { BuildPromptOptions } from "@/lib/sage/system-prompt";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
   BANNED_PHRASES,
   EXAMPLE_REGISTER,
-} from "@/lib/sage/voice-autistic";
+} from "@/lib/persona/voice-autistic";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
@@ -531,7 +531,7 @@ describe("buildSystemPrompt", () => {
   // ─── PR2a voice content (autistic mode) ────────────────────────────────
   //
   // These tests assert that the single-source-of-truth voice content in
-  // src/lib/sage/voice-autistic.ts appears verbatim in the prompt. Never
+  // src/lib/persona/voice-autistic.ts appears verbatim in the prompt. Never
   // duplicate strings between the test and the voice file — if a rule or
   // banned phrase is missing from the prompt, the test should fail via the
   // imported constant, not a hardcoded literal.
@@ -645,8 +645,8 @@ describe("buildSystemPrompt", () => {
       });
     });
 
-    // ─── PR2b: Sage voice mechanics layer ────────────────────────────────
-    describe("PR2b: sage voice mechanics (checkpoint composition)", () => {
+    // ─── PR2b: persona voice mechanics layer ─────────────────────────────
+    describe("PR2b: persona voice mechanics (checkpoint composition)", () => {
       // Build with checkpoint instructions turned on so the delivery sequence,
       // composition voice, manual entry format, and self-check blocks render.
       function buildCheckpointMode() {

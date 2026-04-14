@@ -17,7 +17,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
-vi.mock("@/lib/sage/generate-summary", () => ({
+vi.mock("@/lib/persona/generate-summary", () => ({
   generateSessionSummary: vi.fn().mockResolvedValue("summary text"),
 }));
 

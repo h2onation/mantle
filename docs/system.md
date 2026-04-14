@@ -32,7 +32,7 @@ User message
 
 Sage runs on two channels: web (streaming SSE) and text (Linq SMS, non-streaming). Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
 
-### Shared pipeline (`sage-pipeline.ts`)
+### Shared pipeline (`persona-pipeline.ts`)
 
 All Sage decision logic lives here and is imported by both paths:
 
@@ -44,7 +44,7 @@ All Sage decision logic lives here and is imported by both paths:
 - `buildCheckpointMeta()` — checkpoint metadata shape
 - `insertCheckpointActionMessage()` — canonical system messages for confirm/reject/refine
 
-Pure functions shared from `call-sage.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
+Pure functions shared from `call-persona.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
 
 Checkpoint detection runs on both channels via the same flow: Haiku classifier on every Sage response, then `composeManualEntry()` (Sonnet) when a checkpoint is detected.
 
@@ -58,15 +58,15 @@ Checkpoint detection runs on both channels via the same flow: Haiku classifier o
 | Exploration mode | Yes (`explorationContext`) | No |
 | Guest prompt auth | Yes (`promptAuth` flag) | No |
 | Checkpoint confirmation | UI buttons → POST `/api/checkpoint/confirm` | Keyword interception (YES/NO/NOT QUITE) |
-| Post-checkpoint | `callSage({ message: null })` streaming | `processTextMessage(null)` non-streaming |
+| Post-checkpoint | `callPersona({ message: null })` streaming | `processTextMessage(null)` non-streaming |
 
 ### Rules for adding features
 
-1. **Check `sage-pipeline.ts` first.** If logic could apply to both channels, it belongs there. Not in `call-sage.ts` or `sage-bridge.ts`.
+1. **Check `persona-pipeline.ts` first.** If logic could apply to both channels, it belongs there. Not in `call-persona.ts` or `persona-bridge.ts`.
 2. **Channel-specific code stays in the channel.** Streaming, delimiter buffers, keyword detection — these are delivery concerns, not pipeline logic.
 3. **New prompt fields go through `buildPromptOptionsFromContext()`.** Web can layer on channel-specific fields (exploration, transcript, URL) via spread. Text gets the base automatically.
 4. **New checkpoint actions go through `insertCheckpointActionMessage()`.** Never hardcode system message strings — they must stay in sync with `mapSystemMessages()`.
-5. **Test both paths after pipeline changes.** A change to `sage-pipeline.ts` affects web and text simultaneously.
+5. **Test both paths after pipeline changes.** A change to `persona-pipeline.ts` affects web and text simultaneously.
 
 ## Extraction Layer Detail
 
@@ -230,7 +230,7 @@ When changing the schema:
 
 ## Versioning
 
-Two version constants in `src/lib/version.ts`: `APP_VERSION` (all `src/` except Sage prompts) and `SAGE_VERSION` (`system-prompt.ts` + `extraction.ts` only). Bump minor for features, patch for fixes. Once per branch, first commit that touches relevant files. On merge conflicts, take the higher value for each version independently. Do not bump unless asked.
+Two version constants in `src/lib/version.ts`: `APP_VERSION` (all `src/` except persona prompts) and `PERSONA_VERSION` (`system-prompt.ts` + `extraction.ts` only). Bump minor for features, patch for fixes. Once per branch, first commit that touches relevant files. On merge conflicts, take the higher value for each version independently. Do not bump unless asked.
 
 ## Onboarding Flow
 

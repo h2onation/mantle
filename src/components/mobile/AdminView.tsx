@@ -7,6 +7,7 @@ import PopulatedLayer from "./manual/PopulatedLayer";
 import EmptyLayer from "./manual/EmptyLayer";
 import { renderMarkdown } from "@/lib/utils/format";
 import type { ManualComponent } from "@/lib/types";
+import { PERSONA_NAME } from "@/lib/persona/config";
 import UsersTab, { type AdminUserOverview } from "./admin/UsersTab";
 import WaitlistTab, {
   type WaitlistRow,
@@ -15,6 +16,9 @@ import WaitlistTab, {
 import BetaFeedbackTab, {
   type BetaFeedbackRow,
 } from "./admin/BetaFeedbackTab";
+import BetaAllowlistTab, {
+  type BetaAllowlistRow,
+} from "./admin/BetaAllowlistTab";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -75,7 +79,7 @@ interface AdminFeedbackItem {
 }
 
 type AdminViewState = "hidden" | "tabs" | "profile";
-type TopTab = "users" | "waitlist" | "feedback";
+type TopTab = "users" | "waitlist" | "allowlist" | "feedback";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -227,6 +231,8 @@ export default function AdminView() {
   const [waitlistLoaded, setWaitlistLoaded] = useState(false);
   const [betaFeedbackItems, setBetaFeedbackItems] = useState<BetaFeedbackRow[]>([]);
   const [betaFeedbackUnreadCount, setBetaFeedbackUnreadCount] = useState(0);
+  const [allowlistItems, setAllowlistItems] = useState<BetaAllowlistRow[]>([]);
+  const [allowlistLoaded, setAllowlistLoaded] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -287,6 +293,36 @@ export default function AdminView() {
     } catch (err) {
       console.error("[admin] Failed to load waitlist:", err);
     }
+  }
+
+  async function loadAllowlist(force = false) {
+    if (allowlistLoaded && !force) return;
+    try {
+      const res = await fetch("/api/admin/beta-allowlist");
+      if (!res.ok) return;
+      const data = await res.json();
+      setAllowlistItems(data.items || []);
+      setAllowlistLoaded(true);
+    } catch (err) {
+      console.error("[admin] Failed to load allowlist:", err);
+    }
+  }
+
+  async function removeFromAllowlist(id: string) {
+    const res = await fetch(`/api/admin/beta-allowlist?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to remove from allowlist");
+    setAllowlistItems((prev) => prev.filter((row) => row.id !== id));
+  }
+
+  async function addAllowlistEmail(email: string): Promise<"added" | "already_exists"> {
+    const result = await addToBeta(email);
+    if (result === "added") {
+      // Refetch so the new row appears with its server-assigned id/created_at.
+      await loadAllowlist(true);
+    }
+    return result;
   }
 
   async function changeWaitlistStatus(id: string, status: WaitlistStatus) {
@@ -568,13 +604,15 @@ export default function AdminView() {
               borderBottom: "1px solid var(--session-ink-hairline)",
             }}
           >
-            {(["users", "waitlist", "feedback"] as const).map((tab) => {
+            {(["users", "waitlist", "allowlist", "feedback"] as const).map((tab) => {
               const active = topTab === tab;
               const label =
                 tab === "users"
                   ? "Users"
                   : tab === "waitlist"
                   ? "Waitlist"
+                  : tab === "allowlist"
+                  ? "Allowlist"
                   : `Feedback${betaFeedbackUnreadCount > 0 ? ` (${betaFeedbackUnreadCount})` : ""}`;
               return (
                 <button
@@ -582,6 +620,7 @@ export default function AdminView() {
                   onClick={() => {
                     setTopTab(tab);
                     if (tab === "waitlist" && !waitlistLoaded) loadWaitlist();
+                    if (tab === "allowlist" && !allowlistLoaded) loadAllowlist();
                   }}
                   style={{
                     fontFamily: "var(--font-mono)",
@@ -624,6 +663,13 @@ export default function AdminView() {
                 items={waitlistItems}
                 onChangeStatus={changeWaitlistStatus}
                 onAddToBeta={addToBeta}
+              />
+            )}
+            {topTab === "allowlist" && (
+              <BetaAllowlistTab
+                items={allowlistItems}
+                onAdd={addAllowlistEmail}
+                onRemove={removeFromAllowlist}
               />
             )}
             {topTab === "feedback" && (
@@ -1050,7 +1096,7 @@ export default function AdminView() {
                             key={msg.id}
                             style={{
                               background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                              border: "1px solid var(--session-sage-border)",
+                              border: "1px solid var(--session-persona-border)",
                               borderRadius: 8,
                               padding: "16px 16px 14px",
                               margin: "12px 0",
@@ -1063,7 +1109,7 @@ export default function AdminView() {
                                 fontSize: "7px",
                                 letterSpacing: "2px",
                                 textTransform: "uppercase",
-                                color: "var(--session-sage-soft)",
+                                color: "var(--session-persona-soft)",
                                 marginBottom: 8,
                               }}
                             >
@@ -1126,7 +1172,7 @@ export default function AdminView() {
                                     color: "var(--session-ink-faded)",
                                     marginTop: 4,
                                     padding: 8,
-                                    background: "var(--session-sage-tint)",
+                                    background: "var(--session-persona-tint)",
                                     borderRadius: 6,
                                     whiteSpace: "pre-wrap",
                                     overflow: "auto",
@@ -1177,7 +1223,7 @@ export default function AdminView() {
                         <div
                           key={msg.id}
                           style={{
-                            background: "var(--session-sage-tint)",
+                            background: "var(--session-persona-tint)",
                             borderRadius: 4,
                             padding: "14px 16px",
                             margin: "8px 0",
@@ -1193,7 +1239,7 @@ export default function AdminView() {
                               marginBottom: 8,
                             }}
                           >
-                            SAGE
+                            {PERSONA_NAME.toUpperCase()}
                           </div>
                           <div
                             style={{
@@ -1242,7 +1288,7 @@ export default function AdminView() {
                             fontSize: "10px",
                             color: "var(--session-ink-faded)",
                             padding: 12,
-                            background: "var(--session-sage-tint)",
+                            background: "var(--session-persona-tint)",
                             borderRadius: 8,
                             whiteSpace: "pre-wrap",
                             overflow: "auto",

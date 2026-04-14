@@ -50,7 +50,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 // Import AFTER mock is set up
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 
 beforeEach(() => {
   resetMockChain();

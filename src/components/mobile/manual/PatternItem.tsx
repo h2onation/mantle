@@ -3,18 +3,19 @@
 import React, { useState } from "react";
 import type { Thread } from "./layer-definitions";
 import type { ExplorationContext } from "@/lib/types";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface ThreadCardProps {
   thread: Thread;
   layerId: number;
   layerName: string;
-  onExploreWithSage?: (context: ExplorationContext) => void;
+  onExploreWithPersona?: (context: ExplorationContext) => void;
   readOnly?: boolean;
 }
 
 // File still named PatternItem.tsx for diff hygiene; the future PR that removes
 // the component/pattern split will rename it to ThreadCard.
-export default function PatternItem({ thread, layerId, layerName, onExploreWithSage, readOnly }: ThreadCardProps) {
+export default function PatternItem({ thread, layerId, layerName, onExploreWithPersona, readOnly }: ThreadCardProps) {
   const [expanded, setExpanded] = useState(readOnly ? true : false);
 
   const toggle = readOnly ? undefined : () => setExpanded((v) => !v);
@@ -87,11 +88,11 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithS
       )}
 
       {/* Explore further — preserved Sage flow, restyled as a subtle text link */}
-      {expanded && !readOnly && onExploreWithSage && (
+      {expanded && !readOnly && onExploreWithPersona && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onExploreWithSage({
+            onExploreWithPersona({
               layerId,
               layerName,
               type: "entry",
@@ -112,7 +113,7 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithS
             cursor: "pointer",
           }}
         >
-          Explore further with Sage →
+          Explore further with {PERSONA_NAME} →
         </button>
       )}
     </div>

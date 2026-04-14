@@ -1,25 +1,25 @@
 // ---------------------------------------------------------------------------
-// Shared Sage pipeline logic — single source of truth for rules used by
-// both the web (call-sage.ts) and text (sage-bridge.ts) paths.
+// Shared persona pipeline logic — single source of truth for rules used by
+// both the web (call-persona.ts) and text (persona-bridge.ts) paths.
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   runExtraction,
-  formatExtractionForSage,
+  formatExtractionForPersona,
   type ExtractionState,
-} from "@/lib/sage/extraction";
+} from "@/lib/persona/extraction";
 import {
   mapSystemMessages,
   applySlidingWindow,
   detectCrisisInUserMessage,
-} from "@/lib/sage/call-sage";
-import type { SageMode } from "@/lib/sage/system-prompt";
+} from "@/lib/persona/call-persona";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const SAGE_MODEL = "claude-sonnet-4-6";
-export const SAGE_MAX_TOKENS = 2048;
+export const PERSONA_MODEL = "claude-sonnet-4-6";
+export const PERSONA_MAX_TOKENS = 2048;
 
 const CRISIS_RESOURCES =
   "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
@@ -38,10 +38,10 @@ export interface ConversationContext {
   sessionCount: number;
   turnsSinceCheckpoint: number;
   conversationId: string;
-  extractionForSage: string;
+  extractionForPersona: string;
   turnCount: number;
   checkpointApproaching: boolean;
-  sageMode: SageMode;
+  personaMode: PersonaMode;
 }
 
 export interface CheckpointGateResult {
@@ -101,15 +101,15 @@ export async function loadConversationContext(
       .maybeSingle(),
     admin
       .from("profiles")
-      .select("sage_mode")
+      .select("persona_mode")
       .eq("id", userId)
       .maybeSingle(),
   ]);
 
   // Voice mode. Null/missing → 'autistic' (the only mode that ships in PR1).
   // The seam exists so future modes can be added without re-plumbing.
-  const sageMode: SageMode =
-    (profileResult.data?.sage_mode as SageMode) || "autistic";
+  const personaMode: PersonaMode =
+    (profileResult.data?.persona_mode as PersonaMode) || "autistic";
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -150,8 +150,8 @@ export async function loadConversationContext(
   }
 
   // Derived prompt flags
-  const extractionForSage = previousExtraction
-    ? formatExtractionForSage(previousExtraction, isFirstCheckpoint, manualComponents)
+  const extractionForPersona = previousExtraction
+    ? formatExtractionForPersona(previousExtraction, isFirstCheckpoint, manualComponents)
     : "";
 
   const turnCount = messages.length;
@@ -174,17 +174,17 @@ export async function loadConversationContext(
     sessionCount,
     turnsSinceCheckpoint,
     conversationId,
-    extractionForSage,
+    extractionForPersona,
     turnCount,
     checkpointApproaching,
-    sageMode,
+    personaMode,
   };
 }
 
 // ── 1b. Build prompt options from context ──────────────────────────────────
 //
 // Single source of truth for the context → BuildPromptOptions mapping.
-// Both web (call-sage.ts) and text (sage-bridge.ts) call this, then web
+// Both web (call-persona.ts) and text (persona-bridge.ts) call this, then web
 // layers on its channel-specific fields (explorationContext, transcriptContext,
 // contentContext). Adding a new field to BuildPromptOptions? Add it here once.
 
@@ -193,12 +193,12 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     manualComponents: ctx.manualComponents,
     isReturningUser: ctx.isReturningUser,
     sessionSummary: ctx.sessionSummary,
-    extractionContext: ctx.extractionForSage,
+    extractionContext: ctx.extractionForPersona,
     isFirstCheckpoint: ctx.isFirstCheckpoint,
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
     checkpointApproaching: ctx.checkpointApproaching,
-    sageMode: ctx.sageMode,
+    personaMode: ctx.personaMode,
   };
 }
 
@@ -224,10 +224,10 @@ export function fireBackgroundExtraction(
         .eq("id", ctx.conversationId);
 
       if (error)
-        console.error("[sage-pipeline] Failed to save extraction state:", error);
+        console.error("[persona-pipeline] Failed to save extraction state:", error);
     })
     .catch((err) =>
-      console.error("[sage-pipeline] Background extraction failed:", err)
+      console.error("[persona-pipeline] Background extraction failed:", err)
     );
 }
 
@@ -248,17 +248,17 @@ export function handleCrisisDetection(
     return { responseText, crisisDetected: false };
   }
 
-  const sageIncluded988 = responseText.includes("988");
-  if (!sageIncluded988) {
+  const personaIncluded988 = responseText.includes("988");
+  if (!personaIncluded988) {
     responseText += CRISIS_RESOURCES;
   }
 
-  console.log("[sage-pipeline] CRISIS DETECTED", {
+  console.log("[persona-pipeline] CRISIS DETECTED", {
     timestamp: new Date().toISOString(),
     conversation_id: conversationId,
     user_id: userId,
     crisis_detected: true,
-    sage_included_988: sageIncluded988,
+    persona_included_988: personaIncluded988,
   });
 
   admin
@@ -267,12 +267,12 @@ export function handleCrisisDetection(
       conversation_id: conversationId,
       user_id: userId,
       crisis_detected: true,
-      sage_included_988: sageIncluded988,
+      persona_included_988: personaIncluded988,
       created_at: new Date().toISOString(),
     })
     .then(({ error }) => {
       if (error)
-        console.error("[sage-pipeline] Failed to log safety event:", error);
+        console.error("[persona-pipeline] Failed to log safety event:", error);
     });
 
   return { responseText, crisisDetected: true };
@@ -359,7 +359,7 @@ export function applyCheckpointGates(
     if (!quality.ok) {
       if (process.env.NODE_ENV !== "production") {
         console.log(
-          "[sage-pipeline] Checkpoint suppressed by material-quality gate: %s",
+          "[persona-pipeline] Checkpoint suppressed by material-quality gate: %s",
           quality.reasons.join("; ")
         );
       }
@@ -371,7 +371,7 @@ export function applyCheckpointGates(
   if (turnsSinceCheckpoint < 5) {
     if (process.env.NODE_ENV !== "production") {
       console.log(
-        "[sage-pipeline] Checkpoint suppressed: %d turns since last (minimum 5)",
+        "[persona-pipeline] Checkpoint suppressed: %d turns since last (minimum 5)",
         turnsSinceCheckpoint
       );
     }
@@ -449,7 +449,7 @@ export function validateComposedEntry(
 //
 // Single source of truth for the system messages inserted after checkpoint
 // actions. These strings must stay in sync with mapSystemMessages() in
-// call-sage.ts — if you change the wording here, update the mapping there.
+// call-persona.ts — if you change the wording here, update the mapping there.
 
 const CHECKPOINT_ACTION_MESSAGES: Record<string, string> = {
   confirmed: "[User confirmed the checkpoint]",

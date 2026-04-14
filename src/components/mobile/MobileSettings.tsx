@@ -5,6 +5,7 @@ import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import AdminView from "@/components/mobile/AdminView";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 interface MobileSettingsProps {
   userEmail: string;
@@ -58,7 +59,7 @@ export default function MobileSettings({
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("");
   const [simCheckpoints, setSimCheckpoints] = useState(1);
-  const [simPersona, setSimPersona] = useState("");
+  const [simulatedUser, setSimulatedUser] = useState("");
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
@@ -218,7 +219,7 @@ export default function MobileSettings({
       const res = await fetch("/api/dev-simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personaDescription: simPersona.trim(), checkpointTarget: simCheckpoints }),
+        body: JSON.stringify({ simulatedUserDescription: simulatedUser.trim(), checkpointTarget: simCheckpoints }),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -384,7 +385,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
-                color: "var(--session-sage)",
+                color: "var(--session-persona)",
                 textDecoration: "none",
               }}
             >
@@ -408,7 +409,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
-                color: "var(--session-sage)",
+                color: "var(--session-persona)",
                 textDecoration: "none",
               }}
             >
@@ -431,10 +432,10 @@ export default function MobileSettings({
       )}
 
       {/* ─── Text Sage ─────────────────────────────────────────── */}
-      <SectionHeader label="TEXT SAGE" isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
+      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
 
       {openSections.has("textsage") && (
-        <SettingsRow title="Text Sage" noBorder>
+        <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
             {phoneState === "loading" && (
               <p
@@ -456,7 +457,7 @@ export default function MobileSettings({
                 style={{
                   width: "100%",
                   background: "none",
-                  border: "1px solid var(--session-sage-muted)",
+                  border: "1px solid var(--session-persona-muted)",
                   borderRadius: 8,
                   cursor: "pointer",
                   textAlign: "center",
@@ -468,11 +469,11 @@ export default function MobileSettings({
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "13px",
-                    color: "var(--session-sage)",
+                    color: "var(--session-persona)",
                     margin: 0,
                   }}
                 >
-                  Link your phone to text Sage
+                  Link your phone to text {PERSONA_NAME}
                 </p>
               </button>
             )}
@@ -509,7 +510,7 @@ export default function MobileSettings({
                   }}
                 >
                   By entering your phone number, you agree to receive text messages
-                  from Sage by mywalnut. Message frequency varies. Msg &amp; data rates
+                  from {PERSONA_NAME_FORMAL} by mywalnut. Message frequency varies. Msg &amp; data rates
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
@@ -532,7 +533,7 @@ export default function MobileSettings({
                   style={{
                     width: "100%",
                     background: "none",
-                    border: `1px solid ${phoneBusy || !phoneInput.trim() ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+                    border: `1px solid ${phoneBusy || !phoneInput.trim() ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
                     borderRadius: 8,
                     cursor: phoneBusy || !phoneInput.trim() ? "default" : "pointer",
                     textAlign: "center",
@@ -545,7 +546,7 @@ export default function MobileSettings({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: "9px",
-                      color: phoneBusy || !phoneInput.trim() ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                      color: phoneBusy || !phoneInput.trim() ? "var(--session-ink-ghost)" : "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
                     }}
@@ -598,7 +599,7 @@ export default function MobileSettings({
                   style={{
                     width: "100%",
                     background: "none",
-                    border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+                    border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
                     borderRadius: 8,
                     cursor: phoneBusy || codeInput.length !== 6 ? "default" : "pointer",
                     textAlign: "center",
@@ -611,7 +612,7 @@ export default function MobileSettings({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: "9px",
-                      color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                      color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
                     }}
@@ -665,7 +666,7 @@ export default function MobileSettings({
                       style={{
                         fontFamily: "var(--font-mono)",
                         fontSize: "9px",
-                        color: "var(--session-sage)",
+                        color: "var(--session-persona)",
                         letterSpacing: "0.5px",
                         margin: "3px 0 0 0",
                       }}
@@ -711,13 +712,13 @@ export default function MobileSettings({
                   Text {formatPhoneDisplay(process.env.NEXT_PUBLIC_LINQ_PHONE_NUMBER || "")} anytime.
                 </p>
                 <a
-                  href="/sage-contact.vcf"
-                  download="Sage (mywalnut).vcf"
+                  href="/persona-contact.vcf"
+                  download={`${PERSONA_NAME_FORMAL} (mywalnut).vcf`}
                   style={{
                     display: "block",
                     width: "100%",
                     background: "none",
-                    border: "1px solid var(--session-sage-muted)",
+                    border: "1px solid var(--session-persona-muted)",
                     borderRadius: 8,
                     textAlign: "center",
                     padding: "10px 0",
@@ -729,12 +730,12 @@ export default function MobileSettings({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: "9px",
-                      color: "var(--session-sage)",
+                      color: "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
                     }}
                   >
-                    Add Sage to contacts
+                    Add {PERSONA_NAME} to contacts
                   </p>
                 </a>
               </div>
@@ -771,8 +772,8 @@ export default function MobileSettings({
         >
           Send Jeff feedback directly — just type{" "}
           <strong style={{ color: "var(--session-ink-faded)" }}>/feedback</strong>{" "}
-          followed by your message in any Sage session. It goes straight to Jeff
-          and won&apos;t affect your conversation with Sage.
+          followed by your message in any {PERSONA_NAME} session. It goes straight to Jeff
+          and won&apos;t affect your conversation with {PERSONA_NAME}.
         </p>
       </div>
 
@@ -786,11 +787,11 @@ export default function MobileSettings({
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
-          {/* Persona textarea */}
+          {/* Simulated user textarea */}
           <textarea
-            value={simPersona}
-            onChange={(e) => setSimPersona(e.target.value)}
-            placeholder="Describe the persona — personality, backstory, emotional style (e.g. 'A 34-year-old teacher who avoids conflict and struggles to set boundaries')"
+            value={simulatedUser}
+            onChange={(e) => setSimulatedUser(e.target.value)}
+            placeholder="Describe the simulated user — personality, backstory, emotional style (e.g. 'A 34-year-old teacher who avoids conflict and struggles to set boundaries')"
             rows={4}
             style={{
               width: "100%",
@@ -839,9 +840,9 @@ export default function MobileSettings({
                     width: 28,
                     height: 28,
                     borderRadius: 6,
-                    border: `1px solid ${simCheckpoints === n ? "var(--session-sage)" : "var(--session-ink-ghost)"}`,
-                    background: simCheckpoints === n ? "var(--session-sage-muted)" : "none",
-                    color: simCheckpoints === n ? "var(--session-sage)" : "var(--session-ink-ghost)",
+                    border: `1px solid ${simCheckpoints === n ? "var(--session-persona)" : "var(--session-ink-ghost)"}`,
+                    background: simCheckpoints === n ? "var(--session-persona-muted)" : "none",
+                    color: simCheckpoints === n ? "var(--session-persona)" : "var(--session-ink-ghost)",
                     fontFamily: "var(--font-mono)",
                     fontSize: "10px",
                     fontWeight: 500,
@@ -859,16 +860,16 @@ export default function MobileSettings({
           {/* Run button */}
           <button
             onClick={handleSimulate}
-            disabled={simulating || !simPersona.trim()}
+            disabled={simulating || !simulatedUser.trim()}
             style={{
               width: "100%",
               background: "none",
-              border: `1px solid ${simulating || !simPersona.trim() ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+              border: `1px solid ${simulating || !simulatedUser.trim() ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
               borderRadius: 8,
-              cursor: simulating || !simPersona.trim() ? "default" : "pointer",
+              cursor: simulating || !simulatedUser.trim() ? "default" : "pointer",
               textAlign: "center",
               padding: "10px 0",
-              opacity: simulating || !simPersona.trim() ? 0.5 : 1,
+              opacity: simulating || !simulatedUser.trim() ? 0.5 : 1,
               WebkitTapHighlightColor: "transparent",
             }}
           >
@@ -876,15 +877,15 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: simulating || !simPersona.trim() ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                color: simulating || !simulatedUser.trim() ? "var(--session-ink-ghost)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: 0,
               }}
             >
               {simulating
                 ? simStatus
-                : !simPersona.trim()
-                  ? "Enter a persona to simulate"
+                : !simulatedUser.trim()
+                  ? "Enter a description to simulate"
                   : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
             </p>
           </button>
@@ -895,7 +896,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: simStatus.includes("ailed") ? "var(--session-error)" : "var(--session-sage)",
+                color: simStatus.includes("ailed") ? "var(--session-error)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: "8px 0 0",
                 textAlign: "center",
@@ -922,7 +923,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
-                color: "var(--session-sage)",
+                color: "var(--session-persona)",
                 letterSpacing: "0.2px",
                 margin: 0,
               }}
@@ -938,9 +939,9 @@ export default function MobileSettings({
                     width: 28,
                     height: 28,
                     borderRadius: 6,
-                    border: `1px solid ${populateLayers.has(n) ? "var(--session-sage)" : "var(--session-ink-ghost)"}`,
-                    background: populateLayers.has(n) ? "var(--session-sage-muted)" : "none",
-                    color: populateLayers.has(n) ? "var(--session-sage)" : "var(--session-ink-ghost)",
+                    border: `1px solid ${populateLayers.has(n) ? "var(--session-persona)" : "var(--session-ink-ghost)"}`,
+                    background: populateLayers.has(n) ? "var(--session-persona-muted)" : "none",
+                    color: populateLayers.has(n) ? "var(--session-persona)" : "var(--session-ink-ghost)",
                     fontFamily: "var(--font-mono)",
                     fontSize: "10px",
                     fontWeight: 500,
@@ -960,7 +961,7 @@ export default function MobileSettings({
             style={{
               width: "100%",
               background: "none",
-              border: `1px solid ${populating || populateLayers.size === 0 ? "var(--session-ink-hairline)" : "var(--session-sage-muted)"}`,
+              border: `1px solid ${populating || populateLayers.size === 0 ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
               borderRadius: 8,
               cursor: populating || populateLayers.size === 0 ? "default" : "pointer",
               textAlign: "center",
@@ -973,7 +974,7 @@ export default function MobileSettings({
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: "9px",
-                color: populating || populateLayers.size === 0 ? "var(--session-ink-ghost)" : "var(--session-sage)",
+                color: populating || populateLayers.size === 0 ? "var(--session-ink-ghost)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: 0,
               }}

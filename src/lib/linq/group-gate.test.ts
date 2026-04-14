@@ -55,12 +55,12 @@ describe("evaluateGate", () => {
   describe("direct address", () => {
     it("always sends on 'sage' regardless of counter or cooldown", () => {
       const result = evaluateGate("hey sage", 0, ago(1000));
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
       expect(result.reason).toBe("direct_address");
     });
 
     it("sends on 'Sage' case-insensitive", () => {
-      expect(evaluateGate("Sage what do you think", 0).decision).toBe("SEND_TO_SAGE");
+      expect(evaluateGate("Sage what do you think", 0).decision).toBe("SEND_TO_PERSONA");
     });
   });
 
@@ -88,16 +88,16 @@ describe("evaluateGate", () => {
         2,
         ago(GATE_COOLDOWN_MS + 1000)
       );
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
     });
 
-    it("allows scoring when no lastSageSpokeAt (null)", () => {
+    it("allows scoring when no lastPersonaSpokeAt (null)", () => {
       const result = evaluateGate(
         "I feel really worried about everything",
         2,
         null
       );
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
     });
   });
 
@@ -107,14 +107,14 @@ describe("evaluateGate", () => {
         "I feel insecure about my technical ability",
         1
       );
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
       expect(result.reason).toBe("high_score");
       expect(result.score).toBeGreaterThanOrEqual(3);
     });
 
     it("sends on engagement bid even at counter=1", () => {
       const result = evaluateGate("what do you think about that", 1);
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
       expect(result.reason).toBe("high_score");
     });
   });
@@ -129,13 +129,13 @@ describe("evaluateGate", () => {
     it("sends bland-but-long message once counter >= GATE_MIN_MESSAGES", () => {
       const bland = "Yeah I mean that is something I have been thinking about for a while now and I am not really sure";
       const result = evaluateGate(bland, GATE_MIN_MESSAGES);
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
       expect(result.reason).toBe("eligible_score");
     });
 
     it("auto-sends with nudge at GATE_NUDGE_MESSAGES", () => {
       const result = evaluateGate("yeah ok", GATE_NUDGE_MESSAGES);
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
       expect(result.reason).toBe("nudge");
       expect(result.addNudgeHint).toBe(true);
     });
@@ -147,12 +147,12 @@ describe("evaluateGate", () => {
         "He will be building his manual at some point, but right now we will just be using mine to discuss my insecurities about my technical ability",
         2
       );
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
     });
 
     it("responds to 'what do you think'", () => {
       const result = evaluateGate("What do you think", 2);
-      expect(result.decision).toBe("SEND_TO_SAGE");
+      expect(result.decision).toBe("SEND_TO_PERSONA");
     });
 
     it("skips 'evan!'", () => {

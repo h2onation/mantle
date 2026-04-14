@@ -3,8 +3,8 @@ import {
   validateMaterialQuality,
   validateComposedEntry,
   applyCheckpointGates,
-} from "@/lib/sage/sage-pipeline";
-import type { ExtractionState } from "@/lib/sage/extraction";
+} from "@/lib/persona/persona-pipeline";
+import type { ExtractionState } from "@/lib/persona/extraction";
 
 function makeExtractionState(
   overrides?: Partial<ExtractionState>

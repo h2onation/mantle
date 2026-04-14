@@ -20,13 +20,14 @@ import {
   type GroupState,
 } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
+import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 const INTRO_NO_ACCOUNTS =
-  "This is Sage by mywalnut. I don't have any connected accounts in this group. " +
+  `This is ${PERSONA_NAME_FORMAL} by mywalnut. I don't have any connected accounts in this group. ` +
   "If you have a mywalnut account, connect your number at mywalnut.app";
 
 const INTRO_MULTI_USER =
-  "Hey, I'm Sage. I know some of you from mywalnut, but in a group I keep " +
+  `Hey, I'm ${PERSONA_NAME_FORMAL}. I know some of you from mywalnut, but in a group I keep ` +
   "things neutral and don't draw on what I know about anyone individually.";
 
 const INTRO_SETUP_FAILED =
@@ -91,18 +92,18 @@ export async function detectAndSetupGroup(
   }
 
   // 3. Identify participants
-  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
-  const nonSageHandles = handles
+  const personaPhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
+  const nonPersonaHandles = handles
     .map((h) => normalizePhone(h))
-    .filter((h) => h && h !== sagePhone);
+    .filter((h) => h && h !== personaPhone);
 
-  const participantCount = nonSageHandles.length;
+  const participantCount = nonPersonaHandles.length;
 
   console.log(
     "[group-detect] chat_id=%s participants=%d handles=%j",
     linqChatId,
     participantCount,
-    nonSageHandles
+    nonPersonaHandles
   );
 
   // 4. Look up owner users among participants
@@ -110,7 +111,7 @@ export async function detectAndSetupGroup(
   const { data: phoneRows, error: lookupError } = await admin
     .from("phone_numbers")
     .select("user_id, phone")
-    .in("phone", nonSageHandles)
+    .in("phone", nonPersonaHandles)
     .eq("verified", true);
 
   if (lookupError) {
@@ -135,9 +136,9 @@ export async function detectAndSetupGroup(
     if (existing) {
       await updateGroupState(linqChatId, {
         owner_user_id: ownerUserId,
-        non_sage_participant_count: count,
+        non_persona_participant_count: count,
       });
-      return { ...existing, owner_user_id: ownerUserId, non_sage_participant_count: count };
+      return { ...existing, owner_user_id: ownerUserId, non_persona_participant_count: count };
     }
     return createGroupState(linqChatId, ownerUserId, count);
   }
@@ -203,8 +204,8 @@ async function sendIntroduction(
   const firstName = displayName?.split(/\s+/)[0] ?? null;
 
   const introText = firstName
-    ? `Hey, I'm Sage by mywalnut. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
-    : "Hey, I'm Sage by mywalnut. I'll use what I know to ask better questions, but I won't share details from private conversations.";
+    ? `Hey, I'm ${PERSONA_NAME_FORMAL} by mywalnut. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
+    : `Hey, I'm ${PERSONA_NAME_FORMAL} by mywalnut. I'll use what I know to ask better questions, but I won't share details from private conversations.`;
 
   const result = await sendMessage(linqChatId, introText);
 

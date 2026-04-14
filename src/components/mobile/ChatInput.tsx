@@ -174,9 +174,9 @@ export default function ChatInput({
           gap: "12px",
           borderBottom: `1px solid ${
             isRecording
-              ? "var(--session-sage-soft)"
+              ? "var(--session-persona-soft)"
               : inputFocused
-                ? "var(--session-sage-border)"
+                ? "var(--session-persona-border)"
                 : "var(--session-ink-whisper)"
           }`,
           paddingBottom: "8px",
@@ -226,7 +226,7 @@ export default function ChatInput({
                   width: "2px",
                   height: "100%",
                   borderRadius: "1px",
-                  backgroundColor: "var(--session-sage-soft)",
+                  backgroundColor: "var(--session-persona-soft)",
                   opacity: 0.6,
                   animation: "waveformBar 1.2s ease-in-out infinite",
                   animationDelay: `${i * 0.15}s`,
@@ -270,7 +270,7 @@ export default function ChatInput({
               isRecording && voice.isInterim
                 ? "rgba(200, 191, 180, 0.5)"
                 : "var(--session-ink-soft)",
-            caretColor: isRecording ? "transparent" : "var(--session-sage-soft)",
+            caretColor: isRecording ? "transparent" : "var(--session-persona-soft)",
           }}
         />
 
@@ -315,7 +315,7 @@ export default function ChatInput({
                   width: "32px",
                   height: "32px",
                   borderRadius: "50%",
-                  backgroundColor: "var(--session-sage-soft)",
+                  backgroundColor: "var(--session-persona-soft)",
                   opacity: 0.8,
                   display: "flex",
                   alignItems: "center",
@@ -342,7 +342,7 @@ export default function ChatInput({
                 width: "32px",
                 height: "32px",
                 borderRadius: "50%",
-                backgroundColor: "var(--session-sage)",
+                backgroundColor: "var(--session-persona)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -149,7 +149,7 @@ export default function MainApp() {
     setAuthDismissed(false);
   }, []);
 
-  const handleExploreWithSage = useCallback(async (context: ExplorationContext) => {
+  const handleExploreWithPersona = useCallback(async (context: ExplorationContext) => {
     // Build dynamic label
     const elementName = context.name || context.layerName;
     setExplorationLabel(elementName);
@@ -243,7 +243,7 @@ export default function MainApp() {
           />
         }
         manualContent={
-          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithSage={handleExploreWithSage} onNavigateToSession={() => setActiveTab("session")} />
+          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithPersona={handleExploreWithPersona} onNavigateToSession={() => setActiveTab("session")} />
         }
         settingsContent={
           <MobileSettings

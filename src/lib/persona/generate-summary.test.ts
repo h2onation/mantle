@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTranscript } from "@/lib/sage/generate-summary";
+import { buildTranscript } from "@/lib/persona/generate-summary";
 
 describe("buildTranscript", () => {
   it("labels user messages as 'User'", () => {

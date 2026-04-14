@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface SeedScreenProps {
   // When provided, SeedScreen runs in post-login mode: instead of
@@ -112,7 +113,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontWeight: 500,
             letterSpacing: "3px",
             textTransform: "uppercase",
-            color: "var(--session-sage)",
+            color: "var(--session-persona)",
             marginBottom: 16,
           }}
         >
@@ -131,7 +132,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           }}
         >
           <p style={{ margin: "0 0 14px 0" }}>
-            Sage is AI. It identifies patterns using published frameworks as a guide. It doesn&rsquo;t diagnose anything and it&rsquo;s not trying to fix how you work.
+            {PERSONA_NAME} is AI. It identifies patterns using published frameworks as a guide. It doesn&rsquo;t diagnose anything and it&rsquo;s not trying to fix how you work.
           </p>
           <p style={{ margin: "0 0 14px 0" }}>
             You&rsquo;re the authority on your own experience. Nothing goes in your manual unless you say it&rsquo;s accurate.
@@ -161,7 +162,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
                 ? "none"
                 : "1.5px solid var(--session-ink-whisper)",
               backgroundColor: ageConfirmed
-                ? "var(--session-sage-soft)"
+                ? "var(--session-persona-soft)"
                 : "transparent",
               display: "flex",
               alignItems: "center",
@@ -198,7 +199,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             margin: "0 0 18px 0",
           }}
         >
-          Sage is a great complement to therapy, coaching, or any work you&rsquo;re already doing on yourself. It&rsquo;s not a replacement for professional support.
+          {PERSONA_NAME} is a great complement to therapy, coaching, or any work you&rsquo;re already doing on yourself. It&rsquo;s not a replacement for professional support.
         </p>
 
         {/* Error message */}
@@ -227,7 +228,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontWeight: 500,
             color: isEnabled ? "var(--session-cream)" : "var(--session-ink-ghost)",
             backgroundColor: isEnabled
-              ? "var(--session-sage)"
+              ? "var(--session-persona)"
               : "var(--session-ink-hairline)",
             border: "none",
             borderRadius: 8,

@@ -7,13 +7,13 @@ PASS=0; FAIL=0
 # Test 1: Shared Anthropic helper exists
 if [ -f "src/lib/anthropic.ts" ]; then echo "✅ anthropic.ts exists"; ((PASS++)); else echo "❌ anthropic.ts missing"; ((FAIL++)); fi
 
-# Test 2: SDK removed from call-sage
-if grep -q "anthropic-ai/sdk" src/lib/sage/call-sage.ts 2>/dev/null; then
-  echo "❌ call-sage still imports SDK"; ((FAIL++))
-else echo "✅ call-sage uses raw fetch"; ((PASS++)); fi
+# Test 2: SDK removed from call-persona
+if grep -q "anthropic-ai/sdk" src/lib/persona/call-persona.ts 2>/dev/null; then
+  echo "❌ call-persona still imports SDK"; ((FAIL++))
+else echo "✅ call-persona uses raw fetch"; ((PASS++)); fi
 
 # Test 3: SDK removed from classifier
-if grep -q "anthropic-ai/sdk" src/lib/sage/classifier.ts 2>/dev/null; then
+if grep -q "anthropic-ai/sdk" src/lib/persona/classifier.ts 2>/dev/null; then
   echo "❌ classifier still imports SDK"; ((FAIL++))
 else echo "✅ classifier uses raw fetch"; ((PASS++)); fi
 
@@ -22,18 +22,18 @@ if grep -q "anthropic-ai/sdk" src/app/api/session/summary/route.ts 2>/dev/null; 
   echo "❌ summary route still imports SDK"; ((FAIL++))
 else echo "✅ summary route uses raw fetch"; ((PASS++)); fi
 
-# Test 5: call-sage has emitError helper
-if grep -q "emitError" src/lib/sage/call-sage.ts 2>/dev/null; then
-  echo "✅ call-sage has emitError helper"; ((PASS++))
-else echo "❌ call-sage missing emitError helper"; ((FAIL++)); fi
+# Test 5: call-persona has emitError helper
+if grep -q "emitError" src/lib/persona/call-persona.ts 2>/dev/null; then
+  echo "✅ call-persona has emitError helper"; ((PASS++))
+else echo "❌ call-persona missing emitError helper"; ((FAIL++)); fi
 
-# Test 6: call-sage has timeout handling
-if grep -q "AbortError" src/lib/sage/call-sage.ts 2>/dev/null; then
-  echo "✅ call-sage handles timeout"; ((PASS++))
-else echo "❌ call-sage missing timeout handling"; ((FAIL++)); fi
+# Test 6: call-persona has timeout handling
+if grep -q "AbortError" src/lib/persona/call-persona.ts 2>/dev/null; then
+  echo "✅ call-persona handles timeout"; ((PASS++))
+else echo "❌ call-persona missing timeout handling"; ((FAIL++)); fi
 
 # Test 7: classifier has JSON parse fallback logging
-if grep -q "JSON parse failed" src/lib/sage/classifier.ts 2>/dev/null; then
+if grep -q "JSON parse failed" src/lib/persona/classifier.ts 2>/dev/null; then
   echo "✅ classifier logs parse failures"; ((PASS++))
 else echo "❌ classifier missing parse failure logging"; ((FAIL++)); fi
 

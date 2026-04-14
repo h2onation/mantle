@@ -5,14 +5,14 @@ import { routeInboundMessage } from "@/lib/linq/message-router";
 import { detectAndSetupGroup } from "@/lib/linq/group-detection";
 import { getGroupState, updateGroupState } from "@/lib/linq/group-state";
 import { processGroupMessage, saveGroupMessage, prefetchGroupContext } from "@/lib/linq/group-bridge";
-import { evaluateGate } from "@/lib/linq/group-gate";
+import { evaluateGate, mentionsPersona } from "@/lib/linq/group-gate";
 import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
 export const runtime = "nodejs";
 
-// Sage's normalized phone — computed once at module level
-function getSagePhone(): string {
+// Persona's normalized phone — computed once at module level
+function getPersonaPhone(): string {
   return normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
 }
 
@@ -185,8 +185,8 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
   );
 
   // If the added participant is Sage, this is a group we need to set up
-  if (addedHandle && normalizePhone(addedHandle) === getSagePhone()) {
-    console.log("[linq] sage_added_to_group chat_id=%s", chatId);
+  if (addedHandle && normalizePhone(addedHandle) === getPersonaPhone()) {
+    console.log("[linq] persona_added_to_group chat_id=%s", chatId);
     // Extract handles from the event payload if available
     const handles = extractHandlesFromEvent(data);
     // Silent: don't send "no accounts" yet — message.received will have fuller handle data
@@ -226,8 +226,8 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   const normalizedRemoved = removedHandle ? normalizePhone(removedHandle) : null;
 
   // Case e: Sage was removed
-  if (normalizedRemoved && normalizedRemoved === getSagePhone()) {
-    console.log("[linq] sage_removed_from_group chat_id=%s", chatId);
+  if (normalizedRemoved && normalizedRemoved === getPersonaPhone()) {
+    console.log("[linq] persona_removed_from_group chat_id=%s", chatId);
     await updateGroupState(chatId, { is_active: false });
     return;
   }
@@ -246,8 +246,8 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   }
 
   // Case c: A non-owner participant left
-  const newCount = Math.max(0, (groupState.non_sage_participant_count || 0) - 1);
-  await updateGroupState(chatId, { non_sage_participant_count: newCount });
+  const newCount = Math.max(0, (groupState.non_persona_participant_count || 0) - 1);
+  await updateGroupState(chatId, { non_persona_participant_count: newCount });
 
   if (newCount > 1) {
     // Other friends remain — just log it
@@ -275,27 +275,27 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
   }
 
   // Count non-Sage participants from the API response
-  const apiNonSage = chatInfo.handles
+  const apiNonPersona = chatInfo.handles
     .map((h) => normalizePhone(h))
-    .filter((h) => h && h !== getSagePhone());
+    .filter((h) => h && h !== getPersonaPhone());
 
-  if (apiNonSage.length <= 1) {
+  if (apiNonPersona.length <= 1) {
     // Confirmed: just owner user (or nobody) + Sage
     await sendMessage(
       chatId,
       "Looks like it's just us. I'm in our regular thread if you want to keep going."
     );
     await updateGroupState(chatId, { is_active: false });
-    console.log("[linq] group_closed chat_id=%s api_confirmed=%d", chatId, apiNonSage.length);
+    console.log("[linq] group_closed chat_id=%s api_confirmed=%d", chatId, apiNonPersona.length);
   } else {
     // Counter was wrong — fix it to match reality
     console.warn(
       "[linq] counter_mismatch chat_id=%s counter=%d api=%d — fixing",
       chatId,
       newCount,
-      apiNonSage.length
+      apiNonPersona.length
     );
-    await updateGroupState(chatId, { non_sage_participant_count: apiNonSage.length });
+    await updateGroupState(chatId, { non_persona_participant_count: apiNonPersona.length });
   }
 }
 
@@ -437,9 +437,9 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       const messageText =
         parts.filter((p: { type: string }) => p.type === "text")
           .map((p: { type: string; value: string }) => p.value).join(" ") || bodyText || "";
-      const mentionsSage = /\bsage\b/i.test(messageText);
+      const mentionsPersonaFlag = mentionsPersona(messageText);
 
-      if (groupState && !groupState.owner_user_id && mentionsSage) {
+      if (groupState && !groupState.owner_user_id && mentionsPersonaFlag) {
         console.log("[linq] re_detecting_inactive_group chat_id=%s", chatId);
         // Reset group state so detectAndSetupGroup re-runs from scratch
         await updateGroupState(chatId, { is_active: true, intro_sent: false });
@@ -497,17 +497,17 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     }
 
     // Increment counter and prefetch context in parallel
-    const currentCount = (groupState.messages_since_sage_spoke || 0) + 1;
+    const currentCount = (groupState.messages_since_persona_spoke || 0) + 1;
     const [, prefetched] = await Promise.all([
-      updateGroupState(chatId, { messages_since_sage_spoke: currentCount }),
+      updateGroupState(chatId, { messages_since_persona_spoke: currentCount }),
       prefetchGroupContext(groupState, String(senderPhone)),
     ]);
 
     // Run the scoring-based message gate
-    const lastSageSpokeAt = groupState.last_sage_spoke_at
-      ? new Date(groupState.last_sage_spoke_at)
+    const lastPersonaSpokeAt = groupState.last_persona_spoke_at
+      ? new Date(groupState.last_persona_spoke_at)
       : null;
-    const gate = evaluateGate(groupTextContent, currentCount, lastSageSpokeAt);
+    const gate = evaluateGate(groupTextContent, currentCount, lastPersonaSpokeAt);
     console.log(
       "[linq] group_gate chat_id=%s decision=%s reason=%s counter=%d score=%d",
       chatId,
@@ -528,8 +528,8 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
       return;
     }
 
-    // Gate says SEND_TO_SAGE — no typing indicators in groups (Linq 403s)
-    const sageCallStart = Date.now();
+    // Gate says SEND_TO_PERSONA — no typing indicators in groups (Linq 403s)
+    const personaCallStart = Date.now();
     try {
       const result = await processGroupMessage({
         linqChatId: chatId,
@@ -539,20 +539,20 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
         prefetched,
       });
 
-      const latencyMs = Date.now() - sageCallStart;
+      const latencyMs = Date.now() - personaCallStart;
       const outcome = result.responseText ? "responded" : "no_response";
 
       if (result.responseText) {
         await sendMessage(chatId, result.responseText);
         await updateGroupState(chatId, {
-          messages_since_sage_spoke: 0,
-          last_sage_spoke_at: new Date().toISOString(),
+          messages_since_persona_spoke: 0,
+          last_persona_spoke_at: new Date().toISOString(),
         });
       }
 
       // Cost logging — track every group Sage API call for threshold tuning
       console.log(
-        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
+        "[linq] GROUP_PERSONA_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
         chatId,
         currentCount,
         gate.reason,
@@ -562,9 +562,9 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
         result.responseText?.length ?? 0
       );
     } catch (err) {
-      const latencyMs = Date.now() - sageCallStart;
+      const latencyMs = Date.now() - personaCallStart;
       console.error(
-        "[linq] GROUP_SAGE_CALL chat_id=%s counter=%d gate_reason=%s outcome=error latency_ms=%d error=%s",
+        "[linq] GROUP_PERSONA_CALL chat_id=%s counter=%d gate_reason=%s outcome=error latency_ms=%d error=%s",
         chatId,
         currentCount,
         gate.reason,

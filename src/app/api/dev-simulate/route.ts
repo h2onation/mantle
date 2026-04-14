@@ -2,18 +2,18 @@ export const runtime = "edge";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { callSage, mapSystemMessages } from "@/lib/sage/call-sage";
-import { confirmCheckpoint } from "@/lib/sage/confirm-checkpoint";
+import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
+import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import {
   generateSimulatedUserMessage,
   parseCheckpointIntent,
-} from "@/lib/sage/simulate-user";
+} from "@/lib/persona/simulate-user";
 
 /**
- * Consume a callSage ReadableStream internally, extracting the full text
+ * Consume a callPersona ReadableStream internally, extracting the full text
  * and the message_complete event data.
  */
-async function consumeSageStream(stream: ReadableStream): Promise<{
+async function consumePersonaStream(stream: ReadableStream): Promise<{
   fullText: string;
   messageId: string | null;
   checkpoint: {
@@ -78,12 +78,12 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let personaDescription = "";
+  let simulatedUserDescription = "";
   let checkpointTarget = 1;
   try {
     const body = await request.json();
-    if (body.personaDescription && typeof body.personaDescription === "string") {
-      personaDescription = body.personaDescription.trim();
+    if (body.simulatedUserDescription && typeof body.simulatedUserDescription === "string") {
+      simulatedUserDescription = body.simulatedUserDescription.trim();
     }
     if (
       body.checkpointTarget &&
@@ -96,9 +96,9 @@ export async function POST(request: Request) {
     // Invalid JSON
   }
 
-  if (!personaDescription) {
+  if (!simulatedUserDescription) {
     return Response.json(
-      { error: "personaDescription is required" },
+      { error: "simulatedUserDescription is required" },
       { status: 400 }
     );
   }
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
 
           // Generate simulated user message
           const userMessage = await generateSimulatedUserMessage(
-            personaDescription,
+            simulatedUserDescription,
             history
           );
 
@@ -199,13 +199,13 @@ export async function POST(request: Request) {
           });
 
           // Call Sage with the simulated user's message
-          const sageStream = callSage({
+          const personaStream = callPersona({
             conversationId,
             userId: userId,
             message: userMessage,
           });
 
-          const result = await consumeSageStream(sageStream);
+          const result = await consumePersonaStream(personaStream);
 
           emit(controller, {
             type: "turn_complete",
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
 
             // Generate checkpoint response from simulated user
             const cpResponse = await generateSimulatedUserMessage(
-              personaDescription,
+              simulatedUserDescription,
               updatedHistory,
               true // isCheckpointResponse
             );
@@ -249,12 +249,12 @@ export async function POST(request: Request) {
               confirmedCount++;
 
               // Get Sage's follow-up response
-              const followUpStream = callSage({
+              const followUpStream = callPersona({
                 conversationId,
                 userId: userId,
                 message: null,
               });
-              await consumeSageStream(followUpStream);
+              await consumePersonaStream(followUpStream);
             } else {
               // Reject or refine: update meta, insert system message
               if (result.messageId) {
@@ -290,12 +290,12 @@ export async function POST(request: Request) {
               });
 
               // Get Sage's follow-up to the rejection/refinement
-              const followUpStream = callSage({
+              const followUpStream = callPersona({
                 conversationId,
                 userId: userId,
                 message: null,
               });
-              await consumeSageStream(followUpStream);
+              await consumePersonaStream(followUpStream);
             }
 
             emit(controller, {

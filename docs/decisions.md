@@ -136,14 +136,14 @@
 
 **Status**: Settled  
 **Context**: Long conversations exceed the model's context budget. A windowing strategy is needed to keep conversation history within token limits while preserving the most useful context.  
-**Decision**: When history exceeds 50 messages, include the first 2 messages and the last 48. Implemented in `call-sage.ts`.
+**Decision**: When history exceeds 50 messages, include the first 2 messages and the last 48. Implemented in `call-persona.ts`.
 **Consequences**: The first 2 messages preserve the session's opening context (what the user came in with, Sage's initial framing). The last 48 preserve recent conversational flow. The gap in the middle is acceptable because extraction state carries cumulative analysis of the dropped messages. Simpler than embedding-based retrieval, which would add latency and complexity for a marginal improvement at current conversation lengths. Revisit if users regularly exceed 100+ messages per session.
 
 ## ADR-024: Shared Pipeline Over Parallel Implementations
 
 **Status**: Settled
 **Context**: The text (Linq) and web paths through Sage duplicated ~280 lines of identical logic — DB reads, user state derivation, extraction firing, crisis detection, checkpoint gates, model constants. The text path was missing checkpoint layer guards and turn-count suppression, causing drift in checkpoint behavior.
-**Decision**: Extract shared logic into `sage-pipeline.ts`. Both `call-sage.ts` (web) and `sage-bridge.ts` (text) import from the same module. Web-specific logic (streaming, Path B classification/composition, SSE events, URL/transcript detection) stays in call-sage. Text-specific logic (non-streaming fetch, checkpoint text formatting) stays in sage-bridge.
+**Decision**: Extract shared logic into `persona-pipeline.ts`. Both `call-persona.ts` (web) and `persona-bridge.ts` (text) import from the same module. Web-specific logic (streaming, Path B classification/composition, SSE events, URL/transcript detection) stays in call-persona. Text-specific logic (non-streaming fetch, checkpoint text formatting) stays in persona-bridge.
 **Consequences**: Seven shared functions replace 13 duplication points. Rule changes (new gate, model upgrade, crisis phrase) happen in one place. Text path now enforces the same checkpoint rules as web. Tradeoff: an additional import layer adds one level of indirection. But the alternative — maintaining two copies of identical rules — already caused a real bug (missing layer guards in text). The indirection cost is trivial compared to the drift risk.
 
 ## ADR-025: Text Checkpoint Shows Name Only
@@ -185,8 +185,8 @@
 
 **Status**: Settled (2026-04-06)
 **Context**: PR1 ships ND-only voice. The plan needs to support adding additional voice modes (general, ADHD-specific, etc.) later without re-plumbing the call chain. Options: (a) hardcode autism voice in the prompt and add the seam later; (b) add the seam now even though there's only one value; (c) build a full mode registry with branching now.
-**Decision**: Option (b). Add `sage_mode text` column to `profiles` (nullable, check constraint allows only `'autistic'` for now). Migration lives at `supabase/add-sage-mode.sql` per the existing convention. Thread `sageMode` through `ConversationContext` → `BuildPromptOptions` → `buildSystemPrompt`, defaulting null to `'autistic'`. Voice content remains hardcoded autism-only in PR2a/PR2b. The seam exists but does not branch yet.
-**Consequences**: Adding a second voice mode in the future is a content change, not a plumbing change — extend the check constraint, add a branch in `buildSystemPrompt`, done. The single-value plumbing is a small amount of "future-facing" code, but it lives behind type-safe interfaces (`SageMode = 'autistic'`) so a second mode added later gets caught by the compiler at every consumer site.
+**Decision**: Option (b). Add `persona_mode text` column to `profiles` (nullable, check constraint allows only `'autistic'` for now; originally shipped as `sage_mode`, renamed in `supabase/migrations/20260414_rename_sage_to_persona.sql`). Thread `personaMode` through `ConversationContext` → `BuildPromptOptions` → `buildSystemPrompt`, defaulting null to `'autistic'`. Voice content remains hardcoded autism-only in PR2a/PR2b. The seam exists but does not branch yet.
+**Consequences**: Adding a second voice mode in the future is a content change, not a plumbing change — extend the check constraint, add a branch in `buildSystemPrompt`, done. The single-value plumbing is a small amount of "future-facing" code, but it lives behind type-safe interfaces (`PersonaMode = 'autistic'`) so a second mode added later gets caught by the compiler at every consumer site.
 
 ## ADR-031: Remove Pattern Feature, Single Entry Type
 
