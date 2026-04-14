@@ -6,7 +6,7 @@ create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   display_name text,
   -- AI persona voice mode. Currently only 'autistic'. Null defaults to autistic.
-  -- Added in supabase/add-sage-mode.sql; renamed from sage_mode in
+  -- Renamed from sage_mode in
   -- supabase/migrations/20260414_rename_sage_to_persona.sql.
   persona_mode text check (persona_mode is null or persona_mode in ('autistic')),
   created_at timestamptz default now() not null

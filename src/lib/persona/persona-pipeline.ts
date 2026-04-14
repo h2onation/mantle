@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
-// Shared Sage pipeline logic — single source of truth for rules used by
-// both the web (call-sage.ts) and text (sage-bridge.ts) paths.
+// Shared persona pipeline logic — single source of truth for rules used by
+// both the web (call-persona.ts) and text (persona-bridge.ts) paths.
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,7 +38,7 @@ export interface ConversationContext {
   sessionCount: number;
   turnsSinceCheckpoint: number;
   conversationId: string;
-  extractionForSage: string;
+  extractionForPersona: string;
   turnCount: number;
   checkpointApproaching: boolean;
   personaMode: PersonaMode;
@@ -150,7 +150,7 @@ export async function loadConversationContext(
   }
 
   // Derived prompt flags
-  const extractionForSage = previousExtraction
+  const extractionForPersona = previousExtraction
     ? formatExtractionForPersona(previousExtraction, isFirstCheckpoint, manualComponents)
     : "";
 
@@ -174,7 +174,7 @@ export async function loadConversationContext(
     sessionCount,
     turnsSinceCheckpoint,
     conversationId,
-    extractionForSage,
+    extractionForPersona,
     turnCount,
     checkpointApproaching,
     personaMode,
@@ -184,7 +184,7 @@ export async function loadConversationContext(
 // ── 1b. Build prompt options from context ──────────────────────────────────
 //
 // Single source of truth for the context → BuildPromptOptions mapping.
-// Both web (call-sage.ts) and text (sage-bridge.ts) call this, then web
+// Both web (call-persona.ts) and text (persona-bridge.ts) call this, then web
 // layers on its channel-specific fields (explorationContext, transcriptContext,
 // contentContext). Adding a new field to BuildPromptOptions? Add it here once.
 
@@ -193,7 +193,7 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     manualComponents: ctx.manualComponents,
     isReturningUser: ctx.isReturningUser,
     sessionSummary: ctx.sessionSummary,
-    extractionContext: ctx.extractionForSage,
+    extractionContext: ctx.extractionForPersona,
     isFirstCheckpoint: ctx.isFirstCheckpoint,
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
@@ -449,7 +449,7 @@ export function validateComposedEntry(
 //
 // Single source of truth for the system messages inserted after checkpoint
 // actions. These strings must stay in sync with mapSystemMessages() in
-// call-sage.ts — if you change the wording here, update the mapping there.
+// call-persona.ts — if you change the wording here, update the mapping there.
 
 const CHECKPOINT_ACTION_MESSAGES: Record<string, string> = {
   confirmed: "[User confirmed the checkpoint]",

@@ -1,13 +1,14 @@
 /**
- * One-time script to set the Linq contact card for the Sage phone number.
- * Makes the number show up as "Sage by mywalnut" with a logo in iMessage.
- * Run: npx tsx scripts/setup-linq-contact-card.ts
+ * One-time script to set the Linq contact card for the persona phone number.
+ * Makes the number show up as "<PERSONA_NAME_FORMAL> by mywalnut" with a logo
+ * in iMessage. Run: npx tsx scripts/setup-linq-contact-card.ts
  *
  * Only needs to run once per Linq phone number. Re-run if you change
  * the name or logo.
  */
 
 import "dotenv/config";
+import { PERSONA_NAME_FORMAL } from "../src/lib/persona/config";
 
 const API_TOKEN = process.env.LINQ_API_TOKEN;
 const PHONE_NUMBER = process.env.LINQ_PHONE_NUMBER;
@@ -35,7 +36,7 @@ async function main() {
       },
       body: JSON.stringify({
         phone_number: PHONE_NUMBER,
-        first_name: "Sage",
+        first_name: PERSONA_NAME_FORMAL,
         last_name: "by mywalnut",
         image_url: IMAGE_URL,
       }),

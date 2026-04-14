@@ -115,7 +115,7 @@ export function detectCrisisInUserMessage(message: string): boolean {
   return CRISIS_PHRASES.some((phrase) => lower.includes(phrase));
 }
 
-interface CallSageOptions {
+interface CallPersonaOptions {
   conversationId: string;
   userId: string;
   message: string | null;
@@ -129,7 +129,7 @@ export function callPersona({
   message,
   explorationContext,
   promptAuth,
-}: CallSageOptions): ReadableStream {
+}: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
   const encoder = new TextEncoder();

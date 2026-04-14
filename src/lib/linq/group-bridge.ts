@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Group chat Sage bridge — facilitator mode for group text conversations.
+// Group chat persona bridge — facilitator mode for group text conversations.
 //
-// Follows the same import pattern as sage-bridge.ts: shared logic lives in
-// sage-pipeline.ts, channel-specific concerns stay here.
+// Follows the same import pattern as persona-bridge.ts: shared logic lives in
+// persona-pipeline.ts, channel-specific concerns stay here.
 //
 // Key differences from the 1:1 bridge:
 //   - Uses the group system prompt (facilitator, not deep conversation)

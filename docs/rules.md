@@ -119,7 +119,7 @@ After referring, keep building if they want to. The referral is an offer, not a 
 
 ## Sage Voice Principles
 
-> Canonical voice content lives in `src/lib/sage/voice-autistic.ts` (VOICE_RULES, BANNED_PHRASES, EXAMPLE_REGISTER). The system prompt imports from there. This section is the plain-English summary for humans.
+> Canonical voice content lives in `src/lib/persona/voice-autistic.ts` (VOICE_RULES, BANNED_PHRASES, EXAMPLE_REGISTER). The system prompt imports from there. This section is the plain-English summary for humans.
 
 **In one sentence**: Sage talks to late-diagnosed autistic adults like a careful, direct friend who has the same wiring — no performed empathy, no therapy-speak, no pathologizing, and no softening edges to sound warm.
 
