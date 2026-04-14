@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-04-09*
+*Last verified: 2026-04-14*
 
 **Working end-to-end:**
 - Auth: magic link + Google OAuth, middleware redirect, session refresh
@@ -26,7 +26,7 @@
 - Crisis protocol: detects crisis language, provides 988 + Crisis Text Line
 - Voice input (Deepgram): auto-scroll during transcription, 3.5-line max height
 - Guest-to-real auth conversion after first checkpoint
-- Admin panel: user list (sorted by `last_active`), conversation/message viewer with extraction state, access logging. Tab bar: Users / Waitlist / Feedback.
+- Admin panel: user list (sorted by `last_active`), conversation/message viewer with extraction state, access logging. Tab bar: Users / Waitlist / Allowlist / Feedback.
 - Exploration mode: "Explore with Sage" from manual entries
 - Transcript recognition: regex detects pasted transcripts (iMessage, email, journal, timestamped chat), Sage asks for context and cross-references manual.
 - Resonant content: URL detection + fetch, Sage asks what resonated. Hard rule prevents fabricating descriptions when fetch fails.
@@ -43,11 +43,12 @@
 - ND pivot (2026-04-06, 4 PRs): Layer rename to autism-specific (SSOT at `src/lib/manual/layers.ts`). Sage voice rewrite (`voice-autistic.ts`: somatic-first, sensory-verbatim, clinical framework ban). Checkpoint composition requires somatic anchor. All onboarding/legal/marketing copy rewritten for ND audience. Unified first-message handling (legacy Path A/B/C dropped). Quality framework rewrite for autistic-mode audit. `profiles.sage_mode` column for future voice modes.
 - Legal page updates (2026-04-06): Privacy Policy + Terms of Service updated — provider-agnostic SMS, "not used to train AI" line, sharing sections, non-clinical/non-accommodation disclaimer.
 - Closed-beta entry + onboarding gate (2026-04-08): Entry screen shows "Log in" + "Join the waitlist." Post-login onboarding for new users (`profiles.onboarding_completed_at`). Fails open on API error. Migration: `20260408_add_onboarding_completed_at.sql`.
-- Beta access system (2026-04-08, admin add-to-beta 2026-04-09): Allowlist-gated signup (email + Google OAuth, fails closed). Waitlist page + `/api/waitlist` (rate-limited, 3/hr/IP). Admin: add-to-beta form + per-row buttons on Waitlist tab, status changes, feedback tab with unread count. Persistent `BetaFeedbackButton` for all logged-in users. Tables: `beta_allowlist`, `waitlist`, `beta_feedback`.
+- Beta access system (2026-04-08, admin add-to-beta 2026-04-09, allowlist tab 2026-04-14): Allowlist-gated signup (email + Google OAuth, fails closed). Waitlist page + `/api/waitlist` (rate-limited, 3/hr/IP). Admin: add-to-beta form + per-row buttons on Waitlist tab, status changes, feedback tab with unread count, dedicated Allowlist tab that lists/removes beta_allowlist entries via `GET`/`DELETE /api/admin/beta-allowlist`. Persistent `BetaFeedbackButton` for all logged-in users. Tables: `beta_allowlist`, `waitlist`, `beta_feedback`.
 - Pattern feature removal (2026-04-07): Single entry type per layer. No mode flip, recurrence gate, chain walk, saturation, or per-layer cap. `manual_components.type` column dropped.
 - Sage prompt hardening (2026-04-06): Moved sensitive logic out of system prompt into server-side code. `validateMaterialQuality` pre-emit gate, `validateComposedEntry` post-validator. ~75 lines of enforcement scaffolding pruned from prompt.
 - Security hardening (2026-04-07): Upstash rate limiting on chat/summary/checkpoint/OTP routes (fails open if env vars missing). Anon Gate B at 2 manual_components. OTP phone verification (SHA-256, 6-digit, 10-min TTL). PII logging cleanup.
 - Sage prompt tuning (7 rounds, 2026-03-17 through 2026-04-07): Abstract stacking rule, receive-land-ask rhythm, checkpoint delivery sequence (verbatim body/sensory word required, open validation question, 4-8 word headline), post-checkpoint advisory mode, clinical-label-in-negation rule, one-question-per-turn enforcement, therapy-ism bans ("sit with," "lean into," "hold space for").
+- Sage → Persona rename (2026-04-14): Internal identifier rename across ~70 files. User-facing "Sage" strings routed through `PERSONA_NAME` constant at `src/lib/persona/config.ts`. Directory moved `src/lib/sage/` → `src/lib/persona/`, files renamed (`call-sage.ts` → `call-persona.ts`, `sage-pipeline.ts` → `persona-pipeline.ts`, `sage-bridge.ts` → `persona-bridge.ts`, `ExploreWithSageButton.tsx` → `ExploreWithPersonaButton.tsx`). Contact card `public/sage-contact.vcf` → `persona-contact.vcf`. DB migration `20260414_rename_sage_to_persona.sql` renames `sage_*` columns (e.g. `profiles.sage_mode` → `profiles.persona_mode`). System prompt rewritten in second-person with `{{PERSONA_NAME}}` templating. Direct-address detection routed through `mentionsPersona` helper.
 - Brand migration Mantle → mywalnut (2026-04-09): 52 files across app, API, Sage prompt, Linq SMS, legal pages, onboarding, PWA manifest, service worker, scripts, docs. DB column `mantle_user_id` → `owner_user_id` (migration `20260409_rename_mantle_user_id.sql`). localStorage keys `mantle_*` → `mw_*` with one-time migration shim. Domain `mywalnut.app`. External steps: Supabase redirect URLs, Linq webhook re-registration, contact card update.
 
 ## Not Yet Functional
@@ -65,12 +66,13 @@
 - **Waitlist rate limiter not enforcing**: Upstash env vars (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) are not set in production. Rate limiter fails open by design. Code is wired correctly — just needs the Redis instance.
 
 ## In-Flight Work
-*Last verified: 2026-04-09*
+*Last verified: 2026-04-14*
 
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
 - Migration `20260408_add_onboarding_completed_at.sql` not yet run in Supabase dashboard
 - Migration `20260409_rename_mantle_user_id.sql` not yet run in Supabase dashboard — must run before deploying brand migration code
+- Migration `20260414_rename_sage_to_persona.sql` not yet run in Supabase dashboard — must run alongside Sage→Persona rename deploy
 - Upstash Redis setup needed for rate limiting to enforce in production
 - Linq deprecation: moving away from Linq SMS provider
 
