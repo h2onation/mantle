@@ -78,12 +78,12 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let personaDescription = "";
+  let simulatedUserDescription = "";
   let checkpointTarget = 1;
   try {
     const body = await request.json();
-    if (body.personaDescription && typeof body.personaDescription === "string") {
-      personaDescription = body.personaDescription.trim();
+    if (body.simulatedUserDescription && typeof body.simulatedUserDescription === "string") {
+      simulatedUserDescription = body.simulatedUserDescription.trim();
     }
     if (
       body.checkpointTarget &&
@@ -96,9 +96,9 @@ export async function POST(request: Request) {
     // Invalid JSON
   }
 
-  if (!personaDescription) {
+  if (!simulatedUserDescription) {
     return Response.json(
-      { error: "personaDescription is required" },
+      { error: "simulatedUserDescription is required" },
       { status: 400 }
     );
   }
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
 
           // Generate simulated user message
           const userMessage = await generateSimulatedUserMessage(
-            personaDescription,
+            simulatedUserDescription,
             history
           );
 
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
 
             // Generate checkpoint response from simulated user
             const cpResponse = await generateSimulatedUserMessage(
-              personaDescription,
+              simulatedUserDescription,
               updatedHistory,
               true // isCheckpointResponse
             );
