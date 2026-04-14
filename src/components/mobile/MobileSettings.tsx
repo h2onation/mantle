@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
-import AdminView from "@/components/mobile/AdminView";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
@@ -988,7 +987,19 @@ export default function MobileSettings({
           </button>
         </div>
       </SettingsRow>
-          <AdminView />
+          <a
+            href="/admin"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--session-error)",
+              padding: "18px 0",
+              textDecoration: "none",
+            }}
+          >
+            Open admin dashboard →
+          </a>
         </>
       )}
       </>

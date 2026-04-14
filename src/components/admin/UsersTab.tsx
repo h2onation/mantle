@@ -25,11 +25,12 @@ export interface AdminUserOverview {
 interface Props {
   users: AdminUserOverview[];
   onSelectUser: (user: AdminUserOverview) => void;
+  selectedId?: string | null;
 }
 
 const PER_PAGE = 10;
 
-export default function UsersTab({ users, onSelectUser }: Props) {
+export default function UsersTab({ users, onSelectUser, selectedId }: Props) {
   const [page, setPage] = useState(0);
 
   // Sort by last_active desc; nulls last so brand-new users that have no
@@ -55,7 +56,13 @@ export default function UsersTab({ users, onSelectUser }: Props) {
         <button
           key={u.id}
           onClick={() => onSelectUser(u)}
-          style={adminListItemStyle}
+          style={{
+            ...adminListItemStyle,
+            background: u.id === selectedId ? "rgba(255,255,255,0.6)" : "none",
+            borderRadius: u.id === selectedId ? 6 : 0,
+            paddingLeft: u.id === selectedId ? 10 : 0,
+            paddingRight: u.id === selectedId ? 10 : 0,
+          }}
         >
           <div
             style={{
