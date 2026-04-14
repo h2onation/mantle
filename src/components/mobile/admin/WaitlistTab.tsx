@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   adminMetaStyle,
   adminEmptyStyle,
-  adminLabelStyle,
   formatAdminDate,
   paginate,
 } from "./admin-shared";
@@ -41,12 +40,6 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // "Add to beta" form state
-  const [betaEmail, setBetaEmail] = useState("");
-  const [betaFormStatus, setBetaFormStatus] = useState<
-    "idle" | "saving" | "added" | "already_exists" | "error"
-  >("idle");
-
   // Per-row "Add to beta" state
   const [betaRowSaving, setBetaRowSaving] = useState<string | null>(null);
   const [betaRowResult, setBetaRowResult] = useState<
@@ -69,23 +62,6 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
     }
   }
 
-  async function handleBetaFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const email = betaEmail.trim().toLowerCase();
-    if (!email) return;
-    setBetaFormStatus("saving");
-    try {
-      const result = await onAddToBeta(email);
-      setBetaFormStatus(result);
-      if (result === "added") setBetaEmail("");
-      // Auto-clear feedback after 3s
-      setTimeout(() => setBetaFormStatus("idle"), 3000);
-    } catch {
-      setBetaFormStatus("error");
-      setTimeout(() => setBetaFormStatus("idle"), 3000);
-    }
-  }
-
   async function handleRowAddToBeta(row: WaitlistRow) {
     setBetaRowSaving(row.id);
     try {
@@ -100,106 +76,6 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
 
   return (
     <div>
-      {/* ── Add to Beta form ──────────────────────────────────── */}
-      <div
-        style={{
-          padding: "16px 0",
-          borderBottom: "1px solid var(--session-ink-hairline)",
-          marginBottom: 4,
-        }}
-      >
-        <div style={{ ...adminLabelStyle, marginBottom: 10 }}>
-          Add email to beta
-        </div>
-        <form
-          onSubmit={handleBetaFormSubmit}
-          style={{ display: "flex", gap: 8, alignItems: "center" }}
-        >
-          <input
-            type="email"
-            placeholder="email@example.com"
-            value={betaEmail}
-            onChange={(e) => setBetaEmail(e.target.value)}
-            disabled={betaFormStatus === "saving"}
-            style={{
-              flex: 1,
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--session-ink)",
-              background: "rgba(255,255,255,0.6)",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: 6,
-              padding: "8px 10px",
-              outline: "none",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={betaFormStatus === "saving" || !betaEmail.trim()}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-              color: "var(--session-cream)",
-              background: "var(--session-persona)",
-              border: "none",
-              borderRadius: 6,
-              padding: "9px 14px",
-              cursor:
-                betaFormStatus === "saving" || !betaEmail.trim()
-                  ? "default"
-                  : "pointer",
-              opacity:
-                betaFormStatus === "saving" || !betaEmail.trim() ? 0.5 : 1,
-              WebkitTapHighlightColor: "transparent",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {betaFormStatus === "saving" ? "Adding…" : "Add"}
-          </button>
-        </form>
-        {betaFormStatus === "added" && (
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              color: "var(--session-persona)",
-              marginTop: 8,
-              letterSpacing: "0.5px",
-            }}
-          >
-            Added to beta allowlist.
-          </div>
-        )}
-        {betaFormStatus === "already_exists" && (
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              color: "var(--session-ink-ghost)",
-              marginTop: 8,
-              letterSpacing: "0.5px",
-            }}
-          >
-            Already on the allowlist.
-          </div>
-        )}
-        {betaFormStatus === "error" && (
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              color: "var(--session-error)",
-              marginTop: 8,
-              letterSpacing: "0.5px",
-            }}
-          >
-            Failed to add. Try again.
-          </div>
-        )}
-      </div>
-
       {/* ── Error banner ──────────────────────────────────────── */}
       {error && (
         <div
