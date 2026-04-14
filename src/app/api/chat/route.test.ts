@@ -34,7 +34,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/lib/persona/call-persona", () => ({
-  callSage: () => new ReadableStream({ start(c) { c.close(); } }),
+  callPersona: () => new ReadableStream({ start(c) { c.close(); } }),
 }));
 
 const mockCheckLimits = vi.fn();

@@ -197,7 +197,7 @@ export default function ResetPasswordPage() {
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderBottomColor =
-                      "var(--session-sage-soft)";
+                      "var(--session-persona-soft)";
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderBottomColor =
@@ -241,7 +241,7 @@ export default function ResetPasswordPage() {
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderBottomColor =
-                      "var(--session-sage-soft)";
+                      "var(--session-persona-soft)";
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderBottomColor =
@@ -259,7 +259,7 @@ export default function ResetPasswordPage() {
                     fontSize: 15,
                     fontWeight: 500,
                     color: "var(--session-cream)",
-                    backgroundColor: "var(--session-sage)",
+                    backgroundColor: "var(--session-persona)",
                     border: "none",
                     borderRadius: 8,
                     cursor: loading ? "not-allowed" : "pointer",

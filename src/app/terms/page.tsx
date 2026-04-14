@@ -219,7 +219,7 @@ export default function TermsOfService() {
           Your use of mywalnut is also governed by our{" "}
           <a
             href="/privacy"
-            style={{ color: "var(--session-sage)", textDecoration: "none" }}
+            style={{ color: "var(--session-persona)", textDecoration: "none" }}
           >
             Privacy Policy
           </a>
@@ -278,7 +278,7 @@ export default function TermsOfService() {
           <a
             href="https://mywalnut.app"
             style={{
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}

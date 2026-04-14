@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatExtractionForSage, type ExtractionState } from "@/lib/persona/extraction";
+import { formatExtractionForPersona, type ExtractionState } from "@/lib/persona/extraction";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
@@ -33,7 +33,7 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
   };
 }
 
-describe("formatExtractionForSage", () => {
+describe("formatExtractionForPersona", () => {
   describe("schema names do not leak", () => {
     it("does not contain raw schema labels", () => {
       const state = makeState({
@@ -49,7 +49,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 1,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       // Old structural names must not appear anywhere
       expect(result).not.toContain("FIELD NOTES");
       expect(result).not.toContain("LAYER SIGNALS");
@@ -68,14 +68,14 @@ describe("formatExtractionForSage", () => {
   describe("brief paragraph", () => {
     it("includes the sage_brief paragraph when present", () => {
       const state = makeState({ sage_brief: "User is exploring conflict avoidance." });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("User is exploring conflict avoidance.");
       expect(result).toContain("What's underneath this conversation");
     });
 
     it("omits the brief paragraph when sage_brief is empty", () => {
       const state = makeState({ sage_brief: "" });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).not.toContain("What's underneath this conversation");
     });
   });
@@ -83,7 +83,7 @@ describe("formatExtractionForSage", () => {
   describe("layer signals", () => {
     it("renders all 5 layers with their canonical names", () => {
       const state = makeState();
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       for (let i = 1; i <= 5; i++) {
         expect(result).toContain(`- ${LAYER_NAMES[i]}: untouched`);
       }
@@ -98,7 +98,7 @@ describe("formatExtractionForSage", () => {
           3: { signal: "checkpoint_ready", material: [], examples: [], dimensions: [] },
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("starting to surface");
       expect(result).toContain("well explored");
       expect(result).toContain("ready to be reflected back");
@@ -116,7 +116,7 @@ describe("formatExtractionForSage", () => {
           },
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("second; third; fourth");
       expect(result).not.toContain("first;");
     });
@@ -131,7 +131,7 @@ describe("formatExtractionForSage", () => {
           { phrase: "high phrase", context: "test", charge: "high", layers: [2] },
         ],
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("medium phrase");
       expect(result).toContain("high phrase");
       expect(result).not.toContain("low phrase");
@@ -145,7 +145,7 @@ describe("formatExtractionForSage", () => {
         layers: [1],
       }));
       const state = makeState({ language_bank: entries });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("phrase-5");
       expect(result).toContain("phrase-19");
       expect(result).not.toContain("phrase-4");
@@ -163,7 +163,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 3,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("enough material here to reflect a piece back");
       expect(result).toContain(LAYER_NAMES[3]);
     });
@@ -178,7 +178,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: null,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("Not enough yet to reflect a piece back");
       expect(result).toContain("more concrete scene");
       expect(result).toContain("haven't reached the mechanism");
@@ -195,7 +195,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: null,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).not.toContain("haven't reached the mechanism");
     });
   });
@@ -211,7 +211,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 1,
         },
       });
-      const result = formatExtractionForSage(state, true);
+      const result = formatExtractionForPersona(state, true);
       expect(result).toContain("enough material here to reflect a piece back");
     });
 
@@ -225,7 +225,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 2,
         },
       });
-      const result = formatExtractionForSage(state, true);
+      const result = formatExtractionForPersona(state, true);
       expect(result).toContain("enough material here to reflect a piece back");
     });
 
@@ -239,7 +239,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 1,
         },
       });
-      const result = formatExtractionForSage(state, true);
+      const result = formatExtractionForPersona(state, true);
       expect(result).toContain("Not enough yet");
     });
 
@@ -253,7 +253,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 1,
         },
       });
-      const result = formatExtractionForSage(state, true);
+      const result = formatExtractionForPersona(state, true);
       expect(result).toContain("very first reflection");
       expect(result).toContain("one-time wrapper");
     });
@@ -273,7 +273,7 @@ describe("formatExtractionForSage", () => {
       const components = [
         { layer: 1, name: "The Fixer", content: "You always step in..." },
       ];
-      const result = formatExtractionForSage(state, false, components);
+      const result = formatExtractionForPersona(state, false, components);
       expect(result).toContain("What's already in the manual");
       expect(result).toContain(LAYER_NAMES[1]);
       expect(result).toContain("You always step in...");
@@ -292,7 +292,7 @@ describe("formatExtractionForSage", () => {
       const components = [
         { layer: 3, name: null, content: "Different layer" },
       ];
-      const result = formatExtractionForSage(state, false, components);
+      const result = formatExtractionForPersona(state, false, components);
       expect(result).not.toContain("What's already in the manual");
     });
   });
@@ -300,20 +300,20 @@ describe("formatExtractionForSage", () => {
   describe("depth, mode, thread", () => {
     it("describes depth and approach in natural language", () => {
       const state = makeState({ depth: "mechanism", mode: "direct_exploration" });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("How deep this conversation has gone: mechanism");
       expect(result).toContain("Current approach: direct_exploration");
     });
 
     it("includes the current thread when present", () => {
       const state = makeState({ current_thread: "conflict with partner" });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("What's actually being explored right now: conflict with partner");
     });
 
     it("omits the thread line when current_thread is empty", () => {
       const state = makeState({ current_thread: "" });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).not.toContain("What's actually being explored");
     });
   });
@@ -323,7 +323,7 @@ describe("formatExtractionForSage", () => {
       const state = makeState({
         clinical_flag: { active: true, level: "crisis", note: "User expressed suicidal ideation" },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("Safety note:");
       expect(result).toContain("User expressed suicidal ideation");
       expect(result).toContain("Stop building");
@@ -333,7 +333,7 @@ describe("formatExtractionForSage", () => {
       const state = makeState({
         clinical_flag: { active: true, level: "caution", note: "User asked if they have ADHD" },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("Care note:");
       expect(result).toContain("User asked if they have ADHD");
       expect(result).toContain("Stay in behavioral description");
@@ -343,7 +343,7 @@ describe("formatExtractionForSage", () => {
       const state = makeState({
         clinical_flag: { active: false, level: "none", note: "" },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).not.toContain("Safety note");
       expect(result).not.toContain("Care note");
     });
@@ -359,7 +359,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 1,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("Not enough yet");
     });
 
@@ -374,7 +374,7 @@ describe("formatExtractionForSage", () => {
           strongest_layer: 3,
         },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       expect(result).toContain("enough material here to reflect a piece back");
     });
 
@@ -382,7 +382,7 @@ describe("formatExtractionForSage", () => {
       const state = makeState({
         clinical_flag: { active: true, level: "crisis", note: "Crisis detected" },
       });
-      const result = formatExtractionForSage(state, false);
+      const result = formatExtractionForPersona(state, false);
       const safetyIdx = result.indexOf("Safety note:");
       const readyIdx = result.indexOf("reflect a piece back");
       expect(safetyIdx).toBeGreaterThanOrEqual(0);

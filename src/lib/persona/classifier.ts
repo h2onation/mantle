@@ -53,7 +53,7 @@ export function cleanAndParseClassification(
 }
 
 export async function classifyResponse(
-  sageResponse: string,
+  personaResponse: string,
   recentMessages: string,
   isFirstSession?: boolean
 ): Promise<ClassificationResult> {
@@ -81,7 +81,7 @@ If checkpoint: pick the strongest layer the entry belongs to. Extract headline i
       messages: [
         {
           role: "user",
-          content: `Recent conversation:\n${recentMessages}\n\n${PERSONA_NAME}'s latest message:\n${sageResponse}`,
+          content: `Recent conversation:\n${recentMessages}\n\n${PERSONA_NAME}'s latest message:\n${personaResponse}`,
         },
       ],
     });

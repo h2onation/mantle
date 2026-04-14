@@ -5,7 +5,7 @@ echo "========================================="
 PASS=0; FAIL=0
 
 # Test 1: System prompt file exists and exports function
-if grep -q "buildSystemPrompt" src/lib/sage/system-prompt.ts 2>/dev/null; then
+if grep -q "buildSystemPrompt" src/lib/persona/system-prompt.ts 2>/dev/null; then
   echo "✅ System prompt builder exists"; ((PASS++))
 else echo "❌ System prompt builder missing"; ((FAIL++)); fi
 

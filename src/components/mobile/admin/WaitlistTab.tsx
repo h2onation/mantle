@@ -142,7 +142,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
               letterSpacing: "1px",
               textTransform: "uppercase",
               color: "var(--session-cream)",
-              background: "var(--session-sage)",
+              background: "var(--session-persona)",
               border: "none",
               borderRadius: 6,
               padding: "9px 14px",
@@ -164,7 +164,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "9px",
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               marginTop: 8,
               letterSpacing: "0.5px",
             }}
@@ -322,7 +322,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-cream)",
-                          background: "var(--session-sage)",
+                          background: "var(--session-persona)",
                           border: "none",
                           borderRadius: 4,
                           padding: "5px 9px",
@@ -376,9 +376,9 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                         fontSize: "9px",
                         letterSpacing: "1px",
                         textTransform: "uppercase",
-                        color: "var(--session-sage)",
+                        color: "var(--session-persona)",
                         background: "none",
-                        border: "1px solid var(--session-sage)",
+                        border: "1px solid var(--session-persona)",
                         borderRadius: 4,
                         padding: "5px 9px",
                         cursor: isBetaSaving ? "default" : "pointer",
@@ -395,7 +395,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                       style={{
                         fontFamily: "var(--font-mono)",
                         fontSize: "9px",
-                        color: "var(--session-sage)",
+                        color: "var(--session-persona)",
                         letterSpacing: "0.5px",
                         marginLeft: "auto",
                       }}

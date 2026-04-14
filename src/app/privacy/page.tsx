@@ -272,7 +272,7 @@ export default function PrivacyPolicy() {
           <a
             href="https://mywalnut.app"
             style={{
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}

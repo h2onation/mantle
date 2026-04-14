@@ -37,7 +37,7 @@ export default function SWUpdatePrompt({ onUpdate }: SWUpdatePromptProps) {
         style={{
           fontSize: 14,
           fontWeight: 600,
-          color: "var(--session-sage)",
+          color: "var(--session-persona)",
           background: "none",
           border: "none",
           cursor: "pointer",

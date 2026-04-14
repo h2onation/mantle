@@ -148,7 +148,7 @@ export default function WaitlistForm() {
           marginBottom: 28,
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)";
+          e.currentTarget.style.borderBottomColor = "var(--session-persona-soft)";
         }}
         onBlur={(e) => {
           e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)";
@@ -190,7 +190,7 @@ export default function WaitlistForm() {
           resize: "none",
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderBottomColor = "var(--session-sage-soft)";
+          e.currentTarget.style.borderBottomColor = "var(--session-persona-soft)";
         }}
         onBlur={(e) => {
           e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)";
@@ -208,7 +208,7 @@ export default function WaitlistForm() {
             fontSize: 15,
             fontWeight: 500,
             color: "var(--session-cream)",
-            backgroundColor: "var(--session-sage)",
+            backgroundColor: "var(--session-persona)",
             border: "none",
             borderRadius: 8,
             cursor: submitting ? "not-allowed" : "pointer",

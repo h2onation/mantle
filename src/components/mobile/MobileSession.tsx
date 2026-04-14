@@ -16,13 +16,13 @@ const WELCOME_CHIPS = [
   "I just need to think out loud",
 ] as const;
 
-const sageLabelStyle = {
+const personaLabelStyle = {
   fontFamily: "var(--font-mono)",
   fontSize: "8px",
   fontWeight: 400,
   letterSpacing: "1.5px",
   textTransform: "lowercase" as const,
-  color: "var(--session-sage-soft)",
+  color: "var(--session-persona-soft)",
 } as const;
 
 interface MobileSessionProps {
@@ -146,20 +146,20 @@ export default function MobileSession({
       style={{
         margin: "16px 0 0 0",
         padding: "16px 18px 14px",
-        background: "var(--session-sage-tint)",
+        background: "var(--session-persona-tint)",
         borderRadius: "12px",
         animation: "mwFadeIn 0.6s ease-out",
       }}
     >
       {/* Sage label */}
       <div style={{ marginBottom: "2px" }}>
-        <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
+        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
       <div style={{
-        fontFamily: "var(--font-sage)",
+        fontFamily: "var(--font-persona)",
         fontSize: "16px",
         lineHeight: 1.55,
-        color: "var(--session-ink-sage)",
+        color: "var(--session-ink-persona)",
       }}>
         <p style={{ margin: "0 0 12px 0" }}>
           This is where you talk to {PERSONA_NAME}. There are a few ways to use it.
@@ -199,8 +199,8 @@ export default function MobileSession({
                 fontWeight: 400,
                 lineHeight: 1.4,
                 color: "var(--session-ink-soft)",
-                backgroundColor: "var(--session-sage-muted)",
-                border: "1px solid var(--session-sage-border)",
+                backgroundColor: "var(--session-persona-muted)",
+                border: "1px solid var(--session-persona-border)",
                 borderRadius: "20px",
                 padding: "10px 16px",
                 cursor: "pointer",
@@ -295,7 +295,7 @@ export default function MobileSession({
             justifyContent: "center",
             gap: "12px",
             padding: "6px 16px",
-            background: "var(--session-sage-tint)",
+            background: "var(--session-persona-tint)",
           }}
         >
           <span
@@ -316,7 +316,7 @@ export default function MobileSession({
               fontFamily: "var(--font-sans)",
               fontSize: "12px",
               fontWeight: 500,
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               padding: 0,
             }}
           >
@@ -392,9 +392,9 @@ export default function MobileSession({
             >
               <p
                 style={{
-                  fontFamily: "var(--font-sage)",
+                  fontFamily: "var(--font-persona)",
                   fontSize: "16px",
-                  color: "var(--session-ink-sage)",
+                  color: "var(--session-ink-persona)",
                   lineHeight: 1.55,
                   textAlign: "center",
                 }}
@@ -420,8 +420,8 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                const primaryBg = "var(--session-sage-soft)";
-                const accentColor = "var(--session-sage)";
+                const primaryBg = "var(--session-persona-soft)";
+                const accentColor = "var(--session-persona)";
 
                 return (
                   <div
@@ -429,7 +429,7 @@ export default function MobileSession({
                     style={{
                       animation: "checkpointFadeIn 0.45s ease both",
                       background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                      border: "1px solid var(--session-sage-border)",
+                      border: "1px solid var(--session-persona-border)",
                       borderRadius: "8px",
                       boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
                       padding: "16px 16px 14px",
@@ -445,7 +445,7 @@ export default function MobileSession({
                           fontWeight: 400,
                           letterSpacing: "3px",
                           textTransform: "uppercase",
-                          color: "var(--cp-text-accent, var(--session-sage-soft))",
+                          color: "var(--cp-text-accent, var(--session-persona-soft))",
                           marginBottom: "12px",
                           lineHeight: 1,
                         }}
@@ -666,7 +666,7 @@ export default function MobileSession({
 
               // Sage message — tinted bubble with serif text
               if (!isUser) {
-                const sagePanel = (
+                const personaPanel = (
                   <div
                     key={msg.id || `msg-${i}`}
                     style={{
@@ -678,7 +678,7 @@ export default function MobileSession({
                     {/* Sage label — first in sequence only */}
                     {isFirstInSageSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
+                        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
@@ -687,19 +687,19 @@ export default function MobileSession({
                     {/* Bubble */}
                     <div
                       style={{
-                        background: "var(--session-sage-tint)",
+                        background: "var(--session-persona-tint)",
                         borderRadius: "12px",
                         padding: "16px 18px",
-                        fontFamily: "var(--font-sage)",
+                        fontFamily: "var(--font-persona)",
                         fontSize: "16px",
                         fontWeight: 400,
                         lineHeight: 1.55,
-                        color: "var(--session-ink-sage)",
+                        color: "var(--session-ink-persona)",
                       }}
                     >
                       <div
                         style={{
-                          fontFamily: "var(--font-sage)",
+                          fontFamily: "var(--font-persona)",
                           fontSize: "16px",
                           fontWeight: 400,
                           lineHeight: 1.55,
@@ -720,7 +720,7 @@ export default function MobileSession({
                   </div>
                 );
 
-                return sagePanel;
+                return personaPanel;
               }
 
               // User message — right-positioned, left-justified text
@@ -771,12 +771,12 @@ export default function MobileSession({
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
                     <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
-                      <span style={sageLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
+                      <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                     </div>
                   )}
                   <div
                     style={{
-                      background: "var(--session-sage-tint)",
+                      background: "var(--session-persona-tint)",
                       borderRadius: "12px",
                       padding: "16px 18px",
                       alignSelf: "flex-start",
@@ -790,9 +790,9 @@ export default function MobileSession({
                             width: "5px",
                             height: "5px",
                             borderRadius: "50%",
-                            backgroundColor: "var(--session-sage-soft)",
+                            backgroundColor: "var(--session-persona-soft)",
                             opacity: 0.5,
-                            animation: "sagePulse 2.4s ease-in-out infinite",
+                            animation: "personaPulse 2.4s ease-in-out infinite",
                             animationDelay: `${dotIdx * 0.35}s`,
                           }}
                         />
@@ -841,7 +841,7 @@ export default function MobileSession({
                       fontFamily: "var(--font-sans)",
                       fontSize: "13px",
                       fontWeight: 500,
-                      color: "var(--session-sage)",
+                      color: "var(--session-persona)",
                       background: "none",
                       border: "none",
                       cursor: "pointer",

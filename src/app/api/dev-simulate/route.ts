@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { callSage, mapSystemMessages } from "@/lib/persona/call-persona";
+import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import {
   generateSimulatedUserMessage,
@@ -10,10 +10,10 @@ import {
 } from "@/lib/persona/simulate-user";
 
 /**
- * Consume a callSage ReadableStream internally, extracting the full text
+ * Consume a callPersona ReadableStream internally, extracting the full text
  * and the message_complete event data.
  */
-async function consumeSageStream(stream: ReadableStream): Promise<{
+async function consumePersonaStream(stream: ReadableStream): Promise<{
   fullText: string;
   messageId: string | null;
   checkpoint: {
@@ -199,13 +199,13 @@ export async function POST(request: Request) {
           });
 
           // Call Sage with the simulated user's message
-          const sageStream = callSage({
+          const personaStream = callPersona({
             conversationId,
             userId: userId,
             message: userMessage,
           });
 
-          const result = await consumeSageStream(sageStream);
+          const result = await consumePersonaStream(personaStream);
 
           emit(controller, {
             type: "turn_complete",
@@ -249,12 +249,12 @@ export async function POST(request: Request) {
               confirmedCount++;
 
               // Get Sage's follow-up response
-              const followUpStream = callSage({
+              const followUpStream = callPersona({
                 conversationId,
                 userId: userId,
                 message: null,
               });
-              await consumeSageStream(followUpStream);
+              await consumePersonaStream(followUpStream);
             } else {
               // Reject or refine: update meta, insert system message
               if (result.messageId) {
@@ -290,12 +290,12 @@ export async function POST(request: Request) {
               });
 
               // Get Sage's follow-up to the rejection/refinement
-              const followUpStream = callSage({
+              const followUpStream = callPersona({
                 conversationId,
                 userId: userId,
                 message: null,
               });
-              await consumeSageStream(followUpStream);
+              await consumePersonaStream(followUpStream);
             }
 
             emit(controller, {

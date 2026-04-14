@@ -14,11 +14,11 @@ const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 interface MobileManualProps {
   components: ManualComponent[];
   displayName: string;
-  onExploreWithSage?: (context: ExplorationContext) => void;
+  onExploreWithPersona?: (context: ExplorationContext) => void;
   onNavigateToSession?: () => void;
 }
 
-export default function MobileManual({ components, displayName, onExploreWithSage, onNavigateToSession }: MobileManualProps) {
+export default function MobileManual({ components, displayName, onExploreWithPersona, onNavigateToSession }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(components);
   const isEmpty = layers.every((l) => l.threads.length === 0);
@@ -145,7 +145,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
               <PopulatedLayer
                 key={layer.id}
                 layer={layer}
-                onExploreWithSage={onExploreWithSage}
+                onExploreWithPersona={onExploreWithPersona}
               />
             ) : (
               <EmptyLayer key={layer.id} layer={layer} />
@@ -442,7 +442,7 @@ export default function MobileManual({ components, displayName, onExploreWithSag
                 fontSize: 15,
                 fontWeight: 500,
                 color: "var(--session-cream)",
-                backgroundColor: "var(--session-sage)",
+                backgroundColor: "var(--session-persona)",
                 border: "none",
                 borderRadius: 10,
                 cursor: "pointer",

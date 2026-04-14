@@ -5,7 +5,7 @@ echo "========================================="
 PASS=0; FAIL=0
 
 # Test 1: Classifier exists
-if [ -f "src/lib/sage/classifier.ts" ]; then echo "✅ Classifier exists"; ((PASS++)); else echo "❌ Classifier missing"; ((FAIL++)); fi
+if [ -f "src/lib/persona/classifier.ts" ]; then echo "✅ Classifier exists"; ((PASS++)); else echo "❌ Classifier missing"; ((FAIL++)); fi
 
 # Test 2: Chat API has streaming
 if grep -q "text/event-stream" src/app/api/chat/route.ts 2>/dev/null; then

@@ -1050,7 +1050,7 @@ export default function AdminView() {
                             key={msg.id}
                             style={{
                               background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                              border: "1px solid var(--session-sage-border)",
+                              border: "1px solid var(--session-persona-border)",
                               borderRadius: 8,
                               padding: "16px 16px 14px",
                               margin: "12px 0",
@@ -1063,7 +1063,7 @@ export default function AdminView() {
                                 fontSize: "7px",
                                 letterSpacing: "2px",
                                 textTransform: "uppercase",
-                                color: "var(--session-sage-soft)",
+                                color: "var(--session-persona-soft)",
                                 marginBottom: 8,
                               }}
                             >
@@ -1126,7 +1126,7 @@ export default function AdminView() {
                                     color: "var(--session-ink-faded)",
                                     marginTop: 4,
                                     padding: 8,
-                                    background: "var(--session-sage-tint)",
+                                    background: "var(--session-persona-tint)",
                                     borderRadius: 6,
                                     whiteSpace: "pre-wrap",
                                     overflow: "auto",
@@ -1177,7 +1177,7 @@ export default function AdminView() {
                         <div
                           key={msg.id}
                           style={{
-                            background: "var(--session-sage-tint)",
+                            background: "var(--session-persona-tint)",
                             borderRadius: 4,
                             padding: "14px 16px",
                             margin: "8px 0",
@@ -1242,7 +1242,7 @@ export default function AdminView() {
                             fontSize: "10px",
                             color: "var(--session-ink-faded)",
                             padding: 12,
-                            background: "var(--session-sage-tint)",
+                            background: "var(--session-persona-tint)",
                             borderRadius: 8,
                             whiteSpace: "pre-wrap",
                             overflow: "auto",

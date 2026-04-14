@@ -231,7 +231,7 @@ export default function BetaFeedbackButton() {
                     letterSpacing: "1px",
                     textTransform: "uppercase",
                     color: "var(--session-cream)",
-                    background: "var(--session-sage)",
+                    background: "var(--session-persona)",
                     border: "none",
                     borderRadius: 6,
                     padding: "6px 12px",

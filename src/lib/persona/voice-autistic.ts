@@ -10,9 +10,9 @@
 // decides how to lay the data out. Tests verify that every entry makes it
 // into the prompt. Adding a rule is one edit here.
 //
-// When additional SageMode values ship, create peer files
+// When additional PersonaMode values ship, create peer files
 // (voice-general.ts, voice-adhd.ts, etc.) with the same shape, then branch
-// in system-prompt.ts on the sageMode value.
+// in system-prompt.ts on the personaMode value.
 // ---------------------------------------------------------------------------
 
 /** The 17 voice rules for autistic-mode Sage. Order is intentional; the prompt

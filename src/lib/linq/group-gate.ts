@@ -3,7 +3,7 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 // ---------------------------------------------------------------------------
 // Group message gate — scoring-based filter for group messages.
 //
-// The gate is the first filter. Even when it says SEND_TO_SAGE, Sage can
+// The gate is the first filter. Even when it says SEND_TO_PERSONA, Sage can
 // still output [NO_RESPONSE] as a second filter.
 //
 // Scoring signals (all regex/string, zero API cost):
@@ -48,7 +48,7 @@ export function mentionsPersona(text: string): boolean {
 /** Minimum ms between Sage responses (only direct address bypasses) */
 export const GATE_COOLDOWN_MS = 30_000;
 
-export type GateDecision = "SEND_TO_SAGE" | "SKIP";
+export type GateDecision = "SEND_TO_PERSONA" | "SKIP";
 
 export interface GateResult {
   decision: GateDecision;
@@ -101,13 +101,13 @@ export function scoreMessage(messageText: string): number {
  */
 export function evaluateGate(
   messageText: string,
-  messagesSinceSageSpoke: number,
-  lastSageSpokeAt?: Date | null
+  messagesSincePersonaSpoke: number,
+  lastPersonaSpokeAt?: Date | null
 ): GateResult {
   const SKIP = (reason: string, score: number): GateResult =>
     ({ decision: "SKIP", reason, addNudgeHint: false, score });
   const SEND = (reason: string, score: number, nudge = false): GateResult =>
-    ({ decision: "SEND_TO_SAGE", reason, addNudgeHint: nudge, score });
+    ({ decision: "SEND_TO_PERSONA", reason, addNudgeHint: nudge, score });
 
   // 1. Direct address — always respond (bypasses cooldown).
   // Matches the current brand name (PERSONA_NAME) plus a "sage" transition
@@ -123,8 +123,8 @@ export function evaluateGate(
   }
 
   // 3. Cooldown — if Sage just spoke, let people talk
-  if (lastSageSpokeAt) {
-    const elapsed = Date.now() - lastSageSpokeAt.getTime();
+  if (lastPersonaSpokeAt) {
+    const elapsed = Date.now() - lastPersonaSpokeAt.getTime();
     if (elapsed < GATE_COOLDOWN_MS) {
       return SKIP("cooldown", 0);
     }
@@ -133,17 +133,17 @@ export function evaluateGate(
   const score = scoreMessage(messageText);
 
   // 4. Long silence — auto-send with nudge
-  if (messagesSinceSageSpoke >= GATE_NUDGE_MESSAGES) {
+  if (messagesSincePersonaSpoke >= GATE_NUDGE_MESSAGES) {
     return SEND("nudge", score, true);
   }
 
   // 5. Score check — threshold drops after enough messages
-  const threshold = messagesSinceSageSpoke >= GATE_MIN_MESSAGES
+  const threshold = messagesSincePersonaSpoke >= GATE_MIN_MESSAGES
     ? GATE_REDUCED_THRESHOLD
     : GATE_SCORE_THRESHOLD;
 
   if (score >= threshold) {
-    const reason = messagesSinceSageSpoke >= GATE_MIN_MESSAGES
+    const reason = messagesSincePersonaSpoke >= GATE_MIN_MESSAGES
       ? "eligible_score"
       : "high_score";
     return SEND(reason, score);

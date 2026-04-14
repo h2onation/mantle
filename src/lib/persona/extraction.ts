@@ -344,7 +344,7 @@ const SIGNAL_LABEL: Record<string, string> = {
   checkpoint_ready: "ready to be reflected back",
 };
 
-export function formatExtractionForSage(
+export function formatExtractionForPersona(
   state: ExtractionState,
   isFirstCheckpoint: boolean,
   manualComponents?: { layer: number; name: string | null; content: string }[]

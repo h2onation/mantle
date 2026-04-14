@@ -1,14 +1,14 @@
 "use client";
 
-interface ExploreWithSageButtonProps {
+interface ExploreWithPersonaButtonProps {
   onClick: () => void;
   readOnly?: boolean;
 }
 
-export default function ExploreWithSageButton({
+export default function ExploreWithPersonaButton({
   onClick,
   readOnly,
-}: ExploreWithSageButtonProps) {
+}: ExploreWithPersonaButtonProps) {
   if (readOnly) return null;
   return (
     <button
@@ -23,9 +23,9 @@ export default function ExploreWithSageButton({
         fontFamily: "var(--font-sans)",
         fontSize: 11,
         fontWeight: 500,
-        color: "var(--session-sage-soft)",
+        color: "var(--session-persona-soft)",
         background: "none",
-        border: "1px solid var(--session-sage-border)",
+        border: "1px solid var(--session-persona-border)",
         borderRadius: 16,
         padding: "6px 14px",
         cursor: "pointer",
@@ -42,7 +42,7 @@ export default function ExploreWithSageButton({
       >
         <path
           d="M3 1.5L7 5L3 8.5"
-          stroke="var(--session-sage-soft)"
+          stroke="var(--session-persona-soft)"
           strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"

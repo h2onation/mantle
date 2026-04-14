@@ -8,8 +8,8 @@ import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { classifyResponse } from "@/lib/persona/classifier";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import {
-  SAGE_MODEL,
-  SAGE_MAX_TOKENS,
+  PERSONA_MODEL,
+  PERSONA_MAX_TOKENS,
   loadConversationContext,
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
@@ -19,7 +19,7 @@ import {
   validateComposedEntry,
 } from "@/lib/persona/persona-pipeline";
 
-interface SageBridgeResult {
+interface PersonaBridgeResult {
   responseText: string;
   conversationId: string;
   messageId: string | null;
@@ -35,13 +35,13 @@ interface SageBridgeResult {
  * 2. Post-checkpoint follow-up (messageText is null): Load context
  *    (which includes the system message from confirmCheckpoint), call
  *    Sage so it generates the tee-up response. Same as web's
- *    callSage({ message: null }).
+ *    callPersona({ message: null }).
  */
 export async function processTextMessage(
   userId: string,
   messageText: string | null,
   existingConversationId?: string
-): Promise<SageBridgeResult> {
+): Promise<PersonaBridgeResult> {
   const admin = createAdminClient();
 
   // 1. Find or create the user's active conversation
@@ -58,7 +58,7 @@ export async function processTextMessage(
     });
 
     if (insertError) {
-      console.error("[sage-bridge] Failed to save user message:", insertError);
+      console.error("[persona-bridge] Failed to save user message:", insertError);
       throw new Error("Failed to save message");
     }
   }
@@ -76,8 +76,8 @@ export async function processTextMessage(
 
   // 6. Call Sage non-streaming (text doesn't need SSE)
   const response = await anthropicFetch({
-    model: SAGE_MODEL,
-    max_tokens: SAGE_MAX_TOKENS,
+    model: PERSONA_MODEL,
+    max_tokens: PERSONA_MAX_TOKENS,
     system: systemPrompt,
     messages: ctx.messages,
   });
@@ -138,7 +138,7 @@ export async function processTextMessage(
       .then(({ error }) => {
         if (error && !error.message.includes("extraction_snapshot")) {
           console.error(
-            "[sage-bridge] Failed to save extraction snapshot:",
+            "[persona-bridge] Failed to save extraction snapshot:",
             error
           );
         }
@@ -205,13 +205,13 @@ export async function processTextMessage(
         const validation = validateComposedEntry(composedEntry.content);
         if (!validation.ok) {
           console.warn(
-            "[sage-bridge] Composed entry structural drift: %s",
+            "[persona-bridge] Composed entry structural drift: %s",
             validation.warnings.join("; ")
           );
         }
       }
     } catch (err) {
-      console.error("[sage-bridge] Composition failed:", err);
+      console.error("[persona-bridge] Composition failed:", err);
     }
   }
 
@@ -239,7 +239,7 @@ export async function processTextMessage(
       `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
 
     console.log(
-      "[sage-bridge] checkpoint_detected layer=%d name=%s message_id=%s",
+      "[persona-bridge] checkpoint_detected layer=%d name=%s message_id=%s",
       checkpointLayer,
       name,
       messageId
@@ -283,7 +283,7 @@ async function getOrCreateConversation(
   // Race condition: another request created a conversation between our
   // read and write. Re-query to find it.
   if (error) {
-    console.warn("[sage-bridge] Insert race, re-querying:", error.message);
+    console.warn("[persona-bridge] Insert race, re-querying:", error.message);
     const { data: retry } = await admin
       .from("conversations")
       .select("id")
@@ -297,6 +297,6 @@ async function getOrCreateConversation(
     if (retry) return retry.id;
   }
 
-  console.error("[sage-bridge] Failed to create conversation:", error);
+  console.error("[persona-bridge] Failed to create conversation:", error);
   throw new Error("Failed to create conversation");
 }

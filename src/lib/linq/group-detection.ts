@@ -92,10 +92,10 @@ export async function detectAndSetupGroup(
   }
 
   // 3. Identify participants
-  const sagePhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
+  const personaPhone = normalizePhone(process.env.LINQ_PHONE_NUMBER || "");
   const nonSageHandles = handles
     .map((h) => normalizePhone(h))
-    .filter((h) => h && h !== sagePhone);
+    .filter((h) => h && h !== personaPhone);
 
   const participantCount = nonSageHandles.length;
 

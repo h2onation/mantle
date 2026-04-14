@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { callSage } from "@/lib/persona/call-persona";
+import { callPersona } from "@/lib/persona/call-persona";
 import {
   chatAuthMinute,
   chatAuthDay,
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Stream response
-    const stream = callSage({
+    const stream = callPersona({
       conversationId: convId,
       userId: user.id,
       message,

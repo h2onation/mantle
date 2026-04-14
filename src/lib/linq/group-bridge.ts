@@ -20,7 +20,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
-import { SAGE_MODEL, SAGE_MAX_TOKENS } from "@/lib/persona/persona-pipeline";
+import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/persona-pipeline";
 import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 
@@ -236,8 +236,8 @@ export async function processGroupMessage(
   // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
   const response = await anthropicFetch(
     {
-      model: SAGE_MODEL,
-      max_tokens: SAGE_MAX_TOKENS,
+      model: PERSONA_MODEL,
+      max_tokens: PERSONA_MAX_TOKENS,
       system: systemPrompt,
       messages: windowedMessages,
     },

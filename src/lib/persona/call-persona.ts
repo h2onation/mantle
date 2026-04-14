@@ -9,8 +9,8 @@ import { detectUrls } from "@/lib/utils/url-detection";
 import { fetchUrlContent } from "@/lib/utils/fetch-url-content";
 import type { FetchedContent } from "@/lib/utils/fetch-url-content";
 import {
-  SAGE_MODEL,
-  SAGE_MAX_TOKENS,
+  PERSONA_MODEL,
+  PERSONA_MAX_TOKENS,
   loadConversationContext,
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
@@ -123,7 +123,7 @@ interface CallSageOptions {
   promptAuth?: boolean;
 }
 
-export function callSage({
+export function callPersona({
   conversationId,
   userId,
   message,
@@ -190,7 +190,7 @@ export function callSage({
 
           if (process.env.NODE_ENV !== "production") {
             console.log(
-              "[sage-debug] URL fetched: %s | success: %s | title: %s",
+              "[persona-debug] URL fetched: %s | success: %s | title: %s",
               urlDetection.urls[0],
               fetchedContent.success,
               fetchedContent.title || "(none)"
@@ -220,20 +220,20 @@ export function callSage({
           const brief = previousExtraction?.sage_brief;
           const strongest = gate?.strongest_layer;
 
-          console.log("[sage-debug] Turn %d | Depth: %s | Mode: %s | Since CP: %d", turnCount, depth || "none", mode || "none", turnsSinceCheckpoint);
+          console.log("[persona-debug] Turn %d | Depth: %s | Mode: %s | Since CP: %d", turnCount, depth || "none", mode || "none", turnsSinceCheckpoint);
 
           if (gate) {
             const gateMet = isFirstCheckpoint
               ? gate.concrete_examples >= 1 && gate.has_charged_language && (gate.has_mechanism || gate.has_behavior_driver_link)
               : gate.concrete_examples >= 2 && gate.has_mechanism && gate.has_charged_language && gate.has_behavior_driver_link;
 
-            console.log("[sage-debug] Gate: examples=%d mechanism=%s charged=%s driver=%s strongest=L%s | Met: %s (first: %s)",
+            console.log("[persona-debug] Gate: examples=%d mechanism=%s charged=%s driver=%s strongest=L%s | Met: %s (first: %s)",
               gate.concrete_examples, gate.has_mechanism, gate.has_charged_language,
               gate.has_behavior_driver_link, strongest || "?", gateMet, isFirstCheckpoint);
           }
 
           if (brief) {
-            console.log("[sage-debug] Brief: %s", brief.substring(0, 150));
+            console.log("[persona-debug] Brief: %s", brief.substring(0, 150));
           }
         }
 
@@ -252,8 +252,8 @@ export function callSage({
         };
 
         const rawStream = await anthropicStream({
-          model: SAGE_MODEL,
-          max_tokens: SAGE_MAX_TOKENS,
+          model: PERSONA_MODEL,
+          max_tokens: PERSONA_MAX_TOKENS,
           system: systemPrompt,
           messages,
         });
@@ -340,7 +340,7 @@ export function callSage({
             .eq("id", messageId)
             .then(({ error }) => {
               if (error && !error.message.includes("extraction_snapshot")) {
-                console.error("[callSage] Failed to save extraction snapshot:", error);
+                console.error("[callPersona] Failed to save extraction snapshot:", error);
               }
             });
         }
@@ -388,7 +388,7 @@ export function callSage({
 
         // 12b-log. Checkpoint detection debug log (dev only)
         if (process.env.NODE_ENV !== "production") {
-          console.log("[sage-debug] %s", isCheckpoint
+          console.log("[persona-debug] %s", isCheckpoint
             ? `CHECKPOINT: L${checkpointLayer} "${checkpointName}"`
             : "No checkpoint this turn");
         }
@@ -426,14 +426,14 @@ export function callSage({
               const validation = validateComposedEntry(composedEntry.content);
               if (!validation.ok) {
                 console.warn(
-                  "[callSage] Composed entry structural drift: %s",
+                  "[callPersona] Composed entry structural drift: %s",
                   validation.warnings.join("; ")
                 );
               }
             }
           } catch (err) {
             console.error(
-              "[callSage] Composition failed, saving without composed_content:",
+              "[callPersona] Composition failed, saving without composed_content:",
               err
             );
           }
@@ -489,7 +489,7 @@ export function callSage({
         const msg = isTimeout
           ? "Sage took too long to respond. Try again."
           : "Sage lost the thread. Try sending that again.";
-        console.error("[callSage] Error:", err);
+        console.error("[callPersona] Error:", err);
         emitError(controller, msg);
       }
     },

@@ -74,7 +74,7 @@ export default function SmsPage() {
           Create an account at{" "}
           <a
             href="https://mywalnut.app"
-            style={{ color: "var(--session-sage)", textDecoration: "none" }}
+            style={{ color: "var(--session-persona)", textDecoration: "none" }}
           >
             mywalnut.app
           </a>
@@ -157,7 +157,7 @@ export default function SmsPage() {
           <a
             href="/privacy"
             style={{
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}
@@ -167,7 +167,7 @@ export default function SmsPage() {
           <a
             href="/terms"
             style={{
-              color: "var(--session-sage)",
+              color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}

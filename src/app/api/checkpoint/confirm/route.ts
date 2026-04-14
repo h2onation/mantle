@@ -2,7 +2,7 @@ export const runtime = "edge";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { callSage } from "@/lib/persona/call-persona";
+import { callPersona } from "@/lib/persona/call-persona";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import {
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
   }
 
   // 5. Call Sage and return streaming response
-  const stream = callSage({
+  const stream = callPersona({
     conversationId,
     userId: user.id,
     message: null,

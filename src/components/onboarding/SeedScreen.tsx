@@ -113,7 +113,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontWeight: 500,
             letterSpacing: "3px",
             textTransform: "uppercase",
-            color: "var(--session-sage)",
+            color: "var(--session-persona)",
             marginBottom: 16,
           }}
         >
@@ -162,7 +162,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
                 ? "none"
                 : "1.5px solid var(--session-ink-whisper)",
               backgroundColor: ageConfirmed
-                ? "var(--session-sage-soft)"
+                ? "var(--session-persona-soft)"
                 : "transparent",
               display: "flex",
               alignItems: "center",
@@ -228,7 +228,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontWeight: 500,
             color: isEnabled ? "var(--session-cream)" : "var(--session-ink-ghost)",
             backgroundColor: isEnabled
-              ? "var(--session-sage)"
+              ? "var(--session-persona)"
               : "var(--session-ink-hairline)",
             border: "none",
             borderRadius: 8,

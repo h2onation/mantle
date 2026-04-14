@@ -12,7 +12,7 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 
 /** Voice mode for the persona. Currently only 'autistic' ships, but the seam exists
  *  so future voice modes can be added without re-plumbing the call chain. */
-export type SageMode = "autistic";
+export type PersonaMode = "autistic";
 
 interface ManualComponent {
   layer: number;
@@ -36,7 +36,7 @@ export interface BuildPromptOptions {
   turnCount: number;
   checkpointApproaching: boolean;
   /** Voice mode. Defaults to 'autistic' when omitted. */
-  sageMode?: SageMode;
+  personaMode?: PersonaMode;
   groupContext?: {
     ownerUserName: string | null;
     hasManualContext: boolean;
@@ -56,14 +56,14 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     contentContext,
     turnCount,
     checkpointApproaching,
-    sageMode = "autistic",
+    personaMode = "autistic",
     groupContext,
   } = options;
-  // sageMode currently has only one value ('autistic'). The voice content
+  // personaMode currently has only one value ('autistic'). The voice content
   // (VOICE_RULES, BANNED_PHRASES, EXAMPLE_REGISTER) is imported directly from
-  // voice-autistic.ts. When a second mode ships, branch on sageMode here and
+  // voice-autistic.ts. When a second mode ships, branch on personaMode here and
   // import from the corresponding voice-<mode>.ts peer file.
-  void sageMode;
+  void personaMode;
 
   // ─── Group chat prompt (completely separate from 1:1 Sage) ────────────
   if (groupContext) {

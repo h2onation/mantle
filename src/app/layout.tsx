@@ -20,7 +20,7 @@ const dmSans = DM_Sans({
 const sourceSerif4 = Source_Serif_4({
   weight: ["400", "500"],
   subsets: ["latin"],
-  variable: "--font-sage",
+  variable: "--font-persona",
 });
 
 const jetbrainsMono = JetBrains_Mono({

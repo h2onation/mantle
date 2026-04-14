@@ -46,7 +46,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
             fontWeight: 500,
             letterSpacing: "3px",
             textTransform: "uppercase",
-            color: "var(--session-sage)",
+            color: "var(--session-persona)",
             marginBottom: 16,
           }}
         >
@@ -98,7 +98,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
             fontSize: 14,
             fontWeight: 500,
             color: "var(--session-cream)",
-            backgroundColor: "var(--session-sage-soft)",
+            backgroundColor: "var(--session-persona-soft)",
             border: "none",
             borderRadius: 8,
             padding: "12px 28px",
