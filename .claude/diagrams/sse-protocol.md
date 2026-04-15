@@ -31,7 +31,7 @@ flowchart TD
     CP -- "object" --> CPDATA["isCheckpoint: true<br/>layer: 1-5<br/>type: component|pattern<br/>name: string"]
     MC --> PT["processingText: tracking phrase"]
     MC --> NP["nextPrompt: placeholder hint"]
-    MC --> CC["cleanContent: full Sage response<br/>(checkpoints are always composed<br/>server-side after the classifier flags them)"]
+    MC --> CC["cleanContent: full Jove response<br/>(checkpoints are always composed<br/>server-side after the classifier flags them)"]
 ```
 
 ## Error handling

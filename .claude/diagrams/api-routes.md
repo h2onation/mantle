@@ -10,7 +10,7 @@ flowchart TD
     end
 
     subgraph Authenticated["Authenticated (user)"]
-        CHAT["POST /api/chat<br/>Edge — stream Sage response"]
+        CHAT["POST /api/chat<br/>Edge — stream Jove response"]
         CONFIRM["POST /api/checkpoint/confirm<br/>Edge — confirm/reject/refine"]
         MANUAL["GET /api/manual<br/>Node — user's manual entries"]
         CONVS["GET /api/conversations<br/>Node — session list"]

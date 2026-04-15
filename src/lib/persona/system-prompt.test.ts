@@ -237,7 +237,7 @@ describe("buildSystemPrompt", () => {
       const nextSectionIdx = result.indexOf("MANUAL ENTRY FORMAT", firstMsgIdx);
       const firstMsgSlice = result.slice(firstMsgIdx, nextSectionIdx > -1 ? nextSectionIdx : undefined);
       // Internal framework names are allowed as a parenthetical list of things the user MIGHT ask about,
-      // but Sage must be told not to name them back. Verify the redirect instruction is present.
+      // but Jove must be told not to name them back. Verify the redirect instruction is present.
       expect(firstMsgSlice).toContain("don't label them");
     });
 
@@ -687,7 +687,7 @@ describe("buildSystemPrompt", () => {
           expect(result).toMatch(/recognition, not diagnosis/i);
         });
 
-        it("instructs Sage to wait for confirmation before writing", () => {
+        it("instructs Jove to wait for confirmation before writing", () => {
           const result = buildCheckpointMode();
           expect(result).toMatch(/Never write to the manual until/i);
         });

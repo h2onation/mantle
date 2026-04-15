@@ -15,7 +15,7 @@ Wrap up the current session. Produce a structured summary for the user.
    |------|--------|----------|-----|-----------------|
    | YYYY-MM-DD | Category | What we decided | Why we decided it | What was there before |
 
-   Bucket categories: Sage Quality, Product + Design, Narrative + Strategy, Infra + Architecture, Business Ops + Legal.
+   Bucket categories: Jove Quality, Product + Design, Narrative + Strategy, Infra + Architecture, Business Ops + Legal.
    If no decisions were made this session, say "None."
 
 3. **Loose ends**: List anything unfinished, deferred, or flagged during the session. Include:

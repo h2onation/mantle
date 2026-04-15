@@ -11,7 +11,7 @@ flowchart TD
     E --> F["Anonymous account created silently"]
     F --> G["Dissolve transition into chat"]
     G --> H["Welcome block + 3 tappable chips"]
-    H --> I["User taps a chip → first message to Sage"]
+    H --> I["User taps a chip → first message to Jove"]
     I --> J["Conversation begins"]
 ```
 
@@ -19,17 +19,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[User and Sage are in conversation] --> B[Sage responds]
+    A[User and Jove are in conversation] --> B[Jove responds]
     B --> D["Haiku classifier flags candidate turn<br/>Sonnet composes polished entry server-side"]
     D --> E["Checkpoint card appears inline in chat"]
     E --> F{User response}
     F -- Confirm --> G["Entry saved to manual_components"]
     G --> H["System message logged:<br/>'User confirmed the checkpoint'"]
-    H --> I["Sage acknowledges and continues"]
+    H --> I["Jove acknowledges and continues"]
     F -- Reject --> J["System message logged:<br/>'User rejected the checkpoint'"]
-    J --> K["Sage pivots"]
+    J --> K["Jove pivots"]
     F -- Refine --> L["System message logged:<br/>'User wants to refine'"]
-    L --> M["Sage adjusts entry"]
+    L --> M["Jove adjusts entry"]
 ```
 
 ## Layer discovery progression
@@ -54,11 +54,11 @@ flowchart TD
     D -- No --> F["Resume existing conversation"]
     E --> F
     F --> G["User sends message"]
-    G --> H["Sage responds with extraction context<br/>(knows user's manual, language bank)"]
+    G --> H["Jove responds with extraction context<br/>(knows user's manual, language bank)"]
     H --> I{"Checkpoint approaching?"}
     I -- Yes --> J["System prompt includes<br/>checkpoint instructions"]
     I -- No --> K["Continue deepening conversation"]
-    J --> L["Sage may produce checkpoint"]
+    J --> L["Jove may produce checkpoint"]
 ```
 
 ## Manual view
@@ -72,27 +72,27 @@ flowchart TD
     E -- Yes --> F["Populated layers render in MeadowZone<br/>(green feathered panels)"]
     E -- No --> G["Empty layers render on dark void"]
     F --> H["Each layer shows:<br/>component name + content<br/>+ pattern cards (expandable)"]
-    H --> I["'Explore with Sage' buttons<br/>launch targeted conversation"]
+    H --> I["'Explore with Jove' buttons<br/>launch targeted conversation"]
 ```
 
-## Phone linking (Text Sage)
+## Phone linking (Text Jove)
 
 ```mermaid
 flowchart TD
-    A["Settings → Text Sage section"] --> B["Tap 'Link your phone to text Sage'"]
+    A["Settings → Text Jove section"] --> B["Tap 'Link your phone to text Jove'"]
     B --> C["Enter phone number"]
     C --> D["POST /api/settings/link-phone<br/>(sends 6-digit code via Twilio)"]
     D --> E["Enter verification code"]
     E --> F["POST /api/settings/link-phone<br/>(with code)"]
     F --> G{Code valid?}
     G -- Yes --> H["Phone linked — shows number + LINKED badge"]
-    H --> I["'Add Sage to contacts' downloads VCF"]
+    H --> I["'Add Jove to contacts' downloads VCF"]
     H --> J["'Change' button → restart flow"]
     G -- No --> K["Error: Invalid code / expired"]
     K --> E
 ```
 
-## Conversation modes (Sage self-manages)
+## Conversation modes (Jove self-manages)
 
 ```mermaid
 flowchart LR

@@ -6,13 +6,13 @@
 
 ## What mywalnut is
 
-mywalnut is a mobile web app where an AI conversationalist called **Sage** has deep, reflective conversations with users. Through these conversations, Sage gradually builds a five-layer behavioral model called the **User Manual** — a structured portrait of who you are and how you operate. Nothing enters the manual unless the user explicitly confirms it.
+mywalnut is a mobile web app where an AI conversationalist called **Jove** has deep, reflective conversations with users. Through these conversations, Jove gradually builds a five-layer behavioral model called the **User Manual** — a structured portrait of who you are and how you operate. Nothing enters the manual unless the user explicitly confirms it.
 
 ---
 
 ## The five layers
 
-> Canonical layer definitions live in `src/lib/manual/layers.ts` — single source of truth. All consumers (Sage prompts, classifier, mobile UI, tests) import from there.
+> Canonical layer definitions live in `src/lib/manual/layers.ts` — single source of truth. All consumers (Jove prompts, classifier, mobile UI, tests) import from there.
 
 | Layer | Name | What it captures |
 |-------|------|-----------------|
@@ -30,17 +30,17 @@ Each layer can hold **1 component** (the integrated portrait) and up to **2 patt
 
 1. **User sends a message** — could be their opening seed thought or a continuation of an ongoing conversation.
 
-2. **Sage responds** — using context from the user's existing manual, their language patterns (exact phrases they've used), and how deep the current conversation has gone. Sage manages its own conversational style:
+2. **Jove responds** — using context from the user's existing manual, their language patterns (exact phrases they've used), and how deep the current conversation has gone. Jove manages its own conversational style:
    - **Mode 1 (Situation-Led)**: Deepens whatever the user brings up naturally.
    - **Mode 2 (Direct Exploration)**: After 2+ confirmed manual entries, asks more targeted questions.
    - **Mode 3 (Synthesis)**: When all 5 layers have content, weaves cross-layer narrative.
 
 3. **Behind the scenes**, an "extraction" process runs in parallel analyzing the conversation for signals: which layers are being touched, how deep the reflection is, whether the user has said something checkpoint-worthy.
 
-4. **When the moment is right**, Sage composes a proposed manual entry and presents it as a **checkpoint card** — the user sees a polished insight about themselves and can:
+4. **When the moment is right**, Jove composes a proposed manual entry and presents it as a **checkpoint card** — the user sees a polished insight about themselves and can:
    - **Confirm** it (writes to the manual)
-   - **Reject** it (Sage pivots)
-   - **Refine** it (Sage adjusts)
+   - **Reject** it (Jove pivots)
+   - **Refine** it (Jove adjusts)
 
 5. Nothing enters the manual without explicit user consent.
 
@@ -49,16 +49,16 @@ Each layer can hold **1 component** (the integrated portrait) and up to **2 patt
 ## What the user sees
 
 ### Four tabs at the bottom
-- **Session** — The active conversation with Sage. Includes a side drawer for switching between past conversations.
+- **Session** — The active conversation with Jove. Includes a side drawer for switching between past conversations.
 - **Manual** — The user's growing manual. Populated layers appear in green "meadow" panels. Empty layers show below in dark space.
 - **Guidance** — Locked until the first manual entry is confirmed. Currently a placeholder ("coming soon").
-- **Settings** — Account, logout, session history, Text Sage (phone linking), dev tools (admin only), data deletion.
+- **Settings** — Account, logout, session history, Text Jove (phone linking), dev tools (admin only), data deletion.
 
 ### Checkpoint cards
-These appear inline in the chat when Sage proposes a manual entry. They show the layer, type (component or pattern), a title, and the composed insight text. The user taps confirm, reject, or refine.
+These appear inline in the chat when Jove proposes a manual entry. They show the layer, type (component or pattern), a title, and the composed insight text. The user taps confirm, reject, or refine.
 
-### Explore with Sage
-From the manual tab, users can tap "Explore with Sage" on any layer to start a targeted conversation that digs deeper into that area.
+### Explore with Jove
+From the manual tab, users can tap "Explore with Jove" on any layer to start a targeted conversation that digs deeper into that area.
 
 ---
 
@@ -82,13 +82,13 @@ Log in with email/password or Google OAuth and pick up where they left off.
 
 ## The extraction system
 
-This is the "intelligence layer" that helps Sage have better conversations. On every turn:
+This is the "intelligence layer" that helps Jove have better conversations. On every turn:
 
 1. A separate AI process reads the last few messages and the existing extraction state.
 2. It produces structured analysis: which layers are being touched, how deep the user is going, notable phrases the user has used (the "language bank"), and whether the conversation is approaching checkpoint quality.
-3. This analysis is saved and fed back to Sage on the next turn, giving Sage richer context.
+3. This analysis is saved and fed back to Jove on the next turn, giving Jove richer context.
 
-**Key detail**: This runs in parallel with Sage's response — the user never waits for it. Sage always sees the analysis from one turn ago, which is fine because the analysis is cumulative.
+**Key detail**: This runs in parallel with Jove's response — the user never waits for it. Jove always sees the analysis from one turn ago, which is fine because the analysis is cumulative.
 
 ---
 
@@ -106,7 +106,7 @@ First-time checkpoints have a lower bar (1 example, mechanism OR driver link). L
 
 ## Safety
 
-- If crisis-level content is detected (self-harm, danger), the checkpoint system is disabled entirely for that turn and Sage includes 988 Suicide & Crisis Lifeline information.
+- If crisis-level content is detected (self-harm, danger), the checkpoint system is disabled entirely for that turn and Jove includes 988 Suicide & Crisis Lifeline information.
 - Crisis events are logged to a safety_events table that only the service role can access — never visible to the user.
 
 ---
@@ -137,14 +137,14 @@ All admin access is logged to an audit trail. The admin view is read-only — no
 
 - **Export manual** — The settings button exists but doesn't do anything yet
 - **Guidance tab** — Unlocks after first confirmation but only shows "coming soon"
-- **Text Sage (SMS)** — Phone linking and verification works. Inbound SMS route exists as an echo bot. Real Sage conversation over SMS not yet wired up.
+- **Text Jove (SMS)** — Phone linking and verification works. Inbound SMS route exists as an echo bot. Real Jove conversation over SMS not yet wired up.
 
 ---
 
 ## Key numbers
 
 - **185 automated tests**, all run in under 1 second with zero API cost (everything mocked)
-- **4 AI model calls per turn** (max): Sage response, extraction analysis, checkpoint classification (fallback), manual entry composition (fallback)
+- **4 AI model calls per turn** (max): Jove response, extraction analysis, checkpoint classification (fallback), manual entry composition (fallback)
 - **Sliding window**: Conversations over 50 messages keep the first 2 + last 48 messages
 - **Session summary**: Auto-generated (by a smaller AI model) when a conversation goes stale for 30+ minutes
 
@@ -156,7 +156,7 @@ Visual diagrams are available in `.claude/diagrams/`:
 
 | Diagram | What it shows |
 |---------|--------------|
-| `sage-conversation-pipeline.md` | How a single message flows through the system |
+| `persona-conversation-pipeline.md` | How a single message flows through the system |
 | `database-schema.md` | All tables and their relationships |
 | `auth-flow.md` | How users sign up, log in, and convert from guest to real |
 | `user-flows.md` | Onboarding, checkpoints, layer discovery, session flow, manual view |
