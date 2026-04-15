@@ -8,15 +8,15 @@
 
 ## The Pipeline (What Happens Every Turn)
 
-When a user sends a message, three AI stages run. Two of them (extraction and Sage) run at the same time to avoid slowing down the response.
+When a user sends a message, three AI stages run. Two of them (extraction and Jove) run at the same time to avoid slowing down the response.
 
 ```
 User message
   → Save to DB + parallel reads (history, manual, previous extraction state)
   → Two calls fire simultaneously:
       → EXTRACTION (Sonnet): analyzes the message, updates research brief, saves for NEXT turn
-      → SAGE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
-  → After Sage finishes:
+      → JOVE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
+  → After Jove finishes:
       → CLASSIFIER (Haiku) decides if the response is a checkpoint
       → If checkpoint: composeManualEntry (Sonnet) writes the polished entry server-side
   → message_complete event sent to frontend
@@ -24,17 +24,17 @@ User message
 
 **Why extraction runs in parallel**: Separating "analyze what the user said" from "respond to the user" produces better results than one prompt doing both. Running them in parallel means this separation adds zero wait time for the user.
 
-**The one-turn lag**: Because extraction and Sage run simultaneously, Sage always uses the extraction brief from the *previous* turn, not the current one. This lag is negligible because extraction state is cumulative — the brief from turns 1-6 is nearly identical to the brief from turns 1-7 for the purpose of orienting Sage's response. Turn 1 has no extraction state at all.
+**The one-turn lag**: Because extraction and Jove run simultaneously, Jove always uses the extraction brief from the *previous* turn, not the current one. This lag is negligible because extraction state is cumulative — the brief from turns 1-6 is nearly identical to the brief from turns 1-7 for the purpose of orienting Jove's response. Turn 1 has no extraction state at all.
 
-**Extraction is fire-and-forget**: `runExtraction()` fires as a background Promise, never awaited. It writes to `conversations.extraction_state` (JSONB column) asynchronously. It never blocks Sage's stream.
+**Extraction is fire-and-forget**: `runExtraction()` fires as a background Promise, never awaited. It writes to `conversations.extraction_state` (JSONB column) asynchronously. It never blocks Jove's stream.
 
 ## Multi-Channel Architecture (Web + Text)
 
-Sage runs on two channels: web (streaming SSE) and text (Linq SMS, non-streaming). Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
+Jove runs on two channels: web (streaming SSE) and text (Linq SMS, non-streaming). Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
 
 ### Shared pipeline (`persona-pipeline.ts`)
 
-All Sage decision logic lives here and is imported by both paths:
+All Jove decision logic lives here and is imported by both paths:
 
 - `loadConversationContext()` — parallel DB reads, message mapping, derived flags
 - `buildPromptOptionsFromContext()` — canonical context → prompt options mapping
@@ -46,7 +46,7 @@ All Sage decision logic lives here and is imported by both paths:
 
 Pure functions shared from `call-persona.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
 
-Checkpoint detection runs on both channels via the same flow: Haiku classifier on every Sage response, then `composeManualEntry()` (Sonnet) when a checkpoint is detected.
+Checkpoint detection runs on both channels via the same flow: Haiku classifier on every Jove response, then `composeManualEntry()` (Sonnet) when a checkpoint is detected.
 
 ### What differs by channel (intentional)
 
@@ -76,8 +76,8 @@ The extraction layer is a Sonnet call that runs per turn and produces a structur
 - **Layer signals**: Per-layer progress from `none` → `emerging` → `explored` → `checkpoint_ready`. Only advances forward. Resets on a layer only after a checkpoint is confirmed on that layer.
 - **Depth tracking**: Where the conversation currently sits — surface, behavior, feeling, mechanism, origin.
 - **Checkpoint gate**: Quality assessment of whether enough material exists for a meaningful checkpoint. Based on material quality (concrete examples, mechanism, charged language), NOT turn count.
-- **Mode recommendation**: situation_led (default), direct_exploration (2+ layers confirmed), synthesis (all 5 confirmed). See rules.md "Conversation Modes" for what Sage does in each mode.
-- **Sage brief**: 3-5 sentence field note orienting Sage for its next response.
+- **Mode recommendation**: situation_led (default), direct_exploration (2+ layers confirmed), synthesis (all 5 confirmed). See rules.md "Conversation Modes" for what Jove does in each mode.
+- **Jove brief**: 3-5 sentence field note orienting Jove for its next response.
 - **Next prompt**: 3-6 word placeholder hint for the text input field.
 
 **Input**: Last 6 messages only (3 exchanges) plus previous extraction state. The cumulative state carries all earlier signals forward.
@@ -121,7 +121,7 @@ Do not add fields without checking this structure first. The extraction prompt m
 
 ## Checkpoint Lifecycle
 
-Checkpoints are the core mechanic: Sage reflects something the user has shown, the user confirms, and it writes to the manual. The Haiku classifier runs post-stream on every Sage response. If it flags the response as a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. `composed_content` is always populated before confirmation.
+Checkpoints are the core mechanic: Jove reflects something the user has shown, the user confirms, and it writes to the manual. The Haiku classifier runs post-stream on every Jove response. If it flags the response as a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. `composed_content` is always populated before confirmation.
 
 **On confirmation:**
 1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta`
@@ -130,7 +130,7 @@ Checkpoints are the core mechanic: Sage reflects something the user has shown, t
 4. Inserts system message "[User confirmed the checkpoint]"
 5. No API call to Anthropic. Confirmation is instant.
 
-**System messages in history**: System messages like "[User confirmed the checkpoint]" are mapped to synthetic user messages in conversation history so Sage sees them naturally. For example, the confirm message becomes "I confirmed that checkpoint. That resonates."
+**System messages in history**: System messages like "[User confirmed the checkpoint]" are mapped to synthetic user messages in conversation history so Jove sees them naturally. For example, the confirm message becomes "I confirmed that checkpoint. That resonates."
 
 ## Critical Invariants
 
@@ -146,7 +146,7 @@ These are the rules that prevent the highest-severity bugs. Every one represents
 
 There is one entry shape. Layers can hold many entries — there is no per-layer cap, no type discriminator, no pattern/component split. The classifier picks the strongest layer; composition writes the entry; the user confirms. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
 
-## Sage Prompt Assembly
+## Jove Prompt Assembly
 
 The system prompt is built dynamically by `buildSystemPrompt()`. Different sections load based on conversation state. This table is the map:
 
@@ -164,11 +164,11 @@ The system prompt is built dynamically by `buildSystemPrompt()`. Different secti
 | Readiness Gate | 3+ manual components confirmed |
 | Confirmed Manual contents | Any manual components exist |
 | Session Context (session count, previous summary) | Returning user |
-| Exploration Focus | explorationContext provided (user clicked "Explore with Sage") |
+| Exploration Focus | explorationContext provided (user clicked "Explore with Jove") |
 
 **Key detail**: `isReturningUser` is determined by having `manual_components`, not by conversation count. `checkpointApproaching` fires when any layer signal is `emerging`, `explored`, or `checkpoint_ready` in the previous extraction state (1-turn lag applies).
 
-**Planned: smsMode flag**: When MMS is built, a `smsMode: true` option in `buildSystemPrompt` will strip checkpoint and manual entry sections. Same Sage voice and depth, no manual building via text. If you see this flag in the code, do not remove it.
+**Planned: smsMode flag**: When MMS is built, a `smsMode: true` option in `buildSystemPrompt` will strip checkpoint and manual entry sections. Same Jove voice and depth, no manual building via text. If you see this flag in the code, do not remove it.
 
 ## Three Supabase Clients
 
@@ -255,7 +255,7 @@ Admin role is set via JWT custom claims (`app_metadata.role = "admin"`), managed
 
 - Vercel Edge Runtime cannot use all Node.js APIs. SMS routes (`/api/sms/incoming`) must use Node.js Runtime, not Edge.
 - `ANTHROPIC_API_KEY` sometimes unavailable in Edge Runtime via `.env.local` alone during local dev. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
-- Vercel free tier kills functions at 10 seconds. Sage takes 5-8 seconds. Vercel Pro required for any real usage.
+- Vercel free tier kills functions at 10 seconds. Jove takes 5-8 seconds. Vercel Pro required for any real usage.
 
 ## UI Preview Limitation
 

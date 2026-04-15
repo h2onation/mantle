@@ -1,5 +1,7 @@
 # ND Pivot Migration Plan (v2)
 
+> **HISTORICAL — DO NOT FOLLOW AS ACTIVE GUIDANCE.** This plan was executed; the work has shipped. Since then, `src/lib/sage/` has been renamed to `src/lib/persona/`, `call-sage.ts` → `call-persona.ts`, `sage_mode` column → `persona_mode`, and persona "Sage" → "Jove". Read this doc as a record of past intent, not a current path map.
+
 ## Context
 
 Mantle is pivoting from a general self-understanding platform to neurodivergent-focused, starting with late-diagnosed autistic adults, ages 25 to 45. The core architecture stays the same — this is a content/prompt migration, not an engineering rewrite. The manual structure gets new section names and descriptions. Sage gets an autism-specific voice layer. Onboarding and copy shift to experience-led language.

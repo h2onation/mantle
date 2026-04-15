@@ -83,7 +83,7 @@ create policy "Users can update own messages"
   using (conversation_id in (select id from public.conversations where user_id = auth.uid()));
 
 -- Manual entries (USER-level, not conversation-level).
--- A user can have many entries per layer. Sage decides when an entry is worth
+-- A user can have many entries per layer. Jove decides when an entry is worth
 -- writing; the classifier decides which of the five layers it belongs in.
 create table public.manual_components (
   id uuid default uuid_generate_v4() primary key,
