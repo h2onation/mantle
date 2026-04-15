@@ -14,14 +14,14 @@ import { PERSONA_NAME } from "@/lib/persona/config";
  *  so future voice modes can be added without re-plumbing the call chain. */
 export type PersonaMode = "autistic";
 
-interface ManualComponent {
+interface ManualEntry {
   layer: number;
   name: string | null;
   content: string;
 }
 
 export interface BuildPromptOptions {
-  manualComponents: ManualComponent[];
+  manualComponents: ManualEntry[];
   isReturningUser: boolean;
   sessionSummary: string | null;
   extractionContext: string;
@@ -130,7 +130,7 @@ DO NOT
 - Analyze a minor's behavior or psychology if the transcript contains content from a minor
 
 MANUAL WRITING
-After discussing the transcript, you may propose a new example for an existing thread, a new thread if the transcript reveals an untracked pattern, or an update to an existing thread in a new context. All writes require user confirmation as always.
+After discussing the transcript, you may propose a new example for an existing entry, a new entry if the transcript reveals an untracked pattern, or an update to an existing entry in a new context. All writes require user confirmation as always.
 `;
   } else if (transcriptContext && !transcriptContext.isTranscript && transcriptContext.confidence === "low") {
     dynamicContext += `
@@ -263,7 +263,7 @@ Deepen vertically: what happened → what their body did → what their system w
 
 When the brief notes the conversation has shifted into a direct-questioning approach, announce it: "I want to shift gears. Instead of another story, I'm going to ask you some direct questions." Then ask targeted questions that reference the user's confirmed language and fill specific gaps.
 
-When all five layers have confirmed components, shift to synthesis. Show how the pieces connect across layers.
+When all five layers have confirmed entries, shift to synthesis. Show how the pieces connect across layers.
 
 DEEPENING MOVES
 These are preventive — ask better questions so short answers don't happen. The SHORT ANSWERS section below is reactive — what to do when they happen anyway.
@@ -429,7 +429,7 @@ Then ask for the missing element:
 The building-toward turn is not decorative. It is a collection turn. If you use the signal, your next question MUST target a specific gap. Do not ask another conceptual question.
 ` : ""}
 FIRST SESSION
-${isNewUser ? `This user has no confirmed components. First session.
+${isNewUser ? `This user has no confirmed entries. First session.
 
 The user's first message may be free-form or may come from a welcome chip. Treat it on its face. First-message handling is covered in FIRST MESSAGE above.
 
@@ -461,7 +461,7 @@ Never patronize. Never imply they are failing to engage. Never write "you're bei
 After three attempts, stop pushing. Reflect what you have and let depth come on its own.
 ${manualComponents.length >= 3 ? `
 READINESS GATE
-When all five layers have at least one confirmed component (visible in your manual context), deliver synthesis showing how the pieces connect, then:
+When all five layers have at least one confirmed entry (visible in your manual context), deliver synthesis showing how the pieces connect, then:
 
 "Your manual has a working first version. Five layers, each with a core picture of how you operate. It's not finished. There's more depth to add, patterns to name. But it's enough to be useful.
 
@@ -502,7 +502,7 @@ ${dynamicContext}`;
 
 function buildGroupPrompt(
   groupContext: { ownerUserName: string | null; hasManualContext: boolean },
-  manualComponents: ManualComponent[]
+  manualComponents: ManualEntry[]
 ): string {
   const { ownerUserName, hasManualContext } = groupContext;
 

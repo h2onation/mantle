@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ManualComponent } from "@/lib/types";
+import type { ManualEntry } from "@/lib/types";
 import type { WaitlistRow, WaitlistStatus } from "@/components/admin/WaitlistTab";
 import type { BetaFeedbackRow } from "@/components/admin/BetaFeedbackTab";
 import type { BetaAllowlistRow } from "@/components/admin/BetaAllowlistTab";
@@ -54,7 +54,7 @@ export function useAdminData() {
   // Profile
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [userConversations, setUserConversations] = useState<AdminConversation[]>([]);
-  const [userManual, setUserManual] = useState<ManualComponent[]>([]);
+  const [userManual, setUserManual] = useState<ManualEntry[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [conversationMessages, setConversationMessages] = useState<AdminMessage[]>([]);
   const [extractionState, setExtractionState] = useState<Record<string, unknown> | null>(null);

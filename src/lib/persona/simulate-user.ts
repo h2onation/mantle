@@ -105,7 +105,7 @@ export async function generateSimulatedUserMessage(
   conversationHistory: { role: "user" | "assistant"; content: string }[],
   isCheckpointResponse?: boolean
 ): Promise<string> {
-  const system = `You are roleplaying as a person in a conversation with an AI called ${PERSONA_NAME} that builds behavioral models through deep conversation.
+  const system = `You are roleplaying as a person in a conversation with an AI called ${PERSONA_NAME} that builds Manuals through deep conversation.
 
 YOUR CHARACTER:
 ${simulatedUserDescription}

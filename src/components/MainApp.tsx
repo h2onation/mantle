@@ -92,7 +92,7 @@ export default function MainApp() {
     isLoading,
     isStreaming,
     activeCheckpoint,
-    confirmedComponents,
+    confirmedEntries,
     displayName,
     initialized,
     isNewUser,
@@ -217,7 +217,7 @@ export default function MainApp() {
             isNewUser={isNewUser}
             sessionSummary={sessionSummary}
             lastSessionDate={lastSessionDate}
-            confirmedComponents={confirmedComponents}
+            confirmedEntries={confirmedEntries}
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
             errorMessage={errorMessage}
@@ -235,7 +235,7 @@ export default function MainApp() {
           />
         }
         manualContent={
-          <MobileManual components={confirmedComponents} displayName={displayName} onExploreWithPersona={handleExploreWithPersona} onNavigateToSession={() => setActiveTab("session")} />
+          <MobileManual entries={confirmedEntries} displayName={displayName} onExploreWithPersona={handleExploreWithPersona} onNavigateToSession={() => setActiveTab("session")} />
         }
         settingsContent={
           <MobileSettings

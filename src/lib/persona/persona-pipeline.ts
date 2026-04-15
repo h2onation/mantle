@@ -26,11 +26,11 @@ const CRISIS_RESOURCES =
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type ManualComponent = { layer: number; name: string; content: string };
+type ManualEntry = { layer: number; name: string; content: string };
 
 export interface ConversationContext {
   messages: { role: "user" | "assistant"; content: string }[];
-  manualComponents: ManualComponent[];
+  manualComponents: ManualEntry[];
   previousExtraction: ExtractionState | null;
   sessionSummary: string | null;
   isReturningUser: boolean;
@@ -119,7 +119,7 @@ export async function loadConversationContext(
     messages = [{ role: "user", content: "[Session started]" }];
   }
 
-  const manualComponents: ManualComponent[] = manualResult.data || [];
+  const manualComponents: ManualEntry[] = manualResult.data || [];
   const previousExtraction: ExtractionState | null =
     extractionResult.data?.extraction_state ?? null;
   const sessionSummary: string | null =
@@ -338,7 +338,7 @@ export function validateMaterialQuality(
  */
 export function applyCheckpointGates(
   manualEntry: { layer: number; name: string } | null,
-  _manualComponents: ManualComponent[],
+  _manualComponents: ManualEntry[],
   turnsSinceCheckpoint: number,
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean

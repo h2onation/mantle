@@ -288,7 +288,7 @@ describe("buildSystemPrompt", () => {
   describe("first session block", () => {
     it("contains first session text when manualComponents is empty and not returning user", () => {
       const result = build({ manualComponents: [], isReturningUser: false });
-      expect(result).toContain("This user has no confirmed components. First session.");
+      expect(result).toContain("This user has no confirmed entries. First session.");
     });
 
     it("does NOT contain first session text when manualComponents has entries", () => {
@@ -298,12 +298,12 @@ describe("buildSystemPrompt", () => {
         ],
         isReturningUser: true,
       });
-      expect(result).not.toContain("This user has no confirmed components");
+      expect(result).not.toContain("This user has no confirmed entries");
     });
 
     it("does NOT contain first session text when isReturningUser is true", () => {
       const result = build({ manualComponents: [], isReturningUser: true });
-      expect(result).not.toContain("This user has no confirmed components");
+      expect(result).not.toContain("This user has no confirmed entries");
     });
   });
 

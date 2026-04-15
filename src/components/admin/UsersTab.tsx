@@ -83,7 +83,7 @@ export default function UsersTab({ users, onSelectUser, selectedId }: Props) {
           <div style={adminMetaStyle}>
             {u.conversation_count} conversation{u.conversation_count !== 1 ? "s" : ""}
             {" · "}
-            {u.component_count} manual component{u.component_count !== 1 ? "s" : ""}
+            {u.component_count} manual entr{u.component_count !== 1 ? "ies" : "y"}
           </div>
           <div style={adminMetaStyle}>
             Last conversation {formatAdminDate(u.last_conversation_at)}

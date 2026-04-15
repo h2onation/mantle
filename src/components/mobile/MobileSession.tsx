@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
-import type { ChatMessage, ManualComponent, ActiveCheckpoint } from "@/lib/types";
+import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "@/lib/persona/config";
@@ -35,7 +35,7 @@ interface MobileSessionProps {
   sessionOrigin?: "new" | "explore" | "existing";
   sessionSummary?: string | null;
   lastSessionDate?: string | null;
-  confirmedComponents: ManualComponent[];
+  confirmedEntries: ManualEntry[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
@@ -55,7 +55,7 @@ export default function MobileSession({
   conversationId,
   isLoading,
   isStreaming,
-  confirmedComponents,
+  confirmedEntries,
   activeCheckpoint,
   checkpointError,
   errorMessage,
@@ -130,7 +130,7 @@ export default function MobileSession({
   const showWelcomePanel =
     !firstSessionCompleted &&
     sessionOrigin === "new" &&
-    confirmedComponents.length === 0;
+    confirmedEntries.length === 0;
   const showChips = chipsVisible && !hasMessages;
   const welcomeBlock = (
     <div

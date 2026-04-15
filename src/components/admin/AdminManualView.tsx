@@ -1,18 +1,18 @@
 "use client";
 
-import type { ManualComponent } from "@/lib/types";
+import type { ManualEntry } from "@/lib/types";
 import { buildLayers } from "@/components/mobile/manual/layer-definitions";
 import PopulatedLayer from "@/components/mobile/manual/PopulatedLayer";
 import EmptyLayer from "@/components/mobile/manual/EmptyLayer";
 
 export default function AdminManualView({
-  components,
+  entries,
 }: {
-  components: ManualComponent[];
+  entries: ManualEntry[];
 }) {
-  const layers = buildLayers(components);
-  const populatedLayers = layers.filter((l) => l.threads.length > 0);
-  const emptyLayers = layers.filter((l) => l.threads.length === 0);
+  const layers = buildLayers(entries);
+  const populatedLayers = layers.filter((l) => l.entries.length > 0);
+  const emptyLayers = layers.filter((l) => l.entries.length === 0);
   const isEmpty = populatedLayers.length === 0;
 
   if (isEmpty) {
