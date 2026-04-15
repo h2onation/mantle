@@ -1,0 +1,437 @@
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantle doc system</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&amp;family=Instrument+Serif&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#F5F0E8;color:#2C2A25;min-height:100vh;-webkit-font-smoothing:antialiased}
+.page{max-width:920px;margin:0 auto;padding:32px 20px 80px}
+
+/* Header */
+.header{margin-bottom:36px}
+.header h1{font-family:'Instrument Serif',Georgia,serif;font-size:32px;font-weight:400;color:#1A1915;margin-bottom:4px}
+.header p{font-size:13px;color:#8A8780;line-height:1.5}
+
+/* Map section */
+.map-section{margin-bottom:44px}
+.map-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#8A8780;margin-bottom:16px}
+
+.map{display:flex;flex-direction:column;align-items:center;gap:0}
+
+.router-node{background:#FDFBF7;border:2px solid #2C2A25;border-radius:12px;padding:14px 32px;text-align:center;position:relative;z-index:2}
+.router-node .name{font-weight:600;font-size:15px;color:#1A1915}
+.router-node .desc{font-size:11px;color:#8A8780;margin-top:2px}
+
+.lines{width:100%;height:40px;position:relative}
+.lines svg{width:100%;height:100%}
+
+.doc-row{display:flex;gap:8px;width:100%;justify-content:center;flex-wrap:wrap}
+
+.doc-node{border-radius:10px;padding:10px 16px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1.5px solid transparent;min-width:120px;flex:1;max-width:160px}
+.doc-node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.doc-node .name{font-weight:600;font-size:12px}
+.doc-node .desc{font-size:10px;margin-top:2px;opacity:.8}
+
+.n-system{background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.n-intent{background:#EAF3DE;color:#27500A;border-color:#C0DD97}
+.n-rules{background:#FAECE7;color:#712B13;border-color:#F5C4B3}
+.n-state{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.n-decisions{background:#EEEDFE;color:#3C3489;border-color:#CECBF6}
+
+/* Cards section */
+.cards-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#8A8780;margin-bottom:16px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.cards{grid-template-columns:1fr}}
+
+.card{background:#FDFBF7;border:1px solid #E8E4DA;border-radius:14px;padding:20px;transition:box-shadow .15s}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.card.full-width{grid-column:1/-1}
+
+.card-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.card-badge{padding:4px 10px;border-radius:6px;font-weight:600;font-size:12px;letter-spacing:.2px}
+.b-system{background:#E6F1FB;color:#0C447C}
+.b-intent{background:#EAF3DE;color:#27500A}
+.b-rules{background:#FAECE7;color:#712B13}
+.b-state{background:#FAEEDA;color:#633806}
+.b-decisions{background:#EEEDFE;color:#3C3489}
+.b-claude{background:#E8E6E0;color:#444441}
+
+.card-oneliner{font-size:14px;color:#1A1915;font-weight:500;margin-bottom:14px;line-height:1.4}
+
+.card-fields{display:flex;flex-direction:column;gap:12px}
+.field{display:flex;gap:0;flex-direction:column}
+.field-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#8A8780;margin-bottom:4px}
+.field-value{font-size:13px;color:#44423D;line-height:1.55}
+
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{background:#EDE9E0;color:#5F5E5A;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:500}
+
+.triggers{list-style:none;padding:0}
+.triggers li{font-size:13px;color:#44423D;padding:3px 0;line-height:1.4}
+.triggers li::before{content:"→ ";color:#8BA888;font-weight:500}
+
+.task-pills{display:flex;flex-wrap:wrap;gap:4px}
+.task-pill{font-size:10px;padding:2px 8px;border-radius:4px;background:#F5F0E8;color:#5F5E5A;border:1px solid #E8E4DA;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
+
+/* Footer */
+.footer{margin-top:40px;padding-top:20px;border-top:1px solid #E8E4DA;font-size:11px;color:#B0ADA6;text-align:center}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+<h1>Mantle doc system</h1>
+<p>Six docs, two audiences. Every doc is written for you (strategic clarity) and Claude Code agents (task execution). The router tells agents which docs to load. The five docs hold the knowledge.</p>
+</div>
+
+<!-- MAP -->
+<div class="map-section">
+<div class="map-label">Architecture</div>
+<div class="map">
+
+<div class="router-node">
+<div class="name">CLAUDE.md</div>
+<div class="desc">Router. Always loaded. Points to everything else.</div>
+</div>
+
+<div class="lines">
+<svg viewBox="0 0 920 40" preserveAspectRatio="none">
+<line x1="460" y1="0" x2="100" y2="40" stroke="#D8D3C8" stroke-width="1"></line>
+<line x1="460" y1="0" x2="280" y2="40" stroke="#D8D3C8" stroke-width="1"></line>
+<line x1="460" y1="0" x2="460" y2="40" stroke="#D8D3C8" stroke-width="1"></line>
+<line x1="460" y1="0" x2="640" y2="40" stroke="#D8D3C8" stroke-width="1"></line>
+<line x1="460" y1="0" x2="820" y2="40" stroke="#D8D3C8" stroke-width="1"></line>
+</svg>
+</div>
+
+<div class="doc-row">
+<a href="#system" class="doc-node n-system" style="text-decoration:none">
+<div class="name">system.md</div>
+<div class="desc">How it works</div>
+</a>
+<a href="#intent" class="doc-node n-intent" style="text-decoration:none">
+<div class="name">intent.md</div>
+<div class="desc">What we're building</div>
+</a>
+<a href="#rules" class="doc-node n-rules" style="text-decoration:none">
+<div class="name">rules.md</div>
+<div class="desc">What never changes</div>
+</a>
+<a href="#state" class="doc-node n-state" style="text-decoration:none">
+<div class="name">state.md</div>
+<div class="desc">What's true now</div>
+</a>
+<a href="#decisions" class="doc-node n-decisions" style="text-decoration:none">
+<div class="name">decisions.md</div>
+<div class="desc">Why it's this way</div>
+</a>
+</div>
+
+</div>
+</div>
+
+<!-- CARDS -->
+<div class="cards-label">Doc reference</div>
+<div class="cards">
+
+<!-- CLAUDE.md -->
+<div class="card full-width" id="claude">
+<div class="card-top">
+<div class="card-badge b-claude">CLAUDE.md</div>
+</div>
+<div class="card-oneliner">The router. Always loaded by every agent. Contains no knowledge, only pointers and hard rules.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Router (loaded every session, never contains rules or context)</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">Front desk. Directs everyone to the right room.</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">Project identity (2 lines)</span>
+<span class="tag">Task → doc mapping table</span>
+<span class="tag">Hard rules (auth, git, builds)</span>
+<span class="tag">Command list (/ship, /cleanup, /evaluate)</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>You need to know which docs to load for a task</li>
+<li>You want to check the hard rules that apply to everything</li>
+<li>You're onboarding a new Claude Code session</li>
+</ul>
+</div>
+</div>
+</div>
+
+<!-- system.md -->
+<div class="card" id="system">
+<div class="card-top">
+<div class="card-badge b-system">system.md</div>
+</div>
+<div class="card-oneliner">How the machine works. Pipeline architecture, invariants, gotchas, and patterns that span multiple files.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Technical reference. Changes when architecture changes.</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">CTO / Lead engineer</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">3-stage pipeline</span>
+<span class="tag">Extraction state shape</span>
+<span class="tag">Checkpoint lifecycle (Path A/B)</span>
+<span class="tag">Critical invariants</span>
+<span class="tag">Prompt assembly table</span>
+<span class="tag">Supabase client pattern</span>
+<span class="tag">Migration protocols</span>
+<span class="tag">Error handling</span>
+<span class="tag">Edge runtime gotchas</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>Something broke and you need to understand the pipeline</li>
+<li>You're adding a table or changing the schema</li>
+<li>You need to know what Sage sees at a given turn</li>
+<li>You're debugging checkpoint detection</li>
+</ul>
+</div>
+<div class="field">
+<div class="field-label">Loaded by these tasks</div>
+<div class="task-pills">
+<span class="task-pill">schema change</span>
+<span class="task-pill">API route</span>
+<span class="task-pill">fix bug</span>
+<span class="task-pill">build UI</span>
+<span class="task-pill">Sage prompt</span>
+<span class="task-pill">extraction prompt</span>
+<span class="task-pill">write tests</span>
+<span class="task-pill">debug checkpoint</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- rules.md -->
+<div class="card" id="rules">
+<div class="card-top">
+<div class="card-badge b-rules">rules.md</div>
+</div>
+<div class="card-oneliner">What never changes. Legal boundaries, Sage voice, design system, and constraints that protect the product identity.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Constitutional. Overrides everything else.</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">Legal + Brand + Design lead</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">Product identity</span>
+<span class="tag">Legal positioning</span>
+<span class="tag">User-as-author principle</span>
+<span class="tag">Sage does / does not</span>
+<span class="tag">Crisis protocol</span>
+<span class="tag">Voice principles</span>
+<span class="tag">Composition voice rules</span>
+<span class="tag">Design system (linen)</span>
+<span class="tag">Typography roles</span>
+<span class="tag">Dead features</span>
+<span class="tag">Marketing language</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>You need to know if Sage can do something</li>
+<li>You're writing any user-facing copy</li>
+<li>You're reviewing legal or compliance implications</li>
+<li>You need the design tokens or typography rules</li>
+</ul>
+</div>
+<div class="field">
+<div class="field-label">Loaded by these tasks</div>
+<div class="task-pills">
+<span class="task-pill">build UI</span>
+<span class="task-pill">Sage prompt</span>
+<span class="task-pill">extraction prompt</span>
+<span class="task-pill">user-facing copy</span>
+<span class="task-pill">feature scoping</span>
+<span class="task-pill">legal review</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- intent.md -->
+<div class="card" id="intent">
+<div class="card-top">
+<div class="card-badge b-intent">intent.md</div>
+</div>
+<div class="card-oneliner">What we're building and why. Product thesis, current phase, success criteria, and what's deliberately excluded.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Strategic. Changes when the phase changes.</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">CEO / Product lead (you)</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">Product thesis</span>
+<span class="tag">Why people come (3 reasons)</span>
+<span class="tag">Value ranking</span>
+<span class="tag">Five-layer manual</span>
+<span class="tag">Phase 1 scope</span>
+<span class="tag">First session arc</span>
+<span class="tag">Success criteria</span>
+<span class="tag">Retention thesis</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>You need to remember what this phase is about</li>
+<li>You're scoping a feature and need to check if it's in scope</li>
+<li>You're writing copy and need the product narrative</li>
+<li>You need the success criteria or target user</li>
+</ul>
+</div>
+<div class="field">
+<div class="field-label">Loaded by these tasks</div>
+<div class="task-pills">
+<span class="task-pill">Sage prompt</span>
+<span class="task-pill">user-facing copy</span>
+<span class="task-pill">evaluate quality</span>
+<span class="task-pill">feature scoping</span>
+<span class="task-pill">plan next phase</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- state.md -->
+<div class="card" id="state">
+<div class="card-top">
+<div class="card-badge b-state">state.md</div>
+</div>
+<div class="card-oneliner">What's true right now. Deployed features, known bugs, in-flight work, and beta user status. The only doc that changes weekly.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Volatile. Updated before every merge to main.</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">Engineering manager / Project manager</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">Deployed features</span>
+<span class="tag">Not yet functional</span>
+<span class="tag">Known issues</span>
+<span class="tag">In-flight work</span>
+<span class="tag">Beta user status</span>
+<span class="tag">Test suite status</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>You need to know what's working or broken</li>
+<li>You're about to start work and need current status</li>
+<li>You want to check what's already in progress</li>
+<li>You're evaluating conversation quality against what's live</li>
+</ul>
+</div>
+<div class="field">
+<div class="field-label">Loaded by these tasks</div>
+<div class="task-pills">
+<span class="task-pill">schema change</span>
+<span class="task-pill">API route</span>
+<span class="task-pill">fix bug</span>
+<span class="task-pill">modify UI</span>
+<span class="task-pill">evaluate quality</span>
+<span class="task-pill">write tests</span>
+<span class="task-pill">debug checkpoint</span>
+<span class="task-pill">plan next phase</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- decisions.md -->
+<div class="card" id="decisions">
+<div class="card-top">
+<div class="card-badge b-decisions">decisions.md</div>
+</div>
+<div class="card-oneliner">Why things are the way they are. 23 architecture decision records. Settled questions with reasoning. Closed for debate.</div>
+<div class="card-fields">
+<div class="field">
+<div class="field-label">Authority</div>
+<div class="field-value">Case law. Each entry is settled unless explicitly reopened.</div>
+</div>
+<div class="field">
+<div class="field-label">Department</div>
+<div class="field-value">CTO + CEO together (architecture + product)</div>
+</div>
+<div class="field">
+<div class="field-label">What's inside</div>
+<div class="tags">
+<span class="tag">Pipeline decisions (11)</span>
+<span class="tag">Product rules (4)</span>
+<span class="tag">Code/design conventions (5)</span>
+<span class="tag">Infrastructure (2)</span>
+<span class="tag">Security (1)</span>
+</div>
+</div>
+<div class="field">
+<div class="field-label">Open this when</div>
+<ul class="triggers">
+<li>You're tempted to change how something works and need to know why it's that way</li>
+<li>You're scoping a feature and need to understand architectural constraints</li>
+<li>You're doing a legal review and need the reasoning behind product choices</li>
+<li>An agent is re-litigating a settled decision</li>
+</ul>
+</div>
+<div class="field">
+<div class="field-label">Loaded by these tasks</div>
+<div class="task-pills">
+<span class="task-pill">feature scoping</span>
+<span class="task-pill">legal review</span>
+<span class="task-pill">plan next phase</span>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="footer">
+Mantle doc system v1 · 6 docs, 908 lines total · Max ~350 lines loaded per agent session
+</div>
+
+</div>
+
+
+</body></html>

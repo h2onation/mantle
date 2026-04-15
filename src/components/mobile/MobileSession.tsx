@@ -132,7 +132,7 @@ export default function MobileSession({
   const hasMessages = messages.length > 0;
 
   // Welcome block — shown to new users (no confirmed manual entries).
-  // The paragraph explanation persists as the first Sage message in the
+  // The paragraph explanation persists as the first Jove message in the
   // conversation; only the transition line and chips hide once any message
   // is sent.
   const showWelcomePanel =
@@ -151,7 +151,7 @@ export default function MobileSession({
         animation: "mwFadeIn 0.6s ease-out",
       }}
     >
-      {/* Sage label */}
+      {/* Jove label */}
       <div style={{ marginBottom: "2px" }}>
         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
@@ -274,12 +274,11 @@ export default function MobileSession({
             fontSize: "13px",
             fontWeight: 400,
             color: "var(--session-ink-faded)",
-            letterSpacing: "15px",
-            textTransform: "uppercase",
-            paddingLeft: "15px",
+            letterSpacing: "4px",
+            paddingLeft: "4px",
           }}
         >
-          MYWALNUT
+          my walnut
         </span>
 
         {/* Right spacer */}
@@ -375,9 +374,9 @@ export default function MobileSession({
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
-          {/* State 1: First-time user welcome — persists as the first Sage
+          {/* State 1: First-time user welcome — persists as the first Jove
               message in the conversation. Renders above all messages so it
-              never reorders relative to user/Sage turns. */}
+              never reorders relative to user/Jove turns. */}
           {showWelcomePanel && welcomeBlock}
 
           {/* State 2: Returning user, new session */}
@@ -655,7 +654,7 @@ export default function MobileSession({
                 );
               }
 
-              // Sequence detection: is this the first sage message in a run?
+              // Sequence detection: is this the first Jove message in a run?
               const isFirstInPersonaSequence = (() => {
                 if (msg.role !== "assistant") return false;
                 if (i === 0) return true;
@@ -664,7 +663,7 @@ export default function MobileSession({
                 return prev.role !== "assistant" || prev.isCheckpoint === true;
               })();
 
-              // Sage message — tinted bubble with serif text
+              // Jove message — tinted bubble with serif text
               if (!isUser) {
                 const personaPanel = (
                   <div
@@ -675,7 +674,7 @@ export default function MobileSession({
                       animation: "checkpointFadeIn 0.8s ease-out both",
                     }}
                   >
-                    {/* Sage label — first in sequence only */}
+                    {/* Jove label — first in sequence only */}
                     {isFirstInPersonaSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
@@ -766,7 +765,7 @@ export default function MobileSession({
                     animation: "checkpointFadeIn 0.3s ease-out both",
                   }}
                 >
-                  {/* Show Sage label when prev message was user or checkpoint */}
+                  {/* Show Jove label when prev message was user or checkpoint */}
                   {(messages.length === 0 ||
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (

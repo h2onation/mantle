@@ -85,12 +85,11 @@ export default function MobileManual({ components, displayName, onExploreWithPer
             fontSize: "13px",
             fontWeight: 400,
             color: "var(--session-ink-faded)",
-            letterSpacing: "15px",
-            textTransform: "uppercase",
-            paddingLeft: "15px",
+            letterSpacing: "4px",
+            paddingLeft: "4px",
           }}
         >
-          MYWALNUT
+          my walnut
         </span>
 
         {/* Right spacer */}
