@@ -10,19 +10,20 @@ import {
   renderLandingExamples,
 } from "@/lib/persona/voice-autistic";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/manual-context";
 
 /** Voice mode for the persona. Currently only 'autistic' ships, but the seam exists
  *  so future voice modes can be added without re-plumbing the call chain. */
 export type PersonaMode = "autistic";
 
-interface ManualComponent {
-  layer: number;
-  name: string | null;
-  content: string;
-}
+type ManualComponent = ManualEntryForContext;
 
 export interface BuildPromptOptions {
   manualComponents: ManualComponent[];
+  /** Current conversation id. Entries from this conversation render in full;
+   *  everything else is a candidate for compression. Null for the group-chat
+   *  prompt path, which has no concept of an in-progress conversation. */
+  currentConversationId: string | null;
   isReturningUser: boolean;
   sessionSummary: string | null;
   extractionContext: string;
@@ -316,6 +317,7 @@ ${showFirstSession ? `This user has no confirmed entries. First session. The use
 export function buildSystemPrompt(options: BuildPromptOptions): string {
   const {
     manualComponents,
+    currentConversationId,
     isReturningUser,
     sessionSummary,
     extractionContext,
@@ -369,15 +371,9 @@ ${tier3}`;
   // ─── Dynamic context blocks (unchanged injection logic) ──────────────
   let dynamicContext = "";
 
-  // Manual contents
-  if (manualComponents.length > 0) {
-    dynamicContext += "\nCONFIRMED MANUAL\n";
-    for (const comp of manualComponents) {
-      dynamicContext += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
-      if (comp.name) dynamicContext += ` — "${comp.name}"`;
-      dynamicContext += `:\n${comp.content}\n\n`;
-    }
-  }
+  // Manual contents — recent entries full, older entries compressed.
+  // See src/lib/persona/manual-context.ts for the compression scheme.
+  dynamicContext += prepareManualContext(manualComponents, currentConversationId);
 
   // Session context
   if (isReturningUser) {

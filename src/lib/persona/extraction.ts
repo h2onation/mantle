@@ -51,6 +51,12 @@ interface ManualEntry {
   content: string;
 }
 
+// How many recent messages the extraction Sonnet call sees. Extraction is
+// cumulative — earlier signals are already folded into previous state — but
+// a larger window lets the extractor spot a mechanism that developed across
+// the last several turns rather than only the latest exchange.
+export const EXTRACTION_MESSAGE_WINDOW = 12;
+
 // ─── Default state ───────────────────────────────────────────────────────────
 
 function defaultState(): ExtractionState {
@@ -290,9 +296,7 @@ export async function runExtraction(
     }
   }
 
-  // Only send last 6 messages (3 exchanges). Extraction is cumulative —
-  // previous state already contains all signals from earlier turns.
-  const recentHistory = conversationHistory.slice(-6);
+  const recentHistory = conversationHistory.slice(-EXTRACTION_MESSAGE_WINDOW);
   userContent += "RECENT CONVERSATION:\n";
   for (const msg of recentHistory) {
     userContent += `${msg.role}: ${msg.content}\n\n`;

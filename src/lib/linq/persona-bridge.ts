@@ -184,7 +184,13 @@ export async function processTextMessage(
 
   // 11c. Composition — always compose the manual entry server-side when a
   //      checkpoint is detected so composed_content is ready at confirmation.
-  let composedEntry: { content: string; name: string; changelog: string } | null = null;
+  let composedEntry: {
+    content: string;
+    name: string;
+    changelog: string;
+    summary: string;
+    key_words: string[];
+  } | null = null;
 
   if (isCheckpoint && checkpointLayer) {
     try {

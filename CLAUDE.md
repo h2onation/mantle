@@ -44,6 +44,24 @@ Dynamic context blocks (confirmed manual, session summary, extraction brief, tra
 
 There is no post-checkpoint fork. Jove acknowledges briefly and returns to the conversation from whatever the user just surfaced. No "Work with it / Keep building" menu.
 
+## Manual Context Compression
+
+The system prompt doesn't ship the full text of every confirmed Manual entry on every turn. Returning users accumulate entries across sessions, and shipping all of them verbatim burns context and dilutes the model's attention on the current conversation.
+
+The scheme, implemented in `src/lib/persona/manual-context.ts`:
+
+- **Recent** (entries authored in the current conversation, plus the most-recent backfill up to a cap of 4) render in full. Jove sees the exact narrative prose so it can reference specifics and avoid proposing duplicates.
+- **Older** entries render as one line: `[Layer N — LayerName] "Headline" — one-sentence summary. Key words: w1, w2, w3.` Jove still knows the shape of the Manual but doesn't re-read the prose every turn.
+
+The compressed summary and key words are generated at checkpoint-confirm time by the same Sonnet call that composes the entry (`src/lib/persona/confirm-checkpoint.ts`). They are stored on `manual_entries.summary` and `manual_entries.key_words`. Pre-existing rows and any fallback path derive a summary from the first sentence of `content`.
+
+The extraction layer sees the full, un-compressed Manual (it analyzes the user's message in detail and benefits from the nuance). Only the Jove system prompt uses the compressed view.
+
+Rules when touching this:
+- Never compress the current session's entries. Freshly-confirmed material has to stay full-text so Jove can thread it back in subsequent turns.
+- Never compress in the group-chat prompt path (`buildGroupPrompt` in `src/lib/persona/system-prompt.ts`); group flows are short and want the full Manual inline.
+- When adding a new surface that reads Manual entries and wants a prompt-ready block, call `prepareManualContext(entries, currentConversationId)` — don't recreate the concatenation logic.
+
 ## Terminology
 
 Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.

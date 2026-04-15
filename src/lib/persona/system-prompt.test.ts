@@ -14,6 +14,7 @@ describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
   const defaults: BuildPromptOptions = {
     manualComponents: [],
+    currentConversationId: "test-conversation-id",
     isReturningUser: false,
     sessionSummary: null,
     extractionContext: "",
