@@ -18,7 +18,7 @@ const WELCOME_CHIPS = [
 
 const personaLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "8px",
+  fontSize: "var(--size-meta)",
   fontWeight: 400,
   letterSpacing: "1.5px",
   textTransform: "lowercase" as const,
@@ -440,7 +440,7 @@ export default function MobileSession({
                       <div
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "8px",
+                          fontSize: "var(--size-meta)",
                           fontWeight: 400,
                           letterSpacing: "3px",
                           textTransform: "uppercase",
@@ -457,7 +457,7 @@ export default function MobileSession({
                     <div
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "7px",
+                        fontSize: "var(--size-meta)",
                         fontWeight: 500,
                         letterSpacing: "2px",
                         textTransform: "uppercase",
@@ -512,7 +512,7 @@ export default function MobileSession({
                               }}
                               style={{
                                 fontFamily: "var(--font-sans)",
-                                fontSize: "11px",
+                                fontSize: "var(--size-meta)",
                                 fontWeight: 500,
                                 letterSpacing: "0.5px",
                                 color: "#FFFFFF",
@@ -537,7 +537,7 @@ export default function MobileSession({
                                 }}
                                 style={{
                                   fontFamily: "var(--font-sans)",
-                                  fontSize: "10px",
+                                  fontSize: "var(--size-meta)",
                                   fontWeight: 500,
                                   color: "var(--session-ink-mid)",
                                   background: "none",
@@ -550,7 +550,7 @@ export default function MobileSession({
                               </button>
                               <span
                                 style={{
-                                  fontSize: "10px",
+                                  fontSize: "var(--size-meta)",
                                   color: "var(--session-ink-whisper)",
                                 }}
                               >
@@ -563,7 +563,7 @@ export default function MobileSession({
                                 }}
                                 style={{
                                   fontFamily: "var(--font-sans)",
-                                  fontSize: "10px",
+                                  fontSize: "var(--size-meta)",
                                   fontWeight: 500,
                                   color: "var(--session-ink-ghost)",
                                   background: "none",
@@ -593,7 +593,7 @@ export default function MobileSession({
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
-                            fontSize: "7px",
+                            fontSize: "var(--size-meta)",
                             fontWeight: 500,
                             letterSpacing: "2px",
                             textTransform: "uppercase",
@@ -621,7 +621,7 @@ export default function MobileSession({
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
-                            fontSize: "7px",
+                            fontSize: "var(--size-meta)",
                             fontWeight: 500,
                             letterSpacing: "2px",
                             textTransform: "uppercase",
@@ -641,7 +641,7 @@ export default function MobileSession({
                       <span
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "10px",
+                          fontSize: "var(--size-meta)",
                           color: "var(--session-ink-ghost)",
                           marginTop: "12px",
                           display: "block",
@@ -679,7 +679,7 @@ export default function MobileSession({
                       <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
                       </div>
                     )}
@@ -735,7 +735,7 @@ export default function MobileSession({
                 >
                   {msg.channel === "text" && (
                     <div style={{ textAlign: "right", marginBottom: "2px", paddingRight: "2px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "8px", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                     </div>
                   )}
                   <p
@@ -860,7 +860,7 @@ export default function MobileSession({
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "9px",
+            fontSize: "var(--size-meta)",
             color: "var(--session-ink-ghost)",
             letterSpacing: "0.5px",
             textAlign: "center",

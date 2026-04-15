@@ -60,7 +60,7 @@ export default function SettingsRow({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: "var(--session-ink-ghost)",
                 letterSpacing: "0.5px",
                 margin: "3px 0 0 0",

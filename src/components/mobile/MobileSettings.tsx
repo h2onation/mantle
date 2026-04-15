@@ -30,7 +30,7 @@ function SectionHeader({
         alignItems: "center",
         width: "100%",
         fontFamily: "var(--font-mono)",
-        fontSize: "10px",
+        fontSize: "var(--size-meta)",
         color: "var(--session-ink-faded)",
         letterSpacing: "3px",
         textTransform: "uppercase",
@@ -323,7 +323,7 @@ export default function MobileSettings({
       <p
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "8px",
+          fontSize: "var(--size-meta)",
           color: "var(--session-ink-ghost)",
           letterSpacing: "3px",
           textTransform: "uppercase",
@@ -371,7 +371,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: "var(--session-ink-ghost)",
                 letterSpacing: "0.5px",
                 margin: "0 0 4px 0",
@@ -395,7 +395,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: "var(--session-ink-ghost)",
                 letterSpacing: "0.5px",
                 margin: "0 0 4px 0",
@@ -418,7 +418,7 @@ export default function MobileSettings({
           <p
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               letterSpacing: "0.5px",
               margin: "10px 0 0 0",
@@ -440,7 +440,7 @@ export default function MobileSettings({
               <p
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
+                  fontSize: "var(--size-meta)",
                   color: "var(--session-ink-ghost)",
                   letterSpacing: "0.5px",
                   margin: 0,
@@ -501,7 +501,7 @@ export default function MobileSettings({
                 <p
                   style={{
                     fontFamily: "var(--font-sans)",
-                    fontSize: "11px",
+                    fontSize: "var(--size-meta)",
                     color: "#8a8480",
                     lineHeight: 1.5,
                     margin: "4px 0 10px 0",
@@ -544,7 +544,7 @@ export default function MobileSettings({
                   <p
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
+                      fontSize: "var(--size-meta)",
                       color: phoneBusy || !phoneInput.trim() ? "var(--session-ink-ghost)" : "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
@@ -610,7 +610,7 @@ export default function MobileSettings({
                   <p
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
+                      fontSize: "var(--size-meta)",
                       color: phoneBusy || codeInput.length !== 6 ? "var(--session-ink-ghost)" : "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
@@ -629,7 +629,7 @@ export default function MobileSettings({
                     cursor: phoneBusy ? "default" : "pointer",
                     padding: "10px 0 0 0",
                     fontFamily: "var(--font-sans)",
-                    fontSize: "11px",
+                    fontSize: "var(--size-meta)",
                     color: "#6e6a66",
                     textDecoration: "underline",
                     WebkitTapHighlightColor: "transparent",
@@ -664,7 +664,7 @@ export default function MobileSettings({
                     <p
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-persona)",
                         letterSpacing: "0.5px",
                         margin: "3px 0 0 0",
@@ -689,7 +689,7 @@ export default function MobileSettings({
                     <p
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-ink-ghost)",
                         letterSpacing: "0.5px",
                         margin: 0,
@@ -728,7 +728,7 @@ export default function MobileSettings({
                   <p
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
+                      fontSize: "var(--size-meta)",
                       color: "var(--session-persona)",
                       letterSpacing: "0.5px",
                       margin: 0,
@@ -744,7 +744,7 @@ export default function MobileSettings({
               <p
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
+                  fontSize: "var(--size-meta)",
                   color: "var(--session-error)",
                   letterSpacing: "0.5px",
                   margin: "8px 0 0 0",
@@ -821,7 +821,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: "var(--session-ink-ghost)",
                 letterSpacing: "2px",
                 textTransform: "uppercase",
@@ -843,7 +843,7 @@ export default function MobileSettings({
                     background: simCheckpoints === n ? "var(--session-persona-muted)" : "none",
                     color: simCheckpoints === n ? "var(--session-persona)" : "var(--session-ink-ghost)",
                     fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
+                    fontSize: "var(--size-meta)",
                     fontWeight: 500,
                     cursor: "pointer",
                     padding: 0,
@@ -875,7 +875,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: simulating || !simulatedUser.trim() ? "var(--session-ink-ghost)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: 0,
@@ -894,7 +894,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: simStatus.includes("ailed") ? "var(--session-error)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: "8px 0 0",
@@ -942,7 +942,7 @@ export default function MobileSettings({
                     background: populateLayers.has(n) ? "var(--session-persona-muted)" : "none",
                     color: populateLayers.has(n) ? "var(--session-persona)" : "var(--session-ink-ghost)",
                     fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
+                    fontSize: "var(--size-meta)",
                     fontWeight: 500,
                     cursor: "pointer",
                     padding: 0,
@@ -972,7 +972,7 @@ export default function MobileSettings({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 color: populating || populateLayers.size === 0 ? "var(--session-ink-ghost)" : "var(--session-persona)",
                 letterSpacing: "0.5px",
                 margin: 0,

@@ -42,7 +42,7 @@ export default function ExtractionPanel({
         onClick={() => setExpanded(!expanded)}
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "8px",
+          fontSize: "var(--size-meta)",
           color: "var(--session-ink-ghost)",
           cursor: "pointer",
           background: "none",
@@ -60,7 +60,7 @@ export default function ExtractionPanel({
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "9px",
+            fontSize: "var(--size-meta)",
             color: "var(--session-ink-faded)",
             background: "var(--session-linen)",
             border: "1px solid var(--session-ink-hairline)",
@@ -98,7 +98,7 @@ export default function ExtractionPanel({
             onClick={() => setShowRaw(!showRaw)}
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "8px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               cursor: "pointer",
               background: "none",
@@ -118,7 +118,7 @@ export default function ExtractionPanel({
                 whiteSpace: "pre-wrap",
                 overflow: "auto",
                 maxHeight: 300,
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
               }}
             >
               {JSON.stringify(snapshot, null, 2)}

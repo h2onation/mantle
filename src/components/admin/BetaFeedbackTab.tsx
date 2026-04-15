@@ -106,7 +106,7 @@ export default function BetaFeedbackTab({ items, onMarkRead }: Props) {
               <div
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
+                  fontSize: "var(--size-meta)",
                   color: "var(--session-ink-ghost)",
                   marginTop: 4,
                   letterSpacing: "1px",

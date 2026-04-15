@@ -16,7 +16,7 @@ export default function Pagination({ page, perPage, total, onChange }: Paginatio
 
   const buttonStyle = {
     fontFamily: "var(--font-mono)",
-    fontSize: "9px",
+    fontSize: "var(--size-meta)",
     letterSpacing: "1px",
     textTransform: "uppercase" as const,
     color: "var(--session-ink-ghost)",
@@ -50,7 +50,7 @@ export default function Pagination({ page, perPage, total, onChange }: Paginatio
       <span
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "9px",
+          fontSize: "var(--size-meta)",
           color: "var(--session-ink-ghost)",
           letterSpacing: "1px",
         }}

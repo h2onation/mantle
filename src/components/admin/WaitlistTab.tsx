@@ -81,7 +81,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "9px",
+            fontSize: "var(--size-meta)",
             color: "var(--session-error)",
             padding: "8px 0",
             letterSpacing: "1px",
@@ -163,7 +163,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                     }}
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
+                      fontSize: "var(--size-meta)",
                       letterSpacing: "1px",
                       textTransform: "uppercase",
                       color: "var(--session-ink)",
@@ -183,7 +183,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                       <span
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           color: "var(--session-ink-ghost)",
                           letterSpacing: "1px",
                         }}
@@ -194,7 +194,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                         onClick={handleConfirm}
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-cream)",
@@ -212,7 +212,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                         onClick={() => setPending(null)}
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-ink-ghost)",
@@ -233,7 +233,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-ink-ghost)",
                         letterSpacing: "1px",
                       }}
@@ -249,7 +249,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                       disabled={isBetaSaving}
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         letterSpacing: "1px",
                         textTransform: "uppercase",
                         color: "var(--session-persona)",
@@ -270,7 +270,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-persona)",
                         letterSpacing: "0.5px",
                         marginLeft: "auto",
@@ -283,7 +283,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-ink-ghost)",
                         letterSpacing: "0.5px",
                         marginLeft: "auto",
