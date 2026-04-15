@@ -28,6 +28,9 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       note: "",
     },
     observation_miss_count: 0,
+    early_frame_delivered: false,
+    depth_signal_delivered: false,
+    approaching_signal_delivered: false,
     next_prompt: "",
     sage_brief: "",
     ...overrides,
@@ -244,7 +247,7 @@ describe("formatExtractionForPersona", () => {
       expect(result).toContain("Not enough yet");
     });
 
-    it("includes the first-reflection wrapper note when ready and first checkpoint", () => {
+    it("no longer inlines the first-reflection wrapper note (wrapper moved to approaching signal)", () => {
       const state = makeState({
         checkpoint_gate: {
           concrete_examples: 1,
@@ -255,8 +258,8 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, true);
-      expect(result).toContain("very first reflection");
-      expect(result).toContain("one-time wrapper");
+      expect(result).not.toContain("very first reflection");
+      expect(result).not.toContain("one-time wrapper");
     });
   });
 

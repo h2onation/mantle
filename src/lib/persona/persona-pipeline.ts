@@ -456,7 +456,7 @@ export function validateComposedEntry(
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
   if (wordCount < 80) warnings.push(`entry too short: ${wordCount}/80`);
-  if (wordCount > 300) warnings.push(`entry too long: ${wordCount}/300`);
+  if (wordCount > 150) warnings.push(`entry too long: ${wordCount}/150`);
 
   const hasSomaticAnchor = SOMATIC_WORD_PATTERNS.some((re) => re.test(content));
   if (!hasSomaticAnchor) {

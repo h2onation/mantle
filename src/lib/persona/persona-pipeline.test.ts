@@ -116,7 +116,7 @@ describe("validateMaterialQuality", () => {
 });
 
 describe("validateComposedEntry", () => {
-  const goodEntry = `You walk into a room and a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the end of the day the buzzing starts in your jaw and your thoughts get slower. By the time you get home you can't talk, can't cook, can't answer a text. You lose the evening and you call it being tired. The version that shows up at work is legible. The version that comes home is gone. You can't stop running the second version because the real one got flagged as too much a long time ago. The cost is that almost nobody in your life has met the real one, including you on the days when you come home and go straight to the dark room.`;
+  const goodEntry = `You walk into a room and a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the end of the day the buzzing starts in your jaw and your thoughts get slower. You lose the evening and you call it being tired. You can't stop running the second version because the real one got flagged as too much a long time ago. The cost is that almost nobody in your life has met the real one, including you on the days when you come home and go straight to the dark room.`;
 
   it("passes for a well-formed entry with body anchor", () => {
     const result = validateComposedEntry(goodEntry);
@@ -130,6 +130,14 @@ describe("validateComposedEntry", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.warnings.join(" ")).toMatch(/too short/);
+  });
+
+  it("warns when entry exceeds the 150-word upper bound", () => {
+    const tooLong = Array(200).fill("Your jaw goes tight").join(". ") + ".";
+    const result = validateComposedEntry(tooLong);
+    expect(result.ok).toBe(false);
+    expect(result.warnings.join(" ")).toMatch(/too long/);
+    expect(result.warnings.join(" ")).toMatch(/150/);
   });
 
   it("warns when entry has no somatic anchor word", () => {
