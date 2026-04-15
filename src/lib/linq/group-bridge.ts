@@ -48,7 +48,7 @@ export interface PreFetchedContext {
  *   - getOrCreateGroupConversation
  *   - phone_numbers lookup (for sender label)
  *   - profiles lookup (for display name)
- *   - manual_components lookup (for Sage's system prompt)
+ *   - manual_entries lookup (for Sage's system prompt)
  */
 export async function prefetchGroupContext(
   groupState: GroupState,
@@ -85,7 +85,7 @@ export async function prefetchGroupContext(
         .eq("id", groupState.owner_user_id)
         .maybeSingle(),
       admin
-        .from("manual_components")
+        .from("manual_entries")
         .select("layer, name, content")
         .eq("user_id", groupState.owner_user_id),
     ]);

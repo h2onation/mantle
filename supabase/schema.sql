@@ -85,7 +85,7 @@ create policy "Users can update own messages"
 -- Manual entries (USER-level, not conversation-level).
 -- A user can have many entries per layer. Jove decides when an entry is worth
 -- writing; the classifier decides which of the five layers it belongs in.
-create table public.manual_components (
+create table public.manual_entries (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   layer integer not null check (layer in (1, 2, 3, 4, 5)),
@@ -96,14 +96,14 @@ create table public.manual_components (
   updated_at timestamptz default now() not null
 );
 
-alter table public.manual_components enable row level security;
+alter table public.manual_entries enable row level security;
 
 create policy "Users can view own manual"
-  on public.manual_components for select using (auth.uid() = user_id);
-create policy "Users can create own manual components"
-  on public.manual_components for insert with check (auth.uid() = user_id);
-create policy "Users can update own manual components"
-  on public.manual_components for update using (auth.uid() = user_id);
+  on public.manual_entries for select using (auth.uid() = user_id);
+create policy "Users can create own manual entries"
+  on public.manual_entries for insert with check (auth.uid() = user_id);
+create policy "Users can update own manual entries"
+  on public.manual_entries for update using (auth.uid() = user_id);
 
 -- Auto-update timestamps
 create or replace function public.update_updated_at()
@@ -119,7 +119,7 @@ create trigger update_conversations_updated_at
   for each row execute procedure public.update_updated_at();
 
 create trigger update_manual_components_updated_at
-  before update on public.manual_components
+  before update on public.manual_entries
   for each row execute procedure public.update_updated_at();
 
 -- Manual changelog: tracks how components evolve over time

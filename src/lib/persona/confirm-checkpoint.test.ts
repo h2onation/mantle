@@ -105,13 +105,13 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     await confirmCheckpoint(baseOptions);
 
-    // Find the insert call to manual_components
+    // Find the insert call to manual_entries
     const insertCall = callLog.find(
-      (c) => c.table === "manual_components" && c.method === "insert"
+      (c) => c.table === "manual_entries" && c.method === "insert"
     );
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
@@ -134,12 +134,12 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     await confirmCheckpoint(baseOptions);
 
     const insertCall = callLog.find(
-      (c) => c.table === "manual_components" && c.method === "insert"
+      (c) => c.table === "manual_entries" && c.method === "insert"
     );
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
@@ -161,12 +161,12 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     await confirmCheckpoint(baseOptions);
 
     const insertCall = callLog.find(
-      (c) => c.table === "manual_components" && c.method === "insert"
+      (c) => c.table === "manual_entries" && c.method === "insert"
     );
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
@@ -188,14 +188,14 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     const result = await confirmCheckpoint(baseOptions);
     expect(result.success).toBe(true);
 
-    // Should insert to manual_components (not update)
+    // Should insert to manual_entries (not update)
     const insertCall = callLog.find(
-      (c) => c.table === "manual_components" && c.method === "insert"
+      (c) => c.table === "manual_entries" && c.method === "insert"
     );
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
@@ -217,7 +217,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     await confirmCheckpoint(baseOptions);
 
@@ -250,7 +250,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_components = { data: [], error: null };
+    tableResponses.manual_entries = { data: [], error: null };
 
     await confirmCheckpoint(baseOptions);
 

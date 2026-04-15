@@ -21,7 +21,7 @@ vi.mock("@/lib/supabase/admin", () => ({
     };
     chain.select = () => chain;
     chain.eq = () => {
-      if (currentTable === "manual_components") {
+      if (currentTable === "manual_entries") {
         return Promise.resolve({ count: manualComponentCount, data: null, error: null });
       }
       return chain;

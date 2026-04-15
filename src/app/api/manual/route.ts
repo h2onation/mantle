@@ -15,7 +15,7 @@ export async function GET() {
 
   const [{ data: components }, { data: profile }] = await Promise.all([
     admin
-      .from("manual_components")
+      .from("manual_entries")
       .select("id, layer, type, name, content, created_at, updated_at")
       .eq("user_id", user.id)
       .order("layer", { ascending: true })

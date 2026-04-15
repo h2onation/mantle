@@ -98,9 +98,9 @@ export async function GET() {
       }
     }
 
-    // Count manual_components per user
+    // Count manual_entries per user
     const { data: components } = await admin
-      .from("manual_components")
+      .from("manual_entries")
       .select("user_id")
       .in("user_id", userIds);
 
