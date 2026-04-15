@@ -10,6 +10,8 @@
 ## Deployed Features
 *Last verified: 2026-04-15*
 
+- Three-tier Jove prompt + no post-checkpoint fork + observation miss tracking (2026-04-15): Restructured `system-prompt.ts` into Tier 1 (constitutional) / Tier 2 (voice and behavior) / Tier 3 (conversation mechanics). `voice-autistic.ts` is the sole source for voice rules, banned phrases, and examples. Removed the post-checkpoint "Work with it / Keep building" fork — Jove now acknowledges briefly and returns to the conversation from whatever the user surfaces next; no scripted menu. Added `observation_miss_count` to `ExtractionState`: extractor increments on misses, resets on confirmations; the brief injects a grounding nudge at ≥2 and a full reset at ≥3. Rewrote `system-prompt.test.ts` for the tier structure and added miss-count injection tests in `extraction.test.ts`.
+- Manual context compression + extraction window 6→12 (2026-04-15): New module `src/lib/persona/manual-context.ts` exposes `compressManualEntry()` + `prepareManualContext()`. Recent entries (current conversation + backfill up to 4 total) render in full; older entries render as one line: `[Layer N — LayerName] "Headline" — summary. Key words: w1, w2, w3.` — keeps the context budget bounded as returning users accumulate entries. Group-chat prompt path opts out (`currentConversationId=null`). Added `summary` (text) and `key_words` (text[]) columns to `manual_entries` via migration `20260415_add_manual_entry_compression_fields.sql`. `confirm-checkpoint.ts` composition prompt emits both fields in its JSON response; runtime fallback derives summary from the first sentence of content when absent (backfill-free). `loadConversationContext` now joins `source_message_id` → `conversation_id` so current-session entries can be distinguished. Extraction window: `EXTRACTION_MESSAGE_WINDOW = 12` constant; extractor slice widened from 6 to 12 messages so mechanisms developing across several turns get captured.
 - Manual terminology unification (2026-04-15): Cosmetic follow-up to the `manual_entries` table rename. Brings code, prompts, docs, and admin UI in line with the canonical vocabulary (Manual / Layer / Entry / Checkpoint). TS type `ManualComponent` → `ManualEntry` across 11 files. UI `Thread`/`threads` → `Entry`/`entries` in `layer-definitions.ts`, `PopulatedLayer.tsx`, `MobileManual.tsx`, `AdminManualView.tsx`, `generate-manual-pdf.ts`. State and prop renames: `confirmedComponents` → `confirmedEntries` (`useChat`/`MainApp`/`MobileSession`), `components` prop → `entries` (`MobileManual`, `AdminManualView`, callers in `MainApp` and `UserProfilePane`). File rename: `PatternItem.tsx` → `EntryItem.tsx` (export + interface `ThreadCardProps` → `EntryCardProps`). Prompt strings: "confirmed components" → "confirmed entries" in `system-prompt.ts`; "behavioral model(s)" → "Manual(s)" in `classifier.ts`, `confirm-checkpoint.ts`, `extraction.ts`, `simulate-user.ts` (kept the legal AI-disclosure phrase in `rules.md` intact). Doc fixes in `system.md`. Admin user-list display: "manual component(s)" → "manual entr(y/ies)". DB column names and API response field names (e.g. `component_count`) intentionally left alone — public contract.
 - `/feedback` slash command removed (2026-04-15): The in-chat slash command (intercepted in `useChat.ts` before reaching Jove) is gone. Users now submit feedback exclusively through the persistent `BetaFeedbackButton` (writes to `beta_feedback`). Removed: `/api/feedback` POST route, `FeedbackModal` in `MobileSession.tsx`, `feedbackHint` + `showFeedbackModal` state and prop plumbing through `useChat` → `MainApp` → `MobileSession`, the instructional paragraph in `MobileSettings.tsx`. The legacy `feedback` table is retained as read-only history; admin can still view existing entries via `/api/admin/feedback`.
 - Manual table rename `manual_components` → `manual_entries` (2026-04-15): Aligns the DB and code with the canonical vocabulary (Manual / Layer / Entry / Checkpoint). Table renamed by hand in the Supabase dashboard; migration `20260415_rename_manual_components_to_entries.sql` codifies the change with idempotent guards. Two RLS policies renamed (`Users can {create,update} own manual components` → `... entries`); third policy already used "manual" alone and was left. Trigger name `update_manual_components_updated_at` left in place — internal label, repoints to the renamed table automatically. All 14 `.from("manual_components")` call sites updated to `manual_entries`. Pure rename — no schema or logic changes.
@@ -78,13 +80,14 @@
 - **Waitlist rate limiter not enforcing**: Upstash env vars (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) are not set in production. Rate limiter fails open by design. Code is wired correctly — just needs the Redis instance.
 
 ## In-Flight Work
-*Last verified: 2026-04-14*
+*Last verified: 2026-04-15*
 
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
 - Migration `20260408_add_onboarding_completed_at.sql` not yet run in Supabase dashboard
 - Migration `20260409_rename_mantle_user_id.sql` not yet run in Supabase dashboard — must run before deploying brand migration code
 - Migration `20260414_rename_sage_to_persona.sql` not yet run in Supabase dashboard — must run alongside Sage→Persona rename deploy
+- Migration `20260415_add_manual_entry_compression_fields.sql` not yet run in Supabase dashboard — must run before deploying the Manual-compression code (adds `summary` and `key_words` columns, both nullable). Runtime falls back on missing values, so old rows work; but `confirm-checkpoint.ts` inserts both columns on new entries and will fail if the columns don't exist.
 - Upstash Redis setup needed for rate limiting to enforce in production
 - Linq deprecation: moving away from Linq SMS provider
 
@@ -96,9 +99,9 @@
 - Success metric: 3+ out of 10 return for 3rd session unprompted within 2 weeks
 
 ## Test Suite
-*Last verified: 2026-04-09*
+*Last verified: 2026-04-15*
 
-- Test count: 363
+- Test count: 390
 - All pass, < 1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
