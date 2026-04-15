@@ -1,4 +1,7 @@
--- Feedback table: stores user feedback submitted via /feedback command in chat
+-- Feedback table: stores user feedback submitted via the /feedback chat slash
+-- command (removed 2026-04-15). Table retained as read-only history; admin can
+-- still view existing entries via /api/admin/feedback. New feedback now goes
+-- through BetaFeedbackButton → beta_feedback table instead.
 CREATE TABLE public.feedback (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
