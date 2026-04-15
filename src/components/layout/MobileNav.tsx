@@ -45,7 +45,7 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
                 : "1px solid transparent",
               cursor: "pointer",
               fontFamily: "var(--font-serif)",
-              fontSize: "11px",
+              fontSize: "var(--size-meta)",
               fontWeight: 400,
               letterSpacing: "1.5px",
               textTransform: "uppercase",

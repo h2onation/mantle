@@ -116,7 +116,7 @@ export default function UserProfilePane({ data }: { data: AdminData }) {
             }}
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               letterSpacing: "3px",
               textTransform: "uppercase",
               color:
@@ -144,7 +144,7 @@ export default function UserProfilePane({ data }: { data: AdminData }) {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               padding: "40px 0",
               textAlign: "center",
@@ -270,7 +270,7 @@ function MessageThread({
           onClick={onBack}
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "9px",
+            fontSize: "var(--size-meta)",
             color: "var(--session-ink-ghost)",
             letterSpacing: "1px",
             background: "none",
@@ -285,7 +285,7 @@ function MessageThread({
           onClick={() => setShowAllLogs(!showAllLogs)}
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "8px",
+            fontSize: "var(--size-meta)",
             letterSpacing: "1px",
             textTransform: "uppercase",
             color: showAllLogs
@@ -329,7 +329,7 @@ function MessageThread({
               <div
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "7px",
+                  fontSize: "var(--size-meta)",
                   letterSpacing: "2px",
                   textTransform: "uppercase",
                   color: "var(--session-persona-soft)",
@@ -368,7 +368,7 @@ function MessageThread({
                   onClick={() => toggleCheckpointMeta(msg.id)}
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "9px",
+                    fontSize: "var(--size-meta)",
                     color: "var(--session-ink-ghost)",
                     background: "none",
                     border: "none",
@@ -384,7 +384,7 @@ function MessageThread({
                   <div
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
+                      fontSize: "var(--size-meta)",
                       color: "var(--session-ink-faded)",
                       marginTop: 4,
                       padding: 8,
@@ -447,7 +447,7 @@ function MessageThread({
             <div
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "7px",
+                fontSize: "var(--size-meta)",
                 letterSpacing: "2px",
                 textTransform: "uppercase",
                 color: "var(--session-ink-ghost)",
@@ -481,7 +481,7 @@ function MessageThread({
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "8px",
+              fontSize: "var(--size-meta)",
               letterSpacing: "2px",
               textTransform: "uppercase",
               color: "var(--session-ink-ghost)",
@@ -493,7 +493,7 @@ function MessageThread({
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-faded)",
               padding: 12,
               background: "var(--session-persona-tint)",

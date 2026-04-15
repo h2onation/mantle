@@ -76,7 +76,7 @@ export default function SessionDrawer({
           <span
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "8px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               letterSpacing: "3px",
               textTransform: "uppercase",
@@ -171,7 +171,7 @@ export default function SessionDrawer({
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "8px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-ink-ghost)",
                         letterSpacing: "1px",
                         flexShrink: 0,
@@ -185,7 +185,7 @@ export default function SessionDrawer({
                   <span
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "8px",
+                      fontSize: "var(--size-meta)",
                       color: "var(--session-ink-ghost)",
                       letterSpacing: "1px",
                     }}
@@ -195,7 +195,7 @@ export default function SessionDrawer({
                   <span
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "8px",
+                      fontSize: "var(--size-meta)",
                       color: "var(--session-ink-ghost)",
                       letterSpacing: "1px",
                     }}

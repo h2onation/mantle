@@ -41,7 +41,7 @@ export default function AdminManualView({
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "8px",
+              fontSize: "var(--size-meta)",
               letterSpacing: "3px",
               textTransform: "uppercase",
               color: "var(--session-ink-ghost)",

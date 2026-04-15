@@ -70,7 +70,7 @@ export default function AdminDocsPage() {
       <div
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "11px",
+          fontSize: "var(--size-meta)",
           color: "var(--session-ink-ghost)",
           letterSpacing: "1px",
           padding: "80px 24px",
@@ -95,7 +95,7 @@ export default function AdminDocsPage() {
       <div
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "9px",
+          fontSize: "var(--size-meta)",
           letterSpacing: "2px",
           textTransform: "uppercase",
           color: "var(--session-error)",
@@ -133,7 +133,7 @@ export default function AdminDocsPage() {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "8px",
+              fontSize: "var(--size-meta)",
               letterSpacing: "2px",
               color: "var(--session-ink-ghost)",
               padding: "4px 12px 10px",
@@ -158,7 +158,7 @@ export default function AdminDocsPage() {
             href="/"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               letterSpacing: "1px",
               padding: "8px 12px",
@@ -190,7 +190,7 @@ export default function AdminDocsPage() {
             <div
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "9px",
+                fontSize: "var(--size-meta)",
                 letterSpacing: "2px",
                 color: "var(--session-ink-ghost)",
                 padding: "4px 12px 10px",
@@ -202,7 +202,7 @@ export default function AdminDocsPage() {
               <div
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
+                  fontSize: "var(--size-meta)",
                   color: "var(--session-ink-ghost)",
                   padding: "8px 12px",
                 }}
@@ -241,7 +241,7 @@ export default function AdminDocsPage() {
               <div
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
+                  fontSize: "var(--size-meta)",
                   color: "var(--session-ink-ghost)",
                   marginTop: 2,
                   letterSpacing: "0.5px",
@@ -283,7 +283,7 @@ export default function AdminDocsPage() {
                   <div
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
+                      fontSize: "var(--size-meta)",
                       color: "var(--session-ink-ghost)",
                       marginTop: 2,
                       letterSpacing: "0.5px",
@@ -344,7 +344,7 @@ export default function AdminDocsPage() {
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "11px",
+                    fontSize: "var(--size-meta)",
                     color: "var(--session-ink-ghost)",
                   }}
                 >

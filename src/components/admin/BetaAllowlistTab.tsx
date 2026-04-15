@@ -106,7 +106,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
             disabled={formStatus === "saving" || !email.trim()}
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               letterSpacing: "1px",
               textTransform: "uppercase",
               color: "var(--session-cream)",
@@ -130,7 +130,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-persona)",
               marginTop: 8,
               letterSpacing: "0.5px",
@@ -143,7 +143,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-ink-ghost)",
               marginTop: 8,
               letterSpacing: "0.5px",
@@ -156,7 +156,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
+              fontSize: "var(--size-meta)",
               color: "var(--session-error)",
               marginTop: 8,
               letterSpacing: "0.5px",
@@ -171,7 +171,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "9px",
+            fontSize: "var(--size-meta)",
             color: "var(--session-error)",
             padding: "8px 0",
             letterSpacing: "1px",
@@ -226,7 +226,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
                       onClick={() => setPendingRemove(row.id)}
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         letterSpacing: "1px",
                         textTransform: "uppercase",
                         color: "var(--session-ink-ghost)",
@@ -247,7 +247,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
                       <span
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           color: "var(--session-ink-ghost)",
                           letterSpacing: "1px",
                         }}
@@ -258,7 +258,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
                         onClick={() => handleConfirmRemove(row.id)}
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-cream)",
@@ -276,7 +276,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
                         onClick={() => setPendingRemove(null)}
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: "9px",
+                          fontSize: "var(--size-meta)",
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-ink-ghost)",
@@ -297,7 +297,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
+                        fontSize: "var(--size-meta)",
                         color: "var(--session-ink-ghost)",
                         letterSpacing: "1px",
                       }}

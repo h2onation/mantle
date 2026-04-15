@@ -47,7 +47,7 @@ export const adminListItemStyle: CSSProperties = {
 
 export const adminMetaStyle: CSSProperties = {
   fontFamily: "var(--font-mono)",
-  fontSize: "9px",
+  fontSize: "var(--size-meta)",
   color: "var(--session-ink-ghost)",
   marginTop: 4,
   letterSpacing: "0.5px",
@@ -55,7 +55,7 @@ export const adminMetaStyle: CSSProperties = {
 
 export const adminLabelStyle: CSSProperties = {
   fontFamily: "var(--font-mono)",
-  fontSize: "8px",
+  fontSize: "var(--size-meta)",
   fontWeight: 500,
   letterSpacing: "2px",
   textTransform: "uppercase",

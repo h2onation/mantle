@@ -186,7 +186,7 @@ export default function BetaFeedbackButton() {
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "9px",
+                    fontSize: "var(--size-meta)",
                     color: "var(--session-error)",
                     letterSpacing: "1px",
                     marginTop: 6,
@@ -208,7 +208,7 @@ export default function BetaFeedbackButton() {
                   disabled={status === "submitting"}
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "9px",
+                    fontSize: "var(--size-meta)",
                     letterSpacing: "1px",
                     textTransform: "uppercase",
                     color: "var(--session-ink-ghost)",
@@ -227,7 +227,7 @@ export default function BetaFeedbackButton() {
                   disabled={status === "submitting" || text.trim().length === 0}
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "9px",
+                    fontSize: "var(--size-meta)",
                     letterSpacing: "1px",
                     textTransform: "uppercase",
                     color: "var(--session-cream)",
