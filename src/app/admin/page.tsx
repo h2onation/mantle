@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { useAdminData } from "@/lib/hooks/useAdminData";
 import UsersTab from "@/components/admin/UsersTab";
@@ -185,6 +186,21 @@ function AdminPageInner() {
               </button>
             );
           })}
+          <Link
+            href="/admin/docs"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--session-ink-ghost)",
+              background: "none",
+              borderRadius: 6,
+              padding: "8px 12px",
+              textDecoration: "none",
+            }}
+          >
+            Docs
+          </Link>
           <div style={{ flex: 1 }} />
           <a
             href="/"

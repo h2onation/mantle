@@ -155,12 +155,12 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
           fontFamily: "var(--font-serif)",
           fontSize: 13,
           fontWeight: 400,
-          letterSpacing: "15px",
+          letterSpacing: "4px",
           color: "var(--session-ink-faded)",
-          paddingLeft: 15,
+          paddingLeft: 4,
         }}
       >
-        MYWALNUT
+        my walnut
       </div>
 
       {/* Content */}
