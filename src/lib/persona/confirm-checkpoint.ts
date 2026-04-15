@@ -174,7 +174,7 @@ export async function confirmCheckpoint({
 
     // 2. Always create a new entry for this layer.
     // Layers can hold many entries — there is no per-layer cap or replace logic.
-    const { data: newComp } = await admin
+    const { data: newEntry, error: insertError } = await admin
       .from("manual_entries")
       .insert({
         user_id: userId,
@@ -186,7 +186,15 @@ export async function confirmCheckpoint({
       .select("id")
       .single();
 
-    const componentId: string | null = newComp?.id || null;
+    if (insertError || !newEntry?.id) {
+      console.error("[confirmCheckpoint] Insert failed:", insertError);
+      return {
+        success: false,
+        error: insertError?.message || "Failed to write entry to manual.",
+      };
+    }
+
+    const componentId: string = newEntry.id;
 
     // 3. Update checkpoint status
     await admin
