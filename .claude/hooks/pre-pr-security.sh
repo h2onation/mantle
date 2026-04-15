@@ -6,8 +6,8 @@ cd "$CLAUDE_PROJECT_DIR" || exit 2
 
 ISSUES=""
 
-# Check for .env files in git
-ENV_FILES=$(git ls-files --cached --others --exclude-standard | grep -E '\.env($|\.)' 2>/dev/null)
+# Check for .env files in git (allow template files: .env.example, .env.sample, .env.template)
+ENV_FILES=$(git ls-files --cached --others --exclude-standard | grep -E '\.env($|\.)' | grep -vE '\.env\.(example|sample|template)$' 2>/dev/null)
 if [ -n "$ENV_FILES" ]; then
   ISSUES="$ISSUES\n[SECRET] .env file(s) tracked or unignored:\n$ENV_FILES\n"
 fi
