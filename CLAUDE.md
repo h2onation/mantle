@@ -32,6 +32,29 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 | Legal or compliance review | rules + decisions |
 | Plan next phase | intent + decisions + state |
 
+## Prompt Structure
+
+The Jove system prompt is built in `src/lib/persona/system-prompt.ts` in three tiers. Lower tiers override higher tiers when they conflict.
+
+- **Tier 1 — Constitutional.** Seven rules that never change: not a therapist, user is the author, mirror exact language, one question per turn, nothing enters the manual without confirmation, no clinical framework names, direct when asked what Jove is. Edit only for a fundamental product change.
+- **Tier 2 — Voice and behavior.** Sourced from `src/lib/persona/voice-autistic.ts`: VOICE_RULES (14), BANNED_PHRASES, BANNED_PATTERNS, EXAMPLE_REGISTER, LANDING_EXAMPLES. Plus static sections for deepening rhythm, progress signals, repair, "what should I do" handling. Edit voice-autistic.ts, not the builder, when changing voice.
+- **Tier 3 — Conversation mechanics.** Assembled at call time from flags (turn count, first session, returning user, checkpoint approaching, checkpoint just returned, manual entry count, clinical level). Conditional blocks — first message, returning user, approaching/returning checkpoint, post-checkpoint acknowledgement, readiness gate (3+ entries), clinical material, professional referral, fabricated content, first-session wrapper.
+
+Dynamic context blocks (confirmed manual, session summary, extraction brief, transcript detected, shared URL content, exploration focus) are appended after Tier 3 and are not part of the tier structure.
+
+There is no post-checkpoint fork. Jove acknowledges briefly and returns to the conversation from whatever the user just surfaced. No "Work with it / Keep building" menu.
+
+## Terminology
+
+Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.
+
+- **Manual** — the user's self-authored document.
+- **Layer** — one of the five structural sections of the manual.
+- **Entry** — a single confirmed piece of content on a layer.
+- **Checkpoint** — the moment Jove proposes an entry for confirmation.
+
+The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "section."
+
 ## Hard Rules
 
 These apply to every task. No exceptions.

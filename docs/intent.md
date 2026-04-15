@@ -65,7 +65,7 @@ The product currently delivers #3. Phase 1 adds #1. #2 is Phase 2 — when two p
 
 ## The first session arc
 
-The intended experience: user describes a situation. Jove deepens into what's underneath it. At some point, something takes shape — a pattern the user has never named but immediately recognizes. Jove reflects it back. The user feels seen, not analyzed. They confirm it represents them, it writes to the Manual, and Jove asks: do you want to apply this to your situation, or keep building? That moment of recognition is what brings them back.
+The intended experience: user describes a situation. Jove deepens into what's underneath it. At some point, something takes shape — a pattern the user has never named but immediately recognizes. Jove reflects it back. The user feels seen, not analyzed. They confirm it represents them, it writes to the Manual, and Jove acknowledges it briefly and returns to the conversation from whatever the user surfaces next. That moment of recognition is what brings them back.
 
 ## Why people come back
 

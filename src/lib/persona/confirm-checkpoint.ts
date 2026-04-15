@@ -43,7 +43,7 @@ export async function composeManualEntry(
 
   const existingSection =
     existingLayerContent && existingLayerContent.length > 0
-      ? `\nEXISTING CONTENT ON THIS LAYER (your entry must account for this):\n${existingLayerContent.map((c) => `[entry${c.name ? ` — "${c.name}"` : ""}]\n${c.content}`).join("\n\n")}\n\nIntegrate with or deepen existing content. If new material contradicts it, name the tension.\n`
+      ? `\nEXISTING ENTRIES ON THIS LAYER (your new entry must account for these):\n${existingLayerContent.map((c) => `[entry${c.name ? ` — "${c.name}"` : ""}]\n${c.content}`).join("\n\n")}\n\nIntegrate with or deepen existing entries. If new material contradicts them, name the tension.\n`
       : "";
 
   // Last 8 messages for context
@@ -156,7 +156,7 @@ export async function confirmCheckpoint({
       return { success: false, error: "Checkpoint already resolved." };
     }
 
-    // Use pre-composed content from Sage's manual entry block.
+    // Use pre-composed content from Jove's manual entry block.
     // Falls back to the conversational checkpoint text if composition wasn't produced.
     // When falling back, strip any crisis resources text that may have been appended
     // by the crisis detection system (prevents contamination of manual entries).

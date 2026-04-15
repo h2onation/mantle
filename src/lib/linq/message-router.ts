@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Linq message router — routes inbound text messages
-// Handles keywords, user lookup, rate limiting, and dispatches to Sage bridge
+// Handles keywords, user lookup, rate limiting, and dispatches to Jove bridge
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -186,9 +186,9 @@ export async function routeInboundMessage(
     return;
   }
 
-  // 6. Route to Sage
+  // 6. Route to Jove
   try {
-    // Typing indicator fires BEFORE Sage processes
+    // Typing indicator fires BEFORE Jove processes
     await sendTypingIndicator(chatId);
 
     const result = await processTextMessage(userId, textContent);
@@ -333,9 +333,10 @@ async function handleCheckpointResponse(
     });
 
     if (result.success) {
-      // Call Sage to generate post-checkpoint tee-up (same as web path).
-      // Sage sees "[User confirmed the checkpoint]" in history and responds
-      // with acknowledgment + "Two directions" fork.
+      // Call Jove to generate post-checkpoint acknowledgement (same as web path).
+      // Jove sees "[User confirmed the checkpoint]" in history and responds
+      // with a brief acknowledgement that the entry is in the manual, then
+      // continues the conversation from the user's lead.
       await sendTypingIndicator(chatId);
       try {
         const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
@@ -352,7 +353,7 @@ async function handleCheckpointResponse(
   }
 
   if (isNotQuite) {
-    // Refined — Sage will revisit
+    // Refined — Jove will revisit
     await admin
       .from("messages")
       .update({ checkpoint_meta: { ...meta, status: "refined" } })
@@ -360,7 +361,7 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "refined");
 
-    // Call Sage so it responds to the refinement request naturally
+    // Call Jove so it responds to the refinement request naturally
     await sendTypingIndicator(chatId);
     try {
       const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
@@ -381,7 +382,7 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "rejected");
 
-    // Call Sage so it acknowledges and moves on naturally
+    // Call Jove so it acknowledges and moves on naturally
     await sendTypingIndicator(chatId);
     try {
       const { responseText: followUp } = await processTextMessage(userId, null, conv.id);

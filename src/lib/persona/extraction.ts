@@ -40,6 +40,7 @@ export interface ExtractionState {
   mode: "situation_led" | "direct_exploration" | "synthesis";
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
+  observation_miss_count: number;
   next_prompt: string;
   sage_brief: string;
 }
@@ -77,6 +78,7 @@ function defaultState(): ExtractionState {
       level: "none",
       note: "",
     },
+    observation_miss_count: 0,
     next_prompt: "",
     sage_brief: "",
   };
@@ -174,7 +176,7 @@ Generate a short placeholder phrase (3-6 words, lowercase, ending with "...") fo
 
 Examples: "what happened after that..." / "what did your body do..." / "when did this start..." / "what stopped you..." / "what was the input like..."
 
-6. SAGE BRIEF
+6. JOVE BRIEF
 Write a short paragraph (3-5 sentences) orienting ${PERSONA_NAME}. The brief feeds directly into ${PERSONA_NAME}'s next turn and into the manual entry if a checkpoint lands, so its vocabulary has to be the user's own:
 - What the user is actually describing underneath the surface topic (in behavioral and somatic terms — what their body did, what their system was doing, what the input was like — never clinical labels)
 - Which of the user's exact sensory or system words are load-bearing (e.g. "buzzing," "too loud," "went offline," "shut down," "went still," "full," "tight"). Name them so ${PERSONA_NAME} can carry them forward verbatim.
@@ -199,6 +201,16 @@ IMPORTANT: A user talking ABOUT depression, anxiety, trauma, etc. as part of the
 - situation_led: Default. User is telling stories, ${PERSONA_NAME} is deepening.
 - direct_exploration: When 2+ layers have confirmed entries and there are clear gaps.
 - synthesis: When all 5 layers have at least one confirmed entry.
+
+9. OBSERVATION MISS TRACKING
+Track whether ${PERSONA_NAME}'s most recent observation landed for the user. An observation is any reflective statement ${PERSONA_NAME} made about the user's behavior, body, system, or pattern. Carry forward observation_miss_count from the previous state and update it based on the user's latest reply:
+
+- If the user's reply confirms, deepens, or accepts the observation (agreement, elaboration, "yes," "exactly," or moving forward with the same thread), reset observation_miss_count to 0.
+- If the user's reply pushes back, redirects, withdraws, or ignores the observation ("no that's not it," shortening answers, changing topic, flat "I don't know"), increment observation_miss_count by 1.
+- If ${PERSONA_NAME}'s last turn was a pure question (no observation in it), leave observation_miss_count unchanged.
+- If this is the first turn or there is no previous assistant message to evaluate, set observation_miss_count to 0.
+
+The counter caps at 3 — do not exceed 3.
 
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
@@ -228,6 +240,7 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
     "level": "none",
     "note": ""
   },
+  "observation_miss_count": 0,
   "next_prompt": "3-6 word placeholder hint...",
   "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}"
 }
@@ -262,6 +275,7 @@ export async function runExtraction(
     current_thread: state.current_thread,
     mode: state.mode,
     checkpoint_gate: state.checkpoint_gate,
+    observation_miss_count: state.observation_miss_count,
   });
   userContent += "\n\n";
 
@@ -316,6 +330,12 @@ export async function runExtraction(
 
     const parsed = JSON.parse(cleaned);
 
+    const rawMiss =
+      typeof parsed.observation_miss_count === "number"
+        ? parsed.observation_miss_count
+        : state.observation_miss_count;
+    const observationMissCount = Math.max(0, Math.min(3, rawMiss));
+
     return {
       layers: parsed.layers || state.layers,
       language_bank: parsed.language_bank || state.language_bank,
@@ -324,6 +344,7 @@ export async function runExtraction(
       mode: parsed.mode || state.mode,
       checkpoint_gate: parsed.checkpoint_gate || state.checkpoint_gate,
       clinical_flag: parsed.clinical_flag || state.clinical_flag,
+      observation_miss_count: observationMissCount,
       next_prompt: parsed.next_prompt || "",
       sage_brief: parsed.sage_brief || "",
     };
@@ -333,7 +354,7 @@ export async function runExtraction(
   }
 }
 
-// ─── Format extraction state as context for Sage ─────────────────────────────
+// ─── Format extraction state as context for Jove ─────────────────────────────
 
 // Maps internal signal codes to human-readable descriptions.
 // Keeps schema names out of the rendered prompt.
@@ -351,6 +372,13 @@ export function formatExtractionForPersona(
 ): string {
   let context = "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\n";
 
+  const miss = state.observation_miss_count || 0;
+  if (miss >= 3) {
+    context += "Three misses. Full reset. Drop all observations. Ask one concrete situational question and let the user lead.\n\n";
+  } else if (miss >= 2) {
+    context += "Last two observations didn't land. Next turn: pure grounding. No reflection. Ask about the body or the situation.\n\n";
+  }
+
   if (state.sage_brief) {
     context += `What's underneath this conversation:\n${state.sage_brief}\n\n`;
   }
@@ -362,7 +390,7 @@ export function formatExtractionForPersona(
     const label = SIGNAL_LABEL[layer.signal] || layer.signal;
     context += `- ${LAYER_NAMES[i]}: ${label}`;
     if (layer.material.length > 0) {
-      context += ` Recent threads: ${layer.material.slice(-3).join("; ")}.`;
+      context += ` Recent observations: ${layer.material.slice(-3).join("; ")}.`;
     }
     context += "\n";
   }
@@ -380,7 +408,7 @@ export function formatExtractionForPersona(
     context += "\n";
   }
 
-  // Clinical flag — surfaced first so Sage notices before reflecting
+  // Clinical flag — surfaced first so Jove notices before reflecting
   const cf = state.clinical_flag;
   if (cf && cf.active) {
     if (cf.level === "crisis") {

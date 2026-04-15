@@ -54,8 +54,7 @@ Minor = style deviation.
 
 - [ ] **Progress signal gap**: 8+ exchanges without a bridge, accumulation reflection, or thread naming.
 - [ ] **Turn 15 shift missed**: Reached turn 15 with no checkpoint and Jove didn't shift to building.
-- [ ] **Advisory drift**: 5+ turns of problem-solving post-fork without new manual material, and user didn't explicitly request applied help.
-- [ ] **Fork repetition**: "Work with it / keep building" fork presented more than once in the session.
+- [ ] **Advisory drift**: 5+ turns of problem-solving post-checkpoint without new manual material, and user didn't explicitly request applied help.
 - [ ] **Checkpoint spacing**: Checkpoint attempted fewer than 5 user turns after the previous one.
 
 #### A4. CHECKPOINT CONTENT (skip if none delivered)

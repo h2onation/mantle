@@ -27,6 +27,7 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       level: "none",
       note: "",
     },
+    observation_miss_count: 0,
     next_prompt: "",
     sage_brief: "",
     ...overrides,
@@ -387,6 +388,50 @@ describe("formatExtractionForPersona", () => {
       const readyIdx = result.indexOf("reflect a piece back");
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
       expect(readyIdx).toBeGreaterThan(safetyIdx);
+    });
+  });
+
+  describe("observation miss tracking", () => {
+    it("omits any miss warning when count is 0", () => {
+      const state = makeState({ observation_miss_count: 0 });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).not.toContain("didn't land");
+      expect(result).not.toContain("Full reset");
+    });
+
+    it("omits any miss warning when count is 1", () => {
+      const state = makeState({ observation_miss_count: 1 });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).not.toContain("didn't land");
+      expect(result).not.toContain("Full reset");
+    });
+
+    it("injects a grounding nudge when count is 2", () => {
+      const state = makeState({ observation_miss_count: 2 });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).toContain("Last two observations didn't land");
+      expect(result).toContain("pure grounding");
+      expect(result).not.toContain("Full reset");
+    });
+
+    it("injects a full reset when count is 3 or higher", () => {
+      const state = makeState({ observation_miss_count: 3 });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).toContain("Three misses");
+      expect(result).toContain("Full reset");
+      expect(result).not.toContain("Last two observations didn't land");
+    });
+
+    it("miss warning appears before the sage_brief paragraph", () => {
+      const state = makeState({
+        observation_miss_count: 2,
+        sage_brief: "User is exploring conflict avoidance.",
+      });
+      const result = formatExtractionForPersona(state, false);
+      const missIdx = result.indexOf("Last two observations didn't land");
+      const briefIdx = result.indexOf("What's underneath this conversation");
+      expect(missIdx).toBeGreaterThanOrEqual(0);
+      expect(briefIdx).toBeGreaterThan(missIdx);
     });
   });
 });
