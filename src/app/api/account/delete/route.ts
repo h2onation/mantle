@@ -16,7 +16,7 @@ export async function POST() {
 
     const admin = createAdminClient();
 
-    // Explicitly delete data first (FK order: messages → conversations → manual_components)
+    // Explicitly delete data first (FK order: messages → conversations → manual_entries)
     // The cascade chain would handle this, but explicit deletion is safer across runtimes.
     const { data: convs } = await admin
       .from("conversations")
@@ -29,7 +29,7 @@ export async function POST() {
       await admin.from("conversations").delete().eq("user_id", user.id);
     }
 
-    await admin.from("manual_components").delete().eq("user_id", user.id);
+    await admin.from("manual_entries").delete().eq("user_id", user.id);
 
     // Delete profile row (cascades from auth.users, but explicit for safety)
     await admin.from("profiles").delete().eq("id", user.id);

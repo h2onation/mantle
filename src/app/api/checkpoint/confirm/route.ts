@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   let promptAuth = false;
   if (action === "confirmed" && user.is_anonymous) {
     const { count } = await admin
-      .from("manual_components")
+      .from("manual_entries")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
     // If this confirm just created the first component, prompt auth

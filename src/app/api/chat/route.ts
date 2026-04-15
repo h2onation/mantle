@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     // never burns Upstash quota or API tokens.
     if (isAnonymous) {
       const { count } = await admin
-        .from("manual_components")
+        .from("manual_entries")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
 

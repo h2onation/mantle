@@ -175,7 +175,7 @@ export async function confirmCheckpoint({
     // 2. Always create a new entry for this layer.
     // Layers can hold many entries — there is no per-layer cap or replace logic.
     const { data: newComp } = await admin
-      .from("manual_components")
+      .from("manual_entries")
       .insert({
         user_id: userId,
         layer: meta.layer,

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
 
     const { data: components, error } = await admin
-      .from("manual_components")
+      .from("manual_entries")
       .select("id, layer, type, name, content, created_at")
       .eq("user_id", targetUserId)
       .order("layer", { ascending: true });

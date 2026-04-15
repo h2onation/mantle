@@ -14,10 +14,10 @@ export async function POST() {
   try {
     const admin = createAdminClient();
 
-    // Delete order matters: manual_components.source_message_id → messages.id (no CASCADE),
-    // so manual_components must be deleted BEFORE messages.
+    // Delete order matters: manual_entries.source_message_id → messages.id (no CASCADE),
+    // so manual_entries must be deleted BEFORE messages.
     // 1. Manual data first (removes FK refs to messages)
-    await admin.from("manual_components").delete().eq("user_id", userId);
+    await admin.from("manual_entries").delete().eq("user_id", userId);
     await admin.from("manual_changelog").delete().eq("user_id", userId);
 
     // 2. Feedback (FK to auth.users, not cascade-deleted without deleting auth user)

@@ -83,7 +83,7 @@ export async function loadConversationContext(
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true }),
     admin
-      .from("manual_components")
+      .from("manual_entries")
       .select("layer, name, content")
       .eq("user_id", userId),
     admin

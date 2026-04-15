@@ -60,8 +60,8 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Wipe existing manual_components so each call gives exactly the state you specify
-  await admin.from("manual_components").delete().eq("user_id", userId);
+  // Wipe existing manual_entries so each call gives exactly the state you specify
+  await admin.from("manual_entries").delete().eq("user_id", userId);
 
   // Insert one entry per requested layer
   const rows = validLayers.map((layer) => ({
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     content: LAYER_CONTENT[layer] || `Layer ${layer} content placeholder.`,
   }));
 
-  const { error } = await admin.from("manual_components").insert(rows);
+  const { error } = await admin.from("manual_entries").insert(rows);
 
   if (error) {
     console.error("[dev-populate] Insert error:", error);

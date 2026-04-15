@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       try {
         // 0. Clean slate: delete all existing user data before simulation
         await admin.from("manual_changelog").delete().eq("user_id", userId);
-        await admin.from("manual_components").delete().eq("user_id", userId);
+        await admin.from("manual_entries").delete().eq("user_id", userId);
         const { data: existingConvs } = await admin
           .from("conversations")
           .select("id")
