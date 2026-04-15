@@ -97,13 +97,13 @@ export async function routeInboundMessage(
   );
 
   // 1. Check for STOP/START/HELP keywords FIRST
-  const keyword = textContent.toUpperCase().trim();
-  if (keyword in KEYWORD_RESPONSES) {
-    if (keyword === "STOP") {
+  const command = textContent.toUpperCase().trim();
+  if (command in KEYWORD_RESPONSES) {
+    if (command === "STOP") {
       await unlinkPhone(senderPhone);
     }
-    await sendMessage(chatId, KEYWORD_RESPONSES[keyword]);
-    console.log("[linq-router] keyword=%s", keyword);
+    await sendMessage(chatId, KEYWORD_RESPONSES[command]);
+    console.log("[linq-router] reserved command received: %s", command);
     return;
   }
 

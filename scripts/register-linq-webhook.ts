@@ -47,10 +47,7 @@ async function main() {
 
   console.log("Webhook subscription created successfully!\n");
   console.log(JSON.stringify(body, null, 2));
-  console.log("\n─────────────────────────────────────────");
-  console.log("SAVE THIS in .env.local:");
-  console.log(`LINQ_WEBHOOK_SECRET=${body.signing_secret}`);
-  console.log("─────────────────────────────────────────");
+  console.log("\nAdd the signing field from the response above to your .env.local file.");
 }
 
 main();
