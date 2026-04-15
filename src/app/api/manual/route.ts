@@ -16,10 +16,10 @@ export async function GET() {
   const [{ data: components }, { data: profile }] = await Promise.all([
     admin
       .from("manual_entries")
-      .select("id, layer, type, name, content, created_at, updated_at")
+      .select("id, layer, name, content, created_at, updated_at")
       .eq("user_id", user.id)
       .order("layer", { ascending: true })
-      .order("type", { ascending: true }),
+      .order("created_at", { ascending: true }),
     admin
       .from("profiles")
       .select("display_name")
