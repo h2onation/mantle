@@ -15,6 +15,7 @@ import {
   detectCrisisInUserMessage,
 } from "@/lib/persona/call-persona";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
+import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ const CRISIS_RESOURCES =
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type ManualEntry = { layer: number; name: string; content: string };
+type ManualEntry = ManualEntryForContext;
 
 export interface ConversationContext {
   messages: { role: "user" | "assistant"; content: string }[];
@@ -57,6 +58,8 @@ export interface CheckpointMeta {
   composed_content: string | null;
   composed_name: string | null;
   changelog: string | null;
+  composed_summary: string | null;
+  composed_key_words: string[] | null;
 }
 
 // ── 1. Load conversation context ────────────────────────────────────────────
@@ -84,8 +87,9 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("manual_entries")
-      .select("layer, name, content")
-      .eq("user_id", userId),
+      .select("layer, name, content, summary, key_words, created_at, source_message_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true }),
     admin
       .from("conversations")
       .select("extraction_state, summary")
@@ -119,7 +123,47 @@ export async function loadConversationContext(
     messages = [{ role: "user", content: "[Session started]" }];
   }
 
-  const manualComponents: ManualEntry[] = manualResult.data || [];
+  // Raw entries from manual_entries. We map source_message_id → conversation_id
+  // below so prepareManualContext can split "current session" from "older"
+  // without another round-trip.
+  const rawEntries = (manualResult.data || []) as Array<{
+    layer: number;
+    name: string | null;
+    content: string;
+    summary: string | null;
+    key_words: string[] | null;
+    created_at: string | null;
+    source_message_id: string | null;
+  }>;
+
+  const sourceMessageIds = rawEntries
+    .map((e) => e.source_message_id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const sourceMsgToConv = new Map<string, string>();
+  if (sourceMessageIds.length > 0) {
+    const { data: srcMsgs } = await admin
+      .from("messages")
+      .select("id, conversation_id")
+      .in("id", sourceMessageIds);
+    if (srcMsgs) {
+      for (const m of srcMsgs as Array<{ id: string; conversation_id: string }>) {
+        sourceMsgToConv.set(m.id, m.conversation_id);
+      }
+    }
+  }
+
+  const manualComponents: ManualEntry[] = rawEntries.map((e) => ({
+    layer: e.layer,
+    name: e.name,
+    content: e.content,
+    summary: e.summary,
+    key_words: e.key_words,
+    created_at: e.created_at || undefined,
+    source_conversation_id: e.source_message_id
+      ? sourceMsgToConv.get(e.source_message_id) || null
+      : null,
+  }));
   const previousExtraction: ExtractionState | null =
     extractionResult.data?.extraction_state ?? null;
   const sessionSummary: string | null =
@@ -191,6 +235,7 @@ export async function loadConversationContext(
 export function buildPromptOptionsFromContext(ctx: ConversationContext) {
   return {
     manualComponents: ctx.manualComponents,
+    currentConversationId: ctx.conversationId,
     isReturningUser: ctx.isReturningUser,
     sessionSummary: ctx.sessionSummary,
     extractionContext: ctx.extractionForPersona,
@@ -482,7 +527,13 @@ export async function insertCheckpointActionMessage(
  */
 export function buildCheckpointMeta(
   gateResult: CheckpointGateResult,
-  composedEntry: { content: string; name: string; changelog: string } | null
+  composedEntry: {
+    content: string;
+    name: string;
+    changelog: string;
+    summary?: string;
+    key_words?: string[];
+  } | null
 ): CheckpointMeta {
   return {
     layer: gateResult.layer,
@@ -491,5 +542,7 @@ export function buildCheckpointMeta(
     composed_content: composedEntry?.content || null,
     composed_name: composedEntry?.name || null,
     changelog: composedEntry?.changelog || null,
+    composed_summary: composedEntry?.summary || null,
+    composed_key_words: composedEntry?.key_words || null,
   };
 }

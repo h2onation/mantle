@@ -17,6 +17,14 @@ export interface ManualEntry {
   name: string | null;
   content: string;
   created_at?: string;
+  // Compression fields — populated at checkpoint-confirm time. When present,
+  // prepareManualContext uses them to render older entries as a terse line
+  // instead of the full narrative content.
+  summary?: string | null;
+  key_words?: string[] | null;
+  // Conversation the entry was authored in. Used by prepareManualContext to
+  // distinguish "current session" entries (full) from older ones (compressed).
+  source_conversation_id?: string | null;
 }
 
 export interface ActiveCheckpoint {

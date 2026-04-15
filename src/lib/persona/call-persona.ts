@@ -402,6 +402,8 @@ export function callPersona({
           content: string;
           name: string;
           changelog: string;
+          summary: string;
+          key_words: string[];
         } | null = null;
 
         if (isCheckpoint && checkpointLayer) {

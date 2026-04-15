@@ -5,13 +5,16 @@ import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
   BANNED_PHRASES,
+  BANNED_PATTERNS,
   EXAMPLE_REGISTER,
+  LANDING_EXAMPLES,
 } from "@/lib/persona/voice-autistic";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
   const defaults: BuildPromptOptions = {
     manualComponents: [],
+    currentConversationId: "test-conversation-id",
     isReturningUser: false,
     sessionSummary: null,
     extractionContext: "",
@@ -44,70 +47,94 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Legal boundaries section ───────────────────────────────────────────
-  describe("legal boundaries", () => {
-    it("contains LEGAL BOUNDARIES section", () => {
-      const result = build();
-      expect(result).toContain("LEGAL BOUNDARIES");
+  // ─── Tier 1 — Constitutional rules ───────────────────────────────────────
+  describe("tier 1 constitutional rules", () => {
+    it("contains TIER 1 header", () => {
+      expect(build()).toContain("TIER 1: CONSTITUTIONAL RULES");
     });
 
-    it("contains all five hard rules", () => {
+    it("contains the seven constitutional rule headlines", () => {
       const result = build();
-      expect(result).toContain("Never diagnose");
-      expect(result).toContain("Never prescribe");
-      expect(result).toContain("Never assess their state");
-      expect(result).toContain("Never claim clinical competence");
-      expect(result).toContain("Never fabricate knowledge of external content");
+      expect(result).toContain("THE USER IS THE AUTHOR");
+      expect(result).toContain("PRESERVE THE USER'S EXACT LANGUAGE");
+      expect(result).toContain("NO CLINICAL LANGUAGE IN USER-FACING OUTPUT");
+      expect(result).toContain("ONE QUESTION PER TURN");
+      expect(result).toContain("JOVE ASKS. JOVE DOES NOT DECLARE");
+      expect(result).toContain("CRISIS PROTOCOL");
+      expect(result).toContain("JOVE IS NOT A THERAPIST");
     });
 
-    it("contains clinical material guidance", () => {
+    it("contains the tier-override statement so lower tiers know Tier 1 wins", () => {
+      const result = build();
+      expect(result).toContain(
+        "If any other instruction in this prompt conflicts with a Tier 1 rule, the Tier 1 rule wins"
+      );
+    });
+
+    it("crisis rule contains 988", () => {
+      const result = build();
+      expect(result).toContain("988");
+    });
+
+    it("Tier 1 sits above Tier 2 and Tier 3", () => {
+      const result = build();
+      const t1 = result.indexOf("TIER 1");
+      const t2 = result.indexOf("TIER 2");
+      const t3 = result.indexOf("TIER 3");
+      expect(t1).toBeGreaterThanOrEqual(0);
+      expect(t2).toBeGreaterThan(t1);
+      expect(t3).toBeGreaterThan(t2);
+    });
+
+    it("does NOT contain the old LEGAL BOUNDARIES / HARD RULES headers", () => {
+      const result = build();
+      expect(result).not.toContain("LEGAL BOUNDARIES");
+      expect(result).not.toContain("\nHARD RULES\n");
+    });
+
+    it("still surfaces the clinical material block in Tier 3", () => {
       const result = build();
       expect(result).toContain("CLINICAL MATERIAL IN CONVERSATION");
       expect(result).toContain("Do not deflect or shut down");
     });
 
-    it("contains checkpoint language guidance", () => {
-      const result = build();
-      expect(result).toContain("CHECKPOINT LANGUAGE");
-      expect(result).toContain("write behavior and body not labels");
-    });
-
-    it("contains professional referral guidance", () => {
+    it("still surfaces the professional referral block in Tier 3", () => {
       const result = build();
       expect(result).toContain("PROFESSIONAL REFERRAL");
-      expect(result).toContain("A therapist could work with this in ways I can't");
+      expect(result).toContain(
+        "A therapist could work with this in ways I can't"
+      );
     });
 
-    it("contains crisis protocol", () => {
+    it("still surfaces the checkpoint language block in Tier 3", () => {
       const result = build();
-      expect(result).toContain("CRISIS PROTOCOL");
-      expect(result).toContain("988");
+      expect(result).toContain("CHECKPOINT LANGUAGE");
+      expect(result).toContain("Write behavior and body, not labels");
     });
 
-    it("LEGAL BOUNDARIES appears before CHECKPOINTS when checkpoints are shown", () => {
+    it("Tier 1 appears before CHECKPOINTS when checkpoints render", () => {
       const result = build({ checkpointApproaching: true });
-      const legalIdx = result.indexOf("LEGAL BOUNDARIES");
+      const tier1Idx = result.indexOf("TIER 1: CONSTITUTIONAL RULES");
       const checkpointsIdx = result.indexOf("CHECKPOINTS");
-      expect(legalIdx).toBeLessThan(checkpointsIdx);
-    });
-
-    it("contains no-minors rule", () => {
-      const result = build();
-      expect(result).toContain("No manuals of minors");
+      expect(tier1Idx).toBeLessThan(checkpointsIdx);
     });
   });
 
-  // ─── Manual components section ───────────────────────────────────────────
-  describe("manual components section", () => {
+  // ─── Manual entries section ──────────────────────────────────────────────
+  describe("manual entries section", () => {
     it("does NOT contain 'CONFIRMED MANUAL' when manualComponents is empty", () => {
       const result = build({ manualComponents: [] });
       expect(result).not.toContain("CONFIRMED MANUAL");
     });
 
-    it("contains 'CONFIRMED MANUAL' and the component content when entries exist", () => {
+    it("contains 'CONFIRMED MANUAL' and the entry content when entries exist", () => {
       const result = build({
         manualComponents: [
-          { layer: 1, name: "Autonomy Drive", content: "You need control over your own direction." },
+          {
+            layer: 1,
+            name: "Autonomy Drive",
+            content: "You need control over your own direction.",
+          },
         ],
       });
       expect(result).toContain("CONFIRMED MANUAL");
@@ -116,23 +143,19 @@ describe("buildSystemPrompt", () => {
 
     it("renders layer 1 name correctly", () => {
       const result = build({
-        manualComponents: [
-          { layer: 1, name: null, content: "Layer 1 content" },
-        ],
+        manualComponents: [{ layer: 1, name: null, content: "Layer 1 content" }],
       });
       expect(result).toContain(LAYER_NAMES[1]);
     });
 
     it("renders layer 5 name correctly", () => {
       const result = build({
-        manualComponents: [
-          { layer: 5, name: null, content: "Layer 5 content" },
-        ],
+        manualComponents: [{ layer: 5, name: null, content: "Layer 5 content" }],
       });
       expect(result).toContain(LAYER_NAMES[5]);
     });
 
-    it("includes the name in quotes when component has a name", () => {
+    it("includes the name in quotes when entry has a name", () => {
       const result = build({
         manualComponents: [
           { layer: 2, name: "The Fixer", content: "Some content" },
@@ -141,16 +164,13 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain('"The Fixer"');
     });
 
-    it("does NOT include quotes or 'null' when component name is null", () => {
+    it("does NOT include stray quotes or 'null' when entry name is null", () => {
       const result = build({
         manualComponents: [
           { layer: 3, name: null, content: "Pattern content" },
         ],
       });
-      // The line should end with the type, no trailing quotes
       expect(result).not.toContain('"null"');
-      expect(result).not.toContain("null");
-      // Should not have a dangling " — "" pattern (empty quotes)
       const lines = result.split("\n");
       const layerLine = lines.find((l) => l.includes("Layer 3"));
       expect(layerLine).toBeDefined();
@@ -189,7 +209,8 @@ describe("buildSystemPrompt", () => {
   // ─── Extraction context ──────────────────────────────────────────────────
   describe("extraction context", () => {
     it("includes extraction context string when non-empty", () => {
-      const extraction = "EXTRACTION BRIEF\nLayer signals: L1 strong, L3 emerging.";
+      const extraction =
+        "EXTRACTION BRIEF\nLayer signals: L1 strong, L3 emerging.";
       const result = build({ extractionContext: extraction });
       expect(result).toContain(extraction);
     });
@@ -201,15 +222,23 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── First message block ─────────────────────────────────────────────────
+  // ─── First message block (Tier 3 conditional) ────────────────────────────
   describe("first message block", () => {
     it("contains FIRST MESSAGE section for new users on turn 1", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
       expect(result).toContain("FIRST MESSAGE");
     });
 
     it("does NOT contain legacy PATH A/B/C routing (dropped in PR3)", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
       expect(result).not.toContain("PATH A");
       expect(result).not.toContain("PATH B");
       expect(result).not.toContain("PATH C");
@@ -217,40 +246,40 @@ describe("buildSystemPrompt", () => {
     });
 
     it("describes unified free-form first-message handling", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("free-form opener");
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
+      expect(result).toContain("free-form");
       expect(result).toContain("progressive narrowing");
-      expect(result).toContain("Do not reference the chip");
+      expect(result).toContain("Do not reference welcome chips");
     });
 
-    it("contains framework-question guidance", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("published behavioral and psychological frameworks");
+    it("contains framework-question guidance without letting Jove name them back", () => {
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
+      expect(result).toContain(
+        "published behavioral and psychological frameworks"
+      );
       expect(result).toContain("I don't label them for you");
     });
 
-    it("does NOT name internal frameworks in user-facing first-message guidance", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      // Framework names may appear elsewhere in the prompt as internal structure,
-      // but the first-message framework guidance must not hand them to the user.
-      const firstMsgIdx = result.indexOf("FIRST MESSAGE");
-      const nextSectionIdx = result.indexOf("MANUAL ENTRY FORMAT", firstMsgIdx);
-      const firstMsgSlice = result.slice(firstMsgIdx, nextSectionIdx > -1 ? nextSectionIdx : undefined);
-      // Internal framework names are allowed as a parenthetical list of things the user MIGHT ask about,
-      // but Jove must be told not to name them back. Verify the redirect instruction is present.
-      expect(firstMsgSlice).toContain("don't label them");
-    });
-
     it("does NOT contain FIRST MESSAGE for returning users", () => {
-      const result = build({ manualComponents: [], isReturningUser: true, turnCount: 1 });
+      const result = build({
+        manualComponents: [],
+        isReturningUser: true,
+        turnCount: 1,
+      });
       expect(result).not.toContain("FIRST MESSAGE");
     });
 
-    it("does NOT contain FIRST MESSAGE when user has manual components", () => {
+    it("does NOT contain FIRST MESSAGE when user has manual entries", () => {
       const result = build({
-        manualComponents: [
-          { layer: 1, name: "Test", content: "Content" },
-        ],
+        manualComponents: [{ layer: 1, name: "Test", content: "Content" }],
         isReturningUser: true,
         turnCount: 1,
       });
@@ -258,70 +287,124 @@ describe("buildSystemPrompt", () => {
     });
 
     it("does NOT contain FIRST MESSAGE section header after turn 1", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 2 });
-      // The FIRST MESSAGE section header should not appear, though FIRST SESSION may reference it
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 2,
+      });
       const lines = result.split("\n");
-      const firstMessageSectionLine = lines.find((l) => l.trim() === "FIRST MESSAGE");
+      const firstMessageSectionLine = lines.find(
+        (l) => l.trim() === "FIRST MESSAGE (new user)"
+      );
       expect(firstMessageSectionLine).toBeUndefined();
     });
 
-    it("FIRST MESSAGE appears before CHECKPOINTS in the prompt when both present", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1, checkpointApproaching: true });
+    it("FIRST MESSAGE appears before CHECKPOINTS when both present", () => {
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+        checkpointApproaching: true,
+      });
       const firstMessageIdx = result.indexOf("FIRST MESSAGE");
-      const checkpointsIdx = result.indexOf("CHECKPOINTS");
+      const checkpointsIdx = result.indexOf("\nCHECKPOINTS\n");
       expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
     });
 
     it("instructs not to introduce by name or explain layers on turn 1", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
       expect(result).toContain("Do not introduce yourself by name");
-      expect(result).toContain("Do not explain checkpoints, the manual structure, or the five layers on turn 1");
+      expect(result).toContain(
+        "Do not explain checkpoints, Manual structure, or the five layers on turn 1"
+      );
     });
 
     it("instructs never to claim objectivity", () => {
-      const result = build({ manualComponents: [], isReturningUser: false, turnCount: 1 });
-      expect(result).toContain("Never claim to be objective, unbiased, or filter-free");
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
+      expect(result).toContain(
+        "Never claim to be objective, unbiased, or filter-free"
+      );
     });
   });
 
-  // ─── First session block ─────────────────────────────────────────────────
+  // ─── First session block (Tier 3 always-on wrapper) ──────────────────────
   describe("first session block", () => {
-    it("contains first session text when manualComponents is empty and not returning user", () => {
+    it("contains first-session text when manualComponents is empty and not returning user", () => {
       const result = build({ manualComponents: [], isReturningUser: false });
-      expect(result).toContain("This user has no confirmed entries. First session.");
+      expect(result).toContain(
+        "This user has no confirmed entries. First session."
+      );
     });
 
-    it("does NOT contain first session text when manualComponents has entries", () => {
+    it("does NOT contain first-session text when manualComponents has entries", () => {
       const result = build({
-        manualComponents: [
-          { layer: 1, name: "Test", content: "Content" },
-        ],
+        manualComponents: [{ layer: 1, name: "Test", content: "Content" }],
         isReturningUser: true,
       });
       expect(result).not.toContain("This user has no confirmed entries");
     });
 
-    it("does NOT contain first session text when isReturningUser is true", () => {
+    it("does NOT contain first-session text when isReturningUser is true", () => {
       const result = build({ manualComponents: [], isReturningUser: true });
       expect(result).not.toContain("This user has no confirmed entries");
     });
   });
 
-  // ─── First checkpoint instruction ────────────────────────────────────────
+  // ─── First checkpoint (one-time) ─────────────────────────────────────────
   describe("first checkpoint instruction", () => {
-    it("contains 'FIRST CHECKPOINT (one-time instruction)' when isFirstCheckpoint is true and checkpointApproaching", () => {
-      const result = build({ isFirstCheckpoint: true, checkpointApproaching: true });
-      expect(result).toContain("FIRST CHECKPOINT (one-time instruction)");
+    it("contains 'FIRST CHECKPOINT (one-time, exact order)' when isFirstCheckpoint and checkpointApproaching", () => {
+      const result = build({
+        isFirstCheckpoint: true,
+        checkpointApproaching: true,
+      });
+      expect(result).toContain("FIRST CHECKPOINT (one-time, exact order)");
     });
 
     it("does NOT contain 'FIRST CHECKPOINT' when isFirstCheckpoint is false", () => {
-      const result = build({ isFirstCheckpoint: false, checkpointApproaching: true });
+      const result = build({
+        isFirstCheckpoint: false,
+        checkpointApproaching: true,
+      });
       expect(result).not.toContain("FIRST CHECKPOINT");
     });
 
-    it("does NOT contain 'FIRST CHECKPOINT' when checkpointApproaching is false even if isFirstCheckpoint is true", () => {
-      const result = build({ isFirstCheckpoint: true, checkpointApproaching: false });
+    it("does NOT contain 'FIRST CHECKPOINT' when checkpointApproaching is false", () => {
+      const result = build({
+        isFirstCheckpoint: true,
+        checkpointApproaching: false,
+      });
       expect(result).not.toContain("FIRST CHECKPOINT");
+    });
+  });
+
+  // ─── Post-checkpoint (no fork) ───────────────────────────────────────────
+  describe("post-checkpoint behavior (no fork)", () => {
+    it("renders POST-CHECKPOINT section when checkpoints are active", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("POST-CHECKPOINT");
+    });
+
+    it("explicitly states there is no fork and no 'two directions' menu", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("No fork");
+      expect(result).toContain('No "two directions."');
+    });
+
+    it("does NOT contain the old quoted 'Work with it' fork label", () => {
+      const result = build({
+        isReturningUser: true,
+        checkpointApproaching: true,
+      });
+      expect(result).not.toContain('"Work with it"');
+      expect(result).not.toContain("Two directions:");
     });
   });
 
@@ -334,7 +417,8 @@ describe("buildSystemPrompt", () => {
           layerId: 3,
           layerName: LAYER_NAMES[3],
           name: "The Shutdown Loop",
-          content: "When challenged by authority, you freeze and withdraw.",
+          content:
+            "When challenged by authority, you freeze and withdraw.",
         },
       });
       expect(result).toContain("EXPLORATION FOCUS");
@@ -348,11 +432,14 @@ describe("buildSystemPrompt", () => {
           layerId: 1,
           layerName: LAYER_NAMES[1],
           name: "Autonomy Drive",
-          content: "You need autonomy above all else. Control over your own direction.",
+          content:
+            "You need autonomy above all else. Control over your own direction.",
         },
       });
       expect(result).toContain("EXPLORATION FOCUS");
-      expect(result).toContain("You need autonomy above all else. Control over your own direction.");
+      expect(result).toContain(
+        "You need autonomy above all else. Control over your own direction."
+      );
     });
 
     it("contains the layer description for type 'empty_layer'", () => {
@@ -361,11 +448,14 @@ describe("buildSystemPrompt", () => {
           type: "empty_layer",
           layerId: 4,
           layerName: LAYER_NAMES[4],
-          content: "This layer covers your working patterns and decision-making style.",
+          content:
+            "This layer covers your working patterns and decision-making style.",
         },
       });
       expect(result).toContain("EXPLORATION FOCUS");
-      expect(result).toContain("This layer covers your working patterns and decision-making style.");
+      expect(result).toContain(
+        "This layer covers your working patterns and decision-making style."
+      );
     });
 
     it("contains 'Do NOT run entry sequences' (exploration early return)", () => {
@@ -389,16 +479,6 @@ describe("buildSystemPrompt", () => {
 
   // ─── Conditional section loading ─────────────────────────────────────────
   describe("conditional section loading", () => {
-    it("excludes the language-reuse reminder on turnCount 1", () => {
-      const result = build({ turnCount: 1 });
-      expect(result).not.toContain("Their phrase is more powerful than your paraphrase");
-    });
-
-    it("includes the language-reuse reminder on turnCount 2+", () => {
-      const result = build({ turnCount: 2 });
-      expect(result).toContain("Their phrase is more powerful than your paraphrase");
-    });
-
     it("does not contain the deleted HOW TO USE meta block", () => {
       const result = build({ turnCount: 5 });
       expect(result).not.toContain("HOW TO USE THE EXTRACTION CONTEXT");
@@ -407,22 +487,31 @@ describe("buildSystemPrompt", () => {
     });
 
     it("excludes CHECKPOINTS when checkpointApproaching is false and not returning", () => {
-      const result = build({ checkpointApproaching: false, isReturningUser: false });
-      expect(result).not.toContain("CHECKPOINTS");
+      const result = build({
+        checkpointApproaching: false,
+        isReturningUser: false,
+      });
+      expect(result).not.toContain("\nCHECKPOINTS\n");
     });
 
     it("includes CHECKPOINTS for returning users regardless of checkpointApproaching", () => {
-      const result = build({ isReturningUser: true, checkpointApproaching: false });
-      expect(result).toContain("CHECKPOINTS");
+      const result = build({
+        isReturningUser: true,
+        checkpointApproaching: false,
+      });
+      expect(result).toContain("\nCHECKPOINTS\n");
     });
 
     it("includes CHECKPOINTS when checkpointApproaching is true", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("CHECKPOINTS");
+      expect(result).toContain("\nCHECKPOINTS\n");
     });
 
     it("excludes POST-CHECKPOINT when not approaching and not returning", () => {
-      const result = build({ checkpointApproaching: false, isReturningUser: false });
+      const result = build({
+        checkpointApproaching: false,
+        isReturningUser: false,
+      });
       expect(result).not.toContain("POST-CHECKPOINT");
     });
 
@@ -431,7 +520,7 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("POST-CHECKPOINT");
     });
 
-    it("excludes READINESS GATE when fewer than 3 components", () => {
+    it("excludes READINESS GATE when fewer than 3 entries", () => {
       const result = build({
         manualComponents: [
           { layer: 1, name: null, content: "c1" },
@@ -441,7 +530,7 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain("READINESS GATE");
     });
 
-    it("includes READINESS GATE when 3+ components", () => {
+    it("includes READINESS GATE when 3+ entries", () => {
       const result = build({
         manualComponents: [
           { layer: 1, name: null, content: "c1" },
@@ -464,13 +553,21 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Shared content (URL) ─────────────────────────────────────────────────
+  // ─── Shared content (URL) ────────────────────────────────────────────────
   describe("shared content (URL)", () => {
     it("includes fetched content and 'you HAVE read it' when fetch succeeds", () => {
       const result = build({
         contentContext: {
-          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
-          fetchedContent: { success: true, title: "Test Article", text: "Article body text here." },
+          urlDetection: {
+            hasUrl: true,
+            urls: ["https://example.com/article"],
+            userContext: "",
+          },
+          fetchedContent: {
+            success: true,
+            title: "Test Article",
+            text: "Article body text here.",
+          },
         },
       });
       expect(result).toContain("SHARED CONTENT");
@@ -482,7 +579,11 @@ describe("buildSystemPrompt", () => {
     it("includes hard prohibition against guessing when fetch fails", () => {
       const result = build({
         contentContext: {
-          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
+          urlDetection: {
+            hasUrl: true,
+            urls: ["https://example.com/article"],
+            userContext: "",
+          },
           fetchedContent: { success: false, error: "blocked" },
         },
       });
@@ -495,7 +596,11 @@ describe("buildSystemPrompt", () => {
     it("includes hard prohibition when fetch returns null", () => {
       const result = build({
         contentContext: {
-          urlDetection: { hasUrl: true, urls: ["https://example.com/article"], userContext: "" },
+          urlDetection: {
+            hasUrl: true,
+            urls: ["https://example.com/article"],
+            userContext: "",
+          },
           fetchedContent: null,
         },
       });
@@ -503,47 +608,60 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("MUST NOT describe, summarize, or characterize");
     });
 
-    it("base prompt always contains external content fabrication guard", () => {
+    it("base prompt always contains the fabricated-content guard in Tier 3", () => {
       const result = build();
-      expect(result).toContain("Never fabricate knowledge of external content");
-      expect(result).toContain("Do not guess from the URL, domain name, path");
+      expect(result).toContain("FABRICATED CONTENT");
+      expect(result).toContain(
+        "Do not describe, summarize, or guess from the URL, domain name, path"
+      );
     });
   });
 
-  // ─── New content blocks ──────────────────────────────────────────────────
-  describe("new content blocks", () => {
-    it("always contains SHORT ANSWERS walkthrough invitation", () => {
+  // ─── Always-on Tier 3 blocks ─────────────────────────────────────────────
+  describe("always-on Tier 3 blocks", () => {
+    it("SHORT ANSWERS walkthrough invitation is present", () => {
       const result = build();
-      expect(result).toContain("Can you walk me through what happened, step by step?");
+      expect(result).toContain(
+        "Can you walk me through what happened, step by step?"
+      );
     });
 
-    it("always contains DEEPENING MOVES scene-invitation guidance", () => {
+    it("DEEPENING asks for scenes over labels", () => {
       const result = build();
-      expect(result).toContain("Every question should invite a scene, not a label");
+      expect(result).toContain("Ask for scenes, not labels");
     });
 
     it("BUILDING TOWARD SIGNAL contains signal-naming instruction when present", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("There's a thread running through everything you've described");
+      expect(result).toContain(
+        "There's a thread running through everything you've described"
+      );
+    });
+
+    it("ADAPTING block renders for guarded/abstract/skeptical user modes", () => {
+      const result = build();
+      expect(result).toContain("Guarded");
+      expect(result).toContain("Abstract");
+      expect(result).toContain("Skeptical");
+    });
+
+    it("WHEN JOVE IS WRONG sequence scales from first miss to full reset", () => {
+      const result = build();
+      expect(result).toContain("WHEN JOVE IS WRONG");
+      expect(result).toContain("First miss");
+      expect(result).toContain("Second miss");
+      expect(result).toContain("Third miss");
+    });
+
+    it("WHEN THE USER ASKS \"WHAT SHOULD I DO\" advisory block is present", () => {
+      const result = build();
+      expect(result).toContain('WHEN THE USER ASKS "WHAT SHOULD I DO"');
     });
   });
 
-  // ─── PR2a voice content (autistic mode) ────────────────────────────────
-  //
-  // These tests assert that the single-source-of-truth voice content in
-  // src/lib/persona/voice-autistic.ts appears verbatim in the prompt. Never
-  // duplicate strings between the test and the voice file — if a rule or
-  // banned phrase is missing from the prompt, the test should fail via the
-  // imported constant, not a hardcoded literal.
-  describe("PR2a: autistic voice content", () => {
-    describe("clinical framework guardrail (post-hardening)", () => {
-      it("does NOT name Schema Therapy / Attachment Theory / Functional Analysis in user-facing prompt", () => {
-        const result = build();
-        expect(result).not.toContain("Schema Therapy");
-        expect(result).not.toContain("Attachment Theory");
-        expect(result).not.toContain("Functional Analysis");
-      });
-
+  // ─── Voice content sourced from voice-autistic.ts ─────────────────────────
+  describe("voice-autistic content", () => {
+    describe("clinical framework posture", () => {
       it("does NOT contain the old CLINICAL FRAMEWORK GUARDRAIL header", () => {
         const result = build();
         expect(result).not.toContain("CLINICAL FRAMEWORK GUARDRAIL");
@@ -555,14 +673,26 @@ describe("buildSystemPrompt", () => {
         expect(result).not.toContain("emotional avoidance");
       });
 
-      it("keeps a short 'no clinical terminology' line inside LEGAL BOUNDARIES", () => {
+      it("Tier 1 rule 3 forbids clinical language in user-facing output", () => {
         const result = build();
-        const legalIdx = result.indexOf("LEGAL BOUNDARIES");
-        const noClinicalIdx = result.indexOf(
-          "Never use clinical terminology in user-facing output"
+        const tier1Idx = result.indexOf("TIER 1: CONSTITUTIONAL RULES");
+        const tier2Idx = result.indexOf("TIER 2: VOICE AND BEHAVIOR");
+        expect(tier1Idx).toBeGreaterThanOrEqual(0);
+        expect(tier2Idx).toBeGreaterThan(tier1Idx);
+        const tier1Slice = result.slice(tier1Idx, tier2Idx);
+        expect(tier1Slice).toContain(
+          "NO CLINICAL LANGUAGE IN USER-FACING OUTPUT"
         );
-        expect(legalIdx).toBeGreaterThanOrEqual(0);
-        expect(noClinicalIdx).toBeGreaterThan(legalIdx);
+        expect(tier1Slice).toMatch(/no framework names/i);
+      });
+
+      it("the framework-question response still instructs Jove not to label them", () => {
+        const result = build({
+          manualComponents: [],
+          isReturningUser: false,
+          turnCount: 1,
+        });
+        expect(result).toContain("I don't label them for you");
       });
     });
 
@@ -580,12 +710,12 @@ describe("buildSystemPrompt", () => {
         }
       });
 
-      it("renders voice rules as numbered list", () => {
+      it("renders voice rules as a numbered list", () => {
         const result = build();
-        // First rule should be "1. <rule>"
         expect(result).toContain(`1. ${VOICE_RULES[0]}`);
-        // Last rule should be "<n>. <rule>"
-        expect(result).toContain(`${VOICE_RULES.length}. ${VOICE_RULES[VOICE_RULES.length - 1]}`);
+        expect(result).toContain(
+          `${VOICE_RULES.length}. ${VOICE_RULES[VOICE_RULES.length - 1]}`
+        );
       });
 
       it("OLD voice headline 'Warm but precise' is gone", () => {
@@ -609,9 +739,20 @@ describe("buildSystemPrompt", () => {
         }
       });
 
+      it("contains every BANNED_PATTERNS entry as an 'Also banned' addendum", () => {
+        const result = build();
+        expect(BANNED_PATTERNS.length).toBeGreaterThan(0);
+        for (const pattern of BANNED_PATTERNS) {
+          expect(result).toContain(pattern);
+        }
+        expect(result).toContain("Also banned:");
+      });
+
       it("contains the generic-chatbot principle line", () => {
         const result = build();
-        expect(result).toContain("If the sentence could come from a generic therapy chatbot");
+        expect(result).toContain(
+          "If the sentence could come from a generic therapy chatbot"
+        );
       });
     });
 
@@ -629,170 +770,194 @@ describe("buildSystemPrompt", () => {
       });
     });
 
-    describe("somatic-first deepening", () => {
-      it("CONVERSATION APPROACH defaults to body/situational over emotional", () => {
+    describe("landing examples from voice-autistic.ts", () => {
+      it("contains LANDING section header", () => {
         const result = build();
-        expect(result).toContain("what did your body do");
-        expect(result).toContain("Default to somatic and situational questions before emotional ones");
+        expect(result).toContain("LANDING");
       });
 
-      it("SHORT ANSWERS protocol uses walkthrough framing, not patronizing language", () => {
+      it("contains every landing example line", () => {
+        const result = build();
+        expect(LANDING_EXAMPLES.length).toBeGreaterThan(0);
+        for (const { line } of LANDING_EXAMPLES) {
+          expect(result).toContain(line);
+        }
+      });
+
+      it("describes the receive-land-ask rhythm", () => {
+        const result = build();
+        expect(result).toContain("receive, land, ask");
+      });
+    });
+
+    describe("somatic-first and short-answer handling", () => {
+      it("VOICE_RULES contains the body-first default phrasing", () => {
+        const result = build();
+        expect(result).toContain("what did your body do");
+      });
+
+      it("SHORT ANSWERS uses walkthrough framing, not patronizing language", () => {
         const result = build();
         expect(result).toContain("Direct and brief is a valid mode");
         expect(result).toContain("Never patronize");
-        // Removed patronizing language from old version
         expect(result).not.toContain("You're being honest but concise");
       });
     });
+  });
 
-    // ─── PR2b: persona voice mechanics layer ─────────────────────────────
-    describe("PR2b: persona voice mechanics (checkpoint composition)", () => {
-      // Build with checkpoint instructions turned on so the delivery sequence,
-      // composition voice, manual entry format, and self-check blocks render.
-      function buildCheckpointMode() {
-        return build({ checkpointApproaching: true, turnCount: 5 });
-      }
+  // ─── Checkpoint mechanics sit in Tier 3, not in the voice ────────────────
+  describe("checkpoint mechanics (Tier 3)", () => {
+    function buildCheckpointMode() {
+      return build({ checkpointApproaching: true, turnCount: 5 });
+    }
 
-      describe("CHECKPOINT LANGUAGE block is ND-rewritten", () => {
-        it("still contains the CHECKPOINT LANGUAGE header", () => {
-          expect(buildCheckpointMode()).toContain("CHECKPOINT LANGUAGE");
-        });
-
-        it("preserves the user's sensory words verbatim rule", () => {
-          const result = buildCheckpointMode();
-          expect(result).toContain('"Too loud" stays "too loud."');
-          expect(result).toContain('"Buzzing" stays "buzzing."');
-          expect(result).toContain('"Went offline" stays "went offline."');
-        });
-
-        it("does not contain the old clinical examples", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("avoidant attachment");
-          expect(result).not.toContain("emotional dysregulation");
-        });
-
-        it("uses autism-resonant rewrite examples", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/second version of you switches on/i);
-        });
+    describe("CHECKPOINT LANGUAGE block is ND-rewritten", () => {
+      it("still contains the CHECKPOINT LANGUAGE header", () => {
+        expect(buildCheckpointMode()).toContain("CHECKPOINT LANGUAGE");
       });
 
-      describe("CHECKPOINTS section keeps embodiment guidance without enforcement scaffolding", () => {
-        it("still talks about anchoring in the body and the user's exact words", () => {
-          const result = buildCheckpointMode();
-          // The CHECKPOINTS section directs embodiment without listing
-          // a numbered checklist or violation language.
-          expect(result).toMatch(/body/i);
-          expect(result).toMatch(/bind/i);
-          expect(result).toMatch(/recognition, not diagnosis/i);
-        });
-
-        it("instructs Jove to wait for confirmation before writing", () => {
-          const result = buildCheckpointMode();
-          expect(result).toMatch(/Never write to the manual until/i);
-        });
+      it("preserves the user's sensory words verbatim rule", () => {
+        const result = buildCheckpointMode();
+        expect(result).toContain('"Too loud" stays "too loud."');
+        expect(result).toContain('"Buzzing" stays "buzzing."');
+        expect(result).toContain('"Went offline" stays "went offline."');
       });
 
-      describe("manual entry composition and enforcement live server-side, not in the prompt", () => {
-        it("does not contain the |||MANUAL_ENTRY||| sentinel anywhere", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("|||MANUAL_ENTRY|||");
-          expect(result).not.toContain("|||END_MANUAL_ENTRY|||");
-        });
+      it("does not contain the old clinical examples", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("avoidant attachment");
+        expect(result).not.toContain("emotional dysregulation");
+      });
 
-        it("does not contain the MANUAL ENTRY FORMAT header", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("MANUAL ENTRY FORMAT");
-        });
-
-        it("does not narrate the JSON schema fields (layer/type/name/changelog) as instruction", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toMatch(/"changelog" field/);
-          expect(result).not.toMatch(/TYPE RULE/);
-        });
-
-        it("does not contain the deleted CHECKPOINT DELIVERY SEQUENCE numbered checklist", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("CHECKPOINT DELIVERY SEQUENCE");
-          expect(result).not.toMatch(/If you delivered the headline before step 2/i);
-          expect(result).not.toMatch(/you violated/i);
-        });
-
-        it("does not contain the deleted CHECKPOINT SELF-CHECK enumerated list", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("CHECKPOINT SELF-CHECK");
-          expect(result).not.toMatch(/verify all five/i);
-        });
-
-        it("does not contain the deleted CHECKPOINT COMPOSITION VOICE / THIN vs LANDED examples", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toContain("CHECKPOINT COMPOSITION VOICE");
-          expect(result).not.toContain("THIN vs LANDED");
-          expect(result).not.toMatch(/buzzing starts in your jaw/i);
-          expect(result).not.toMatch(/dark room/i);
-        });
-
-        it("does not contain the deleted Five principles enumerated list", () => {
-          const result = buildCheckpointMode();
-          expect(result).not.toMatch(/Five principles for strong checkpoints/i);
-          expect(result).not.toMatch(/Anchor in the body/i);
-        });
+      it("uses autism-resonant rewrite examples", () => {
+        const result = buildCheckpointMode();
+        expect(result).toMatch(/second version of you switches on/i);
       });
     });
 
-    describe("structural snapshot", () => {
-      // Ordered list of top-level section headers that must appear in the
-      // default prompt in this order. If PR2b (or any future edit) accidentally
-      // deletes a section, this snapshot catches it. Update this list
-      // deliberately — a diff here should be a conscious decision.
-      const EXPECTED_SECTIONS = [
-        "VOICE",
-        "VOICE RULES",
-        "BANNED PHRASES",
-        "EXAMPLE REGISTER",
-        "LEGAL BOUNDARIES",
-        "HARD RULES",
-        "CLINICAL MATERIAL IN CONVERSATION",
-        "CHECKPOINT LANGUAGE",
-        "PROFESSIONAL REFERRAL",
-        "CRISIS PROTOCOL",
-        "CONVERSATION APPROACH",
-        "DEEPENING MOVES",
-        "FIRST MESSAGE",
-        "SHORT ANSWERS",
-      ];
-
-      it("all expected sections appear in order in the default prompt", () => {
-        const result = build({ turnCount: 1 });
-        let cursor = 0;
-        for (const section of EXPECTED_SECTIONS) {
-          const idx = result.indexOf(section, cursor);
-          expect(
-            idx,
-            `Section "${section}" missing or out of order (cursor=${cursor})`
-          ).toBeGreaterThanOrEqual(cursor);
-          cursor = idx + section.length;
-        }
+    describe("CHECKPOINTS section keeps embodiment guidance without enforcement scaffolding", () => {
+      it("still talks about anchoring in the body, the bind, and recognition", () => {
+        const result = buildCheckpointMode();
+        expect(result).toMatch(/body/i);
+        expect(result).toMatch(/bind/i);
+        expect(result).toMatch(/recognition, not diagnosis/i);
       });
 
-      // Checkpoint-mode sections only render when checkpoint instructions are
-      // active. Verify those appear in order too.
+      it("instructs Jove to wait for confirmation before writing", () => {
+        const result = buildCheckpointMode();
+        expect(result).toMatch(/Never write to the Manual until/i);
+      });
+    });
+
+    describe("composition and enforcement live server-side, not in the prompt", () => {
+      it("does not contain the |||MANUAL_ENTRY||| sentinel anywhere", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("|||MANUAL_ENTRY|||");
+        expect(result).not.toContain("|||END_MANUAL_ENTRY|||");
+      });
+
+      it("does not contain the MANUAL ENTRY FORMAT header", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("MANUAL ENTRY FORMAT");
+      });
+
+      it("does not narrate the JSON schema fields as instruction", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toMatch(/"changelog" field/);
+        expect(result).not.toMatch(/TYPE RULE/);
+      });
+
+      it("does not contain the deleted CHECKPOINT DELIVERY SEQUENCE checklist", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("CHECKPOINT DELIVERY SEQUENCE");
+        expect(result).not.toMatch(
+          /If you delivered the headline before step 2/i
+        );
+        expect(result).not.toMatch(/you violated/i);
+      });
+
+      it("does not contain the deleted CHECKPOINT SELF-CHECK enumerated list", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("CHECKPOINT SELF-CHECK");
+        expect(result).not.toMatch(/verify all five/i);
+      });
+
+      it("does not contain the deleted CHECKPOINT COMPOSITION VOICE / THIN vs LANDED examples", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toContain("CHECKPOINT COMPOSITION VOICE");
+        expect(result).not.toContain("THIN vs LANDED");
+        expect(result).not.toMatch(/buzzing starts in your jaw/i);
+        expect(result).not.toMatch(/dark room/i);
+      });
+
+      it("does not contain the deleted Five principles enumerated list", () => {
+        const result = buildCheckpointMode();
+        expect(result).not.toMatch(/Five principles for strong checkpoints/i);
+      });
+    });
+  });
+
+  // ─── Structural snapshot — the tier layout ───────────────────────────────
+  describe("structural snapshot", () => {
+    // Default prompt sections in the order they must appear. Update
+    // deliberately — this guards against accidental deletions.
+    const EXPECTED_DEFAULT_SECTIONS = [
+      "TIER 1: CONSTITUTIONAL RULES",
+      "CRISIS PROTOCOL",
+      "TIER 2: VOICE AND BEHAVIOR",
+      "VOICE RULES",
+      "BANNED PHRASES",
+      "EXAMPLE REGISTER",
+      "LANDING",
+      "DEEPENING",
+      "PROGRESS SIGNALS",
+      "WHEN JOVE IS WRONG",
+      'WHEN THE USER ASKS "WHAT SHOULD I DO"',
+      "TIER 3: CONVERSATION MECHANICS",
+      "FIRST MESSAGE",
+      "ADAPTING",
+      "SHORT ANSWERS",
+      "CLINICAL MATERIAL IN CONVERSATION",
+      "PROFESSIONAL REFERRAL",
+      "FABRICATED CONTENT",
+      "CHECKPOINT LANGUAGE",
+      "FIRST SESSION",
+    ];
+
+    it("all expected sections appear in order in the default (turn 1, new user) prompt", () => {
+      const result = build({ turnCount: 1 });
+      let cursor = 0;
+      for (const section of EXPECTED_DEFAULT_SECTIONS) {
+        const idx = result.indexOf(section, cursor);
+        expect(
+          idx,
+          `Section "${section}" missing or out of order (cursor=${cursor})`
+        ).toBeGreaterThanOrEqual(cursor);
+        cursor = idx + section.length;
+      }
+    });
+
+    it("checkpoint-mode sections appear in the expected order", () => {
+      const result = build({
+        checkpointApproaching: true,
+        turnCount: 5,
+      });
       const EXPECTED_CHECKPOINT_SECTIONS = [
+        "TIER 3: CONVERSATION MECHANICS",
         "CHECKPOINTS",
+        "POST-CHECKPOINT",
+        "BUILDING TOWARD SIGNAL",
+        "ADAPTING",
       ];
-
-      it("all checkpoint-mode sections appear in order when checkpointApproaching is true", () => {
-        const result = build({ checkpointApproaching: true, turnCount: 5 });
-        let cursor = 0;
-        for (const section of EXPECTED_CHECKPOINT_SECTIONS) {
-          const idx = result.indexOf(section, cursor);
-          expect(
-            idx,
-            `Section "${section}" missing or out of order (cursor=${cursor})`
-          ).toBeGreaterThanOrEqual(cursor);
-          cursor = idx + section.length;
-        }
-      });
+      let cursor = 0;
+      for (const section of EXPECTED_CHECKPOINT_SECTIONS) {
+        const idx = result.indexOf(section, cursor);
+        expect(
+          idx,
+          `Section "${section}" missing or out of order (cursor=${cursor})`
+        ).toBeGreaterThanOrEqual(cursor);
+        cursor = idx + section.length;
+      }
     });
   });
 });

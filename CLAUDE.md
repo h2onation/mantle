@@ -32,6 +32,47 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 | Legal or compliance review | rules + decisions |
 | Plan next phase | intent + decisions + state |
 
+## Prompt Structure
+
+The Jove system prompt is built in `src/lib/persona/system-prompt.ts` in three tiers. Lower tiers override higher tiers when they conflict.
+
+- **Tier 1 — Constitutional.** Seven rules that never change: not a therapist, user is the author, mirror exact language, one question per turn, nothing enters the manual without confirmation, no clinical framework names, direct when asked what Jove is. Edit only for a fundamental product change.
+- **Tier 2 — Voice and behavior.** Sourced from `src/lib/persona/voice-autistic.ts`: VOICE_RULES (14), BANNED_PHRASES, BANNED_PATTERNS, EXAMPLE_REGISTER, LANDING_EXAMPLES. Plus static sections for deepening rhythm, progress signals, repair, "what should I do" handling. Edit voice-autistic.ts, not the builder, when changing voice.
+- **Tier 3 — Conversation mechanics.** Assembled at call time from flags (turn count, first session, returning user, checkpoint approaching, checkpoint just returned, manual entry count, clinical level). Conditional blocks — first message, returning user, approaching/returning checkpoint, post-checkpoint acknowledgement, readiness gate (3+ entries), clinical material, professional referral, fabricated content, first-session wrapper.
+
+Dynamic context blocks (confirmed manual, session summary, extraction brief, transcript detected, shared URL content, exploration focus) are appended after Tier 3 and are not part of the tier structure.
+
+There is no post-checkpoint fork. Jove acknowledges briefly and returns to the conversation from whatever the user just surfaced. No "Work with it / Keep building" menu.
+
+## Manual Context Compression
+
+The system prompt doesn't ship the full text of every confirmed Manual entry on every turn. Returning users accumulate entries across sessions, and shipping all of them verbatim burns context and dilutes the model's attention on the current conversation.
+
+The scheme, implemented in `src/lib/persona/manual-context.ts`:
+
+- **Recent** (entries authored in the current conversation, plus the most-recent backfill up to a cap of 4) render in full. Jove sees the exact narrative prose so it can reference specifics and avoid proposing duplicates.
+- **Older** entries render as one line: `[Layer N — LayerName] "Headline" — one-sentence summary. Key words: w1, w2, w3.` Jove still knows the shape of the Manual but doesn't re-read the prose every turn.
+
+The compressed summary and key words are generated at checkpoint-confirm time by the same Sonnet call that composes the entry (`src/lib/persona/confirm-checkpoint.ts`). They are stored on `manual_entries.summary` and `manual_entries.key_words`. Pre-existing rows and any fallback path derive a summary from the first sentence of `content`.
+
+The extraction layer sees the full, un-compressed Manual (it analyzes the user's message in detail and benefits from the nuance). Only the Jove system prompt uses the compressed view.
+
+Rules when touching this:
+- Never compress the current session's entries. Freshly-confirmed material has to stay full-text so Jove can thread it back in subsequent turns.
+- Never compress in the group-chat prompt path (`buildGroupPrompt` in `src/lib/persona/system-prompt.ts`); group flows are short and want the full Manual inline.
+- When adding a new surface that reads Manual entries and wants a prompt-ready block, call `prepareManualContext(entries, currentConversationId)` — don't recreate the concatenation logic.
+
+## Terminology
+
+Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.
+
+- **Manual** — the user's self-authored document.
+- **Layer** — one of the five structural sections of the manual.
+- **Entry** — a single confirmed piece of content on a layer.
+- **Checkpoint** — the moment Jove proposes an entry for confirmation.
+
+The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "section."
+
 ## Hard Rules
 
 These apply to every task. No exceptions.

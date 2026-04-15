@@ -218,9 +218,12 @@ export async function processGroupMessage(
     }
   }
 
-  // 3. Build system prompt with group context
+  // 3. Build system prompt with group context.
+  // currentConversationId is null here: the group-chat prompt path has its
+  // own renderer (buildGroupPrompt) that doesn't use compression.
   const systemPrompt = buildSystemPrompt({
     manualComponents,
+    currentConversationId: null,
     isReturningUser: false,
     sessionSummary: null,
     extractionContext: "",

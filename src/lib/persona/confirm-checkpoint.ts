@@ -19,10 +19,20 @@ interface ComposeManualEntryOptions {
  * Calls Sonnet to compose a polished manual entry from a checkpoint reflection.
  * Always invoked server-side after the classifier flags a checkpoint.
  * Returns null on failure — caller should fall back gracefully.
+ *
+ * Also returns a compressed representation (summary + key_words) used to
+ * shrink older entries when they're shown back to Jove in future sessions.
+ * See prepareManualContext in system-prompt.ts for how these are consumed.
  */
 export async function composeManualEntry(
   options: ComposeManualEntryOptions
-): Promise<{ content: string; name: string; changelog: string } | null> {
+): Promise<{
+  content: string;
+  name: string;
+  changelog: string;
+  summary: string;
+  key_words: string[];
+} | null> {
   const {
     checkpointText,
     conversationHistory,
@@ -43,7 +53,7 @@ export async function composeManualEntry(
 
   const existingSection =
     existingLayerContent && existingLayerContent.length > 0
-      ? `\nEXISTING CONTENT ON THIS LAYER (your entry must account for this):\n${existingLayerContent.map((c) => `[entry${c.name ? ` — "${c.name}"` : ""}]\n${c.content}`).join("\n\n")}\n\nIntegrate with or deepen existing content. If new material contradicts it, name the tension.\n`
+      ? `\nEXISTING ENTRIES ON THIS LAYER (your new entry must account for these):\n${existingLayerContent.map((c) => `[entry${c.name ? ` — "${c.name}"` : ""}]\n${c.content}`).join("\n\n")}\n\nIntegrate with or deepen existing entries. If new material contradicts them, name the tension.\n`
       : "";
 
   // Last 8 messages for context
@@ -72,8 +82,13 @@ RULES:
 
 Also generate a headline name (4-8 words). Flatly descriptive — says what the mechanism IS in behavioral or body terms. Good: 'Second Version Switches On in Rooms,' 'Voice Goes When Pressure Lands,' 'Buzzing That Pulls Focus Away.' Bad: 'The Masking Loop,' 'The Sensory Trap,' 'Rejection Sensitivity.' No metaphors. No clinical labels. Just describe what happens.
 
+Also generate a compressed representation for future reference. When this entry is old and another conversation is happening, Jove will see this compressed version instead of the full content. The user has no memory that you wrote it — they only feel the effect of Jove having a coherent picture of their Manual in future sessions.
+
+- summary: one sentence, 20-40 words, third-person description of what happens. Keep the user's charged sensory/system words. Describe the mechanism and the bind briefly. Not the examples, not the abstractions. Good: 'A second version switches on in rooms and runs the conversation while the real one waits in the back; afterwards the mask costs hours of flat silence.' Bad: 'Masking behavior and its costs.' Bad: 'You become a different person around people.'
+- key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include any charged sensory/system words they used ('buzzing', 'went offline', 'too loud', 'shut down'). Include the subject the entry is about ('rooms', 'pressure', 'masking'). Do not include clinical or framework terms.
+
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "The composed narrative...", "name": "The Headline Name", "changelog": "One sentence describing what this adds or changes."}`;
+{"content": "The composed narrative...", "name": "The Headline Name", "changelog": "One sentence describing what this adds or changes.", "summary": "One-sentence third-person description.", "key_words": ["word1", "word2", "word3"]}`;
 
   const userContent = `Layer: ${layer} (${LAYER_NAMES[layer] || "Unknown"})
 ${name ? `Proposed name: "${name}"` : "No name proposed — choose one."}
@@ -107,11 +122,37 @@ Compose the manual entry.`;
     return null;
   }
 
+  const summary =
+    typeof parsed.summary === "string" && parsed.summary.trim().length > 0
+      ? parsed.summary.trim()
+      : deriveSummaryFallback(parsed.content);
+
+  const keyWords = Array.isArray(parsed.key_words)
+    ? parsed.key_words
+        .filter((w: unknown): w is string => typeof w === "string")
+        .map((w: string) => w.trim())
+        .filter((w: string) => w.length > 0)
+    : [];
+
   return {
     content: parsed.content,
     name: parsed.name || name || "Untitled",
     changelog: parsed.changelog || `Created Layer ${layer} entry.`,
+    summary,
+    key_words: keyWords,
   };
+}
+
+/**
+ * Fallback when the composition model forgets to emit a summary: take the
+ * first sentence of content and trim it to roughly the expected length. Not
+ * ideal — but better than a null summary that breaks the compressed block.
+ */
+function deriveSummaryFallback(content: string): string {
+  const firstSentence = content.split(/(?<=[.!?])\s+/)[0] || content;
+  const trimmed = firstSentence.trim();
+  if (trimmed.length <= 240) return trimmed;
+  return trimmed.slice(0, 237).trimEnd() + "...";
 }
 
 interface ConfirmCheckpointOptions {
@@ -150,13 +191,15 @@ export async function confirmCheckpoint({
       composed_content: string | null;
       composed_name: string | null;
       changelog: string | null;
+      composed_summary: string | null;
+      composed_key_words: string[] | null;
     };
 
     if (meta.status !== "pending") {
       return { success: false, error: "Checkpoint already resolved." };
     }
 
-    // Use pre-composed content from Sage's manual entry block.
+    // Use pre-composed content from Jove's manual entry block.
     // Falls back to the conversational checkpoint text if composition wasn't produced.
     // When falling back, strip any crisis resources text that may have been appended
     // by the crisis detection system (prevents contamination of manual entries).
@@ -171,6 +214,11 @@ export async function confirmCheckpoint({
     }
     const contentToWrite = meta.composed_content || fallbackContent;
     const nameToWrite = meta.composed_name || meta.name || "Untitled";
+    const summaryToWrite = meta.composed_summary || deriveSummaryFallback(contentToWrite);
+    const keyWordsToWrite =
+      Array.isArray(meta.composed_key_words) && meta.composed_key_words.length > 0
+        ? meta.composed_key_words
+        : null;
 
     // 2. Always create a new entry for this layer.
     // Layers can hold many entries — there is no per-layer cap or replace logic.
@@ -182,6 +230,8 @@ export async function confirmCheckpoint({
         name: nameToWrite,
         content: contentToWrite,
         source_message_id: messageId,
+        summary: summaryToWrite,
+        key_words: keyWordsToWrite,
       })
       .select("id")
       .single();
