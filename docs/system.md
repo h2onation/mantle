@@ -125,7 +125,7 @@ Checkpoints are the core mechanic: Jove reflects something the user has shown, t
 
 **On confirmation:**
 1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta`
-2. Inserts a new row in `manual_components` (no upsert — layers can hold many entries)
+2. Inserts a new row in `manual_entries` (no upsert — layers can hold many entries)
 3. Updates the source message's `checkpoint_meta.status` to "confirmed"
 4. Inserts system message "[User confirmed the checkpoint]"
 5. No API call to Anthropic. Confirmation is instant.
@@ -144,7 +144,7 @@ These are the rules that prevent the highest-severity bugs. Every one represents
 
 ## Manual Entries
 
-There is one entry shape. Layers can hold many entries — there is no per-layer cap, no type discriminator, no pattern/component split. The classifier picks the strongest layer; composition writes the entry; the user confirms. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
+There is one entry shape. Layers can hold many entries — there is no per-layer cap, no type discriminator, no pattern/entry split. The classifier picks the strongest layer; composition writes the entry; the user confirms. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
 
 ## Jove Prompt Assembly
 
@@ -156,17 +156,17 @@ The system prompt is built dynamically by `buildSystemPrompt()`. Different secti
 | How to use extraction context | turnCount > 1 |
 | Progress Signals | turnCount > 2 |
 | First Message (3-path routing: questions / help starting / specific situation) | turnCount ≤ 1 AND new user |
-| First Session | New user (no manual components, not returning) |
+| First Session | New user (no manual entries, not returning) |
 | Checkpoints, Composition Voice, Post-Checkpoint | checkpointApproaching OR returning user |
 | First Checkpoint teaching moment | isFirstCheckpoint AND checkpointApproaching |
 | Building Toward Signal | checkpointApproaching |
-| Returning User | isReturningUser (has manual_components) |
-| Readiness Gate | 3+ manual components confirmed |
-| Confirmed Manual contents | Any manual components exist |
+| Returning User | isReturningUser (has manual entries) |
+| Readiness Gate | 3+ manual entries confirmed |
+| Confirmed Manual contents | Any manual entries exist |
 | Session Context (session count, previous summary) | Returning user |
 | Exploration Focus | explorationContext provided (user clicked "Explore with Jove") |
 
-**Key detail**: `isReturningUser` is determined by having `manual_components`, not by conversation count. `checkpointApproaching` fires when any layer signal is `emerging`, `explored`, or `checkpoint_ready` in the previous extraction state (1-turn lag applies).
+**Key detail**: `isReturningUser` is determined by having `manual_entries`, not by conversation count. `checkpointApproaching` fires when any layer signal is `emerging`, `explored`, or `checkpoint_ready` in the previous extraction state (1-turn lag applies).
 
 **Planned: smsMode flag**: When MMS is built, a `smsMode: true` option in `buildSystemPrompt` will strip checkpoint and manual entry sections. Same Jove voice and depth, no manual building via text. If you see this flag in the code, do not remove it.
 

@@ -44,7 +44,7 @@ export interface ExtractionState {
   sage_brief: string;
 }
 
-interface ManualComponent {
+interface ManualEntry {
   layer: number;
   name: string | null;
   content: string;
@@ -95,7 +95,7 @@ const DIMENSIONS_BLOCK = LAYERS.map(
   (l) => `- Layer ${l.id}: ${l.dimensions.join(", ")}`
 ).join("\n");
 
-const EXTRACTION_SYSTEM = `You are the extraction layer for a conversational AI called ${PERSONA_NAME} that builds behavioral models for late-diagnosed autistic adults. You run silently before ${PERSONA_NAME} responds. Your job is to analyze what the user just said and produce structured context so ${PERSONA_NAME} can have a deeper, more grounded conversation.
+const EXTRACTION_SYSTEM = `You are the extraction layer for a conversational AI called ${PERSONA_NAME} that builds Manuals for late-diagnosed autistic adults. You run silently before ${PERSONA_NAME} responds. Your job is to analyze what the user just said and produce structured context so ${PERSONA_NAME} can have a deeper, more grounded conversation.
 
 You receive:
 - The conversation so far
@@ -247,7 +247,7 @@ CRITICAL RULES:
 export async function runExtraction(
   conversationHistory: { role: "user" | "assistant"; content: string }[],
   previousState: ExtractionState | null,
-  manualComponents: ManualComponent[],
+  manualComponents: ManualEntry[],
   isFirstCheckpoint: boolean
 ): Promise<ExtractionState> {
   const state = previousState || defaultState();

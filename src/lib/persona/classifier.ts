@@ -59,13 +59,13 @@ export async function classifyResponse(
 ): Promise<ClassificationResult> {
   try {
     const checkpointThreshold = isFirstSession
-      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where ${PERSONA_NAME} proposes an entry for the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single-thread observation with one concrete example qualifies as a checkpoint. Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`
-      : `A checkpoint is a sustained reflection (usually 100+ words) where ${PERSONA_NAME} proposes an entry for the user's behavioral model. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`;
+      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where ${PERSONA_NAME} proposes an entry for the user's Manual. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single-thread observation with one concrete example qualifies as a checkpoint. Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`
+      : `A checkpoint is a sustained reflection (usually 100+ words) where ${PERSONA_NAME} proposes an entry for the user's Manual. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, questions, transitions, and the post-checkpoint fork ("Two directions: Work with it / Keep building") are NOT checkpoints.`;
 
     const response = await anthropicFetch({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
-      system: `You analyze messages from a conversational AI called ${PERSONA_NAME} that builds behavioral models. Two jobs:
+      system: `You analyze messages from a conversational AI called ${PERSONA_NAME} that builds Manuals. Two jobs:
 
 1. CHECKPOINT DETECTION: Is this message a checkpoint? ${checkpointThreshold}
 

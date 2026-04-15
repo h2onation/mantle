@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { Layer } from "./layer-definitions";
-import PatternItem from "./PatternItem";
+import EntryItem from "./EntryItem";
 import type { ExplorationContext } from "@/lib/types";
 
 interface PopulatedLayerProps {
@@ -12,7 +12,7 @@ interface PopulatedLayerProps {
 }
 
 export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }: PopulatedLayerProps) {
-  const count = layer.threads.length;
+  const count = layer.entries.length;
   const countLabel = count === 1 ? "1 entry" : `${count} entries`;
 
   return (
@@ -59,12 +59,12 @@ export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }
         </span>
       </div>
 
-      {/* Thread cards */}
+      {/* Entry cards */}
       <div>
-        {layer.threads.map((thread) => (
-          <PatternItem
-            key={thread.id}
-            thread={thread}
+        {layer.entries.map((entry) => (
+          <EntryItem
+            key={entry.id}
+            entry={entry}
             layerId={layer.id}
             layerName={layer.name}
             onExploreWithPersona={onExploreWithPersona}

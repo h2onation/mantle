@@ -1,21 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Thread } from "./layer-definitions";
+import type { Entry } from "./layer-definitions";
 import type { ExplorationContext } from "@/lib/types";
 import { PERSONA_NAME } from "@/lib/persona/config";
 
-interface ThreadCardProps {
-  thread: Thread;
+interface EntryCardProps {
+  entry: Entry;
   layerId: number;
   layerName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   readOnly?: boolean;
 }
 
-// File still named PatternItem.tsx for diff hygiene; the future PR that removes
-// the component/pattern split will rename it to ThreadCard.
-export default function PatternItem({ thread, layerId, layerName, onExploreWithPersona, readOnly }: ThreadCardProps) {
+export default function EntryItem({ entry, layerId, layerName, onExploreWithPersona, readOnly }: EntryCardProps) {
   const [expanded, setExpanded] = useState(readOnly ? true : false);
 
   const toggle = readOnly ? undefined : () => setExpanded((v) => !v);
@@ -41,7 +39,7 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithP
           marginBottom: 8,
         }}
       >
-        {thread.name}
+        {entry.name}
       </div>
 
       {/* Body — clamped when collapsed, full when expanded */}
@@ -63,7 +61,7 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithP
               }),
         }}
       >
-        {thread.body}
+        {entry.body}
       </div>
 
       {/* Read more / Show less */}
@@ -96,8 +94,8 @@ export default function PatternItem({ thread, layerId, layerName, onExploreWithP
               layerId,
               layerName,
               type: "entry",
-              name: thread.name,
-              content: thread.body,
+              name: entry.name,
+              content: entry.body,
             });
           }}
           style={{

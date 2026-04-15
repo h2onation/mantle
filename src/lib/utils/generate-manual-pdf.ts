@@ -39,7 +39,7 @@ export function generateManualPdf(
   layers: Layer[]
 ): Blob {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const populatedLayers = layers.filter((l) => l.threads.length > 0);
+  const populatedLayers = layers.filter((l) => l.entries.length > 0);
 
   let y = MARGIN_TOP;
 
@@ -74,7 +74,7 @@ export function generateManualPdf(
     y += 8;
 
     // Entries
-    for (const entry of layer.threads) {
+    for (const entry of layer.entries) {
       y = checkPageBreak(doc, y, 16);
 
       // Entry name (bold)

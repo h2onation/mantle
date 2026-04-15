@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
-import type { ChatMessage, ManualComponent, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
+import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
 
 export interface ConversationSummaryItem {
   id: string;
@@ -25,8 +25,8 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeCheckpoint, setActiveCheckpoint] =
     useState<ActiveCheckpoint | null>(null);
-  const [confirmedComponents, setConfirmedComponents] = useState<
-    ManualComponent[]
+  const [confirmedEntries, setConfirmedEntries] = useState<
+    ManualEntry[]
   >([]);
   const [displayName, setDisplayName] = useState("");
   const [initialized, setInitialized] = useState(false);
@@ -56,7 +56,7 @@ export function useChat() {
       const res = await fetch("/api/manual");
       if (res.ok) {
         const data = await res.json();
-        setConfirmedComponents(data.components || []);
+        setConfirmedEntries(data.components || []);
         if (data.displayName) setDisplayName(data.displayName);
       }
     } catch (err) {
@@ -401,7 +401,7 @@ export function useChat() {
 
       if (action === "confirmed") {
         // Add to confirmed entries locally (optimistic update)
-        setConfirmedComponents((prev) => [
+        setConfirmedEntries((prev) => [
           ...prev,
           {
             id: activeCheckpoint.messageId,
@@ -674,7 +674,7 @@ export function useChat() {
     isLoading,
     isStreaming,
     activeCheckpoint,
-    confirmedComponents,
+    confirmedEntries,
     displayName,
     initialized,
     isNewUser,

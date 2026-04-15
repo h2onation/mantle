@@ -11,7 +11,7 @@ export interface ChatMessage {
   } | null;
 }
 
-export interface ManualComponent {
+export interface ManualEntry {
   id?: string;
   layer: number;
   name: string | null;

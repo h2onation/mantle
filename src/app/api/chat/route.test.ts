@@ -139,7 +139,7 @@ describe("/api/chat — anonymous user gates", () => {
     });
   });
 
-  it("blocks anonymous user with 2+ confirmed components (signup_required, NOT 429)", async () => {
+  it("blocks anonymous user with 2+ confirmed entries (signup_required, NOT 429)", async () => {
     manualComponentCount = 2;
     const res = await POST(makeRequest({ message: "hi", conversationId: null }));
     expect(res.status).toBe(200);

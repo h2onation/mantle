@@ -89,8 +89,7 @@ export default function UserProfilePane({ data }: { data: AdminData }) {
         <div style={adminMetaStyle}>
           {selectedUser.conversation_count} session
           {selectedUser.conversation_count !== 1 ? "s" : ""} ·{" "}
-          {selectedUser.component_count} component
-          {selectedUser.component_count !== 1 ? "s" : ""}
+          {selectedUser.component_count} entr{selectedUser.component_count !== 1 ? "ies" : "y"}
           {selectedUser.last_active
             ? ` · last active ${formatAdminDate(selectedUser.last_active)}`
             : ""}
@@ -175,7 +174,7 @@ export default function UserProfilePane({ data }: { data: AdminData }) {
         )}
 
         {tab === "manual" && !profileLoading && (
-          <AdminManualView components={userManual} />
+          <AdminManualView entries={userManual} />
         )}
 
         {tab === "feedback" && !profileLoading && (

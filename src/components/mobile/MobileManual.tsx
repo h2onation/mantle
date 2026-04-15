@@ -4,7 +4,7 @@ import { useRef, useState, useCallback } from "react";
 import { buildLayers } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
-import type { ManualComponent, ExplorationContext } from "@/lib/types";
+import type { ManualEntry, ExplorationContext } from "@/lib/types";
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 import { PERSONA_NAME } from "@/lib/persona/config";
@@ -12,16 +12,16 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
 interface MobileManualProps {
-  components: ManualComponent[];
+  entries: ManualEntry[];
   displayName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   onNavigateToSession?: () => void;
 }
 
-export default function MobileManual({ components, displayName, onExploreWithPersona, onNavigateToSession }: MobileManualProps) {
+export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const layers = buildLayers(components);
-  const isEmpty = layers.every((l) => l.threads.length === 0);
+  const layers = buildLayers(entries);
+  const isEmpty = layers.every((l) => l.entries.length === 0);
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -45,7 +45,7 @@ export default function MobileManual({ components, displayName, onExploreWithPer
     setIsGenerating(true);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
-      const currentLayers = buildLayers(components);
+      const currentLayers = buildLayers(entries);
       const name = displayName || "User";
       const pdf = generateManualPdf(name, currentLayers);
       await shareManual(pdf, name);
@@ -54,7 +54,7 @@ export default function MobileManual({ components, displayName, onExploreWithPer
     } finally {
       setIsGenerating(false);
     }
-  }, [displayName, components]);
+  }, [displayName, entries]);
 
   return (
     <div
@@ -140,7 +140,7 @@ export default function MobileManual({ components, displayName, onExploreWithPer
         {/* Layer list — unified ordering, populated and empty render side by side */}
         <div style={{ padding: "0 20px", position: "relative" }}>
           {layers.map((layer) =>
-            layer.threads.length > 0 ? (
+            layer.entries.length > 0 ? (
               <PopulatedLayer
                 key={layer.id}
                 layer={layer}
