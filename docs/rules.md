@@ -196,16 +196,18 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 
 ### Core Principles
 - **Mobile-first.** The primary interface is a mobile shell (430px max-width centered). The product will also be accessible via text (MMS) and web. Design for mobile first, other surfaces adapt.
-- **Inline styles only.** Never add `className` to components. Use `style={{}}` with CSS custom properties from `globals.css`.
+- **Inline styles only.** Never add `className` to components. Use `style={{}}` with CSS custom properties from `globals.css`. Prefer size tokens (`--size-meta`, `--size-body`, `--size-prose`, `--size-heading`) over raw pixel values.
 - **Linen palette.** Warm linen surface is the design system. The dark void palette (`#0C0B0A`) is deprecated. All new work uses the linen tokens (`--session-linen`, `--session-ink`, `--session-ink-ghost`, `--session-ink-faded`, `--session-ink-hairline`).
 - **No theme switching.** Single theme. No `data-theme` attribute.
 
 ### Typography Roles
 | Font | Role | Sizing |
 |------|------|--------|
-| Instrument Serif (`--font-serif`) | Emotional and reflective content: session summary, checkpoint text, manual passages, headlines | 16-22px |
-| DM Sans (`--font-sans`) | Conversational UI: chat messages, buttons, input, form labels | 13px |
-| JetBrains Mono (`--font-mono`) | Metadata: nav labels, status lines, timestamps, progress indicators. Always uppercase with letter-spacing. | 7-9px |
+| Instrument Serif (`--font-serif`) | Emotional and reflective content: session summary, checkpoint text, manual passages, headlines | 17-22px (`--size-prose`, `--size-heading`) |
+| DM Sans (`--font-sans`) | Conversational UI: chat messages, buttons, input, form labels | 14-15px (`--size-body`) |
+| JetBrains Mono (`--font-mono`) | Metadata: nav labels, status lines, timestamps, progress indicators. Always uppercase with letter-spacing. | 12-13px (`--size-meta`) |
+
+12px is the minimum text size anywhere in the product. Uppercase + letter-spacing preserves the "metadata" feel at 12px — do not go smaller.
 
 ### Color Usage
 - `--session-ink` for primary text
@@ -214,6 +216,8 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - `--session-ink-hairline` for borders
 - `--color-accent` (#8BA888) for primary accent (Jove green)
 - `--session-linen` for surface background
+
+**Contrast floor.** All text must pass WCAG AA (≥4.5:1 on the linen surface). `--session-ink-ghost` and `--session-ink-faded` are the lowest-contrast tokens approved for body text. `--session-ink-whisper` is decorative only — never for text. When adjusting tokens, verify contrast against `--session-linen` (#F4F0EA) before shipping.
 
 Full token list lives in `globals.css`. Agent reads the file for exact values. Dark void tokens (`--color-void`, `--color-surface`, `--color-text`, `--color-text-dim`, `--color-text-ghost`) are deprecated. Do not use in new work.
 

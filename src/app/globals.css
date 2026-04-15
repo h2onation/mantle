@@ -16,8 +16,8 @@
   --session-ink-persona:    #524C47;
   --session-ink-user:    #4A4440;
   --session-ink-mid:     #6B6360;
-  --session-ink-faded:   #8A8480;
-  --session-ink-ghost:   #B8B2AC;
+  --session-ink-faded:   #5E5855;
+  --session-ink-ghost:   #756E6A;
   --session-ink-whisper: #D4CEC8;
   --session-ink-hairline: rgba(26, 22, 20, 0.08);
 
@@ -41,6 +41,13 @@
   /* Gold shadow system */
   --session-glow-cp:     rgba(185, 170, 110, 0.30);
   --session-glow-scroll: rgba(200, 185, 140, 0.25);
+
+  /* Typography sizes — minimums that stay readable on the linen surface.
+     Prefer these over raw pixel values in new inline styles. */
+  --size-meta:    12px;
+  --size-body:    15px;
+  --size-prose:   17px;
+  --size-heading: 22px;
 }
 
 html {
