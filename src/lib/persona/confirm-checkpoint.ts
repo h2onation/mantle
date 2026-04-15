@@ -73,12 +73,21 @@ RULES:
 - Use the user's exact charged phrases verbatim where they carry weight. Their sensory and system words ("buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy") carry into the entry without translation. Do not upgrade their vocabulary.
 - Grounded in their specific examples and moments. Not abstract.
 - Somatic anchor REQUIRED. If the user described a body sensation or system state (anywhere in the conversation), it must appear in the entry. No entry is complete without it. The body is the evidence the mechanism is real.
-- Length: 80-300 words. Dense, flowing prose. No bullet points. Every sentence earns its place.
-- MINIMUM LENGTH: At least 80 words. If your draft is shorter, expand with more specific detail from the conversation — concrete examples, mechanism descriptions, body responses. Do not pad with filler.
+- Length: 80-150 words. Dense. Every sentence earns its place. If a sentence restates something the user said clearly, cut it. Only mechanism, bind, and body survive. No bullet points. Flowing prose.
+- MIN 80 words: if your draft is shorter, expand with mechanism or bind, not summary.
+- NOT A RECAP. If the user has already named the pattern in their own words during the conversation, do not restate it. Go one level deeper. Name what the pattern protects, why it can't stop, and what it costs. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation. The entry is not a recap. It is a reflection that shows the user something they could not see from inside.
 - Talk to them about their life and their body, not about their traits. Not a case note. A mirror.
 - No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "You shut down" not "you dissociate." "A second version of you switches on" not "you mask." "The room got too loud" not "sensory overwhelm."
 - No time references. No "right now," "currently," "at this stage," "these days." The entry describes how they operate, period.
-- Name the bind. Not just what they do, but why they can't stop, and what doing it costs them.
+- EXPLICIT BIND REQUIRED. Every entry must name the bind: what the pattern protects AND what it costs. Not one or the other. Both. If you can only see the cost, name what would happen if the user stopped doing the thing — that's the protection. If you can only see the protection, name what it costs them to keep doing it.
+
+EXEMPLARS:
+
+Wrong: "You engage in masking behaviors in social situations driven by fear of rejection and social anxiety."
+Right: "In a room full of people a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the time you get home your jaw is buzzing and you can't speak."
+
+Wrong (recap): "When your manager checks in, your chest gets tight. Your mind goes blank even though you know the answer. Half of you tries to answer while the other half monitors how you're coming across. The monitoring wins, so you hesitate. Then you spend hours replaying what happened."
+Right (mechanism + bind): "Half your system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. You hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. You can't stop monitoring because the one time you didn't manage the impression, it cost you. But the monitoring itself is what makes you look unsure."
 
 Also generate a headline name (4-8 words). Flatly descriptive — says what the mechanism IS in behavioral or body terms. Good: 'Second Version Switches On in Rooms,' 'Voice Goes When Pressure Lands,' 'Buzzing That Pulls Focus Away.' Bad: 'The Masking Loop,' 'The Sensory Trap,' 'Rejection Sensitivity.' No metaphors. No clinical labels. Just describe what happens.
 

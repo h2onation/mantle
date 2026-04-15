@@ -383,6 +383,25 @@ describe("buildSystemPrompt", () => {
       });
       expect(result).not.toContain("FIRST CHECKPOINT");
     });
+
+    it("uses the new four-step sequence with the transition copy and no internal wrapper", () => {
+      const result = build({
+        isFirstCheckpoint: true,
+        checkpointApproaching: true,
+      });
+      expect(result).toContain('"I want to put something in your Manual."');
+      expect(result).toContain("No wrapper inside any checkpoint");
+      // Old five-step wrapper copy is gone
+      expect(result).not.toContain("This is what building your manual looks like");
+    });
+
+    it("does NOT use the old 'Something's taken shape' transition copy", () => {
+      const result = build({
+        isFirstCheckpoint: true,
+        checkpointApproaching: true,
+      });
+      expect(result).not.toContain("Something's taken shape from what you've told me");
+    });
   });
 
   // ─── Post-checkpoint (no fork) ───────────────────────────────────────────
@@ -405,6 +424,25 @@ describe("buildSystemPrompt", () => {
       });
       expect(result).not.toContain('"Work with it"');
       expect(result).not.toContain("Two directions:");
+    });
+
+    it("enumerates the three new post-confirmation steps (structure, open thread, return hook)", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("CONFIRM AND NAME THE STRUCTURE");
+      expect(result).toContain("NAME AN OPEN THREAD");
+      expect(result).toContain("PLANT A RETURN HOOK");
+    });
+
+    it("uses the canonical first-entry copy that references the five layers", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("That's your first entry. Your Manual has five layers.");
+      expect(result).toContain("Four layers still open");
+    });
+
+    it("frames the return hook as an invitation, not homework", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("Invitation, not assignment");
+      expect(result).toContain("Do not frame as homework");
     });
   });
 
@@ -542,13 +580,20 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("READINESS GATE");
     });
 
-    it("includes BUILDING TOWARD SIGNAL when checkpointApproaching is true", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("BUILDING TOWARD SIGNAL");
+    it("always renders PROGRESS SIGNALS block in Tier 3 (new Tier 3 section, not the Tier 2 PACING block)", () => {
+      const result = build({ checkpointApproaching: false });
+      expect(result).toContain("DEPTH BUILDING SIGNAL");
+      expect(result).toContain("CHECKPOINT APPROACHING SIGNAL");
     });
 
-    it("excludes BUILDING TOWARD SIGNAL when checkpointApproaching is false", () => {
-      const result = build({ checkpointApproaching: false });
+    it("Tier 3 PROGRESS SIGNALS block also renders when checkpointApproaching is true", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("DEPTH BUILDING SIGNAL");
+      expect(result).toContain("CHECKPOINT APPROACHING SIGNAL");
+    });
+
+    it("no longer contains the replaced BUILDING TOWARD SIGNAL header", () => {
+      const result = build({ checkpointApproaching: true });
       expect(result).not.toContain("BUILDING TOWARD SIGNAL");
     });
   });
@@ -631,10 +676,10 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Ask for scenes, not labels");
     });
 
-    it("BUILDING TOWARD SIGNAL contains signal-naming instruction when present", () => {
+    it("PROGRESS SIGNALS Tier 3 block names the approaching-signal copy", () => {
       const result = build({ checkpointApproaching: true });
       expect(result).toContain(
-        "There's a thread running through everything you've described"
+        "There's an entry taking shape for your Manual"
       );
     });
 
@@ -897,6 +942,81 @@ describe("buildSystemPrompt", () => {
     });
   });
 
+  // ─── Progress signals (new Tier 3 block) ─────────────────────────────────
+  describe("progress signals (Tier 3)", () => {
+    it("renders the EARLY FRAME block for new first-session users", () => {
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 3,
+      });
+      expect(result).toContain("EARLY FRAME");
+      expect(result).toContain("I'm building a model of how you operate");
+      expect(result).toContain("What you confirm becomes your Manual");
+    });
+
+    it("hides the EARLY FRAME block for returning users", () => {
+      const result = build({
+        isReturningUser: true,
+        manualComponents: [{ layer: 1, name: "x", content: "y" }],
+      });
+      expect(result).not.toContain("EARLY FRAME");
+    });
+
+    it("hides the EARLY FRAME block once the user has confirmed entries", () => {
+      const result = build({
+        manualComponents: [{ layer: 1, name: "x", content: "y" }],
+        isReturningUser: false,
+      });
+      expect(result).not.toContain("EARLY FRAME");
+    });
+
+    it("always renders the depth building and checkpoint approaching signals, regardless of user state", () => {
+      const newUser = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 3,
+      });
+      expect(newUser).toContain("DEPTH BUILDING SIGNAL");
+      expect(newUser).toContain("CHECKPOINT APPROACHING SIGNAL");
+      expect(newUser).toContain("Something is forming in your model");
+
+      const returning = build({
+        isReturningUser: true,
+        manualComponents: [{ layer: 1, name: "x", content: "y" }],
+      });
+      expect(returning).toContain("DEPTH BUILDING SIGNAL");
+      expect(returning).toContain("CHECKPOINT APPROACHING SIGNAL");
+    });
+
+    it("contains the combined first-ever approaching + wrapper copy for first checkpoint users", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("FIRST-EVER approaching signal");
+      expect(result).toContain("When I see enough material I'll reflect a pattern back to you");
+      expect(result).toContain("Nothing sticks unless you say so");
+    });
+
+    it("specifies the three gap types Jove can collect after the approaching signal", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("Missing scene");
+      expect(result).toContain("Missing bind");
+      expect(result).toContain("Missing body/user language");
+    });
+  });
+
+  // ─── Transition copy (new) ───────────────────────────────────────────────
+  describe("checkpoint transition copy", () => {
+    it("uses 'I want to put something in your Manual.' as the transition line", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain('"I want to put something in your Manual."');
+    });
+
+    it("no longer contains the old 'Something\\'s taken shape' transition", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).not.toContain("Something's taken shape from what you've told me");
+    });
+  });
+
   // ─── Structural snapshot — the tier layout ───────────────────────────────
   describe("structural snapshot", () => {
     // Default prompt sections in the order they must appear. Update
@@ -910,11 +1030,15 @@ describe("buildSystemPrompt", () => {
       "EXAMPLE REGISTER",
       "LANDING",
       "DEEPENING",
-      "PROGRESS SIGNALS",
+      "PACING",
       "WHEN JOVE IS WRONG",
       'WHEN THE USER ASKS "WHAT SHOULD I DO"',
       "TIER 3: CONVERSATION MECHANICS",
       "FIRST MESSAGE",
+      "PROGRESS SIGNALS",
+      "EARLY FRAME",
+      "DEPTH BUILDING SIGNAL",
+      "CHECKPOINT APPROACHING SIGNAL",
       "ADAPTING",
       "SHORT ANSWERS",
       "CLINICAL MATERIAL IN CONVERSATION",
@@ -946,7 +1070,9 @@ describe("buildSystemPrompt", () => {
         "TIER 3: CONVERSATION MECHANICS",
         "CHECKPOINTS",
         "POST-CHECKPOINT",
-        "BUILDING TOWARD SIGNAL",
+        "PROGRESS SIGNALS",
+        "DEPTH BUILDING SIGNAL",
+        "CHECKPOINT APPROACHING SIGNAL",
         "ADAPTING",
       ];
       let cursor = 0;
