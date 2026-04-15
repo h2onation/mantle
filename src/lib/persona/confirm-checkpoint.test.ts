@@ -105,7 +105,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     await confirmCheckpoint(baseOptions);
 
@@ -134,7 +134,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     await confirmCheckpoint(baseOptions);
 
@@ -161,7 +161,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     await confirmCheckpoint(baseOptions);
 
@@ -188,7 +188,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     const result = await confirmCheckpoint(baseOptions);
     expect(result.success).toBe(true);
@@ -200,6 +200,47 @@ describe("confirmCheckpoint", () => {
     expect(insertCall).toBeDefined();
     const insertData = (insertCall!.args as [Record<string, unknown>])[0];
     expect(insertData.layer).toBe(3);
+  });
+
+  it("returns failure and skips status update when manual_entries insert errors", async () => {
+    tableResponses.messages = {
+      data: {
+        content: "Text",
+        checkpoint_meta: {
+          layer: 1,
+          name: "Test",
+          status: "pending",
+          composed_content: "Content",
+          composed_name: "Test",
+          changelog: null,
+        },
+      },
+      error: null,
+    };
+    tableResponses.manual_entries = {
+      data: null,
+      error: { message: "RLS policy violation" },
+    };
+
+    const result = await confirmCheckpoint(baseOptions);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("RLS policy violation");
+
+    // Critical: status update and system-message insert MUST NOT run
+    // when the entry write fails. Otherwise the user would see "Written
+    // to manual" while the actual row is missing.
+    const statusUpdate = callLog.find(
+      (c) => c.table === "messages" && c.method === "update"
+    );
+    expect(statusUpdate).toBeUndefined();
+
+    const systemMessage = callLog.find(
+      (c) =>
+        c.table === "messages" &&
+        c.method === "insert"
+    );
+    expect(systemMessage).toBeUndefined();
   });
 
   it("updates checkpoint_meta status to confirmed", async () => {
@@ -217,7 +258,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     await confirmCheckpoint(baseOptions);
 
@@ -250,7 +291,7 @@ describe("confirmCheckpoint", () => {
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: [], error: null };
+    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
     await confirmCheckpoint(baseOptions);
 
