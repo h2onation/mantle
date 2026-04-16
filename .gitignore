@@ -38,3 +38,7 @@ next-env.d.ts
 # claude code
 .claude/worktrees/
 .claude/settings.local.json
+
+# supabase CLI local state (never commit)
+supabase/.temp/
+supabase/.branches/

@@ -23,7 +23,7 @@ FILES=(
   "src/app/auth/callback/route.ts"
   "src/app/page.tsx"
   "src/app/layout.tsx"
-  "supabase/schema.sql"
+  "supabase/migrations/20260417000000_squash_baseline.sql"
 )
 for f in "${FILES[@]}"; do
   if [ -f "$f" ]; then echo "  ✅ $f"; ((PASS++)); else echo "  ❌ $f missing"; ((FAIL++)); fi

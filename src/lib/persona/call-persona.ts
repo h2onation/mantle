@@ -333,14 +333,16 @@ export function callPersona({
 
         const messageId = savedResponse?.id || null;
 
-        // 11b. Save extraction snapshot (defensive — column may not exist yet)
+        // 11b. Save extraction snapshot. The column is guaranteed present
+        //      in the 20260417 squash baseline; any error here is a real
+        //      DB failure, not schema drift.
         if (messageId && previousExtraction) {
           admin
             .from("messages")
             .update({ extraction_snapshot: previousExtraction })
             .eq("id", messageId)
             .then(({ error }) => {
-              if (error && !error.message.includes("extraction_snapshot")) {
+              if (error) {
                 console.error("[callPersona] Failed to save extraction snapshot:", error);
               }
             });

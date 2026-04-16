@@ -200,7 +200,7 @@ API routes follow a consistent pattern:
 
 ## Checkpoint Meta Shape
 
-Not defined in schema.sql, only in code. Stored as JSONB on the `messages` table. Canonical definition is in the TypeScript types in `confirm-checkpoint.ts` — this is a convenience summary for quick reference.
+Not enforced at the DB layer (stored as untyped JSONB on the `messages` table). Canonical definition is in the TypeScript types in `confirm-checkpoint.ts` — this is a convenience summary for quick reference.
 
 ```json
 {
@@ -219,14 +219,25 @@ Layers can hold many entries. Confirmation is always an insert — there is no u
 
 ## Migration Protocols
 
-There are no migration files in this repo. All schema changes are executed directly in the Supabase SQL Editor.
+Schema changes go through the Supabase CLI with migrations committed to `supabase/migrations/`. The dashboard SQL editor is for **read-only exploration only** — never for DDL. This was changed on 2026-04-17 after silent drift caused a production checkpoint-confirm bug; see `docs/checkpoint-hardening-plan.md` Track 1.
 
-When changing the schema:
-- Always add new columns as nullable or with a default value. Non-nullable columns without defaults will break existing rows.
-- Test RLS policy implications before deploying. A new column may need to be included in existing SELECT policies, or a new table needs its own policies.
-- If adding a new table, add RLS policies and enable RLS in the same migration. A table without RLS is open to any authenticated user.
-- After deploying a schema change, update `docs/state.md` and verify the change in the Supabase dashboard.
-- If the change affects the extraction state shape, update `extraction.ts` types AND the extraction prompt in sync. These must always match.
+The flow:
+
+1. Create a new timestamped migration file: `supabase migration new <short_name>` (generates `supabase/migrations/<timestamp>_<short_name>.sql`).
+2. Write the DDL in that file. Make it idempotent (`IF NOT EXISTS`, `IF EXISTS`, `DO $$ … $$` guards) so re-running is safe.
+3. Preview what would change: `supabase db diff`.
+4. Apply locally (if you have `supabase start` running): `supabase db reset` to wipe and reapply all migrations, or `supabase db push` to apply just the unapplied ones.
+5. Commit the migration file, open a PR.
+6. On merge to main, CI runs `supabase db push` to apply to prod (see Track 1 CI step for the GH Action).
+
+Rules:
+- **Always add new columns as nullable or with a default value.** Non-nullable columns without defaults will break existing rows.
+- **Test RLS policy implications before deploying.** A new column may need to be included in existing SELECT policies; a new table needs its own policies.
+- **If adding a new table, add RLS policies and enable RLS in the same migration.** A table without RLS is open to any authenticated user.
+- **If the change affects the extraction state shape, update `extraction.ts` types AND the extraction prompt in sync.** These must always match.
+- **After a migration merges, update `docs/state.md`** with what changed, same as any feature.
+- **Never edit the 20260417000000 baseline squash after it's merged.** It's a point-in-time snapshot. Drift corrections go in new migrations.
+- **Never grant admin privileges in a migration.** Admin status is set by hand in the dashboard against a single email. See `CLAUDE.md` admin safety rule.
 
 ## Versioning
 
