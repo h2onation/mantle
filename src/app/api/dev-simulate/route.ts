@@ -3,11 +3,7 @@ export const runtime = "edge";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAdmin } from "@/lib/admin/verify-admin";
 import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
-import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
-import {
-  generateSimulatedUserMessage,
-  parseCheckpointIntent,
-} from "@/lib/persona/simulate-user";
+import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 
 /**
  * Consume a callPersona ReadableStream internally, extracting the full text
@@ -77,20 +73,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Parse body
+  // Parse body. `checkpointTarget` is accepted for backwards compatibility
+  // with the client but ignored — the simulation now always exits at the first
+  // checkpoint and leaves it in `status: "pending"` so the user can drive the
+  // real confirm UI themselves.
   let simulatedUserDescription = "";
-  let checkpointTarget = 1;
   try {
     const body = await request.json();
     if (body.simulatedUserDescription && typeof body.simulatedUserDescription === "string") {
       simulatedUserDescription = body.simulatedUserDescription.trim();
-    }
-    if (
-      body.checkpointTarget &&
-      typeof body.checkpointTarget === "number" &&
-      body.checkpointTarget >= 1
-    ) {
-      checkpointTarget = body.checkpointTarget;
     }
   } catch {
     // Invalid JSON
@@ -116,20 +107,9 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // 0. Clean slate: delete all existing user data before simulation
-        await admin.from("manual_changelog").delete().eq("user_id", userId);
-        await admin.from("manual_entries").delete().eq("user_id", userId);
-        const { data: existingConvs } = await admin
-          .from("conversations")
-          .select("id")
-          .eq("user_id", userId);
-        if (existingConvs && existingConvs.length > 0) {
-          const convIds = existingConvs.map((c: { id: string }) => c.id);
-          await admin.from("messages").delete().in("conversation_id", convIds);
-          await admin.from("conversations").delete().eq("user_id", userId);
-        }
-
-        // 1. Create conversation
+        // 1. Create a fresh conversation for the simulation. Existing manual
+        //    entries, changelog, messages, and other conversations are left
+        //    untouched — use /api/dev-reset if you need a clean-slate wipe.
         const { data: conv, error: convError } = await admin
           .from("conversations")
           .insert({ user_id: userId })
@@ -152,12 +132,18 @@ export async function POST(request: Request) {
           conversationId,
         });
 
-        // 2. Main simulation loop
-        let confirmedCount = 0;
+        // 2. Main simulation loop — runs until the first checkpoint fires,
+        //    then exits with that checkpoint left in `status: "pending"`.
+        //    Previously this auto-confirmed via confirmCheckpoint() and looped
+        //    until N checkpoints were confirmed; that made dev-simulate a
+        //    test-harness shortcut that bypassed the real /api/checkpoint/confirm
+        //    path (and caused "Checkpoint already resolved" 500s when the user
+        //    then tried to confirm manually through the UI).
         let turn = 0;
+        let checkpointReached = false;
         const MAX_TURNS = 40;
 
-        while (turn < MAX_TURNS && confirmedCount < checkpointTarget) {
+        while (turn < MAX_TURNS && !checkpointReached) {
           turn++;
 
           // Read conversation history from DB
@@ -214,102 +200,20 @@ export async function POST(request: Request) {
             hasCheckpoint: !!(result.checkpoint?.isCheckpoint && result.checkpoint.layer),
           });
 
-          // Checkpoint handling
+          // Checkpoint reached — stop the simulation and hand off to the user.
+          // The checkpoint message is left with status: "pending" (set by
+          // callPersona), so the real UI confirm button drives the rest.
           if (result.checkpoint?.isCheckpoint && result.checkpoint.layer) {
-            // Re-read history from DB (now includes this turn's messages)
-            const { data: updatedMessages } = await admin
-              .from("messages")
-              .select("role, content")
-              .eq("conversation_id", conversationId)
-              .order("created_at", { ascending: true });
-
-            const updatedHistory = mapSystemMessages(
-              (updatedMessages || []) as { role: string; content: string }[]
-            );
-
-            // Generate checkpoint response from simulated user
-            const cpResponse = await generateSimulatedUserMessage(
-              simulatedUserDescription,
-              updatedHistory,
-              true // isCheckpointResponse
-            );
-
-            // Parse intent
-            const action = parseCheckpointIntent(cpResponse);
-
-            if (action === "confirmed") {
-              // Confirm: upsert to manual, archive, insert system message
-              if (result.messageId) {
-                await confirmCheckpoint({
-                  messageId: result.messageId,
-                  conversationId,
-                  userId: userId,
-                });
-              }
-              confirmedCount++;
-
-              // Get Sage's follow-up response
-              const followUpStream = callPersona({
-                conversationId,
-                userId: userId,
-                message: null,
-              });
-              await consumePersonaStream(followUpStream);
-            } else {
-              // Reject or refine: update meta, insert system message
-              if (result.messageId) {
-                const { data: cpMsg } = await admin
-                  .from("messages")
-                  .select("checkpoint_meta")
-                  .eq("id", result.messageId)
-                  .single();
-
-                if (cpMsg?.checkpoint_meta) {
-                  await admin
-                    .from("messages")
-                    .update({
-                      checkpoint_meta: {
-                        ...(cpMsg.checkpoint_meta as Record<string, unknown>),
-                        status: action,
-                      },
-                    })
-                    .eq("id", result.messageId);
-                }
-              }
-
-              // Insert system message
-              const systemContent =
-                action === "rejected"
-                  ? "[User rejected the checkpoint]"
-                  : "[User wants to refine the checkpoint]";
-
-              await admin.from("messages").insert({
-                conversation_id: conversationId,
-                role: "system",
-                content: systemContent,
-              });
-
-              // Get Sage's follow-up to the rejection/refinement
-              const followUpStream = callPersona({
-                conversationId,
-                userId: userId,
-                message: null,
-              });
-              await consumePersonaStream(followUpStream);
-            }
-
             emit(controller, {
               type: "checkpoint",
               turn,
               layer: result.checkpoint.layer,
               name: result.checkpoint.name,
-              action,
+              action: "pending",
               conversationId,
-              checkpointNumber:
-                action === "confirmed" ? confirmedCount : confirmedCount,
+              checkpointNumber: 1,
             });
-
-            if (confirmedCount >= checkpointTarget) break;
+            checkpointReached = true;
           }
         }
 
@@ -317,7 +221,7 @@ export async function POST(request: Request) {
           type: "complete",
           conversationId,
           totalTurns: turn,
-          totalCheckpoints: confirmedCount,
+          totalCheckpoints: checkpointReached ? 1 : 0,
         });
         controller.close();
       } catch (err) {

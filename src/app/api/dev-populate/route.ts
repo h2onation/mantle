@@ -60,8 +60,15 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Wipe existing manual_entries so each call gives exactly the state you specify
-  await admin.from("manual_entries").delete().eq("user_id", userId);
+  // Narrowed delete — only removes prior populate-shaped rows (null name).
+  // Real confirm-generated entries always have a name from composition, so
+  // they're preserved. Previously this wiped ALL of a user's manual_entries,
+  // which destroyed real test data whenever the button was clicked.
+  await admin
+    .from("manual_entries")
+    .delete()
+    .eq("user_id", userId)
+    .is("name", null);
 
   // Insert one entry per requested layer
   const rows = validLayers.map((layer) => ({
