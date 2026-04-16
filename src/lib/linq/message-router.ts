@@ -111,6 +111,7 @@ export async function routeInboundMessage(
     await sendMessage({
       to: senderPhone,
       content: KEYWORD_RESPONSES[command],
+      contentKind: "system",
     });
     console.log("[router] reserved command received: %s", command);
     return;
@@ -159,6 +160,7 @@ export async function routeInboundMessage(
       to: senderPhone,
       content: MEDIA_ONLY_MSG,
       ownerUserId: userId,
+      contentKind: "system",
     });
     console.log("[router] media_only user=%s", userId);
     return;
@@ -176,6 +178,7 @@ export async function routeInboundMessage(
       to: senderPhone,
       content: RATE_LIMIT_MSG,
       ownerUserId: userId,
+      contentKind: "system",
     });
     console.warn("[router] rate_limited user=%s", userId);
     return;
@@ -220,6 +223,7 @@ export async function routeInboundMessage(
       to: senderPhone,
       content: result.responseText,
       ownerUserId: userId,
+      contentKind: "jove",
     });
 
     // Send checkpoint follow-up if present
@@ -228,6 +232,7 @@ export async function routeInboundMessage(
         to: senderPhone,
         content: result.checkpointText,
         ownerUserId: userId,
+        contentKind: "jove",
       });
     }
 
@@ -266,6 +271,7 @@ export async function routeInboundMessage(
       to: senderPhone,
       content: FALLBACK_MSG,
       ownerUserId: userId,
+      contentKind: "system",
     });
   }
 }
@@ -303,6 +309,7 @@ async function handleUnknownNumber(phone: string): Promise<void> {
   const sendResult = await sendMessage({
     to: phone,
     content: UNKNOWN_NUMBER_MSG,
+    contentKind: "system",
   });
   console.log(
     "[router] unknown_number provider=%s status=%s",
@@ -383,6 +390,7 @@ async function handleCheckpointResponse(
           to: senderPhone,
           content: followUp,
           ownerUserId: userId,
+          contentKind: "jove",
         });
       } catch (err) {
         console.error("[router] post_checkpoint_persona_failed:", err);
@@ -390,6 +398,7 @@ async function handleCheckpointResponse(
           to: senderPhone,
           content: "Written to manual.",
           ownerUserId: userId,
+          contentKind: "system",
         });
       }
     } else {
@@ -398,6 +407,7 @@ async function handleCheckpointResponse(
         to: senderPhone,
         content: "Something went wrong saving that. Try again in the app.",
         ownerUserId: userId,
+        contentKind: "system",
       });
     }
     return "confirmed";
@@ -423,6 +433,7 @@ async function handleCheckpointResponse(
         to: senderPhone,
         content: followUp,
         ownerUserId: userId,
+        contentKind: "jove",
       });
     } catch (err) {
       console.error("[router] post_refine_persona_failed:", err);
@@ -430,6 +441,7 @@ async function handleCheckpointResponse(
         to: senderPhone,
         content: `Got it — ${PERSONA_NAME_FORMAL} will revisit this.`,
         ownerUserId: userId,
+        contentKind: "system",
       });
     }
     return "refined";
@@ -455,6 +467,7 @@ async function handleCheckpointResponse(
         to: senderPhone,
         content: followUp,
         ownerUserId: userId,
+        contentKind: "jove",
       });
     } catch (err) {
       console.error("[router] post_reject_persona_failed:", err);
@@ -462,6 +475,7 @@ async function handleCheckpointResponse(
         to: senderPhone,
         content: "Discarded.",
         ownerUserId: userId,
+        contentKind: "system",
       });
     }
     return "rejected";

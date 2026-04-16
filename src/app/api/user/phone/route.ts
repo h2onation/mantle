@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
     to: phone,
     content: `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`,
     ownerUserId: user.id,
+    contentKind: "otp",
   });
   if (sendResult.status === "FAILED") {
     console.error(

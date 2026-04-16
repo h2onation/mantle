@@ -11,11 +11,45 @@
 // with error_message set. This preserves the existing Linq call-site contract
 // where `{ ok: false }` is returned on failure. Provider clients may throw;
 // this wrapper catches and normalizes.
+//
+// PII contract (ADR-037): messaging_events.content is metadata-only. Raw
+// message text is never written to the audit row. Callers pass contentKind
+// to classify the message; redactForAudit() converts to a length-only or
+// category-only marker before insert.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveProvider, type MessagingProvider } from "./provider";
 import { sendMessageViaSendblue } from "./sendblue";
 import { sendMessageViaLinq } from "./linq";
+
+/**
+ * Classifies a message for the audit table so we can redact content at the
+ * boundary without losing debugging signal.
+ *   - "otp"     OTP code. Fully redacted to "[OTP_SEND]".
+ *   - "user"    User-authored inbound. Redacted to length-only.
+ *   - "jove"    Jove-authored outbound. Redacted to length-only.
+ *   - "system"  App-generated system reply (keyword, rate-limit, fallback,
+ *               greeting, unknown-number). Redacted to length-only.
+ * Defaults to "system" when a caller omits the param — the safest default.
+ */
+export type MessageContentKind = "otp" | "user" | "jove" | "system";
+
+export function redactForAudit(
+  content: string,
+  kind: MessageContentKind | undefined
+): string {
+  switch (kind) {
+    case "otp":
+      return "[OTP_SEND]";
+    case "user":
+      return `[USER_MSG len=${content.length}]`;
+    case "jove":
+      return `[JOVE_REPLY len=${content.length}]`;
+    case "system":
+    default:
+      return `[SYSTEM_MSG len=${content.length}]`;
+  }
+}
 
 export interface UnifiedSendParams {
   /** E.164 phone number for 1:1 sends. Ignored when linqGroupChatId is set. */
@@ -28,6 +62,11 @@ export interface UnifiedSendParams {
    * MESSAGING_PROVIDER. Group primitives are Linq-only.
    */
   linqGroupChatId?: string;
+  /**
+   * Classifies this send for the audit row's `content` column. Drives
+   * redactForAudit(). Default "system". See ADR-037.
+   */
+  contentKind?: MessageContentKind;
 }
 
 export interface UnifiedSendResult {
@@ -58,11 +97,13 @@ export async function sendMessage(
         provider_message_id: result.message_handle,
         from_number: result.from_number,
         to_number: result.number,
-        content: result.content,
+        content: redactForAudit(params.content, params.contentKind),
         status: result.status,
         error_code: result.error_code ? String(result.error_code) : null,
         error_message: result.error_message,
-        raw_payload: result,
+        // raw_payload intentionally omitted — Sendblue's response echoes the
+        // full content in `content`. Storing it would re-introduce the PII
+        // leak that ADR-037 closed.
         owner_user_id: params.ownerUserId ?? null,
       });
 
@@ -90,7 +131,7 @@ export async function sendMessage(
       provider_message_id: linqResult.messageId,
       from_number: linqResult.fromNumber,
       to_number: isGroup ? null : params.to,
-      content: params.content,
+      content: redactForAudit(params.content, params.contentKind),
       status,
       error_message: linqResult.errorMessage,
       raw_payload: { traceId: linqResult.traceId },
@@ -111,7 +152,7 @@ export async function sendMessage(
       provider,
       from_number: null,
       to_number: isGroup ? null : params.to,
-      content: params.content,
+      content: redactForAudit(params.content, params.contentKind),
       status: "FAILED",
       error_message: message,
       owner_user_id: params.ownerUserId ?? null,

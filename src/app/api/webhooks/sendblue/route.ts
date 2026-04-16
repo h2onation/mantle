@@ -49,6 +49,23 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  // PII redaction (ADR-037): messaging_events.content is metadata-only.
+  // Inbound user text is redacted to length before insert; raw payload is
+  // dropped entirely because it contains the full message body.
+  const contentLength = (payload.content ?? "").length;
+  const redactedContent = `[USER_MSG len=${contentLength}]`;
+  const redactedPayload = {
+    message_handle: payload.message_handle,
+    service: payload.service,
+    message_type: payload.message_type,
+    group_id: payload.group_id,
+    was_downgraded: payload.was_downgraded,
+    status: payload.status,
+    error_code: payload.error_code,
+    error_message: payload.error_message,
+    content_length: contentLength,
+  };
+
   // Idempotent insert. The unique partial index on
   // (provider, provider_message_id) rejects duplicates when Sendblue retries.
   const { error } = await admin.from("messaging_events").insert({
@@ -57,12 +74,12 @@ export async function POST(req: NextRequest) {
     provider_message_id: payload.message_handle,
     from_number: payload.from_number,
     to_number: payload.to_number,
-    content: payload.content,
+    content: redactedContent,
     status: payload.status,
     error_code: payload.error_code ? String(payload.error_code) : null,
     error_message: payload.error_message,
     was_downgraded: payload.was_downgraded,
-    raw_payload: payload,
+    raw_payload: redactedPayload,
   });
 
   // 23505 = unique constraint violation = Sendblue retry of a message we

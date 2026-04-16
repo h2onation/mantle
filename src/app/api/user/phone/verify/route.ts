@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
       to: phone,
       content: INITIAL_GREETING,
       ownerUserId: user.id,
+      contentKind: "system",
     });
 
     // Save the greeting to messages so it appears in the user's history.
