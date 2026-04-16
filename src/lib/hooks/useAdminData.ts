@@ -73,6 +73,9 @@ export function useAdminData() {
   const [userFeedback, setUserFeedback] = useState<AdminFeedbackItem[]>([]);
   const [userFeedbackLoaded, setUserFeedbackLoaded] = useState(false);
 
+  // Health — last-24h API error count for the Health nav badge.
+  const [apiErrorsCount, setApiErrorsCount] = useState(0);
+
   const loadUsers = useCallback(async () => {
     if (usersLoaded) return;
     try {
@@ -137,6 +140,20 @@ export function useAdminData() {
       console.error("[admin] load user feedback failed:", err);
     }
   }, [userFeedbackLoaded]);
+
+  // Fetches last-24h error total for the Health nav badge. Called on
+  // every admin section change (cheap; one RPC round-trip). No `loaded`
+  // guard — we want the badge to refresh as the admin navigates.
+  const loadApiErrorsSummary = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/errors?windowSeconds=86400");
+      if (!res.ok) return;
+      const data = await res.json();
+      setApiErrorsCount(data.totalErrors || 0);
+    } catch (err) {
+      console.error("[admin] load api errors summary failed:", err);
+    }
+  }, []);
 
   const openUserProfile = useCallback(async (user: AdminUser) => {
     setSelectedUser(user);
@@ -284,12 +301,14 @@ export function useAdminData() {
     betaFeedbackLoaded,
     userFeedback,
     userFeedbackLoaded,
+    apiErrorsCount,
     // actions
     loadUsers,
     loadWaitlist,
     loadAllowlist,
     loadBetaFeedback,
     loadUserFeedback,
+    loadApiErrorsSummary,
     openUserProfile,
     closeUserProfile,
     loadConversationMessages,
