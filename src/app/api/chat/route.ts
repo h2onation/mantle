@@ -3,6 +3,7 @@ export const runtime = "edge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
+import { recordApiError } from "@/lib/observability/record-api-error";
 import {
   chatAuthMinute,
   chatAuthDay,
@@ -17,12 +18,14 @@ const MAX_MESSAGE_LENGTH = 4000;
 const ANON_CHECKPOINT_LIMIT = 2;
 
 export async function POST(request: Request) {
+  let capturedUserId: string | null = null;
   try {
     // 1. Authenticate
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    capturedUserId = user?.id ?? null;
 
     if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -99,6 +102,14 @@ export async function POST(request: Request) {
         .single();
 
       if (convError || !conv) {
+        await recordApiError({
+          admin,
+          route: "/api/chat",
+          method: "POST",
+          statusCode: 500,
+          error: convError ?? new Error("conversations.insert returned no row"),
+          userId: capturedUserId,
+        });
         return Response.json(
           { error: "Failed to create conversation" },
           { status: 500 }
@@ -122,7 +133,15 @@ export async function POST(request: Request) {
         Connection: "keep-alive",
       },
     });
-  } catch {
+  } catch (err) {
+    await recordApiError({
+      admin: createAdminClient(),
+      route: "/api/chat",
+      method: "POST",
+      statusCode: 500,
+      error: err,
+      userId: capturedUserId,
+    });
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
