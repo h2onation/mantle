@@ -159,8 +159,12 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           </a>
         </div>
 
-        {/* Legal links */}
+        {/* Legal links — hidden on desktop where the canvas colophon
+            carries Privacy/Terms. Keeping both would duplicate them and
+            break the fiction that the phone is the reading surface and
+            the canvas is the publication. See MobileLayout colophon. */}
         <div
+          className="mw-mobile-only"
           style={{
             textAlign: "center",
             marginTop: 24,

@@ -112,6 +112,31 @@ select:focus-visible,
   }
 }
 
+/* Desktop paratext — masthead + colophon around the phone frame.
+   Visible only when the phone frame isn't filling the viewport.
+   Breakpoint matches MobileLayout's phone-frame rounding trick (430px). */
+.mw-desktop-paratext {
+  display: none;
+}
+
+@media (min-width: 431px) {
+  .mw-desktop-paratext {
+    display: block;
+  }
+}
+
+/* Inverse: elements that exist inside the phone frame but should hide
+   when the canvas colophon takes over. Used on the EntryScreen's legal
+   footer — a phone frame with its own legal links on a canvas that also
+   has legal links breaks the fiction that the phone is the reading
+   surface and the canvas is the publication. !important is needed
+   because the footer's host element uses inline display. */
+@media (min-width: 431px) {
+  .mw-mobile-only {
+    display: none !important;
+  }
+}
+
 /* Thin scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
