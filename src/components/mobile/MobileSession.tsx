@@ -210,7 +210,7 @@ export default function MobileSession({
   );
 
   return (
-    <div
+    <main
       style={{
         height: "100%",
         display: "flex",
@@ -220,7 +220,7 @@ export default function MobileSession({
       }}
     >
       {/* Header */}
-      <div
+      <header
         style={{
           display: "flex",
           alignItems: "center",
@@ -232,6 +232,9 @@ export default function MobileSession({
         {/* Menu button — left */}
         <button
           onClick={handleOpenDrawer}
+          aria-label="Open session menu"
+          aria-expanded={drawerOpen}
+          aria-controls="session-drawer"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -249,6 +252,7 @@ export default function MobileSession({
           {[0, 1, 2].map((i) => (
             <div
               key={i}
+              aria-hidden="true"
               style={{
                 width: i === 2 ? "13px" : "18px",
                 height: "1.5px",
@@ -275,7 +279,7 @@ export default function MobileSession({
 
         {/* Right spacer */}
         <div style={{ width: "40px" }} />
-      </div>
+      </header>
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
@@ -352,6 +356,10 @@ export default function MobileSession({
         {/* Scrollable content */}
         <div
           ref={scrollRef}
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          aria-label="Conversation messages"
           style={{
             height: "100%",
             overflowY: "auto",
@@ -821,7 +829,7 @@ export default function MobileSession({
                     style={{
                       fontFamily: "var(--font-sans)",
                       fontSize: "13px",
-                      color: "var(--session-ink-ghost)",
+                      color: "var(--session-ink-mid)",
                     }}
                   >
                     {errorMessage}
@@ -860,6 +868,6 @@ export default function MobileSession({
         onSelectSession={switchConversation}
         onNewSession={startNewSession}
       />
-    </div>
+    </main>
   );
 }

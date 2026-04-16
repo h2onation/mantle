@@ -65,7 +65,7 @@ export const adminLabelStyle: CSSProperties = {
 export const adminEmptyStyle: CSSProperties = {
   fontFamily: "var(--font-sans)",
   fontSize: "13px",
-  color: "var(--session-ink-ghost)",
+  color: "var(--session-ink-mid)",
   padding: "40px 0",
   textAlign: "center",
 };

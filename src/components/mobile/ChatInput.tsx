@@ -246,6 +246,7 @@ export default function ChatInput({
           placeholder=""
           rows={1}
           name="chat-message"
+          aria-label="Message"
           autoComplete="off"
           autoCorrect="on"
           autoCapitalize="sentences"
@@ -278,6 +279,15 @@ export default function ChatInput({
         <button
           onClick={handleButtonClick}
           disabled={disabled && buttonMode !== "stop"}
+          aria-label={
+            buttonMode === "send"
+              ? "Send message"
+              : buttonMode === "stop"
+                ? "Stop recording"
+                : buttonMode === "mic-denied"
+                  ? "Microphone access denied"
+                  : "Start voice recording"
+          }
           style={{
             display: "flex",
             alignItems: "center",
@@ -335,7 +345,7 @@ export default function ChatInput({
             </div>
           )}
 
-          {/* Send arrow — active state with sage green circle */}
+          {/* Send arrow — active state */}
           {buttonMode === "send" && (
             <div
               style={{
@@ -358,6 +368,7 @@ export default function ChatInput({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <line x1="12" y1="19" x2="12" y2="5" />
                 <polyline points="5 12 12 5 19 12" />
@@ -381,6 +392,7 @@ export default function ChatInput({
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <rect x="9" y="1" width="6" height="12" rx="3" />
                 <path d="M19 10v1a7 7 0 0 1-14 0v-1" />

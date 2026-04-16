@@ -22,11 +22,11 @@
   --session-ink-hairline: rgba(26, 22, 20, 0.08);
 
   /* Sage green (checkpoint accent) */
-  --session-persona:        #5E7054;
+  --session-persona:        #556B48;
   --session-persona-soft:   #7A8B72;
-  --session-persona-muted:  rgba(94, 112, 84, 0.10);
-  --session-persona-border: rgba(94, 112, 84, 0.22);
-  --session-persona-tint:   rgba(94, 112, 84, 0.06);
+  --session-persona-muted:  rgba(85, 107, 72, 0.10);
+  --session-persona-border: rgba(85, 107, 72, 0.22);
+  --session-persona-tint:   rgba(85, 107, 72, 0.06);
 
   /* Error */
   --session-error:        #B5564D;
@@ -86,6 +86,30 @@ html:has(.scrollable-page) body {
 
 textarea::placeholder {
   color: var(--session-ink-faded);
+}
+
+/* Global focus ring — cream spacer + sage outer ring. Hugs border-radius,
+   reads against both linen surface and darker overlays. !important is used
+   because several components apply inline box-shadow that would otherwise
+   win the cascade. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--session-cream), 0 0 0 4px var(--session-persona) !important;
+}
+
+/* Reduced motion — honor the OS preference. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Thin scrollbars */

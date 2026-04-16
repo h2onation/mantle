@@ -68,7 +68,7 @@ export default function BetaFeedbackButton() {
       }
       setStatus("success");
       setText("");
-      setTimeout(() => setOpen(false), 1500);
+      setTimeout(() => setOpen(false), 2000);
     } catch {
       setStatus("error");
     }
@@ -83,50 +83,38 @@ export default function BetaFeedbackButton() {
         title="Send feedback"
         style={{
           position: "absolute",
-          // Sit inside the 40-44px header spacer slot (header padding
-          // is 12px top, 16-24px right). Anchor to the right edge of
-          // that slot.
-          top: 16,
-          right: 20,
+          // Center the pill vertically on the same y-axis as the
+          // prior 32px icon (which sat at top:16, so center y=32).
+          top: 20,
+          right: 16,
           zIndex: 110,
-          width: 32,
-          height: 32,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--session-ink-ghost)",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--size-meta)",
+          lineHeight: 1,
+          color: "var(--session-ink-mid)",
           background: "none",
-          border: "none",
+          border: "1px solid var(--session-ink-ghost)",
           borderRadius: 999,
-          padding: 0,
+          padding: "5px 12px",
           cursor: "pointer",
           WebkitTapHighlightColor: "transparent",
-          transition: "color 0.2s ease",
+          transition: "color 0.2s ease, border-color 0.2s ease",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color =
-            "var(--session-ink-mid)";
+          const el = e.currentTarget as HTMLButtonElement;
+          el.style.color = "var(--session-ink-soft)";
+          el.style.borderColor = "var(--session-ink-mid)";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color =
-            "var(--session-ink-ghost)";
+          const el = e.currentTarget as HTMLButtonElement;
+          el.style.color = "var(--session-ink-mid)";
+          el.style.borderColor = "var(--session-ink-ghost)";
         }}
       >
-        {/* Speech bubble glyph — subtle, matches the hairline weight
-            of the hamburger menu on the opposite side of the header. */}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M2.5 4.25a1.75 1.75 0 0 1 1.75-1.75h7.5a1.75 1.75 0 0 1 1.75 1.75v5a1.75 1.75 0 0 1-1.75 1.75H7L4 13.5v-2.75a1.75 1.75 0 0 1-1.5-1.73v-4.77z" />
-        </svg>
+        feedback
       </button>
 
       {open && (
@@ -153,19 +141,85 @@ export default function BetaFeedbackButton() {
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
                 color: "var(--session-ink)",
-                padding: "8px 4px",
+                padding: "16px 4px",
                 textAlign: "center",
               }}
             >
-              Thanks for the feedback
+              Thank you for your feedback.
             </div>
+          ) : status === "error" ? (
+            <>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  color: "var(--session-ink)",
+                  padding: "8px 4px",
+                  textAlign: "center",
+                }}
+              >
+                Didn&apos;t go through. Try again?
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  onClick={handleSubmit}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "var(--size-meta)",
+                    fontWeight: 600,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: "var(--session-cream)",
+                    background: "var(--session-persona)",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "7px 14px",
+                    cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            </>
           ) : (
             <>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "var(--session-ink)",
+                  textAlign: "left",
+                  marginBottom: 2,
+                }}
+              >
+                Send feedback
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "12px",
+                  fontWeight: 300,
+                  color: "var(--session-ink-mid)",
+                  textAlign: "left",
+                  lineHeight: 1.4,
+                  marginBottom: 8,
+                }}
+              >
+                What did you love,  if you caught a bug, your notes. All useful.
+              </div>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="What's on your mind?"
-                rows={4}
+                placeholder="I noticed..."
+                rows={6}
                 disabled={status === "submitting"}
                 style={{
                   width: "100%",
@@ -182,23 +236,11 @@ export default function BetaFeedbackButton() {
                   lineHeight: 1.5,
                 }}
               />
-              {status === "error" && (
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "var(--size-meta)",
-                    color: "var(--session-error)",
-                    letterSpacing: "1px",
-                    marginTop: 6,
-                  }}
-                >
-                  Couldn&apos;t send. Try again.
-                </div>
-              )}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "flex-end",
+                  alignItems: "center",
                   gap: 8,
                   marginTop: 8,
                 }}
@@ -213,9 +255,9 @@ export default function BetaFeedbackButton() {
                     textTransform: "uppercase",
                     color: "var(--session-ink-ghost)",
                     background: "none",
-                    border: "1px solid var(--session-ink-hairline)",
+                    border: "none",
                     borderRadius: 6,
-                    padding: "6px 10px",
+                    padding: "6px 8px",
                     cursor: "pointer",
                     WebkitTapHighlightColor: "transparent",
                   }}
@@ -228,13 +270,14 @@ export default function BetaFeedbackButton() {
                   style={{
                     fontFamily: "var(--font-mono)",
                     fontSize: "var(--size-meta)",
+                    fontWeight: 600,
                     letterSpacing: "1px",
                     textTransform: "uppercase",
                     color: "var(--session-cream)",
                     background: "var(--session-persona)",
                     border: "none",
                     borderRadius: 6,
-                    padding: "6px 12px",
+                    padding: "7px 14px",
                     cursor: "pointer",
                     opacity:
                       status === "submitting" || text.trim().length === 0

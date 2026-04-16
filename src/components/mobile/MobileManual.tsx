@@ -57,7 +57,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
   }, [displayName, entries]);
 
   return (
-    <div
+    <main
       style={{
         height: "100%",
         display: "flex",
@@ -66,7 +66,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
       }}
     >
       {/* Header */}
-      <div
+      <header
         style={{
           display: "flex",
           alignItems: "center",
@@ -94,7 +94,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
 
         {/* Right spacer */}
         <div style={{ minWidth: "44px", minHeight: "44px" }} />
-      </div>
+      </header>
 
       {/* Scroll fade overlay */}
       <div
@@ -203,7 +203,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             }}
           >
             Share your manual
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path
                 d="M5 3l4 4-4 4"
                 stroke="#A0734E"
@@ -220,6 +220,9 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
       {/* Context half-sheet */}
       {showSheet && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-sheet-heading"
           style={{
             position: "fixed",
             inset: 0,
@@ -232,6 +235,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           {/* Backdrop */}
           <div
             onClick={() => setShowSheet(false)}
+            aria-hidden="true"
             style={{
               position: "absolute",
               inset: 0,
@@ -252,6 +256,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           >
             {/* Drag handle */}
             <div
+              aria-hidden="true"
               style={{
                 width: 36,
                 height: 4,
@@ -262,6 +267,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             />
 
             <h2
+              id="share-sheet-heading"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: 20,
@@ -375,6 +381,9 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
       {/* First-visit intro modal */}
       {showIntroModal && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="manual-intro-heading"
           style={{
             position: "fixed",
             inset: 0,
@@ -395,6 +404,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             }}
           >
             <p
+              id="manual-intro-heading"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: 17,
@@ -472,6 +482,6 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

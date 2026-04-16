@@ -2,10 +2,10 @@
 
 export type MobileTab = "session" | "manual" | "settings";
 
-const TABS: { id: MobileTab; label: string }[] = [
-  { id: "session", label: "Session" },
-  { id: "manual", label: "Manual" },
-  { id: "settings", label: "Settings" },
+const TABS: { id: MobileTab; label: string; panelId: string }[] = [
+  { id: "session", label: "Session", panelId: "session-panel" },
+  { id: "manual", label: "Manual", panelId: "manual-panel" },
+  { id: "settings", label: "Settings", panelId: "settings-panel" },
 ];
 
 interface MobileNavProps {
@@ -16,6 +16,8 @@ interface MobileNavProps {
 export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
   return (
     <div
+      role="tablist"
+      aria-label="Main navigation"
       style={{
         position: "absolute",
         bottom: 0,
@@ -30,11 +32,15 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
         zIndex: 100,
       }}
     >
-      {TABS.map(({ id, label }) => {
+      {TABS.map(({ id, label, panelId }) => {
         const isActive = activeTab === id;
         return (
           <button
             key={id}
+            role="tab"
+            aria-selected={isActive}
+            aria-controls={panelId}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onTabChange(id)}
             style={{
               padding: "0 0 3px",

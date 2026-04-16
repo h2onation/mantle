@@ -68,6 +68,8 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
       {!readOnly && (
         <button
           onClick={toggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? `Show less of ${entry.name}` : `Read more about ${entry.name}`}
           style={{
             display: "block",
             marginTop: 10,

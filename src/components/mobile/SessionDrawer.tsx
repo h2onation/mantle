@@ -35,6 +35,7 @@ export default function SessionDrawer({
       {/* Backdrop */}
       <div
         onClick={onClose}
+        aria-hidden="true"
         style={{
           position: "fixed",
           inset: 0,
@@ -48,6 +49,11 @@ export default function SessionDrawer({
 
       {/* Drawer panel */}
       <div
+        id="session-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-drawer-heading"
+        aria-hidden={!open}
         style={{
           position: "fixed",
           top: 0,
@@ -74,6 +80,7 @@ export default function SessionDrawer({
           }}
         >
           <span
+            id="session-drawer-heading"
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "var(--size-meta)",
@@ -86,6 +93,7 @@ export default function SessionDrawer({
           </span>
           <button
             onClick={onClose}
+            aria-label="Close session menu"
             style={{
               background: "none",
               border: "none",
@@ -93,7 +101,7 @@ export default function SessionDrawer({
               padding: "4px",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--session-ink-ghost)" strokeWidth="1.5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--session-ink-ghost)" strokeWidth="1.5" aria-hidden="true">
               <line x1="2" y1="2" x2="12" y2="12" />
               <line x1="12" y1="2" x2="2" y2="12" />
             </svg>
@@ -212,7 +220,7 @@ export default function SessionDrawer({
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "13px",
-                color: "var(--session-ink-ghost)",
+                color: "var(--session-ink-mid)",
                 padding: "20px",
                 textAlign: "center",
               }}

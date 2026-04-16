@@ -41,7 +41,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
   }, [advance]);
 
   return (
-    <div
+    <main
       style={{
         display: "flex",
         flexDirection: "column",
@@ -107,7 +107,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
             fontWeight: 400,
             fontStyle: "italic",
             lineHeight: 1.45,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
             margin: "0 0 40px 0",
             minHeight: "92px",
             opacity: visible ? 1 : 0,
@@ -143,7 +143,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
             textAlign: "center",
             fontFamily: "var(--font-sans)",
             fontSize: 13,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
           }}
         >
           <a
@@ -166,7 +166,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
             marginTop: 24,
             fontFamily: "var(--font-sans)",
             fontSize: 11,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
           }}
         >
           <a href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>
@@ -178,6 +178,6 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
