@@ -1,0 +1,94 @@
+name: Supabase migrations
+
+# Enforces CLI-driven schema changes. See docs/checkpoint-hardening-plan.md
+# Track 1 and docs/system.md "Migration Protocols" for context.
+#
+# On PR (when supabase/migrations changes): preview which migrations would
+#   apply if the PR merged. Reviewer sees the list in the check output.
+#
+# On push to main (when supabase/migrations changes): actually apply via
+#   `supabase db push`. This is the one and only path to prod DDL.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — personal access token from supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD   — database password (Supabase dashboard → Project Settings → Database)
+#
+# SUPABASE_PROJECT_REF is hardcoded below (not secret — it's in every API URL).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+env:
+  SUPABASE_PROJECT_REF: nkmperzwcmttdkxwhbiv
+
+jobs:
+  preview:
+    name: Preview pending migrations
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref $SUPABASE_PROJECT_REF
+
+      - name: List migrations (local vs remote)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          echo "### Migration state (as of PR HEAD)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          supabase migration list >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Any rows with **Local** set and **Remote** empty will be applied on merge." >> $GITHUB_STEP_SUMMARY
+
+  apply:
+    name: Apply migrations to production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      # Serialize pushes so two rapid merges don't race each other
+      group: supabase-migrations-apply
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref $SUPABASE_PROJECT_REF
+
+      - name: List migrations before apply
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase migration list
+
+      - name: Apply pending migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+      - name: List migrations after apply (verify)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase migration list
