@@ -12,6 +12,7 @@ import BetaFeedbackTab from "@/components/admin/BetaFeedbackTab";
 import UserProfilePane from "@/components/admin/UserProfilePane";
 import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
+import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import {
   formatAdminDate,
   adminEmptyStyle,
@@ -56,6 +57,9 @@ function AdminPageInner() {
 
   useEffect(() => {
     if (!isAdmin) return;
+    // Always refresh the Health nav badge — it's the one piece of admin
+    // state we want visible regardless of which section is active.
+    data.loadApiErrorsSummary();
     if (section === "users") data.loadUsers();
     if (section === "beta") {
       data.loadWaitlist();
@@ -148,7 +152,9 @@ function AdminPageInner() {
             const badge =
               s.id === "feedback" && data.betaFeedbackUnreadCount > 0
                 ? data.betaFeedbackUnreadCount
-                : null;
+                : s.id === "health" && data.apiErrorsCount > 0
+                  ? data.apiErrorsCount
+                  : null;
             return (
               <button
                 key={s.id}
@@ -310,6 +316,7 @@ function AdminPageInner() {
             >
               <SchemaHealthTab />
               <ConfirmHealthPanel />
+              <ApiErrorsPanel />
             </div>
           )}
 
