@@ -8,6 +8,7 @@ import type { ManualEntry, ExplorationContext } from "@/lib/types";
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import { trackManualExported } from "@/lib/analytics/events";
 
 const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
@@ -49,6 +50,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
       const name = displayName || "User";
       const pdf = generateManualPdf(name, currentLayers);
       await shareManual(pdf, name);
+      trackManualExported({ format: "pdf", entry_count: entries.length });
     } catch (err) {
       console.error("[MobileManual] Share failed:", err);
     } finally {

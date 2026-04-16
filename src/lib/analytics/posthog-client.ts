@@ -2,6 +2,12 @@
 // autocapture is explicitly OFF — we manually capture specific events
 // because user-authored text (messages, manual entries) must never
 // leak into event properties.
+//
+// Session recording is permanently OFF. Mywalnut is a deep personal-
+// disclosure product; recording user screens crosses a trust line
+// that analytics events never do. Belt-and-suspenders: project-level
+// recording is also disabled in PostHog Settings → Recordings, so an
+// accidental client-side config change still captures nothing.
 
 "use client";
 
@@ -19,13 +25,7 @@ export function initPostHog() {
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: true,
-    // Replay stays off until PR 2 wires data-ph-mask on chat and manual
-    // surfaces. Remove this line when masking lands.
     disable_session_recording: true,
-    session_recording: {
-      maskAllInputs: true,
-      maskTextSelector: "[data-ph-mask]",
-    },
     respect_dnt: true,
     persistence: "localStorage+cookie",
   });
