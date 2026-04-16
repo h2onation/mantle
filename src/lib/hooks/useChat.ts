@@ -416,7 +416,16 @@ export function useChat() {
       // Clear active checkpoint
       setActiveCheckpoint(null);
 
-      // Stream Sage's follow-up response
+      // Idempotent repeat — server responded with JSON (not SSE), the
+      // entry was already written on an earlier call, and Jove's
+      // follow-up was already streamed then. Just re-sync manual state.
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        await loadManual();
+        return;
+      }
+
+      // First-time confirm — stream Jove's follow-up and finalize.
       const { fullText, completeEvent } = await streamFromResponse(res);
       finalizeMessage(fullText, completeEvent);
 

@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "./config";
 
@@ -170,19 +169,38 @@ interface ConfirmCheckpointOptions {
   userId: string;
 }
 
+/**
+ * Confirms a checkpoint. Idempotent and transactional — safe to call any
+ * number of times with the same messageId.
+ *
+ * Loads the checkpoint message, extracts composed fields (with fallbacks),
+ * then delegates all writes to the confirm_checkpoint_write Postgres
+ * function, which in one transaction: inserts the manual_entries row,
+ * flips the message status to "confirmed", and inserts the system message.
+ *
+ * Returns:
+ *   success: true, componentId, wasAlreadyConfirmed: false — first-time confirm
+ *   success: true, componentId, wasAlreadyConfirmed: true — already confirmed (idempotent)
+ *   success: false, error — message missing, non-pending terminal state, or DB failure
+ *
+ * See supabase/migrations/20260417000003_confirm_idempotency.sql for the
+ * RPC definition and docs/checkpoint-hardening-plan.md Track 2.
+ */
 export async function confirmCheckpoint({
   messageId,
-  conversationId,
   userId,
 }: ConfirmCheckpointOptions): Promise<{
   success: boolean;
   error?: string;
   componentId?: string;
+  wasAlreadyConfirmed?: boolean;
 }> {
   const admin = createAdminClient();
 
   try {
-    // 1. Load the message with checkpoint data
+    // 1. Load the checkpoint message so we can pull composed content,
+    //    name, summary, key_words from checkpoint_meta. The RPC handles
+    //    its own status check + lock; we only read here.
     const { data: message, error: msgError } = await admin
       .from("messages")
       .select("content, checkpoint_meta")
@@ -204,14 +222,11 @@ export async function confirmCheckpoint({
       composed_key_words: string[] | null;
     };
 
-    if (meta.status !== "pending") {
-      return { success: false, error: "Checkpoint already resolved." };
-    }
-
-    // Use pre-composed content from Jove's manual entry block.
-    // Falls back to the conversational checkpoint text if composition wasn't produced.
-    // When falling back, strip any crisis resources text that may have been appended
-    // by the crisis detection system (prevents contamination of manual entries).
+    // 2. Compute final field values with fallbacks. This stays in TS
+    //    rather than the SQL function — composition fallback logic is
+    //    business logic, not a transaction concern.
+    //    Strip crisis resources from fallback content (prevents
+    //    contamination of manual entries when composition didn't run).
     const CRISIS_RESOURCES_PATTERN =
       "\n\nIf you're in crisis or need immediate support, please reach out to";
     let fallbackContent = message.content;
@@ -223,50 +238,58 @@ export async function confirmCheckpoint({
     }
     const contentToWrite = meta.composed_content || fallbackContent;
     const nameToWrite = meta.composed_name || meta.name || "Untitled";
-    const summaryToWrite = meta.composed_summary || deriveSummaryFallback(contentToWrite);
+    const summaryToWrite =
+      meta.composed_summary || deriveSummaryFallback(contentToWrite);
     const keyWordsToWrite =
       Array.isArray(meta.composed_key_words) && meta.composed_key_words.length > 0
         ? meta.composed_key_words
         : null;
 
-    // 2. Always create a new entry for this layer.
-    // Layers can hold many entries — there is no per-layer cap or replace logic.
-    const { data: newEntry, error: insertError } = await admin
-      .from("manual_entries")
-      .insert({
-        user_id: userId,
-        layer: meta.layer,
-        name: nameToWrite,
-        content: contentToWrite,
-        source_message_id: messageId,
-        summary: summaryToWrite,
-        key_words: keyWordsToWrite,
-      })
-      .select("id")
-      .single();
+    // 3. Atomic write via Postgres function. FOR UPDATE locks the
+    //    message row so concurrent calls serialize; partial unique
+    //    index on (user_id, source_message_id) prevents duplicates.
+    const { data: rpcResult, error: rpcError } = await admin.rpc(
+      "confirm_checkpoint_write",
+      {
+        p_message_id: messageId,
+        p_user_id: userId,
+        p_layer: meta.layer,
+        p_name: nameToWrite,
+        p_content: contentToWrite,
+        p_summary: summaryToWrite,
+        p_key_words: keyWordsToWrite,
+      }
+    );
 
-    if (insertError || !newEntry?.id) {
-      console.error("[confirmCheckpoint] Insert failed:", insertError);
+    if (rpcError) {
+      // Error codes raised by the function map to user-facing messages.
+      // The exception message bubbles through the Supabase client as
+      // `error.message`. P0002 = checkpoint_not_found, P0001 = not_pending.
+      const msg = rpcError.message || "";
+      if (msg.includes("checkpoint_not_found")) {
+        return { success: false, error: "Checkpoint not found." };
+      }
+      if (msg.includes("checkpoint_not_pending")) {
+        return { success: false, error: "Checkpoint was rejected or refined." };
+      }
+      console.error("[confirmCheckpoint] RPC failed:", rpcError);
       return {
         success: false,
-        error: insertError?.message || "Failed to write entry to manual.",
+        error: "Failed to write entry to manual.",
       };
     }
 
-    const componentId: string = newEntry.id;
+    const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+    if (!row?.entry_id) {
+      console.error("[confirmCheckpoint] RPC returned no entry id:", rpcResult);
+      return { success: false, error: "Failed to write entry to manual." };
+    }
 
-    // 3. Update checkpoint status
-    await admin
-      .from("messages")
-      .update({
-        checkpoint_meta: { ...meta, status: "confirmed" },
-      })
-      .eq("id", messageId);
-
-    // 4. Insert system message (shared helper — single source of truth)
-    await insertCheckpointActionMessage(admin, conversationId, "confirmed");
-
-    return { success: true, componentId: componentId || undefined };
+    return {
+      success: true,
+      componentId: row.entry_id as string,
+      wasAlreadyConfirmed: Boolean(row.was_already_confirmed),
+    };
   } catch (err) {
     console.error("[confirmCheckpoint] Error:", err);
     return { success: false, error: "Something went wrong." };

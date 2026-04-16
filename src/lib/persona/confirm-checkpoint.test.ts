@@ -1,13 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock Supabase admin before importing the module
+// Mock chain supports:
+//   .from(table).select(...).eq(...).single() → returns tableResponses[table]
+//   .rpc(name, params) → returns rpcResponse (with call logged)
 const mockChain: Record<string, unknown> = {};
-let callLog: { table: string; method: string; args?: unknown[] }[] = [];
+let callLog: {
+  table?: string;
+  rpc?: string;
+  method: string;
+  args?: unknown[];
+}[] = [];
 let tableResponses: Record<string, { data: unknown; error: unknown }> = {};
+let rpcResponse: { data: unknown; error: unknown } = {
+  data: null,
+  error: null,
+};
 
 function resetMockChain() {
   callLog = [];
   tableResponses = {};
+  rpcResponse = { data: null, error: null };
 
   let currentTable = "";
 
@@ -20,14 +32,6 @@ function resetMockChain() {
     callLog.push({ table: currentTable, method: "select", args });
     return mockChain;
   });
-  mockChain.insert = vi.fn((data: unknown) => {
-    callLog.push({ table: currentTable, method: "insert", args: [data] });
-    return mockChain;
-  });
-  mockChain.update = vi.fn((data: unknown) => {
-    callLog.push({ table: currentTable, method: "update", args: [data] });
-    return mockChain;
-  });
   mockChain.eq = vi.fn((...args: unknown[]) => {
     callLog.push({ table: currentTable, method: "eq", args });
     return mockChain;
@@ -37,11 +41,9 @@ function resetMockChain() {
       tableResponses[currentTable] || { data: null, error: null }
     );
   });
-  // Make the chain thenable for non-.single() queries
-  mockChain.then = vi.fn((resolve: (v: unknown) => void) => {
-    return Promise.resolve(
-      tableResponses[currentTable] || { data: null, error: null }
-    ).then(resolve);
+  mockChain.rpc = vi.fn((name: string, params: unknown) => {
+    callLog.push({ rpc: name, method: "rpc", args: [params] });
+    return Promise.resolve(rpcResponse);
   });
 }
 
@@ -56,6 +58,14 @@ beforeEach(() => {
   resetMockChain();
 });
 
+function rpcArgs(): Record<string, unknown> | undefined {
+  const call = callLog.find(
+    (c) => c.rpc === "confirm_checkpoint_write" && c.method === "rpc"
+  );
+  if (!call) return undefined;
+  return (call.args as [Record<string, unknown>])[0];
+}
+
 describe("confirmCheckpoint", () => {
   const baseOptions = {
     messageId: "msg-1",
@@ -63,246 +73,268 @@ describe("confirmCheckpoint", () => {
     userId: "user-1",
   };
 
-  it("returns error when checkpoint not found", async () => {
+  const pendingMessage = {
+    content: "Fallback content",
+    checkpoint_meta: {
+      layer: 1,
+      name: "Test name",
+      status: "pending",
+      composed_content: "Polished composed content",
+      composed_name: "Composed name",
+      changelog: null,
+      composed_summary: null,
+      composed_key_words: null,
+    },
+  };
+
+  it("returns error when the checkpoint message is missing", async () => {
     tableResponses.messages = { data: null, error: { message: "not found" } };
     const result = await confirmCheckpoint(baseOptions);
     expect(result.success).toBe(false);
     expect(result.error).toBe("Checkpoint not found.");
+    // RPC should NOT be invoked if we couldn't read the message.
+    expect(rpcArgs()).toBeUndefined();
   });
 
-  it("returns error when checkpoint already resolved", async () => {
+  it("returns error when the message has no checkpoint_meta", async () => {
     tableResponses.messages = {
-      data: {
-        content: "Some text",
-        checkpoint_meta: {
-          layer: 1,
-          name: "Test",
-          status: "confirmed",
-          composed_content: null,
-          composed_name: null,
-          changelog: null,
-        },
-      },
+      data: { content: "text", checkpoint_meta: null },
       error: null,
     };
     const result = await confirmCheckpoint(baseOptions);
     expect(result.success).toBe(false);
-    expect(result.error).toBe("Checkpoint already resolved.");
+    expect(result.error).toBe("Checkpoint not found.");
+    expect(rpcArgs()).toBeUndefined();
   });
 
-  it("uses composed_content over message.content when present", async () => {
-    tableResponses.messages = {
-      data: {
-        content: "Fallback text",
-        checkpoint_meta: {
-          layer: 1,
-          name: "Test",
-          status: "pending",
-          composed_content: "Polished manual entry",
-          composed_name: "Composed Name",
-          changelog: null,
-        },
-      },
+  it("passes composed_content to the RPC when present", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
 
-    await confirmCheckpoint(baseOptions);
+    const result = await confirmCheckpoint(baseOptions);
 
-    // Find the insert call to manual_entries
-    const insertCall = callLog.find(
-      (c) => c.table === "manual_entries" && c.method === "insert"
-    );
-    expect(insertCall).toBeDefined();
-    const insertData = (insertCall!.args as [Record<string, unknown>])[0];
-    expect(insertData.content).toBe("Polished manual entry");
-    expect(insertData.name).toBe("Composed Name");
+    expect(result.success).toBe(true);
+    expect(result.componentId).toBe("entry-1");
+    expect(result.wasAlreadyConfirmed).toBe(false);
+    const args = rpcArgs();
+    expect(args).toBeDefined();
+    expect(args!.p_content).toBe("Polished composed content");
+    expect(args!.p_name).toBe("Composed name");
+    expect(args!.p_layer).toBe(1);
   });
 
   it("falls back to message.content when composed_content is null", async () => {
     tableResponses.messages = {
       data: {
-        content: "Conversational checkpoint text",
+        content: "Fallback conversational text",
         checkpoint_meta: {
-          layer: 2,
-          name: "Fallback Name",
-          status: "pending",
+          ...pendingMessage.checkpoint_meta,
           composed_content: null,
           composed_name: null,
-          changelog: null,
         },
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
 
     await confirmCheckpoint(baseOptions);
 
-    const insertCall = callLog.find(
-      (c) => c.table === "manual_entries" && c.method === "insert"
-    );
-    expect(insertCall).toBeDefined();
-    const insertData = (insertCall!.args as [Record<string, unknown>])[0];
-    expect(insertData.content).toBe("Conversational checkpoint text");
+    const args = rpcArgs();
+    expect(args!.p_content).toBe("Fallback conversational text");
   });
 
-  it("defaults name to 'Untitled' when both composed_name and meta.name are null", async () => {
+  it("defaults name to 'Untitled' when composed_name and meta.name are both null", async () => {
     tableResponses.messages = {
       data: {
-        content: "Some text",
+        content: "text",
         checkpoint_meta: {
-          layer: 1,
-          name: null,
-          status: "pending",
-          composed_content: "Content",
+          ...pendingMessage.checkpoint_meta,
+          composed_content: "content",
           composed_name: null,
-          changelog: null,
+          name: null,
         },
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
 
     await confirmCheckpoint(baseOptions);
 
-    const insertCall = callLog.find(
-      (c) => c.table === "manual_entries" && c.method === "insert"
-    );
-    expect(insertCall).toBeDefined();
-    const insertData = (insertCall!.args as [Record<string, unknown>])[0];
-    expect(insertData.name).toBe("Untitled");
+    const args = rpcArgs();
+    expect(args!.p_name).toBe("Untitled");
   });
 
-  it("inserts new component for fresh layer", async () => {
+  it("strips crisis resources from fallback content before passing to RPC", async () => {
+    const crisisTail =
+      "\n\nIf you're in crisis or need immediate support, please reach out to 988";
     tableResponses.messages = {
       data: {
-        content: "Text",
+        content: "Real checkpoint body." + crisisTail,
         checkpoint_meta: {
-          layer: 3,
-          name: "New Component",
-          status: "pending",
-          composed_content: "Fresh content",
-          composed_name: "New Component",
-          changelog: null,
+          ...pendingMessage.checkpoint_meta,
+          composed_content: null,
         },
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint(baseOptions);
+
+    const args = rpcArgs();
+    expect(args!.p_content).toBe("Real checkpoint body.");
+    expect(args!.p_content).not.toContain("crisis");
+  });
+
+  it("returns idempotent success when RPC reports was_already_confirmed", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "existing-entry", was_already_confirmed: true }],
+      error: null,
+    };
 
     const result = await confirmCheckpoint(baseOptions);
-    expect(result.success).toBe(true);
 
-    // Should insert to manual_entries (not update)
-    const insertCall = callLog.find(
-      (c) => c.table === "manual_entries" && c.method === "insert"
-    );
-    expect(insertCall).toBeDefined();
-    const insertData = (insertCall!.args as [Record<string, unknown>])[0];
-    expect(insertData.layer).toBe(3);
+    expect(result.success).toBe(true);
+    expect(result.componentId).toBe("existing-entry");
+    expect(result.wasAlreadyConfirmed).toBe(true);
   });
 
-  it("returns failure and skips status update when manual_entries insert errors", async () => {
-    tableResponses.messages = {
-      data: {
-        content: "Text",
-        checkpoint_meta: {
-          layer: 1,
-          name: "Test",
-          status: "pending",
-          composed_content: "Content",
-          composed_name: "Test",
-          changelog: null,
-        },
-      },
-      error: null,
-    };
-    tableResponses.manual_entries = {
+  it("maps RPC checkpoint_not_found error to user-facing 'Checkpoint not found.'", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
       data: null,
-      error: { message: "RLS policy violation" },
+      error: {
+        message:
+          'P0002: checkpoint_not_found CONTEXT: PL/pgSQL function confirm_checkpoint_write',
+      },
     };
 
     const result = await confirmCheckpoint(baseOptions);
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe("RLS policy violation");
-
-    // Critical: status update and system-message insert MUST NOT run
-    // when the entry write fails. Otherwise the user would see "Written
-    // to manual" while the actual row is missing.
-    const statusUpdate = callLog.find(
-      (c) => c.table === "messages" && c.method === "update"
-    );
-    expect(statusUpdate).toBeUndefined();
-
-    const systemMessage = callLog.find(
-      (c) =>
-        c.table === "messages" &&
-        c.method === "insert"
-    );
-    expect(systemMessage).toBeUndefined();
+    expect(result.error).toBe("Checkpoint not found.");
   });
 
-  it("updates checkpoint_meta status to confirmed", async () => {
+  it("maps RPC checkpoint_not_pending error to 'Checkpoint was rejected or refined.'", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: null,
+      error: {
+        message: "P0001: checkpoint_not_pending",
+      },
+    };
+
+    const result = await confirmCheckpoint(baseOptions);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Checkpoint was rejected or refined.");
+  });
+
+  it("returns generic failure on unexpected RPC errors", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: null,
+      error: { message: "connection refused" },
+    };
+
+    const result = await confirmCheckpoint(baseOptions);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Failed to write entry to manual.");
+  });
+
+  it("returns failure when RPC returns no entry id (defensive)", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: null, was_already_confirmed: false }],
+      error: null,
+    };
+
+    const result = await confirmCheckpoint(baseOptions);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Failed to write entry to manual.");
+  });
+
+  it("passes composed summary + key_words to the RPC when present", async () => {
     tableResponses.messages = {
       data: {
-        content: "Text",
+        content: "text",
         checkpoint_meta: {
-          layer: 1,
-          name: "Test",
-          status: "pending",
-          composed_content: "Content",
-          composed_name: "Test",
-          changelog: null,
+          ...pendingMessage.checkpoint_meta,
+          composed_summary: "Short summary sentence.",
+          composed_key_words: ["alpha", "beta", "gamma"],
         },
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
 
     await confirmCheckpoint(baseOptions);
 
-    // Find the update to messages table that sets status to confirmed
-    const updateCalls = callLog.filter(
-      (c) => c.table === "messages" && c.method === "update"
-    );
-    const statusUpdate = updateCalls.find((c) => {
-      const data = (c.args as [Record<string, unknown>])[0];
-      return (
-        data.checkpoint_meta &&
-        (data.checkpoint_meta as Record<string, unknown>).status === "confirmed"
-      );
-    });
-    expect(statusUpdate).toBeDefined();
+    const args = rpcArgs();
+    expect(args!.p_summary).toBe("Short summary sentence.");
+    expect(args!.p_key_words).toEqual(["alpha", "beta", "gamma"]);
   });
 
-  it("inserts system message after confirmation", async () => {
+  it("derives summary from content when composed_summary is missing", async () => {
     tableResponses.messages = {
       data: {
-        content: "Text",
+        content: "text",
         checkpoint_meta: {
-          layer: 1,
-          name: "Test",
-          status: "pending",
-          composed_content: "Content",
-          composed_name: "Test",
-          changelog: null,
+          ...pendingMessage.checkpoint_meta,
+          composed_content: "First sentence here. Second sentence follows.",
+          composed_summary: null,
         },
       },
       error: null,
     };
-    tableResponses.manual_entries = { data: { id: "new-entry-1" }, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
 
     await confirmCheckpoint(baseOptions);
 
-    // Find system message insert
-    const systemMsgInsert = callLog.find((c) => {
-      if (c.table !== "messages" || c.method !== "insert") return false;
-      const data = (c.args as [Record<string, unknown>])[0];
-      return data.role === "system";
-    });
-    expect(systemMsgInsert).toBeDefined();
-    const data = (systemMsgInsert!.args as [Record<string, unknown>])[0];
-    expect(data.content).toBe("[User confirmed the checkpoint]");
+    const args = rpcArgs();
+    expect(args!.p_summary).toBe("First sentence here.");
+  });
+
+  it("passes null for key_words when composed_key_words is empty or missing", async () => {
+    tableResponses.messages = {
+      data: {
+        content: "text",
+        checkpoint_meta: {
+          ...pendingMessage.checkpoint_meta,
+          composed_key_words: [],
+        },
+      },
+      error: null,
+    };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint(baseOptions);
+
+    const args = rpcArgs();
+    expect(args!.p_key_words).toBeNull();
   });
 });

@@ -64,9 +64,10 @@ export async function POST(request: Request) {
   }
 
   // 3. Handle action
+  let wasAlreadyConfirmed = false;
   if (action === "confirmed") {
-    // Use the confirmCheckpoint utility which handles composed content,
-    // changelog archiving, pattern support, and system message insertion
+    // Idempotent + transactional write — see confirm-checkpoint.ts and
+    // supabase/migrations/20260417000003_confirm_idempotency.sql.
     const result = await confirmCheckpoint({
       messageId,
       conversationId,
@@ -74,11 +75,19 @@ export async function POST(request: Request) {
     });
 
     if (!result.success) {
-      return Response.json(
-        { error: result.error || "Failed to save to manual" },
-        { status: 500 }
-      );
+      // Map specific failures to precise HTTP statuses so clients can
+      // distinguish transient from fatal from "never going to succeed".
+      const err = result.error || "Failed to save to manual";
+      if (err === "Checkpoint not found.") {
+        return Response.json({ error: err }, { status: 404 });
+      }
+      if (err === "Checkpoint was rejected or refined.") {
+        return Response.json({ error: err }, { status: 400 });
+      }
+      return Response.json({ error: err }, { status: 500 });
     }
+
+    wasAlreadyConfirmed = Boolean(result.wasAlreadyConfirmed);
   } else {
     // For rejected/refined: update status and insert system message
     const updatedMeta = { ...msg.checkpoint_meta, status: action };
@@ -88,6 +97,18 @@ export async function POST(request: Request) {
       .eq("id", messageId);
 
     await insertCheckpointActionMessage(admin, conversationId, action);
+  }
+
+  // 3b. Idempotent repeat → return short JSON ack, no follow-up stream.
+  //     The first call already sent Jove's follow-up; re-streaming it
+  //     here would duplicate the message in the conversation. Client
+  //     reads this response and triggers loadManual() to sync.
+  if (wasAlreadyConfirmed) {
+    return Response.json({
+      alreadyConfirmed: true,
+      conversationId,
+      messageId,
+    });
   }
 
   // 4. Detect if this is a guest's first confirmed checkpoint → promptAuth
