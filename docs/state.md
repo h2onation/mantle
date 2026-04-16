@@ -86,9 +86,10 @@
 ## In-Flight Work
 *Last verified: 2026-04-16*
 
+- **Checkpoint hardening plan** ([docs/checkpoint-hardening-plan.md](checkpoint-hardening-plan.md)) — 6-track plan to harden the checkpoint system for scale before 2026-04-28 beta. Tracks: (1) Supabase CLI-driven migrations + drift detection, (2) idempotent confirm RPC + unique constraint + transactional writes, (3) client-side resilience with error taxonomy and SW audit, (4) structured logging + confirm_failures table + admin health panel, (5) E2E integration test + schema drift canary, (6) Upstash Redis + enforced rate limits. Pre-beta cut: Tracks 1, 2, 3, 6 (~4 days). Plan includes pre-flight SQL audits, concrete RPC + log schemas, per-track rollback plans, and an explicit decisions table to avoid mid-execution litigation.
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
-- Upstash Redis setup needed for rate limiting to enforce in production
+- Upstash Redis setup needed for rate limiting to enforce in production (covered by plan Track 6)
 - Linq deprecation: moving away from Linq SMS provider
 
 ## Beta Users
