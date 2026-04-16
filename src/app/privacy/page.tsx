@@ -36,7 +36,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p style={{ color: "var(--session-ink-mid)", margin: "0 0 32px 0" }}>
-          Last updated: March 14, 2026
+          Last updated: April 16, 2026
         </p>
 
         <p>
@@ -144,6 +144,26 @@ export default function PrivacyPolicy() {
           We select providers that maintain industry-standard security practices.
           We do not control their privacy policies and encourage you to review
           them independently.
+        </p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
+          Analytics
+        </h2>
+        <p>
+          We use PostHog to understand which features are working and which are
+          confusing. We track events like &ldquo;you started a conversation&rdquo;
+          or &ldquo;you viewed your Manual&rdquo; &mdash; but we do not record
+          your screen, we do not send your conversation content, your Manual
+          content, or your messages to any third party. Your user ID is hashed
+          before it reaches PostHog. You can opt out by enabling &ldquo;Do Not
+          Track&rdquo; in your browser.
         </p>
 
         <h2
