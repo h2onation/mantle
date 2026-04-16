@@ -137,6 +137,71 @@ select:focus-visible,
   }
 }
 
+/* DesktopVitrine paratext positioning.
+   Two desktop layouts:
+     - 431-1029px: vertical stack. Masthead top-center, colophon
+       bottom-center, phone reserves 400px vertical for paratext.
+     - 1030px+: side-margin layout. Masthead top-LEFT corner of canvas,
+       colophon bottom-LEFT, phone at full natural maxHeight, right
+       margin left as intentional negative space. */
+
+.mw-masthead {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mw-colophon {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+}
+
+.mw-colophon-inner {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.mw-phone-frame {
+  max-height: min(932px, 100dvh);
+}
+
+@media (min-width: 431px) and (max-width: 1029px) {
+  .mw-phone-frame {
+    /* Vertical stack layout — reserve 400px for masthead + colophon. */
+    max-height: min(932px, calc(100dvh - 400px));
+  }
+}
+
+@media (min-width: 1030px) {
+  .mw-masthead {
+    left: 48px;
+    right: auto;
+    text-align: left;
+  }
+  .mw-colophon {
+    bottom: 48px;
+    left: 48px;
+    right: auto;
+  }
+  /* Colophon column caps at 320px but adapts to available margin space
+     so it never overlaps the phone at breakpoint edges. At 1030 this
+     computes to ~220px (statement wraps to 3-4 lines); at 1200 ~305px;
+     at 1440+ the 320px cap takes over. */
+  .mw-colophon-inner {
+    max-width: min(320px, calc((100vw - 430px) / 2 - 80px));
+    margin: 0;
+  }
+  /* Phone returns to its natural max-height — no vertical reservation
+     needed because paratext is in the side margins, not above/below. */
+}
+
 /* Thin scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
