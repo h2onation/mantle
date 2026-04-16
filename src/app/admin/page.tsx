@@ -13,6 +13,7 @@ import UserProfilePane from "@/components/admin/UserProfilePane";
 import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
+import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import {
   formatAdminDate,
   adminEmptyStyle,
@@ -317,6 +318,7 @@ function AdminPageInner() {
               <SchemaHealthTab />
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
+              <ActiveUsersPanel />
             </div>
           )}
 
