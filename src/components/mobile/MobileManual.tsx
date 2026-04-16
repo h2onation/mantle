@@ -82,7 +82,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
         <span
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "13px",
+            fontSize: "20px",
             fontWeight: 400,
             color: "var(--session-ink-faded)",
             letterSpacing: "4px",
