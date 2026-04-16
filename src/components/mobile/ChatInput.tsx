@@ -164,7 +164,14 @@ export default function ChatInput({
         </div>
       )}
 
-      {/* Input container — underline style */}
+      {/* Input container — paper-groove treatment. At rest, a 1px highlight
+          sits above and a 1px ink-hairline below so the input reads as a
+          shallow indent pressed into the linen, not a line drawn on top.
+          The top highlight is constant (the upper edge of the groove); the
+          bottom shadow carries the state — idle ink-hairline, focus
+          persona-border, recording persona-soft. The groove illusion
+          holds throughout because the highlight/shadow contrast is
+          preserved in all states. */}
       <div
         style={{
           position: "relative" as const,
@@ -172,15 +179,15 @@ export default function ChatInput({
           flexDirection: "row",
           alignItems: "center",
           gap: "12px",
-          borderBottom: `1px solid ${
+          boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 ${
             isRecording
               ? "var(--session-persona-soft)"
               : inputFocused
                 ? "var(--session-persona-border)"
-                : "var(--session-ink-whisper)"
+                : "var(--session-ink-hairline)"
           }`,
           paddingBottom: "8px",
-          transition: "border-color 400ms ease-in-out",
+          transition: "box-shadow 400ms ease-in-out",
         }}
       >
         {/* Visible placeholder — hides on focus or when text present */}

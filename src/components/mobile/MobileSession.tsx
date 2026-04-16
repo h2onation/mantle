@@ -150,10 +150,11 @@ export default function MobileSession({
       <div style={{ marginBottom: "6px" }}>
         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
-      {/* Prose — no rail, no padding indent */}
+      {/* Prose — no rail, no padding indent. 17px matches --size-prose,
+          the Jove body size throughout chat. */}
       <div style={{
         fontFamily: "var(--font-persona)",
-        fontSize: "16px",
+        fontSize: "17px",
         lineHeight: 1.55,
         color: "var(--session-ink-persona)",
       }}>
@@ -396,7 +397,7 @@ export default function MobileSession({
               <p
                 style={{
                   fontFamily: "var(--font-persona)",
-                  fontSize: "16px",
+                  fontSize: "17px",
                   color: "var(--session-ink-persona)",
                   lineHeight: 1.55,
                   textAlign: "center",
@@ -701,7 +702,7 @@ export default function MobileSession({
                         paddingTop: "4px",
                         paddingBottom: "4px",
                         fontFamily: "var(--font-persona)",
-                        fontSize: "16px",
+                        fontSize: "17px",
                         fontWeight: 400,
                         lineHeight: 1.55,
                         color: "var(--session-ink-persona)",
@@ -710,7 +711,7 @@ export default function MobileSession({
                       <div
                         style={{
                           fontFamily: "var(--font-persona)",
-                          fontSize: "16px",
+                          fontSize: "17px",
                           fontWeight: 400,
                           lineHeight: 1.55,
                           display: "flex",
