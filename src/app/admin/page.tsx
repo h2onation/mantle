@@ -10,18 +10,20 @@ import WaitlistTab from "@/components/admin/WaitlistTab";
 import BetaAllowlistTab from "@/components/admin/BetaAllowlistTab";
 import BetaFeedbackTab from "@/components/admin/BetaFeedbackTab";
 import UserProfilePane from "@/components/admin/UserProfilePane";
+import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import {
   formatAdminDate,
   adminEmptyStyle,
 } from "@/components/admin/admin-shared";
 
-type Section = "users" | "beta" | "feedback";
+type Section = "users" | "beta" | "feedback" | "health";
 type BetaSubTab = "waitlist" | "allowlist";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "users", label: "Users" },
   { id: "beta", label: "Beta" },
   { id: "feedback", label: "Feedback" },
+  { id: "health", label: "Health" },
 ];
 
 export default function AdminPage() {
@@ -294,6 +296,18 @@ function AdminPageInner() {
                   />
                 )}
               </div>
+            </div>
+          )}
+
+          {section === "health" && (
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "18px 24px 40px",
+              }}
+            >
+              <SchemaHealthTab />
             </div>
           )}
 
