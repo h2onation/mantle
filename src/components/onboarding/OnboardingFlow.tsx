@@ -5,6 +5,7 @@ import EntryScreen from "./EntryScreen";
 import LoginScreen from "./LoginScreen";
 import InfoScreens from "./InfoScreens";
 import SeedScreen from "./SeedScreen";
+import DesktopVitrine from "@/components/layout/DesktopVitrine";
 
 type ViewName = "entry" | "login" | "onboarding" | "seed";
 
@@ -57,47 +58,45 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "430px",
-        margin: "0 auto",
-        height: "100dvh",
-        background: "var(--session-linen)",
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E")`,
-        backgroundSize: "256px 256px",
-        position: "relative",
-        overflow: "hidden",
-        boxSizing: "border-box",
-        WebkitTapHighlightColor: "transparent",
-      }}
-    >
+    <DesktopVitrine>
       <div
         style={{
-          height: "100%",
-          opacity: viewOpacity,
-          transition: "opacity 400ms ease",
+          position: "absolute",
+          inset: 0,
+          background: "var(--session-linen)",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E")`,
+          backgroundSize: "256px 256px",
+          overflow: "hidden",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
-        {currentView === "entry" && (
-          <EntryScreen onLogin={handleLogin} />
-        )}
+        <div
+          style={{
+            height: "100%",
+            opacity: viewOpacity,
+            transition: "opacity 400ms ease",
+          }}
+        >
+          {currentView === "entry" && (
+            <EntryScreen onLogin={handleLogin} />
+          )}
 
-        {currentView === "login" && (
-          <LoginScreen onBack={handleBackToEntry} />
-        )}
+          {currentView === "login" && (
+            <LoginScreen onBack={handleBackToEntry} />
+          )}
 
-        {currentView === "onboarding" && (
-          <InfoScreens
-            onNavigateToSeed={handleNavigateToSeed}
-            onBack={handleBackToEntry}
-          />
-        )}
+          {currentView === "onboarding" && (
+            <InfoScreens
+              onNavigateToSeed={handleNavigateToSeed}
+              onBack={handleBackToEntry}
+            />
+          )}
 
-        {currentView === "seed" && (
-          <SeedScreen />
-        )}
+          {currentView === "seed" && (
+            <SeedScreen />
+          )}
+        </div>
       </div>
-    </div>
+    </DesktopVitrine>
   );
 }
