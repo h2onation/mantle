@@ -12,6 +12,9 @@ import MobileSettings from "@/components/mobile/MobileSettings";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
+import { trackManualViewed } from "@/lib/analytics/events";
+
+const MANUAL_LAST_VIEW_KEY = "mw_last_manual_view";
 
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
 type OnboardingStatus = "loading" | "needed" | "complete";
@@ -122,6 +125,23 @@ export default function MainApp() {
   useEffect(() => {
     if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
+
+  // Fire manual_viewed when the user lands on the manual tab. Days-since
+  // is a rough retention signal computed from a localStorage timestamp —
+  // no server round-trip; PostHog can aggregate visit counts itself.
+  useEffect(() => {
+    if (activeTab !== "manual") return;
+    const stored = localStorage.getItem(MANUAL_LAST_VIEW_KEY);
+    const now = Date.now();
+    const daysSinceLastView = stored
+      ? Math.max(0, Math.round((now - Number(stored)) / (1000 * 60 * 60 * 24)))
+      : null;
+    trackManualViewed({
+      entry_count: confirmedEntries.length,
+      days_since_last_view: daysSinceLastView,
+    });
+    localStorage.setItem(MANUAL_LAST_VIEW_KEY, String(now));
+  }, [activeTab, confirmedEntries.length]);
 
   // Inline sign-in banner state
   const [bannerAuthRequested, setBannerAuthRequested] = useState(false);

@@ -1,8 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { initPostHog, posthog } from "@/lib/analytics/posthog-client";
+import { trackSessionStarted } from "@/lib/analytics/events";
+
+const SESSION_LAST_KEY = "mw_last_session";
 
 // Pageview tracking lives in its own component so the Suspense boundary
 // only wraps the hooks that need it. Root-layout usage of useSearchParams
@@ -28,6 +31,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   // errors or the user is anonymous (hashedId=null), we still unblock
   // pageview capture so baseline analytics keep flowing.
   const [identifyResolved, setIdentifyResolved] = useState(false);
+  // React Strict Mode double-invokes effects in dev. Without this guard
+  // session_started fires twice per page load locally.
+  const sessionStartedFired = useRef(false);
 
   useEffect(() => {
     initPostHog();
@@ -46,6 +52,21 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         console.warn("PostHog identify failed:", err);
       } finally {
         setIdentifyResolved(true);
+        if (!sessionStartedFired.current) {
+          sessionStartedFired.current = true;
+          const stored = typeof window !== "undefined" ? localStorage.getItem(SESSION_LAST_KEY) : null;
+          const now = Date.now();
+          const daysSinceLastSession = stored
+            ? Math.max(0, Math.round((now - Number(stored)) / (1000 * 60 * 60 * 24)))
+            : null;
+          trackSessionStarted({
+            days_since_last_session: daysSinceLastSession,
+            is_first_session: stored === null,
+          });
+          if (typeof window !== "undefined") {
+            localStorage.setItem(SESSION_LAST_KEY, String(now));
+          }
+        }
       }
     }
     identify();
