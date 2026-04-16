@@ -9,7 +9,7 @@ interface InfoScreensProps {
 
 export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
   return (
-    <div
+    <main
       style={{
         display: "flex",
         flexDirection: "column",
@@ -39,7 +39,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
       {/* Content area */}
       <div style={{ padding: "0 28px 40px" }}>
         {/* Section label */}
-        <div
+        <h1
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: 8,
@@ -48,10 +48,11 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
             textTransform: "uppercase",
             color: "var(--session-persona)",
             marginBottom: 16,
+            margin: "0 0 16px 0",
           }}
         >
           HOW IT WORKS
-        </div>
+        </h1>
 
         {/* Body — 4 paragraphs */}
         <div
@@ -106,11 +107,11 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           }}
         >
           Continue
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M5 3L9.5 7L5 11" stroke="var(--session-cream)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
-    </div>
+    </main>
   );
 }

@@ -21,6 +21,9 @@ export default function ConfirmationModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-message"
       style={{
         position: "fixed",
         inset: 0,
@@ -42,6 +45,7 @@ export default function ConfirmationModal({
         }}
       >
         <p
+          id="confirm-modal-message"
           style={{
             fontFamily: "var(--font-sans)",
             fontSize: "14px",

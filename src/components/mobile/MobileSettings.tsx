@@ -16,14 +16,18 @@ function SectionHeader({
   label,
   isOpen,
   onToggle,
+  sectionId,
 }: {
   label: string;
   isOpen: boolean;
   onToggle: () => void;
+  sectionId?: string;
 }) {
   return (
     <button
       onClick={onToggle}
+      aria-expanded={isOpen}
+      aria-controls={sectionId}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -43,7 +47,7 @@ function SectionHeader({
       }}
     >
       {label}
-      <span style={{ fontSize: "10px" }}>{isOpen ? "\u25BE" : "\u25B8"}</span>
+      <span aria-hidden="true" style={{ fontSize: "10px" }}>{isOpen ? "\u25BE" : "\u25B8"}</span>
     </button>
   );
 }
@@ -312,7 +316,7 @@ export default function MobileSettings({
   }
 
   return (
-    <div
+    <main
       style={{
         height: "100%",
         overflowY: "auto",
@@ -320,7 +324,7 @@ export default function MobileSettings({
       }}
     >
       {/* Header */}
-      <p
+      <h1
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: "var(--size-meta)",
@@ -328,16 +332,17 @@ export default function MobileSettings({
           letterSpacing: "3px",
           textTransform: "uppercase",
           margin: "0 0 32px 0",
+          fontWeight: 400,
         }}
       >
         SETTINGS
-      </p>
+      </h1>
 
       {/* ─── Account ─────────────────────────────────────────────── */}
-      <SectionHeader label="ACCOUNT" isOpen={openSections.has("account")} onToggle={() => toggleSection("account")} />
+      <SectionHeader label="ACCOUNT" isOpen={openSections.has("account")} onToggle={() => toggleSection("account")} sectionId="settings-account" />
 
       {openSections.has("account") && (
-        <>
+        <div id="settings-account">
           <SettingsRow
             title="Log out"
             subtitle={userEmail || "—"}
@@ -358,13 +363,14 @@ export default function MobileSettings({
             onClick={() => setShowDeleteAccountConfirm(true)}
             noBorder
           />
-        </>
+        </div>
       )}
 
       {/* ─── Crisis Support ──────────────────────────────────────── */}
-      <SectionHeader label="CRISIS SUPPORT" isOpen={openSections.has("crisis")} onToggle={() => toggleSection("crisis")} />
+      <SectionHeader label="CRISIS SUPPORT" isOpen={openSections.has("crisis")} onToggle={() => toggleSection("crisis")} sectionId="settings-crisis" />
 
       {openSections.has("crisis") && (
+      <div id="settings-crisis">
       <SettingsRow title="Crisis Support" noBorder>
         <div>
           <div>
@@ -428,12 +434,14 @@ export default function MobileSettings({
           </p>
         </div>
       </SettingsRow>
+      </div>
       )}
 
       {/* ─── Text Sage ─────────────────────────────────────────── */}
-      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} />
+      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} sectionId="settings-textsage" />
 
       {openSections.has("textsage") && (
+        <div id="settings-textsage">
         <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
             {phoneState === "loading" && (
@@ -484,6 +492,9 @@ export default function MobileSettings({
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
                   placeholder="+1 (555) 123-4567"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  aria-label="Phone number"
                   style={{
                     width: "100%",
                     fontFamily: "var(--font-sans)",
@@ -572,6 +583,7 @@ export default function MobileSettings({
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
+                  aria-label="Verification code"
                   maxLength={6}
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
@@ -756,15 +768,16 @@ export default function MobileSettings({
             )}
           </div>
         </SettingsRow>
+        </div>
       )}
 
       {/* ─── Dev Tools (admin only) ────────────────────────────── */}
       {isAdmin && (
       <>
-      <SectionHeader label="DEV TOOLS" isOpen={openSections.has("devtools")} onToggle={() => toggleSection("devtools")} />
+      <SectionHeader label="DEV TOOLS" isOpen={openSections.has("devtools")} onToggle={() => toggleSection("devtools")} sectionId="settings-devtools" />
 
       {openSections.has("devtools") && (
-        <>
+        <div id="settings-devtools">
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
@@ -773,6 +786,7 @@ export default function MobileSettings({
             value={simulatedUser}
             onChange={(e) => setSimulatedUser(e.target.value)}
             placeholder="Describe the simulated user — personality, backstory, emotional style (e.g. 'A 34-year-old teacher who avoids conflict and struggles to set boundaries')"
+            aria-label="Simulated user description"
             rows={4}
             style={{
               width: "100%",
@@ -982,7 +996,7 @@ export default function MobileSettings({
           >
             Open admin dashboard →
           </a>
-        </>
+        </div>
       )}
       </>
       )}
@@ -1005,6 +1019,6 @@ export default function MobileSettings({
         confirmLabel="Delete account"
         isDestructive
       />
-    </div>
+    </main>
   );
 }

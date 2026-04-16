@@ -21,7 +21,7 @@ export default function AdminManualView({
         style={{
           fontFamily: "var(--font-sans)",
           fontSize: "13px",
-          color: "var(--session-ink-ghost)",
+          color: "var(--session-ink-mid)",
           padding: "40px 0",
           textAlign: "center",
         }}

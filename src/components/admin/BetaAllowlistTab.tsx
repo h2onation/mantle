@@ -110,7 +110,7 @@ export default function BetaAllowlistTab({ items, onAdd, onRemove }: Props) {
               letterSpacing: "1px",
               textTransform: "uppercase",
               color: "var(--session-cream)",
-              background: "var(--session-persona)",
+              background: "var(--session-ink)",
               border: "none",
               borderRadius: 6,
               padding: "9px 14px",

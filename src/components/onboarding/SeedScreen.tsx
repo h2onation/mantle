@@ -76,7 +76,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
   }
 
   return (
-    <div
+    <main
       style={{
         display: "flex",
         flexDirection: "column",
@@ -106,7 +106,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
       {/* Content area */}
       <div style={{ padding: "0 28px 40px" }}>
         {/* Section label */}
-        <div
+        <h1
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: 8,
@@ -115,10 +115,11 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             textTransform: "uppercase",
             color: "var(--session-persona)",
             marginBottom: 16,
+            margin: "0 0 16px 0",
           }}
         >
           BEFORE YOU START
-        </div>
+        </h1>
 
         {/* Body — 3 paragraphs */}
         <div
@@ -154,6 +155,16 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           onClick={() => setAgeConfirmed(!ageConfirmed)}
         >
           <div
+            role="checkbox"
+            aria-checked={ageConfirmed}
+            aria-label="I’m 18 or older"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                setAgeConfirmed(!ageConfirmed);
+              }
+            }}
             style={{
               width: 22,
               height: 22,
@@ -172,7 +183,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             }}
           >
             {ageConfirmed && (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M3 7L6 10L11 4" stroke="var(--session-cream)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
@@ -195,7 +206,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontSize: 12,
             fontWeight: 400,
             lineHeight: 1.6,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
             margin: "0 0 18px 0",
           }}
         >
@@ -228,7 +239,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontWeight: 500,
             color: isEnabled ? "var(--session-cream)" : "var(--session-ink-ghost)",
             backgroundColor: isEnabled
-              ? "var(--session-persona)"
+              ? "var(--session-ink)"
               : "var(--session-ink-hairline)",
             border: "none",
             borderRadius: 8,
@@ -248,7 +259,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontFamily: "var(--font-sans)",
             fontSize: 11,
             fontWeight: 400,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
             lineHeight: 1.6,
           }}
         >
@@ -263,6 +274,6 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           .
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -28,7 +28,7 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
             fontFamily: "var(--font-sans)",
             fontSize: 16,
             fontWeight: 500,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-ink-mid)",
             margin: 0,
             letterSpacing: "-0.1px",
             lineHeight: 1.3,

@@ -50,12 +50,16 @@ export default function MobileLayout({
           }}
         >
           {([
-            ["session", sessionContent],
-            ["manual", manualContent],
-            ["settings", settingsContent],
-          ] as const).map(([tab, content]) => (
+            ["session", sessionContent, "session-panel"],
+            ["manual", manualContent, "manual-panel"],
+            ["settings", settingsContent, "settings-panel"],
+          ] as const).map(([tab, content, panelId]) => (
             <div
               key={tab}
+              id={panelId}
+              role="tabpanel"
+              aria-labelledby={`${panelId}-tab`}
+              hidden={activeTab !== tab}
               style={{
                 position: "absolute",
                 top: 0,

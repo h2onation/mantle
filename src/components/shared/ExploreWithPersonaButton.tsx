@@ -38,6 +38,7 @@ export default function ExploreWithPersonaButton({
         height="10"
         viewBox="0 0 10 10"
         fill="none"
+        aria-hidden="true"
         style={{ display: "block" }}
       >
         <path

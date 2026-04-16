@@ -7,6 +7,8 @@ interface SWUpdatePromptProps {
 export default function SWUpdatePrompt({ onUpdate }: SWUpdatePromptProps) {
   return (
     <div
+      role="dialog"
+      aria-label="Update available"
       style={{
         position: "fixed",
         bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",

@@ -133,6 +133,7 @@ export default function WaitlistForm() {
         onChange={(e) => setEmail(e.target.value)}
         required
         autoComplete="email"
+        inputMode="email"
         style={{
           width: "100%",
           fontFamily: "var(--font-sans)",
@@ -208,7 +209,7 @@ export default function WaitlistForm() {
             fontSize: 15,
             fontWeight: 500,
             color: "var(--session-cream)",
-            backgroundColor: "var(--session-persona)",
+            backgroundColor: "var(--session-ink)",
             border: "none",
             borderRadius: 8,
             cursor: submitting ? "not-allowed" : "pointer",

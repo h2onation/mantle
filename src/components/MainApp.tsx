@@ -249,6 +249,10 @@ export default function MainApp() {
       {/* Exploration interstitial overlay */}
       {explorationPhase !== null && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Loading exploration"
+          aria-live="polite"
           style={{
             position: "fixed",
             inset: 0,
@@ -269,6 +273,7 @@ export default function MainApp() {
         >
           {/* Ambient glow behind text */}
           <div
+            aria-hidden="true"
             style={{
               position: "absolute",
               width: 320,

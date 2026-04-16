@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
         boxSizing: "border-box",
       }}
     >
-      <div
+      <main
         style={{
           display: "flex",
           flexDirection: "column",
@@ -180,6 +180,7 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   minLength={6}
                   style={{
                     width: "100%",
@@ -224,6 +225,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   minLength={6}
                   style={{
                     width: "100%",
@@ -259,7 +261,7 @@ export default function ResetPasswordPage() {
                     fontSize: 15,
                     fontWeight: 500,
                     color: "var(--session-cream)",
-                    backgroundColor: "var(--session-persona)",
+                    backgroundColor: "var(--session-ink)",
                     border: "none",
                     borderRadius: 8,
                     cursor: loading ? "not-allowed" : "pointer",
@@ -273,7 +275,7 @@ export default function ResetPasswordPage() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
