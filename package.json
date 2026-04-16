@@ -21,6 +21,8 @@
     "@upstash/redis": "^1.37.0",
     "jspdf": "^4.2.1",
     "next": "14.2.15",
+    "posthog-js": "^1.369.1",
+    "posthog-node": "^5.29.2",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
