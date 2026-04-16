@@ -275,7 +275,7 @@ export default function MobileSession({
             fontSize: "20px",
             fontWeight: 400,
             color: "var(--session-ink-faded)",
-            letterSpacing: "4px",
+            letterSpacing: "1.5px",
             paddingLeft: "4px",
           }}
         >

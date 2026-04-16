@@ -49,7 +49,10 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
         boxSizing: "border-box",
       }}
     >
-      {/* Wordmark (top center) */}
+      {/* Wordmark (top center). Tracking 1.5px (was 4px) — 4px at 13px
+          font size reads as decorative flourish; 1.5px lands in
+          editorial-appropriate range. Matches the wordmark treatment
+          across the rest of the product at small sizes. */}
       <div
         style={{
           padding: "16px 0",
@@ -57,7 +60,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           fontFamily: "var(--font-serif)",
           fontSize: 13,
           fontWeight: 400,
-          letterSpacing: "4px",
+          letterSpacing: "1.5px",
           color: "var(--session-ink-faded)",
           paddingLeft: 4,
         }}
@@ -70,13 +73,15 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
 
       {/* Content area */}
       <div style={{ padding: "0 28px 56px" }}>
-        {/* Headline */}
+        {/* Headline. Bumped 34px → 42px: Instrument Serif's display
+            character starts emerging above ~50px; 42px approaches
+            that threshold while staying within the 430px phone width. */}
         <h1
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 34,
+            fontSize: 42,
             fontWeight: 400,
-            lineHeight: 1.15,
+            lineHeight: 1.1,
             letterSpacing: "-0.5px",
             color: "var(--session-ink)",
             margin: "0 0 14px 0",
@@ -182,6 +187,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           </a>
         </div>
       </div>
+
     </main>
   );
 }

@@ -25,7 +25,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           fontFamily: "var(--font-serif)",
           fontSize: 13,
           fontWeight: 400,
-          letterSpacing: "4px",
+          letterSpacing: "1.5px",
           color: "var(--session-ink-faded)",
           paddingLeft: 4,
         }}
