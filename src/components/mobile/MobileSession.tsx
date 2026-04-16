@@ -216,7 +216,7 @@ export default function MobileSession({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        paddingBottom: "calc(68px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "calc(52px + env(safe-area-inset-bottom, 0px))",
       }}
     >
       {/* Header */}

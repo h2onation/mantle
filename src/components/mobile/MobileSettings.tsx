@@ -320,7 +320,7 @@ export default function MobileSettings({
       style={{
         height: "100%",
         overflowY: "auto",
-        padding: "40px 24px calc(68px + env(safe-area-inset-bottom, 0px))",
+        padding: "40px 24px calc(52px + env(safe-area-inset-bottom, 0px))",
       }}
     >
       {/* Header */}

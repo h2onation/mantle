@@ -140,7 +140,7 @@ export default function ChatInput({
   }
 
   return (
-    <div style={{ flexShrink: 0, padding: "8px 20px 4px" }}>
+    <div style={{ flexShrink: 0, padding: "12px 20px 8px" }}>
       {/* Voice error toast */}
       {voice.error && (
         <div
