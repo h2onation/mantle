@@ -11,6 +11,7 @@ import BetaAllowlistTab from "@/components/admin/BetaAllowlistTab";
 import BetaFeedbackTab from "@/components/admin/BetaFeedbackTab";
 import UserProfilePane from "@/components/admin/UserProfilePane";
 import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
+import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import {
   formatAdminDate,
   adminEmptyStyle,
@@ -308,6 +309,7 @@ function AdminPageInner() {
               }}
             >
               <SchemaHealthTab />
+              <ConfirmHealthPanel />
             </div>
           )}
 

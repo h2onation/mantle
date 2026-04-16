@@ -1,0 +1,55 @@
+name: Supabase E2E
+
+# Track 5 of docs/checkpoint-hardening-plan.md: real-DB integration tests.
+#
+# On every PR and every push to main: spin up a local Supabase stack
+# (via `supabase start`, which uses Docker), apply all migrations from
+# supabase/migrations/, then run the E2E test suite. Catches schema
+# drift (drift canary) and verifies the confirm_checkpoint_write RPC
+# end-to-end in a real Postgres instance.
+#
+# No prod credentials needed — tests run against ephemeral local DB.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Local Supabase E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Extract Supabase credentials
+        id: creds
+        run: |
+          STATUS=$(supabase status -o env)
+          echo "$STATUS" | grep '^API_URL=' | sed 's/^API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' >> $GITHUB_ENV
+          echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | sed 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        env:
+          # Non-secret placeholder for build-time env expectations.
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-not-used-in-e2e"
+        run: npm run test:e2e
+
+      - name: Stop local Supabase (cleanup)
+        if: always()
+        run: supabase stop --no-backup

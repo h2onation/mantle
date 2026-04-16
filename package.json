@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "verify": "npm run typecheck && npm run build",
     "autofix": "claude -p 'Run npm run build. If there are TypeScript errors, fix them. If there are missing dependencies, install them. Then run the build again to confirm it passes.' --allowedTools 'Edit,Read,Bash,Write'"
   },
