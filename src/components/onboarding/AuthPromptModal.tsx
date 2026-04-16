@@ -211,7 +211,7 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
               fontSize: 15,
               fontWeight: 500,
               color: "var(--session-cream)",
-              backgroundColor: "var(--session-ink)",
+              backgroundColor: "var(--session-persona)",
               border: "none",
               borderRadius: 8,
               cursor: loading ? "not-allowed" : "pointer",

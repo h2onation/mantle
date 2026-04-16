@@ -451,7 +451,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 fontSize: 15,
                 fontWeight: 500,
                 color: "var(--session-cream)",
-                backgroundColor: "var(--session-ink)",
+                backgroundColor: "var(--session-persona)",
                 border: "none",
                 borderRadius: 10,
                 cursor: "pointer",

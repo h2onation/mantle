@@ -352,7 +352,7 @@ export default function ChatInput({
                 width: "32px",
                 height: "32px",
                 borderRadius: "50%",
-                backgroundColor: "var(--session-ink)",
+                backgroundColor: "var(--session-persona)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

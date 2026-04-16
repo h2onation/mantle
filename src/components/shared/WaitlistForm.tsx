@@ -209,7 +209,7 @@ export default function WaitlistForm() {
             fontSize: 15,
             fontWeight: 500,
             color: "var(--session-cream)",
-            backgroundColor: "var(--session-ink)",
+            backgroundColor: "var(--session-persona)",
             border: "none",
             borderRadius: 8,
             cursor: submitting ? "not-allowed" : "pointer",

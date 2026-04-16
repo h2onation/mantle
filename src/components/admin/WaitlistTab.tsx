@@ -198,7 +198,7 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                           letterSpacing: "1px",
                           textTransform: "uppercase",
                           color: "var(--session-cream)",
-                          background: "var(--session-ink)",
+                          background: "var(--session-persona)",
                           border: "none",
                           borderRadius: 4,
                           padding: "5px 9px",
