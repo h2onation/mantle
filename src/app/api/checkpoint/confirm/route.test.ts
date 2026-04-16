@@ -30,6 +30,10 @@ vi.mock("@/lib/supabase/admin", () => ({
     chain.select = () => chain;
     chain.eq = () => chain;
     chain.update = () => chain;
+    // insert/rpc are fire-and-forget for observability (confirm_failures)
+    // and never expected to throw — stub with non-failing resolutions.
+    chain.insert = () => Promise.resolve({ data: null, error: null });
+    chain.rpc = () => Promise.resolve({ data: null, error: null });
     chain.single = () => {
       adminSelectCallCount++;
       // Route reads messages first, then conversations.
