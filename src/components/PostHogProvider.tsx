@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { initPostHog, posthog } from "@/lib/analytics/posthog-client";
 
@@ -21,6 +21,14 @@ function PageViewTracker() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  // Gate pageview capture on identify resolution. Without this, the first
+  // pageview of a session fires with the anonymous UUID before identify
+  // completes, which breaks retention and cohort queries keyed on the
+  // hashed distinct_id. The finally block is fail-open: if identify
+  // errors or the user is anonymous (hashedId=null), we still unblock
+  // pageview capture so baseline analytics keep flowing.
+  const [identifyResolved, setIdentifyResolved] = useState(false);
+
   useEffect(() => {
     initPostHog();
   }, []);
@@ -36,6 +44,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.warn("PostHog identify failed:", err);
+      } finally {
+        setIdentifyResolved(true);
       }
     }
     identify();
@@ -44,7 +54,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Suspense fallback={null}>
-        <PageViewTracker />
+        {identifyResolved && <PageViewTracker />}
       </Suspense>
       {children}
     </>
