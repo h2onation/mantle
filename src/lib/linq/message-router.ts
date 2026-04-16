@@ -1,10 +1,16 @@
 // ---------------------------------------------------------------------------
-// Linq message router — routes inbound text messages
-// Handles keywords, user lookup, rate limiting, and dispatches to Jove bridge
+// Inbound text message router — handles keywords, user lookup, rate limiting,
+// and dispatches to Jove bridge. Shared by both Linq and (eventually) Sendblue
+// inbound webhooks.
+//
+// Outbound sends go through the unified messaging layer
+// (@/lib/messaging/send). Typing indicators and read receipts remain Linq-only
+// — Sendblue does not expose them.
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendMessage, sendTypingIndicator, markAsRead } from "./sender";
+import { sendTypingIndicator, markAsRead } from "./sender";
+import { sendMessage } from "@/lib/messaging/send";
 import { processTextMessage } from "./persona-bridge";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
@@ -40,10 +46,10 @@ const UNKNOWN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Rate limit: max 20 messages per user per 5 minutes.
 //
-// In-memory rate limiter for the SMS/Linq inbound path. This runs
-// independently of the Upstash HTTP rate limiter on /api/chat because
-// Linq webhook messages bypass the chat API route entirely. This is
-// the SMS path's own defense-in-depth.
+// In-memory rate limiter for the SMS inbound path. This runs independently
+// of the Upstash HTTP rate limiter on /api/chat because SMS webhook messages
+// bypass the chat API route entirely. This is the SMS path's own
+// defense-in-depth.
 const userMessageCounts = new Map<string, { count: number; windowStart: number }>();
 const USER_RATE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const USER_RATE_MAX = 20;
@@ -78,7 +84,7 @@ export async function routeInboundMessage(
   const startTime = Date.now();
 
   console.log(
-    "[linq-router] START chat_id=%s parts=%d",
+    "[router] START chat_id=%s parts=%d",
     chatId,
     parts.length
   );
@@ -91,7 +97,7 @@ export async function routeInboundMessage(
   );
 
   console.log(
-    "[linq-router] parsed has_text=%s has_media=%s",
+    "[router] parsed has_text=%s has_media=%s",
     !!textContent,
     hasMedia
   );
@@ -102,8 +108,11 @@ export async function routeInboundMessage(
     if (command === "STOP") {
       await unlinkPhone(senderPhone);
     }
-    await sendMessage(chatId, KEYWORD_RESPONSES[command]);
-    console.log("[linq-router] reserved command received: %s", command);
+    await sendMessage({
+      to: senderPhone,
+      content: KEYWORD_RESPONSES[command],
+    });
+    console.log("[router] reserved command received: %s", command);
     return;
   }
 
@@ -117,20 +126,21 @@ export async function routeInboundMessage(
     .maybeSingle();
 
   console.log(
-    "[linq-router] phone_lookup found=%s user_id=%s",
+    "[router] phone_lookup found=%s user_id=%s",
     !!phoneRow,
     phoneRow?.user_id ?? "none"
   );
 
   if (!phoneRow) {
-    console.log("[linq-router] UNKNOWN_NUMBER — sending unknown number response");
-    await handleUnknownNumber(chatId, senderPhone);
+    console.log("[router] UNKNOWN_NUMBER — sending unknown number response");
+    await handleUnknownNumber(senderPhone);
     return;
   }
 
   const userId = phoneRow.user_id;
 
-  // 2b. Store the Linq chat_id if we don't have it yet
+  // 2b. Store the Linq chat_id if we don't have it yet — the wrapper reads
+  //     it to fast-path 1:1 sends during rollback.
   if (!phoneRow.linq_chat_id) {
     admin
       .from("phone_numbers")
@@ -139,32 +149,40 @@ export async function routeInboundMessage(
       .eq("verified", true)
       .then(({ error }) => {
         if (error)
-          console.error("[linq-router] Failed to store chat_id:", error);
+          console.error("[router] Failed to store chat_id:", error);
       });
   }
 
   // 3. Media-only message (no text)
   if (!textContent && hasMedia) {
-    await sendMessage(chatId, MEDIA_ONLY_MSG);
-    console.log("[linq-router] media_only user=%s", userId);
+    await sendMessage({
+      to: senderPhone,
+      content: MEDIA_ONLY_MSG,
+      ownerUserId: userId,
+    });
+    console.log("[router] media_only user=%s", userId);
     return;
   }
 
   // 4. Empty message
   if (!textContent) {
-    console.log("[linq-router] empty_message user=%s", userId);
+    console.log("[router] empty_message user=%s", userId);
     return;
   }
 
   // 5. Rate limiting — 20 messages per 5 minutes per user
   if (isUserRateLimited(userId)) {
-    await sendMessage(chatId, RATE_LIMIT_MSG);
-    console.warn("[linq-router] rate_limited user=%s", userId);
+    await sendMessage({
+      to: senderPhone,
+      content: RATE_LIMIT_MSG,
+      ownerUserId: userId,
+    });
+    console.warn("[router] rate_limited user=%s", userId);
     return;
   }
 
   console.log(
-    "[linq-router] inbound user=%s channel=text len=%d ts=%s",
+    "[router] inbound user=%s channel=text len=%d ts=%s",
     userId,
     textContent.length,
     new Date().toISOString()
@@ -174,12 +192,13 @@ export async function routeInboundMessage(
   const checkpointResponse = await handleCheckpointResponse(
     admin,
     userId,
+    senderPhone,
     textContent,
     chatId
   );
   if (checkpointResponse) {
     console.log(
-      "[linq-router] checkpoint_response user=%s action=%s",
+      "[router] checkpoint_response user=%s action=%s",
       userId,
       checkpointResponse
     );
@@ -188,7 +207,8 @@ export async function routeInboundMessage(
 
   // 6. Route to Jove
   try {
-    // Typing indicator fires BEFORE Jove processes
+    // Typing indicator fires BEFORE Jove processes. Linq-only; no-op under
+    // Sendblue but the sender import is guarded internally.
     await sendTypingIndicator(chatId);
 
     const result = await processTextMessage(userId, textContent);
@@ -196,40 +216,57 @@ export async function routeInboundMessage(
 
     // Mark as read + send response
     await markAsRead(chatId);
-    const sendResult = await sendMessage(chatId, result.responseText);
+    const sendResult = await sendMessage({
+      to: senderPhone,
+      content: result.responseText,
+      ownerUserId: userId,
+    });
 
     // Send checkpoint follow-up if present
     if (result.checkpointText) {
-      await sendMessage(chatId, result.checkpointText);
+      await sendMessage({
+        to: senderPhone,
+        content: result.checkpointText,
+        ownerUserId: userId,
+      });
     }
 
     console.log(
-      "[linq-router] persona_response user=%s conv=%s len=%d latency_ms=%d",
+      "[router] persona_response user=%s conv=%s len=%d latency_ms=%d",
       userId,
       result.conversationId,
       result.responseText.length,
       latencyMs
     );
 
-    if (sendResult.ok) {
+    if (sendResult.status !== "FAILED") {
       console.log(
-        "[linq-router] message_sent user=%s chat_id=%s message_id=%s",
+        "[router] message_sent user=%s provider=%s message_id=%s",
         userId,
-        chatId,
-        sendResult.messageId ?? "unknown"
+        sendResult.provider,
+        sendResult.providerMessageId ?? "unknown"
+      );
+    } else {
+      console.error(
+        "[router] message_send_failed user=%s provider=%s error=%s",
+        userId,
+        sendResult.provider,
+        sendResult.errorMessage ?? "unknown"
       );
     }
   } catch (err) {
     const latencyMs = Date.now() - startTime;
     console.error(
-      "[linq-router] persona_error user=%s latency_ms=%d error=%s",
+      "[router] persona_error user=%s latency_ms=%d error=%s",
       userId,
       latencyMs,
       err instanceof Error ? err.message : String(err)
     );
-    await sendMessage(chatId, FALLBACK_MSG).catch((sendErr) =>
-      console.error("[linq-router] fallback_send_failed:", sendErr)
-    );
+    await sendMessage({
+      to: senderPhone,
+      content: FALLBACK_MSG,
+      ownerUserId: userId,
+    });
   }
 }
 
@@ -244,33 +281,33 @@ async function unlinkPhone(phone: string): Promise<void> {
     .eq("phone", phone);
 
   if (error) {
-    console.error("[linq-router] unlink_failed error_type=%s", error.code ?? "unknown");
+    console.error("[router] unlink_failed error_type=%s", error.code ?? "unknown");
   } else {
-    console.log("[linq-router] phone_unlinked");
+    console.log("[router] phone_unlinked");
   }
 }
 
 /**
  * Send the unknown-number response, rate-limited to once per 24 hours per phone.
  */
-async function handleUnknownNumber(
-  chatId: string,
-  phone: string
-): Promise<void> {
+async function handleUnknownNumber(phone: string): Promise<void> {
   const now = Date.now();
   const lastSent = unknownNumberCooldown.get(phone);
 
   if (lastSent && now - lastSent < UNKNOWN_COOLDOWN_MS) {
-    console.log("[linq-router] unknown_cooldown");
+    console.log("[router] unknown_cooldown");
     return;
   }
 
   unknownNumberCooldown.set(phone, now);
-  const sendResult = await sendMessage(chatId, UNKNOWN_NUMBER_MSG);
+  const sendResult = await sendMessage({
+    to: phone,
+    content: UNKNOWN_NUMBER_MSG,
+  });
   console.log(
-    "[linq-router] unknown_number send_ok=%s trace_id=%s",
-    sendResult.ok,
-    sendResult.traceId ?? "unknown"
+    "[router] unknown_number provider=%s status=%s",
+    sendResult.provider,
+    sendResult.status
   );
 }
 
@@ -281,6 +318,7 @@ async function handleUnknownNumber(
 async function handleCheckpointResponse(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
+  senderPhone: string,
   text: string,
   chatId: string
 ): Promise<string | null> {
@@ -334,20 +372,33 @@ async function handleCheckpointResponse(
 
     if (result.success) {
       // Call Jove to generate post-checkpoint acknowledgement (same as web path).
-      // Jove sees "[User confirmed the checkpoint]" in history and responds
-      // with a brief acknowledgement that the entry is in the manual, then
-      // continues the conversation from the user's lead.
       await sendTypingIndicator(chatId);
       try {
-        const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
-        await sendMessage(chatId, followUp);
+        const { responseText: followUp } = await processTextMessage(
+          userId,
+          null,
+          conv.id
+        );
+        await sendMessage({
+          to: senderPhone,
+          content: followUp,
+          ownerUserId: userId,
+        });
       } catch (err) {
-        console.error("[linq-router] post_checkpoint_sage_failed:", err);
-        await sendMessage(chatId, "Written to manual.");
+        console.error("[router] post_checkpoint_persona_failed:", err);
+        await sendMessage({
+          to: senderPhone,
+          content: "Written to manual.",
+          ownerUserId: userId,
+        });
       }
     } else {
-      console.error("[linq-router] checkpoint_confirm_failed:", result.error);
-      await sendMessage(chatId, "Something went wrong saving that. Try again in the app.");
+      console.error("[router] checkpoint_confirm_failed:", result.error);
+      await sendMessage({
+        to: senderPhone,
+        content: "Something went wrong saving that. Try again in the app.",
+        ownerUserId: userId,
+      });
     }
     return "confirmed";
   }
@@ -361,14 +412,25 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "refined");
 
-    // Call Jove so it responds to the refinement request naturally
     await sendTypingIndicator(chatId);
     try {
-      const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
-      await sendMessage(chatId, followUp);
+      const { responseText: followUp } = await processTextMessage(
+        userId,
+        null,
+        conv.id
+      );
+      await sendMessage({
+        to: senderPhone,
+        content: followUp,
+        ownerUserId: userId,
+      });
     } catch (err) {
-      console.error("[linq-router] post_refine_sage_failed:", err);
-      await sendMessage(chatId, `Got it — ${PERSONA_NAME_FORMAL} will revisit this.`);
+      console.error("[router] post_refine_persona_failed:", err);
+      await sendMessage({
+        to: senderPhone,
+        content: `Got it — ${PERSONA_NAME_FORMAL} will revisit this.`,
+        ownerUserId: userId,
+      });
     }
     return "refined";
   }
@@ -382,14 +444,25 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "rejected");
 
-    // Call Jove so it acknowledges and moves on naturally
     await sendTypingIndicator(chatId);
     try {
-      const { responseText: followUp } = await processTextMessage(userId, null, conv.id);
-      await sendMessage(chatId, followUp);
+      const { responseText: followUp } = await processTextMessage(
+        userId,
+        null,
+        conv.id
+      );
+      await sendMessage({
+        to: senderPhone,
+        content: followUp,
+        ownerUserId: userId,
+      });
     } catch (err) {
-      console.error("[linq-router] post_reject_sage_failed:", err);
-      await sendMessage(chatId, "Discarded.");
+      console.error("[router] post_reject_persona_failed:", err);
+      await sendMessage({
+        to: senderPhone,
+        content: "Discarded.",
+        ownerUserId: userId,
+      });
     }
     return "rejected";
   }

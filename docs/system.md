@@ -30,7 +30,7 @@ User message
 
 ## Multi-Channel Architecture (Web + Text)
 
-Jove runs on two channels: web (streaming SSE) and text (Linq SMS, non-streaming). Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
+Jove runs on two channels: web (streaming SSE) and text (non-streaming). The text channel uses two providers: Sendblue for 1:1 SMS/iMessage and Linq for group facilitator — routed through the unified `src/lib/messaging/send.ts`. See ADR-035. Both channels share a single pipeline — **do not duplicate pipeline logic per channel.**
 
 ### Shared pipeline (`persona-pipeline.ts`)
 
