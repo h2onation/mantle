@@ -19,6 +19,9 @@ export function initPostHog() {
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: true,
+    // Replay stays off until PR 2 wires data-ph-mask on chat and manual
+    // surfaces. Remove this line when masking lands.
+    disable_session_recording: true,
     session_recording: {
       maskAllInputs: true,
       maskTextSelector: "[data-ph-mask]",
