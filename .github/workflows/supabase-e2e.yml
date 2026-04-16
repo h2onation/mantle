@@ -40,9 +40,32 @@ jobs:
       - name: Extract Supabase credentials
         id: creds
         run: |
+          echo "=== Raw supabase status output ==="
+          supabase status
+          echo "=== supabase status -o env ==="
+          supabase status -o env
+          echo "=== End debug ==="
+
+          # Parse the --output=env format. Values are quoted. Strip the
+          # quotes after extracting so GITHUB_ENV gets clean values.
           STATUS=$(supabase status -o env)
-          echo "$STATUS" | grep '^API_URL=' | sed 's/^API_URL=/NEXT_PUBLIC_SUPABASE_URL=/' >> $GITHUB_ENV
-          echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | sed 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' >> $GITHUB_ENV
+
+          API_URL=$(echo "$STATUS" | grep -E '^API_URL=' | cut -d= -f2- | tr -d '"')
+          SERVICE_ROLE=$(echo "$STATUS" | grep -E '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '"')
+
+          if [ -z "$API_URL" ]; then
+            echo "ERROR: API_URL not found in supabase status output"
+            exit 1
+          fi
+          if [ -z "$SERVICE_ROLE" ]; then
+            echo "ERROR: SERVICE_ROLE_KEY not found in supabase status output"
+            exit 1
+          fi
+
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE" >> "$GITHUB_ENV"
+          echo "Extracted NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+          echo "Extracted SERVICE_ROLE_KEY (masked)"
 
       - name: Run E2E tests
         env:
