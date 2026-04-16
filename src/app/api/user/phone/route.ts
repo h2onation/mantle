@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createChat } from "@/lib/linq/sender";
+import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 import { generateOtp, hashOtp, otpExpiryFromNow } from "@/lib/phone-otp";
 import {
@@ -154,15 +154,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 5. Send the OTP via Linq. Keep the message text terse — no other content.
-  const sendResult = await createChat(
-    phone,
-    `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`
-  );
-  if (!sendResult.ok) {
+  // 5. Send the OTP via the active messaging provider. Keep the message
+  //    text terse — no other content.
+  const sendResult = await sendMessage({
+    to: phone,
+    content: `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`,
+    ownerUserId: user.id,
+  });
+  if (sendResult.status === "FAILED") {
     console.error(
-      "[user/phone] Linq OTP send failed trace_id=%s",
-      sendResult.traceId
+      "[user/phone] OTP send failed provider=%s error=%s",
+      sendResult.provider,
+      sendResult.errorMessage ?? "unknown"
     );
     return Response.json(
       { error: "Failed to send code. Please try again." },

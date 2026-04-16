@@ -83,6 +83,7 @@ These apply to every task. No exceptions.
 - **Dev server**: Always start the dev server from the main repo root (`/Users/jeffwaters/mywalnut`), never from a worktree. If the preview tool shows a Supabase "URL and Key required" error or can't find `launch.json`, the session was likely started from a worktree — tell the user to restart the session from the main repo root.
 - **Build**: Run `npm run build` before committing. Run relevant tests after logic changes. Commit incrementally.
 - **Model IDs**: Verify Anthropic model IDs via web search. Do not guess date suffixes.
+- **Messaging**: 1:1 text uses Sendblue, group facilitator uses Linq. Route all outbound sends through `src/lib/messaging/send.ts` — never import provider clients (`@/lib/linq/sender`, `@/lib/messaging/sendblue`) from call sites. Rollback: set `MESSAGING_PROVIDER=linq` in Vercel (outbound only; both webhook endpoints stay live permanently). See ADR-035.
 - **Tests**: All Anthropic and Supabase calls must be mocked. Never consume real API tokens in tests.
 - **Auth safety**: NEVER authenticate as a real user. Use test@test.com or your own email only. NEVER generate magic links for other emails.
 - **Testing as logged-in user**: For browser verification flows that need a real authenticated session (admin pages, settings, in-app features), log in with `devtest@test.com` / `testtest` via the `/login` → "Log in" flow. This account is admin-granted and safe to use from agent sessions. Do not ask the user to verify UI manually when this account will get you in.
