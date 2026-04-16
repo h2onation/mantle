@@ -18,6 +18,39 @@ export interface ConversationSummaryItem {
   is_text_channel?: boolean;
 }
 
+/**
+ * Maps a failed /api/checkpoint/confirm response (or network failure) to
+ * a user-facing message. See docs/checkpoint-hardening-plan.md Track 3
+ * for the taxonomy. Exported for testing.
+ *
+ * `status` is null when the fetch itself rejected (network error, abort,
+ * DNS, etc.). `networkFailed` is true in the same case.
+ */
+export function confirmErrorMessage(
+  status: number | null,
+  networkFailed: boolean
+): string {
+  if (networkFailed || status === null) {
+    return "Couldn't reach the server. Please try again.";
+  }
+  if (status === 429) {
+    return "You've confirmed a lot recently. Give it a minute.";
+  }
+  if (status === 404) {
+    return "That checkpoint is gone. Refresh and try again.";
+  }
+  if (status === 400) {
+    return "This checkpoint was already rejected or refined — can't confirm it.";
+  }
+  if (status >= 500) {
+    return "Server hiccup. Please try again.";
+  }
+  if (status >= 400) {
+    return "Something's off on my end. Refresh and try again.";
+  }
+  return "Something went wrong saving that. Please try again.";
+}
+
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -378,24 +411,69 @@ export function useChat() {
     setIsLoading(true);
     setCheckpointError(null);
 
-    try {
-      const res = await fetch("/api/checkpoint/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messageId: activeCheckpoint.messageId,
-          action,
-          conversationId,
-        }),
-      });
+    const body = JSON.stringify({
+      messageId: activeCheckpoint.messageId,
+      action,
+      conversationId,
+    });
 
-      if (res.status === 401) {
-        router.push("/login");
-        return;
+    // Retry transient failures (network error or 5xx) with short backoff.
+    // 4xx bubbles up immediately — it's a "you did something wrong" or
+    // "the checkpoint isn't in the expected state" and retrying won't help.
+    // Server-side writes are atomic + idempotent (Track 2) so retries
+    // never produce duplicates.
+    const RETRY_BACKOFFS_MS = [500, 2000]; // between attempt 1→2 and 2→3
+    const MAX_ATTEMPTS = 3;
+    const FETCH_TIMEOUT_MS = 30_000;
+
+    let res: Response | null = null;
+    let networkFailed = false;
+
+    try {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        networkFailed = false;
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+          const r = await fetch("/api/checkpoint/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+
+          // Auth expired — redirect immediately, no retry.
+          if (r.status === 401) {
+            router.push("/login");
+            return;
+          }
+
+          // 2xx → success path. 4xx → don't retry, surface specific message.
+          // 5xx → retry (if attempts remain).
+          if (r.ok || (r.status >= 400 && r.status < 500)) {
+            res = r;
+            break;
+          }
+          res = r;
+        } catch {
+          // fetch rejection (network error, abort, DNS, etc.)
+          networkFailed = true;
+          res = null;
+        }
+
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, RETRY_BACKOFFS_MS[attempt - 1])
+          );
+        }
       }
 
-      if (!res.ok) {
-        setCheckpointError("Something went wrong saving that. Try again.");
+      // All attempts exhausted or final response is an error.
+      if (!res || !res.ok) {
+        setCheckpointError(
+          confirmErrorMessage(res?.status ?? null, networkFailed)
+        );
         return;
       }
 
@@ -413,7 +491,8 @@ export function useChat() {
         ]);
       }
 
-      // Clear active checkpoint
+      // Clear active checkpoint — the card transitions to the confirmed
+      // entry in the Manual tab.
       setActiveCheckpoint(null);
 
       // Idempotent repeat — server responded with JSON (not SSE), the
@@ -426,13 +505,20 @@ export function useChat() {
       }
 
       // First-time confirm — stream Jove's follow-up and finalize.
-      const { fullText, completeEvent } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent);
+      // If the stream fails mid-flight, the server-side write has
+      // already succeeded (atomic RPC, Track 2), so we reconcile via
+      // loadManual() instead of surfacing an error to the user.
+      try {
+        const { fullText, completeEvent } = await streamFromResponse(res);
+        finalizeMessage(fullText, completeEvent);
+      } catch (err) {
+        // Server wrote the entry; the follow-up stream just didn't land
+        // cleanly. Next message from the user will re-load context.
+        console.warn("[useChat] Confirm follow-up stream interrupted:", err);
+      }
 
-      // Refresh manual from server
+      // Refresh manual from server (runs regardless of stream outcome).
       await loadManual();
-    } catch {
-      setCheckpointError("Something went wrong saving that. Try again.");
     } finally {
       setIsLoading(false);
     }
