@@ -1,3 +1,14 @@
+// ---------------------------------------------------------------------------
+// DEPRECATED for 1:1 text — migrated to Sendblue at /api/webhooks/sendblue.
+//
+// This handler stays active for Linq group facilitator traffic (participant
+// lifecycle events have no Sendblue equivalent). It also remains live as the
+// outbound rollback path: set MESSAGING_PROVIDER=linq in Vercel to revert
+// outbound 1:1 sends without a code change.
+//
+// Do not delete until group facilitator is ported or retired. See ADR-035.
+// ---------------------------------------------------------------------------
+
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";

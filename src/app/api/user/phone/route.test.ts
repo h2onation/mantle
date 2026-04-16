@@ -84,9 +84,9 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
-const mockCreateChat = vi.fn();
-vi.mock("@/lib/linq/sender", () => ({
-  createChat: (...args: unknown[]) => mockCreateChat(...args),
+const mockSendMessage = vi.fn();
+vi.mock("@/lib/messaging/send", () => ({
+  sendMessage: (...args: unknown[]) => mockSendMessage(...args),
 }));
 
 const mockCheckLimit = vi.fn();
@@ -123,7 +123,7 @@ function verifyRequest(body: unknown): import("next/server").NextRequest {
 beforeEach(() => {
   resetAdminMock();
   mockGetUser.mockReset();
-  mockCreateChat.mockReset();
+  mockSendMessage.mockReset();
   mockCheckLimit.mockReset();
   mockCheckLimit.mockResolvedValue({
     success: true,
@@ -131,7 +131,12 @@ beforeEach(() => {
     remaining: 0,
     reset: 0,
   });
-  mockCreateChat.mockResolvedValue({ ok: true, chatId: "chat-1" });
+  mockSendMessage.mockResolvedValue({
+    providerMessageId: "msg-1",
+    provider: "sendblue",
+    status: "SENT",
+    errorMessage: null,
+  });
   mockGetUser.mockResolvedValue({ data: { user: { id: "user-A" } } });
 });
 
@@ -167,8 +172,8 @@ describe("POST /api/user/phone (send OTP)", () => {
       (u) => (u.patch as { verified?: unknown }).verified === true
     );
     expect(verifiedWrites).toHaveLength(0);
-    // Linq must NOT have been called — no OTP sent to victim's phone
-    expect(mockCreateChat).not.toHaveBeenCalled();
+    // Messaging must NOT have been called — no OTP sent to victim's phone
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it("returns 200 verified when same user already has phone verified", async () => {
@@ -180,7 +185,7 @@ describe("POST /api/user/phone (send OTP)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { verified: boolean };
     expect(body.verified).toBe(true);
-    expect(mockCreateChat).not.toHaveBeenCalled();
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it("returns 429 when phone OTP send is rate limited", async () => {
@@ -193,10 +198,10 @@ describe("POST /api/user/phone (send OTP)", () => {
     });
     const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
     expect(res.status).toBe(429);
-    expect(mockCreateChat).not.toHaveBeenCalled();
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
-  it("generates hashed OTP, stores it with verified=false, sends via Linq", async () => {
+  it("generates hashed OTP, stores it with verified=false, sends via messaging layer", async () => {
     // No existing row — triggers the insert path
     const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
     expect(res.status).toBe(200);
@@ -205,15 +210,18 @@ describe("POST /api/user/phone (send OTP)", () => {
     expect(body.message).toMatch(/code sent/i);
 
     // Inserted row should be verified=false with a hashed otp_code
-    expect(insertedRows).toHaveLength(1);
-    const row = insertedRows[0].row as Record<string, unknown>;
+    const otpInsert = insertedRows.find((r) => r.table === "phone_numbers");
+    expect(otpInsert).toBeDefined();
+    const row = otpInsert!.row as Record<string, unknown>;
     expect(row.verified).toBe(false);
     expect(typeof row.otp_code).toBe("string");
     expect((row.otp_code as string).length).toBe(64); // sha-256 hex
-    // Critically: the raw 6-digit code sent to Linq must NOT match the DB value
-    const linqArgs = mockCreateChat.mock.calls[0];
-    const linqBody = linqArgs[1] as string;
-    const match = linqBody.match(/(\d{6})/);
+    // Critically: the raw 6-digit code in the message body must NOT match the
+    // hashed DB value.
+    expect(mockSendMessage).toHaveBeenCalledOnce();
+    const sendArgs = mockSendMessage.mock.calls[0];
+    const sendBody = (sendArgs[0] as { content: string }).content;
+    const match = sendBody.match(/(\d{6})/);
     expect(match).not.toBeNull();
     const rawCode = match![1];
     expect(row.otp_code).not.toBe(rawCode);

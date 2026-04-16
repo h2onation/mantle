@@ -209,6 +209,20 @@
 **Decision**: Accept the sub-44px targets for now. Do not fix in Step 2. Do not introduce touch padding as a band-aid without a considered approach. Schedule a dedicated accessibility pass after Design 2.0 lands that audits tap targets across all mobile surfaces (nav, ChatInput action button, SessionDrawer rows, Manual entry Read-more buttons, checkpoint action row) rather than fixing the nav in isolation.
 **Consequences**: Existing sub-HIG targets in the nav remain. Users with motor-control differences may miss taps. Mitigation: the tab labels are well-separated horizontally (space-evenly distribution across a 430px phone frame gives each tab ~143px of horizontal tap zone width — the horizontal axis is generous, only the vertical is constrained). The next accessibility pass will resolve this project-wide with one coherent approach rather than three ad-hoc fixes.
 
+## ADR-035: Dual-Provider Messaging (Sendblue 1:1, Linq Groups)
+
+**Status**: Settled (2026-04-16)
+**Context**: Linq Partner API V3 handled both 1:1 SMS/iMessage and iMessage group facilitator. We moved 1:1 to Sendblue for improved iMessage deliverability and operational simplicity. Sendblue's webhook, however, does not emit `participant.added`, `participant.removed`, or `chat.created` events and has no equivalent to Linq's `getChatInfo` — all four primitives the group facilitator relies on for intro-on-add, close-on-owner-left, and re-detection.
+**Decision**: Dual-provider permanently. 1:1 text flows through Sendblue. Group facilitator stays on Linq. Outbound routes through `src/lib/messaging/send.ts`, which picks Sendblue by default (env `MESSAGING_PROVIDER`) and always picks Linq when a `linqGroupChatId` is passed. Both webhook endpoints stay live. Rebuilding group detection on Sendblue (per-message participant diffs) was rejected as out of scope for the 2026-04-28 beta.
+**Consequences**: Two webhook endpoints, two credential sets, two providers to monitor. The cost is ongoing but bounded. Rollback is partial: flipping `MESSAGING_PROVIDER=linq` reverts 1:1 outbound, but inbound always flows through whichever endpoint the message landed on — both must stay live. The group facilitator path is unchanged, so the existing feature does not regress. Future port of groups to Sendblue is tracked in state.md "In-Flight Work." Unified `sendMessage()` preserves Linq's non-throwing contract (`{ok: false}` on failure) so every existing caller continues to compile and behave unchanged.
+
+## ADR-036: No Dev Supabase — Migrations Apply to Prod via Dashboard
+
+**Status**: Infrastructure Debt (2026-04-16)
+**Context**: The Supabase CLI is linked to one remote project (`nkmperzwcmttdkxwhbiv`, prod). Local Supabase via `supabase start` requires Docker Desktop, which is not installed. There is no separate dev remote project. Consequence: every migration so far has been applied by pasting the SQL into the Supabase dashboard SQL editor against prod, or by letting CI run `supabase db push` on merge.
+**Decision**: Accept this state for the 2026-04-28 beta. Continue to apply migrations by dashboard paste (additive-only schemas), guarded by the rule that agent-generated migrations must be reviewed by the owner before application. Do not `supabase db push` from an agent session — the CLI would write to prod without a confirmation gate.
+**Consequences**: No safe rehearsal environment for non-trivial schema changes. Drift risk is mitigated by the Schema Health admin panel (Track 1) and the CI workflow. Before beta scale, resolve by either (a) installing Docker locally and adding a `supabase db reset` step to the pre-merge workflow, or (b) provisioning a dedicated dev Supabase project and re-linking the CLI.
+
 ## ADR-034: Design 2.0 Step 2 — Cramping Fix (No Architectural Change)
 
 **Status**: Settled (2026-04-16)

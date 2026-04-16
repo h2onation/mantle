@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createChat } from "@/lib/linq/sender";
+import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 import { hashOtp, isExpired, OTP_MAX_ATTEMPTS } from "@/lib/phone-otp";
 import {
@@ -113,17 +113,16 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Verification failed" }, { status: 500 });
   }
 
-  // Send the Sage greeting now that the user has proven they own the phone.
+  // Send the greeting now that the user has proven they own the phone.
   // Failure here is non-fatal — the link is still valid, the user just won't
-  // get the welcome text.
+  // get the welcome text. The Linq wrapper persists linq_chat_id on first
+  // send internally; no caller-side store-back needed.
   try {
-    const chatResult = await createChat(phone, INITIAL_GREETING);
-    if (chatResult.ok && chatResult.chatId) {
-      await admin
-        .from("phone_numbers")
-        .update({ linq_chat_id: chatResult.chatId })
-        .eq("id", row.id);
-    }
+    await sendMessage({
+      to: phone,
+      content: INITIAL_GREETING,
+      ownerUserId: user.id,
+    });
 
     // Save the greeting to messages so it appears in the user's history.
     let convId: string | null = null;

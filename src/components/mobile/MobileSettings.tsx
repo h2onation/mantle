@@ -720,7 +720,7 @@ export default function MobileSettings({
                     margin: "0 0 10px 0",
                   }}
                 >
-                  Text {formatPhoneDisplay(process.env.NEXT_PUBLIC_LINQ_PHONE_NUMBER || "")} anytime.
+                  Text {formatPhoneDisplay(process.env.NEXT_PUBLIC_MESSAGING_FROM_NUMBER || "")} anytime.
                 </p>
                 <a
                   href="/persona-contact.vcf"
