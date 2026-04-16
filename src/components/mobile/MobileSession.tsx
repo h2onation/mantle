@@ -137,16 +137,20 @@ export default function MobileSession({
       key="welcome-block"
       style={{
         margin: "16px 0 0 0",
-        padding: "16px 18px 14px",
-        background: "var(--session-persona-tint)",
-        borderRadius: "12px",
         animation: "mwFadeIn 0.6s ease-out",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Jove label */}
-      <div style={{ marginBottom: "2px" }}>
+      {/* Jove label — introduces the voice. Welcome has nothing to
+          annotate yet; rail is annotation grammar and doesn't belong
+          here. The label stays — it's introduction grammar: "this
+          voice has a name, it's Jove." Subsequent messages in the
+          chat get the rail treatment. */}
+      <div style={{ marginBottom: "6px" }}>
         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
       </div>
+      {/* Prose — no rail, no padding indent */}
       <div style={{
         fontFamily: "var(--font-persona)",
         fontSize: "16px",
@@ -663,7 +667,10 @@ export default function MobileSession({
                 return prev.role !== "assistant" || prev.isCheckpoint === true;
               })();
 
-              // Jove message — tinted bubble with serif text
+              // Jove message — rail treatment. Left sage rail marks the
+              // utterance; text indents from the rail. No fill, no radius —
+              // Jove is an annotator in the margin of your thinking, not a
+              // speaker on the other end of a line.
               if (!isUser) {
                 const personaPanel = (
                   <div
@@ -674,21 +681,25 @@ export default function MobileSession({
                       animation: "checkpointFadeIn 0.8s ease-out both",
                     }}
                   >
-                    {/* Jove label — first in sequence only */}
+                    {/* Jove label — first in sequence only. Aligned to the
+                        rail's left edge so label + rail read as a single
+                        structural marker. 6px marginBottom keeps the label
+                        visually tethered to the rail below. */}
                     {isFirstInPersonaSequence && (
-                      <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                         {msg.channel === "text" && (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
                       </div>
                     )}
-                    {/* Bubble */}
+                    {/* Rail — 2px sage-soft line, text indented 14px */}
                     <div
                       style={{
-                        background: "var(--session-persona-tint)",
-                        borderRadius: "12px",
-                        padding: "16px 18px",
+                        borderLeft: "2px solid var(--session-persona-soft)",
+                        paddingLeft: "14px",
+                        paddingTop: "4px",
+                        paddingBottom: "4px",
                         fontFamily: "var(--font-persona)",
                         fontSize: "16px",
                         fontWeight: 400,
@@ -769,15 +780,21 @@ export default function MobileSession({
                   {(messages.length === 0 ||
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
-                    <div style={{ marginTop: "-4px", marginBottom: "2px", paddingLeft: "4px" }}>
+                    <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0" }}>
                       <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
                     </div>
                   )}
+                  {/* Typing rail — same 4px vertical padding as a regular
+                      Jove utterance. An annotation mark doesn't resize to
+                      fit what it's annotating; 8px would make the typing
+                      and streaming rails two different heights for the
+                      same speaker. */}
                   <div
                     style={{
-                      background: "var(--session-persona-tint)",
-                      borderRadius: "12px",
-                      padding: "16px 18px",
+                      borderLeft: "2px solid var(--session-persona-soft)",
+                      paddingLeft: "14px",
+                      paddingTop: "4px",
+                      paddingBottom: "4px",
                       alignSelf: "flex-start",
                     }}
                   >
