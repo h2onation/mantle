@@ -828,6 +828,7 @@ export function useChat() {
       });
 
       if (res.status === 401) {
+        setIsLoading(false);
         router.push("/login");
         return false;
       }
