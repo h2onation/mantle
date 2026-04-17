@@ -111,7 +111,10 @@ export async function POST(request: NextRequest) {
     .eq("id", row.id);
 
   if (promoteError) {
-    console.error("[user/phone/verify] Failed to mark row verified");
+    console.error("[user/phone/verify] Failed to mark row verified", {
+      message: promoteError.message,
+      details: promoteError,
+    });
     return Response.json({ error: "Verification failed" }, { status: 500 });
   }
 

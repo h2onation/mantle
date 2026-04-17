@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
   try {
     payload = (await req.json()) as SendblueInboundWebhook;
   } catch (err) {
-    console.error(
-      "[sendblue-webhook] invalid_json err=%s",
-      err instanceof Error ? err.message : String(err)
-    );
+    console.error("[sendblue-webhook] invalid_json", {
+      message: err instanceof Error ? err.message : String(err),
+      details: err,
+    });
     return NextResponse.json({ ok: false, reason: "invalid_json" });
   }
 
@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
   // 23505 = unique constraint violation = Sendblue retry of a message we
   // already stored. Expected; not an error.
   if (error && error.code !== "23505") {
-    console.error(
-      "[sendblue-webhook] db_insert_failed code=%s message=%s",
-      error.code,
-      error.message
-    );
+    console.error("[sendblue-webhook] db_insert_failed", {
+      code: error.code,
+      message: error.message,
+      details: error,
+    });
     // Still 200: we logged the failure. A 5xx would trigger retries of a
     // payload the DB is unable to store — pointless.
   }

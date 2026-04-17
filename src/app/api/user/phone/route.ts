@@ -137,7 +137,10 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id);
 
     if (updateError) {
-      console.error("[user/phone] OTP update failed");
+      console.error("[user/phone] OTP update failed", {
+        message: updateError.message,
+        details: updateError,
+      });
       return Response.json({ error: "Failed to send code" }, { status: 500 });
     }
   } else {
@@ -151,7 +154,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (insertError) {
-      console.error("[user/phone] OTP insert failed");
+      console.error("[user/phone] OTP insert failed", {
+        message: insertError.message,
+        details: insertError,
+      });
       return Response.json({ error: "Failed to send code" }, { status: 500 });
     }
   }
