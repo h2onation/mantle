@@ -147,13 +147,12 @@ async function handleOutboundStatusUpdate(
   }
 
   if (currentRank !== null && incomingRank <= currentRank) {
-    console.log(
-      "[sendblue-webhook] outbound_status_noop handle=%s current=%s incoming=%s reason=%s",
-      payload.message_handle,
-      existing.status,
-      payload.status,
-      incomingRank === currentRank ? "same_rank" : "regression"
-    );
+    // Idempotent no-op: same-rank replay or late/out-of-order event from
+    // Sendblue. Silent by design — these are normal traffic (every
+    // DELIVERED → SENT replay, every webhook retry after 200 lands here)
+    // and logging them swamps prod with noise that doesn't aid debugging.
+    // If ordering bugs surface later, add structured metrics instead of
+    // re-enabling chatty logs.
     return;
   }
 
@@ -181,12 +180,10 @@ async function handleOutboundStatusUpdate(
     return;
   }
 
-  console.log(
-    "[sendblue-webhook] outbound_status_updated handle=%s from=%s to=%s",
-    payload.message_handle,
-    existing.status,
-    payload.status
-  );
+  // Success path is intentionally silent. The DB row's new status and
+  // (on DELIVERED) delivered_at are the breadcrumb; a per-event log line
+  // doubles the volume of every Jove reply (SENT + DELIVERED each log)
+  // without adding debugging value. Errors above remain loud.
 }
 
 function verifyInboundSignature(req: NextRequest): boolean {
