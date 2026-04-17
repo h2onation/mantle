@@ -22,10 +22,17 @@ export interface SendblueSendResponse {
   send_style: string;
 }
 
+/**
+ * Payload shape for any Sendblue webhook event posted to
+ * /api/webhooks/sendblue. Both inbound user messages (is_outbound=false)
+ * and outbound-status callbacks (is_outbound=true) land on the same URL
+ * and share most fields. The handler branches on `is_outbound` to decide
+ * whether to audit + route (inbound) or update-existing-row (outbound).
+ */
 export interface SendblueInboundWebhook {
   accountEmail: string;
   content: string;
-  is_outbound: false;
+  is_outbound: boolean;
   status: string;
   error_code: number | null;
   error_message: string | null;

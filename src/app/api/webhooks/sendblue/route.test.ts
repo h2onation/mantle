@@ -7,19 +7,60 @@ interface InsertRecord {
   row: Record<string, unknown>;
 }
 
+interface UpdateRecord {
+  table: string;
+  patch: Record<string, unknown>;
+  whereClauses: Array<[string, unknown]>;
+}
+
 const mockInserts: InsertRecord[] = [];
+const mockUpdates: UpdateRecord[] = [];
 const insertErrorQueue: Array<{ code?: string; message?: string } | null> = [];
+const selectResponsesByTable: Record<
+  string,
+  { data: unknown; error: { code?: string; message?: string } | null }
+> = {};
 
 vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => ({
-    from: (table: string) => ({
-      insert: (row: Record<string, unknown>) => {
-        mockInserts.push({ table, row });
-        const err = insertErrorQueue.shift() ?? null;
-        return Promise.resolve({ data: null, error: err });
-      },
-    }),
-  }),
+  createAdminClient: () => {
+    let currentTable = "";
+
+    const chain: Record<string, unknown> = {};
+    chain.from = (t: string) => {
+      currentTable = t;
+      return chain;
+    };
+    chain.select = () => chain;
+    chain.eq = () => chain;
+    chain.maybeSingle = () => {
+      const resp = selectResponsesByTable[currentTable] ?? {
+        data: null,
+        error: null,
+      };
+      return Promise.resolve(resp);
+    };
+    chain.insert = (row: Record<string, unknown>) => {
+      mockInserts.push({ table: currentTable, row });
+      const err = insertErrorQueue.shift() ?? null;
+      return Promise.resolve({ data: null, error: err });
+    };
+    chain.update = (patch: Record<string, unknown>) => {
+      const table = currentTable;
+      const whereCapture: Array<[string, unknown]> = [];
+      const followup: Record<string, unknown> = {};
+      followup.eq = (col: string, val: unknown) => {
+        whereCapture.push([col, val]);
+        mockUpdates.push({ table, patch, whereClauses: [...whereCapture] });
+        return followup;
+      };
+      (followup as { then?: unknown }).then = (
+        resolve: (v: { data: unknown; error: unknown }) => void
+      ) => Promise.resolve({ data: null, error: null }).then(resolve);
+      return followup;
+    };
+
+    return chain;
+  },
 }));
 
 const mockRouter = vi.fn();
@@ -42,7 +83,7 @@ const ORIGINAL_SECRET = process.env.SENDBLUE_WEBHOOK_SECRET;
 interface SendbluePayload {
   accountEmail: string;
   content: string;
-  is_outbound: false;
+  is_outbound: boolean;
   status: string;
   error_code: number | null;
   error_message: string | null;
@@ -123,7 +164,11 @@ function makeRequest(
 
 beforeEach(() => {
   mockInserts.length = 0;
+  mockUpdates.length = 0;
   insertErrorQueue.length = 0;
+  for (const k of Object.keys(selectResponsesByTable)) {
+    delete selectResponsesByTable[k];
+  }
   mockRouter.mockReset();
   mockRouter.mockResolvedValue(undefined);
   mockTyping.mockReset();
@@ -425,5 +470,146 @@ describe("POST /api/webhooks/sendblue", () => {
     } finally {
       logSpy.mockRestore();
     }
+  });
+
+  // --- Outbound status callbacks ----------------------------------------
+
+  it("outbound: SENT updates status, no inbound side-effects", async () => {
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-sent-1", status: "QUEUED" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "SENT",
+      message_handle: "handle-sent-1",
+      date_updated: "2026-04-17T12:00:01Z",
+    });
+    const res = await POST(makeRequest(payload));
+    expect(res.status).toBe(200);
+
+    expect(mockUpdates).toHaveLength(1);
+    const update = mockUpdates[0];
+    expect(update.table).toBe("messaging_events");
+    expect(update.patch).toEqual({ status: "SENT" });
+    expect(update.whereClauses).toEqual([["id", "row-sent-1"]]);
+
+    // Outbound path does not insert, route, or type.
+    expect(mockInserts).toHaveLength(0);
+    expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
+  });
+
+  it("outbound: DELIVERED sets status + delivered_at from date_updated", async () => {
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-del-1", status: "SENT" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "DELIVERED",
+      message_handle: "handle-del-1",
+      date_updated: "2026-04-17T12:00:05.321Z",
+    });
+    const res = await POST(makeRequest(payload));
+    expect(res.status).toBe(200);
+
+    expect(mockUpdates).toHaveLength(1);
+    expect(mockUpdates[0].patch).toEqual({
+      status: "DELIVERED",
+      delivered_at: "2026-04-17T12:00:05.321Z",
+    });
+  });
+
+  it("outbound: FAILED captures error_code (stringified) and error_message", async () => {
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-fail-1", status: "SENT" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "FAILED",
+      error_code: 22,
+      error_message: "Delivery failed after retries",
+    });
+    const res = await POST(makeRequest(payload));
+    expect(res.status).toBe(200);
+
+    expect(mockUpdates).toHaveLength(1);
+    expect(mockUpdates[0].patch).toEqual({
+      status: "FAILED",
+      error_code: "22",
+      error_message: "Delivery failed after retries",
+    });
+  });
+
+  it("outbound: unknown message_handle → 200, warn, no update", async () => {
+    selectResponsesByTable["messaging_events"] = { data: null, error: null };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "SENT",
+      message_handle: "unknown-handle-abc",
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const res = await POST(makeRequest(payload));
+      expect(res.status).toBe(200);
+      expect(mockUpdates).toHaveLength(0);
+
+      const warnedUnknown = warnSpy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          (c[0] as string).includes("outbound_status_unknown_handle")
+      );
+      expect(warnedUnknown).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("outbound: out-of-order — SENT arriving after DELIVERED is a no-op", async () => {
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-ooo-1", status: "DELIVERED" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "SENT",
+    });
+    const res = await POST(makeRequest(payload));
+    expect(res.status).toBe(200);
+    expect(mockUpdates).toHaveLength(0);
+  });
+
+  it("outbound: idempotent — DELIVERED arriving after DELIVERED is a no-op", async () => {
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-idem-1", status: "DELIVERED" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "DELIVERED",
+    });
+    const res = await POST(makeRequest(payload));
+    expect(res.status).toBe(200);
+    expect(mockUpdates).toHaveLength(0);
+  });
+
+  it("outbound: unverified signature → 200, no lookup or update", async () => {
+    // Even if a valid-looking row exists, we don't touch it when the
+    // signature check fails.
+    selectResponsesByTable["messaging_events"] = {
+      data: { id: "row-unv-1", status: "QUEUED" },
+      error: null,
+    };
+    const payload = basePayload({
+      is_outbound: true,
+      status: "SENT",
+    });
+    const res = await POST(
+      makeRequest(payload, { signingSecret: null })
+    );
+    expect(res.status).toBe(200);
+    expect(mockUpdates).toHaveLength(0);
   });
 });

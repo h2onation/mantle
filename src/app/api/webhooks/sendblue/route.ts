@@ -1,29 +1,40 @@
-// Inbound webhook for Sendblue.
+// Sendblue webhook. Handles both inbound user messages and outbound
+// status callbacks — Sendblue posts both event types to the same URL,
+// distinguished by payload.is_outbound.
 //
-// Flow:
-//   1. Read the raw body. We don't need it for signature verification
+// Common flow:
+//   1. Read the raw body. Not required for signature verification
 //      (Sendblue's auth is a shared-secret header, not an HMAC — see
-//      ADR-039), but the one-read pattern keeps future HMAC support
-//      cheap if Sendblue adds it.
+//      ADR-039); the one-read pattern keeps future HMAC support cheap.
 //   2. Parse JSON — malformed → 200 {ok:false} (no audit, no routing).
 //   3. Verify the sb-signing-secret header against SENDBLUE_WEBHOOK_SECRET.
-//      Result is stamped into raw_payload.verified on every audit row.
-//   4. Insert the primary audit row (content + raw_payload redacted per
-//      ADR-037). Unique partial index on (provider, provider_message_id)
-//      makes Sendblue's retries idempotent — 23505 short-circuits routing.
-//   5. If verified === false → stop. Audited, not routed.
-//   6. If group_id is non-empty → stop. Groups stay on the Linq facilitator
-//      path per ADR-035. Audited, not routed.
-//   7. Adapt the flat Sendblue payload to the router's InboundMessageData
-//      shape: chatId undefined (Sendblue has no Linq chat id), parts is
-//      synthesized from content (always) + media_url (if present).
-//   8. Call routeInboundMessage inside try/catch. A router throw writes a
-//      secondary audit row tagged ROUTING_FAILED and still returns 200 so
-//      Sendblue does not retry a payload that reproducibly fails.
+//   4. Branch on payload.is_outbound.
+//
+// Outbound path (is_outbound=true): status callback for a message we sent.
+//   - If !verified → log + 200. No update.
+//   - Look up the existing outbound audit row by provider_message_id.
+//   - Apply the forward-progress status guard (QUEUED < SENT < DELIVERED;
+//     DELIVERED and FAILED are terminal, equal rank). Out-of-order events
+//     are idempotent no-ops.
+//   - On DELIVERED: also set delivered_at = payload.date_updated.
+//   - On FAILED: also capture error_code + error_message.
+//
+// Inbound path (is_outbound=false): existing Jove-routing logic.
+//   - Insert the primary audit row (content + raw_payload redacted per
+//     ADR-037). Unique partial index on (provider, provider_message_id)
+//     makes Sendblue's retries idempotent — 23505 short-circuits routing.
+//   - If verified === false → stop. Audited, not routed.
+//   - If group_id is non-empty → stop. Groups stay on Linq per ADR-035.
+//   - Fire typing indicator (fire-and-forget).
+//   - Adapt the flat Sendblue payload to the router's InboundMessageData
+//     shape and call routeInboundMessage inside try/catch. A router throw
+//     writes a secondary audit row tagged ROUTING_FAILED.
+//   - Emit the [latency] sendblue_roundtrip log line.
 //
 // Return policy: 200 on every non-transient path. Sendblue retries 5xx up
 // to 3 times with a 45s timeout — we do not want retries for malformed
-// payloads, dedupe hits, signature failures, or routing bugs.
+// payloads, dedupe hits, signature failures, routing bugs, or out-of-order
+// status callbacks.
 
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
@@ -58,6 +69,126 @@ export const runtime = "nodejs";
  * The caller (POST handler) short-circuits routing when this returns false
  * and records `verified: false` in the audit row.
  */
+/**
+ * Forward-progress rank for outbound Sendblue status values.
+ *   QUEUED → SENT → DELIVERED (terminal)
+ *            \_________→ FAILED (terminal, same rank as DELIVERED)
+ *
+ * A status update is applied only if its incoming rank is strictly greater
+ * than the current row's rank. Equal or lower = idempotent no-op. This
+ * handles late/out-of-order events from Sendblue without flapping, and
+ * treats FAILED and DELIVERED as sticky terminals — first terminal wins.
+ *
+ * Unknown statuses return null; the caller logs a warning and skips.
+ */
+function statusRank(status: string): number | null {
+  switch (status) {
+    case "QUEUED":
+      return 0;
+    case "SENT":
+      return 1;
+    case "DELIVERED":
+    case "FAILED":
+      return 2;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Handle a Sendblue outbound-status callback. Updates the existing audit
+ * row (no new row inserted). Returns 200 from the caller regardless of
+ * outcome — unknown handles, ordering no-ops, and DB errors all result in
+ * a 200 so Sendblue does not retry.
+ */
+async function handleOutboundStatusUpdate(
+  admin: ReturnType<typeof createAdminClient>,
+  payload: SendblueInboundWebhook
+): Promise<void> {
+  const { data: existing, error: lookupError } = await admin
+    .from("messaging_events")
+    .select("id, status")
+    .eq("provider", "sendblue")
+    .eq("provider_message_id", payload.message_handle)
+    .eq("direction", "outbound")
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("[sendblue-webhook] outbound_status_lookup_failed", {
+      handle: payload.message_handle,
+      message: lookupError.message,
+      details: lookupError,
+    });
+    return;
+  }
+
+  if (!existing) {
+    // Could be a race where the status callback arrives before the
+    // outbound audit row has committed, or a status for a message we
+    // didn't originate. Either way: log and exit without updating.
+    console.warn("[sendblue-webhook] outbound_status_unknown_handle", {
+      handle: payload.message_handle,
+      status: payload.status,
+    });
+    return;
+  }
+
+  const incomingRank = statusRank(payload.status);
+  const currentRank =
+    typeof existing.status === "string" ? statusRank(existing.status) : null;
+
+  if (incomingRank === null) {
+    console.warn("[sendblue-webhook] outbound_status_unknown_value", {
+      handle: payload.message_handle,
+      row_id: existing.id,
+      incoming: payload.status,
+    });
+    return;
+  }
+
+  if (currentRank !== null && incomingRank <= currentRank) {
+    console.log(
+      "[sendblue-webhook] outbound_status_noop handle=%s current=%s incoming=%s reason=%s",
+      payload.message_handle,
+      existing.status,
+      payload.status,
+      incomingRank === currentRank ? "same_rank" : "regression"
+    );
+    return;
+  }
+
+  const updates: Record<string, unknown> = { status: payload.status };
+  if (payload.status === "DELIVERED") {
+    updates.delivered_at = payload.date_updated;
+  }
+  if (payload.status === "FAILED") {
+    updates.error_code = payload.error_code ? String(payload.error_code) : null;
+    updates.error_message = payload.error_message ?? null;
+  }
+
+  const { error: updateError } = await admin
+    .from("messaging_events")
+    .update(updates)
+    .eq("id", existing.id as string);
+
+  if (updateError) {
+    console.error("[sendblue-webhook] outbound_status_update_failed", {
+      handle: payload.message_handle,
+      row_id: existing.id,
+      message: updateError.message,
+      details: updateError,
+    });
+    return;
+  }
+
+  console.log(
+    "[sendblue-webhook] outbound_status_updated handle=%s from=%s to=%s",
+    payload.message_handle,
+    existing.status,
+    payload.status
+  );
+}
+
 function verifyInboundSignature(req: NextRequest): boolean {
   const expected = process.env.SENDBLUE_WEBHOOK_SECRET;
   if (!expected) {
@@ -105,15 +236,29 @@ export async function POST(req: NextRequest) {
   markLatency(timings, "verified");
 
   console.log(
-    "[sendblue-webhook] inbound handle=%s service=%s is_group=%s was_downgraded=%s verified=%s",
+    "[sendblue-webhook] event handle=%s service=%s is_outbound=%s is_group=%s status=%s verified=%s",
     payload.message_handle,
     payload.service,
+    payload.is_outbound ? "true" : "false",
     payload.group_id ? "true" : "false",
-    payload.was_downgraded,
+    payload.status,
     verified
   );
 
   const admin = createAdminClient();
+
+  // Outbound status callback — different flow from inbound. No new audit
+  // row, no routing; update the existing outbound row in place.
+  if (payload.is_outbound === true) {
+    if (!verified) {
+      console.error("[sendblue-webhook] outbound_signature_rejected", {
+        handle: payload.message_handle,
+      });
+      return NextResponse.json({ ok: true });
+    }
+    await handleOutboundStatusUpdate(admin, payload);
+    return NextResponse.json({ ok: true });
+  }
 
   // PII redaction (ADR-037): messaging_events.content is metadata-only.
   // raw_payload is a fields-only projection — no message body, no media URL
