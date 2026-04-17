@@ -11,6 +11,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTypingIndicator, markAsRead } from "./sender";
 import { sendMessage } from "@/lib/messaging/send";
+import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import { processTextMessage } from "./persona-bridge";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
@@ -77,6 +78,12 @@ interface InboundMessageData {
   chatId?: string;
   senderPhone: string;
   parts: Array<{ type: string; value: string }>;
+  /**
+   * Optional latency collector. Sendblue webhook passes this to measure the
+   * inbound → Jove → outbound round-trip; Linq callers leave it undefined
+   * and every markLatency() call in this file becomes a no-op.
+   */
+  timings?: LatencyCollector;
 }
 
 /**
@@ -85,7 +92,8 @@ interface InboundMessageData {
 export async function routeInboundMessage(
   data: InboundMessageData
 ): Promise<void> {
-  const { chatId, senderPhone: rawSenderPhone, parts } = data;
+  const { chatId, senderPhone: rawSenderPhone, parts, timings } = data;
+  markLatency(timings, "router_entry");
   const senderPhone = normalizePhone(rawSenderPhone);
   const startTime = Date.now();
 
@@ -131,6 +139,7 @@ export async function routeInboundMessage(
     .eq("phone", senderPhone)
     .eq("verified", true)
     .maybeSingle();
+  markLatency(timings, "phone_lookup_done");
 
   console.log(
     "[router] phone_lookup found=%s user_id=%s",
@@ -223,17 +232,24 @@ export async function routeInboundMessage(
     // doesn't expose typing/read indicators.
     if (chatId) await sendTypingIndicator(chatId);
 
-    const result = await processTextMessage(userId, textContent);
+    const result = await processTextMessage(
+      userId,
+      textContent,
+      undefined,
+      timings
+    );
     const latencyMs = Date.now() - startTime;
 
     // Mark as read + send response
     if (chatId) await markAsRead(chatId);
+    markLatency(timings, "send_started");
     const sendResult = await sendMessage({
       to: senderPhone,
       content: result.responseText,
       ownerUserId: userId,
       contentKind: "jove",
     });
+    markLatency(timings, "send_returned");
 
     // Send checkpoint follow-up if present
     if (result.checkpointText) {

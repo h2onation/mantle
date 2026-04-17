@@ -30,6 +30,12 @@ import * as crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { routeInboundMessage } from "@/lib/linq/message-router";
 import type { SendblueInboundWebhook } from "@/lib/messaging/sendblue";
+import {
+  startLatencyCollector,
+  markLatency,
+  computeLatencyDeltas,
+  formatLatencyLog,
+} from "@/lib/messaging/latency";
 
 export const runtime = "nodejs";
 
@@ -70,6 +76,9 @@ function verifyInboundSignature(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  // t0 anchor for the latency collector. webhook_start is implicit.
+  const timings = startLatencyCollector();
+
   // Log the header set so the signature-bearing header becomes visible on
   // first real webhook. Header names are not sensitive.
   const headerKeys = Array.from(req.headers.keys());
@@ -87,8 +96,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: false, reason: "invalid_json" });
   }
+  markLatency(timings, "json_parsed");
 
   const verified = verifyInboundSignature(req);
+  markLatency(timings, "verified");
 
   console.log(
     "[sendblue-webhook] inbound handle=%s service=%s is_group=%s was_downgraded=%s verified=%s",
@@ -137,6 +148,7 @@ export async function POST(req: NextRequest) {
     was_downgraded: payload.was_downgraded,
     raw_payload: redactedPayload,
   });
+  markLatency(timings, "audit_in_done");
 
   if (error) {
     if (error.code === "23505") {
@@ -194,6 +206,7 @@ export async function POST(req: NextRequest) {
     await routeInboundMessage({
       senderPhone: payload.from_number,
       parts,
+      timings,
     });
   } catch (err) {
     console.error("[sendblue-webhook] routing_failed", {
@@ -222,11 +235,20 @@ export async function POST(req: NextRequest) {
         error_stack: err instanceof Error ? err.stack : null,
       },
     });
-
-    // Still 200. A router bug deterministically fails every retry — letting
-    // Sendblue retry just burns retry budget.
-    return NextResponse.json({ ok: true });
+    // Still 200 on routing failure. A router bug deterministically fails
+    // every retry — letting Sendblue retry just burns retry budget. Fall
+    // through to emit the latency line (partial) + return.
   }
+
+  // Emit one structured latency line per round-trip. Short-circuit paths
+  // (invalid JSON, sig fail, dedupe, group skip) return earlier and never
+  // reach here — the log is scoped to actually-routed inbound.
+  console.log(
+    formatLatencyLog(
+      payload.message_handle,
+      computeLatencyDeltas(timings)
+    )
+  );
 
   return NextResponse.json({ ok: true });
 }

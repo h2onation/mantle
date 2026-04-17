@@ -330,4 +330,32 @@ describe("POST /api/webhooks/sendblue", () => {
 
     expect(mockRouter).not.toHaveBeenCalled();
   });
+
+  // --- Latency instrumentation -----------------------------------------
+
+  it("latency: emits one structured log line on the routed path with expected shape", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const payload = basePayload({ message_handle: "msg-latency-test" });
+      const res = await POST(makeRequest(payload));
+      expect(res.status).toBe(200);
+
+      const latencyCalls = logSpy.mock.calls.filter(
+        (c) =>
+          typeof c[0] === "string" &&
+          (c[0] as string).startsWith("[latency] sendblue_roundtrip")
+      );
+      expect(latencyCalls).toHaveLength(1);
+
+      const line = latencyCalls[0][0] as string;
+      // Shape check — no number assertions; each bucket can be a positive
+      // integer or -1 (router-internal marks don't fire when router is
+      // mocked, which is expected in this suite).
+      expect(line).toMatch(
+        /^\[latency\] sendblue_roundtrip handle=msg-latency-test total=-?\d+ms verify=-?\d+ms audit_in=-?\d+ms phone_lookup=-?\d+ms context_load=-?\d+ms anthropic=-?\d+ms persist=-?\d+ms send=-?\d+ms$/
+      );
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
 });

@@ -7,6 +7,7 @@ import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { classifyResponse } from "@/lib/persona/classifier";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
+import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import {
   PERSONA_MODEL,
   PERSONA_MAX_TOKENS,
@@ -41,7 +42,8 @@ interface PersonaBridgeResult {
 export async function processTextMessage(
   userId: string,
   messageText: string | null,
-  existingConversationId?: string
+  existingConversationId?: string,
+  timings?: LatencyCollector
 ): Promise<PersonaBridgeResult> {
   const admin = createAdminClient();
 
@@ -66,6 +68,7 @@ export async function processTextMessage(
 
   // 3. Load shared conversation context (same DB reads + rules as web)
   const ctx = await loadConversationContext(admin, conversationId, userId);
+  markLatency(timings, "context_loaded");
 
   // 4. Fire extraction in background (only for real user messages)
   if (messageText !== null) {
@@ -76,12 +79,14 @@ export async function processTextMessage(
   const systemPrompt = buildSystemPrompt(buildPromptOptionsFromContext(ctx));
 
   // 6. Call Sage non-streaming (text doesn't need SSE)
+  markLatency(timings, "anthropic_start");
   const response = await anthropicFetch({
     model: PERSONA_MODEL,
     max_tokens: PERSONA_MAX_TOKENS,
     system: systemPrompt,
     messages: ctx.messages,
   });
+  markLatency(timings, "anthropic_returned");
 
   const fullText =
     response.content?.[0]?.text || "Something went wrong on my end.";
@@ -127,6 +132,7 @@ export async function processTextMessage(
     })
     .select("id")
     .single();
+  markLatency(timings, "reply_persisted");
 
   const messageId = savedResponse?.id || null;
 
