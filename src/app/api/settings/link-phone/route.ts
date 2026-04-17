@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // New phone linking uses /api/user/phone (Linq-based, no verification code).
 // This route only serves GET requests for existing linked phone status.
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = createClient();
   const {

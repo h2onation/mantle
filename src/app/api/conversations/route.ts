@@ -9,6 +9,8 @@ function extractTitle(summary: string | null): string | null {
   return match ? match[1].trim() : null;
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   let capturedUserId: string | null = null;
   try {

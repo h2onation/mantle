@@ -9,6 +9,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hashUserId } from "@/lib/observability/log";
 import { recordApiError } from "@/lib/observability/record-api-error";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   let capturedUserId: string | null = null;
   try {

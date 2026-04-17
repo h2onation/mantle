@@ -13,6 +13,8 @@ import {
 export const runtime = "nodejs";
 
 // ── GET: return linked phone (if any) ──────────────────────────────
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = createClient();
   const {

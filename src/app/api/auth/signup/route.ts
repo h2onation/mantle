@@ -7,6 +7,8 @@ import { isEmailAllowlisted, normalizeEmail } from "@/lib/beta-allowlist";
 //
 // Google OAuth signup is gated separately in /auth/callback (it cannot be
 // pre-checked because the user is created during exchangeCodeForSession).
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   let body: { email?: unknown; password?: unknown };
   try {

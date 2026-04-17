@@ -8,6 +8,8 @@ function isWaitlistStatus(v: unknown): v is WaitlistStatus {
   return typeof v === "string" && (ALLOWED_STATUSES as readonly string[]).includes(v);
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const { isAdmin } = await verifyAdmin();

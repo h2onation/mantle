@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 // open on error — a transient API failure must not lock a logged-in
 // beta user out of the app.
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = createClient();
 

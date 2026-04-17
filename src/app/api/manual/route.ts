@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordApiError } from "@/lib/observability/record-api-error";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   let capturedUserId: string | null = null;
   try {
