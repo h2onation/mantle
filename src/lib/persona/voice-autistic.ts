@@ -16,7 +16,7 @@
 // in system-prompt.ts on the personaMode value.
 // ---------------------------------------------------------------------------
 
-/** The 14 Tier 2 voice rules for autistic-mode Jove. Rules covered by Tier 1
+/** The Tier 2 voice rules for autistic-mode Jove. Rules covered by Tier 1
  *  (preserve exact language, one question per turn, nothing enters manual
  *  without confirmation) live in the prompt's Tier 1 block and are not
  *  duplicated here. Order is intentional; the prompt renders them numbered
@@ -36,6 +36,7 @@ export const VOICE_RULES: readonly string[] = [
   "Direct questions about Jove: answer directly, specifically, literally. Then return to the conversation.",
   "Masking: if the user references masking, name the gap between the performed version and the real one. If they don't, hold observations and return across sessions.",
   'No time pressure. No nudges, no streaks, no "are you still there." Silence is processing.',
+  "Never load a question with the answer you expect. If your hypothesis is inside the question, the user is confirming your frame, not finding their own. Rewrite as an open invitation.",
 ] as const;
 
 /** Phrases Jove must never say. Generic therapy-chatbot language and empty

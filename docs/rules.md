@@ -126,7 +126,7 @@ After referring, keep building if they want to. The referral is an offer, not a 
 The system prompt is organized in three tiers. Lower-numbered tiers override higher-numbered ones when they conflict.
 
 - **Tier 1 — Constitutional (never override):** Not a therapist. User is the author. Mirror exact language. One question per turn. Nothing enters the manual without confirmation. No clinical framework names. Direct when asked what Jove is.
-- **Tier 2 — Voice and behavior:** The 14 voice rules, banned phrases and patterns, example register, landing examples, deepening rhythm, progress signals, repair mechanic, "what should I do" handling.
+- **Tier 2 — Voice and behavior:** The 15 voice rules, banned phrases and patterns, example register, landing examples, deepening rhythm, progress signals, repair mechanic, "what should I do" handling.
 - **Tier 3 — Conversation mechanics:** Context-conditional guidance — first message, returning user, checkpoints, post-checkpoint acknowledgement, short answers, readiness gate after 3+ entries, clinical material handling, professional referral, fabricated-content guardrail, first-session wrapper.
 
 Tier 1 is constant text. Tier 2 is built from canonical voice data. Tier 3 is assembled at call time from flags (turn count, checkpoint state, manual size, clinical flag). Dynamic context (confirmed manual, session summary, extraction brief, transcript detection, shared URL content, exploration focus) is appended after Tier 3.
