@@ -17,6 +17,7 @@ import {
   applyCheckpointGates,
   buildCheckpointMeta,
   validateComposedEntry,
+  validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
 
 interface PersonaBridgeResult {
@@ -128,6 +129,12 @@ export async function processTextMessage(
     .single();
 
   const messageId = savedResponse?.id || null;
+
+  // Response structure validation (logs violations, does not block).
+  // Runs on fullText — the raw model output — not responseText, which may
+  // have had crisis 988 resources appended (CRISIS_RESOURCES contains an
+  // em dash that would trip the dash_usage check).
+  validateResponseStructure(fullText, messageId);
 
   // Save extraction snapshot
   if (messageId && ctx.previousExtraction) {

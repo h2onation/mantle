@@ -490,6 +490,54 @@ export function validateComposedEntry(
   return { ok: warnings.length === 0, warnings };
 }
 
+// ── 4d. Conversational response structure validator ────────────────────────
+//
+// Soft post-generation validator for Jove's conversational turns. Runs on
+// every response. Logs violations but does NOT block delivery — we want
+// beta data on how often the model drifts from the rules, not interrupted
+// conversations. Promote to a blocking/rewrite step only after the log
+// volume justifies it.
+
+/**
+ * Two checks that mirror the violations the quality-framework eval keeps
+ * catching:
+ *   - question_count: Tier 1 rule 4 ("one question per turn") — count `?`
+ *     in the response. 0 or 1 is fine; 2+ is a violation. 0 covers the
+ *     post-confirmation transition, which is not a conversational turn.
+ *   - dash_usage: Tier 2 VOICE rule ("no dashes or hyphens joining clauses")
+ *     — count em dashes and spaced en-dash/hyphen sequences.
+ *
+ * Logs as structured console.warn so log aggregators can slice on
+ * `check` and `count`.
+ */
+export function validateResponseStructure(
+  content: string,
+  messageId: string | null
+): void {
+  const questionMarks = (content.match(/\?/g) || []).length;
+  const emDashes = (content.match(/—/g) || []).length;
+  const spacedDashes = (content.match(/ – | - /g) || []).length;
+
+  if (questionMarks > 1) {
+    console.warn("[persona-pipeline] response_validation", {
+      type: "response_validation",
+      check: "question_count",
+      count: questionMarks,
+      message_id: messageId,
+    });
+  }
+
+  const dashCount = emDashes + spacedDashes;
+  if (dashCount > 0) {
+    console.warn("[persona-pipeline] response_validation", {
+      type: "response_validation",
+      check: "dash_usage",
+      count: dashCount,
+      message_id: messageId,
+    });
+  }
+}
+
 // ── 4b. Checkpoint action system message ────────────────────────────────────
 //
 // Single source of truth for the system messages inserted after checkpoint

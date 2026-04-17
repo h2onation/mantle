@@ -19,6 +19,7 @@ import {
   applyCheckpointGates,
   buildCheckpointMeta,
   validateComposedEntry,
+  validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
 
 // ── Extracted pure functions (testable without mocking) ──
@@ -332,6 +333,12 @@ export function callPersona({
           .single();
 
         const messageId = savedResponse?.id || null;
+
+        // 11a. Response structure validation (logs violations, does not block).
+        //      Runs on fullText — the raw model output — not conversationalText,
+        //      which may have had crisis 988 resources appended. CRISIS_RESOURCES
+        //      contains an em dash that would trip the dash_usage check.
+        validateResponseStructure(fullText, messageId);
 
         // 11b. Save extraction snapshot. The column is guaranteed present
         //      in the 20260417 squash baseline; any error here is a real
