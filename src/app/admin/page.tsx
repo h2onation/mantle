@@ -14,6 +14,7 @@ import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
+import FeedbackPanel from "@/components/admin/FeedbackPanel";
 import {
   formatAdminDate,
   adminEmptyStyle,
@@ -69,6 +70,11 @@ function AdminPageInner() {
     if (section === "feedback") {
       data.loadBetaFeedback();
       data.loadUserFeedback();
+    }
+    // Health tab surfaces unread feedback alongside errors and active
+    // users, so load the same data the Feedback tab loads.
+    if (section === "health") {
+      data.loadBetaFeedback();
     }
   }, [section, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -319,6 +325,12 @@ function AdminPageInner() {
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
               <ActiveUsersPanel />
+              <FeedbackPanel
+                items={data.betaFeedback}
+                unreadCount={data.betaFeedbackUnreadCount}
+                loaded={data.betaFeedbackLoaded}
+                onMarkRead={data.markBetaFeedbackRead}
+              />
             </div>
           )}
 
