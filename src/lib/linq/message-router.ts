@@ -68,7 +68,13 @@ function isUserRateLimited(userId: string): boolean {
 }
 
 interface InboundMessageData {
-  chatId: string;
+  /**
+   * Linq chat id. Present only when the inbound came through the Linq
+   * webhook. Sendblue inbound passes this as undefined — honest signal that
+   * Linq API surfaces (typing indicator, read receipts, linq_chat_id
+   * write-back) do not apply.
+   */
+  chatId?: string;
   senderPhone: string;
   parts: Array<{ type: string; value: string }>;
 }
@@ -141,8 +147,10 @@ export async function routeInboundMessage(
   const userId = phoneRow.user_id;
 
   // 2b. Store the Linq chat_id if we don't have it yet — the wrapper reads
-  //     it to fast-path 1:1 sends during rollback.
-  if (!phoneRow.linq_chat_id) {
+  //     it to fast-path 1:1 sends during rollback. Only applicable when
+  //     this inbound came from Linq; Sendblue inbound leaves chatId
+  //     undefined and the column untouched.
+  if (chatId && !phoneRow.linq_chat_id) {
     admin
       .from("phone_numbers")
       .update({ linq_chat_id: chatId })
@@ -210,15 +218,16 @@ export async function routeInboundMessage(
 
   // 6. Route to Jove
   try {
-    // Typing indicator fires BEFORE Jove processes. Linq-only; no-op under
-    // Sendblue but the sender import is guarded internally.
-    await sendTypingIndicator(chatId);
+    // Typing indicator + read receipts are Linq-only surfaces. chatId is
+    // only set for Linq inbound; Sendblue inbound skips both since Sendblue
+    // doesn't expose typing/read indicators.
+    if (chatId) await sendTypingIndicator(chatId);
 
     const result = await processTextMessage(userId, textContent);
     const latencyMs = Date.now() - startTime;
 
     // Mark as read + send response
-    await markAsRead(chatId);
+    if (chatId) await markAsRead(chatId);
     const sendResult = await sendMessage({
       to: senderPhone,
       content: result.responseText,
@@ -327,7 +336,7 @@ async function handleCheckpointResponse(
   userId: string,
   senderPhone: string,
   text: string,
-  chatId: string
+  chatId: string | undefined
 ): Promise<string | null> {
   const normalized = text.trim().toUpperCase();
 
@@ -379,7 +388,7 @@ async function handleCheckpointResponse(
 
     if (result.success) {
       // Call Jove to generate post-checkpoint acknowledgement (same as web path).
-      await sendTypingIndicator(chatId);
+      if (chatId) await sendTypingIndicator(chatId);
       try {
         const { responseText: followUp } = await processTextMessage(
           userId,
@@ -422,7 +431,7 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "refined");
 
-    await sendTypingIndicator(chatId);
+    if (chatId) await sendTypingIndicator(chatId);
     try {
       const { responseText: followUp } = await processTextMessage(
         userId,
@@ -456,7 +465,7 @@ async function handleCheckpointResponse(
 
     await insertCheckpointActionMessage(admin, conv.id, "rejected");
 
-    await sendTypingIndicator(chatId);
+    if (chatId) await sendTypingIndicator(chatId);
     try {
       const { responseText: followUp } = await processTextMessage(
         userId,
