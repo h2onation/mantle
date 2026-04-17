@@ -29,7 +29,10 @@ import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { routeInboundMessage } from "@/lib/linq/message-router";
-import type { SendblueInboundWebhook } from "@/lib/messaging/sendblue";
+import {
+  sendTypingIndicatorViaSendblue,
+  type SendblueInboundWebhook,
+} from "@/lib/messaging/sendblue";
 import {
   startLatencyCollector,
   markLatency,
@@ -190,6 +193,18 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ ok: true });
   }
+
+  // Fire typing indicator for the verified 1:1 inbound path. Jove's reply
+  // takes 4-8s to generate; the typing dots give the user an immediate
+  // signal that something is happening rather than silence. Fire-and-forget:
+  // if the Sendblue typing API fails (SMS-only recipient, network blip,
+  // rate limit), log a warning but never block routing.
+  sendTypingIndicatorViaSendblue({ to: payload.from_number }).catch((err) => {
+    console.warn("[sendblue-webhook] typing_indicator_failed", {
+      handle: payload.message_handle,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
 
   // 1:1 routing. Adapt the flat Sendblue payload to the router's shape.
   // chatId is intentionally undefined — Sendblue has no persistent chat id

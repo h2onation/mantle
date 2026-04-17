@@ -27,6 +27,11 @@ vi.mock("@/lib/linq/message-router", () => ({
   routeInboundMessage: (data: unknown) => mockRouter(data),
 }));
 
+const mockTyping = vi.fn();
+vi.mock("@/lib/messaging/sendblue", () => ({
+  sendTypingIndicatorViaSendblue: (params: unknown) => mockTyping(params),
+}));
+
 import { POST } from "@/app/api/webhooks/sendblue/route";
 
 // --- Fixtures ------------------------------------------------------------
@@ -121,8 +126,16 @@ beforeEach(() => {
   insertErrorQueue.length = 0;
   mockRouter.mockReset();
   mockRouter.mockResolvedValue(undefined);
+  mockTyping.mockReset();
+  mockTyping.mockResolvedValue(undefined);
   process.env.SENDBLUE_WEBHOOK_SECRET = TEST_SECRET;
 });
+
+// Give microtasks a chance to flush — typing is fire-and-forget, so its
+// .catch() handler runs as a microtask after the POST promise resolves. A
+// setImmediate tick guarantees that handler has run before assertions.
+const flushMicrotasks = () =>
+  new Promise<void>((resolve) => setImmediate(resolve));
 
 afterEach(() => {
   if (ORIGINAL_SECRET === undefined) {
@@ -167,6 +180,10 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(routerArgs.chatId).toBeUndefined();
     expect(routerArgs.senderPhone).toBe("+13105550101");
     expect(routerArgs.parts).toEqual([{ type: "text", value: "hi" }]);
+
+    // Typing indicator fires on the routed path, addressed at the sender.
+    expect(mockTyping).toHaveBeenCalledOnce();
+    expect(mockTyping).toHaveBeenCalledWith({ to: "+13105550101" });
   });
 
   it("media synthesis: media_url populated → parts contains text and image", async () => {
@@ -192,7 +209,7 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(rawPayload.has_media).toBe(true);
   });
 
-  it("group short-circuit: group_id non-empty → audits, does NOT route", async () => {
+  it("group short-circuit: group_id non-empty → audits, does NOT route, does NOT type", async () => {
     const payload = basePayload({ group_id: "group-abc123" });
     const res = await POST(makeRequest(payload));
 
@@ -205,18 +222,20 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(rawPayload.group_id).toBe("group-abc123");
 
     expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
   });
 
-  it("invalid JSON: returns {ok:false, reason:'invalid_json'}, no audit, no routing", async () => {
+  it("invalid JSON: returns {ok:false, reason:'invalid_json'}, no audit, no routing, no typing", async () => {
     const res = await POST(makeRequest(null, { rawBody: "{not json" }));
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: false, reason: "invalid_json" });
     expect(mockInserts).toHaveLength(0);
     expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
   });
 
-  it("dedupe (23505): primary insert fails, routing skipped", async () => {
+  it("dedupe (23505): primary insert fails, routing skipped, typing skipped", async () => {
     insertErrorQueue.push({ code: "23505", message: "duplicate key" });
     const payload = basePayload();
     const res = await POST(makeRequest(payload));
@@ -226,6 +245,8 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(mockInserts).toHaveLength(1);
     // Router was NOT called — dedupe means the message was already processed
     expect(mockRouter).not.toHaveBeenCalled();
+    // Typing also skipped — the first delivery already fired one
+    expect(mockTyping).not.toHaveBeenCalled();
   });
 
   it("non-dedupe DB error: routing still proceeds so the user is not dropped", async () => {
@@ -237,7 +258,7 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(mockRouter).toHaveBeenCalledOnce();
   });
 
-  it("router throws: secondary audit row written, returns 200", async () => {
+  it("router throws: secondary audit row written, typing still fired, returns 200", async () => {
     mockRouter.mockRejectedValue(new Error("router bug"));
     const payload = basePayload();
     const res = await POST(makeRequest(payload));
@@ -262,11 +283,15 @@ describe("POST /api/webhooks/sendblue", () => {
     const secondaryRaw = secondary.raw_payload as Record<string, unknown>;
     expect(secondaryRaw.kind).toBe("routing_failure");
     expect(secondaryRaw.parent_message_handle).toBe(payload.message_handle);
+
+    // Typing was fired before the router throw — the user saw dots even
+    // though the reply never came through.
+    expect(mockTyping).toHaveBeenCalledOnce();
   });
 
   // --- Signature verification (ADR-039) ---------------------------------
 
-  it("sig: missing sb-signing-secret header → verified=false, router not called", async () => {
+  it("sig: missing sb-signing-secret header → verified=false, router not called, typing not called", async () => {
     const payload = basePayload();
     const res = await POST(
       makeRequest(payload, { signingSecret: null })
@@ -280,9 +305,10 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(rawPayload.verified).toBe(false);
 
     expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
   });
 
-  it("sig: wrong sb-signing-secret value → verified=false, router not called", async () => {
+  it("sig: wrong sb-signing-secret value → verified=false, router not called, typing not called", async () => {
     const payload = basePayload();
     const res = await POST(
       makeRequest(payload, { signingSecret: "totally-wrong-value" })
@@ -296,6 +322,7 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(rawPayload.verified).toBe(false);
 
     expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
   });
 
   it("sig: correct sb-signing-secret value → verified=true, router called", async () => {
@@ -314,7 +341,7 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(mockRouter).toHaveBeenCalledOnce();
   });
 
-  it("sig: missing SENDBLUE_WEBHOOK_SECRET env var → verified=false, router not called (fail closed)", async () => {
+  it("sig: missing SENDBLUE_WEBHOOK_SECRET env var → verified=false, router not called, typing not called (fail closed)", async () => {
     delete process.env.SENDBLUE_WEBHOOK_SECRET;
     const payload = basePayload();
     const res = await POST(
@@ -329,6 +356,47 @@ describe("POST /api/webhooks/sendblue", () => {
     expect(rawPayload.verified).toBe(false);
 
     expect(mockRouter).not.toHaveBeenCalled();
+    expect(mockTyping).not.toHaveBeenCalled();
+  });
+
+  // --- Typing indicator ordering + resilience ---------------------------
+
+  it("typing: fires before routing (ordering)", async () => {
+    const payload = basePayload();
+    await POST(makeRequest(payload));
+
+    expect(mockTyping).toHaveBeenCalledOnce();
+    expect(mockRouter).toHaveBeenCalledOnce();
+
+    const typingOrder = mockTyping.mock.invocationCallOrder[0];
+    const routerOrder = mockRouter.mock.invocationCallOrder[0];
+    expect(typingOrder).toBeLessThan(routerOrder);
+  });
+
+  it("typing: rejection does not block routing (fire-and-forget)", async () => {
+    mockTyping.mockRejectedValue(new Error("sendblue typing API timeout"));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const payload = basePayload();
+      const res = await POST(makeRequest(payload));
+      // Flush the microtask holding the rejected typing promise's .catch
+      // so the warn-spy assertion below sees the log line.
+      await flushMicrotasks();
+
+      expect(res.status).toBe(200);
+      expect(mockTyping).toHaveBeenCalledOnce();
+      // Router still ran despite typing rejection
+      expect(mockRouter).toHaveBeenCalledOnce();
+      // And the typing failure was logged as a warning
+      const warnedTypingFailure = warnSpy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          (c[0] as string).includes("typing_indicator_failed")
+      );
+      expect(warnedTypingFailure).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   // --- Latency instrumentation -----------------------------------------

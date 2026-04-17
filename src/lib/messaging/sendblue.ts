@@ -59,6 +59,60 @@ function getAuthHeaders(): Record<string, string> {
   };
 }
 
+/**
+ * Fire a typing indicator to an iMessage recipient. Sendblue requires an
+ * existing conversation (the inbound webhook that triggered this call
+ * establishes one). SMS-only recipients and group chats are not supported
+ * by Sendblue's typing API — the call will reject for those.
+ *
+ * Intended as fire-and-forget from the caller: throws on any non-2xx or
+ * network failure, and the caller (the Sendblue webhook) attaches a
+ * `.catch()` so a typing failure never blocks Jove's reply.
+ */
+export async function sendTypingIndicatorViaSendblue(params: {
+  to: string;
+}): Promise<void> {
+  assertE164(params.to);
+
+  const fromNumber = process.env.SENDBLUE_FROM_NUMBER;
+  if (!fromNumber) throw new Error("SENDBLUE_FROM_NUMBER not configured");
+  assertE164(fromNumber);
+
+  const body: Record<string, unknown> = {
+    number: params.to,
+    from_number: fromNumber,
+  };
+
+  const response = await fetch(
+    `${SENDBLUE_BASE_URL}/api/send-typing-indicator`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    }
+  );
+
+  const responseText = await response.text();
+  let parsed: { error_message?: string | null };
+  try {
+    parsed = JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Sendblue typing indicator failed with non-JSON response: ${response.status} ${responseText}`
+    );
+  }
+
+  if (!response.ok) {
+    const errMsg =
+      "error_message" in parsed && parsed.error_message
+        ? parsed.error_message
+        : "unknown";
+    throw new Error(
+      `Sendblue typing indicator failed: ${response.status} ${errMsg}`
+    );
+  }
+}
+
 export async function sendMessageViaSendblue(params: {
   to: string;
   content: string;
