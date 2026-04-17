@@ -254,7 +254,6 @@ describe("POST /api/user/phone/verify", () => {
         id: "row-1",
         otp_code: hashOtp("123456"),
         otp_expires_at: new Date(Date.now() - 1000).toISOString(),
-        otp_attempts: 0,
         verified: false,
       },
       error: null,
@@ -265,30 +264,12 @@ describe("POST /api/user/phone/verify", () => {
     expect(res.status).toBe(410);
   });
 
-  it("returns 429 after otp_attempts reaches 5", async () => {
-    selectResponses["phone_numbers"] = {
-      data: {
-        id: "row-1",
-        otp_code: hashOtp("123456"),
-        otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
-        otp_attempts: 5,
-        verified: false,
-      },
-      error: null,
-    };
-    const res = await verifyPOST(
-      verifyRequest({ phone: "+15555551234", code: "123456" })
-    );
-    expect(res.status).toBe(429);
-  });
-
-  it("returns 400 and increments otp_attempts on wrong code", async () => {
+  it("returns 400 on wrong code without promoting verified=true", async () => {
     selectResponses["phone_numbers"] = {
       data: {
         id: "row-1",
         otp_code: hashOtp("111111"),
         otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
-        otp_attempts: 2,
         verified: false,
       },
       error: null,
@@ -297,10 +278,6 @@ describe("POST /api/user/phone/verify", () => {
       verifyRequest({ phone: "+15555551234", code: "999999" })
     );
     expect(res.status).toBe(400);
-    const attemptUpdate = updates.find(
-      (u) => (u.patch as { otp_attempts?: number }).otp_attempts !== undefined
-    );
-    expect(attemptUpdate?.patch.otp_attempts).toBe(3);
     // Must NOT have promoted verified=true
     const promoted = updates.find(
       (u) => (u.patch as { verified?: unknown }).verified === true
@@ -328,7 +305,6 @@ describe("POST /api/user/phone/verify", () => {
         id: "row-1",
         otp_code: hashOtp("246810"),
         otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
-        otp_attempts: 0,
         verified: false,
       },
       error: null,
@@ -349,6 +325,6 @@ describe("POST /api/user/phone/verify", () => {
     expect(patch.verified).toBe(true);
     expect(patch.otp_code).toBeNull();
     expect(patch.otp_expires_at).toBeNull();
-    expect(patch.otp_attempts).toBe(0);
+    expect(patch.linked_at).toBeTypeOf("string");
   });
 });

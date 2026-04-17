@@ -132,7 +132,6 @@ export async function POST(request: NextRequest) {
         verified: false,
         otp_code: otpHash,
         otp_expires_at: expiresAt,
-        otp_attempts: 0,
       })
       .eq("user_id", user.id);
 
@@ -150,7 +149,6 @@ export async function POST(request: NextRequest) {
       verified: false,
       otp_code: otpHash,
       otp_expires_at: expiresAt,
-      otp_attempts: 0,
     });
 
     if (insertError) {

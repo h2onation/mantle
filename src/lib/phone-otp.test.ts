@@ -5,7 +5,6 @@ import {
   isExpired,
   otpExpiryFromNow,
   OTP_TTL_MS,
-  OTP_MAX_ATTEMPTS,
 } from "@/lib/phone-otp";
 
 describe("generateOtp", () => {
@@ -55,11 +54,5 @@ describe("otpExpiryFromNow / isExpired", () => {
 
   it("treats null expiry as expired", () => {
     expect(isExpired(null)).toBe(true);
-  });
-});
-
-describe("constants", () => {
-  it("OTP_MAX_ATTEMPTS is 5", () => {
-    expect(OTP_MAX_ATTEMPTS).toBe(5);
   });
 });

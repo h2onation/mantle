@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
-import { hashOtp, isExpired, OTP_MAX_ATTEMPTS } from "@/lib/phone-otp";
+import { hashOtp, isExpired } from "@/lib/phone-otp";
 import {
   phoneOtpVerifyTenMin,
   checkLimit,
@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
 
   const phone = normalizePhone(rawPhone);
 
-  // Defense in depth: rate-limit verify attempts per phone (in addition to
-  // the per-row otp_attempts counter, which can only enforce within a single
-  // OTP lifetime).
+  // Rate-limit verify attempts per phone. This is the sole abuse-protection
+  // layer after the attempts counter was removed (see ADR-038). Requires
+  // Upstash env vars; fails open if they are missing.
   const limit = await checkLimit(phoneOtpVerifyTenMin, phone);
   if (!limit.success) {
     return rateLimitedResponse(limit);
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
   const { data: row } = await admin
     .from("phone_numbers")
-    .select("id, otp_code, otp_expires_at, otp_attempts, verified")
+    .select("id, otp_code, otp_expires_at, verified")
     .eq("user_id", user.id)
     .eq("phone", phone)
     .maybeSingle();
@@ -77,20 +77,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const attempts = (row.otp_attempts as number | null) ?? 0;
-  if (attempts >= OTP_MAX_ATTEMPTS) {
-    return Response.json(
-      { error: "Too many attempts. Please request a new code." },
-      { status: 429 }
-    );
-  }
-
   const submittedHash = hashOtp(code);
   if (submittedHash !== row.otp_code) {
-    await admin
-      .from("phone_numbers")
-      .update({ otp_attempts: attempts + 1 })
-      .eq("id", row.id);
     return Response.json(
       { error: "Incorrect code. Please try again." },
       { status: 400 }
@@ -105,7 +93,6 @@ export async function POST(request: NextRequest) {
       verified: true,
       otp_code: null,
       otp_expires_at: null,
-      otp_attempts: 0,
       linked_at: new Date().toISOString(),
     })
     .eq("id", row.id);

@@ -5,16 +5,19 @@
 //
 // SECURITY: We store only the SHA-256 hex digest of the raw 6-digit code.
 // A hash of a 6-digit code is brute-forceable offline (only ~10^6 inputs),
-// but combined with (a) a 10-minute expiry, (b) otp_attempts ≤ 5 per row,
-// and (c) phone-keyed rate limiting on the verify endpoint, an attacker who
-// reads the database cannot meaningfully convert hashes back into live codes
-// before they expire. The hash exists so that a leaked DB snapshot does not
-// immediately yield valid OTPs for codes still in flight.
+// but combined with (a) a 10-minute expiry and (b) phone-keyed Upstash rate
+// limiting on the verify endpoint, an attacker who reads the database cannot
+// meaningfully convert hashes back into live codes before they expire. The
+// hash exists so that a leaked DB snapshot does not immediately yield valid
+// OTPs for codes still in flight.
+//
+// The per-row attempts counter was removed with the schema alignment in
+// migration 20260417000009. See ADR-038 for the removal rationale and the
+// Upstash env-var gap that must be closed before beta.
 
 import { randomInt, createHash } from "crypto";
 
 export const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
-export const OTP_MAX_ATTEMPTS = 5;
 
 export function generateOtp(): string {
   return String(randomInt(100000, 1000000)); // 100000..999999 inclusive
