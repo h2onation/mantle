@@ -41,6 +41,27 @@ export async function anthropicFetch(
 
     const json = await res.json().catch(() => null);
     if (!json?.content?.[0]) {
+      // Log sanitized response metadata so the next occurrence is
+      // diagnosable. We never log `content[i].text` — it may echo user
+      // phrasing and CLAUDE.md forbids logging user content. Keys,
+      // stop_reason, content types/lengths, and any Anthropic-framework
+      // error fields are enough to classify refusals, empty-content
+      // responses, and gateway errors.
+      const j = json as Record<string, unknown> | null;
+      const content = Array.isArray(j?.content)
+        ? (j!.content as Array<Record<string, unknown>>)
+        : null;
+      console.error("[anthropic] unexpected_response_shape", {
+        keys: j ? Object.keys(j) : null,
+        type: j?.type ?? null,
+        stop_reason: j?.stop_reason ?? null,
+        content_length: content?.length ?? null,
+        content_types: content?.map((c) => c?.type ?? null) ?? null,
+        error_type:
+          (j?.error as Record<string, unknown> | undefined)?.type ?? null,
+        error_message:
+          (j?.error as Record<string, unknown> | undefined)?.message ?? null,
+      });
       throw new Error("Anthropic API returned unexpected response shape");
     }
     return json as AnthropicResponse;
