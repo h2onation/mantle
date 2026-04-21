@@ -425,8 +425,14 @@ export async function runExtraction(
       sage_brief: parsed.sage_brief || "",
     };
   } catch (err) {
+    // Re-throw so fireBackgroundExtraction's .catch handles the failure
+    // without writing a degraded state over the prior good one. Previous
+    // behavior returned `{...state, next_prompt: "", sage_brief: ""}`, which
+    // wiped the prior turn's working brief and degraded Jove's next turn on
+    // top of the underlying error. Logs stay under the [extraction] prefix
+    // so existing ops queries continue to match.
     console.error("[extraction] Failed:", err);
-    return { ...state, next_prompt: "", sage_brief: "" };
+    throw err;
   }
 }
 

@@ -3,6 +3,7 @@
 // both the web (call-persona.ts) and text (persona-bridge.ts) paths.
 // ---------------------------------------------------------------------------
 
+import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   runExtraction,
@@ -250,13 +251,55 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
 // ── 2. Background extraction ────────────────────────────────────────────────
 
 /**
+ * Classify an extraction error into a short bucket so log queries can group
+ * failures by cause (abort, response_shape, parse, http, other) instead of
+ * grepping free-form error messages. Kept deliberately simple — extend only
+ * when a new failure mode proves distinct enough to act on.
+ */
+function classifyExtractionError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.name === "AbortError") return "abort";
+    const msg = err.message || "";
+    if (msg.includes("unexpected response shape")) return "response_shape";
+    if (msg.startsWith("Anthropic API ")) return "http";
+    if (err.name === "SyntaxError") return "parse";
+  }
+  return "other";
+}
+
+/**
  * Fire extraction in background — runs in parallel, doesn't block response.
+ *
+ * Wrapped in `waitUntil` from @vercel/functions so the Vercel platform keeps
+ * the function alive until extraction settles. Without waitUntil, when the
+ * parent request's response closes before extraction finishes, Vercel
+ * terminates the in-flight fetch to Anthropic and it throws DOMException
+ * [AbortError]. Next.js 14 Route Handlers do not expose a native waitUntil
+ * (Next 15's `after()` does); @vercel/functions is the canonical shim and
+ * works on both edge (/api/chat) and nodejs (SMS webhooks) runtimes.
+ * Off-Vercel (local dev, tests) it degrades to a plain promise, no-op.
+ *
+ * Emits two structured log lines per call for observability:
+ *   [persona-pipeline] extraction_attempt { conversation_id, ... }
+ *   [persona-pipeline] extraction_failed  { conversation_id, error_class, ... }
+ * The attempt line is the denominator for failure-rate queries. error_class
+ * buckets failures into the categories we already know about (abort,
+ * response_shape, parse, http, other).
+ *
+ * On failure, the prior `conversations.extraction_state` is preserved — the
+ * DB write only happens inside the .then when extraction succeeded.
  */
 export function fireBackgroundExtraction(
   ctx: ConversationContext,
   admin: ReturnType<typeof createAdminClient>
 ): void {
-  runExtraction(
+  console.log("[persona-pipeline] extraction_attempt", {
+    conversation_id: ctx.conversationId,
+    message_count: ctx.messages.length,
+    is_first_checkpoint: ctx.isFirstCheckpoint,
+  });
+
+  const promise = runExtraction(
     ctx.messages,
     ctx.previousExtraction,
     ctx.manualComponents,
@@ -271,9 +314,16 @@ export function fireBackgroundExtraction(
       if (error)
         console.error("[persona-pipeline] Failed to save extraction state:", error);
     })
-    .catch((err) =>
-      console.error("[persona-pipeline] Background extraction failed:", err)
-    );
+    .catch((err) => {
+      console.error("[persona-pipeline] extraction_failed", {
+        conversation_id: ctx.conversationId,
+        error_class: classifyExtractionError(err),
+        error_message: err instanceof Error ? err.message : String(err),
+        error_name: err instanceof Error ? err.name : null,
+      });
+    });
+
+  waitUntil(promise);
 }
 
 // ── 3. Crisis detection ─────────────────────────────────────────────────────
