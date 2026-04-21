@@ -3,6 +3,7 @@
 // both the web (call-persona.ts) and text (persona-bridge.ts) paths.
 // ---------------------------------------------------------------------------
 
+import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   runExtraction,
@@ -269,6 +270,15 @@ function classifyExtractionError(err: unknown): string {
 /**
  * Fire extraction in background — runs in parallel, doesn't block response.
  *
+ * Wrapped in `waitUntil` from @vercel/functions so the Vercel platform keeps
+ * the function alive until extraction settles. Without waitUntil, when the
+ * parent request's response closes before extraction finishes, Vercel
+ * terminates the in-flight fetch to Anthropic and it throws DOMException
+ * [AbortError]. Next.js 14 Route Handlers do not expose a native waitUntil
+ * (Next 15's `after()` does); @vercel/functions is the canonical shim and
+ * works on both edge (/api/chat) and nodejs (SMS webhooks) runtimes.
+ * Off-Vercel (local dev, tests) it degrades to a plain promise, no-op.
+ *
  * Emits two structured log lines per call for observability:
  *   [persona-pipeline] extraction_attempt { conversation_id, ... }
  *   [persona-pipeline] extraction_failed  { conversation_id, error_class, ... }
@@ -289,7 +299,7 @@ export function fireBackgroundExtraction(
     is_first_checkpoint: ctx.isFirstCheckpoint,
   });
 
-  runExtraction(
+  const promise = runExtraction(
     ctx.messages,
     ctx.previousExtraction,
     ctx.manualComponents,
@@ -312,6 +322,8 @@ export function fireBackgroundExtraction(
         error_name: err instanceof Error ? err.name : null,
       });
     });
+
+  waitUntil(promise);
 }
 
 // ── 3. Crisis detection ─────────────────────────────────────────────────────
