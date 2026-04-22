@@ -1,20 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect } from "react";
 import { PERSONA_NAME } from "@/lib/persona/config";
-
-const ROTATING_EXAMPLES = [
-  "You shut down and people think you\u2019re upset. You\u2019re not. You\u2019re recalibrating.",
-  "You see the pattern everyone else is missing.",
-  "You know exactly what you need but can\u2019t say it in the moment.",
-  "When you lock in, you go deeper than anyone in the room.",
-  "Plans changed and your whole system locked up.",
-  "You remember what people said three months ago and act on it. That\u2019s how you care.",
-  "You mask all day and no one knows what that costs.",
-  "You hold the room together and nobody notices because you make it look easy.",
-  "You rehearse conversations before you have them.",
-  "The people you love get a version of loyalty most people don\u2019t know exists.",
-];
+import HeroManualVignette from "@/components/onboarding/HeroManualVignette";
 
 // Paper surface — subtle noise + corner vignette. The landing is the one
 // screen that earns real texture; noise bumped from 2.5% to 3.5% and
@@ -26,25 +14,9 @@ interface EntryScreenProps {
 }
 
 export default function EntryScreen({ onLogin }: EntryScreenProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const advance = useCallback(() => {
-    setVisible(false);
-    timeoutRef.current = setTimeout(() => {
-      setActiveIndex((prev) => (prev + 1) % ROTATING_EXAMPLES.length);
-      setVisible(true);
-    }, 400);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(advance, 4500);
-    return () => {
-      clearInterval(interval);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [advance]);
+  // No-op — kept for parity with the former rotating-specimen effect
+  // that lived here. The new HeroManualVignette owns its own timing.
+  useEffect(() => {}, []);
 
   return (
     <main
@@ -161,37 +133,91 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           animation: mwEntryFadeUp 650ms ease-out 620ms both;
         }
         .mw-entry-specimen {
-          border: 1px solid var(--mw-entry-hairline);
-          background: rgba(255, 255, 255, 0.35);
-          padding: 22px 22px 24px;
+          /* The HeroManualVignette inside carries its own border +
+             background. The aside is a transparent wrapper that just
+             participates in the hero grid and drives the fade-in. */
           box-sizing: border-box;
           animation: mwEntryFadeIn 800ms ease-out 820ms both;
         }
-        .mw-entry-specimen-label {
-          font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 10px;
-          font-weight: 400;
-          letter-spacing: 2.4px;
-          text-transform: uppercase;
-          color: var(--session-persona);
-          margin-bottom: 14px;
+
+        /* ── Atmospheric band — between hero and method. ────────
+           Full-bleed editorial-photography moment. The sand-ripples
+           image carries the thesis visually: emergent pattern in
+           something that looks random. Edges fade into the linen
+           surround (mask-image) so the band reads as a section
+           break, not a framed photograph. If the image file is
+           absent the CSS gradient behind it still holds a warm
+           atmospheric tone. */
+        .mw-entry-atmos {
+          width: 100%;
+          height: 180px;
+          position: relative;
+          overflow: hidden;
+          /* Fallback atmospheric gradient behind the image — if the
+             JPG 404s we still get a warm sand-toned band instead of
+             a transparent gap. */
+          background:
+            linear-gradient(180deg,
+              #e6d0ab 0%,
+              #d9bf94 45%,
+              #c8a97a 100%
+            );
+          animation: mwEntryFadeIn 900ms ease-out 1200ms both;
         }
-        .mw-entry-specimen-text {
-          font-family: inherit;
-          font-style: italic;
-          font-weight: 400;
-          font-size: 17px;
-          line-height: 1.5;
-          color: var(--session-ink-mid);
-          min-height: 102px;
-          transition: opacity 400ms ease;
+        .mw-entry-atmos-img {
+          position: absolute;
+          inset: 0;
+          background-image: url(/images/hero-sand.jpg);
+          background-size: cover;
+          background-position: center 60%;
+          background-repeat: no-repeat;
+          /* Top and bottom soft fade so the image dissolves into
+             the linen page rather than ending as a hard edge. */
+          -webkit-mask-image: linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(0, 0, 0, 0.92) 14%,
+            rgba(0, 0, 0, 0.92) 86%,
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(0, 0, 0, 0.92) 14%,
+            rgba(0, 0, 0, 0.92) 86%,
+            transparent 100%
+          );
+        }
+        .mw-entry-atmos-grain {
+          /* Subtle noise veil so the photograph doesn't read as a
+             pristine stock asset on the otherwise textural linen
+             page. Matches the product's paper-surface intent. */
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.14;
+          mix-blend-mode: multiply;
+          background-image: radial-gradient(
+            rgba(26, 22, 20, 0.6) 1px,
+            transparent 1px
+          );
+          background-size: 3px 3px;
         }
 
         /* ── Method ────────────────────────────────────────────── */
         .mw-entry-method {
+          /* Full-bleed tonal band — subtly deeper than the base linen
+             so the "how it works" beat reads as its own section. The
+             paper noise from the root shows through. */
+          width: 100%;
+          background-color: rgba(26, 22, 20, 0.025);
+          border-top: 1px solid var(--mw-entry-hairline-soft);
+          border-bottom: 1px solid var(--mw-entry-hairline-soft);
+        }
+        .mw-entry-method-inner {
           max-width: var(--mw-entry-max);
           margin: 0 auto;
-          padding: 24px 28px 56px;
+          padding: 48px 28px 56px;
           box-sizing: border-box;
         }
         .mw-entry-method-heading {
@@ -220,12 +246,16 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           border-bottom: 1px solid var(--mw-entry-hairline-soft);
         }
         .mw-entry-method-num {
+          /* Big mono numeral. Real type-scale contrast against the
+             serif body copy — the hairlines alone don't carry enough
+             structural weight. */
           font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 13px;
+          font-size: 26px;
           font-weight: 400;
-          letter-spacing: 0.1em;
+          letter-spacing: 0;
           color: var(--session-persona);
-          padding-top: 4px;
+          padding-top: 6px;
+          line-height: 1;
         }
         .mw-entry-method-body {
           font-family: inherit;
@@ -234,16 +264,19 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           line-height: 1.55;
           color: var(--session-ink-mid);
         }
-        .mw-entry-soon {
-          font-style: italic;
-          color: var(--session-ink-faded);
-        }
 
         /* ── CTA block ─────────────────────────────────────────── */
         .mw-entry-cta-block {
+          /* Full-bleed lighter band — cream lift after the method
+             section's tonal dip. Sends the eye toward the plate
+             button and gives the final moment its own space. */
+          width: 100%;
+          background-color: rgba(255, 255, 255, 0.35);
+        }
+        .mw-entry-cta-inner {
           max-width: var(--mw-entry-max);
           margin: 0 auto;
-          padding: 24px 28px 56px;
+          padding: 56px 28px 56px;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -361,14 +394,13 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           }
           .mw-entry-headline { font-size: 56px; letter-spacing: -0.028em; }
           .mw-entry-subhead { font-size: 20px; }
-          .mw-entry-specimen { padding: 26px 28px 30px; }
-          .mw-entry-specimen-text { font-size: 18px; min-height: 112px; }
-          .mw-entry-method { padding: 32px 48px 80px; }
+          .mw-entry-atmos { height: 240px; }
+          .mw-entry-method-inner { padding: 64px 48px 80px; }
           .mw-entry-method-heading { font-size: 18px; margin-bottom: 36px; }
-          .mw-entry-method-item { padding: 28px 0; grid-template-columns: 72px 1fr; gap: 24px; }
+          .mw-entry-method-item { padding: 28px 0; grid-template-columns: 80px 1fr; gap: 28px; }
           .mw-entry-method-body { font-size: 18px; }
-          .mw-entry-method-num { font-size: 14px; }
-          .mw-entry-cta-block { padding: 40px 48px 72px; }
+          .mw-entry-method-num { font-size: 32px; padding-top: 8px; }
+          .mw-entry-cta-inner { padding: 64px 48px 72px; }
           .mw-entry-cta { padding: 18px 48px; font-size: 15.5px; }
           .mw-entry-footer { padding: 24px 48px calc(48px + env(safe-area-inset-bottom, 0px)); }
           .mw-entry-fleuron { font-size: 22px; margin-bottom: 22px; }
@@ -392,15 +424,14 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
             margin-bottom: 22px;
           }
           .mw-entry-subhead { font-size: 22px; line-height: 1.4; }
-          .mw-entry-specimen { padding: 30px 32px 36px; align-self: end; }
-          .mw-entry-specimen-label { font-size: 10.5px; letter-spacing: 2.6px; }
-          .mw-entry-specimen-text { font-size: 19px; line-height: 1.55; min-height: 126px; }
-          .mw-entry-method { padding: 24px 64px 104px; }
-          .mw-entry-method-heading { font-size: 19px; margin-bottom: 40px; max-width: 560px; }
-          .mw-entry-method-item { padding: 32px 0; grid-template-columns: 96px 1fr; gap: 32px; }
+          .mw-entry-specimen { align-self: end; }
+          .mw-entry-atmos { height: 320px; }
+          .mw-entry-method-inner { padding: 88px 64px 104px; }
+          .mw-entry-method-heading { font-size: 19px; margin-bottom: 48px; max-width: 560px; }
+          .mw-entry-method-item { padding: 36px 0; grid-template-columns: 120px 1fr; gap: 36px; }
           .mw-entry-method-body { font-size: 19px; max-width: 760px; line-height: 1.6; }
-          .mw-entry-method-num { font-size: 15px; }
-          .mw-entry-cta-block { padding: 56px 64px 80px; }
+          .mw-entry-method-num { font-size: 44px; padding-top: 12px; }
+          .mw-entry-cta-inner { padding: 88px 64px 96px; }
           .mw-entry-cta { padding: 20px 56px; font-size: 16px; }
           .mw-entry-login-line { font-size: 16px; margin-top: 24px; }
           .mw-entry-footer { padding: 32px 64px calc(56px + env(safe-area-inset-bottom, 0px)); }
@@ -433,20 +464,24 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
 
         <aside
           className="mw-entry-specimen"
-          aria-label="A line you might see in your Manual"
+          aria-label="How a conversation becomes a Manual entry"
         >
-          <div className="mw-entry-specimen-label">In the Manual</div>
-          <div
-            className="mw-entry-specimen-text"
-            style={{ opacity: visible ? 1 : 0 }}
-          >
-            {ROTATING_EXAMPLES[activeIndex]}
-          </div>
+          <HeroManualVignette />
         </aside>
       </section>
 
-      {/* 3. Method — four numbered beats */}
+      {/* 3. Atmospheric band — editorial breath between the hero and
+          the method. Purely atmospheric; no overlay text. Image at
+          /images/hero-sand.jpg. */}
+      <div className="mw-entry-atmos" aria-hidden="true">
+        <div className="mw-entry-atmos-img" />
+        <div className="mw-entry-atmos-grain" />
+      </div>
+
+      {/* 4. Method — four numbered beats. The outer section holds the
+          full-bleed tonal band; the inner div caps at max-width. */}
       <section className="mw-entry-method">
+       <div className="mw-entry-method-inner">
         <h3 className="mw-entry-method-heading">
           An oversimplification of how it works:
         </h3>
@@ -466,20 +501,22 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           <li className="mw-entry-method-item">
             <span className="mw-entry-method-num">03</span>
             <div className="mw-entry-method-body">
-              Over time, your Manual becomes a more complete picture of how you work. <span className="mw-entry-soon">(Coming soon)</span> Share parts of it with the people in your life on your terms &mdash; your partner, your therapist, your manager &mdash; to help them understand how you operate.
+              Over time, your Manual becomes a more complete picture of how you work. Share parts of it with the people in your life on your terms &mdash; your partner, your therapist, your manager &mdash; to help them understand how you operate.
             </div>
           </li>
           <li className="mw-entry-method-item">
             <span className="mw-entry-method-num">04</span>
             <div className="mw-entry-method-body">
-              <span className="mw-entry-soon">(Coming soon)</span> See how your Manual connects with others. Find patterns across relationships. Ask questions about how two Manuals fit together.
+              See how your Manual connects with others. Find patterns across relationships. Ask questions about how two Manuals fit together.
             </div>
           </li>
         </ol>
+       </div>
       </section>
 
-      {/* 4. CTA block */}
+      {/* 4. CTA block — full-bleed cream-lift band */}
       <section className="mw-entry-cta-block">
+       <div className="mw-entry-cta-inner">
         <p className="mw-entry-beta">my walnut is in early access.</p>
         <a href="/waitlist" className="mw-entry-cta">
           Join the waitlist
@@ -490,6 +527,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
             Log in.
           </button>
         </p>
+       </div>
       </section>
 
       {/* Footer — one fleuron, then mono-caps legal row */}
