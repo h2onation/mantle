@@ -28,11 +28,9 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       note: "",
     },
     observation_miss_count: 0,
-    early_frame_delivered: false,
-    depth_signal_delivered: false,
-    approaching_signal_delivered: false,
     next_prompt: "",
     sage_brief: "",
+    emerging_pattern_snippet: null,
     ...overrides,
   };
 }
@@ -66,6 +64,18 @@ describe("formatExtractionForPersona", () => {
       expect(result).not.toContain("THREAD:");
       expect(result).not.toContain("⚠ CRISIS");
       expect(result).not.toContain("⚠ CLINICAL CAUTION");
+    });
+
+    it("does not leak emerging_pattern_snippet (client-only field)", () => {
+      // emerging_pattern_snippet is consumed by the client (Modal 2)
+      // not by Jove. The formatter must not surface either the schema
+      // name or the snippet text into the persona's prompt.
+      const state = makeState({
+        emerging_pattern_snippet: "the way you brace before people speak",
+      });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).not.toContain("emerging_pattern_snippet");
+      expect(result).not.toContain("the way you brace before people speak");
     });
   });
 

@@ -4,6 +4,9 @@ import React from "react";
 import { useState, useRef, useEffect } from "react";
 import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
+import ChatWindowModal from "@/components/modals/ChatWindowModal";
+import PatternFormingModal from "@/components/modals/PatternFormingModal";
+import FirstCheckpointModal from "@/components/modals/FirstCheckpointModal";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
@@ -42,12 +45,27 @@ interface MobileSessionProps {
   conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
-  confirmCheckpoint: (action: "confirmed" | "rejected" | "refined") => void;
+  confirmCheckpoint: (
+    action: "confirmed" | "rejected" | "refined" | "deferred"
+  ) => void;
   switchConversation: (id: string) => Promise<void>;
   startNewSession: () => Promise<void>;
   refreshConversations: () => Promise<void>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
+  // Onboarding modal state. modalProgress=null means MainApp hasn't
+  // finished loading it yet — modals are suppressed until known so we
+  // never flash a modal that immediately disappears. Anonymous-auth
+  // users are excluded (they convert at first checkpoint and the modal
+  // flow starts then).
+  modalProgress?: number | null;
+  signupAtMs?: number | null;
+  isAnonymous?: boolean;
+  // Modal 2 (Pattern-Forming) trigger inputs from the latest
+  // message_complete event (one-turn lag, server-side).
+  emergingPatternSnippet?: string | null;
+  hasLayerEmergingOrBeyond?: boolean;
+  concreteExamples?: number;
 }
 
 export default function MobileSession({
@@ -70,10 +88,31 @@ export default function MobileSession({
   onSignInPrompt,
   firstSessionCompleted,
   sessionOrigin,
+  modalProgress = null,
+  signupAtMs = null,
+  isAnonymous = false,
+  emergingPatternSnippet = null,
+  hasLayerEmergingOrBeyond = false,
+  concreteExamples = 0,
 }: MobileSessionProps) {
+  const [modal1Dismissed, setModal1Dismissed] = useState(false);
+  const [modal2Dismissed, setModal2Dismissed] = useState(false);
+  const [modal3Dismissed, setModal3Dismissed] = useState(false);
+
+  // Modal 3 is open iff we have loaded a valid modal_progress of 2, the
+  // user is not anonymous, a checkpoint is actively pending, and the
+  // user hasn't dismissed it yet in this session. When open, we
+  // suppress the pending checkpoint card below so the modal reads
+  // first; dismissal makes the card render in the same cycle.
+  const modal3Open =
+    typeof modalProgress === "number" &&
+    modalProgress === 2 &&
+    !isAnonymous &&
+    activeCheckpoint !== null &&
+    !modal3Dismissed;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [chipsVisible, setChipsVisible] = useState(true);
-  const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | null>(null);
+  const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
     const dismissed = localStorage.getItem("mw_signin_banner_dismissed");
@@ -124,9 +163,10 @@ export default function MobileSession({
   const hasMessages = messages.length > 0;
 
   // Welcome block — shown to new users (no confirmed manual entries).
-  // The paragraph explanation persists as the first Jove message in the
-  // conversation; only the transition line and chips hide once any message
-  // is sent.
+  // Phase 7-High / Gate 8: the three-paragraph Jove intro prose that
+  // used to render here is gone. Modal 1 (ChatWindowModal) now carries
+  // that content on the first chat-window entry. The three welcome
+  // chips remain as the empty-state affordance.
   const showWelcomePanel =
     !firstSessionCompleted &&
     sessionOrigin === "new" &&
@@ -142,40 +182,6 @@ export default function MobileSession({
         flexDirection: "column",
       }}
     >
-      {/* Jove label — introduces the voice. Welcome has nothing to
-          annotate yet; rail is annotation grammar and doesn't belong
-          here. The label stays — it's introduction grammar: "this
-          voice has a name, it's Jove." Subsequent messages in the
-          chat get the rail treatment. */}
-      <div style={{ marginBottom: "6px" }}>
-        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
-      </div>
-      {/* Prose — no rail, no padding indent. 17px matches --size-prose,
-          the Jove body size throughout chat. */}
-      <div style={{
-        fontFamily: "var(--font-persona)",
-        fontSize: "17px",
-        lineHeight: 1.55,
-        color: "var(--session-ink-persona)",
-      }}>
-        <p style={{ margin: "0 0 12px 0" }}>
-          This is where you talk to {PERSONA_NAME}. There are a few ways to use it.
-        </p>
-        <p style={{ margin: "0 0 12px 0" }}>
-          <strong style={{ fontWeight: 600 }}>Navigate a situation.</strong> Tell {PERSONA_NAME} what&rsquo;s going on and it will help you work through it. Something like &ldquo;I just had a conversation with my partner that went sideways and I don&rsquo;t know why.&rdquo;
-        </p>
-        <p style={{ margin: "0 0 12px 0" }}>
-          <strong style={{ fontWeight: 600 }}>Write to your manual directly.</strong> If you already know something about how you work, you can start there. Something like &ldquo;I spend a lot of energy managing social situations and most people don&rsquo;t realize it.&rdquo;
-        </p>
-        <p style={{ margin: showChips ? "0 0 12px 0" : 0 }}>
-          <strong style={{ fontWeight: 600 }}>Just get it out.</strong> If you need to think out loud, start talking. {PERSONA_NAME} will help organize what you&rsquo;re saying and surface patterns as they come up.
-        </p>
-        {showChips && (
-          <p style={{ margin: 0 }}>
-            There is no wrong place to start. Start typing or select one of the following.
-          </p>
-        )}
-      </div>
       {showChips && (
         <div style={{
           display: "flex",
@@ -420,12 +426,28 @@ export default function MobileSession({
 
               // Checkpoint card rendering
               if (isCheckpoint) {
+                // Track A Gate 6: suppress the pending card while the
+                // first-checkpoint modal is open so the user reads the
+                // modal before the card appears. Dismissal unsets
+                // modal3Open in the same render cycle — the card
+                // appears exactly when the modal disappears.
+                // Historical (non-pending) checkpoints still render.
+                if (isPendingCheckpoint && modal3Open) return null;
                 const checkpointLayer = isPendingCheckpoint
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
                 const primaryBg = "var(--session-persona-soft)";
                 const accentColor = "var(--session-persona)";
+
+                // Track A Phase 7-Mid: refinement-ceiling. After two
+                // refinements on the same chain, the third proposed
+                // entry shows a different action surface — the user
+                // chooses between accepting the entry as-is or
+                // letting it go (a defer, not a flat reject).
+                const refinementCeilingActive =
+                  isPendingCheckpoint &&
+                  (msg.checkpointMeta?.refinement_count ?? 0) >= 2;
 
                 return (
                   <div
@@ -486,59 +508,65 @@ export default function MobileSession({
                       {renderMarkdown(msg.content)}
                     </div>
 
-                    {/* Divider + prompt + buttons (pending only) */}
+                    {/* Divider + prompt + buttons (pending only).
+                        Two action surfaces: normal three-button row,
+                        and the refinement-ceiling fork (two buttons
+                        with a different inline message). */}
                     {isPendingCheckpoint && !checkpointActionState && (
-                      <>
-                        <div
-                          style={{
-                            marginTop: "18px",
-                            paddingTop: "12px",
-                            borderTop: "1px solid rgba(94, 112, 84, 0.1)",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontFamily: "var(--font-serif)",
-                              fontSize: "13px",
-                              fontStyle: "italic",
-                              color: "var(--session-ink-faded)",
-                              margin: "0 0 12px 0",
-                            }}
-                          >
-                            Does this feel right?
-                          </p>
-
-                          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                            {/* Primary button */}
-                            <button
-                              onClick={() => {
-                                setCheckpointActionState("confirmed");
-                                confirmCheckpoint("confirmed");
-                              }}
+                      <div
+                        style={{
+                          marginTop: "18px",
+                          paddingTop: "12px",
+                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
+                        }}
+                      >
+                        {refinementCeilingActive ? (
+                          <>
+                            {/* Ceiling inline message (UI string, not
+                                a Jove utterance — Jove already said
+                                what they would say in the prior two
+                                refinement rounds; this is the card
+                                declaring the state change). */}
+                            <p
                               style={{
-                                fontFamily: "var(--font-sans)",
-                                fontSize: "var(--size-meta)",
-                                fontWeight: 500,
-                                letterSpacing: "0.5px",
-                                color: "#FFFFFF",
-                                background: primaryBg,
-                                border: "none",
-                                borderRadius: "6px",
-                                padding: "9px 0",
-                                cursor: "pointer",
-                                width: "100%",
-                                transition: "opacity 0.25s ease",
+                                fontFamily: "var(--font-serif)",
+                                fontSize: "14px",
+                                fontStyle: "italic",
+                                color: "var(--session-ink-mid)",
+                                lineHeight: 1.5,
+                                margin: "0 0 14px 0",
                               }}
                             >
-                              Yes, write to manual
-                            </button>
+                              Close but not quite is fine. Want me to put it in as it is, or let it go and we come back to it?
+                            </p>
 
-                            {/* Secondary row */}
-                            <div style={{ display: "flex", gap: "16px", justifyContent: "center", alignItems: "center" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                               <button
                                 onClick={() => {
-                                  setCheckpointActionState("refined");
-                                  confirmCheckpoint("refined");
+                                  setCheckpointActionState("confirmed");
+                                  confirmCheckpoint("confirmed");
+                                }}
+                                style={{
+                                  fontFamily: "var(--font-sans)",
+                                  fontSize: "var(--size-meta)",
+                                  fontWeight: 500,
+                                  letterSpacing: "0.5px",
+                                  color: "#FFFFFF",
+                                  background: primaryBg,
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  padding: "9px 0",
+                                  cursor: "pointer",
+                                  width: "100%",
+                                  transition: "opacity 0.25s ease",
+                                }}
+                              >
+                                Put it in as it is
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setCheckpointActionState("deferred");
+                                  confirmCheckpoint("deferred");
                                 }}
                                 style={{
                                   fontFamily: "var(--font-sans)",
@@ -548,41 +576,104 @@ export default function MobileSession({
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
-                                  padding: 0,
+                                  padding: "9px 0",
+                                  width: "100%",
                                 }}
                               >
-                                Not quite
+                                Let it go
                               </button>
-                              <span
-                                style={{
-                                  fontSize: "var(--size-meta)",
-                                  color: "var(--session-ink-whisper)",
-                                }}
-                              >
-                                &middot;
-                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p
+                              style={{
+                                fontFamily: "var(--font-serif)",
+                                fontSize: "13px",
+                                fontStyle: "italic",
+                                color: "var(--session-ink-faded)",
+                                margin: "0 0 12px 0",
+                              }}
+                            >
+                              Does this feel right?
+                            </p>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                              {/* Primary button */}
                               <button
                                 onClick={() => {
-                                  setCheckpointActionState("rejected");
-                                  confirmCheckpoint("rejected");
+                                  setCheckpointActionState("confirmed");
+                                  confirmCheckpoint("confirmed");
                                 }}
                                 style={{
                                   fontFamily: "var(--font-sans)",
                                   fontSize: "var(--size-meta)",
                                   fontWeight: 500,
-                                  color: "var(--session-ink-ghost)",
-                                  background: "none",
+                                  letterSpacing: "0.5px",
+                                  color: "#FFFFFF",
+                                  background: primaryBg,
                                   border: "none",
+                                  borderRadius: "6px",
+                                  padding: "9px 0",
                                   cursor: "pointer",
-                                  padding: 0,
+                                  width: "100%",
+                                  transition: "opacity 0.25s ease",
                                 }}
                               >
-                                Not at all
+                                Put it in my Manual
                               </button>
+
+                              {/* Secondary row */}
+                              <div style={{ display: "flex", gap: "16px", justifyContent: "center", alignItems: "center" }}>
+                                <button
+                                  onClick={() => {
+                                    setCheckpointActionState("refined");
+                                    confirmCheckpoint("refined");
+                                  }}
+                                  style={{
+                                    fontFamily: "var(--font-sans)",
+                                    fontSize: "var(--size-meta)",
+                                    fontWeight: 500,
+                                    color: "var(--session-ink-mid)",
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 0,
+                                  }}
+                                >
+                                  Close but not quite
+                                </button>
+                                <span
+                                  style={{
+                                    fontSize: "var(--size-meta)",
+                                    color: "var(--session-ink-whisper)",
+                                  }}
+                                >
+                                  &middot;
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setCheckpointActionState("rejected");
+                                    confirmCheckpoint("rejected");
+                                  }}
+                                  style={{
+                                    fontFamily: "var(--font-sans)",
+                                    fontSize: "var(--size-meta)",
+                                    fontWeight: 500,
+                                    color: "var(--session-ink-ghost)",
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 0,
+                                  }}
+                                >
+                                  This is not me
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </>
+                          </>
+                        )}
+                      </div>
                     )}
 
                     {/* Action state feedback */}
@@ -610,6 +701,7 @@ export default function MobileSession({
                           {checkpointActionState === "confirmed" && "Written to manual"}
                           {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
                           {checkpointActionState === "rejected" && "Discarded"}
+                          {checkpointActionState === "deferred" && "Set aside"}
                         </span>
                       </div>
                     )}
@@ -885,6 +977,39 @@ export default function MobileSession({
         activeConversationId={conversationId}
         onSelectSession={switchConversation}
         onNewSession={startNewSession}
+      />
+
+      <ChatWindowModal
+        open={
+          typeof modalProgress === "number" &&
+          modalProgress < 1 &&
+          !isAnonymous &&
+          !modal1Dismissed
+        }
+        onDismiss={() => setModal1Dismissed(true)}
+        signupAtMs={signupAtMs}
+      />
+
+      <PatternFormingModal
+        open={
+          typeof modalProgress === "number" &&
+          modalProgress === 1 &&
+          !isAnonymous &&
+          hasLayerEmergingOrBeyond &&
+          concreteExamples >= 1 &&
+          typeof emergingPatternSnippet === "string" &&
+          emergingPatternSnippet.length > 0 &&
+          !modal2Dismissed
+        }
+        onDismiss={() => setModal2Dismissed(true)}
+        patternSnippet={emergingPatternSnippet ?? ""}
+        signupAtMs={signupAtMs}
+      />
+
+      <FirstCheckpointModal
+        open={modal3Open}
+        onDismiss={() => setModal3Dismissed(true)}
+        signupAtMs={signupAtMs}
       />
     </main>
   );

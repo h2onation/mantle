@@ -4,7 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
-import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
+import {
+  insertCheckpointActionMessage,
+  buildEntriesSummary,
+} from "@/lib/persona/persona-pipeline";
+import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   checkpointConfirmHour,
   checkLimit,
@@ -55,7 +59,11 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { messageId, action, conversationId } = (await request.json()) as {
     messageId: string;
-    action: "confirmed" | "rejected" | "refined";
+    // "deferred" is the refinement-ceiling "Let it go" path. DB level
+    // it behaves like rejected (status='rejected'), but the system
+    // message is distinct so Jove does not run the POST-REJECTION
+    // fixed line in response. Track A Phase 7-Mid.
+    action: "confirmed" | "rejected" | "refined" | "deferred";
     conversationId: string;
   };
 
@@ -158,8 +166,27 @@ export async function POST(request: Request) {
       outcome: wasAlreadyConfirmed ? "idempotent" : "success",
     });
   } else {
-    // For rejected/refined: update status and insert system message
-    const updatedMeta = { ...msg.checkpoint_meta, status: action };
+    // For rejected/refined/deferred: update status, increment counter
+    // on refined only, insert distinct system message per action.
+    //
+    // Status mapping:
+    //   refined  → status="refined"   (chain continues)
+    //   rejected → status="rejected"  (chain breaks)
+    //   deferred → status="rejected"  (chain breaks; same DB state as
+    //              rejected — only the system message differs so Jove
+    //              skips the POST-REJECTION fixed line. Track A Phase
+    //              7-Mid.)
+    const currentRefinementCount =
+      (msg.checkpoint_meta as { refinement_count?: number })
+        ?.refinement_count ?? 0;
+    const updatedMeta = {
+      ...msg.checkpoint_meta,
+      status: action === "deferred" ? "rejected" : action,
+      refinement_count:
+        action === "refined"
+          ? currentRefinementCount + 1
+          : currentRefinementCount,
+    };
     await admin
       .from("messages")
       .update({ checkpoint_meta: updatedMeta })
@@ -187,16 +214,31 @@ export async function POST(request: Request) {
     });
   }
 
-  // 4. Detect if this is a guest's first confirmed checkpoint → promptAuth
-  let promptAuth = false;
-  if (action === "confirmed" && user.is_anonymous) {
-    const { count } = await admin
+  // 4. For confirmed actions, load the post-write layer distribution
+  //    in one query. Powers BOTH the guest-promptAuth check (count)
+  //    AND the Phase 7-High first-vs-subsequent branching below.
+  //    For non-confirmed actions (rejected/refined/deferred), the
+  //    post-confirm flow is unchanged — Jove responds normally (with
+  //    POST-REJECTION fixed line for rejected).
+  let totalEntries = 0;
+  let allEntryLayers: number[] = [];
+  if (action === "confirmed") {
+    const { data: entries } = await admin
       .from("manual_entries")
-      .select("id", { count: "exact", head: true })
+      .select("layer")
       .eq("user_id", user.id);
-    if (count !== null && count <= 1) {
-      promptAuth = true;
+    if (entries) {
+      totalEntries = entries.length;
+      allEntryLayers = entries.map((e) => e.layer as number);
     }
+  }
+
+  // Preserves the original guest-promptAuth semantics: fires for
+  // count in [0, 1] — 1 is the normal case (just confirmed first
+  // entry); 0 is a defensive fallback covering the failed-query path.
+  let promptAuth = false;
+  if (action === "confirmed" && user.is_anonymous && totalEntries <= 1) {
+    promptAuth = true;
   }
 
   // 5. Call Sage and return streaming response. We log stream_started
@@ -214,12 +256,87 @@ export async function POST(request: Request) {
     duration_ms: Date.now() - startedAt,
   });
 
-  const stream = callPersona({
+  // 5a. Track A Phase 7-High — post-confirm flow branching. Only for
+  //     confirmed actions; rejected/refined/deferred fall through to
+  //     a normal callPersona call with no postConfirmMode so Jove
+  //     responds per existing POST-REJECTION or natural-exploration
+  //     guidance.
+  const personaOptions: Parameters<typeof callPersona>[0] = {
     conversationId,
     userId: user.id,
     message: null,
     promptAuth,
-  });
+  };
+
+  if (action === "confirmed") {
+    const meta = (msg.checkpoint_meta ?? {}) as {
+      layer?: number | null;
+      name?: string | null;
+      composed_name?: string | null;
+    };
+    const layer = meta.layer ?? null;
+    const layerName =
+      layer && LAYER_NAMES[layer] ? LAYER_NAMES[layer] : "your Manual";
+    const proposedHeadline =
+      meta.composed_name ?? meta.name ?? "Untitled";
+
+    if (totalEntries === 1) {
+      // First lifetime confirmation. Message 1 is server-templated
+      // (deterministic stamp), inserted as an assistant row so it
+      // persists across reloads, and emitted via prependedMessages
+      // before the Message 2 LLM stream begins. Message 2 is the
+      // LLM-generated scaffolding + open-thread line.
+      const message1Content = `In. A working name: "${proposedHeadline}." Yours to change.`;
+      const { data: message1Row } = await admin
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          role: "assistant",
+          content: message1Content,
+        })
+        .select("id")
+        .single();
+
+      if (message1Row?.id) {
+        personaOptions.prependedMessages = [
+          { messageId: message1Row.id, content: message1Content },
+        ];
+      }
+      personaOptions.postConfirmMode = "first-message-2";
+      personaOptions.postConfirmContext = {
+        layerName,
+        proposedHeadline,
+        // entriesSummary is unused by the first-message-2 prompt
+        // block but the type requires it; pass a placeholder.
+        entriesSummary: "",
+      };
+    } else {
+      // Subsequent confirmation. Single LLM-generated message. The
+      // entries summary is built server-side with proper pluralization
+      // so the LLM reproduces a verbatim string.
+      const distinctLayers = Array.from(new Set(allEntryLayers));
+      const otherLayersWithMaterial = distinctLayers
+        .filter((l) => l !== layer)
+        .map((l) => LAYER_NAMES[l])
+        .filter((n): n is string => Boolean(n));
+      const remainingEmptyCount = 5 - distinctLayers.length;
+      const entriesSummary = buildEntriesSummary({
+        entryCount: totalEntries,
+        confirmedLayerName: layerName,
+        otherLayersWithMaterial,
+        remainingEmptyCount,
+      });
+
+      personaOptions.postConfirmMode = "subsequent-single";
+      personaOptions.postConfirmContext = {
+        layerName,
+        proposedHeadline,
+        entriesSummary,
+      };
+    }
+  }
+
+  const stream = callPersona(personaOptions);
 
   logEvent({
     event: "confirm_outcome",

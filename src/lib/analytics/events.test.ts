@@ -105,6 +105,17 @@ const CASES: Case[] = [
     expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
   },
   {
+    event: "checkpoint_deferred",
+    call: () =>
+      events.trackCheckpointDeferred({
+        conversation_id: "c1",
+        checkpoint_id: "m1",
+        layer: 3,
+        time_to_decision_ms: 2500,
+      }),
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+  },
+  {
     event: "manual_viewed",
     call: () =>
       events.trackManualViewed({ entry_count: 5, days_since_last_view: 2 }),
@@ -129,6 +140,42 @@ const CASES: Case[] = [
         is_first_session: false,
       }),
     expectedKeys: ["days_since_last_session", "is_first_session"],
+  },
+  {
+    event: "modal_1_shown",
+    call: () => events.trackModal1Shown({ time_since_signup_ms: 1234 }),
+    expectedKeys: ["time_since_signup_ms"],
+  },
+  {
+    event: "modal_2_shown",
+    call: () => events.trackModal2Shown({ time_since_signup_ms: 1234 }),
+    expectedKeys: ["time_since_signup_ms"],
+  },
+  {
+    event: "modal_3_shown",
+    call: () => events.trackModal3Shown({ time_since_signup_ms: 1234 }),
+    expectedKeys: ["time_since_signup_ms"],
+  },
+  {
+    event: "modal_flow_completed",
+    call: () => events.trackModalFlowCompleted({ time_since_signup_ms: 1234 }),
+    expectedKeys: ["time_since_signup_ms"],
+  },
+  {
+    event: "first_checkpoint_completed",
+    call: () =>
+      events.trackFirstCheckpointCompleted({
+        conversation_id: "c1",
+        checkpoint_id: "m1",
+        layer: 3,
+        time_since_signup_ms: 1234,
+      }),
+    expectedKeys: [
+      "conversation_id",
+      "checkpoint_id",
+      "layer",
+      "time_since_signup_ms",
+    ],
   },
 ];
 

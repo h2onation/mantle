@@ -54,7 +54,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           HOW IT WORKS
         </h1>
 
-        {/* Body — 4 paragraphs */}
+        {/* Body — 2 paragraphs */}
         <div
           style={{
             fontFamily: "var(--font-serif)",
@@ -65,16 +65,10 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
           }}
         >
           <p style={{ margin: "0 0 16px 0" }}>
-            You&rsquo;ll build a manual. A guide to how you operate, in your own words.
-          </p>
-          <p style={{ margin: "0 0 16px 0" }}>
-            You build it by talking to {PERSONA_NAME}. {PERSONA_NAME} is an AI that helps you navigate situations in your life. A conflict, a reaction, something you can&rsquo;t stop thinking about.
-          </p>
-          <p style={{ margin: "0 0 16px 0" }}>
-            Over time, {PERSONA_NAME} identifies patterns in how you process and communicate, guided by published frameworks. When it sees something worth naming, it reflects it back. You decide if it&rsquo;s accurate.
+            You&rsquo;ll build your Manual by talking to {PERSONA_NAME}. Bring real situations &mdash; a conflict, a reaction you can&rsquo;t stop thinking about, a pattern you keep noticing. {PERSONA_NAME} reflects patterns back. You decide what goes in.
           </p>
           <p style={{ margin: 0 }}>
-            Your manual is yours. Use it to navigate whatever comes up. Or share specific parts with specific people in a way you control.
+            Builds best when you show up most days for the first two weeks.
           </p>
         </div>
       </div>

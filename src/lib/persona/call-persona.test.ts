@@ -91,6 +91,20 @@ describe("mapSystemMessages", () => {
     ]);
   });
 
+  it("maps the refinement-ceiling 'let the checkpoint go' system message to a synthetic user message distinct from rejection", () => {
+    // Track A Phase 7-Mid: the defer path translates to an
+    // acknowledgment the user has chosen to set the entry aside, NOT
+    // a rejection. This distinction matters because the POST-REJECTION
+    // block fires only on "[User rejected the checkpoint]" — the
+    // deferred translation must not look like a rejection.
+    const result = mapSystemMessages([
+      { role: "system", content: "[User let the checkpoint go]" },
+    ]);
+    expect(result).toEqual([
+      { role: "user", content: "I'll let that one go for now. We can come back to it." },
+    ]);
+  });
+
   it("drops unknown system messages", () => {
     const result = mapSystemMessages([
       { role: "system", content: "[Something unexpected]" },

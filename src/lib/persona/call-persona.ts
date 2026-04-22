@@ -18,6 +18,7 @@ import {
   handleCrisisDetection,
   applyCheckpointGates,
   buildCheckpointMeta,
+  computeInheritedRefinementCount,
   validateComposedEntry,
   validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
@@ -51,6 +52,17 @@ export function mapSystemMessages(
         history.push({
           role: "user",
           content: "That's close but not quite right.",
+        });
+      } else if (msg.content === "[User let the checkpoint go]") {
+        // Track A Phase 7-Mid: refinement-ceiling defer. Distinct
+        // from rejection — the user has already explained twice
+        // what was off and is choosing to set it aside, not
+        // saying it missed entirely. POST-REJECTION fixed line
+        // does not fire for this message.
+        history.push({
+          role: "user",
+          content:
+            "I'll let that one go for now. We can come back to it.",
         });
       }
     } else {
@@ -117,12 +129,45 @@ export function detectCrisisInUserMessage(message: string): boolean {
   return CRISIS_PHRASES.some((phrase) => lower.includes(phrase));
 }
 
+/**
+ * Messages that are server-templated (not LLM-generated) and should be
+ * emitted as their own message_complete events BEFORE the main LLM
+ * stream begins. Used by Track A Phase 7-High's 7e flow to deliver the
+ * first-lifetime Message 1 stamp ("In. A working name: ...") without
+ * an LLM call.
+ *
+ * Each entry produces one message_complete event with checkpoint: null
+ * (bubble render on the client). The checkpoint payload is intentionally
+ * NOT configurable here — a checkpoint must always come from the
+ * classifier + composer path, never shortcut through prependedMessages.
+ * The type enforces this at compile time.
+ */
+export interface PrependedAssistantMessage {
+  messageId: string;
+  content: string;
+}
+
 interface CallPersonaOptions {
   conversationId: string;
   userId: string;
   message: string | null;
   explorationContext?: ExplorationContext;
   promptAuth?: boolean;
+  /** Track A Phase 7-High — messages to emit on this stream before the
+   *  main LLM response starts. Each is rendered as a normal assistant
+   *  bubble (checkpoint: null). Empty / undefined = no prepends. */
+  prependedMessages?: PrependedAssistantMessage[];
+  /** Track A Phase 7-High — when set, this invocation is a post-confirm
+   *  follow-up call, not a regular chat turn. Classifier, composer,
+   *  and checkpoint_meta writes are skipped. The system prompt loads
+   *  a mode-specific pinned-template block via buildSystemPrompt's
+   *  postConfirmMode option. */
+  postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  postConfirmContext?: {
+    layerName: string;
+    proposedHeadline: string;
+    entriesSummary: string;
+  } | null;
 }
 
 export function callPersona({
@@ -131,6 +176,9 @@ export function callPersona({
   message,
   explorationContext,
   promptAuth,
+  prependedMessages,
+  postConfirmMode = null,
+  postConfirmContext = null,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -145,9 +193,46 @@ export function callPersona({
     controller.close();
   }
 
+  /**
+   * Emit a single message_complete SSE event for a server-authored
+   * (non-LLM) assistant message. Used by prependedMessages at stream
+   * start AND by the 7f subsequent-checkpoint transition insert. Never
+   * carries a checkpoint payload — checkpoints must flow through the
+   * classifier + composer path, not this helper.
+   */
+  function emitInlineMessage(
+    controller: ReadableStreamDefaultController,
+    messageId: string,
+    content: string
+  ) {
+    controller.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          type: "message_complete",
+          messageId,
+          conversationId: convId,
+          checkpoint: null,
+          processingText: "",
+          cleanContent: content,
+        })}\n\n`
+      )
+    );
+  }
+
   return new ReadableStream({
     async start(controller) {
       try {
+        // 0. Emit prepended assistant messages (Track A Phase 7-High).
+        //    Used by 7e to deliver the first-lifetime Message 1 stamp
+        //    before the Message 2 LLM stream begins. Each prepend fires
+        //    as an independent message_complete event with checkpoint:
+        //    null so the client renders them as normal bubbles.
+        if (prependedMessages && prependedMessages.length > 0) {
+          for (const pre of prependedMessages) {
+            emitInlineMessage(controller, pre.messageId, pre.content);
+          }
+        }
+
         // 1. Save user message
         if (message !== null) {
           const { error: msgError } = await admin
@@ -204,7 +289,9 @@ export function callPersona({
         const transcriptDetection =
           message && !urlDetection?.hasUrl ? detectTranscript(message) : null;
 
-        // 8. Build system prompt (shared base + web-specific fields)
+        // 8. Build system prompt (shared base + web-specific fields +
+        //    Phase 7-High post-confirm mode when invoked from the
+        //    confirm route for a post-confirm follow-up turn).
         const systemPrompt = buildSystemPrompt({
           ...buildPromptOptionsFromContext(ctx),
           explorationContext,
@@ -212,6 +299,8 @@ export function callPersona({
           contentContext: urlDetection?.hasUrl
             ? { urlDetection, fetchedContent }
             : null,
+          postConfirmMode,
+          postConfirmContext,
         });
 
         // 8b. Debug logging (dev only)
@@ -321,7 +410,10 @@ export function callPersona({
           conversationalText = crisis.responseText;
         }
 
-        // 11. Save Sage's response (conversational part only)
+        // 11. Save Sage's response (conversational part only).
+        //     Include created_at so the 7f transition insert below can
+        //     offset its own timestamp to sort before this row in
+        //     time-ordered queries.
         const { data: savedResponse } = await admin
           .from("messages")
           .insert({
@@ -329,10 +421,12 @@ export function callPersona({
             role: "assistant",
             content: conversationalText,
           })
-          .select("id")
+          .select("id, created_at")
           .single();
 
         const messageId = savedResponse?.id || null;
+        const savedResponseCreatedAt: string | null =
+          savedResponse?.created_at ?? null;
 
         // 11a. Response structure validation (logs violations, does not block).
         //      Runs on fullText — the raw model output — not conversationalText,
@@ -355,14 +449,20 @@ export function callPersona({
             });
         }
 
-        // 12. Classification: always run the classifier on the conversational text.
-        //     Composition is handled separately by composeManualEntry below.
+        // 12. Classification: run the classifier on the conversational
+        //     text. Skipped for post-confirm follow-up calls — Jove is
+        //     producing scaffolding for a JUST-confirmed entry, not
+        //     proposing a new one, so classifier output would be
+        //     noise (and would risk double-checkpointing if the
+        //     LLM's post-confirm language triggered a false positive).
+        //     Composition is handled separately by composeManualEntry
+        //     below, also gated on isCheckpoint.
         let isCheckpoint = false;
         let checkpointLayer: number | null = null;
         let checkpointName: string | null = null;
         let processingText = "listening...";
 
-        {
+        if (postConfirmMode === null) {
           const last4 = messages.slice(-4);
           const recentText = last4
             .map((m) => `${m.role}: ${m.content}`)
@@ -451,6 +551,33 @@ export function callPersona({
           }
         }
 
+        // 12d. Track A Phase 7-Mid: refinement_count chain inheritance.
+        //      Look up the most recent prior checkpoint in this
+        //      conversation. If its status was "refined", inherit the
+        //      count; otherwise start at 0. The value is the FINAL
+        //      refinement_count for this new checkpoint (no +1 here —
+        //      incrementing happens at action time on the prior
+        //      checkpoint, see /api/checkpoint/confirm). Lifted to
+        //      this scope so the SSE message_complete payload below
+        //      can also surface it to the client.
+        let checkpointRefinementCount = 0;
+        if (isCheckpoint && messageId) {
+          const { data: priorCheckpoint } = await admin
+            .from("messages")
+            .select("checkpoint_meta")
+            .eq("conversation_id", convId)
+            .eq("is_checkpoint", true)
+            .neq("id", messageId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          checkpointRefinementCount = computeInheritedRefinementCount(
+            priorCheckpoint?.checkpoint_meta as
+              | { status?: string; refinement_count?: number }
+              | null
+          );
+        }
+
         // 13. Update message metadata
         if (messageId) {
           const updateData: Record<string, unknown> = {
@@ -461,7 +588,8 @@ export function callPersona({
             updateData.is_checkpoint = true;
             updateData.checkpoint_meta = buildCheckpointMeta(
               { isCheckpoint, layer: checkpointLayer, name: checkpointName },
-              composedEntry
+              composedEntry,
+              checkpointRefinementCount
             );
           }
 
@@ -471,15 +599,76 @@ export function callPersona({
             .eq("id", messageId);
         }
 
+        // 13b. Subsequent-checkpoint transition (Track A Phase 7-High /
+        //      7f). Before the checkpoint card's message_complete
+        //      fires, emit a separate inline message with the static
+        //      transition line — but only when the user has at least
+        //      one prior confirmed entry (i.e. this is NOT the first
+        //      lifetime checkpoint; Modal 3 handles that case).
+        //
+        //      The transition is a normal assistant message in the
+        //      conversation, persisted so it appears on reload and
+        //      flows into future Jove context naturally. Its created_at
+        //      is set 1 second earlier than the checkpoint message's
+        //      created_at so time-ordered fetches return the transition
+        //      first on reload. (The checkpoint message was inserted
+        //      earlier in this flow; moving that insert later would
+        //      ripple through messageId-dependent code, and the 1 s
+        //      offset is a pragmatic shortcut.)
+        if (
+          isCheckpoint &&
+          manualComponents &&
+          manualComponents.length >= 1 &&
+          savedResponseCreatedAt
+        ) {
+          const TRANSITION_LINE =
+            "Something else is forming. Let me put this one in front of you.";
+          const transitionCreatedAt = new Date(
+            new Date(savedResponseCreatedAt).getTime() - 1000
+          ).toISOString();
+          const { data: transitionRow } = await admin
+            .from("messages")
+            .insert({
+              conversation_id: convId,
+              role: "assistant",
+              content: TRANSITION_LINE,
+              created_at: transitionCreatedAt,
+            })
+            .select("id")
+            .single();
+          if (transitionRow?.id) {
+            emitInlineMessage(controller, transitionRow.id, TRANSITION_LINE);
+          }
+        }
+
         // 14. Emit final event
         const checkpoint = isCheckpoint
           ? {
               isCheckpoint: true,
               layer: checkpointLayer,
               name: checkpointName,
+              // Surface the refinement_count to the client so the
+              // ceiling card UI fires on the third+ attempt without
+              // requiring a separate fetch. Track A Phase 7-Mid.
+              refinement_count: checkpointRefinementCount,
             }
           : null;
 
+        // Modal 2 trigger inputs. Use previousExtraction (one-turn lag)
+        // since current-turn extraction runs in parallel and isn't ready
+        // when this event fires. Same pattern as nextPrompt above.
+        const hasLayerEmergingOrBeyond = previousExtraction
+          ? Object.values(previousExtraction.layers).some(
+              (l) => l.signal !== "none"
+            )
+          : false;
+
+        // cleanContent is mandatory when earlier message_complete events
+        // (prepended Message 1, or the 7f transition) have fired in
+        // this stream — the client resets its text buffer on each
+        // message_complete, so fullText is empty by the time this
+        // final event arrives. Always sending cleanContent keeps the
+        // client correct regardless of whether earlier events fired.
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
@@ -488,7 +677,13 @@ export function callPersona({
               conversationId: convId,
               checkpoint,
               processingText,
+              cleanContent: conversationalText,
               nextPrompt: previousExtraction?.next_prompt || "",
+              emergingPatternSnippet:
+                previousExtraction?.emerging_pattern_snippet ?? null,
+              hasLayerEmergingOrBeyond,
+              concreteExamples:
+                previousExtraction?.checkpoint_gate.concrete_examples ?? 0,
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )

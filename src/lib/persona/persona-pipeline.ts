@@ -61,6 +61,14 @@ export interface CheckpointMeta {
   changelog: string | null;
   composed_summary: string | null;
   composed_key_words: string[] | null;
+  // Number of "Close but not quite" refinements that produced THIS
+  // entry. Inherited from the previous checkpoint when that previous
+  // checkpoint's status was "refined" (chain unbroken). Reset to 0
+  // when the previous checkpoint was confirmed/rejected/deferred.
+  // The card UI shows the refinement-ceiling state when this value
+  // is >= 2 (i.e. the user has already refined twice and is now
+  // looking at the third attempt). Track A Phase 7-Mid.
+  refinement_count: number;
 }
 
 // ── 1. Load conversation context ────────────────────────────────────────────
@@ -598,23 +606,91 @@ const CHECKPOINT_ACTION_MESSAGES: Record<string, string> = {
   confirmed: "[User confirmed the checkpoint]",
   rejected: "[User rejected the checkpoint]",
   refined: "[User wants to refine the checkpoint]",
+  // Track A Phase 7-Mid: separate system message for the
+  // refinement-ceiling "Let it go" path. DB status maps to "rejected"
+  // (same downstream behavior — entry is closed, nothing written to
+  // manual_entries) but Jove sees this distinct message so the
+  // POST-REJECTION fixed line does not fire. The user has already
+  // explained twice what was off; the rejection probe would be wrong.
+  deferred: "[User let the checkpoint go]",
 };
+
+export type CheckpointAction = "confirmed" | "rejected" | "refined" | "deferred";
 
 /**
  * Insert the canonical system message for a checkpoint action.
- * Used by: confirmCheckpoint (confirmed), checkpoint/confirm/route (rejected/refined),
- * and message-router (text path rejected/refined).
+ * Used by: confirmCheckpoint (confirmed), checkpoint/confirm/route (rejected/refined/deferred),
+ * and message-router (text path rejected/refined; deferred is web-only).
  */
 export async function insertCheckpointActionMessage(
   admin: ReturnType<typeof createAdminClient>,
   conversationId: string,
-  action: "confirmed" | "rejected" | "refined"
+  action: CheckpointAction
 ): Promise<void> {
   await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "system",
     content: CHECKPOINT_ACTION_MESSAGES[action],
   });
+}
+
+/**
+ * Computes the refinement_count for a NEW checkpoint based on the
+ * most recent prior checkpoint's meta. The chain rule:
+ *   - If there is no prior checkpoint → 0 (fresh start)
+ *   - If the prior checkpoint was refined → inherit its count
+ *   - Any other prior status (confirmed, rejected, deferred-as-rejected,
+ *     pending) → reset to 0 (chain broken)
+ *
+ * The function does NOT add 1 — incrementing happens at action time
+ * (see /api/checkpoint/confirm route for the increment). The new
+ * checkpoint inherits the post-increment value of the previous one.
+ *
+ * Track A Phase 7-Mid.
+ */
+export function computeInheritedRefinementCount(
+  previousMeta: { status?: string; refinement_count?: number } | null
+): number {
+  if (!previousMeta) return 0;
+  if (previousMeta.status !== "refined") return 0;
+  return previousMeta.refinement_count ?? 0;
+}
+
+/**
+ * Builds the entries-summary sentence for the subsequent-single
+ * post-confirm message (Track A Phase 7-High). Templated server-side
+ * so the LLM reproduces a verbatim string rather than reconstructing
+ * pluralization and layer joining.
+ *
+ * Shape: "<N> entries. <X>[ and <Y>] have material. <R> still empty."
+ * With three or more populated layers, uses Oxford-comma joining:
+ * "X, Y, and Z have material."
+ *
+ * Edge cases:
+ *   - Only the confirmed layer has any entries → "X has material" (singular)
+ *   - All five layers have material → "<N> entries. <joined>. 0 still empty."
+ *     (does not special-case the zero-remaining form — the downstream
+ *     prompt treats "0 still empty" as valid copy.)
+ */
+export function buildEntriesSummary(args: {
+  entryCount: number;
+  confirmedLayerName: string;
+  otherLayersWithMaterial: string[];
+  remainingEmptyCount: number;
+}): string {
+  const { entryCount, confirmedLayerName, otherLayersWithMaterial, remainingEmptyCount } = args;
+  const allMaterial = [confirmedLayerName, ...otherLayersWithMaterial];
+  let materialPhrase: string;
+  if (allMaterial.length === 1) {
+    materialPhrase = `${allMaterial[0]} has material`;
+  } else if (allMaterial.length === 2) {
+    materialPhrase = `${allMaterial[0]} and ${allMaterial[1]} have material`;
+  } else {
+    const last = allMaterial[allMaterial.length - 1];
+    const head = allMaterial.slice(0, -1).join(", ");
+    materialPhrase = `${head}, and ${last} have material`;
+  }
+  return `${entryCount} entries. ${materialPhrase}. ${remainingEmptyCount} still empty.`;
 }
 
 // ── 5. Checkpoint meta builder ──────────────────────────────────────────────
@@ -631,7 +707,8 @@ export function buildCheckpointMeta(
     changelog: string;
     summary?: string;
     key_words?: string[];
-  } | null
+  } | null,
+  inheritedRefinementCount: number = 0
 ): CheckpointMeta {
   return {
     layer: gateResult.layer,
@@ -642,5 +719,6 @@ export function buildCheckpointMeta(
     changelog: composedEntry?.changelog || null,
     composed_summary: composedEntry?.summary || null,
     composed_key_words: composedEntry?.key_words || null,
+    refinement_count: inheritedRefinementCount,
   };
 }

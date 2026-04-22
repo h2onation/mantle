@@ -5,11 +5,22 @@ export interface MessageCompleteEvent {
     isCheckpoint: boolean;
     layer: number;
     name: string | null;
+    // Track A Phase 7-Mid: refinement_count is set when the new
+    // checkpoint inherits from a prior refined checkpoint in the
+    // chain. Optional for backward compatibility with older server
+    // builds; client treats undefined as 0.
+    refinement_count?: number;
   } | null;
   processingText: string;
   cleanContent?: string;
   nextPrompt?: string;
   promptAuth?: boolean;
+  // Modal 2 (Pattern-Forming) trigger inputs, derived from the
+  // previous-turn extraction state (one-turn lag, same as nextPrompt).
+  // Optional so older clients ignore them gracefully.
+  emergingPatternSnippet?: string | null;
+  hasLayerEmergingOrBeyond?: boolean;
+  concreteExamples?: number;
 }
 
 interface SSECallbacks {
