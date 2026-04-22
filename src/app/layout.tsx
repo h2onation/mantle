@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, DM_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Instrument_Serif, DM_Sans, JetBrains_Mono, Source_Serif_4, Newsreader } from "next/font/google";
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { PostHogProvider } from "@/components/PostHogProvider";
@@ -28,6 +28,17 @@ const jetbrainsMono = JetBrains_Mono({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+// Newsreader is used ONLY on the landing page (EntryScreen). The rest of
+// the app stays on Instrument Serif via --font-serif. Two weights + italic
+// cover the masthead, headline, and rotating-specimen italic text.
+const newsreader = Newsreader({
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -60,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} ${newsreader.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <script

@@ -12,7 +12,10 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/onboarding/EntryScreen.tsx");
 
     it("uses the new headline", () => {
-      expect(src).toContain("A more complete manual of how your mind works.");
+      // Period is wrapped in a <span> for the sage-accent treatment, so
+      // the terminal "." is not continuous with the words in the source.
+      // Assert on the phrase body instead.
+      expect(src).toContain("A more complete manual of how your mind works");
     });
 
     it("uses the new subhead", () => {
@@ -34,11 +37,12 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).toContain("See how your Manual connects with others.");
     });
 
-    it("marks the two future-feature items with the (Coming soon) qualifier", () => {
-      // One mid-sentence on item 3, one leading on item 4.
-      const matches = src.match(/\(Coming soon\)/g);
-      expect(matches?.length).toBe(2);
-      expect(src).toContain("mw-entry-soon");
+    it("no longer flags items 3 and 4 with a (Coming soon) qualifier", () => {
+      // The qualifier was removed per direction: keep the feature copy,
+      // present tense. The features don't fully ship yet but the landing
+      // should not read as a roadmap.
+      expect(src).not.toContain("(Coming soon)");
+      expect(src).not.toContain("mw-entry-soon");
     });
 
     it("uses the beta line and matches the wordmark spelling", () => {
@@ -59,13 +63,20 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("preserves the 'my walnut' wordmark at the top", () => {
-      expect(src).toContain(">my walnut<");
+      // Wordmark is rendered as "my walnut" + a separate <span> carrying
+      // the sage period; the bare phrase is sufficient to assert the
+      // spelling, and the `not.toContain("mywalnut")` above already
+      // guards against the one-word collapse.
+      expect(src).toContain("my walnut");
     });
 
-    it("declares responsive breakpoints and an 880px desktop max-width", () => {
+    it("declares responsive breakpoints and a 1120px editorial max-width", () => {
       expect(src).toContain("min-width: 768px");
       expect(src).toContain("min-width: 1024px");
-      expect(src).toContain("max-width: 880px");
+      // Post-redesign (editorial periodical direction) widened the
+      // reading frame from 880 to 1120 so the asymmetric hero has room
+      // to breathe. Declared once on --mw-entry-max.
+      expect(src).toContain("1120px");
     });
 
     it("does NOT contain the previous 'Map your operating system.' headline", () => {
@@ -89,14 +100,13 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("onSignup");
     });
 
-    it("contains all 10 rotation sentences (unchanged content)", () => {
-      expect(src).toContain("You shut down and people think you");
-      expect(src).toContain("You see the pattern everyone else is missing.");
-      expect(src).toContain("When you lock in");
-      expect(src).toContain("Plans changed and your whole system locked up.");
-      expect(src).toContain("You mask all day and no one knows what that costs.");
-      expect(src).toContain("You rehearse conversations before you have them.");
-      expect(src).toContain("The people you love get a version of loyalty");
+    it("no longer ships the 10 rotating-specimen sentences", () => {
+      // The rotating specimen was replaced by HeroManualVignette —
+      // a one-shot chat→Manual-entry narrative. The 10 sentences
+      // are gone from EntryScreen (they lived in ROTATING_EXAMPLES).
+      expect(src).not.toContain("ROTATING_EXAMPLES");
+      expect(src).not.toContain("You shut down and people think you");
+      expect(src).not.toContain("The people you love get a version of loyalty");
     });
   });
 
