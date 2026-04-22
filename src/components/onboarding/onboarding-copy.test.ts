@@ -11,60 +11,56 @@ describe("PR3 onboarding copy pass", () => {
   describe("EntryScreen", () => {
     const src = read("src/components/onboarding/EntryScreen.tsx");
 
-    it("uses the new headline", () => {
-      // Headline breaks across three lines with `<br />` separators and
-      // the terminal "." is wrapped in a span for the sage-accent
-      // treatment, so assert on the phrase bodies line-by-line.
-      expect(src).toContain("A more complete manual");
-      expect(src).toContain("of how your mind");
-      expect(src).toContain("works");
+    it("uses a single direct headline", () => {
+      // Hero headline reads as a plain statement of the product's
+      // output: "A private manual of how you work." No line breaks
+      // forced in the source; the terminal "." is wrapped in a span
+      // for the sage-accent treatment.
+      expect(src).toContain("A private manual of how you work");
     });
 
-    it("uses the masthead paratext as publication signal", () => {
-      // "Built for neurodivergent adults." subhead was absorbed into
-      // the masthead's two-line editorial paratext. The page now reads
-      // as a publication — issue number, season, audience note.
-      expect(src).toContain("Issue One");
-      expect(src).toContain("Spring 2026");
-      expect(src).toContain("A manual for neurodivergent adults");
+    it("uses a plain-English subhead with the product's promise", () => {
+      // Three short sentences, no affectation. Wordmark spelling is
+      // "my walnut" (two words) — matches the marketing convention.
+      expect(src).toContain("my walnut is an AI that helps you write one");
+      expect(src).toContain("Nothing enters unless you confirm it.");
+      expect(src).toContain("Built for neurodivergent adults.");
     });
 
-    it("contains all 4 method beats with italic chapter titles", () => {
-      // Four chapters now: On bringing / On listening / On composing /
-      // On sharing. Italic chapter titles set the editorial register;
-      // the prose bodies are preserved verbatim from the earlier
-      // numbered beats.
-      expect(src).toContain("On bringing");
-      expect(src).toContain("On listening");
-      expect(src).toContain("On composing");
-      expect(src).toContain("On sharing");
-      expect(src).toContain("You bring a situation that is on your mind &mdash;");
-      expect(src).toContain("Talking it through with {PERSONA_NAME} helps you organize");
-      expect(src).toContain("Underneath the conversation, {PERSONA_NAME} is building a model");
-      expect(src).toContain("it proposes an entry for your Manual. You decide what&rsquo;s true.");
-      expect(src).toContain("Over time, your Manual becomes a more complete picture of how you work.");
-      expect(src).toContain("See how your Manual connects with others.");
+    it("shows a sample Manual entry as the hero's visual anchor", () => {
+      // Replaces the sand-ripples photograph / rotating specimen /
+      // vignette. A real entry rendered as type: kicker + italic
+      // first-person statement + prose elaboration. Assert on
+      // short substrings — the JSX formatter wraps these long
+      // phrases across source lines.
+      expect(src).toContain("How I process things");
+      expect(src).toContain("When plans shift without warning");
+      expect(src).toContain("voice is the first thing");
+      expect(src).toContain("speech is where");
     });
 
-    it("no longer flags items 3 and 4 with a (Coming soon) qualifier", () => {
-      expect(src).not.toContain("(Coming soon)");
-      expect(src).not.toContain("mw-entry-soon");
+    it("uses three plain numbered method steps", () => {
+      // No roman numerals, no gerund chapter titles. Short,
+      // functional prose. Persona name is interpolated via
+      // PERSONA_NAME, asserted without the name.
+      expect(src).toContain("Talk to {PERSONA_NAME} about things on your mind.");
+      expect(src).toContain("Conversations, situations, patterns you keep noticing.");
+      expect(src).toContain("{PERSONA_NAME} proposes patterns it sees. You confirm what&rsquo;s true.");
+      expect(src).toContain("Nothing gets written without your explicit confirmation.");
+      expect(src).toContain("The patterns become your Manual.");
+      expect(src).toContain("Yours to keep");
+      expect(src).toContain("share with the people you trust");
     });
 
-    it("includes the pull-quote chapter break", () => {
-      // The product's core promise is elevated to an editorial
-      // pull-quote floating between the method and the CTA.
-      expect(src).toContain("Nothing enters the manual");
-      expect(src).toContain("unless you confirm it");
-    });
-
-    it("uses an editorial CTA and drops the filled-plate beta line", () => {
-      // The "my walnut is in early access." kicker is gone. The CTA is
-      // now a text-only italic link with an arrow ornament, preceded
-      // by an italic invitation line. No filled sage plate.
-      expect(src).toContain("A manual waits to be written.");
-      expect(src).not.toContain("my walnut is in early access");
-      expect(src).not.toContain("mywalnut");
+    it("lists the five Manual layers", () => {
+      // Product surface area shown literally. Reinforces what a
+      // Manual actually is for a first-time visitor.
+      expect(src).toContain("Your Manual, in five layers");
+      expect(src).toContain("Some of my patterns");
+      expect(src).toContain("How I process things");
+      expect(src).toContain("What helps");
+      expect(src).toContain("How I show up with people");
+      expect(src).toContain("Where I&rsquo;m strong");
     });
 
     it("uses 'Join the waitlist' as the primary CTA pointing to /waitlist", () => {
@@ -81,25 +77,50 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).toContain("my walnut");
     });
 
-    it("includes a colophon signature line in the footer", () => {
-      // Editorial footer signs the document: one italic colophon
-      // line above the legal row.
-      expect(src).toContain("Set in Newsreader");
-      expect(src).toContain("Assembled in conversation");
-    });
-
-    it("declares responsive breakpoints and a 1120px editorial max-width", () => {
+    it("declares responsive breakpoints", () => {
       expect(src).toContain("min-width: 768px");
       expect(src).toContain("min-width: 1024px");
-      expect(src).toContain("1120px");
+    });
+
+    // ── Dead copy and old concepts (negative assertions) ─────
+
+    it("does NOT carry editorial-pastiche paratext or colophon", () => {
+      // The previous "Issue One · Spring 2026" masthead + "Set in
+      // Newsreader. Printed on linen..." colophon were costume.
+      // Both removed in the clear/premium pass.
+      expect(src).not.toContain("Issue One");
+      expect(src).not.toContain("Spring 2026");
+      expect(src).not.toContain("Set in Newsreader");
+      expect(src).not.toContain("Assembled in conversation");
+    });
+
+    it("does NOT contain gerund chapter titles", () => {
+      // The "On bringing / On listening / On composing / On
+      // sharing" chapter affect was twee. Replaced with three
+      // plain method steps.
+      expect(src).not.toContain("On bringing");
+      expect(src).not.toContain("On listening");
+      expect(src).not.toContain("On composing");
+      expect(src).not.toContain("On sharing");
+    });
+
+    it("does NOT contain the rotating specimen or pull-quote", () => {
+      // Both removed in the clear/premium pass. Note: "Nothing
+      // enters the manual" (with article) was the pull-quote;
+      // the current subhead's "Nothing enters unless you confirm
+      // it" is unrelated phrasing without "the manual".
+      expect(src).not.toContain("ROTATING_EXAMPLES");
+      expect(src).not.toContain("You shut down and people think you");
+      expect(src).not.toContain("Nothing enters the manual");
+    });
+
+    it("does NOT reference the removed HeroManualVignette or sand-ripples image", () => {
+      expect(src).not.toContain("HeroManualVignette");
+      expect(src).not.toContain("hero-sand");
     });
 
     it("does NOT contain the previous 'Map your operating system.' headline", () => {
       expect(src).not.toContain("Map your operating system.");
-    });
-
-    it("does NOT contain the previous subhead", () => {
-      expect(src).not.toContain("Navigate the world with it. Share it with the people around you.");
     });
 
     it("does NOT contain the old 'You understand yourself in fragments.' headline", () => {
@@ -115,19 +136,9 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("onSignup");
     });
 
-    it("ships the 10 rotating-specimen sentences", () => {
-      // Rotating specimen is back, unframed, set in italic Newsreader
-      // below the hero headline. Six-point-five-second dwell; each
-      // sentence reads like a photograph.
-      expect(src).toContain("ROTATING_EXAMPLES");
-      expect(src).toContain("You shut down and people think you");
-      expect(src).toContain("The people you love get a version of loyalty");
-    });
-
-    it("does NOT import the removed HeroManualVignette component", () => {
-      // HeroManualVignette was deleted when the landing reverted to
-      // the rotating-specimen approach. No lingering import.
-      expect(src).not.toContain("HeroManualVignette");
+    it("does NOT contain (Coming soon) qualifiers", () => {
+      expect(src).not.toContain("(Coming soon)");
+      expect(src).not.toContain("mw-entry-soon");
     });
   });
 
