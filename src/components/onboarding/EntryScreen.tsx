@@ -1,122 +1,176 @@
 "use client";
 
-import { useEffect } from "react";
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface EntryScreenProps {
   onLogin: () => void;
 }
 
-// Clear, confident landing. No costume, no rotating anything, no
-// editorial-pastiche paratext. Seven vertical moments:
+// A private manual of how you work. Clear, premium, no costume.
 //
-//   1. Wordmark (small, top-left)
-//   2. Hero — one headline, one subhead, one CTA. Centered.
-//   3. Sample Manual entry — the product as type
-//   4. How it works — three short steps
-//   5. The five Manual layers — so the viewer sees the surface area
-//   6. Final CTA + login
-//   7. Legal
+// The composition is a single centered column anchored by a sage
+// hairline running from masthead to footer. Section markers (roman
+// numerals for the five layers, two-digit numerals for the method
+// steps) hang in the left margin across that line — the one
+// formal gesture, used consistently. Type is carried by Newsreader
+// throughout, with Instrument Serif italic for quoted voice and
+// JetBrains Mono reserved for metadata labels.
 //
-// Typography carries the whole thing. Linen background, ink text,
-// sage accent for the period marks and step numerals only. No
-// texture, no fleurons, no pull-quote, no photograph.
+// Six sections, in reading order:
+//   1. Masthead — wordmark + Log in
+//   2. Hero — headline, subhead, primary CTA
+//   3. Entry — a sample Manual entry shown as type
+//   4. Five layers — the Manual's surface area
+//   5. Method — three numbered steps
+//   6. Final CTA + Log in + legal
 
 export default function EntryScreen({ onLogin }: EntryScreenProps) {
-  // Effect kept as a no-op for future extension hooks. The landing
-  // is deliberately inert — no rotation, no scroll triggers.
-  useEffect(() => {}, []);
-
   return (
     <main
       className="mw-entry-root scrollable-page"
-      style={{
-        backgroundColor: "var(--session-linen)",
-        WebkitTapHighlightColor: "transparent",
-      }}
+      style={{ WebkitTapHighlightColor: "transparent" }}
     >
       <style>{`
         .mw-entry-root {
           min-height: 100dvh;
           width: 100%;
           box-sizing: border-box;
-          font-family: var(--font-display), "Newsreader", Georgia, serif;
+          background-color: var(--session-linen);
           color: var(--session-ink);
-          --mw-entry-max: 1040px;
-          --mw-entry-reading-max: 620px;
+          font-family: var(--font-display), "Newsreader", Georgia, serif;
+          /* Design tokens for the landing — scoped so they never leak. */
+          --mw-gutter: 20px;                 /* content gutter from viewport edge */
+          --mw-rail: 40px;                   /* margin reserved for hanging numerals */
+          --mw-column: 560px;                /* max body reading width */
+          --mw-canvas: calc(var(--mw-column) + var(--mw-rail));
+          --mw-section-pad: 88px;            /* vertical space between sections */
+          --mw-meta-size: 10.5px;
+          --mw-meta-tracking: 2.4px;
         }
 
-        /* ── Page-load fade ────────────────────────────────────── */
-        @keyframes mwEntryFadeUp {
-          from { opacity: 0; transform: translateY(12px); }
+        /* ── Page-wide architecture ─────────────────────────────
+           The canvas sits centered. The rail is a thin sage rule
+           at the left edge of the content column, spanning the
+           whole page vertically. Numerals hang inside the rail,
+           aligned right so they sit up against the rule without
+           touching it. */
+        .mw-entry-canvas {
+          max-width: var(--mw-canvas);
+          margin: 0 auto;
+          padding: 0 var(--mw-gutter);
+          position: relative;
+        }
+        .mw-entry-canvas::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: calc(var(--mw-gutter) + var(--mw-rail));
+          width: 1px;
+          background: linear-gradient(
+            to bottom,
+            transparent 0,
+            var(--session-persona-border) 72px,
+            var(--session-persona-border) calc(100% - 160px),
+            transparent 100%
+          );
+          pointer-events: none;
+        }
+        .mw-entry-col {
+          margin-left: var(--mw-rail);
+          padding-left: 24px;
+          box-sizing: border-box;
+        }
+
+        /* ── Page-load stagger ─────────────────────────────────── */
+        @keyframes mwEntryRise {
+          from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .mw-rise { animation: mwEntryRise 720ms ease-out both; }
+        .mw-rise-1 { animation-delay: 80ms; }
+        .mw-rise-2 { animation-delay: 200ms; }
+        .mw-rise-3 { animation-delay: 320ms; }
+        .mw-rise-4 { animation-delay: 440ms; }
+
         @media (prefers-reduced-motion: reduce) {
-          .mw-entry-root *,
-          .mw-entry-root *::before,
-          .mw-entry-root *::after {
-            animation-duration: 0ms !important;
-            animation-delay: 0ms !important;
-            transition-duration: 0ms !important;
-          }
+          .mw-rise { animation: none !important; opacity: 1 !important; transform: none !important; }
         }
 
-        /* ── 1. Wordmark (top-left) ────────────────────────────── */
+        /* ── Period accent (sage) ──────────────────────────────── */
+        .mw-entry-period { color: var(--session-persona); }
+
+        /* ── 1. Masthead ───────────────────────────────────────── */
         .mw-entry-masthead {
-          padding: 32px 28px 0;
-          box-sizing: border-box;
-          max-width: var(--mw-entry-max);
-          margin: 0 auto;
+          padding-top: 28px;
+          padding-bottom: 72px;
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 16px;
         }
         .mw-entry-wordmark {
           font-family: inherit;
-          margin: 0;
           font-weight: 400;
-          font-size: 19px;
+          font-size: 18px;
           letter-spacing: -0.005em;
-          color: var(--session-ink);
           line-height: 1;
+          color: var(--session-ink);
+          margin: 0;
         }
-        .mw-entry-period { color: var(--session-persona); }
+        .mw-entry-nav-login {
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          font: inherit;
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-size: var(--mw-meta-size);
+          letter-spacing: var(--mw-meta-tracking);
+          text-transform: uppercase;
+          color: var(--session-ink-faded);
+          cursor: pointer;
+          transition: color 200ms ease;
+        }
+        .mw-entry-nav-login:hover { color: var(--session-ink); }
 
         /* ── 2. Hero ───────────────────────────────────────────── */
         .mw-entry-hero {
-          padding: 88px 28px 96px;
-          box-sizing: border-box;
-          max-width: var(--mw-entry-max);
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
+          padding-bottom: var(--mw-section-pad);
+        }
+        .mw-entry-eyebrow {
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-size: var(--mw-meta-size);
+          letter-spacing: var(--mw-meta-tracking);
+          text-transform: uppercase;
+          color: var(--session-persona);
+          margin: 0 0 28px;
         }
         .mw-entry-headline {
           font-family: inherit;
-          margin: 0 0 28px;
           font-weight: 400;
-          font-size: 40px;
-          line-height: 1.08;
-          letter-spacing: -0.024em;
+          font-size: 38px;
+          line-height: 1.04;
+          letter-spacing: -0.028em;
           color: var(--session-ink);
-          animation: mwEntryFadeUp 640ms ease-out 120ms both;
-          max-width: 18ch;
+          margin: 0 0 28px;
+          max-width: 16ch;
         }
         .mw-entry-subhead {
           font-family: inherit;
-          margin: 0 0 40px;
           font-weight: 400;
           font-size: 17px;
           line-height: 1.55;
           color: var(--session-ink-mid);
-          max-width: 540px;
-          animation: mwEntryFadeUp 640ms ease-out 260ms both;
+          margin: 0 0 40px;
+          max-width: 38ch;
         }
         .mw-entry-subhead em {
           font-style: italic;
           color: var(--session-ink);
         }
 
-        /* ── CTA (shared, text-link with nudging arrow) ────────── */
+        /* ── Ghost CTA ─────────────────────────────────────────── */
         .mw-entry-cta {
           font-family: inherit;
           font-weight: 500;
@@ -127,13 +181,14 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           text-decoration: none;
           display: inline-flex;
           align-items: center;
-          gap: 10px;
-          padding: 14px 24px;
+          gap: 12px;
+          padding: 15px 26px 15px 22px;
           border: 1px solid var(--session-ink);
           border-radius: 2px;
+          background: transparent;
           transition: background 240ms ease, color 240ms ease,
                       border-color 240ms ease;
-          animation: mwEntryFadeUp 640ms ease-out 400ms both;
+          cursor: pointer;
         }
         .mw-entry-cta:hover {
           background: var(--session-ink);
@@ -141,97 +196,144 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           border-color: var(--session-ink);
         }
         .mw-entry-cta:hover .mw-entry-cta-arrow {
-          transform: translateX(4px);
+          transform: translateX(5px);
         }
         .mw-entry-cta-arrow {
           font-size: 1em;
           line-height: 1;
-          transition: transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1);
+          transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1);
         }
 
-        /* ── 3. Sample Manual entry ────────────────────────────── */
-        .mw-entry-sample {
-          padding: 24px 28px 96px;
-          box-sizing: border-box;
-          max-width: var(--mw-entry-reading-max);
-          margin: 0 auto;
-          padding-left: calc(28px + 20px);
-          border-left: none;
-          position: relative;
-        }
-        .mw-entry-sample::before {
-          content: "";
-          position: absolute;
-          left: 28px;
-          top: 24px;
-          bottom: 96px;
-          width: 2px;
-          background: var(--session-persona-soft);
-        }
-        .mw-entry-sample-kicker {
+        /* ── Section heading ───────────────────────────────────── */
+        .mw-entry-section-heading {
           font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 10px;
-          font-weight: 400;
-          letter-spacing: 2.2px;
+          font-size: var(--mw-meta-size);
+          letter-spacing: var(--mw-meta-tracking);
+          text-transform: uppercase;
+          color: var(--session-ink-faded);
+          margin: 0 0 28px;
+        }
+
+        /* ── 3. Sample entry ───────────────────────────────────── */
+        .mw-entry-sample {
+          padding-bottom: var(--mw-section-pad);
+        }
+        .mw-entry-sample-label {
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-size: var(--mw-meta-size);
+          letter-spacing: var(--mw-meta-tracking);
           text-transform: uppercase;
           color: var(--session-persona);
-          margin-bottom: 20px;
+          margin: 0 0 12px;
         }
-        .mw-entry-sample-title {
+        .mw-entry-sample-layer {
           font-family: inherit;
           font-style: italic;
           font-weight: 400;
-          font-size: 22px;
-          line-height: 1.32;
+          font-size: 15px;
+          line-height: 1.3;
+          color: var(--session-ink-faded);
+          margin: 0 0 28px;
+        }
+        .mw-entry-sample-title {
+          font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: 25px;
+          line-height: 1.26;
           letter-spacing: -0.008em;
           color: var(--session-ink);
-          margin: 0 0 20px;
+          margin: 0 0 22px;
         }
         .mw-entry-sample-body {
           font-family: inherit;
           font-weight: 400;
-          font-size: 16px;
+          font-size: 17px;
           line-height: 1.58;
           color: var(--session-ink-mid);
           margin: 0;
         }
 
-        /* ── 4. How it works ────────────────────────────────── */
-        .mw-entry-method {
-          padding: 24px 28px 96px;
-          box-sizing: border-box;
-          max-width: var(--mw-entry-reading-max);
-          margin: 0 auto;
+        /* ── 4. Five layers ────────────────────────────────────── */
+        .mw-entry-layers {
+          padding-bottom: var(--mw-section-pad);
         }
-        .mw-entry-method-heading {
-          font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 10px;
+        .mw-entry-layers-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: grid;
+          gap: 18px;
+        }
+        .mw-entry-layer-item {
+          display: grid;
+          grid-template-columns: 40px 1fr;
+          align-items: baseline;
+          gap: 20px;
+          color: var(--session-ink);
+          font-family: inherit;
+        }
+        .mw-entry-layer-numeral {
+          font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+          font-style: italic;
           font-weight: 400;
-          letter-spacing: 2.2px;
-          text-transform: uppercase;
-          color: var(--session-ink-faded);
-          margin: 0 0 28px;
+          font-size: 20px;
+          letter-spacing: 0.02em;
+          color: var(--session-persona);
+          text-align: right;
+          line-height: 1.3;
+          /* Pull left so the numeral hangs in the rail margin. */
+          margin-left: -64px;
+          padding-right: 0;
+        }
+        .mw-entry-layer-name {
+          font-weight: 400;
+          font-size: 19px;
+          line-height: 1.35;
+          letter-spacing: -0.004em;
+          /* Lets the is-current underline hug the text instead of
+             stretching across the whole grid cell. */
+          display: inline-block;
+        }
+        .mw-entry-layer-item.is-current .mw-entry-layer-name {
+          /* The layer shown in the sample entry above gets a quiet
+             sage underline — it ties the two sections together
+             without announcing itself. */
+          text-decoration: underline;
+          text-decoration-color: var(--session-persona-border);
+          text-decoration-thickness: 1px;
+          text-underline-offset: 5px;
+        }
+
+        /* ── 5. Method — three numbered steps ───────────────── */
+        .mw-entry-method {
+          padding-bottom: var(--mw-section-pad);
         }
         .mw-entry-method-list {
           list-style: none;
           padding: 0;
           margin: 0;
           display: grid;
-          gap: 28px;
+          gap: 30px;
         }
         .mw-entry-method-item {
           display: grid;
-          grid-template-columns: 32px 1fr;
-          gap: 16px;
+          grid-template-columns: 40px 1fr;
           align-items: baseline;
+          gap: 20px;
         }
         .mw-entry-method-num {
-          font-family: inherit;
-          font-style: italic;
-          font-weight: 300;
-          font-size: 20px;
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-weight: 400;
+          font-size: 11px;
+          letter-spacing: 0.12em;
           color: var(--session-persona);
-          line-height: 1.2;
+          text-align: right;
+          line-height: 1.6;
+          margin-left: -64px;
+          /* Lift the mono numeral so it sits on the cap line of the
+             first line of prose rather than the baseline. */
+          transform: translateY(2px);
         }
         .mw-entry-method-body {
           font-family: inherit;
@@ -245,46 +347,14 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           color: var(--session-ink);
         }
 
-        /* ── 5. The five layers ────────────────────────────────── */
-        .mw-entry-layers {
-          padding: 24px 28px 112px;
-          box-sizing: border-box;
-          max-width: var(--mw-entry-reading-max);
-          margin: 0 auto;
-        }
-        .mw-entry-layers-heading {
-          font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 10px;
-          font-weight: 400;
-          letter-spacing: 2.2px;
-          text-transform: uppercase;
-          color: var(--session-ink-faded);
-          margin: 0 0 28px;
-        }
-        .mw-entry-layers-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: grid;
-          gap: 14px;
-        }
-        .mw-entry-layers-item {
-          font-family: inherit;
-          font-weight: 400;
-          font-size: 19px;
-          line-height: 1.4;
-          color: var(--session-ink);
-          letter-spacing: -0.005em;
-        }
-
-        /* ── 6. Final CTA ──────────────────────────────────────── */
-        .mw-entry-final-cta {
-          padding: 24px 28px 96px;
-          box-sizing: border-box;
+        /* ── 6. Final CTA + login + footer ──────────────────── */
+        .mw-entry-tail {
+          padding-top: 8px;
+          padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 24px;
+          align-items: flex-start;
+          gap: 28px;
         }
         .mw-entry-login-line {
           font-family: inherit;
@@ -294,7 +364,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           color: var(--session-ink-faded);
           margin: 0;
         }
-        .mw-entry-login {
+        .mw-entry-login-inline {
           background: none;
           border: none;
           padding: 0;
@@ -307,28 +377,20 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           text-decoration-thickness: 1px;
           transition: text-decoration-color 200ms ease, color 200ms ease;
         }
-        .mw-entry-login:hover {
+        .mw-entry-login-inline:hover {
           color: var(--session-persona);
           text-decoration-color: var(--session-persona);
-        }
-
-        /* ── 7. Footer ─────────────────────────────────────────── */
-        .mw-entry-footer {
-          padding: 32px 28px calc(40px + env(safe-area-inset-bottom, 0px));
-          box-sizing: border-box;
-          max-width: var(--mw-entry-max);
-          margin: 0 auto;
-          text-align: center;
         }
         .mw-entry-legal {
           display: inline-flex;
           align-items: center;
           gap: 12px;
           font-family: var(--font-mono), ui-monospace, monospace;
-          font-size: 10px;
+          font-size: var(--mw-meta-size);
           letter-spacing: 1.8px;
           text-transform: uppercase;
           color: var(--session-ink-faded);
+          margin-top: 32px;
         }
         .mw-entry-legal a {
           color: inherit;
@@ -340,182 +402,253 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
 
         /* ── Tablet (≥768px) ──────────────────────────────────── */
         @media (min-width: 768px) {
-          .mw-entry-masthead { padding: 40px 48px 0; }
-          .mw-entry-wordmark { font-size: 22px; }
-          .mw-entry-hero { padding: 128px 48px 120px; }
-          .mw-entry-headline { font-size: 64px; letter-spacing: -0.03em; margin-bottom: 32px; }
-          .mw-entry-subhead { font-size: 18px; margin-bottom: 44px; max-width: 620px; }
-          .mw-entry-cta { font-size: 16.5px; padding: 15px 28px; }
-          .mw-entry-sample { padding: 24px 48px 112px; padding-left: calc(48px + 24px); }
-          .mw-entry-sample::before { left: 48px; top: 24px; bottom: 112px; }
-          .mw-entry-sample-title { font-size: 26px; line-height: 1.3; }
-          .mw-entry-sample-body { font-size: 17px; }
-          .mw-entry-method { padding: 24px 48px 112px; }
-          .mw-entry-method-list { gap: 32px; }
-          .mw-entry-method-item { grid-template-columns: 36px 1fr; gap: 18px; }
-          .mw-entry-method-num { font-size: 22px; }
-          .mw-entry-method-body { font-size: 18px; }
-          .mw-entry-layers { padding: 24px 48px 128px; }
-          .mw-entry-layers-list { gap: 16px; }
-          .mw-entry-layers-item { font-size: 21px; }
-          .mw-entry-final-cta { padding: 24px 48px 112px; gap: 28px; }
-          .mw-entry-footer {
-            padding: 40px 48px calc(48px + env(safe-area-inset-bottom, 0px));
+          .mw-entry-root {
+            --mw-gutter: 48px;
+            --mw-rail: 96px;
+            --mw-column: 600px;
+            --mw-section-pad: 120px;
           }
+          .mw-entry-masthead { padding-top: 40px; padding-bottom: 128px; }
+          .mw-entry-wordmark { font-size: 20px; }
+          .mw-entry-headline {
+            font-size: 68px;
+            line-height: 1.01;
+            letter-spacing: -0.032em;
+            margin-bottom: 36px;
+            max-width: 14ch;
+          }
+          .mw-entry-subhead { font-size: 18px; max-width: 42ch; margin-bottom: 48px; }
+          .mw-entry-cta { font-size: 16.5px; padding: 16px 28px 16px 24px; }
+          .mw-entry-sample-title { font-size: 32px; line-height: 1.22; }
+          .mw-entry-sample-body { font-size: 18px; }
+          .mw-entry-layers-list { gap: 22px; }
+          .mw-entry-layer-numeral { font-size: 24px; margin-left: -88px; }
+          .mw-entry-layer-name { font-size: 22px; }
+          .mw-entry-method-list { gap: 36px; }
+          .mw-entry-method-num { font-size: 11.5px; margin-left: -88px; }
+          .mw-entry-method-body { font-size: 18px; }
         }
 
         /* ── Desktop (≥1024px) ────────────────────────────────── */
         @media (min-width: 1024px) {
-          .mw-entry-masthead { padding: 48px 64px 0; }
-          .mw-entry-wordmark { font-size: 24px; }
-          .mw-entry-hero { padding: 160px 64px 144px; }
+          .mw-entry-root {
+            --mw-gutter: 64px;
+            --mw-rail: 120px;
+            --mw-column: 720px;
+            --mw-section-pad: 152px;
+          }
+          .mw-entry-masthead { padding-top: 48px; padding-bottom: 168px; }
+          .mw-entry-wordmark { font-size: 22px; }
           .mw-entry-headline {
-            font-size: 88px;
-            letter-spacing: -0.032em;
-            margin-bottom: 36px;
-            line-height: 1.04;
+            font-size: 92px;
+            line-height: 1.0;
+            letter-spacing: -0.036em;
+            margin-bottom: 44px;
+            max-width: 13ch;
           }
           .mw-entry-subhead {
-            font-size: 19px;
-            line-height: 1.6;
-            margin-bottom: 52px;
-            max-width: 640px;
+            font-size: 20px;
+            line-height: 1.56;
+            max-width: 46ch;
+            margin-bottom: 56px;
           }
-          .mw-entry-cta { font-size: 17px; padding: 16px 32px; }
-          .mw-entry-sample { padding: 40px 64px 128px; padding-left: calc(64px + 28px); }
-          .mw-entry-sample::before { left: 64px; top: 40px; bottom: 128px; }
+          .mw-entry-cta { font-size: 17px; padding: 17px 32px 17px 26px; }
           .mw-entry-sample-title {
-            font-size: 30px;
-            line-height: 1.28;
-            margin-bottom: 24px;
+            font-size: 38px;
+            line-height: 1.16;
+            margin-bottom: 28px;
           }
-          .mw-entry-sample-body { font-size: 18px; line-height: 1.62; }
-          .mw-entry-method { padding: 40px 64px 128px; }
-          .mw-entry-method-list { gap: 36px; }
-          .mw-entry-method-item { grid-template-columns: 40px 1fr; gap: 24px; }
-          .mw-entry-method-num { font-size: 23px; }
-          .mw-entry-method-body { font-size: 19px; line-height: 1.62; }
-          .mw-entry-layers { padding: 40px 64px 144px; }
-          .mw-entry-layers-list { gap: 18px; }
-          .mw-entry-layers-item { font-size: 23px; }
-          .mw-entry-final-cta { padding: 40px 64px 128px; gap: 32px; }
-          .mw-entry-footer {
-            padding: 48px 64px calc(56px + env(safe-area-inset-bottom, 0px));
-          }
+          .mw-entry-sample-body { font-size: 19px; line-height: 1.58; max-width: 46ch; }
+          .mw-entry-layers-list { gap: 26px; }
+          .mw-entry-layer-numeral { font-size: 28px; margin-left: -112px; }
+          .mw-entry-layer-name { font-size: 24px; }
+          .mw-entry-method-list { gap: 42px; }
+          .mw-entry-method-num { font-size: 12px; margin-left: -112px; }
+          .mw-entry-method-body { font-size: 20px; line-height: 1.58; max-width: 46ch; }
         }
 
-        /* ── Wide (≥1440px) — holds scale, doesn't escalate ──── */
+        /* ── Wide (≥1440px) — hold composition, don't escalate ── */
         @media (min-width: 1440px) {
-          .mw-entry-headline { font-size: 96px; }
+          .mw-entry-root {
+            --mw-gutter: 80px;
+            --mw-rail: 144px;
+            --mw-column: 760px;
+          }
+          .mw-entry-headline { font-size: 104px; }
+          .mw-entry-layer-numeral { margin-left: -128px; }
+          .mw-entry-method-num { margin-left: -128px; }
         }
       `}</style>
 
-      {/* 1. Wordmark */}
-      <header className="mw-entry-masthead">
-        <div className="mw-entry-wordmark">
-          my walnut<span className="mw-entry-period">.</span>
-        </div>
-      </header>
-
-      {/* 2. Hero — one headline, one subhead, one CTA */}
-      <section className="mw-entry-hero">
-        <h1 className="mw-entry-headline">
-          A private manual of how you work<span className="mw-entry-period">.</span>
-        </h1>
-        <p className="mw-entry-subhead">
-          my walnut is an AI that helps you write one &mdash; through conversation.
-          Nothing enters unless you confirm it. Built for neurodivergent adults.
-        </p>
-        <a href="/waitlist" className="mw-entry-cta">
-          Join the waitlist
-          <span className="mw-entry-cta-arrow" aria-hidden="true">
-            &rarr;
-          </span>
-        </a>
-      </section>
-
-      {/* 3. Sample Manual entry — the product, as type */}
-      <section
-        className="mw-entry-sample"
-        aria-label="An example entry from a Manual"
-      >
-        <div className="mw-entry-sample-kicker">How I process things</div>
-        <p className="mw-entry-sample-title">
-          &ldquo;When plans shift without warning, my voice is the first thing
-          that goes quiet.&rdquo;
-        </p>
-        <p className="mw-entry-sample-body">
-          Not because I have nothing to say &mdash; but because speech is where
-          my regulation leaves.
-        </p>
-      </section>
-
-      {/* 4. How it works — three plain steps */}
-      <section className="mw-entry-method">
-        <h2 className="mw-entry-method-heading">How it works</h2>
-        <ol className="mw-entry-method-list">
-          <li className="mw-entry-method-item">
-            <span className="mw-entry-method-num">1</span>
-            <div className="mw-entry-method-body">
-              <strong>Talk to {PERSONA_NAME} about things on your mind.</strong>{" "}
-              Conversations, situations, patterns you keep noticing.
-            </div>
-          </li>
-          <li className="mw-entry-method-item">
-            <span className="mw-entry-method-num">2</span>
-            <div className="mw-entry-method-body">
-              <strong>
-                {PERSONA_NAME} proposes patterns it sees. You confirm what&rsquo;s true.
-              </strong>{" "}
-              Nothing gets written without your explicit confirmation.
-            </div>
-          </li>
-          <li className="mw-entry-method-item">
-            <span className="mw-entry-method-num">3</span>
-            <div className="mw-entry-method-body">
-              <strong>The patterns become your Manual.</strong> Yours to keep,
-              revise, or share with the people you trust.
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      {/* 5. The five layers of a Manual */}
-      <section className="mw-entry-layers">
-        <h2 className="mw-entry-layers-heading">Your Manual, in five layers</h2>
-        <ul className="mw-entry-layers-list">
-          <li className="mw-entry-layers-item">Some of my patterns</li>
-          <li className="mw-entry-layers-item">How I process things</li>
-          <li className="mw-entry-layers-item">What helps</li>
-          <li className="mw-entry-layers-item">How I show up with people</li>
-          <li className="mw-entry-layers-item">Where I&rsquo;m strong</li>
-        </ul>
-      </section>
-
-      {/* 6. Final CTA */}
-      <section className="mw-entry-final-cta">
-        <a href="/waitlist" className="mw-entry-cta">
-          Join the waitlist
-          <span className="mw-entry-cta-arrow" aria-hidden="true">
-            &rarr;
-          </span>
-        </a>
-        <p className="mw-entry-login-line">
-          Already have access?{" "}
-          <button type="button" onClick={onLogin} className="mw-entry-login">
-            Log in.
+      <div className="mw-entry-canvas">
+        {/* 1. Masthead */}
+        <header className="mw-entry-masthead mw-rise mw-rise-1">
+          <div className="mw-entry-wordmark">
+            my walnut<span className="mw-entry-period">.</span>
+          </div>
+          <button
+            type="button"
+            onClick={onLogin}
+            className="mw-entry-nav-login"
+            aria-label="Log in to an existing account"
+          >
+            Log in
           </button>
-        </p>
-      </section>
+        </header>
 
-      {/* 7. Legal */}
-      <footer className="mw-entry-footer">
-        <div className="mw-entry-legal">
-          <a href="/privacy">Privacy</a>
-          <span className="mw-entry-legal-sep">&middot;</span>
-          <a href="/terms">Terms</a>
+        {/* Every content block lives inside a column offset from the
+            rail. Numerals hang into the rail with negative margins. */}
+        <div className="mw-entry-col">
+          {/* 2. Hero */}
+          <section className="mw-entry-hero">
+            <p className="mw-entry-eyebrow mw-rise mw-rise-1">
+              mywalnut <span className="mw-entry-period">·</span> a private
+              manual
+            </p>
+            <h1 className="mw-entry-headline mw-rise mw-rise-2">
+              A private manual of how you work
+              <span className="mw-entry-period">.</span>
+            </h1>
+            <p className="mw-entry-subhead mw-rise mw-rise-3">
+              my walnut is an AI that helps you write one &mdash; through
+              conversation. Nothing enters unless you confirm it. Built for
+              neurodivergent adults.
+            </p>
+            <a href="/waitlist" className="mw-entry-cta mw-rise mw-rise-4">
+              Join the waitlist
+              <span className="mw-entry-cta-arrow" aria-hidden="true">
+                &rarr;
+              </span>
+            </a>
+          </section>
+
+          {/* 3. Sample entry — the product as type */}
+          <section
+            className="mw-entry-sample"
+            aria-label="An example entry from a Manual"
+          >
+            <div className="mw-entry-sample-label">An entry</div>
+            <div className="mw-entry-sample-layer">
+              from Layer Two &mdash; How I process things
+            </div>
+            <p className="mw-entry-sample-title">
+              &ldquo;When plans shift without warning, my voice is the first
+              thing that goes quiet.&rdquo;
+            </p>
+            <p className="mw-entry-sample-body">
+              Not because I have nothing to say &mdash; but because speech is
+              where my regulation leaves.
+            </p>
+          </section>
+
+          {/* 4. Five layers */}
+          <section className="mw-entry-layers">
+            <h2 className="mw-entry-section-heading">
+              Your Manual, in five layers
+            </h2>
+            <ul className="mw-entry-layers-list">
+              <li className="mw-entry-layer-item">
+                <span className="mw-entry-layer-numeral" aria-hidden="true">
+                  I
+                </span>
+                <span className="mw-entry-layer-name">Some of my patterns</span>
+              </li>
+              <li className="mw-entry-layer-item is-current">
+                <span className="mw-entry-layer-numeral" aria-hidden="true">
+                  II
+                </span>
+                <span className="mw-entry-layer-name">How I process things</span>
+              </li>
+              <li className="mw-entry-layer-item">
+                <span className="mw-entry-layer-numeral" aria-hidden="true">
+                  III
+                </span>
+                <span className="mw-entry-layer-name">What helps</span>
+              </li>
+              <li className="mw-entry-layer-item">
+                <span className="mw-entry-layer-numeral" aria-hidden="true">
+                  IV
+                </span>
+                <span className="mw-entry-layer-name">
+                  How I show up with people
+                </span>
+              </li>
+              <li className="mw-entry-layer-item">
+                <span className="mw-entry-layer-numeral" aria-hidden="true">
+                  V
+                </span>
+                <span className="mw-entry-layer-name">
+                  Where I&rsquo;m strong
+                </span>
+              </li>
+            </ul>
+          </section>
+
+          {/* 5. Method */}
+          <section className="mw-entry-method">
+            <h2 className="mw-entry-section-heading">How it works</h2>
+            <ol className="mw-entry-method-list">
+              <li className="mw-entry-method-item">
+                <span className="mw-entry-method-num" aria-hidden="true">
+                  01
+                </span>
+                <div className="mw-entry-method-body">
+                  <strong>
+                    Talk to {PERSONA_NAME} about things on your mind.
+                  </strong>{" "}
+                  Conversations, situations, patterns you keep noticing.
+                </div>
+              </li>
+              <li className="mw-entry-method-item">
+                <span className="mw-entry-method-num" aria-hidden="true">
+                  02
+                </span>
+                <div className="mw-entry-method-body">
+                  <strong>
+                    {PERSONA_NAME} proposes patterns it sees. You confirm
+                    what&rsquo;s true.
+                  </strong>{" "}
+                  Nothing gets written without your explicit confirmation.
+                </div>
+              </li>
+              <li className="mw-entry-method-item">
+                <span className="mw-entry-method-num" aria-hidden="true">
+                  03
+                </span>
+                <div className="mw-entry-method-body">
+                  <strong>The patterns become your Manual.</strong> Yours to
+                  keep, revise, or share with the people you trust.
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          {/* 6. Final CTA + login + footer */}
+          <section className="mw-entry-tail">
+            <a href="/waitlist" className="mw-entry-cta">
+              Join the waitlist
+              <span className="mw-entry-cta-arrow" aria-hidden="true">
+                &rarr;
+              </span>
+            </a>
+            <p className="mw-entry-login-line">
+              Already have access?{" "}
+              <button
+                type="button"
+                onClick={onLogin}
+                className="mw-entry-login-inline"
+              >
+                Log in.
+              </button>
+            </p>
+            <div className="mw-entry-legal">
+              <a href="/privacy">Privacy</a>
+              <span className="mw-entry-legal-sep">&middot;</span>
+              <a href="/terms">Terms</a>
+            </div>
+          </section>
         </div>
-      </footer>
+      </div>
     </main>
   );
 }

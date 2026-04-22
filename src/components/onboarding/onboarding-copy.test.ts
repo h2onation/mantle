@@ -22,21 +22,27 @@ describe("PR3 onboarding copy pass", () => {
     it("uses a plain-English subhead with the product's promise", () => {
       // Three short sentences, no affectation. Wordmark spelling is
       // "my walnut" (two words) — matches the marketing convention.
+      // Prettier may wrap long sentences in JSX across multiple
+      // source lines, so assert on short substrings that stay
+      // contiguous.
       expect(src).toContain("my walnut is an AI that helps you write one");
       expect(src).toContain("Nothing enters unless you confirm it.");
-      expect(src).toContain("Built for neurodivergent adults.");
+      expect(src).toContain("Built for");
+      expect(src).toContain("neurodivergent adults.");
     });
 
-    it("shows a sample Manual entry as the hero's visual anchor", () => {
-      // Replaces the sand-ripples photograph / rotating specimen /
-      // vignette. A real entry rendered as type: kicker + italic
-      // first-person statement + prose elaboration. Assert on
-      // short substrings — the JSX formatter wraps these long
-      // phrases across source lines.
+    it("shows a sample Manual entry as a visual anchor", () => {
+      // A real entry rendered as type: a meta label, the layer
+      // origin, an italic first-person statement, and prose
+      // elaboration. Assert on short substrings — the JSX
+      // formatter wraps these long phrases across source lines.
+      expect(src).toContain("An entry");
       expect(src).toContain("How I process things");
       expect(src).toContain("When plans shift without warning");
-      expect(src).toContain("voice is the first thing");
-      expect(src).toContain("speech is where");
+      expect(src).toContain("voice is the first");
+      expect(src).toContain("thing that goes quiet");
+      expect(src).toContain("because speech is");
+      expect(src).toContain("regulation leaves");
     });
 
     it("uses three plain numbered method steps", () => {
@@ -45,22 +51,40 @@ describe("PR3 onboarding copy pass", () => {
       // PERSONA_NAME, asserted without the name.
       expect(src).toContain("Talk to {PERSONA_NAME} about things on your mind.");
       expect(src).toContain("Conversations, situations, patterns you keep noticing.");
-      expect(src).toContain("{PERSONA_NAME} proposes patterns it sees. You confirm what&rsquo;s true.");
+      expect(src).toContain("{PERSONA_NAME} proposes patterns it sees. You confirm");
+      expect(src).toContain("what&rsquo;s true.");
       expect(src).toContain("Nothing gets written without your explicit confirmation.");
       expect(src).toContain("The patterns become your Manual.");
-      expect(src).toContain("Yours to keep");
-      expect(src).toContain("share with the people you trust");
+      expect(src).toContain("Yours to");
+      expect(src).toContain("keep, revise, or share with the people you trust");
     });
 
-    it("lists the five Manual layers", () => {
-      // Product surface area shown literally. Reinforces what a
-      // Manual actually is for a first-time visitor.
+    it("numbers method steps as 01 / 02 / 03", () => {
+      // Two-digit mono numerals that hang in the rail margin —
+      // the matching gesture to the roman numerals on the
+      // five-layers list.
+      expect(src).toContain(">\n                  01\n");
+      expect(src).toContain(">\n                  02\n");
+      expect(src).toContain(">\n                  03\n");
+    });
+
+    it("lists the five Manual layers with roman numerals I–V", () => {
+      // Product surface area shown literally. The roman numerals
+      // hang in the left rail; the names render in Newsreader
+      // beside them.
       expect(src).toContain("Your Manual, in five layers");
       expect(src).toContain("Some of my patterns");
       expect(src).toContain("How I process things");
       expect(src).toContain("What helps");
       expect(src).toContain("How I show up with people");
       expect(src).toContain("Where I&rsquo;m strong");
+      // The roman numerals sit as discrete JSX children, one per
+      // layer, so each appears on its own line after the span tag.
+      expect(src).toContain(">\n                  I\n");
+      expect(src).toContain(">\n                  II\n");
+      expect(src).toContain(">\n                  III\n");
+      expect(src).toContain(">\n                  IV\n");
+      expect(src).toContain(">\n                  V\n");
     });
 
     it("uses 'Join the waitlist' as the primary CTA pointing to /waitlist", () => {
@@ -77,9 +101,18 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).toContain("my walnut");
     });
 
+    it("exposes a masthead Log in affordance alongside the final one", () => {
+      // Two onLogin hooks: one tucked into the top masthead, one
+      // in the final tail block. The masthead version is a
+      // monospace text link; both invoke the same handler.
+      const loginMatches = src.match(/onClick=\{onLogin\}/g) ?? [];
+      expect(loginMatches.length).toBeGreaterThanOrEqual(2);
+    });
+
     it("declares responsive breakpoints", () => {
       expect(src).toContain("min-width: 768px");
       expect(src).toContain("min-width: 1024px");
+      expect(src).toContain("min-width: 1440px");
     });
 
     // ── Dead copy and old concepts (negative assertions) ─────
@@ -87,7 +120,6 @@ describe("PR3 onboarding copy pass", () => {
     it("does NOT carry editorial-pastiche paratext or colophon", () => {
       // The previous "Issue One · Spring 2026" masthead + "Set in
       // Newsreader. Printed on linen..." colophon were costume.
-      // Both removed in the clear/premium pass.
       expect(src).not.toContain("Issue One");
       expect(src).not.toContain("Spring 2026");
       expect(src).not.toContain("Set in Newsreader");
@@ -105,10 +137,6 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("does NOT contain the rotating specimen or pull-quote", () => {
-      // Both removed in the clear/premium pass. Note: "Nothing
-      // enters the manual" (with article) was the pull-quote;
-      // the current subhead's "Nothing enters unless you confirm
-      // it" is unrelated phrasing without "the manual".
       expect(src).not.toContain("ROTATING_EXAMPLES");
       expect(src).not.toContain("You shut down and people think you");
       expect(src).not.toContain("Nothing enters the manual");
