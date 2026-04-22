@@ -152,10 +152,10 @@ const DEFAULTS = {
   PLANE_SPEED_BONUS: 40,
 
   // Pickup cadence (score-based)
-  ASCENT_MIN_INTERVAL: 400,
-  ASCENT_MAX_INTERVAL: 750,
-  SUMMIT_MIN_INTERVAL: 1500,
-  SUMMIT_MAX_INTERVAL: 2400,
+  ASCENT_MIN_INTERVAL: 130,
+  ASCENT_MAX_INTERVAL: 250,
+  SUMMIT_MIN_INTERVAL: 500,
+  SUMMIT_MAX_INTERVAL: 800,
 
   // Hitbox
   HITBOX_SCALE: 0.78,
@@ -896,7 +896,7 @@ function drawPickup(p) {
   else if (p.type === "summit") drawCard(p, "SUMMIT");
 }
 
-function drawCard(p, tier) {
+function drawCard(p, _tier) {
   const x = p.x - p.w / 2;
   const y = p.y - p.h / 2;
   // Card body
@@ -904,15 +904,12 @@ function drawCard(p, tier) {
   strokeRect(x, y, p.w, p.h, COLOR_FG, 2);
   // Magstripe
   fillRect(x + 2, y + 2, p.w - 4, 3, COLOR_FG);
-  // ATMOS wordmark
+  // ATMOS wordmark (primary brand — tier distinction is in altitude + effect)
   ctx.fillStyle = COLOR_FG;
-  ctx.font = "bold 7px 'Courier New', monospace";
+  ctx.font = "bold 9px 'Courier New', monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("ATMOS", p.x, p.y + 2);
-  // Tier line (smaller)
-  ctx.font = "bold 5px 'Courier New', monospace";
-  ctx.fillText(tier, p.x, p.y + 9);
+  ctx.fillText("ATMOS", p.x, p.y + 5);
 }
 
 // ============================================================
@@ -1083,7 +1080,7 @@ function drawHUD() {
   ctx.fillStyle = COLOR_FG;
   ctx.font = "bold 12px 'Courier New', monospace";
   ctx.textAlign = "left";
-  ctx.fillText("CUSTOMERS ACQUIRED  " + customersAcquired, 14, 12);
+  ctx.fillText("ATMOS CUSTOMERS ACQUIRED  " + customersAcquired, 14, 12);
   ctx.font = "10px 'Courier New', monospace";
   ctx.fillStyle = COLOR_NEAR;
   ctx.fillText("best " + bestCustomers, 14, 28);
@@ -1103,12 +1100,13 @@ function drawStartScreen() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = "bold 14px 'Courier New', monospace";
-  ctx.fillText("Now boarding: hurry up you silly goose", W / 2, 118);
+  ctx.fillText("Now boarding: hurry up you silly goose", W / 2, 112);
   ctx.font = "11px 'Courier New', monospace";
-  ctx.fillText("Press any key to begin", W / 2, 146);
+  ctx.fillText("Collect ATMOS cards to acquire customers", W / 2, 138);
+  ctx.fillText("Press any key to begin", W / 2, 158);
   ctx.fillStyle = COLOR_NEAR;
   ctx.font = "9px 'Courier New', monospace";
-  ctx.fillText("SPACE / UP  flap    DOWN  duck    D  hitboxes", W / 2, 168);
+  ctx.fillText("SPACE / UP  flap    DOWN  duck    D  hitboxes", W / 2, 180);
 }
 
 function drawGameOverScreen() {
