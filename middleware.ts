@@ -60,7 +60,9 @@ export async function middleware(request: NextRequest) {
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname === "/privacy" ||
-    pathname === "/terms";
+    pathname === "/terms" ||
+    pathname === "/sillygoose" ||
+    pathname === "/sillygoose.html";
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

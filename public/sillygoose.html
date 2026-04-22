@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Silly Goose Summit</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #f7f7f7;
+    overflow: hidden;
+    font-family: "Courier New", Courier, monospace;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    background: #f7f7f7;
+    width: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    aspect-ratio: 800 / 300;
+  }
+  /* Tweaks panel — floating right drawer */
+  #panel-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #8a8a8a;
+    color: #333;
+    cursor: pointer;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  #panel-toggle:hover { background: #f0f0f0; }
+  #panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    background: #ededed;
+    padding: 52px 16px 16px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.2s ease-out;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.12);
+    color: #333;
+    z-index: 5;
+  }
+  #panel.open { transform: translateX(0); }
+  #panel h3 { font-size: 13px; margin: 6px 0 12px; color: #222; letter-spacing: 0.5px; }
+  .slider-row { margin-bottom: 14px; }
+  .slider-row > label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #444;
+    margin-bottom: 3px;
+  }
+  .slider-row input[type=range] { width: 100%; }
+  .slider-desc {
+    font-size: 10px;
+    color: #777;
+    line-height: 1.35;
+    margin-top: 3px;
+  }
+  #panel button {
+    margin: 8px 8px 0 0;
+    padding: 5px 9px;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid #999;
+  }
+  #panel .small { font-size: 10px; color: #666; margin-top: 14px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Silly Goose Summit"></canvas>
+<button id="panel-toggle" type="button">⚙ Tweaks</button>
+<aside id="panel" aria-label="Game tweaks panel">
+  <h3>TWEAKS</h3>
+  <div id="tweak-sliders"></div>
+  <button id="reset-tweaks" type="button">Reset defaults</button>
+  <button id="restart-run" type="button">Restart run</button>
+  <div class="small">
+    Live-updated: speed, physics, spawn timing.<br>
+    Press D in game to toggle hitboxes.
+  </div>
+</aside>
+<script>
+"use strict";
+
+// ============================================================
+// SILLY GOOSE SUMMIT — Kevin runs SFO. Chrome-dino homage.
+// ============================================================
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// --- High-DPI backing store: draw in 800x300 logical coords but
+// back the canvas with 2× (or device-pixel-ratio × 2) pixels so text
+// stays crisp and sprites don't blur when the canvas is CSS-scaled. ---
+const W = 800;
+const H = 300;
+const GROUND_Y = 250;
+const SCALE = Math.max(2, Math.min(4, Math.round((window.devicePixelRatio || 1) * 2)));
+canvas.width = W * SCALE;
+canvas.height = H * SCALE;
+ctx.scale(SCALE, SCALE);
+ctx.imageSmoothingEnabled = false;
+
+// ============================================================
+// CONFIG — defaults (mutable; the tweaks panel rebinds these)
+// ============================================================
+
+const DEFAULTS = {
+  // Speed
+  START_SPEED: 320,
+  SPEED_RAMP_PER_100: 8,     // px/sec added per 100 score points
+  MAX_SPEED: 680,
+
+  // Physics
+  GRAVITY: 2300,
+  JUMP_VELOCITY: -760,
+  KEVIN_X: 96,
+
+  // Spawn
+  OBSTACLE_MIN_GAP: 360,
+  OBSTACLE_MAX_GAP: 680,
+  MIN_ARRIVAL_GAP_SEC: 0.9,  // minimum reaction-time gap between obstacle arrivals
+  CART_SPEED_WORLD: 70,
+  PLANE_SPEED_BONUS: 40,
+
+  // Pickup cadence (score-based)
+  ASCENT_MIN_INTERVAL: 400,
+  ASCENT_MAX_INTERVAL: 750,
+  SUMMIT_MIN_INTERVAL: 1500,
+  SUMMIT_MAX_INTERVAL: 2400,
+
+  // Hitbox
+  HITBOX_SCALE: 0.78,
+
+  // Scoring
+  ASCENT_VALUE: 500,
+  SUMMIT_VALUE: 2000,
+  SUMMIT_INVINCIBLE_MS: 3000,
+  SCORE_PER_PX: 0.1,
+
+  // Death
+  DEATH_LOCKOUT_MS: 500,
+};
+const CONFIG = { ...DEFAULTS };
+
+// ============================================================
+// STATE
+// ============================================================
+
+let state = "start";
+let score = 0;
+let bonusScore = 0;
+let customersAcquired = 0;
+let highScore = Number(localStorage.getItem("sillygoose.highScore") || 0);
+let bestCustomers = Number(localStorage.getItem("sillygoose.bestCustomers") || 0);
+let worldSpeed = CONFIG.START_SPEED;
+let worldX = 0;
+let lastTime = 0;
+let dyingStartTime = 0;
+let invincibleUntil = 0;
+let inputLockUntil = 0;
+let nextObstacleAt = 500;
+let nextAscentAt = 700;
+let nextSummitAt = 2600;
+let showBeat = false;
+let debugHitbox = false;
+
+const GAMEOVER_MESSAGE = "Kevin missed his connection";
+const GAMEOVER_PROMPT = "Press spacebar to be listed for the next flight";
+const BEAT_MESSAGES = ["Welcome to Summit status", "Upgraded to first class"];
+let gameoverBeatMessage = "";
+
+const kevin = {
+  x: CONFIG.KEVIN_X,
+  y: GROUND_Y,
+  vy: 0,
+  ducking: false,
+  onGround: true,
+  animFrame: 0,
+  animTick: 0,
+};
+
+const KEVIN_STAND = { w: 30, h: 50 };
+const KEVIN_DUCK  = { w: 38, h: 28 };
+
+const obstacles = [];
+const pickups = [];
+
+let hatDebris = null;
+let glassesDebris = null;
+let bills = []; // money that erupts on death (Kevin is a rich goose)
+
+// ============================================================
+// UTIL
+// ============================================================
+
+function rand(a, b) { return Math.random() * (b - a) + a; }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+function choose(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function fillRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+function strokeRect(x, y, w, h, color, lw) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw || 1;
+  ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w) - 1, Math.round(h) - 1);
+}
+
+// ============================================================
+// SPAWN LOGIC — with arrival-time fairness check so obstacles
+// never stack in a way that creates an unsolvable combo.
+// ============================================================
+
+// How long until an obstacle reaches Kevin's column (in seconds).
+// Static obstacles use worldSpeed; carts move right in world coords
+// so they arrive more slowly; planes move left faster.
+function arrivalTimeAtKevin(ob) {
+  const rel = worldSpeed - ob.vxWorld;
+  if (rel <= 0) return Infinity;
+  return (ob.x - CONFIG.KEVIN_X) / rel;
+}
+
+function createObstacleCandidate() {
+  const roll = Math.random();
+  if (roll < 0.55) {
+    return {
+      type: "luggage",
+      x: W + 24, y: GROUND_Y,
+      w: 24, h: 30,
+      vxWorld: 0,
+    };
+  } else if (roll < 0.82) {
+    // Smaller cart + flight attendant behind it
+    return {
+      type: "cart",
+      x: W + 30, y: GROUND_Y,
+      w: 32, h: 26,
+      vxWorld: CONFIG.CART_SPEED_WORLD,
+    };
+  } else {
+    const low = Math.random() < 0.55;
+    // Low-altitude plane sits low enough that standing Kevin collides;
+    // only a duck clears. High-altitude flyover is scenery, no hit risk.
+    return {
+      type: "plane",
+      x: W + 34, y: low ? GROUND_Y - 30 : GROUND_Y - 104,
+      w: 72, h: 24,
+      vxWorld: -CONFIG.PLANE_SPEED_BONUS,
+      altitude: low ? "low" : "high",
+    };
+  }
+}
+
+function trySpawnObstacle() {
+  if (worldX < nextObstacleAt) return;
+  const cand = createObstacleCandidate();
+  const newArr = arrivalTimeAtKevin(cand);
+
+  // Reject if arrival time collides with any existing obstacle's
+  // arrival time within the min reaction-gap window.
+  for (const ob of obstacles) {
+    const t = arrivalTimeAtKevin(ob);
+    if (Math.abs(newArr - t) < CONFIG.MIN_ARRIVAL_GAP_SEC) {
+      nextObstacleAt = worldX + 90; // try again soon
+      return;
+    }
+  }
+  obstacles.push(cand);
+  nextObstacleAt = worldX + rand(CONFIG.OBSTACLE_MIN_GAP, CONFIG.OBSTACLE_MAX_GAP);
+}
+
+function nearAnyObstacle(xWorld, within) {
+  for (const ob of obstacles) if (Math.abs(ob.x - xWorld) < within) return true;
+  return false;
+}
+function nearAnyPickup(xWorld, within) {
+  for (const p of pickups) {
+    if (p.collected) continue;
+    if (Math.abs(p.x - xWorld) < within) return true;
+  }
+  return false;
+}
+
+function trySpawnAscent() {
+  if (score < nextAscentAt) return;
+  const x = W + 40;
+  if (nearAnyObstacle(x, 160) || nearAnyPickup(x, 240)) {
+    nextAscentAt = score + 80;
+    return;
+  }
+  pickups.push({
+    type: "ascent", x,
+    y: GROUND_Y - 90,
+    w: 34, h: 22, collected: false,
+  });
+  nextAscentAt = score + randInt(CONFIG.ASCENT_MIN_INTERVAL, CONFIG.ASCENT_MAX_INTERVAL);
+}
+function trySpawnSummit() {
+  if (score < nextSummitAt) return;
+  const x = W + 40;
+  if (nearAnyObstacle(x, 180) || nearAnyPickup(x, 260)) {
+    nextSummitAt = score + 80;
+    return;
+  }
+  pickups.push({
+    type: "summit", x,
+    y: GROUND_Y - 118,
+    w: 36, h: 24, collected: false,
+  });
+  nextSummitAt = score + randInt(CONFIG.SUMMIT_MIN_INTERVAL, CONFIG.SUMMIT_MAX_INTERVAL);
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+
+function jump() {
+  if (state !== "playing") return;
+  if (!kevin.onGround) return;
+  kevin.vy = CONFIG.JUMP_VELOCITY;
+  kevin.onGround = false;
+}
+
+function startGame() {
+  state = "playing";
+  worldSpeed = CONFIG.START_SPEED;
+  worldX = 0;
+  score = 0;
+  bonusScore = 0;
+  customersAcquired = 0;
+  nextObstacleAt = 500;
+  nextAscentAt = randInt(CONFIG.ASCENT_MIN_INTERVAL, CONFIG.ASCENT_MAX_INTERVAL);
+  nextSummitAt = randInt(CONFIG.SUMMIT_MIN_INTERVAL, CONFIG.SUMMIT_MAX_INTERVAL);
+  obstacles.length = 0;
+  pickups.length = 0;
+  bills = [];
+  hatDebris = null;
+  glassesDebris = null;
+  invincibleUntil = 0;
+  kevin.x = CONFIG.KEVIN_X;
+  kevin.y = GROUND_Y;
+  kevin.vy = 0;
+  kevin.ducking = false;
+  kevin.onGround = true;
+  kevin.animFrame = 0;
+  kevin.animTick = 0;
+  showBeat = false;
+}
+
+function collectPickup(p) {
+  if (p.type === "ascent") {
+    bonusScore += CONFIG.ASCENT_VALUE;
+    customersAcquired += 1;
+  } else if (p.type === "summit") {
+    bonusScore += CONFIG.SUMMIT_VALUE;
+    customersAcquired += 1;
+    invincibleUntil = performance.now() + CONFIG.SUMMIT_INVINCIBLE_MS;
+  }
+}
+
+// Kevin is a rich goose. When he crashes, money erupts in a hail of bills.
+function die() {
+  state = "dying";
+  const now = performance.now();
+  dyingStartTime = now;
+  inputLockUntil = now + CONFIG.DEATH_LOCKOUT_MS;
+  worldSpeed = 0;
+
+  hatDebris = {
+    x: kevin.x + 6, y: kevin.y - 48,
+    vx: rand(-60, 20), vy: rand(-320, -260),
+    rot: 0, vrot: rand(8, 14),
+  };
+  glassesDebris = {
+    x: kevin.x + 6, y: kevin.y - 38,
+    vx: rand(30, 100), vy: rand(-200, -140),
+    rot: 0, vrot: rand(-5, 5),
+  };
+  bills = [];
+  const n = randInt(14, 20);
+  for (let i = 0; i < n; i++) {
+    bills.push({
+      x: kevin.x + rand(-8, 16),
+      y: kevin.y + rand(-30, -4),
+      vx: rand(-140, 140),
+      vy: rand(-240, -80),
+      rot: rand(0, Math.PI * 2),
+      vrot: rand(-4, 4),
+      life: 0,
+      maxLife: rand(2.0, 3.2),
+    });
+  }
+}
+
+function finishDying() {
+  state = "gameover";
+  inputLockUntil = performance.now() + CONFIG.DEATH_LOCKOUT_MS;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("sillygoose.highScore", String(highScore));
+    showBeat = true;
+    gameoverBeatMessage = choose(BEAT_MESSAGES);
+  } else {
+    showBeat = false;
+  }
+  if (customersAcquired > bestCustomers) {
+    bestCustomers = customersAcquired;
+    localStorage.setItem("sillygoose.bestCustomers", String(bestCustomers));
+  }
+}
+
+// ============================================================
+// COLLISION
+// ============================================================
+
+function kevinHitbox() {
+  const size = kevin.ducking && kevin.onGround ? KEVIN_DUCK : KEVIN_STAND;
+  const x = kevin.x - size.w / 2;
+  const y = kevin.y - size.h;
+  const pad = (1 - CONFIG.HITBOX_SCALE) / 2;
+  return {
+    x: x + size.w * pad, y: y + size.h * pad,
+    w: size.w * CONFIG.HITBOX_SCALE,
+    h: size.h * CONFIG.HITBOX_SCALE,
+  };
+}
+function obstacleHitbox(ob) {
+  const pad = (1 - CONFIG.HITBOX_SCALE) / 2;
+  return {
+    x: ob.x - ob.w / 2 + ob.w * pad,
+    y: ob.y - ob.h + ob.h * pad,
+    w: ob.w * CONFIG.HITBOX_SCALE,
+    h: ob.h * CONFIG.HITBOX_SCALE,
+  };
+}
+function pickupHitbox(p) {
+  return { x: p.x - p.w / 2, y: p.y - p.h / 2, w: p.w, h: p.h };
+}
+function aabb(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// ============================================================
+// UPDATE
+// ============================================================
+
+function update(dt) {
+  if (state === "start") {
+    kevin.animTick += dt * 60;
+    if (kevin.animTick >= 30) { kevin.animTick = 0; kevin.animFrame = 1 - kevin.animFrame; }
+    return;
+  }
+
+  if (state === "playing") {
+    // Gentle speed ramp: +SPEED_RAMP_PER_100 per 100 score, capped at MAX_SPEED
+    const ramped = CONFIG.START_SPEED + Math.floor(score / 100) * CONFIG.SPEED_RAMP_PER_100;
+    worldSpeed = Math.min(ramped, CONFIG.MAX_SPEED);
+
+    worldX += worldSpeed * dt;
+    score = Math.floor(worldX * CONFIG.SCORE_PER_PX) + bonusScore;
+
+    kevin.vy += CONFIG.GRAVITY * dt;
+    kevin.y += kevin.vy * dt;
+    if (kevin.y >= GROUND_Y) {
+      kevin.y = GROUND_Y; kevin.vy = 0; kevin.onGround = true;
+    }
+    if (kevin.onGround && !kevin.ducking) {
+      kevin.animTick += dt * 60;
+      if (kevin.animTick >= 6) { kevin.animTick = 0; kevin.animFrame = 1 - kevin.animFrame; }
+    }
+
+    // Scroll & cull obstacles
+    for (const ob of obstacles) {
+      ob.x -= worldSpeed * dt;
+      ob.x += ob.vxWorld * dt;
+    }
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      if (obstacles[i].x + obstacles[i].w < -80) obstacles.splice(i, 1);
+    }
+    for (const p of pickups) p.x -= worldSpeed * dt;
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      if (pickups[i].x + pickups[i].w < -80) pickups.splice(i, 1);
+    }
+
+    trySpawnObstacle();
+    trySpawnAscent();
+    trySpawnSummit();
+
+    // Collision
+    const kbx = kevinHitbox();
+    if (performance.now() >= invincibleUntil) {
+      for (const ob of obstacles) {
+        if (aabb(kbx, obstacleHitbox(ob))) { die(); break; }
+      }
+    }
+    for (const p of pickups) {
+      if (p.collected) continue;
+      if (aabb(kbx, pickupHitbox(p))) { p.collected = true; collectPickup(p); }
+    }
+    return;
+  }
+
+  if (state === "dying") {
+    if (hatDebris) {
+      hatDebris.vy += CONFIG.GRAVITY * dt;
+      hatDebris.x += hatDebris.vx * dt;
+      hatDebris.y += hatDebris.vy * dt;
+      hatDebris.rot += hatDebris.vrot * dt;
+    }
+    if (glassesDebris) {
+      glassesDebris.vy += CONFIG.GRAVITY * dt;
+      glassesDebris.x += glassesDebris.vx * dt;
+      glassesDebris.y += glassesDebris.vy * dt;
+      glassesDebris.rot += glassesDebris.vrot * dt;
+    }
+    for (const b of bills) {
+      b.vy += 240 * dt; // bills float down slower than hat
+      b.vx *= (1 - 0.8 * dt); // air drag so they fan out then settle
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.rot += b.vrot * dt;
+      b.life += dt;
+    }
+    bills = bills.filter((b) => b.life < b.maxLife);
+    if (performance.now() - dyingStartTime >= CONFIG.DEATH_LOCKOUT_MS) finishDying();
+  }
+}
+
+// ============================================================
+// DRAW — palette
+// ============================================================
+
+const COLOR_FG = "#535353";
+const COLOR_BG = "#f7f7f7";
+const COLOR_NEAR = "#6f6f6f";
+const COLOR_MID = "#9a9a9a";
+const COLOR_FAR = "#c8c8c8";
+const COLOR_VFAR = "#dedede";
+const COLOR_BLACK = "#101010";
+
+// ============================================================
+// DRAW — Kevin
+// ============================================================
+
+function drawHat(cx, cy, dropped) {
+  const dy = dropped ? 1 : 0;
+  // Brim
+  fillRect(cx - 16, cy - 2 + dy, 32, 4, COLOR_BG);
+  strokeRect(cx - 16, cy - 2 + dy, 32, 4, COLOR_FG, 2);
+  fillRect(cx - 18, cy + dy, 2, 2, COLOR_BG);
+  fillRect(cx + 16, cy + dy, 2, 2, COLOR_BG);
+  strokeRect(cx - 18, cy + dy, 2, 2, COLOR_FG, 1);
+  strokeRect(cx + 16, cy + dy, 2, 2, COLOR_FG, 1);
+
+  // Trapezoidal crown
+  ctx.fillStyle = COLOR_BG;
+  ctx.beginPath();
+  ctx.moveTo(cx - 9, cy - 2 + dy);
+  ctx.lineTo(cx + 9, cy - 2 + dy);
+  ctx.lineTo(cx + 6, cy - 12 + dy);
+  ctx.lineTo(cx - 6, cy - 12 + dy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = COLOR_FG;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Straw crosshatch
+  ctx.strokeStyle = COLOR_FG;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = -6; i <= 4; i += 3) {
+    ctx.moveTo(cx + i, cy - 3 + dy);
+    ctx.lineTo(cx + i + 4, cy - 11 + dy);
+  }
+  for (let i = -2; i <= 8; i += 3) {
+    ctx.moveTo(cx + i, cy - 3 + dy);
+    ctx.lineTo(cx + i - 4, cy - 11 + dy);
+  }
+  ctx.stroke();
+  // Brim dashes
+  ctx.beginPath();
+  for (let i = -14; i <= 14; i += 4) {
+    ctx.moveTo(cx + i, cy + 1 + dy);
+    ctx.lineTo(cx + i + 2, cy + 1 + dy);
+  }
+  ctx.stroke();
+}
+
+function drawSunglasses(x, y, w, h) {
+  const half = Math.floor(w / 2);
+  fillRect(x, y, half - 1, h, COLOR_BLACK);
+  fillRect(x + half + 1, y, w - half - 1, h, COLOR_BLACK);
+  strokeRect(x, y, half - 1, h, COLOR_FG, 1);
+  strokeRect(x + half + 1, y, w - half - 1, h, COLOR_FG, 1);
+  fillRect(x + half - 1, y + Math.floor(h / 2), 2, 1, COLOR_FG);
+}
+
+function drawGooseCore(fx, fy, noAccessories) {
+  // Tail
+  fillRect(fx - 15, fy - 20, 5, 6, COLOR_BG);
+  strokeRect(fx - 15, fy - 20, 5, 6, COLOR_FG, 2);
+  // Body
+  fillRect(fx - 12, fy - 24, 22, 16, COLOR_BG);
+  strokeRect(fx - 12, fy - 24, 22, 16, COLOR_FG, 2);
+  // Neck
+  fillRect(fx + 2, fy - 34, 6, 12, COLOR_BG);
+  strokeRect(fx + 2, fy - 34, 6, 12, COLOR_FG, 2);
+  // Head
+  fillRect(fx + 1, fy - 44, 14, 14, COLOR_BG);
+  strokeRect(fx + 1, fy - 44, 14, 14, COLOR_FG, 2);
+  // Beak (solid triangle)
+  ctx.fillStyle = COLOR_FG;
+  ctx.beginPath();
+  ctx.moveTo(fx + 15, fy - 38);
+  ctx.lineTo(fx + 23, fy - 35);
+  ctx.lineTo(fx + 15, fy - 32);
+  ctx.closePath();
+  ctx.fill();
+  if (!noAccessories) {
+    drawSunglasses(fx + 3, fy - 41, 11, 4);
+    drawHat(fx + 8, fy - 44, false);
+  }
+}
+
+function drawGooseRun(fx, fy, frame, noAccessories) {
+  drawGooseCore(fx, fy, noAccessories);
+  fillRect(fx - 5, fy - 20, 8, 7, COLOR_BG);
+  strokeRect(fx - 5, fy - 20, 8, 7, COLOR_FG, 2);
+  if (frame === 0) {
+    fillRect(fx - 5, fy - 8, 3, 8, COLOR_FG);
+    fillRect(fx + 3, fy - 10, 3, 6, COLOR_FG);
+  } else {
+    fillRect(fx - 5, fy - 10, 3, 6, COLOR_FG);
+    fillRect(fx + 3, fy - 8, 3, 8, COLOR_FG);
+  }
+}
+
+function drawGooseIdle(fx, fy, frame, noAccessories) {
+  // Tail, body, neck (same as run)
+  fillRect(fx - 15, fy - 20, 5, 6, COLOR_BG);
+  strokeRect(fx - 15, fy - 20, 5, 6, COLOR_FG, 2);
+  fillRect(fx - 12, fy - 24, 22, 16, COLOR_BG);
+  strokeRect(fx - 12, fy - 24, 22, 16, COLOR_FG, 2);
+  fillRect(fx + 2, fy - 34, 6, 12, COLOR_BG);
+  strokeRect(fx + 2, fy - 34, 6, 12, COLOR_FG, 2);
+  // Head bobs 1px between frames
+  const hy = fy - 44 + (frame ? 1 : 0);
+  fillRect(fx + 1, hy, 14, 14, COLOR_BG);
+  strokeRect(fx + 1, hy, 14, 14, COLOR_FG, 2);
+  ctx.fillStyle = COLOR_FG;
+  ctx.beginPath();
+  ctx.moveTo(fx + 15, hy + 6);
+  ctx.lineTo(fx + 23, hy + 9);
+  ctx.lineTo(fx + 15, hy + 12);
+  ctx.closePath();
+  ctx.fill();
+  if (!noAccessories) {
+    drawSunglasses(fx + 3, hy + 3, 11, 4);
+    drawHat(fx + 8, hy, false);
+  }
+  fillRect(fx - 5, fy - 20, 8, 7, COLOR_BG);
+  strokeRect(fx - 5, fy - 20, 8, 7, COLOR_FG, 2);
+  fillRect(fx - 5, fy - 8, 3, 8, COLOR_FG);
+  fillRect(fx + 3, fy - 8, 3, 8, COLOR_FG);
+}
+
+function drawGooseDuck(fx, fy, noAccessories) {
+  fillRect(fx - 14, fy - 18, 32, 14, COLOR_BG);
+  strokeRect(fx - 14, fy - 18, 32, 14, COLOR_FG, 2);
+  fillRect(fx - 18, fy - 15, 4, 6, COLOR_BG);
+  strokeRect(fx - 18, fy - 15, 4, 6, COLOR_FG, 2);
+  fillRect(fx + 10, fy - 23, 12, 10, COLOR_BG);
+  strokeRect(fx + 10, fy - 23, 12, 10, COLOR_FG, 2);
+  ctx.fillStyle = COLOR_FG;
+  ctx.beginPath();
+  ctx.moveTo(fx + 22, fy - 21);
+  ctx.lineTo(fx + 28, fy - 18);
+  ctx.lineTo(fx + 22, fy - 15);
+  ctx.closePath();
+  ctx.fill();
+  if (!noAccessories) {
+    drawSunglasses(fx + 12, fy - 21, 9, 3);
+    drawHat(fx + 16, fy - 23, true);
+  }
+  fillRect(fx - 3, fy - 4, 3, 4, COLOR_FG);
+  fillRect(fx + 6, fy - 4, 3, 4, COLOR_FG);
+}
+
+function drawGooseJump(fx, fy, noAccessories) {
+  drawGooseCore(fx, fy, noAccessories);
+  fillRect(fx - 20, fy - 22, 10, 6, COLOR_BG);
+  strokeRect(fx - 20, fy - 22, 10, 6, COLOR_FG, 2);
+  fillRect(fx + 10, fy - 22, 10, 6, COLOR_BG);
+  strokeRect(fx + 10, fy - 22, 10, 6, COLOR_FG, 2);
+  fillRect(fx - 3, fy - 10, 3, 5, COLOR_FG);
+  fillRect(fx + 3, fy - 10, 3, 5, COLOR_FG);
+}
+
+function drawKevin() {
+  const fx = kevin.x, fy = kevin.y;
+  if (state === "playing" && performance.now() < invincibleUntil) {
+    if (Math.floor(performance.now() / 70) % 2) return;
+  }
+  if (state === "start") { drawGooseIdle(fx, fy, kevin.animFrame, false); return; }
+  const noAcc = state === "dying";
+  if (state === "dying") {
+    if (kevin.ducking && kevin.onGround) drawGooseDuck(fx, fy, true);
+    else if (!kevin.onGround) drawGooseJump(fx, fy, true);
+    else drawGooseRun(fx, fy, kevin.animFrame, true);
+    return;
+  }
+  if (kevin.ducking && kevin.onGround) drawGooseDuck(fx, fy, noAcc);
+  else if (!kevin.onGround) drawGooseJump(fx, fy, noAcc);
+  else drawGooseRun(fx, fy, kevin.animFrame, noAcc);
+}
+
+// ============================================================
+// DRAW — obstacles
+// ============================================================
+
+function drawObstacle(ob) {
+  if (ob.type === "luggage") drawLuggage(ob);
+  else if (ob.type === "cart") drawCartWithAttendant(ob);
+  else if (ob.type === "plane") drawPlane(ob);
+}
+
+function drawLuggage(ob) {
+  const x = ob.x - ob.w / 2;
+  const y = ob.y - ob.h;
+  // Handle
+  fillRect(x + 6, y, ob.w - 12, 4, COLOR_BG);
+  strokeRect(x + 6, y, ob.w - 12, 4, COLOR_FG, 2);
+  fillRect(x + 10, y + 2, ob.w - 20, 2, COLOR_FG);
+  // Shell
+  fillRect(x, y + 4, ob.w, ob.h - 4, COLOR_BG);
+  strokeRect(x, y + 4, ob.w, ob.h - 4, COLOR_FG, 2);
+  // Seam
+  fillRect(x + Math.floor(ob.w / 2) - 1, y + 8, 1, ob.h - 10, COLOR_FG);
+  // Corner studs
+  fillRect(x + 2, y + ob.h - 4, 2, 2, COLOR_FG);
+  fillRect(x + ob.w - 4, y + ob.h - 4, 2, 2, COLOR_FG);
+}
+
+// Cart + flight attendant pushing from behind (left side).
+// Hitbox remains the cart bbox — the attendant is cosmetic.
+function drawCartWithAttendant(ob) {
+  const x = ob.x - ob.w / 2;   // cart left edge
+  const y = ob.y - ob.h;       // cart top
+
+  // --- Flight attendant (female): drawn to the LEFT of the cart.
+  // Silhouette reads as woman via: pencil skirt that flares below the
+  // waist, pulled-back hair with a back-of-head bun, neck scarf knot.
+  // Hitbox stays the cart bbox — attendant is cosmetic. ---
+  const ax = x - 8;
+  const groundY = ob.y;
+  // Legs (slim, short — skirt covers thighs)
+  fillRect(ax - 2, groundY - 6, 2, 6, COLOR_FG);
+  fillRect(ax + 1, groundY - 6, 2, 6, COLOR_FG);
+  // Skirt — trapezoid, wider at bottom than at waist
+  ctx.fillStyle = COLOR_FG;
+  ctx.beginPath();
+  ctx.moveTo(ax - 5, groundY - 6);
+  ctx.lineTo(ax + 6, groundY - 6);
+  ctx.lineTo(ax + 4, groundY - 14);
+  ctx.lineTo(ax - 3, groundY - 14);
+  ctx.closePath();
+  ctx.fill();
+  // Blazer torso (slightly narrower than skirt hem)
+  fillRect(ax - 4, groundY - 22, 8, 8, COLOR_FG);
+  // V-neck collar notch
+  ctx.fillStyle = COLOR_BG;
+  ctx.beginPath();
+  ctx.moveTo(ax - 2, groundY - 22);
+  ctx.lineTo(ax + 2, groundY - 22);
+  ctx.lineTo(ax, groundY - 19);
+  ctx.closePath();
+  ctx.fill();
+  // Neck scarf knot (small accent square)
+  fillRect(ax - 1, groundY - 20, 2, 2, COLOR_FG);
+  // Head (light with outline)
+  fillRect(ax - 3, groundY - 30, 6, 8, COLOR_BG);
+  strokeRect(ax - 3, groundY - 30, 6, 8, COLOR_FG, 1);
+  // Hair — crown cap pulled back
+  fillRect(ax - 3, groundY - 30, 6, 2, COLOR_FG);
+  // Back-of-head bun (behind her, to the LEFT since she faces right)
+  fillRect(ax - 5, groundY - 28, 3, 4, COLOR_FG);
+  fillRect(ax - 6, groundY - 27, 1, 2, COLOR_FG);
+  // Arm reaching forward to cart handle
+  fillRect(ax + 2, groundY - 18, 7, 2, COLOR_FG);
+
+  // --- Cart body ---
+  // Bottles on top
+  for (let i = 0; i < 3; i++) {
+    const bx = x + 3 + i * 9;
+    fillRect(bx, y - 5, 4, 5, COLOR_BG);
+    strokeRect(bx, y - 5, 4, 5, COLOR_FG, 1);
+    fillRect(bx + 1, y - 5, 2, 1, COLOR_FG);
+  }
+  // Cart main body
+  fillRect(x, y, ob.w, ob.h - 6, COLOR_BG);
+  strokeRect(x, y, ob.w, ob.h - 6, COLOR_FG, 2);
+  // Shelf divider
+  ctx.strokeStyle = COLOR_FG;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + 2, y + Math.floor((ob.h - 6) / 2));
+  ctx.lineTo(x + ob.w - 2, y + Math.floor((ob.h - 6) / 2));
+  ctx.stroke();
+  // Handle stub on left (where attendant's hand rests)
+  fillRect(x - 3, y + 2, 3, 2, COLOR_FG);
+  // Wheels (on ground)
+  fillRect(x + 3, y + ob.h - 6, 5, 5, COLOR_FG);
+  fillRect(x + ob.w - 8, y + ob.h - 6, 5, 5, COLOR_FG);
+}
+
+function drawPlane(ob) {
+  const x = ob.x - ob.w / 2;
+  const y = ob.y - ob.h;
+  // Fuselage
+  fillRect(x + 8, y + 8, ob.w - 16, 10, COLOR_BG);
+  strokeRect(x + 8, y + 8, ob.w - 16, 10, COLOR_FG, 2);
+  // Nose
+  ctx.fillStyle = COLOR_BG;
+  ctx.strokeStyle = COLOR_FG;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 8, y + 8);
+  ctx.lineTo(x, y + 13);
+  ctx.lineTo(x + 8, y + 18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // Tail fin
+  ctx.beginPath();
+  ctx.moveTo(x + ob.w - 10, y + 8);
+  ctx.lineTo(x + ob.w - 4, y);
+  ctx.lineTo(x + ob.w, y + 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // Wing swept under fuselage
+  ctx.beginPath();
+  ctx.moveTo(x + 24, y + 17);
+  ctx.lineTo(x + 38, y + ob.h);
+  ctx.lineTo(x + 50, y + ob.h);
+  ctx.lineTo(x + 34, y + 17);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ALASKA livery on fuselage
+  ctx.fillStyle = COLOR_FG;
+  ctx.font = "bold 6px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("ALASKA", x + ob.w / 2, y + 13);
+}
+
+// ============================================================
+// DRAW — pickups (cards only — dots removed per req)
+// ============================================================
+
+function drawPickup(p) {
+  if (p.type === "ascent") drawCard(p, "ASCENT");
+  else if (p.type === "summit") drawCard(p, "SUMMIT");
+}
+
+function drawCard(p, tier) {
+  const x = p.x - p.w / 2;
+  const y = p.y - p.h / 2;
+  // Card body
+  fillRect(x, y, p.w, p.h, COLOR_BG);
+  strokeRect(x, y, p.w, p.h, COLOR_FG, 2);
+  // Magstripe
+  fillRect(x + 2, y + 2, p.w - 4, 3, COLOR_FG);
+  // ATMOS wordmark
+  ctx.fillStyle = COLOR_FG;
+  ctx.font = "bold 7px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("ATMOS", p.x, p.y + 2);
+  // Tier line (smaller)
+  ctx.font = "bold 5px 'Courier New', monospace";
+  ctx.fillText(tier, p.x, p.y + 9);
+}
+
+// ============================================================
+// DRAW — death debris: hat, glasses, money bills
+// ============================================================
+
+function drawBill(b) {
+  const alpha = Math.max(0, 1 - b.life / b.maxLife);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.rot);
+  fillRect(-8, -4, 16, 8, COLOR_BG);
+  strokeRect(-8, -4, 16, 8, COLOR_FG, 1);
+  // Corner ornaments
+  fillRect(-7, -3, 2, 1, COLOR_FG);
+  fillRect(5, -3, 2, 1, COLOR_FG);
+  fillRect(-7, 2, 2, 1, COLOR_FG);
+  fillRect(5, 2, 2, 1, COLOR_FG);
+  // "$" center
+  ctx.fillStyle = COLOR_FG;
+  ctx.font = "bold 6px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("$", 0, 0);
+  ctx.restore();
+}
+
+function drawDebris() {
+  for (const b of bills) drawBill(b);
+  if (glassesDebris) {
+    ctx.save();
+    ctx.translate(glassesDebris.x, glassesDebris.y);
+    ctx.rotate(glassesDebris.rot);
+    drawSunglasses(-6, -2, 12, 4);
+    ctx.restore();
+  }
+  if (hatDebris) {
+    ctx.save();
+    ctx.translate(hatDebris.x, hatDebris.y);
+    ctx.rotate(hatDebris.rot);
+    drawHat(0, 0, false);
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// DRAW — parallax background (simplified: SFO tower + distant
+// ridge + sparse ground markings; no more busy mid layer)
+// ============================================================
+
+function drawBackground() {
+  drawSkyline(worldX * 0.15);
+  drawDistantRidge(worldX * 0.28);
+  drawGround(worldX);
+}
+
+// Far layer: terminal silhouette, SFO control tower, very distant ridge.
+function drawSkyline(offset) {
+  // Very-distant faint ridge (single slow wave)
+  ctx.fillStyle = COLOR_VFAR;
+  const vPeriod = 900;
+  const vOff = ((offset * 0.6 % vPeriod) + vPeriod) % vPeriod;
+  for (let i = -1; i < Math.ceil(W / vPeriod) + 2; i++) {
+    const bx = i * vPeriod - vOff;
+    ctx.beginPath();
+    ctx.moveTo(bx, GROUND_Y - 30);
+    ctx.lineTo(bx + 220, GROUND_Y - 50);
+    ctx.lineTo(bx + 450, GROUND_Y - 36);
+    ctx.lineTo(bx + 700, GROUND_Y - 56);
+    ctx.lineTo(bx + 900, GROUND_Y - 30);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Terminal + SFO tower — sparse, one per big period
+  ctx.fillStyle = COLOR_FAR;
+  const tPeriod = 820;
+  const tOff = ((offset % tPeriod) + tPeriod) % tPeriod;
+  for (let i = -1; i < Math.ceil(W / tPeriod) + 2; i++) {
+    const x = i * tPeriod - tOff;
+    // Terminal
+    fillRect(x, GROUND_Y - 52, 180, 32, COLOR_FAR);
+    // Narrow window strip (just a dash pattern, very subtle)
+    ctx.fillStyle = COLOR_BG;
+    for (let j = 0; j < 10; j++) {
+      fillRect(x + 12 + j * 16, GROUND_Y - 42, 8, 3, COLOR_BG);
+    }
+    // Roofline
+    ctx.fillStyle = COLOR_FAR;
+    ctx.beginPath();
+    ctx.moveTo(x, GROUND_Y - 52);
+    ctx.lineTo(x + 24, GROUND_Y - 62);
+    ctx.lineTo(x + 156, GROUND_Y - 62);
+    ctx.lineTo(x + 180, GROUND_Y - 52);
+    ctx.closePath();
+    ctx.fill();
+
+    // SFO control tower
+    const tx = x + 320;
+    fillRect(tx, GROUND_Y - 110, 14, 90, COLOR_FAR);
+    // SFO label (subtle; BG color against FAR gray)
+    ctx.fillStyle = COLOR_BG;
+    ctx.font = "bold 5px 'Courier New', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("SFO", tx + 7, GROUND_Y - 65);
+    // Cab
+    ctx.fillStyle = COLOR_FAR;
+    fillRect(tx - 6, GROUND_Y - 122, 26, 14, COLOR_FAR);
+    fillRect(tx + 6, GROUND_Y - 130, 2, 8, COLOR_FAR);
+  }
+}
+
+// Mid ridge — small rolling hills, sparse, quieter than before.
+function drawDistantRidge(offset) {
+  ctx.fillStyle = COLOR_MID;
+  const period = 520;
+  const off = ((offset % period) + period) % period;
+  for (let i = -1; i < Math.ceil(W / period) + 2; i++) {
+    const bx = i * period - off;
+    ctx.beginPath();
+    ctx.moveTo(bx, GROUND_Y - 18);
+    ctx.lineTo(bx + 120, GROUND_Y - 34);
+    ctx.lineTo(bx + 260, GROUND_Y - 18);
+    ctx.lineTo(bx + 380, GROUND_Y - 28);
+    ctx.lineTo(bx + 520, GROUND_Y - 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawGround(offset) {
+  // Solid line
+  fillRect(0, GROUND_Y, W, 2, COLOR_FG);
+  // One row of sparse tarmac dashes
+  const period = 28;
+  const off = ((offset % period) + period) % period;
+  for (let i = -1; i < Math.ceil(W / period) + 2; i++) {
+    const x = i * period - off;
+    fillRect(x, GROUND_Y + 6, 10, 1, COLOR_FG);
+  }
+}
+
+// ============================================================
+// DRAW — HUD & screens
+// ============================================================
+
+function pad5(n) { return String(Math.max(0, Math.floor(n))).padStart(5, "0"); }
+
+function drawHUD() {
+  // Title (top center)
+  ctx.fillStyle = COLOR_FG;
+  ctx.font = "bold 12px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("SILLY GOOSE SUMMIT", W / 2, 10);
+
+  // Distance score top right
+  ctx.font = "bold 14px 'Courier New', monospace";
+  ctx.textAlign = "right";
+  ctx.fillText(pad5(score), W - 14, 10);
+  ctx.font = "10px 'Courier New', monospace";
+  ctx.fillStyle = COLOR_NEAR;
+  ctx.fillText("HI " + pad5(highScore), W - 14, 28);
+
+  // Customers acquired top left
+  ctx.fillStyle = COLOR_FG;
+  ctx.font = "bold 12px 'Courier New', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("CUSTOMERS ACQUIRED  " + customersAcquired, 14, 12);
+  ctx.font = "10px 'Courier New', monospace";
+  ctx.fillStyle = COLOR_NEAR;
+  ctx.fillText("best " + bestCustomers, 14, 28);
+
+  // Summit invincibility countdown
+  if (state === "playing" && performance.now() < invincibleUntil) {
+    const secs = ((invincibleUntil - performance.now()) / 1000).toFixed(1);
+    ctx.fillStyle = COLOR_FG;
+    ctx.font = "bold 11px 'Courier New', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("SUMMIT " + secs + "s", W / 2, 34);
+  }
+}
+
+function drawStartScreen() {
+  ctx.fillStyle = COLOR_FG;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 14px 'Courier New', monospace";
+  ctx.fillText("Now boarding: hurry up you silly goose", W / 2, 118);
+  ctx.font = "11px 'Courier New', monospace";
+  ctx.fillText("Press any key to begin", W / 2, 146);
+  ctx.fillStyle = COLOR_NEAR;
+  ctx.font = "9px 'Courier New', monospace";
+  ctx.fillText("SPACE / UP  flap    DOWN  duck    D  hitboxes", W / 2, 168);
+}
+
+function drawGameOverScreen() {
+  ctx.fillStyle = COLOR_FG;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 15px 'Courier New', monospace";
+  ctx.fillText(GAMEOVER_MESSAGE, W / 2, 96);
+  let y = 120;
+  if (showBeat) {
+    ctx.font = "bold 12px 'Courier New', monospace";
+    ctx.fillText(gameoverBeatMessage, W / 2, y);
+    y += 18;
+  }
+  ctx.font = "11px 'Courier New', monospace";
+  ctx.fillText("Distance: " + score + "    Customers: " + customersAcquired, W / 2, y);
+  y += 22;
+  ctx.font = "10px 'Courier New', monospace";
+  ctx.fillStyle = COLOR_NEAR;
+  ctx.fillText(GAMEOVER_PROMPT, W / 2, y);
+}
+
+function drawHitboxes() {
+  ctx.strokeStyle = "#ff3355";
+  ctx.lineWidth = 1;
+  const kbx = kevinHitbox();
+  ctx.strokeRect(kbx.x, kbx.y, kbx.w, kbx.h);
+  for (const ob of obstacles) {
+    const b = obstacleHitbox(ob);
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+  }
+  for (const p of pickups) {
+    if (p.collected) continue;
+    const b = pickupHitbox(p);
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = COLOR_BG;
+  ctx.fillRect(0, 0, W, H);
+
+  drawBackground();
+  for (const ob of obstacles) drawObstacle(ob);
+  for (const p of pickups) if (!p.collected) drawPickup(p);
+  drawKevin();
+  if (state === "dying" || state === "gameover") drawDebris();
+
+  drawHUD();
+  if (state === "start") drawStartScreen();
+  if (state === "gameover") drawGameOverScreen();
+  if (debugHitbox) drawHitboxes();
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+
+function onKeyDown(e) {
+  if (e.code === "KeyD") { debugHitbox = !debugHitbox; e.preventDefault(); return; }
+  if (performance.now() < inputLockUntil) { e.preventDefault(); return; }
+  if (state === "start" || state === "gameover") { startGame(); e.preventDefault(); return; }
+  if (state === "playing") {
+    if (e.code === "Space" || e.code === "ArrowUp") { jump(); e.preventDefault(); }
+    else if (e.code === "ArrowDown") { kevin.ducking = true; e.preventDefault(); }
+  }
+}
+function onKeyUp(e) { if (e.code === "ArrowDown") kevin.ducking = false; }
+
+let touchStartY = null;
+let touchSwipedDown = false;
+function onTouchStart(e) {
+  e.preventDefault();
+  if (performance.now() < inputLockUntil) return;
+  if (state === "start" || state === "gameover") { startGame(); return; }
+  if (state !== "playing") return;
+  touchStartY = e.touches[0].clientY;
+  touchSwipedDown = false;
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  if (state !== "playing" || touchStartY == null) return;
+  if (e.touches[0].clientY - touchStartY > 24 && !touchSwipedDown) {
+    touchSwipedDown = true; kevin.ducking = true;
+  }
+}
+function onTouchEnd(e) {
+  e.preventDefault();
+  if (touchStartY == null) return;
+  if (state === "playing") {
+    if (touchSwipedDown) kevin.ducking = false;
+    else jump();
+  }
+  touchStartY = null; touchSwipedDown = false;
+}
+
+window.addEventListener("keydown", onKeyDown);
+window.addEventListener("keyup", onKeyUp);
+canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+canvas.addEventListener("touchend", onTouchEnd, { passive: false });
+canvas.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+// ============================================================
+// TWEAKS PANEL — sliders that live-mutate CONFIG
+// ============================================================
+
+const TWEAKS = [
+  { key: "START_SPEED",        label: "Start speed",         min: 180, max: 600,  step: 10,
+    desc: "World scroll speed (px/sec) at the start of a run." },
+  { key: "SPEED_RAMP_PER_100", label: "Speed ramp /100",     min: 0,   max: 30,   step: 1,
+    desc: "Extra px/sec added to world speed for every 100 points scored." },
+  { key: "MAX_SPEED",          label: "Max speed",           min: 400, max: 1000, step: 10,
+    desc: "Hard cap on world speed. Higher = faster late-game." },
+  { key: "GRAVITY",            label: "Gravity",             min: 1400,max: 3400, step: 50,
+    desc: "Downward acceleration. Higher = Kevin falls faster after a jump." },
+  { key: "JUMP_VELOCITY",      label: "Jump velocity",       min: -1000,max: -400,step: 10,
+    desc: "Initial upward impulse on flap. More negative = higher jump." },
+  { key: "OBSTACLE_MIN_GAP",   label: "Obstacle min gap",    min: 200, max: 800,  step: 10,
+    desc: "Shortest world-distance between obstacle spawns." },
+  { key: "OBSTACLE_MAX_GAP",   label: "Obstacle max gap",    min: 300, max: 1200, step: 10,
+    desc: "Longest gap between obstacle spawns. Combined with min = randomness range." },
+  { key: "MIN_ARRIVAL_GAP_SEC",label: "Min reaction gap (s)",min: 0.3,max: 2.0,  step: 0.05,
+    desc: "Enforced reaction time between arrivals. Prevents impossible stacked combos." },
+  { key: "CART_SPEED_WORLD",   label: "Cart speed (world)",  min: 0,   max: 200,  step: 5,
+    desc: "Rightward world speed of the beverage cart. Higher = slower on-screen approach." },
+  { key: "PLANE_SPEED_BONUS",  label: "Plane speed bonus",   min: 0,   max: 200,  step: 5,
+    desc: "Extra leftward speed on planes vs world scroll. Higher = planes whip past faster." },
+  { key: "ASCENT_MIN_INTERVAL",label: "Ascent min interval", min: 200, max: 2000, step: 50,
+    desc: "Shortest score-gap between Ascent card spawns." },
+  { key: "SUMMIT_MIN_INTERVAL",label: "Summit min interval", min: 800, max: 6000, step: 100,
+    desc: "Shortest score-gap between Summit card spawns (rare, grants invincibility)." },
+  { key: "HITBOX_SCALE",       label: "Hitbox scale",        min: 0.5, max: 1.0,  step: 0.02,
+    desc: "Fraction of sprite treated as collision box. Lower = more forgiving near-miss." },
+];
+
+function buildPanel() {
+  const host = document.getElementById("tweak-sliders");
+  host.innerHTML = "";
+  for (const t of TWEAKS) {
+    const row = document.createElement("div");
+    row.className = "slider-row";
+    const label = document.createElement("label");
+    const key = document.createElement("span"); key.textContent = t.label;
+    const val = document.createElement("span"); val.id = "v-" + t.key;
+    val.textContent = String(CONFIG[t.key]);
+    label.appendChild(key); label.appendChild(val);
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = t.min; input.max = t.max; input.step = t.step;
+    input.value = CONFIG[t.key];
+    input.addEventListener("input", () => {
+      const v = Number(input.value);
+      CONFIG[t.key] = v;
+      val.textContent = (t.step < 1) ? v.toFixed(2) : String(v);
+    });
+    row.appendChild(label);
+    row.appendChild(input);
+    if (t.desc) {
+      const desc = document.createElement("div");
+      desc.className = "slider-desc";
+      desc.textContent = t.desc;
+      row.appendChild(desc);
+    }
+    host.appendChild(row);
+  }
+}
+buildPanel();
+
+document.getElementById("panel-toggle").addEventListener("click", () => {
+  document.getElementById("panel").classList.toggle("open");
+});
+document.getElementById("reset-tweaks").addEventListener("click", () => {
+  Object.assign(CONFIG, DEFAULTS);
+  buildPanel();
+});
+document.getElementById("restart-run").addEventListener("click", () => {
+  startGame();
+});
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
+
+function tick(time) {
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
+  update(dt);
+  draw();
+  requestAnimationFrame(tick);
+}
+
+lastTime = performance.now();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
