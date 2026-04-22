@@ -12,7 +12,10 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/onboarding/EntryScreen.tsx");
 
     it("uses the new headline", () => {
-      expect(src).toContain("A more complete manual of how your mind works.");
+      // Period is wrapped in a <span> for the sage-accent treatment, so
+      // the terminal "." is not continuous with the words in the source.
+      // Assert on the phrase body instead.
+      expect(src).toContain("A more complete manual of how your mind works");
     });
 
     it("uses the new subhead", () => {
@@ -59,13 +62,20 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("preserves the 'my walnut' wordmark at the top", () => {
-      expect(src).toContain(">my walnut<");
+      // Wordmark is rendered as "my walnut" + a separate <span> carrying
+      // the sage period; the bare phrase is sufficient to assert the
+      // spelling, and the `not.toContain("mywalnut")` above already
+      // guards against the one-word collapse.
+      expect(src).toContain("my walnut");
     });
 
-    it("declares responsive breakpoints and an 880px desktop max-width", () => {
+    it("declares responsive breakpoints and a 1120px editorial max-width", () => {
       expect(src).toContain("min-width: 768px");
       expect(src).toContain("min-width: 1024px");
-      expect(src).toContain("max-width: 880px");
+      // Post-redesign (editorial periodical direction) widened the
+      // reading frame from 880 to 1120 so the asymmetric hero has room
+      // to breathe. Declared once on --mw-entry-max.
+      expect(src).toContain("1120px");
     });
 
     it("does NOT contain the previous 'Map your operating system.' headline", () => {

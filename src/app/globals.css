@@ -74,12 +74,16 @@ button, nav, [role="tablist"], [role="navigation"] {
   user-select: none;
 }
 
-/* Public pages that need scrolling (terms, privacy, sms-opt-in) */
+/* Public pages that need scrolling (terms, privacy, sms-opt-in, landing) */
 html:has(.scrollable-page) {
   overflow: auto;
+  height: auto;
+  min-height: 100%;
 }
 html:has(.scrollable-page) body {
   overflow: auto;
+  height: auto;
+  min-height: 100%;
   overscroll-behavior: auto;
   -webkit-overscroll-behavior: auto;
 }
