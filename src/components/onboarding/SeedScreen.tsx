@@ -121,7 +121,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           BEFORE YOU START
         </h1>
 
-        {/* Body — 3 paragraphs */}
+        {/* Body — 2 paragraphs */}
         <div
           style={{
             fontFamily: "var(--font-serif)",
@@ -133,13 +133,10 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           }}
         >
           <p style={{ margin: "0 0 14px 0" }}>
-            {PERSONA_NAME} is AI. It identifies patterns using published frameworks as a guide. It doesn&rsquo;t diagnose anything and it&rsquo;s not trying to fix how you work.
-          </p>
-          <p style={{ margin: "0 0 14px 0" }}>
-            You&rsquo;re the authority on your own experience. Nothing goes in your manual unless you say it&rsquo;s accurate.
+            {PERSONA_NAME} is AI. It surfaces patterns using psychological frameworks. It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work. You&rsquo;re the authority on your own experience.
           </p>
           <p style={{ margin: 0 }}>
-            Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. You can leave and come back whenever.
+            Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. Leave and come back whenever.
           </p>
         </div>
 

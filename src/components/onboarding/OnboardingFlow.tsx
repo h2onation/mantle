@@ -57,49 +57,56 @@ export default function OnboardingFlow() {
     );
   }
 
+  // EntryScreen escapes the DesktopVitrine on desktop (see Track A Gate 2):
+  // the landing page reads as a real responsive web page, not a 430px column
+  // inside a phone frame. All other onboarding views stay inside the
+  // vitrine. The opacity wrapper is on the outermost element so cross-fades
+  // between entry and the vitrine-wrapped views feel unified rather than
+  // having the vitrine chrome (masthead, colophon) pop in/out abruptly.
   return (
-    <DesktopVitrine>
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "var(--session-linen)",
-          // Paper surface: noise + corner vignette. Matches the authenticated
-          // tab panels so landing and Jove chat share the same paper feel.
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"), radial-gradient(ellipse at center, transparent 50%, rgba(26, 22, 20, 0.04) 100%)`,
-          backgroundSize: "256px 256px, 100% 100%",
-          backgroundRepeat: "repeat, no-repeat",
-          overflow: "hidden",
-          WebkitTapHighlightColor: "transparent",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            opacity: viewOpacity,
-            transition: "opacity 400ms ease",
-          }}
-        >
-          {currentView === "entry" && (
-            <EntryScreen onLogin={handleLogin} />
-          )}
+    <div
+      style={{
+        opacity: viewOpacity,
+        transition: "opacity 400ms ease",
+      }}
+    >
+      {currentView === "entry" ? (
+        <EntryScreen onLogin={handleLogin} />
+      ) : (
+        <DesktopVitrine>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "var(--session-linen)",
+              // Paper surface: noise + corner vignette. Matches the authenticated
+              // tab panels so landing and Jove chat share the same paper feel.
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"), radial-gradient(ellipse at center, transparent 50%, rgba(26, 22, 20, 0.04) 100%)`,
+              backgroundSize: "256px 256px, 100% 100%",
+              backgroundRepeat: "repeat, no-repeat",
+              overflow: "hidden",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <div style={{ height: "100%" }}>
+              {currentView === "login" && (
+                <LoginScreen onBack={handleBackToEntry} />
+              )}
 
-          {currentView === "login" && (
-            <LoginScreen onBack={handleBackToEntry} />
-          )}
+              {currentView === "onboarding" && (
+                <InfoScreens
+                  onNavigateToSeed={handleNavigateToSeed}
+                  onBack={handleBackToEntry}
+                />
+              )}
 
-          {currentView === "onboarding" && (
-            <InfoScreens
-              onNavigateToSeed={handleNavigateToSeed}
-              onBack={handleBackToEntry}
-            />
-          )}
-
-          {currentView === "seed" && (
-            <SeedScreen />
-          )}
-        </div>
-      </div>
-    </DesktopVitrine>
+              {currentView === "seed" && (
+                <SeedScreen />
+              )}
+            </div>
+          </div>
+        </DesktopVitrine>
+      )}
+    </div>
   );
 }

@@ -404,45 +404,239 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Post-checkpoint (no fork) ───────────────────────────────────────────
-  describe("post-checkpoint behavior (no fork)", () => {
-    it("renders POST-CHECKPOINT section when checkpoints are active", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("POST-CHECKPOINT");
-    });
+  // ─── Post-confirm mode-specific blocks (Track A Phase 7-High) ────────────
+  // The previous POST-CHECKPOINT block (one-turn with three steps — confirm
+  // structure / name open thread / plant return hook) has been deleted and
+  // replaced by two mode-specific blocks: first-message-2 (Message 2 of the
+  // two-message first-lifetime flow) and subsequent-single (the single
+  // post-confirm message for any non-first-lifetime confirmation). Both
+  // are loaded via the postConfirmMode option, which is only set on
+  // post-confirm callPersona invocations.
+  describe("post-confirm blocks — first-message-2", () => {
+    const firstMessage2Context = {
+      layerName: "Some of My Patterns",
+      proposedHeadline: "Voice Goes When Pressure Lands",
+      entriesSummary:
+        "unused for first-message-2 but context is uniform for both modes",
+    };
 
-    it("explicitly states there is no fork and no 'two directions' menu", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("No fork");
-      expect(result).toContain('No "two directions."');
-    });
-
-    it("does NOT contain the old quoted 'Work with it' fork label", () => {
+    it("loads the first-message-2 block only when postConfirmMode is 'first-message-2'", () => {
       const result = build({
-        isReturningUser: true,
-        checkpointApproaching: true,
+        postConfirmMode: "first-message-2",
+        postConfirmContext: firstMessage2Context,
       });
-      expect(result).not.toContain('"Work with it"');
-      expect(result).not.toContain("Two directions:");
+      expect(result).toContain(
+        "POST-CONFIRM — FIRST LIFETIME ENTRY (Message 2 only)"
+      );
     });
 
-    it("enumerates the three new post-confirmation steps (structure, open thread, return hook)", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("CONFIRM AND NAME THE STRUCTURE");
-      expect(result).toContain("NAME AN OPEN THREAD");
-      expect(result).toContain("PLANT A RETURN HOOK");
+    it("does NOT load first-message-2 block when postConfirmMode is null or subsequent-single", () => {
+      const none = build();
+      expect(none).not.toContain("POST-CONFIRM — FIRST LIFETIME ENTRY");
+      const sub = build({
+        postConfirmMode: "subsequent-single",
+        postConfirmContext: firstMessage2Context,
+      });
+      expect(sub).not.toContain("POST-CONFIRM — FIRST LIFETIME ENTRY");
     });
 
-    it("uses the canonical first-entry copy that references the five layers", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("That's your first entry. Your Manual has five layers.");
-      expect(result).toContain("Four layers still open");
+    it("pre-substitutes the layer name into the opening sentence", () => {
+      const result = build({
+        postConfirmMode: "first-message-2",
+        postConfirmContext: firstMessage2Context,
+      });
+      expect(result).toContain(
+        "That went into Some of My Patterns. Four other places still empty"
+      );
     });
 
-    it("frames the return hook as an invitation, not homework", () => {
+    it("pins the scaffolding paragraph verbatim (two-week commitment, no-rush framing)", () => {
+      const result = build({
+        postConfirmMode: "first-message-2",
+        postConfirmContext: firstMessage2Context,
+      });
+      expect(result).toContain(
+        "A real Manual takes time. It is not a quiz."
+      );
+      expect(result).toContain(
+        "Come back daily for the first two weeks"
+      );
+    });
+
+    it("instructs the model to produce only the open-thread line and nothing else", () => {
+      const result = build({
+        postConfirmMode: "first-message-2",
+        postConfirmContext: firstMessage2Context,
+      });
+      expect(result).toContain("The open-thread line is the only creative piece");
+      expect(result).toContain("Do not add a headline");
+      expect(result).toContain("Do not re-stamp the entry");
+    });
+
+    it("tells the model Message 1 was already sent by the system", () => {
+      const result = build({
+        postConfirmMode: "first-message-2",
+        postConfirmContext: firstMessage2Context,
+      });
+      expect(result).toContain(
+        'Message 1 ("In. A working name:'
+      );
+      expect(result).toContain("already sent by the system");
+    });
+  });
+
+  describe("post-confirm blocks — subsequent-single", () => {
+    const subsequentContext = {
+      layerName: "How I Process Things",
+      proposedHeadline: "The Room Goes Loud Before Words Do",
+      entriesSummary:
+        "3 entries. How I Process Things and Some of My Patterns have material. 3 still empty.",
+    };
+
+    it("loads the subsequent-single block only when postConfirmMode is 'subsequent-single'", () => {
+      const result = build({
+        postConfirmMode: "subsequent-single",
+        postConfirmContext: subsequentContext,
+      });
+      expect(result).toContain(
+        "POST-CONFIRM — SUBSEQUENT ENTRY (single message)"
+      );
+    });
+
+    it("does NOT load subsequent-single block when postConfirmMode is null or first-message-2", () => {
+      const none = build();
+      expect(none).not.toContain("POST-CONFIRM — SUBSEQUENT ENTRY");
+      const first = build({
+        postConfirmMode: "first-message-2",
+        postConfirmContext: subsequentContext,
+      });
+      expect(first).not.toContain("POST-CONFIRM — SUBSEQUENT ENTRY");
+    });
+
+    it("pre-substitutes the proposed headline into the stamp line", () => {
+      const result = build({
+        postConfirmMode: "subsequent-single",
+        postConfirmContext: subsequentContext,
+      });
+      expect(result).toContain(
+        'In. A working name: "The Room Goes Loud Before Words Do." Yours to change.'
+      );
+    });
+
+    it("pre-substitutes the entries-summary line verbatim (server-built)", () => {
+      const result = build({
+        postConfirmMode: "subsequent-single",
+        postConfirmContext: subsequentContext,
+      });
+      expect(result).toContain(
+        "3 entries. How I Process Things and Some of My Patterns have material. 3 still empty."
+      );
+    });
+
+    it("instructs the model to produce only the open-thread line", () => {
+      const result = build({
+        postConfirmMode: "subsequent-single",
+        postConfirmContext: subsequentContext,
+      });
+      expect(result).toContain("The open-thread line is the only creative piece");
+      expect(result).toContain("Do not restate the entry twice");
+    });
+  });
+
+  describe("deleted POST-CHECKPOINT block (replaced by mode-specific blocks)", () => {
+    // The old POST-CHECKPOINT block that did "confirm structure / name open
+    // thread / plant return hook" in one LLM turn is gone. These negative
+    // assertions guard against accidental reintroduction.
+    it("does NOT contain the old POST-CHECKPOINT section label in any build", () => {
+      expect(build()).not.toContain("POST-CHECKPOINT");
+      expect(build({ checkpointApproaching: true })).not.toContain(
+        "POST-CHECKPOINT"
+      );
+      expect(build({ isReturningUser: true })).not.toContain("POST-CHECKPOINT");
+    });
+
+    it("does NOT contain the old three-step structure labels", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("Invitation, not assignment");
-      expect(result).toContain("Do not frame as homework");
+      expect(result).not.toContain("CONFIRM AND NAME THE STRUCTURE");
+      expect(result).not.toContain("NAME AN OPEN THREAD");
+      expect(result).not.toContain("PLANT A RETURN HOOK");
+    });
+
+    it("does NOT contain the old first/second/third-entry scripted copy", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).not.toContain(
+        "That's your first entry. Your Manual has five layers."
+      );
+      expect(result).not.toContain("Four layers still open");
+      expect(result).not.toContain("Two entries now.");
+    });
+  });
+
+  // ─── Post-rejection (Track A Phase 7-Low / 7b) ───────────────────────────
+  describe("post-rejection fixed-line behavior", () => {
+    it("renders the POST-REJECTION section when checkpoint instructions are loaded", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("POST-REJECTION");
+    });
+
+    it("pins the exact fixed-string response after rejection", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("Okay. What made it miss?");
+    });
+
+    it("scopes the fixed line to the immediate post-rejection turn only", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("immediate post-rejection turn");
+      expect(result).toContain("return to natural exploration");
+    });
+
+    it("preserves the existing 'do not re-propose the same pattern' rule", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("Do not re-propose the same pattern in this session");
+    });
+
+    it("appears for returning users even without checkpointApproaching", () => {
+      const result = build({ isReturningUser: true, checkpointApproaching: false });
+      expect(result).toContain("POST-REJECTION");
+      expect(result).toContain("Okay. What made it miss?");
+    });
+  });
+
+  // ─── Returning-user message (Track A Phase 7-Low / 7d) ───────────────────
+  describe("returning-user opening structure", () => {
+    it("uses the new three-part welcome-back template", () => {
+      const result = build({ isReturningUser: true });
+      expect(result).toContain('The opener: "Welcome back."');
+      expect(result).toContain('The closing question, exactly: "What is on your mind today?"');
+    });
+
+    it("permits referencing either a recent entry OR an open thread", () => {
+      const result = build({ isReturningUser: true });
+      expect(result).toContain("entry name OR a specific open thread");
+    });
+
+    it("does NOT contain the old closing-question variants", () => {
+      const result = build({ isReturningUser: true });
+      // The old block offered "What's bringing you in today?" or
+      // "What's on your mind?" — the new spec pins the exact question
+      // to "What is on your mind today?" with no apostrophe contraction
+      // and no shortened fallback.
+      expect(result).not.toContain("What's bringing you in today?");
+      expect(result).not.toContain('opens the door:');
+      // The "Two jobs: show you remember" framing is intentionally
+      // preserved — it captures the philosophy that the new three-part
+      // template implements. Not asserting on removal here.
+    });
+
+    it("preserves the activated-user carve-out and extends it to drop the Welcome-back opener", () => {
+      const result = build({ isReturningUser: true });
+      expect(result).toContain("activated");
+      expect(result).toContain('drop both the "Welcome back" opener and the Manual reference');
+    });
+
+    it("preserves the no-session-recap rule", () => {
+      const result = build({ isReturningUser: true });
+      expect(result).toContain("No session recap");
     });
   });
 
@@ -545,17 +739,21 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("\nCHECKPOINTS\n");
     });
 
-    it("excludes POST-CHECKPOINT when not approaching and not returning", () => {
+    it("excludes POST-REJECTION when not approaching and not returning", () => {
+      // POST-CHECKPOINT was deleted in Phase 7-High. POST-REJECTION is
+      // the remaining checkpoint-instructions block that gates on
+      // (checkpointApproaching || isReturningUser). Same gate, new
+      // assertion target.
       const result = build({
         checkpointApproaching: false,
         isReturningUser: false,
       });
-      expect(result).not.toContain("POST-CHECKPOINT");
+      expect(result).not.toContain("POST-REJECTION");
     });
 
-    it("includes POST-CHECKPOINT for returning users", () => {
+    it("includes POST-REJECTION for returning users", () => {
       const result = build({ isReturningUser: true });
-      expect(result).toContain("POST-CHECKPOINT");
+      expect(result).toContain("POST-REJECTION");
     });
 
     it("excludes READINESS GATE when fewer than 3 entries", () => {
@@ -580,16 +778,16 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("READINESS GATE");
     });
 
-    it("always renders PROGRESS SIGNALS block in Tier 3 (new Tier 3 section, not the Tier 2 PACING block)", () => {
-      const result = build({ checkpointApproaching: false });
-      expect(result).toContain("DEPTH BUILDING SIGNAL");
-      expect(result).toContain("CHECKPOINT APPROACHING SIGNAL");
-    });
-
-    it("Tier 3 PROGRESS SIGNALS block also renders when checkpointApproaching is true", () => {
+    // Gate 8: the PROGRESS SIGNALS block was deleted from Tier 3.
+    // Those signals (EARLY FRAME, DEPTH BUILDING, CHECKPOINT
+    // APPROACHING) are now delivered as modals. The negative
+    // assertions below guard against reintroduction.
+    it("does NOT render the deleted PROGRESS SIGNALS block", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("DEPTH BUILDING SIGNAL");
-      expect(result).toContain("CHECKPOINT APPROACHING SIGNAL");
+      expect(result).not.toContain("PROGRESS SIGNALS");
+      expect(result).not.toContain("DEPTH BUILDING SIGNAL");
+      expect(result).not.toContain("CHECKPOINT APPROACHING SIGNAL");
+      expect(result).not.toContain("EARLY FRAME");
     });
 
     it("no longer contains the replaced BUILDING TOWARD SIGNAL header", () => {
@@ -676,11 +874,11 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Ask for scenes, not labels");
     });
 
-    it("PROGRESS SIGNALS Tier 3 block names the approaching-signal copy", () => {
+    // Gate 8: the approaching-signal copy is gone. Modal 3 carries
+    // the "A pattern is ready for your Manual" teaching now.
+    it("does NOT contain the deleted approaching-signal copy", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain(
-        "There's an entry taking shape for your Manual"
-      );
+      expect(result).not.toContain("There's an entry taking shape");
     });
 
     it("ADAPTING block renders for guarded/abstract/skeptical user modes", () => {
@@ -942,65 +1140,42 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Progress signals (new Tier 3 block) ─────────────────────────────────
-  describe("progress signals (Tier 3)", () => {
-    it("renders the EARLY FRAME block for new first-session users", () => {
-      const result = build({
-        manualComponents: [],
-        isReturningUser: false,
-        turnCount: 3,
-      });
-      expect(result).toContain("EARLY FRAME");
-      expect(result).toContain("I'm building a model of how you operate");
-      expect(result).toContain("What you confirm becomes your Manual");
-    });
-
-    it("hides the EARLY FRAME block for returning users", () => {
-      const result = build({
-        isReturningUser: true,
-        manualComponents: [{ layer: 1, name: "x", content: "y" }],
-      });
-      expect(result).not.toContain("EARLY FRAME");
-    });
-
-    it("hides the EARLY FRAME block once the user has confirmed entries", () => {
-      const result = build({
-        manualComponents: [{ layer: 1, name: "x", content: "y" }],
-        isReturningUser: false,
-      });
-      expect(result).not.toContain("EARLY FRAME");
-    });
-
-    it("always renders the depth building and checkpoint approaching signals, regardless of user state", () => {
+  // ─── Progress signals (Gate 8: entire block deleted) ─────────────────────
+  // The EARLY FRAME / DEPTH BUILDING SIGNAL / CHECKPOINT APPROACHING
+  // SIGNAL inline prompts have been removed. Those signals are now
+  // delivered as modals (ChatWindowModal / PatternFormingModal /
+  // FirstCheckpointModal). Negative-regression tests guard against
+  // accidental reintroduction.
+  describe("deleted progress-signals block (Gate 8)", () => {
+    it("does NOT render the EARLY FRAME block in any state", () => {
       const newUser = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 3,
       });
-      expect(newUser).toContain("DEPTH BUILDING SIGNAL");
-      expect(newUser).toContain("CHECKPOINT APPROACHING SIGNAL");
-      expect(newUser).toContain("Something is forming in your model");
+      expect(newUser).not.toContain("EARLY FRAME");
+      expect(newUser).not.toContain("I'm building a model of how you operate");
+      expect(newUser).not.toContain("What you confirm becomes your Manual");
 
       const returning = build({
         isReturningUser: true,
         manualComponents: [{ layer: 1, name: "x", content: "y" }],
       });
-      expect(returning).toContain("DEPTH BUILDING SIGNAL");
-      expect(returning).toContain("CHECKPOINT APPROACHING SIGNAL");
+      expect(returning).not.toContain("EARLY FRAME");
     });
 
-    it("contains the combined first-ever approaching + wrapper copy for first checkpoint users", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("FIRST-EVER approaching signal");
-      expect(result).toContain("When I see enough material I'll reflect a pattern back to you");
-      expect(result).toContain("Nothing sticks unless you say so");
+    it("does NOT render the depth-building or approaching-signal sections", () => {
+      const result = build({ checkpointApproaching: true, isReturningUser: true });
+      expect(result).not.toContain("DEPTH BUILDING SIGNAL");
+      expect(result).not.toContain("CHECKPOINT APPROACHING SIGNAL");
+      expect(result).not.toContain("Something is forming in your model");
     });
 
-    it("specifies the three gap types Jove can collect after the approaching signal", () => {
+    it("does NOT contain the FIRST-EVER approaching signal's teaching copy", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("Missing scene");
-      expect(result).toContain("Missing bind");
-      expect(result).toContain("Missing body/user language");
+      expect(result).not.toContain("FIRST-EVER approaching signal");
+      expect(result).not.toContain("When I see enough material I'll reflect a pattern back to you");
+      expect(result).not.toContain("Nothing sticks unless you say so");
     });
   });
 
@@ -1035,10 +1210,6 @@ describe("buildSystemPrompt", () => {
       'WHEN THE USER ASKS "WHAT SHOULD I DO"',
       "TIER 3: CONVERSATION MECHANICS",
       "FIRST MESSAGE",
-      "PROGRESS SIGNALS",
-      "EARLY FRAME",
-      "DEPTH BUILDING SIGNAL",
-      "CHECKPOINT APPROACHING SIGNAL",
       "ADAPTING",
       "SHORT ANSWERS",
       "CLINICAL MATERIAL IN CONVERSATION",
@@ -1066,13 +1237,14 @@ describe("buildSystemPrompt", () => {
         checkpointApproaching: true,
         turnCount: 5,
       });
+      // Phase 7-High removed POST-CHECKPOINT (replaced by mode-specific
+      // blocks loaded only on post-confirm calls); POST-REJECTION
+      // (Phase 7-Low) sits in that slot under the same gate. Gate 8
+      // removed PROGRESS SIGNALS entirely — those are modals now.
       const EXPECTED_CHECKPOINT_SECTIONS = [
         "TIER 3: CONVERSATION MECHANICS",
         "CHECKPOINTS",
-        "POST-CHECKPOINT",
-        "PROGRESS SIGNALS",
-        "DEPTH BUILDING SIGNAL",
-        "CHECKPOINT APPROACHING SIGNAL",
+        "POST-REJECTION",
         "ADAPTING",
       ];
       let cursor = 0;

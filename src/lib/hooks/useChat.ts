@@ -12,6 +12,7 @@ import {
   trackCheckpointProposed,
   trackCheckpointConfirmed,
   trackCheckpointRejected,
+  trackCheckpointDeferred,
   trackCheckpointRefined,
 } from "@/lib/analytics/events";
 
@@ -87,6 +88,16 @@ export function useChat() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("mw_first_session_completed") === "true";
   });
+  // Modal 2 (Pattern-Forming) trigger inputs, refreshed on every
+  // message_complete event. The values reflect the previous-turn
+  // extraction state (one-turn lag, server-side). MobileSession reads
+  // these to decide whether to fire Modal 2.
+  const [emergingPatternSnippet, setEmergingPatternSnippet] = useState<
+    string | null
+  >(null);
+  const [hasLayerEmergingOrBeyond, setHasLayerEmergingOrBeyond] =
+    useState(false);
+  const [concreteExamples, setConcreteExamples] = useState(0);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -117,11 +128,19 @@ export function useChat() {
     fullText: string;
     completeEvent: MessageCompleteEvent | null;
   }> {
+    // Phase 7-High: the stream may carry MULTIPLE message_complete
+    // events (7e first-lifetime two-message, 7f transition+card). On
+    // each message_complete, we append the message immediately, reset
+    // the text buffer for the next message in the same stream, and
+    // fire finalize logic for that event. cleanContent is expected on
+    // every message_complete (server sets it) because fullText is
+    // empty for events that didn't have preceding text_delta (e.g.
+    // server-templated prepends).
     let fullText = "";
-    let completeEvent: MessageCompleteEvent | null = null;
+    let lastCompleteEvent: MessageCompleteEvent | null = null;
+    let lastMessageFullText = "";
     let sseError: string | null = null;
 
-    // Buffer text silently — no placeholder message during streaming
     setIsStreaming(true);
 
     try {
@@ -130,7 +149,32 @@ export function useChat() {
           fullText += text;
         },
         onMessageComplete: (data) => {
-          completeEvent = data;
+          // Snapshot the text accumulated since the previous
+          // message_complete (or since stream start). This is THIS
+          // message's streamed content, if any.
+          const thisMessageStreamedText = fullText;
+          fullText = "";
+
+          const displayContent = data.cleanContent || thisMessageStreamedText;
+          // Guard against empty messages — a server bug or protocol
+          // drift could emit a cleanContent-less event with no
+          // preceding text_delta. Skip appending in that case.
+          if (displayContent) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant" as const,
+                content: displayContent,
+                id: data.messageId,
+              },
+            ]);
+            // Run the per-event finalize (modal-2 trigger refresh,
+            // checkpoint metadata if this event carried one, etc.).
+            finalizeMessage(displayContent, data);
+          }
+
+          lastCompleteEvent = data;
+          lastMessageFullText = displayContent;
         },
         onError: (error) => {
           sseError = error;
@@ -140,27 +184,14 @@ export function useChat() {
       setIsStreaming(false);
     }
 
-    // If SSE emitted an error, surface it
     if (sseError) {
       setErrorMessage(sseError);
     }
 
-    // On success, add the complete message in one shot (fade-in via CSS)
-    // Use cleanContent (stripped of manual entry block) when available
-    if (!sseError && fullText) {
-      const evt = completeEvent as MessageCompleteEvent | null;
-      const displayContent = evt?.cleanContent || fullText;
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant" as const,
-          content: displayContent,
-          id: evt?.messageId,
-        },
-      ]);
-    }
-
-    return { fullText, completeEvent };
+    // Return value surfaces info about the LAST event for any caller
+    // that wants to make decisions downstream (e.g. seed-message
+    // handoff). Per-event finalize already ran inside the loop.
+    return { fullText: lastMessageFullText, completeEvent: lastCompleteEvent };
   }
 
   function finalizeMessage(
@@ -168,6 +199,16 @@ export function useChat() {
     completeEvent: MessageCompleteEvent | null
   ) {
     if (!completeEvent) return;
+
+    // Refresh Modal 2 trigger inputs from the latest message_complete.
+    // These are optional fields; nullish-coalesce to safe defaults so an
+    // older server (or a missing field) leaves the modal in its
+    // pre-trigger state rather than firing on garbage.
+    setEmergingPatternSnippet(completeEvent.emergingPatternSnippet ?? null);
+    setHasLayerEmergingOrBeyond(
+      completeEvent.hasLayerEmergingOrBeyond ?? false
+    );
+    setConcreteExamples(completeEvent.concreteExamples ?? 0);
 
     // Use clean content (without manual entry block) when available
     const displayContent = completeEvent.cleanContent || fullText;
@@ -207,6 +248,8 @@ export function useChat() {
               layer: completeEvent!.checkpoint!.layer,
               name: completeEvent!.checkpoint!.name,
               status: "pending",
+              refinement_count:
+                completeEvent!.checkpoint!.refinement_count ?? 0,
             },
           };
         }
@@ -426,8 +469,11 @@ export function useChat() {
         return;
       }
 
-      const { fullText, completeEvent } = await streamFromResponse(res);
-      finalizeMessage(fullText, completeEvent);
+      // Phase 7-High: streamFromResponse now runs finalizeMessage
+      // per-event internally (to support multi-message_complete
+      // streams). No external finalize call needed here; the return
+      // value surfaces the LAST event for callers that need it.
+      const { completeEvent } = await streamFromResponse(res);
 
       // Track user + assistant message_sent after the server confirmed
       // both persisted. finalizeMessage already fired conversation_started
@@ -473,7 +519,9 @@ export function useChat() {
     sendMessage(lastUserMessage.current);
   }
 
-  async function confirmCheckpoint(action: "confirmed" | "rejected" | "refined") {
+  async function confirmCheckpoint(
+    action: "confirmed" | "rejected" | "refined" | "deferred"
+  ) {
     if (!activeCheckpoint) return;
 
     setIsLoading(true);
@@ -572,6 +620,7 @@ export function useChat() {
         if (action === "confirmed") trackCheckpointConfirmed(cpProps);
         else if (action === "rejected") trackCheckpointRejected(cpProps);
         else if (action === "refined") trackCheckpointRefined(cpProps);
+        else if (action === "deferred") trackCheckpointDeferred(cpProps);
       }
       checkpointProposedAt.current = null;
 
@@ -593,8 +642,11 @@ export function useChat() {
       // already succeeded (atomic RPC, Track 2), so we reconcile via
       // loadManual() instead of surfacing an error to the user.
       try {
-        const { fullText, completeEvent } = await streamFromResponse(res);
-        finalizeMessage(fullText, completeEvent);
+        // Phase 7-High: per-event finalize happens inside
+        // streamFromResponse. Return value is unused here — the
+        // follow-up stream's side effects (appending messages,
+        // activating checkpoint state) are what matter.
+        await streamFromResponse(res);
       } catch (err) {
         // Server wrote the entry; the follow-up stream just didn't land
         // cleanly. Next message from the user will re-load context.
@@ -904,5 +956,9 @@ export function useChat() {
     startExploration,
     refreshConversations,
     loadManual,
+    // Modal 2 trigger inputs — refreshed on every message_complete.
+    emergingPatternSnippet,
+    hasLayerEmergingOrBeyond,
+    concreteExamples,
   };
 }

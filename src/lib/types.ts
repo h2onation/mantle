@@ -8,6 +8,12 @@ export interface ChatMessage {
     layer: number;
     name: string | null;
     status: string;
+    // Number of "Close but not quite" refinements that produced this
+    // entry. Inherited via the chain rule — see
+    // computeInheritedRefinementCount in persona-pipeline.ts. Optional
+    // for backward compatibility with checkpoint_meta rows that
+    // predate the field; reader treats undefined as 0.
+    refinement_count?: number;
   } | null;
 }
 

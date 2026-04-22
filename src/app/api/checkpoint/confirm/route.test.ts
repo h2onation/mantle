@@ -57,6 +57,12 @@ vi.mock("@/lib/persona/confirm-checkpoint", () => ({
 
 vi.mock("@/lib/persona/persona-pipeline", () => ({
   insertCheckpointActionMessage: vi.fn().mockResolvedValue(undefined),
+  // Phase 7-High: route calls buildEntriesSummary for subsequent-single
+  // post-confirm context. Return a deterministic string — the route
+  // pass-through doesn't depend on its shape in these tests.
+  buildEntriesSummary: vi
+    .fn()
+    .mockReturnValue("2 entries. Some of My Patterns has material. 4 still empty."),
 }));
 
 const mockCheckLimit = vi.fn();

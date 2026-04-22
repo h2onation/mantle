@@ -30,6 +30,33 @@ export default function MainApp() {
   const [authDismissed, setAuthDismissed] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<OnboardingStatus>("loading");
+  // Onboarding modal state. null = not loaded yet (modals suppressed
+  // until known so we never flash). Track A Gate 4.
+  const [modalState, setModalState] = useState<{
+    modalProgress: number;
+    signupAtMs: number | null;
+    isAnonymous: boolean;
+  } | null>(null);
+  // Distinguishes "GET in-flight" from "GET completed with no data
+  // (failure / unauthenticated)." Both leave modalState === null, but
+  // with this flag the difference is observable:
+  //   modalStateLoading === true  → we're still waiting (keep closed)
+  //   modalStateLoading === false
+  //     && modalState === null    → we tried and nothing came back
+  //   modalStateLoading === false
+  //     && modalState !== null    → loaded, use values
+  // Current behavior is fail-open in both null cases (Modal 3 does not
+  // fire without a known modal_progress). The flag is here so future
+  // observability or retry logic can tell the cases apart without
+  // changing the default fail-open behavior. Track A Gate 6.
+  //
+  // The read side of this useState is intentionally unused for now —
+  // the setter fires in the fetch's finally block so the state is
+  // kept up to date for whenever a consumer wires in. Flagged in the
+  // Track A ship notes; if no consumer arrives within a few weeks,
+  // the next engineer to read this comment can delete safely.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [modalStateLoading, setModalStateLoading] = useState(true);
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // One-time migration: rename mantle_* localStorage keys to mw_*
@@ -89,6 +116,45 @@ export default function MainApp() {
     };
   }, []);
 
+  // Modal-progress fetch — mirrors onboarding-status pattern. Fail-open
+  // here means "leave modalState null" so no modal ever fires; that's
+  // the safer default than re-prompting onboarding modals on every
+  // transient API hiccup.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/modal-progress");
+        if (!res.ok) {
+          console.error(
+            "[MainApp] modal-progress returned",
+            res.status,
+            "— modals suppressed for this session"
+          );
+          return;
+        }
+        const data = (await res.json()) as {
+          modal_progress: number;
+          signup_at_ms: number | null;
+          is_anonymous: boolean;
+        };
+        if (cancelled) return;
+        setModalState({
+          modalProgress: data.modal_progress,
+          signupAtMs: data.signup_at_ms,
+          isAnonymous: data.is_anonymous,
+        });
+      } catch (err) {
+        console.error("[MainApp] modal-progress fetch failed:", err);
+      } finally {
+        if (!cancelled) setModalStateLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const {
     messages,
     conversationId,
@@ -119,6 +185,9 @@ export default function MainApp() {
     startExploration,
     refreshConversations,
     loadManual,
+    emergingPatternSnippet,
+    hasLayerEmergingOrBeyond,
+    concreteExamples,
   } = useChat();
 
   // When promptAuth fires, clear any previous dismiss so modal shows
@@ -252,6 +321,12 @@ export default function MainApp() {
             onSignInPrompt={handleSignInPrompt}
             firstSessionCompleted={firstSessionCompleted}
             sessionOrigin={sessionOrigin}
+            modalProgress={modalState?.modalProgress ?? null}
+            signupAtMs={modalState?.signupAtMs ?? null}
+            isAnonymous={modalState?.isAnonymous ?? false}
+            emergingPatternSnippet={emergingPatternSnippet}
+            hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
+            concreteExamples={concreteExamples}
           />
         }
         manualContent={

@@ -3,6 +3,8 @@ import {
   validateMaterialQuality,
   validateComposedEntry,
   applyCheckpointGates,
+  computeInheritedRefinementCount,
+  buildEntriesSummary,
 } from "@/lib/persona/persona-pipeline";
 import type { ExtractionState } from "@/lib/persona/extraction";
 
@@ -29,8 +31,10 @@ function makeExtractionState(
       strongest_layer: null,
     },
     clinical_flag: { active: false, level: "none", note: "" },
+    observation_miss_count: 0,
     next_prompt: "",
     sage_brief: "",
+    emerging_pattern_snippet: null,
     ...overrides,
   };
 }
@@ -227,5 +231,165 @@ describe("applyCheckpointGates with material quality", () => {
       10
     );
     expect(result.isCheckpoint).toBe(true);
+  });
+});
+
+// ─── Refinement-count chain inheritance (Track A Phase 7-Mid) ──────────────
+describe("computeInheritedRefinementCount", () => {
+  it("returns 0 when there is no previous checkpoint", () => {
+    expect(computeInheritedRefinementCount(null)).toBe(0);
+  });
+
+  it("returns 0 when previous status is confirmed (chain broken)", () => {
+    expect(
+      computeInheritedRefinementCount({
+        status: "confirmed",
+        refinement_count: 5,
+      })
+    ).toBe(0);
+  });
+
+  it("returns 0 when previous status is rejected (chain broken)", () => {
+    expect(
+      computeInheritedRefinementCount({
+        status: "rejected",
+        refinement_count: 5,
+      })
+    ).toBe(0);
+  });
+
+  it("returns 0 when previous status is pending (defensive — not a chain state)", () => {
+    expect(
+      computeInheritedRefinementCount({
+        status: "pending",
+        refinement_count: 5,
+      })
+    ).toBe(0);
+  });
+
+  it("returns 0 when previous count is undefined (legacy meta rows pre-Phase-7-Mid)", () => {
+    expect(
+      computeInheritedRefinementCount({ status: "refined" })
+    ).toBe(0);
+  });
+
+  it("inherits the previous count when previous status is refined", () => {
+    expect(
+      computeInheritedRefinementCount({
+        status: "refined",
+        refinement_count: 1,
+      })
+    ).toBe(1);
+  });
+
+  // The case Phase 7-Mid spec called out explicitly to document via
+  // a test name. Naming this case "across distinct entries" makes the
+  // intent searchable in the codebase: yes, a fresh entry inherits
+  // the chain count, and yes, that is intended behavior.
+  it("refinement count inherits across distinct entries when chain is unbroken", () => {
+    // Setup: the user refined two prior entries about an entirely
+    // different topic (call them E1 about topic A, then E2 about topic
+    // A again, both refined). Server now composes E3, which happens
+    // to be about topic B (a fresh emerging pattern). The chain rule
+    // is structural — it looks only at the previous checkpoint's
+    // status, not at semantic similarity. Because E2 was refined with
+    // count=2, E3 inherits count=2 even though it is about a
+    // different topic.
+    //
+    // Result: the user sees the refinement-ceiling card UI on E3's
+    // first attempt. They can accept E3 as-is or let it go.
+    //
+    // This is intended behavior. Detecting "same pattern" semantically
+    // would require fuzzy LLM judgment we do not have. In practice,
+    // refinements happen rapidly enough that an unbroken chain is the
+    // right proxy for "the user has already pushed back twice and
+    // would rather move on than refine a third time." If a user does
+    // hit this case across genuinely distinct topics, hitting "Let it
+    // go" on E3 breaks the chain (next entry starts fresh at 0).
+    const e2RefinedMeta = {
+      status: "refined" as const,
+      refinement_count: 2,
+    };
+    expect(computeInheritedRefinementCount(e2RefinedMeta)).toBe(2);
+  });
+});
+
+// ─── Entries-summary builder (Track A Phase 7-High) ────────────────────────
+describe("buildEntriesSummary", () => {
+  it("uses singular 'has material' when only one layer is populated", () => {
+    expect(
+      buildEntriesSummary({
+        entryCount: 2,
+        confirmedLayerName: "Some of My Patterns",
+        otherLayersWithMaterial: [],
+        remainingEmptyCount: 4,
+      })
+    ).toBe(
+      "2 entries. Some of My Patterns has material. 4 still empty."
+    );
+  });
+
+  it("uses 'X and Y have material' when exactly two layers are populated", () => {
+    expect(
+      buildEntriesSummary({
+        entryCount: 3,
+        confirmedLayerName: "How I Process Things",
+        otherLayersWithMaterial: ["Some of My Patterns"],
+        remainingEmptyCount: 3,
+      })
+    ).toBe(
+      "3 entries. How I Process Things and Some of My Patterns have material. 3 still empty."
+    );
+  });
+
+  it("uses Oxford-comma joining when three or more layers are populated", () => {
+    expect(
+      buildEntriesSummary({
+        entryCount: 4,
+        confirmedLayerName: "What Helps",
+        otherLayersWithMaterial: [
+          "Some of My Patterns",
+          "How I Process Things",
+        ],
+        remainingEmptyCount: 2,
+      })
+    ).toBe(
+      "4 entries. What Helps, Some of My Patterns, and How I Process Things have material. 2 still empty."
+    );
+  });
+
+  it("puts the just-confirmed layer first, then the other layers in input order", () => {
+    // The confirmedLayerName always leads so the user sees "their new
+    // entry's layer" highlighted in the recap.
+    const result = buildEntriesSummary({
+      entryCount: 5,
+      confirmedLayerName: "Where I'm Strong",
+      otherLayersWithMaterial: [
+        "Some of My Patterns",
+        "How I Process Things",
+      ],
+      remainingEmptyCount: 2,
+    });
+    const idx1 = result.indexOf("Where I'm Strong");
+    const idx2 = result.indexOf("Some of My Patterns");
+    expect(idx1).toBeLessThan(idx2);
+  });
+
+  it("handles all five layers populated — zero remaining", () => {
+    // Not a special case in the spec; the downstream prompt treats
+    // "0 still empty" as valid copy.
+    expect(
+      buildEntriesSummary({
+        entryCount: 5,
+        confirmedLayerName: "Where I'm Strong",
+        otherLayersWithMaterial: [
+          "Some of My Patterns",
+          "How I Process Things",
+          "What Helps",
+          "How I Show Up with People",
+        ],
+        remainingEmptyCount: 0,
+      })
+    ).toContain("0 still empty.");
   });
 });

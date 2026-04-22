@@ -41,15 +41,14 @@ export interface ExtractionState {
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
   observation_miss_count: number;
-  // Progress-signal delivery flags. The extraction layer sets these true once
-  // it sees the signal land in Jove's last turn. Early frame and depth signal
-  // never reset within a session; approaching resets when current_thread
-  // shifts so a new topic can earn its own approaching signal.
-  early_frame_delivered: boolean;
-  depth_signal_delivered: boolean;
-  approaching_signal_delivered: boolean;
   next_prompt: string;
   sage_brief: string;
+  // Short phrase (under 15 words) describing the pattern the extraction
+  // layer is beginning to see in the user's language and behavior.
+  // Used by the client to populate the Pattern-Forming modal copy.
+  // Regenerated each cycle — never latched, never fed back into the
+  // previous-state input. Null when no clear pattern has emerged.
+  emerging_pattern_snippet: string | null;
 }
 
 interface ManualEntry {
@@ -92,12 +91,32 @@ function defaultState(): ExtractionState {
       note: "",
     },
     observation_miss_count: 0,
-    early_frame_delivered: false,
-    depth_signal_delivered: false,
-    approaching_signal_delivered: false,
     next_prompt: "",
     sage_brief: "",
+    emerging_pattern_snippet: null,
   };
+}
+
+// Maximum word count for emerging_pattern_snippet. Spec target is "under
+// 15 words." Reject only on egregious overshoot (40+ words = the model
+// returned a paragraph) so normal variance passes through. Treats over-
+// long output as a model failure case, falling back to null.
+const SNIPPET_MAX_WORDS = 40;
+
+function parseSnippet(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount > SNIPPET_MAX_WORDS) {
+    console.error(
+      "[extraction] emerging_pattern_snippet exceeded %d words (got %d), treating as null",
+      SNIPPET_MAX_WORDS,
+      wordCount
+    );
+    return null;
+  }
+  return trimmed;
 }
 
 // ─── Extraction prompt ──────────────────────────────────────────────────────
@@ -228,41 +247,13 @@ Track whether ${PERSONA_NAME}'s most recent observation landed for the user. An 
 
 The counter caps at 3 — do not exceed 3.
 
-10. PROGRESS SIGNAL DELIVERY
-${PERSONA_NAME} has three one-time progress signals that build user trust in the journey from conversation to Manual entry. You decide when each should fire, AND you detect when ${PERSONA_NAME} actually delivered it so the flag flips.
+10. EMERGING PATTERN SNIPPET
 
-Each flag is a latch. Once you set it true, leave it true. The only exception is approaching_signal_delivered, which you reset to false when the current_thread changes meaningfully (the user moved to a new subject — not just a new angle on the same subject).
+Produce a short phrase (under 15 words) describing the pattern you are beginning to see in the user's language and behavior. This is used to tell the user what is emerging so they can direct more material toward it.
 
-A. EARLY FRAME (first-session one-time framing)
-Trigger condition: ALL of these must hold to tell ${PERSONA_NAME} to deliver it.
-- This is the user's first session (no confirmed manual entries).
-- early_frame_delivered is false.
-- depth has moved past "surface" (user has narrated at least one concrete moment, not just named a topic).
-- It is not the user's first turn.
+Return null if no clear pattern has emerged yet. Do not force a phrase to fill the field.
 
-When triggered, include in sage_brief: "Deliver the early frame now. Weave it into your response after your landing, before your next question."
-
-Detection: examine ${PERSONA_NAME}'s most recent assistant message. If it contains the early-frame language ("I'm building a model of how you operate", "what you confirm becomes your Manual", or a clear paraphrase of the frame's intent), set early_frame_delivered to true.
-
-B. DEPTH BUILDING SIGNAL
-Trigger condition: ALL of these must hold.
-- depth >= "behavior" OR "feeling" OR "mechanism" OR "origin".
-- At least one layer signal is "emerging" or beyond.
-- No checkpoint has landed in this session yet (checkpoint_gate has not reached ready state AND no confirmed entries from THIS session).
-- depth_signal_delivered is false.
-
-When triggered, include in sage_brief: "A pattern is forming. Signal this to the user. Do not name the pattern yet."
-
-Detection: if ${PERSONA_NAME}'s most recent assistant message contains depth-signal language ("something is forming in your model", "a pattern starting to connect", or a clear paraphrase), set depth_signal_delivered to true.
-
-C. CHECKPOINT APPROACHING SIGNAL
-Trigger condition: 3 of 4 checkpoint_gate criteria (concrete_examples >= 2, has_mechanism, has_charged_language, has_behavior_driver_link) are met AND approaching_signal_delivered is false AND the gate is NOT yet fully met. (For first-checkpoint, use the lighter gate: 2 of 3 — concrete_examples >= 1, has_charged_language, (has_mechanism OR has_behavior_driver_link).)
-
-When triggered, include in sage_brief: "Checkpoint is close. Signal this to the user. Name what you still need." Also name the specific missing piece (scene, mechanism, bind language, body language) so ${PERSONA_NAME} can ask for it directly.
-
-Detection: if ${PERSONA_NAME}'s most recent assistant message contains approaching-signal language ("there's an entry taking shape for your Manual", "I want to get one more piece", or a clear paraphrase), set approaching_signal_delivered to true.
-
-Reset: if current_thread has shifted meaningfully from the previous state (the user moved to a new subject, not a new angle), reset approaching_signal_delivered to false so a new approaching signal can fire for the new topic.
+Good snippets describe what the pattern IS in behavioral or experiential terms, not what category it falls into. "How control and trust show up together" is good. "Attachment issues" is not.
 
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
@@ -293,11 +284,9 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
     "note": ""
   },
   "observation_miss_count": 0,
-  "early_frame_delivered": false,
-  "depth_signal_delivered": false,
-  "approaching_signal_delivered": false,
   "next_prompt": "3-6 word placeholder hint...",
-  "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}"
+  "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}",
+  "emerging_pattern_snippet": "short phrase under 15 words, OR null"
 }
 
 CRITICAL RULES:
@@ -331,9 +320,6 @@ export async function runExtraction(
     mode: state.mode,
     checkpoint_gate: state.checkpoint_gate,
     observation_miss_count: state.observation_miss_count,
-    early_frame_delivered: state.early_frame_delivered,
-    depth_signal_delivered: state.depth_signal_delivered,
-    approaching_signal_delivered: state.approaching_signal_delivered,
   });
   userContent += "\n\n";
 
@@ -392,23 +378,6 @@ export async function runExtraction(
         : state.observation_miss_count;
     const observationMissCount = Math.max(0, Math.min(3, rawMiss));
 
-    // Progress-signal flags are latches. Once Jove has delivered a signal we
-    // never un-deliver it (except approaching, which the model may reset when
-    // the current_thread shifts). Preserve the previous value when the model
-    // omits the field.
-    const earlyFrameDelivered =
-      typeof parsed.early_frame_delivered === "boolean"
-        ? parsed.early_frame_delivered
-        : state.early_frame_delivered;
-    const depthSignalDelivered =
-      typeof parsed.depth_signal_delivered === "boolean"
-        ? parsed.depth_signal_delivered
-        : state.depth_signal_delivered;
-    const approachingSignalDelivered =
-      typeof parsed.approaching_signal_delivered === "boolean"
-        ? parsed.approaching_signal_delivered
-        : state.approaching_signal_delivered;
-
     return {
       layers: parsed.layers || state.layers,
       language_bank: parsed.language_bank || state.language_bank,
@@ -418,15 +387,18 @@ export async function runExtraction(
       checkpoint_gate: parsed.checkpoint_gate || state.checkpoint_gate,
       clinical_flag: parsed.clinical_flag || state.clinical_flag,
       observation_miss_count: observationMissCount,
-      early_frame_delivered: earlyFrameDelivered,
-      depth_signal_delivered: depthSignalDelivered,
-      approaching_signal_delivered: approachingSignalDelivered,
       next_prompt: parsed.next_prompt || "",
       sage_brief: parsed.sage_brief || "",
+      emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
     };
   } catch (err) {
     console.error("[extraction] Failed:", err);
-    return { ...state, next_prompt: "", sage_brief: "" };
+    return {
+      ...state,
+      next_prompt: "",
+      sage_brief: "",
+      emerging_pattern_snippet: null,
+    };
   }
 }
 

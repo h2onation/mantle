@@ -43,6 +43,31 @@ export interface BuildPromptOptions {
     ownerUserName: string | null;
     hasManualContext: boolean;
   } | null;
+  /** Track A Phase 7-High. When set, Jove is generating a post-confirm
+   *  follow-up (not a normal chat turn). The mode determines which
+   *  pinned template block loads; postConfirmContext supplies the
+   *  substitutions the block references literally. Null or absent
+   *  means "this is a normal chat turn," no post-confirm block loads.
+   *
+   *  - "first-message-2" is the scaffolding message after the user's
+   *    first lifetime confirmation. Message 1 ("In. A working name:
+   *    ...") was already server-templated and emitted before this call.
+   *  - "subsequent-single" is the single post-confirm message for any
+   *    non-first-lifetime confirmation. Includes the stamp line AND the
+   *    entries summary AND the open-thread line, all in one turn. */
+  postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  postConfirmContext?: {
+    /** Canonical LAYER_NAMES[layer] of the confirmed entry's layer. */
+    layerName: string;
+    /** Composed entry name in quotes for the stamp line. Only read by
+     *  the "subsequent-single" block. */
+    proposedHeadline: string;
+    /** Pre-built summary sentence, e.g. "3 entries. Some of My Patterns
+     *  and How I Process Things have material. 3 still empty." Built
+     *  server-side with correct pluralization. Only read by the
+     *  "subsequent-single" block. */
+    entriesSummary: string;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +178,12 @@ interface Tier3Flags {
   checkpointApproaching: boolean;
   turnCount: number;
   manualComponentCount: number;
+  postConfirmMode: "first-message-2" | "subsequent-single" | null;
+  postConfirmContext: {
+    layerName: string;
+    proposedHeadline: string;
+    entriesSummary: string;
+  } | null;
 }
 
 function buildTier3(flags: Tier3Flags): string {
@@ -164,6 +195,8 @@ function buildTier3(flags: Tier3Flags): string {
     checkpointApproaching,
     turnCount,
     manualComponentCount,
+    postConfirmMode,
+    postConfirmContext,
   } = flags;
 
   const showFirstMessage = turnCount <= 1 && isNewUser;
@@ -191,13 +224,17 @@ First 2-3 turns: concrete details. Depth starts at turn 3-4. Do not introduce yo
   if (isReturningUser) {
     tier3 += `
 RETURNING USER
-Two jobs: show you remember, then get out of the way.
-1. One sentence referencing something specific from their Manual. Not "we talked about X last time" but something that shows the Manual is alive. Use a specific entry name.
-2. One sentence that opens the door: "What's bringing you in today?" or "What's on your mind?"
-That's it. No session recap. No summary of where you left off.
+Two jobs: show you remember, then get out of the way. Open with this exact three-part structure:
+
+1. The opener: "Welcome back."
+2. One sentence referencing something specific from their Manual or an unresolved thread from their last session. Not "we talked about X last time" but something that shows the Manual is alive. Use a specific entry name OR a specific open thread from the last session — whichever feels more present and current.
+3. The closing question, exactly: "What is on your mind today?"
+
+Render as a single short turn. No session recap. No summary of where you left off.
+
 - If the user picks up where they left off, follow naturally and reference previous material as it becomes relevant.
 - If the user starts something new, go with it immediately. No "before we move on, did you want to finish..."
-- If the user comes in activated (emotional, urgent, something just happened), drop the Manual reference entirely. Respond to what's in front of you. "Tell me what happened."
+- If the user comes in activated (emotional, urgent, something just happened), drop both the "Welcome back" opener and the Manual reference. Respond to what's in front of you. "Tell me what happened."
 `;
   }
 
@@ -249,72 +286,71 @@ Every checkpoint after the first follows the same four-step sequence. No wrapper
 
   if (showCheckpointInstructions) {
     tier3 += `
-POST-CHECKPOINT (after user confirms)
-When you see "[User confirmed the checkpoint]" in history, do three things in order, in one turn. No fork. No "two directions."
+POST-REJECTION (after user rejects)
+When you see "[User rejected the checkpoint]" as the most recent system message in history, your immediate next response must be exactly this single line, with no preamble and no follow-up question:
 
-1. CONFIRM AND NAME THE STRUCTURE.
-Name the layer the entry landed in and what's still open. Use the actual layer names: Some of My Patterns, How I Process Things, What Helps, How I Show Up with People, Where I'm Strong.
-- First entry: "That's your first entry. Your Manual has five layers. This landed in [layer name]. Four layers still open."
-- Second entry: "Two entries now. [Layer name] and [layer name] have material. [Remaining count] layers still open."
-- Third+ entry: "[Count] entries. Your Manual is starting to hold a picture. [Empty layer name] is still blank. That's usually where [one sentence description of what that layer captures] shows up."
+Okay. What made it miss?
 
-When naming an empty layer, use these descriptions:
-- Some of My Patterns: "what your behavior means when you can't explain it in the moment"
-- How I Process Things: "sensory experience, how change lands, what overload feels like"
-- What Helps: "what you need to function, the non-negotiables"
-- How I Show Up with People: "how you connect, handle conflict, show care, and what withdrawal looks like from your side"
-- Where I'm Strong: "what you bring when conditions are right"
-
-2. NAME AN OPEN THREAD.
-Find something in the conversation that the checkpoint touched but did NOT resolve. An assumption that wasn't tested. A mechanism that wasn't traced to its origin. A word the user used that carried weight but wasn't explored. Name it specifically — not "there's more to explore" but the actual open question.
-
-3. PLANT A RETURN HOOK.
-Connect the open thread to a moment that will happen in the user's actual life. "When you notice [the specific pattern], come back and tell me about it." The hook is an open loop — something to watch for between sessions. Invitation, not assignment. Do not frame as homework.
-
-If the user organically wants to apply the pattern to a current situation instead of following the hook, go with them. Read the room.
+After this one-line response, return to natural exploration on the user's next turn. The fixed line applies only to the immediate post-rejection turn — every turn after that, you respond normally based on what the user says next. Do not re-propose the same pattern in this session.
 `;
   }
 
-  tier3 += `
-PROGRESS SIGNALS
-The extraction brief tells you when to deliver each of these. They are one-time signals that help the user feel the journey from conversation to Manual entry. Do NOT deliver them unprompted. Wait until the brief names the trigger, then weave the signal into your response naturally — not as a standalone block.
-${
-  isNewUser
-    ? `
-EARLY FRAME (first session only, one time)
-When the brief says "Deliver the early frame now," weave this into your response after your landing and before your next question:
+  // Track A Phase 7-High: mode-specific post-confirm follow-ups. These
+  // replace the deleted POST-CHECKPOINT block (which did the whole
+  // confirm-and-name-structure / open-thread / return-hook job in one
+  // LLM turn). The new flows are more tightly templated — only the
+  // open-thread line is creative. Server pre-substitutes the layer
+  // name, headline, and entries summary so the LLM reproduces pinned
+  // copy rather than reconstructing it.
+  if (postConfirmMode === "first-message-2" && postConfirmContext) {
+    tier3 += `
+POST-CONFIRM — FIRST LIFETIME ENTRY (Message 2 only)
 
-"While we talk I'm building a model of how you operate. The more detail you give me about what actually happened, the more I can surface patterns you might not see from inside. When I see one I'll reflect it back. You decide if it's true. What you confirm becomes your Manual."
+The user just confirmed their very first Manual entry. Message 1 ("In. A working name: '<name>.' Yours to change.") was already sent by the system; you are not producing that. This call is ONLY for the follow-up message.
 
-One time, ever. Do not deliver it again in this session or any future session. After delivering, do not reference the framing again unless the user asks how the process works.
-`
-    : ""
-}
-DEPTH BUILDING SIGNAL (one time per session)
-When the brief says "A pattern is forming. Signal this to the user," weave this into your response naturally, then continue with your next question:
+Your output must be a single turn with this exact structure, using the pinned copy verbatim:
 
-"Something is forming in your model. I can see a pattern starting to connect across what you've told me but I need to understand what drives it before I can name it clearly."
+That went into ${postConfirmContext.layerName}. Four other places still empty — they fill as more shows up.
 
-Do NOT name the pattern yet. One time only.
+A real Manual takes time. It is not a quiz. You will carry it, return to it, sharpen it. No rush. Just show up. Come back daily for the first two weeks — that is the window where it starts to hold together.
 
-CHECKPOINT APPROACHING SIGNAL (one time per checkpoint attempt)
-When the brief says "Checkpoint is close. Signal this to the user," deliver the approaching signal and then ask directly for the missing piece the brief names.
+<one-sentence open-thread line>
 
-Standard approaching signal (used when the user has had a prior confirmed checkpoint):
-"There's an entry taking shape for your Manual. I want to get one more piece before I put it in front of you."
-
-FIRST-EVER approaching signal (used when this would be the user's first checkpoint — combines the approaching signal WITH the one-time wrapper that teaches the mechanic):
-"There's an entry taking shape for your Manual. I want to get one more piece before I put it in front of you. When I see enough material I'll reflect a pattern back to you. That's how your Manual gets built. You tell me if it's right. Nothing sticks unless you say so."
-
-After the signal, ask directly for the gap the brief named:
-- Missing scene: "Take me into a specific moment where this was happening. Where were you, what triggered it, what did you do?"
-- Missing bind: "What would happen if you stopped doing this? What's the alternative you're avoiding?"
-- Missing body/user language: "How would you describe this in your own words? Not the concept. The feeling."
-
-The approaching turn is a collection turn, not decorative. Your next question MUST target the specific gap. Do not ask another conceptual question.
-
-If the user shifts to a completely new topic after you've delivered the approaching signal, the signal can fire again for the new topic (the brief will tell you).
+Rules:
+- The first two paragraphs are pinned. Reproduce them verbatim — exact wording, punctuation, and line breaks.
+- The open-thread line is the only creative piece. Name something specific from the conversation that was touched but did not resolve: an assumption that was not tested, a mechanism not traced to its origin, a charged word the user used but did not explore. One sentence. Invitation, not homework. Not "there's more to explore" but the actual open question.
+- Do not add a headline. Do not re-stamp the entry. Do not ask "does that fit" or any variant. Do not open with a greeting or preamble. Open directly with "That went into...".
 `;
+  }
+
+  if (postConfirmMode === "subsequent-single" && postConfirmContext) {
+    tier3 += `
+POST-CONFIRM — SUBSEQUENT ENTRY (single message)
+
+The user just confirmed an entry in their Manual. They already had at least one prior confirmed entry; this is NOT their first lifetime confirmation.
+
+Your output must be a single turn with this exact structure, using the pinned copy with the shown substitutions:
+
+In. A working name: "${postConfirmContext.proposedHeadline}." Yours to change.
+
+${postConfirmContext.entriesSummary}
+
+<one-sentence open-thread line>
+
+Rules:
+- The first two paragraphs above (the stamp line and the entries-summary line) are pinned. Reproduce them verbatim — exact quotes, period placement, line breaks.
+- The open-thread line is the only creative piece. Name something specific from the conversation that was touched but did not resolve. One sentence. Invitation, not homework.
+- Do not ask "does that fit" or any variant. Do not restate the entry twice. Do not frame the open thread as homework. Do not open with a greeting or preamble. Open directly with "In. A working name:...".
+`;
+  }
+
+  // Phase 7-High / Gate 8: the PROGRESS SIGNALS block (EARLY FRAME,
+  // DEPTH BUILDING SIGNAL, CHECKPOINT APPROACHING SIGNAL — both
+  // standard and first-ever variants) was deleted here. Those signals
+  // are now delivered as modals (see ChatWindowModal, PatternFormingModal,
+  // FirstCheckpointModal). Keeping the inline prompt instructions
+  // alongside the modals caused duplicate delivery. Removal is complete
+  // once the extraction.ts detection logic (§10 A/B/C) also goes.
 
   tier3 += `
 ADAPTING
@@ -378,6 +414,8 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     checkpointApproaching,
     personaMode = "autistic",
     groupContext,
+    postConfirmMode = null,
+    postConfirmContext = null,
   } = options;
   // personaMode currently has only one value ('autistic'). The voice content
   // (VOICE_RULES, BANNED_PHRASES, BANNED_PATTERNS, EXAMPLE_REGISTER,
@@ -406,6 +444,8 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     checkpointApproaching,
     turnCount,
     manualComponentCount: manualComponents.length,
+    postConfirmMode,
+    postConfirmContext,
   });
 
   const basePrompt = `${intro}
