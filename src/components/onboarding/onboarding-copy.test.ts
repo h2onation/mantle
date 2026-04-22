@@ -12,23 +12,32 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/onboarding/EntryScreen.tsx");
 
     it("uses the new headline", () => {
-      // Period is wrapped in a <span> for the sage-accent treatment, so
-      // the terminal "." is not continuous with the words in the source.
-      // Assert on the phrase body instead.
-      expect(src).toContain("A more complete manual of how your mind works");
+      // Headline breaks across three lines with `<br />` separators and
+      // the terminal "." is wrapped in a span for the sage-accent
+      // treatment, so assert on the phrase bodies line-by-line.
+      expect(src).toContain("A more complete manual");
+      expect(src).toContain("of how your mind");
+      expect(src).toContain("works");
     });
 
-    it("uses the new subhead", () => {
-      expect(src).toContain("Built for neurodivergent adults.");
+    it("uses the masthead paratext as publication signal", () => {
+      // "Built for neurodivergent adults." subhead was absorbed into
+      // the masthead's two-line editorial paratext. The page now reads
+      // as a publication — issue number, season, audience note.
+      expect(src).toContain("Issue One");
+      expect(src).toContain("Spring 2026");
+      expect(src).toContain("A manual for neurodivergent adults");
     });
 
-    it("uses the new explainer heading", () => {
-      expect(src).toContain("An oversimplification of how it works:");
-    });
-
-    it("contains all 4 numbered explainer beats", () => {
-      // Persona name is interpolated via PERSONA_NAME constant; assert
-      // the surrounding copy without the name.
+    it("contains all 4 method beats with italic chapter titles", () => {
+      // Four chapters now: On bringing / On listening / On composing /
+      // On sharing. Italic chapter titles set the editorial register;
+      // the prose bodies are preserved verbatim from the earlier
+      // numbered beats.
+      expect(src).toContain("On bringing");
+      expect(src).toContain("On listening");
+      expect(src).toContain("On composing");
+      expect(src).toContain("On sharing");
       expect(src).toContain("You bring a situation that is on your mind &mdash;");
       expect(src).toContain("Talking it through with {PERSONA_NAME} helps you organize");
       expect(src).toContain("Underneath the conversation, {PERSONA_NAME} is building a model");
@@ -38,17 +47,23 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("no longer flags items 3 and 4 with a (Coming soon) qualifier", () => {
-      // The qualifier was removed per direction: keep the feature copy,
-      // present tense. The features don't fully ship yet but the landing
-      // should not read as a roadmap.
       expect(src).not.toContain("(Coming soon)");
       expect(src).not.toContain("mw-entry-soon");
     });
 
-    it("uses the beta line and matches the wordmark spelling", () => {
-      // Wordmark is "my walnut" (two words). The supplied copy draft used
-      // "mywalnut" (one word) here; we corrected to match the wordmark.
-      expect(src).toContain("my walnut is in early access.");
+    it("includes the pull-quote chapter break", () => {
+      // The product's core promise is elevated to an editorial
+      // pull-quote floating between the method and the CTA.
+      expect(src).toContain("Nothing enters the manual");
+      expect(src).toContain("unless you confirm it");
+    });
+
+    it("uses an editorial CTA and drops the filled-plate beta line", () => {
+      // The "my walnut is in early access." kicker is gone. The CTA is
+      // now a text-only italic link with an arrow ornament, preceded
+      // by an italic invitation line. No filled sage plate.
+      expect(src).toContain("A manual waits to be written.");
+      expect(src).not.toContain("my walnut is in early access");
       expect(src).not.toContain("mywalnut");
     });
 
@@ -63,19 +78,19 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("preserves the 'my walnut' wordmark at the top", () => {
-      // Wordmark is rendered as "my walnut" + a separate <span> carrying
-      // the sage period; the bare phrase is sufficient to assert the
-      // spelling, and the `not.toContain("mywalnut")` above already
-      // guards against the one-word collapse.
       expect(src).toContain("my walnut");
+    });
+
+    it("includes a colophon signature line in the footer", () => {
+      // Editorial footer signs the document: one italic colophon
+      // line above the legal row.
+      expect(src).toContain("Set in Newsreader");
+      expect(src).toContain("Assembled in conversation");
     });
 
     it("declares responsive breakpoints and a 1120px editorial max-width", () => {
       expect(src).toContain("min-width: 768px");
       expect(src).toContain("min-width: 1024px");
-      // Post-redesign (editorial periodical direction) widened the
-      // reading frame from 880 to 1120 so the asymmetric hero has room
-      // to breathe. Declared once on --mw-entry-max.
       expect(src).toContain("1120px");
     });
 
@@ -100,13 +115,19 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("onSignup");
     });
 
-    it("no longer ships the 10 rotating-specimen sentences", () => {
-      // The rotating specimen was replaced by HeroManualVignette —
-      // a one-shot chat→Manual-entry narrative. The 10 sentences
-      // are gone from EntryScreen (they lived in ROTATING_EXAMPLES).
-      expect(src).not.toContain("ROTATING_EXAMPLES");
-      expect(src).not.toContain("You shut down and people think you");
-      expect(src).not.toContain("The people you love get a version of loyalty");
+    it("ships the 10 rotating-specimen sentences", () => {
+      // Rotating specimen is back, unframed, set in italic Newsreader
+      // below the hero headline. Six-point-five-second dwell; each
+      // sentence reads like a photograph.
+      expect(src).toContain("ROTATING_EXAMPLES");
+      expect(src).toContain("You shut down and people think you");
+      expect(src).toContain("The people you love get a version of loyalty");
+    });
+
+    it("does NOT import the removed HeroManualVignette component", () => {
+      // HeroManualVignette was deleted when the landing reverted to
+      // the rotating-specimen approach. No lingering import.
+      expect(src).not.toContain("HeroManualVignette");
     });
   });
 
