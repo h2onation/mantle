@@ -195,8 +195,7 @@ let debugHitbox = false;
 
 const GAMEOVER_MESSAGE = "Kevin missed his connection";
 const GAMEOVER_PROMPT = "Press spacebar to be listed for the next flight";
-const BEAT_MESSAGES = ["Welcome to Summit status", "Upgraded to first class"];
-let gameoverBeatMessage = "";
+const BEAT_MESSAGE = "Welcome to Summit status";
 
 const kevin = {
   x: CONFIG.KEVIN_X,
@@ -250,6 +249,34 @@ function arrivalTimeAtKevin(ob) {
   return (ob.x - CONFIG.KEVIN_X) / rel;
 }
 
+// The time window during which Kevin is committed to grabbing a card
+// at world-x `cardX`: takeoff slightly before card arrival, landing
+// one full jump duration later. Any obstacle whose arrival time falls
+// inside this window would force Kevin to land on it — unsolvable.
+function cardArcWindow(cardX) {
+  const arr = (cardX - CONFIG.KEVIN_X) / worldSpeed;
+  const jumpDur = 2 * Math.abs(CONFIG.JUMP_VELOCITY) / CONFIG.GRAVITY;
+  return { start: arr - 0.18, end: arr + jumpDur + 0.18 };
+}
+function newCardConflictsWithObstacles(cardX) {
+  const w = cardArcWindow(cardX);
+  for (const ob of obstacles) {
+    const t = arrivalTimeAtKevin(ob);
+    if (t >= w.start && t <= w.end) return true;
+  }
+  return false;
+}
+function newObstacleConflictsWithCardArcs(cand) {
+  const obArr = arrivalTimeAtKevin(cand);
+  for (const p of pickups) {
+    if (p.collected) continue;
+    if (p.type !== "ascent" && p.type !== "summit") continue;
+    const w = cardArcWindow(p.x);
+    if (obArr >= w.start && obArr <= w.end) return true;
+  }
+  return false;
+}
+
 function createObstacleCandidate() {
   const roll = Math.random();
   if (roll < 0.55) {
@@ -291,9 +318,15 @@ function trySpawnObstacle() {
   for (const ob of obstacles) {
     const t = arrivalTimeAtKevin(ob);
     if (Math.abs(newArr - t) < CONFIG.MIN_ARRIVAL_GAP_SEC) {
-      nextObstacleAt = worldX + 90; // try again soon
+      nextObstacleAt = worldX + 90;
       return;
     }
+  }
+  // Reject if the new obstacle would land inside the jump-arc window
+  // of any active card — Kevin would be airborne and unable to avoid it.
+  if (newObstacleConflictsWithCardArcs(cand)) {
+    nextObstacleAt = worldX + 140;
+    return;
   }
   obstacles.push(cand);
   nextObstacleAt = worldX + rand(CONFIG.OBSTACLE_MIN_GAP, CONFIG.OBSTACLE_MAX_GAP);
@@ -314,8 +347,11 @@ function nearAnyPickup(xWorld, within) {
 function trySpawnAscent() {
   if (score < nextAscentAt) return;
   const x = W + 40;
-  if (nearAnyObstacle(x, 160) || nearAnyPickup(x, 240)) {
-    nextAscentAt = score + 80;
+  if (nearAnyPickup(x, 240)) { nextAscentAt = score + 60; return; }
+  // Jump-arc fairness: don't spawn if grabbing the card forces a landing
+  // on an obstacle. Obstacle spawns will likewise avoid this window.
+  if (newCardConflictsWithObstacles(x)) {
+    nextAscentAt = score + 60;
     return;
   }
   pickups.push({
@@ -328,8 +364,9 @@ function trySpawnAscent() {
 function trySpawnSummit() {
   if (score < nextSummitAt) return;
   const x = W + 40;
-  if (nearAnyObstacle(x, 180) || nearAnyPickup(x, 260)) {
-    nextSummitAt = score + 80;
+  if (nearAnyPickup(x, 260)) { nextSummitAt = score + 60; return; }
+  if (newCardConflictsWithObstacles(x)) {
+    nextSummitAt = score + 60;
     return;
   }
   pickups.push({
@@ -429,7 +466,6 @@ function finishDying() {
     highScore = score;
     localStorage.setItem("sillygoose.highScore", String(highScore));
     showBeat = true;
-    gameoverBeatMessage = choose(BEAT_MESSAGES);
   } else {
     showBeat = false;
   }
@@ -1121,11 +1157,11 @@ function drawGameOverScreen() {
   let y = 120;
   if (showBeat) {
     ctx.font = "bold 12px 'Courier New', monospace";
-    ctx.fillText(gameoverBeatMessage, W / 2, y);
+    ctx.fillText(BEAT_MESSAGE, W / 2, y);
     y += 18;
   }
-  ctx.font = "11px 'Courier New', monospace";
-  ctx.fillText("Distance: " + score + "    Customers: " + customersAcquired, W / 2, y);
+  ctx.font = "bold 12px 'Courier New', monospace";
+  ctx.fillText("ATMOS customers acquired: " + customersAcquired, W / 2, y);
   y += 22;
   ctx.font = "10px 'Courier New', monospace";
   ctx.fillStyle = COLOR_NEAR;
