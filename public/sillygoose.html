@@ -482,12 +482,15 @@ function update(dt) {
   }
 
   if (state === "playing") {
-    // Gentle speed ramp: +SPEED_RAMP_PER_100 per 100 score, capped at MAX_SPEED
-    const ramped = CONFIG.START_SPEED + Math.floor(score / 100) * CONFIG.SPEED_RAMP_PER_100;
+    // Speed ramp uses DISTANCE traveled only — collecting ATMOS cards
+    // bumps the displayed score but doesn't spike worldSpeed, so a good
+    // card run doesn't immediately slam Kevin into the speed ceiling.
+    const distanceScore = Math.floor(worldX * CONFIG.SCORE_PER_PX);
+    const ramped = CONFIG.START_SPEED + Math.floor(distanceScore / 100) * CONFIG.SPEED_RAMP_PER_100;
     worldSpeed = Math.min(ramped, CONFIG.MAX_SPEED);
 
     worldX += worldSpeed * dt;
-    score = Math.floor(worldX * CONFIG.SCORE_PER_PX) + bonusScore;
+    score = distanceScore + bonusScore;
 
     kevin.vy += CONFIG.GRAVITY * dt;
     kevin.y += kevin.vy * dt;
