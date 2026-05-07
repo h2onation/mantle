@@ -1258,4 +1258,60 @@ describe("buildSystemPrompt", () => {
       }
     });
   });
+
+  // ─── Guided intake mode ─────────────────────────────────────────────────
+  describe("guided intake mode", () => {
+    it("renders GUIDED INTAKE block when mode is 'guided-intake'", () => {
+      const result = build({ mode: "guided-intake" });
+      expect(result).toContain("GUIDED INTAKE");
+      expect(result).toContain("The user opted into a more directed path");
+    });
+
+    it("does NOT render GUIDED INTAKE when mode is omitted, undefined, or 'situation'", () => {
+      expect(build()).not.toContain("GUIDED INTAKE");
+      expect(build({ mode: undefined })).not.toContain("GUIDED INTAKE");
+      expect(build({ mode: "situation" })).not.toContain("GUIDED INTAKE");
+    });
+
+    it("TIER 1 content still renders alongside guided intake", () => {
+      const result = build({ mode: "guided-intake" });
+      expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
+      expect(result).toContain("THE USER IS THE AUTHOR");
+    });
+
+    it("TIER 2 content still renders alongside guided intake (voice rules and banned phrases)", () => {
+      const result = build({ mode: "guided-intake" });
+      expect(result).toContain("VOICE RULES");
+      expect(result).toContain("BANNED PHRASES");
+      for (const rule of VOICE_RULES) {
+        expect(result).toContain(rule);
+      }
+    });
+
+    it("FIRST MESSAGE block still renders alongside guided intake for new users on turn 1", () => {
+      const result = build({
+        mode: "guided-intake",
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 1,
+      });
+      expect(result).toContain("FIRST MESSAGE");
+      expect(result).toContain("GUIDED INTAKE");
+      const fmIdx = result.indexOf("FIRST MESSAGE");
+      const giIdx = result.indexOf("GUIDED INTAKE");
+      expect(fmIdx).toBeLessThan(giIdx);
+    });
+
+    it("none of the banned phrases from voice-autistic.ts appear inside the GUIDED INTAKE block", () => {
+      const result = build({ mode: "guided-intake" });
+      const start = result.indexOf("GUIDED INTAKE");
+      const end = result.indexOf("\nADAPTING", start);
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(end).toBeGreaterThan(start);
+      const guidedBlock = result.slice(start, end);
+      for (const phrase of BANNED_PHRASES) {
+        expect(guidedBlock).not.toContain(phrase);
+      }
+    });
+  });
 });
