@@ -37,6 +37,10 @@ export interface BuildPromptOptions {
   } | null;
   turnCount: number;
   checkpointApproaching: boolean;
+  /** Conversation mode. "situation" (default) is standard open-ended
+   *  exploration. "guided-intake" runs a more directed path toward
+   *  the first checkpoint. */
+  mode?: "situation" | "guided-intake";
   /** Voice mode. Defaults to 'autistic' when omitted. */
   personaMode?: PersonaMode;
   groupContext?: {
@@ -184,6 +188,7 @@ interface Tier3Flags {
     proposedHeadline: string;
     entriesSummary: string;
   } | null;
+  mode: "situation" | "guided-intake";
 }
 
 function buildTier3(flags: Tier3Flags): string {
@@ -197,7 +202,10 @@ function buildTier3(flags: Tier3Flags): string {
     manualComponentCount,
     postConfirmMode,
     postConfirmContext,
+    mode,
   } = flags;
+
+  void mode; // used by Workstream 2 (guided-intake block)
 
   const showFirstMessage = turnCount <= 1 && isNewUser;
   const showFirstSession = isNewUser;
@@ -412,6 +420,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     contentContext,
     turnCount,
     checkpointApproaching,
+    mode = "situation",
     personaMode = "autistic",
     groupContext,
     postConfirmMode = null,
@@ -446,6 +455,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     manualComponentCount: manualComponents.length,
     postConfirmMode,
     postConfirmContext,
+    mode,
   });
 
   const basePrompt = `${intro}
