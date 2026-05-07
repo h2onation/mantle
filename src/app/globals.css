@@ -226,16 +226,26 @@ textarea::placeholder {
 
 /* Global focus ring — 2px sage outline, 3px offset. Reads against both
    linen surface and dark overlays. outline-offset keeps the ring from
-   hugging tight on square elements. */
+   hugging tight on square elements.
+
+   Excludes textarea: per style guide §component-states, textareas use
+   a sage borderBottom on focus, not an offset outline. The offset
+   outline reads as a floating box around an empty rectangle on
+   borderless textareas — ugly and bubble-app. The caret already
+   shows where focus is; the rule below just thickens the writing line. */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--session-persona) !important;
   outline-offset: 3px !important;
   box-shadow: none !important;
+}
+
+textarea:focus-visible {
+  outline: none !important;
+  border-bottom: 2px solid var(--session-persona) !important;
 }
 
 /* Reduced motion — honor the OS preference. */
