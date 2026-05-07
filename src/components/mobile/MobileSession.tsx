@@ -777,10 +777,14 @@ export default function MobileSession({
                         )}
                       </div>
                     )}
-                    {/* Rail — 2px sage-soft line, text indented */}
+                    {/* Rail — 2px persona line, text indented. Text uses
+                        --ink-persona (the role-based "Jove voice" color)
+                        rather than --ink so dark-mode Jove doesn't shout
+                        in pure cream while quieter text on the page sits
+                        at a softer brightness. */}
                     <div
                       style={{
-                        borderLeft: "2px solid var(--session-persona-soft)",
+                        borderLeft: "2px solid var(--session-persona)",
                         paddingLeft: "var(--sp-sm)",
                         paddingTop: "var(--sp-tight)",
                         paddingBottom: "var(--sp-tight)",
@@ -788,7 +792,7 @@ export default function MobileSession({
                         fontSize: "18px",
                         fontWeight: 400,
                         lineHeight: 1.65,
-                        color: "var(--session-ink)",
+                        color: "var(--session-ink-persona)",
                       }}
                     >
                       <div
@@ -817,14 +821,18 @@ export default function MobileSession({
                 return personaPanel;
               }
 
-              // User message — italic serif, sage left rule, indented.
-              // Quieter vertical presence than Jove — the interjection is the
-              // reader's marginalia, not a competing speaker.
+              // User message — italic serif, sage left rule, indented from
+              // a deeper margin than Jove so the reader's interjections sit
+              // visually "to the right" of Jove's annotations. The left
+              // margin pulls the rail in past Jove's column; the rule and
+              // text both shift together. Marginalia, not a competing
+              // speaker, but clearly the reader's hand.
               return (
                 <div
                   key={msg.id || `msg-${i}`}
                   style={{
-                    paddingLeft: "var(--sp-md)",
+                    marginLeft: "var(--sp-xl)",
+                    paddingLeft: "var(--sp-sm)",
                     borderLeft: `2px solid var(--session-persona-muted)`,
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}

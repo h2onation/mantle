@@ -33,10 +33,13 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
         justifyContent: "space-evenly",
         paddingTop: "10px",
         paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
-        background: "var(--session-linen)",
+        background: "var(--session-cream)",
         // Structural floor boundary — separates the writing/reading zone from
-        // the navigation frame. Keeps the nav recessive so the feed and input
-        // can claim priority on the linen surface above.
+        // the navigation frame. The nav is one step lifted from the linen
+        // ground (--cream is a half-step warmer/lighter than --linen) so it
+        // reads as a quiet platform under the chat, not a flat slab.
+        // Especially important in dark mode where a flat --linen nav would
+        // contrast as "true black" against the chat's vignette edges.
         borderTop: "1px solid var(--session-hair-soft)",
         zIndex: 100,
       }}
