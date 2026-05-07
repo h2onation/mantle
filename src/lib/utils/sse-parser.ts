@@ -21,6 +21,12 @@ export interface MessageCompleteEvent {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
+  // Conversation mode at the time this message was emitted. Carried
+  // for analytics so the client can attach mode to checkpoint and
+  // session-end events without a separate fetch. Optional for
+  // backward compatibility with older server builds (treated as
+  // "situation" when missing).
+  mode?: "situation" | "guided-intake";
 }
 
 interface SSECallbacks {

@@ -57,8 +57,9 @@ const CASES: Case[] = [
         end_type: "natural",
         message_count: 4,
         duration_seconds: 120,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "end_type", "message_count", "duration_seconds"],
+    expectedKeys: ["conversation_id", "end_type", "message_count", "duration_seconds", "mode"],
   },
   {
     event: "checkpoint_proposed",
@@ -68,8 +69,17 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         message_number: 5,
+        user_turn_count: 2,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "message_number"],
+    expectedKeys: [
+      "conversation_id",
+      "checkpoint_id",
+      "layer",
+      "message_number",
+      "user_turn_count",
+      "mode",
+    ],
   },
   {
     event: "checkpoint_confirmed",
@@ -79,8 +89,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_rejected",
@@ -90,8 +101,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_refined",
@@ -101,8 +113,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_deferred",
@@ -112,8 +125,18 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+  },
+  {
+    event: "guided_intake_opener_fired",
+    call: () =>
+      events.trackGuidedIntakeOpenerFired({
+        conversation_id: "c1",
+        variant: "default",
+      }),
+    expectedKeys: ["conversation_id", "variant"],
   },
   {
     event: "manual_viewed",
@@ -178,6 +201,57 @@ const CASES: Case[] = [
     ],
   },
 ];
+
+// Mirrors the count expression at the trackCheckpointProposed fire
+// site in useChat.ts. If anyone changes that expression, this test
+// fails and forces an explicit conversation about the new semantics.
+function userTurnCount(messages: { role: string }[]): number {
+  return messages.filter((m) => m.role === "user").length;
+}
+
+describe("checkpoint_proposed user_turn_count semantics", () => {
+  it("counts only role==='user' messages, not assistant or system", () => {
+    const messages = [
+      { role: "user" },
+      { role: "assistant" },
+      { role: "user" },
+      { role: "system" },
+      { role: "assistant" },
+      { role: "user" },
+    ];
+    expect(userTurnCount(messages)).toBe(3);
+  });
+
+  it("returns 0 for an empty conversation", () => {
+    expect(userTurnCount([])).toBe(0);
+  });
+
+  it("returns 0 for an assistant-only conversation (e.g. opener-only state)", () => {
+    expect(
+      userTurnCount([{ role: "assistant" }, { role: "assistant" }])
+    ).toBe(0);
+  });
+
+  it("trackCheckpointProposed accepts and forwards user_turn_count", () => {
+    vi.mocked(posthog.capture).mockClear();
+    events.trackCheckpointProposed({
+      conversation_id: "c1",
+      checkpoint_id: "m1",
+      layer: 3,
+      message_number: 7,
+      user_turn_count: 4,
+      mode: "guided-intake",
+    });
+    expect(posthog.capture).toHaveBeenCalledTimes(1);
+    const [name, props] = vi.mocked(posthog.capture).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(name).toBe("checkpoint_proposed");
+    expect(props.user_turn_count).toBe(4);
+    expect(props.message_number).toBe(7);
+  });
+});
 
 describe("analytics events — PII guard", () => {
   beforeEach(() => {
