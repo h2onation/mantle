@@ -191,6 +191,44 @@ describe("/api/chat — anonymous user gates", () => {
   });
 });
 
+describe("/api/chat — conversation mode validation", () => {
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+  });
+
+  it("accepts mode 'guided-intake' and returns 200", async () => {
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: null, mode: "guided-intake" })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("accepts mode 'situation' and returns 200", async () => {
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: null, mode: "situation" })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("defaults to 'situation' when mode is omitted", async () => {
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: null })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects invalid mode with 400", async () => {
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: null, mode: "turbo" })
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/invalid mode/i);
+  });
+});
+
 describe("/api/chat — fail open when Upstash unavailable", () => {
   it("proceeds normally when limiters return success (null/missing env)", async () => {
     mockGetUser.mockResolvedValue({

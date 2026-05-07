@@ -5,7 +5,10 @@ import {
   applyCheckpointGates,
   computeInheritedRefinementCount,
   buildEntriesSummary,
+  buildPromptOptionsFromContext,
+  type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
+import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import type { ExtractionState } from "@/lib/persona/extraction";
 
 function makeExtractionState(
@@ -391,5 +394,46 @@ describe("buildEntriesSummary", () => {
         remainingEmptyCount: 0,
       })
     ).toContain("0 still empty.");
+  });
+});
+
+// ── Conversation mode → prompt integration ──────────────────────────────────
+
+describe("buildPromptOptionsFromContext — mode field", () => {
+  function makeCtx(mode: "situation" | "guided-intake"): ConversationContext {
+    return {
+      messages: [{ role: "user", content: "test" }],
+      manualComponents: [],
+      previousExtraction: null,
+      sessionSummary: null,
+      isReturningUser: false,
+      isFirstCheckpoint: true,
+      sessionCount: 1,
+      turnsSinceCheckpoint: Infinity,
+      conversationId: "test-conv",
+      extractionForPersona: "",
+      turnCount: 1,
+      checkpointApproaching: false,
+      personaMode: "autistic",
+      mode,
+    };
+  }
+
+  it("passes mode through to BuildPromptOptions", () => {
+    expect(buildPromptOptionsFromContext(makeCtx("guided-intake")).mode).toBe("guided-intake");
+    expect(buildPromptOptionsFromContext(makeCtx("situation")).mode).toBe("situation");
+  });
+
+  it("guided-intake context produces a prompt with GUIDED INTAKE block", () => {
+    const opts = buildPromptOptionsFromContext(makeCtx("guided-intake"));
+    const prompt = buildSystemPrompt(opts);
+    expect(prompt).toContain("GUIDED INTAKE");
+    expect(prompt).toContain("The user opted into a more directed path");
+  });
+
+  it("situation context produces a prompt WITHOUT GUIDED INTAKE block", () => {
+    const opts = buildPromptOptionsFromContext(makeCtx("situation"));
+    const prompt = buildSystemPrompt(opts);
+    expect(prompt).not.toContain("GUIDED INTAKE");
   });
 });

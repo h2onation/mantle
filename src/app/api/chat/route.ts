@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { message, conversationId, explorationContext } = (await request.json()) as {
+    const { message, conversationId, explorationContext, mode: requestedMode } = (await request.json()) as {
       message: string | null;
       conversationId: string | null;
       explorationContext?: {
@@ -41,7 +41,19 @@ export async function POST(request: Request) {
         name?: string;
         content: string;
       };
+      mode?: string;
     };
+
+    if (
+      requestedMode !== undefined &&
+      requestedMode !== "situation" &&
+      requestedMode !== "guided-intake"
+    ) {
+      return Response.json(
+        { error: "Invalid mode. Must be 'situation' or 'guided-intake'." },
+        { status: 400 }
+      );
+    }
 
     // 1a. Message length check (cheapest, no external calls)
     if (typeof message === "string" && message.length > MAX_MESSAGE_LENGTH) {
@@ -97,7 +109,7 @@ export async function POST(request: Request) {
 
       const { data: conv, error: convError } = await admin
         .from("conversations")
-        .insert({ user_id: user.id })
+        .insert({ user_id: user.id, mode: requestedMode || "situation" })
         .select("id")
         .single();
 

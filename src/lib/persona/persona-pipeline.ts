@@ -44,6 +44,7 @@ export interface ConversationContext {
   turnCount: number;
   checkpointApproaching: boolean;
   personaMode: PersonaMode;
+  mode: "situation" | "guided-intake";
 }
 
 export interface CheckpointGateResult {
@@ -101,7 +102,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("conversations")
-      .select("extraction_state, summary")
+      .select("extraction_state, summary, mode")
       .eq("id", conversationId)
       .single(),
     admin
@@ -123,6 +124,15 @@ export async function loadConversationContext(
   // The seam exists so future modes can be added without re-plumbing.
   const personaMode: PersonaMode =
     (profileResult.data?.persona_mode as PersonaMode) || "autistic";
+
+  // Conversation mode. Only 'guided-intake' is explicitly recognized;
+  // everything else (including null, missing, or invalid) → 'situation'.
+  const rawMode = extractionResult.data?.mode;
+  if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake") {
+    console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
+  }
+  const conversationMode: "situation" | "guided-intake" =
+    rawMode === "guided-intake" ? "guided-intake" : "situation";
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -231,6 +241,7 @@ export async function loadConversationContext(
     turnCount,
     checkpointApproaching,
     personaMode,
+    mode: conversationMode,
   };
 }
 
@@ -253,6 +264,7 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     turnCount: ctx.turnCount,
     checkpointApproaching: ctx.checkpointApproaching,
     personaMode: ctx.personaMode,
+    mode: ctx.mode,
   };
 }
 
