@@ -10,6 +10,7 @@ import {
   renderLandingExamples,
 } from "@/lib/persona/voice-autistic";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/manual-context";
 
 /** Voice mode for the persona. Currently only 'autistic' ships, but the seam exists
@@ -233,7 +234,7 @@ GUIDED INTAKE
 The user opted into a more directed path. They want to feel the conversation going somewhere. Your job is to find the first piece of material the Manual can hold, faster than situation mode would, without lowering the bar on what counts.
 
 OPENER (use this, not FIRST MESSAGE branches)
-"Tell me about a moment in the last week or two that's still sitting with you. Doesn't have to be big. A conversation that landed wrong, a reaction that surprised you, a thing that worked when you didn't expect it to. Whatever comes to mind first is fine."
+"${GUIDED_INTAKE_OPENER}"
 
 If the user says "nothing comes to mind" or equivalent: drop the recency window. "Doesn't have to be recent. Anything you've found yourself returning to — a conversation, a moment, a thing someone said that stuck. One thing."
 
