@@ -281,6 +281,24 @@ describe("guided intake instrumentation wiring", () => {
     expect(region).toContain("mode: eventMode");
   });
 
+  it("useChat derives user_turn_count by filtering messages on role==='user'", () => {
+    expect(useChat).toMatch(
+      /messages\.filter\(\(m\) => m\.role === "user"\)\.length/
+    );
+  });
+
+  it("useChat passes user_turn_count to trackCheckpointProposed", () => {
+    const region = useChat.match(/trackCheckpointProposed\(\{[\s\S]*?\}\);/)?.[0];
+    expect(region).toBeDefined();
+    expect(region).toContain("user_turn_count: userTurnCount");
+  });
+
+  it("checkpoint_proposed message_number is preserved alongside user_turn_count", () => {
+    const region = useChat.match(/trackCheckpointProposed\(\{[\s\S]*?\}\);/)?.[0];
+    expect(region).toBeDefined();
+    expect(region).toContain("message_number: messages.length + 1");
+  });
+
   it("useChat passes mode to trackConversationEnded", () => {
     const region = useChat.match(
       /trackConversationEnded\(\{[\s\S]*?\}\);/

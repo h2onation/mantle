@@ -61,6 +61,11 @@ export function trackCheckpointProposed(props: {
   checkpoint_id: string;
   layer: number;
   message_number: number;
+  // Count of user messages in the conversation at the moment the
+  // checkpoint fires. Lets the dashboard answer "how fast does guided
+  // intake reach a checkpoint?" without deriving from message_number.
+  // Counted client-side from the React messages array (role === "user").
+  user_turn_count: number;
   mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_proposed", props);

@@ -257,11 +257,13 @@ export function useChat() {
 
       const convIdForCp = completeEvent.conversationId || conversationId;
       if (convIdForCp && completeEvent.messageId) {
+        const userTurnCount = messages.filter((m) => m.role === "user").length;
         trackCheckpointProposed({
           conversation_id: convIdForCp,
           checkpoint_id: completeEvent.messageId,
           layer: completeEvent.checkpoint.layer,
           message_number: messages.length + 1,
+          user_turn_count: userTurnCount,
           mode: eventMode,
         });
       }
