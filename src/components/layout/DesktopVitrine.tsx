@@ -1,10 +1,17 @@
 "use client";
 
 import { APP_VERSION } from "@/lib/version";
+import { useTheme, type ThemePreference } from "@/lib/hooks/useTheme";
 
 interface DesktopVitrineProps {
   children: React.ReactNode;
 }
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "sys" },
+  { value: "light", label: "light" },
+  { value: "dark", label: "dark" },
+];
 
 /**
  * The desktop "vitrine" — the parchment canvas, editorial masthead, phone
@@ -33,6 +40,8 @@ interface DesktopVitrineProps {
  * canvas, masthead, frame, and colophon.
  */
 export default function DesktopVitrine({ children }: DesktopVitrineProps) {
+  const { preference: themePref, setPreference: setThemePref } = useTheme();
+
   return (
     <div
       style={{
@@ -164,6 +173,57 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             <a href="/terms" style={{ color: "inherit", textDecoration: "none" }}>
               Terms
             </a>
+          </p>
+
+          {/* Theme toggle — three-state cycle (sys / light / dark). Sits
+              in the colophon meta zone so the desktop canvas has the same
+              affordance as Settings → Appearance on mobile. Active option
+              gets ink color + underline; others stay at the meta-row's
+              ink-mid. Mono-caps to match the surrounding metadata
+              typography. */}
+          <p
+            role="group"
+            aria-label="Theme preference"
+            style={{
+              margin: "10px 0 0",
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--size-meta)",
+              fontWeight: 400,
+              letterSpacing: "0.5px",
+              color: "var(--session-ink-mid)",
+              display: "flex",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <span>Theme</span>
+            {THEME_OPTIONS.map((opt, idx) => {
+              const isActive = themePref === opt.value;
+              return (
+                <span key={opt.value} style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+                  {idx > 0 && <span aria-hidden="true">·</span>}
+                  <button
+                    onClick={() => setThemePref(opt.value)}
+                    aria-pressed={isActive}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      fontSize: "inherit",
+                      letterSpacing: "inherit",
+                      color: isActive ? "var(--session-ink)" : "var(--session-ink-mid)",
+                      borderBottom: isActive ? "1px solid var(--session-ink)" : "1px solid transparent",
+                      paddingBottom: "1px",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                </span>
+              );
+            })}
           </p>
         </div>
       </footer>

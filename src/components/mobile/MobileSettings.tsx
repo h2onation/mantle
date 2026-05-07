@@ -68,7 +68,7 @@ export default function MobileSettings({
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
   const { preference: themePref, setPreference: setThemePref } = useTheme();
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account", "appearance"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
   const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "code" | "linked">("loading");

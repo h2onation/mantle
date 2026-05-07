@@ -51,6 +51,11 @@
   --session-glow-cp:     rgba(185, 170, 110, 0.30);
   --session-glow-scroll: rgba(200, 185, 140, 0.25);
 
+  /* Vignette — always darkens edges. Independent of ink/hair tokens
+     so it doesn't invert in dark mode (where light-on-light hair would
+     read as a halo, not a vignette). */
+  --session-vignette: rgba(22, 20, 18, 0.06);
+
   /* Typography sizes — minimums that stay readable on the linen surface.
      Prefer these over raw pixel values in new inline styles. */
   --size-meta:    12px;
@@ -92,7 +97,7 @@ html[data-theme="dark"] {
 
   --session-ink:            #F2EAD6;
   --session-ink-soft:       rgba(242, 234, 214, 0.85);
-  --session-ink-persona:    #F2EAD6;
+  --session-ink-persona:    rgba(242, 234, 214, 0.72);
   --session-ink-user:       rgba(242, 234, 214, 0.85);
   --session-ink-mid:        rgba(242, 234, 214, 0.62);
   --session-ink-faded:      rgba(242, 234, 214, 0.42);
@@ -121,7 +126,11 @@ html[data-theme="dark"] {
   --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
 
   --session-glow-cp:     rgba(156, 177, 138, 0.15);
-  --session-glow-scroll: rgba(156, 177, 138, 0.10);
+  --session-glow-scroll: rgba(156, 177, 138, 0.04);
+
+  /* Dark vignette — deeper black, opposite of the light hair-soft
+     overlay, so corners darken instead of lifting. */
+  --session-vignette: rgba(0, 0, 0, 0.35);
 
   --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
   --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
@@ -135,7 +144,7 @@ html[data-theme="dark"] {
 
     --session-ink:            #F2EAD6;
     --session-ink-soft:       rgba(242, 234, 214, 0.85);
-    --session-ink-persona:    #F2EAD6;
+    --session-ink-persona:    rgba(242, 234, 214, 0.72);
     --session-ink-user:       rgba(242, 234, 214, 0.85);
     --session-ink-mid:        rgba(242, 234, 214, 0.62);
     --session-ink-faded:      rgba(242, 234, 214, 0.42);
@@ -164,7 +173,9 @@ html[data-theme="dark"] {
     --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
 
     --session-glow-cp:     rgba(156, 177, 138, 0.15);
-    --session-glow-scroll: rgba(156, 177, 138, 0.10);
+    --session-glow-scroll: rgba(156, 177, 138, 0.04);
+
+    --session-vignette: rgba(0, 0, 0, 0.35);
 
     --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
     --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
