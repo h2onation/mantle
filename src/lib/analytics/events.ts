@@ -5,6 +5,7 @@
 // did, not WHAT they said.
 
 import { posthog } from "./posthog-client";
+import type { GuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
 // ──────────────────────────────────────────────
 // Stage 1 events — core loop
@@ -16,6 +17,16 @@ export type Channel = "web" | "sms";
 // Extend this union when resonant-content and personal-upload entry
 // points ship.
 export type EntryPoint = "situation" | "guided-intake";
+
+// Mirrors the conversations.mode column. Carried on checkpoint and
+// session-end events so PostHog can answer "how does guided-intake
+// perform vs situation mode" without a DB join.
+export type ConversationMode = "situation" | "guided-intake";
+
+// GuidedIntakeOpenerVariant is defined alongside the canonical phrases
+// in src/lib/persona/guided-intake-copy.ts and re-exported here for
+// callers who only import from analytics.
+export type { GuidedIntakeOpenerVariant };
 
 export function trackConversationStarted(props: {
   conversation_id: string;
@@ -40,6 +51,7 @@ export function trackConversationEnded(props: {
   end_type: "natural" | "abandoned" | "error";
   message_count: number;
   duration_seconds: number;
+  mode: ConversationMode;
 }) {
   posthog.capture("conversation_ended", props);
 }
@@ -49,6 +61,7 @@ export function trackCheckpointProposed(props: {
   checkpoint_id: string;
   layer: number;
   message_number: number;
+  mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_proposed", props);
 }
@@ -58,6 +71,7 @@ export function trackCheckpointConfirmed(props: {
   checkpoint_id: string;
   layer: number;
   time_to_decision_ms: number;
+  mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_confirmed", props);
 }
@@ -67,6 +81,7 @@ export function trackCheckpointRejected(props: {
   checkpoint_id: string;
   layer: number;
   time_to_decision_ms: number;
+  mode: ConversationMode;
   // DO NOT include rejection reason text.
 }) {
   posthog.capture("checkpoint_rejected", props);
@@ -77,6 +92,7 @@ export function trackCheckpointRefined(props: {
   checkpoint_id: string;
   layer: number;
   time_to_decision_ms: number;
+  mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_refined", props);
 }
@@ -93,8 +109,22 @@ export function trackCheckpointDeferred(props: {
   checkpoint_id: string;
   layer: number;
   time_to_decision_ms: number;
+  mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_deferred", props);
+}
+
+// Fires once per guided-intake conversation, on the assistant turn where
+// the variant becomes detectable. "default" fires on turn 1 (the literal
+// opener); the three fallback variants fire on later turns when the
+// corresponding phrase is detected. Multiple variants per session are
+// possible (e.g. default + recency_drop) — PostHog can compute "deepest
+// variant per conversation" downstream.
+export function trackGuidedIntakeOpenerFired(props: {
+  conversation_id: string;
+  variant: GuidedIntakeOpenerVariant;
+}) {
+  posthog.capture("guided_intake_opener_fired", props);
 }
 
 export function trackManualViewed(props: {

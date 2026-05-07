@@ -258,6 +258,7 @@ export function callPersona({
           isFirstCheckpoint,
           turnsSinceCheckpoint,
           turnCount,
+          mode: conversationMode,
         } = ctx;
 
         // 3. Fire extraction in background
@@ -684,6 +685,7 @@ export function callPersona({
               hasLayerEmergingOrBeyond,
               concreteExamples:
                 previousExtraction?.checkpoint_gate.concrete_examples ?? 0,
+              mode: conversationMode,
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )

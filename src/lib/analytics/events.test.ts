@@ -57,8 +57,9 @@ const CASES: Case[] = [
         end_type: "natural",
         message_count: 4,
         duration_seconds: 120,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "end_type", "message_count", "duration_seconds"],
+    expectedKeys: ["conversation_id", "end_type", "message_count", "duration_seconds", "mode"],
   },
   {
     event: "checkpoint_proposed",
@@ -68,8 +69,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         message_number: 5,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "message_number"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "message_number", "mode"],
   },
   {
     event: "checkpoint_confirmed",
@@ -79,8 +81,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_rejected",
@@ -90,8 +93,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_refined",
@@ -101,8 +105,9 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_deferred",
@@ -112,8 +117,18 @@ const CASES: Case[] = [
         checkpoint_id: "m1",
         layer: 3,
         time_to_decision_ms: 2500,
+        mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+  },
+  {
+    event: "guided_intake_opener_fired",
+    call: () =>
+      events.trackGuidedIntakeOpenerFired({
+        conversation_id: "c1",
+        variant: "default",
+      }),
+    expectedKeys: ["conversation_id", "variant"],
   },
   {
     event: "manual_viewed",

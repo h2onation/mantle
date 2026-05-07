@@ -14,7 +14,10 @@ import {
   trackCheckpointRejected,
   trackCheckpointDeferred,
   trackCheckpointRefined,
+  trackGuidedIntakeOpenerFired,
+  type ConversationMode,
 } from "@/lib/analytics/events";
+import { detectGuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
 export interface ConversationSummaryItem {
   id: string;
@@ -108,6 +111,11 @@ export function useChat() {
   // Set when a conversation is created so conversation_ended can report
   // a duration without querying the DB.
   const conversationStartedAt = useRef<number | null>(null);
+  // Mirrors the active conversation's mode so checkpoint and
+  // conversation_ended events can attach it without a DB read. Updated
+  // on every message_complete (server is authoritative). Defaults to
+  // "situation" for any conversation that hasn't reported a mode yet.
+  const conversationMode = useRef<ConversationMode>("situation");
   const router = useRouter();
   const supabase = createClient();
 
@@ -210,8 +218,29 @@ export function useChat() {
     );
     setConcreteExamples(completeEvent.concreteExamples ?? 0);
 
+    // Track the conversation's mode locally so checkpoint and
+    // conversation_ended events can attach it. Server is authoritative;
+    // client mirrors what the SSE event reports.
+    const eventMode: ConversationMode = completeEvent.mode ?? "situation";
+    conversationMode.current = eventMode;
+
     // Use clean content (without manual entry block) when available
     const displayContent = completeEvent.cleanContent || fullText;
+
+    // Guided-intake opener-flow detection. Fires per assistant turn that
+    // matches one of the four canonical phrases. Multiple events per
+    // session are expected (e.g. default on turn 1, recency_drop later).
+    // The dashboard derives "deepest variant per conversation" downstream.
+    if (eventMode === "guided-intake" && displayContent) {
+      const variant = detectGuidedIntakeOpenerVariant(displayContent);
+      const convIdForOpener = completeEvent.conversationId || conversationId;
+      if (variant && convIdForOpener) {
+        trackGuidedIntakeOpenerFired({
+          conversation_id: convIdForOpener,
+          variant,
+        });
+      }
+    }
 
     if (completeEvent.checkpoint) {
       // Set active checkpoint with clean text
@@ -233,6 +262,7 @@ export function useChat() {
           checkpoint_id: completeEvent.messageId,
           layer: completeEvent.checkpoint.layer,
           message_number: messages.length + 1,
+          mode: eventMode,
         });
       }
 
@@ -615,6 +645,7 @@ export function useChat() {
         checkpoint_id: activeCheckpoint.messageId,
         layer: activeCheckpoint.layer,
         time_to_decision_ms: timeToDecisionMs,
+        mode: conversationMode.current,
       };
       if (cpProps.conversation_id) {
         if (action === "confirmed") trackCheckpointConfirmed(cpProps);
@@ -816,8 +847,12 @@ export function useChat() {
         end_type: "natural",
         message_count: messages.length,
         duration_seconds: durationSeconds,
+        mode: conversationMode.current,
       });
       conversationStartedAt.current = null;
+      // Reset for the next conversation. The new conversation's
+      // mode is set on the first message_complete it produces.
+      conversationMode.current = "situation";
 
       try {
         await fetch("/api/conversations/complete", {
