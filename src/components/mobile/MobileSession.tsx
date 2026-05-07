@@ -50,6 +50,7 @@ interface MobileSessionProps {
   ) => void;
   switchConversation: (id: string) => Promise<void>;
   startNewSession: () => Promise<void>;
+  startGuidedIntake: () => Promise<boolean>;
   refreshConversations: () => Promise<void>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
@@ -83,6 +84,7 @@ export default function MobileSession({
   confirmCheckpoint,
   switchConversation,
   startNewSession,
+  startGuidedIntake,
   refreshConversations,
   isGuest,
   onSignInPrompt,
@@ -215,6 +217,26 @@ export default function MobileSession({
               {chip}
             </button>
           ))}
+          <button
+            onClick={() => {
+              setChipsVisible(false);
+              startGuidedIntake();
+            }}
+            disabled={isLoading || isStreaming}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              fontWeight: 400,
+              color: "var(--session-ink-mid)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "8px 0 0",
+              textAlign: "center",
+            }}
+          >
+            Help me get started
+          </button>
         </div>
       )}
     </div>
@@ -395,9 +417,11 @@ export default function MobileSession({
             <div
               style={{
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 padding: "40px 24px",
+                gap: "16px",
               }}
             >
               <p
@@ -411,6 +435,53 @@ export default function MobileSession({
               >
                 What&rsquo;s going on? Or we can pick up where we left off.
               </p>
+              <button
+                onClick={() => startGuidedIntake()}
+                disabled={isLoading || isStreaming}
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  fontWeight: 400,
+                  color: "var(--session-ink-mid)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Help me get started
+              </button>
+            </div>
+          )}
+
+          {/* Fallback: empty conversation that matches neither State 1 nor State 2
+              (e.g. user has entries but localStorage flag unset). Show the
+              guided intake link so it's always discoverable. */}
+          {!hasMessages && !isLoading && !showWelcomePanel && !(firstSessionCompleted && sessionOrigin === "new") && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 24px",
+              }}
+            >
+              <button
+                onClick={() => startGuidedIntake()}
+                disabled={isLoading || isStreaming}
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  fontWeight: 400,
+                  color: "var(--session-ink-mid)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Help me get started
+              </button>
             </div>
           )}
 

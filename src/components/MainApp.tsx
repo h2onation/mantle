@@ -183,6 +183,7 @@ export default function MainApp() {
     loadConversation,
     startNewSession,
     startExploration,
+    startGuidedIntake,
     refreshConversations,
     loadManual,
     emergingPatternSnippet,
@@ -316,6 +317,7 @@ export default function MainApp() {
             confirmCheckpoint={confirmCheckpoint}
             switchConversation={switchConversation}
             startNewSession={startNewSession}
+            startGuidedIntake={startGuidedIntake}
             refreshConversations={refreshConversations}
             isGuest={isGuest}
             onSignInPrompt={handleSignInPrompt}
