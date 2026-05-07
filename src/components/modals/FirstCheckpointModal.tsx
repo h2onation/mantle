@@ -125,8 +125,8 @@ export default function FirstCheckpointModal({
           width: "100%",
           maxWidth: "380px",
           backgroundColor: "var(--session-cream)",
-          borderRadius: 12,
-          padding: "32px",
+          border: "1px solid var(--session-hair)",
+          padding: "var(--sp-lg)",
           boxSizing: "border-box",
         }}
       >
@@ -137,8 +137,9 @@ export default function FirstCheckpointModal({
             fontSize: 24,
             fontWeight: 400,
             color: "var(--session-ink)",
-            margin: "0 0 18px 0",
+            margin: "0 0 var(--sp-md) 0",
             lineHeight: 1.2,
+            letterSpacing: "-0.3px",
           }}
         >
           A pattern is ready for your Manual
@@ -147,40 +148,44 @@ export default function FirstCheckpointModal({
         <div
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 15,
-            color: "var(--session-ink-mid)",
-            lineHeight: 1.55,
+            fontSize: 16,
+            color: "var(--session-ink-soft)",
+            lineHeight: 1.6,
           }}
         >
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             I have a pattern to put in front of you. You will see a card. Read it. If it fits, confirm and it becomes an entry in your Manual. If it is off, tell me where and we keep going.
           </p>
-          <p style={{ margin: "0 0 24px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-md) 0" }}>
             Your Manual builds one entry at a time. This is the first, and it will evolve as you add more &mdash; entries sharpen, connect to each other, sometimes get revisited. The Manual is a living document, not a finished one.
           </p>
         </div>
 
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={() => {
-            void handleDismiss();
-          }}
-          style={{
-            width: "100%",
-            padding: "16px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            fontWeight: 500,
-            color: "var(--session-cream)",
-            backgroundColor: "var(--session-persona)",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Show me
-        </button>
+        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)" }}>
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => {
+              void handleDismiss();
+            }}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink)",
+              backgroundColor: "transparent",
+              border: "none",
+              borderBottom: "1px solid var(--session-ink)",
+              padding: "var(--sp-xs) 0 var(--sp-tight)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            Show me &nbsp;›
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -20,35 +20,21 @@ export default function ExploreWithPersonaButton({
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        fontFamily: "var(--font-sans)",
-        fontSize: 11,
-        fontWeight: 500,
-        color: "var(--session-persona-soft)",
+        fontFamily: "var(--font-serif)",
+        fontSize: 15,
+        fontStyle: "italic",
+        fontWeight: 400,
+        color: "var(--session-ink-mid)",
         background: "none",
-        border: "1px solid var(--session-persona-border)",
-        borderRadius: 16,
-        padding: "6px 14px",
+        border: "none",
+        borderBottom: "1px solid var(--session-hair)",
+        borderRadius: 0,
+        padding: "0 0 2px",
         cursor: "pointer",
-        marginTop: 14,
+        marginTop: "var(--sp-sm)",
       }}
     >
-      Explore further
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 10 10"
-        fill="none"
-        aria-hidden="true"
-        style={{ display: "block" }}
-      >
-        <path
-          d="M3 1.5L7 5L3 8.5"
-          stroke="var(--session-persona-soft)"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      explore further
     </button>
   );
 }

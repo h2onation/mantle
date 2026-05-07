@@ -239,7 +239,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
               ? "var(--session-ink)"
               : "var(--session-ink-hairline)",
             border: "none",
-            borderRadius: 8,
+            borderRadius: "var(--radius-sm)",
             cursor: isEnabled ? "pointer" : "default",
             transition: "all 0.4s ease",
             marginBottom: 14,

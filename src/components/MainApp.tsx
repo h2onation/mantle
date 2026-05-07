@@ -374,7 +374,7 @@ export default function MainApp() {
               width: 320,
               height: 320,
               borderRadius: "50%",
-              background: "radial-gradient(ellipse at center, rgba(122,139,114,0.18) 0%, rgba(122,139,114,0.05) 40%, transparent 70%)",
+              background: "radial-gradient(ellipse at center, var(--session-persona-soft) 0%, var(--session-persona-tint) 40%, transparent 70%)",
               filter: "blur(30px)",
               pointerEvents: "none",
               animation: "explorationGlow 3s ease-in-out infinite",

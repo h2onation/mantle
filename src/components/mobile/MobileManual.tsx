@@ -108,7 +108,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           height: "48px",
           zIndex: 1,
           pointerEvents: "none",
-          background: "linear-gradient(to bottom, rgba(200,185,140,0.18) 0%, rgba(200,185,140,0.06) 40%, transparent 100%)",
+          background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
         }}
       />
 
@@ -160,8 +160,8 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           style={{
             margin: "40px 20px 24px",
             padding: "1.25rem",
-            background: "rgba(0, 0, 0, 0.03)",
-            borderRadius: 12,
+            background: "var(--session-persona-tint)",
+            borderRadius: 0,
           }}
         >
           <h2
@@ -197,7 +197,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               fontFamily: "var(--font-sans)",
               fontSize: 14,
               fontWeight: 500,
-              color: "#A0734E",
+              color: "var(--session-persona)",
               background: "none",
               border: "none",
               padding: 0,
@@ -208,7 +208,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path
                 d="M5 3l4 4-4 4"
-                stroke="#A0734E"
+                stroke="currentColor"
                 strokeWidth="1.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -263,7 +263,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor: "rgba(0,0,0,0.12)",
+                backgroundColor: "var(--session-hair)",
                 margin: "0 auto 24px",
               }}
             />
@@ -274,7 +274,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 fontFamily: "var(--font-serif)",
                 fontSize: 20,
                 fontWeight: 400,
-                color: "#1A1614",
+                color: "var(--session-ink)",
                 margin: "0 0 16px 0",
                 letterSpacing: "-0.3px",
               }}
@@ -286,7 +286,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: 15,
-                color: "#4A4440",
+                color: "var(--session-ink-soft)",
                 lineHeight: 1.6,
                 margin: "0 0 20px 0",
               }}
@@ -301,7 +301,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: 15,
-                color: "#4A4440",
+                color: "var(--session-ink-soft)",
                 lineHeight: 1.6,
                 margin: "0 0 28px 0",
               }}
@@ -320,10 +320,10 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 fontFamily: "var(--font-sans)",
                 fontSize: 15,
                 fontWeight: 500,
-                color: "#FFFFFF",
-                backgroundColor: isGenerating ? "#C4A888" : "#A0734E",
+                color: "var(--session-linen)",
+                backgroundColor: isGenerating ? "var(--session-ink-faded)" : "var(--session-persona)",
                 border: "none",
-                borderRadius: 10,
+                borderRadius: 0,
                 cursor: isGenerating ? "default" : "pointer",
                 transition: "background-color 0.2s ease",
               }}
@@ -342,7 +342,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 fontFamily: "var(--font-sans)",
                 fontSize: 14,
                 fontWeight: 400,
-                color: "#8A8480",
+                color: "var(--session-ink-faded)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -401,7 +401,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               width: "calc(100% - 48px)",
               maxWidth: 380,
               backgroundColor: "var(--session-cream)",
-              borderRadius: 12,
+              borderRadius: 0,
               padding: "32px 24px",
             }}
           >
@@ -455,7 +455,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
                 color: "var(--session-cream)",
                 backgroundColor: "var(--session-persona)",
                 border: "none",
-                borderRadius: 10,
+                borderRadius: 0,
                 cursor: "pointer",
                 WebkitTapHighlightColor: "transparent",
               }}

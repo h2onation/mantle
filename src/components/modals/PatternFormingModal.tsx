@@ -133,8 +133,8 @@ export default function PatternFormingModal({
           width: "100%",
           maxWidth: "380px",
           backgroundColor: "var(--session-cream)",
-          borderRadius: 12,
-          padding: "32px",
+          border: "1px solid var(--session-hair)",
+          padding: "var(--sp-lg)",
           boxSizing: "border-box",
         }}
       >
@@ -145,8 +145,9 @@ export default function PatternFormingModal({
             fontSize: 24,
             fontWeight: 400,
             color: "var(--session-ink)",
-            margin: "0 0 18px 0",
+            margin: "0 0 var(--sp-md) 0",
             lineHeight: 1.2,
+            letterSpacing: "-0.3px",
           }}
         >
           Something is taking shape
@@ -155,43 +156,47 @@ export default function PatternFormingModal({
         <div
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 15,
-            color: "var(--session-ink-mid)",
-            lineHeight: 1.55,
+            fontSize: 16,
+            color: "var(--session-ink-soft)",
+            lineHeight: 1.6,
           }}
         >
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             I am seeing a pattern around {displayedSnippet}. Let&rsquo;s keep going so I can get it right.
           </p>
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             You are roughly halfway to your first entry. A few more turns and I will propose a piece for your Manual. You will see it on a card and decide whether it fits.
           </p>
-          <p style={{ margin: "0 0 24px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-md) 0" }}>
             Honest expression produces sharper reflections than careful writing. Typos, tangents, going long &mdash; none of it matters. You can dictate if typing is slowing you down.
           </p>
         </div>
 
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={() => {
-            void handleDismiss();
-          }}
-          style={{
-            width: "100%",
-            padding: "16px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            fontWeight: 500,
-            color: "var(--session-cream)",
-            backgroundColor: "var(--session-persona)",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Keep going
-        </button>
+        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)" }}>
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => {
+              void handleDismiss();
+            }}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink)",
+              backgroundColor: "transparent",
+              border: "none",
+              borderBottom: "1px solid var(--session-ink)",
+              padding: "var(--sp-xs) 0 var(--sp-tight)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            Keep going &nbsp;›
+          </button>
+        </div>
       </div>
     </div>
   );

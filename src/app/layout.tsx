@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, DM_Sans, JetBrains_Mono, Source_Serif_4, Newsreader } from "next/font/google";
+import { Instrument_Serif, DM_Sans, DM_Mono, Source_Serif_4, Newsreader } from "next/font/google";
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import ThemeInit from "@/components/ThemeInit";
 
 const AgentationDev = dynamic(() => import("agentation").then((m) => ({ default: m.Agentation })), { ssr: false });
 
@@ -24,8 +25,8 @@ const sourceSerif4 = Source_Serif_4({
   variable: "--font-persona",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  weight: "400",
+const dmMono = DM_Mono({
+  weight: ["300", "400", "500"],
   subsets: ["latin"],
   variable: "--font-mono",
 });
@@ -42,7 +43,7 @@ const newsreader = Newsreader({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0C0B0A",
+  themeColor: "#FAF7F0",
 };
 
 export const metadata: Metadata = {
@@ -71,9 +72,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${jetbrainsMono.variable} ${newsreader.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${dmMono.variable} ${newsreader.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var p=localStorage.getItem('mw-theme');if(p==='dark'||p==='light'){document.documentElement.setAttribute('data-theme',p)}var d=p==='dark'||(p!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#15110C':'#FAF7F0')})()`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`,
@@ -81,6 +87,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
+        <ThemeInit />
         <PostHogProvider>
           {children}
         </PostHogProvider>

@@ -141,22 +141,22 @@ export default function ChatInput({
 
   return (
     <div style={{ flexShrink: 0, padding: "12px 20px 8px" }}>
-      {/* Voice error toast */}
+      {/* Voice error toast — oxblood top-rule */}
       {voice.error && (
         <div
           style={{
-            padding: "6px 12px",
-            marginBottom: "6px",
-            borderRadius: "8px",
-            backgroundColor: "var(--session-error-ghost)",
+            borderTop: "2px solid var(--session-error)",
+            padding: "var(--sp-xs) 0",
+            marginBottom: "var(--sp-xs)",
             animation: "checkpointFadeIn 0.3s ease-out both",
           }}
         >
           <span
             style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "12px",
-              color: "var(--session-error-text)",
+              fontFamily: "var(--font-serif)",
+              fontSize: "14px",
+              fontStyle: "italic",
+              color: "var(--session-ink-mid)",
             }}
           >
             {voice.error}
@@ -179,7 +179,7 @@ export default function ChatInput({
           flexDirection: "row",
           alignItems: "center",
           gap: "12px",
-          boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 ${
+          boxShadow: `inset 0 1px 0 var(--session-hair-soft), inset 0 -1px 0 ${
             isRecording
               ? "var(--session-persona-soft)"
               : inputFocused
@@ -198,15 +198,15 @@ export default function ChatInput({
               left: 0,
               top: "50%",
               transform: "translateY(-50%)",
-              fontFamily: "var(--font-serif)",
-              fontSize: "16px",
+              fontFamily: "var(--font-persona)",
+              fontSize: "17px",
               fontStyle: "italic",
               fontWeight: 400,
               color: "var(--session-ink-faded)",
               pointerEvents: "none",
             }}
           >
-            tell me . . .
+            Write back to Jove…
           </span>
         )}
 
@@ -270,13 +270,14 @@ export default function ChatInput({
             resize: "none" as const,
             fontSize: "17px",
             fontWeight: 400,
-            lineHeight: 1.5,
-            fontFamily: "var(--font-sans)",
+            fontStyle: "italic",
+            lineHeight: 1.6,
+            fontFamily: "var(--font-persona)",
             padding: 0,
             boxSizing: "border-box",
             color:
               isRecording && voice.isInterim
-                ? "rgba(200, 191, 180, 0.5)"
+                ? "var(--session-ink-faded)"
                 : "var(--session-ink-soft)",
             caretColor: isRecording ? "transparent" : "var(--session-persona-soft)",
           }}
@@ -345,7 +346,7 @@ export default function ChatInput({
                     width: "10px",
                     height: "10px",
                     borderRadius: "2px",
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: "var(--session-linen)",
                   }}
                 />
               </div>
@@ -393,7 +394,7 @@ export default function ChatInput({
                 fill="none"
                 stroke={
                   buttonMode === "mic-denied"
-                    ? "rgba(181, 86, 77, 0.5)"
+                    ? "var(--session-error-text)"
                     : "var(--session-ink-ghost)"
                 }
                 strokeWidth="1.5"

@@ -38,8 +38,8 @@ export default function ConfirmationModal({
       <div
         style={{
           backgroundColor: "var(--session-cream)",
-          borderRadius: "16px",
-          padding: "24px",
+          border: "1px solid var(--session-hair)",
+          padding: "var(--sp-lg)",
           maxWidth: "320px",
           width: "100%",
         }}
@@ -47,51 +47,47 @@ export default function ConfirmationModal({
         <p
           id="confirm-modal-message"
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "14px",
+            fontFamily: "var(--font-serif)",
+            fontSize: "16px",
             color: "var(--session-ink)",
             lineHeight: 1.6,
-            margin: "0 0 20px 0",
+            margin: "0 0 var(--sp-md) 0",
           }}
         >
           {message}
         </p>
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)", display: "flex", gap: "var(--sp-lg)" }}>
           <button
             onClick={onClose}
             style={{
-              flex: 1,
-              padding: "10px 0",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "var(--session-ink)",
+              fontFamily: "var(--font-serif)",
+              fontSize: "15px",
+              fontStyle: "italic",
+              color: "var(--session-ink-mid)",
               backgroundColor: "transparent",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: "10px",
+              border: "none",
               cursor: "pointer",
+              padding: 0,
             }}
           >
-            Cancel
+            cancel
           </button>
           <button
             onClick={onConfirm}
             style={{
-              flex: 1,
-              padding: "10px 0",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
               color: isDestructive ? "var(--session-error)" : "var(--session-ink)",
               backgroundColor: "transparent",
-              border: isDestructive
-                ? "1px solid var(--session-error)"
-                : "1px solid var(--session-ink-hairline)",
-              borderRadius: "10px",
+              border: "none",
+              borderBottom: `1px solid ${isDestructive ? "var(--session-error)" : "var(--session-ink)"}`,
               cursor: "pointer",
+              padding: "0 0 2px",
             }}
           >
-            {confirmLabel}
+            {confirmLabel} &nbsp;›
           </button>
         </div>
       </div>
