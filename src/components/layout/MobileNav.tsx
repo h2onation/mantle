@@ -55,20 +55,16 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
             tabIndex={isActive ? 0 : -1}
             onClick={() => onTabChange(id)}
             style={{
-              padding: "0 0 3px",
+              // SG nav: active state is a 3px sage dot below mono caps —
+              // the only "you are here" cue, and the only place sage
+              // appears in the bottom bar (sage is the "one thing per
+              // screen" accent). Inactive labels stay at --ink-mid;
+              // active label lifts to --ink. No underline on either,
+              // since the dot carries the role.
+              padding: "0 0 8px",
               background: "none",
               border: "none",
-              // Active state uses --session-ink (darkest) rather than --ink-soft.
-              // This creates strong active/inactive contrast while keeping
-              // inactive at --ink-mid for accessibility on the linen surface.
-              // See decisions.md ADR-033 for the reasoning.
-              borderBottom: isActive
-                ? "1px solid var(--session-ink)"
-                : "1px solid transparent",
               cursor: "pointer",
-              // Nav tabs are structural, not decorative. Mono unifies with
-              // other structural labels in the system (JOVE, TEXT, layer
-              // names) and reads more restrained at small sizes.
               fontFamily: "var(--font-mono)",
               fontSize: "11px",
               fontWeight: 400,
@@ -78,11 +74,27 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               color: isActive
                 ? "var(--session-ink)"
                 : "var(--session-ink-mid)",
-              transition: "all 0.25s ease",
+              transition: "color 0.25s ease",
               WebkitTapHighlightColor: "transparent",
+              position: "relative",
             }}
           >
             {label}
+            {isActive && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  bottom: 0,
+                  transform: "translateX(-50%)",
+                  width: "3px",
+                  height: "3px",
+                  borderRadius: "50%",
+                  background: "var(--session-persona)",
+                }}
+              />
+            )}
           </button>
         );
       })}

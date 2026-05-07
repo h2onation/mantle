@@ -82,7 +82,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             color: "var(--session-ink-soft)",
           }}
         >
-          my walnut
+          mywalnut<span style={{ color: "var(--session-persona)" }}>.</span>
         </p>
       </header>
 

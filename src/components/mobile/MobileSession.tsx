@@ -19,13 +19,17 @@ const WELCOME_CHIPS = [
   "I just need to think out loud",
 ] as const;
 
+// "Jove" speaker tag — micro-caps per SG §05.1. Capital J, uppercase
+// transform, full sage. Appears only above the first block in a Jove
+// sequence, never above user blocks (the user is the reader, not a
+// labeled speaker).
 const personaLabelStyle = {
   fontFamily: "var(--font-mono)",
-  fontSize: "var(--size-meta)",
+  fontSize: "10px",
   fontWeight: 400,
-  letterSpacing: "1.5px",
-  textTransform: "lowercase" as const,
-  color: "var(--session-persona-soft)",
+  letterSpacing: "2.2px",
+  textTransform: "uppercase" as const,
+  color: "var(--session-persona)",
 } as const;
 
 interface MobileSessionProps {
@@ -842,21 +846,22 @@ export default function MobileSession({
                         visually tethered to the rail below. */}
                     {isFirstInPersonaSequence && (
                       <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
+                        <span style={personaLabelStyle}>{PERSONA_NAME}</span>
                         {msg.channel === "text" && (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                         )}
                       </div>
                     )}
-                    {/* Rail — 2px persona line, text indented. Text uses
-                        --ink-persona (the role-based "Jove voice" color)
-                        rather than --ink so dark-mode Jove doesn't shout
-                        in pure cream while quieter text on the page sits
-                        at a softer brightness. */}
+                    {/* Jove block — plain roman, flush-left. NO rail, NO
+                        chrome. Per style guide §05.1: "The type itself
+                        does the role-marking — roman for Jove,
+                        italic-behind-rule for the user." Jove is the
+                        primary voice; the page belongs to him.
+                        Differentiation comes from the type itself
+                        (roman vs italic) and the user's indented rail,
+                        not from a competing rail on Jove's column. */}
                     <div
                       style={{
-                        borderLeft: "2px solid var(--session-persona)",
-                        paddingLeft: "var(--sp-sm)",
                         paddingTop: "var(--sp-tight)",
                         paddingBottom: "var(--sp-tight)",
                         fontFamily: "var(--font-persona)",
@@ -946,39 +951,32 @@ export default function MobileSession({
                     messages[messages.length - 1]?.role !== "assistant" ||
                     messages[messages.length - 1]?.isCheckpoint === true) && (
                     <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0" }}>
-                      <span style={personaLabelStyle}>{PERSONA_NAME.toUpperCase()}</span>
+                      <span style={personaLabelStyle}>{PERSONA_NAME}</span>
                     </div>
                   )}
-                  {/* Typing rail — same 4px vertical padding as a regular
-                      Jove utterance. An annotation mark doesn't resize to
-                      fit what it's annotating; 8px would make the typing
-                      and streaming rails two different heights for the
-                      same speaker. */}
+                  {/* Typing indicator — single sage fleuron pulsing.
+                      Per SG §05.1: a typographic ornament marks "Jove
+                      is composing," not three speech-bubble dots. */}
                   <div
                     style={{
-                      borderLeft: "2px solid var(--session-persona-soft)",
-                      paddingLeft: "14px",
                       paddingTop: "4px",
                       paddingBottom: "4px",
                       alignSelf: "flex-start",
                     }}
                   >
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      {[0, 1, 2].map((dotIdx) => (
-                        <div
-                          key={dotIdx}
-                          style={{
-                            width: "5px",
-                            height: "5px",
-                            borderRadius: "50%",
-                            backgroundColor: "var(--session-persona-soft)",
-                            opacity: 0.5,
-                            animation: "personaPulse 2.4s ease-in-out infinite",
-                            animationDelay: `${dotIdx * 0.35}s`,
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <span
+                      aria-label="Jove is typing"
+                      style={{
+                        fontFamily: "var(--font-serif)",
+                        fontSize: "20px",
+                        color: "var(--session-persona)",
+                        lineHeight: 1,
+                        display: "inline-block",
+                        animation: "personaPulse 2.4s ease-in-out infinite",
+                      }}
+                    >
+                      ❦
+                    </span>
                   </div>
                 </div>
               )}
