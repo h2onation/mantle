@@ -15,7 +15,7 @@
   --session-ink:            #161412;
   --session-ink-soft:       rgba(22, 20, 18, 0.82);
   --session-ink-persona:    #524C47;
-  --session-ink-user:       rgba(22, 20, 18, 0.82);
+  --session-ink-user:       rgba(22, 20, 18, 0.68);
   --session-ink-mid:        #7A6E5C;
   --session-ink-faded:      #A59A86;
   --session-ink-ghost:      rgba(22, 20, 18, 0.58);
@@ -98,7 +98,7 @@ html[data-theme="dark"] {
   --session-ink:            #F2EAD6;
   --session-ink-soft:       rgba(242, 234, 214, 0.85);
   --session-ink-persona:    rgba(242, 234, 214, 0.72);
-  --session-ink-user:       rgba(242, 234, 214, 0.85);
+  --session-ink-user:       rgba(242, 234, 214, 0.70);
   --session-ink-mid:        rgba(242, 234, 214, 0.62);
   --session-ink-faded:      rgba(242, 234, 214, 0.42);
   --session-ink-ghost:      rgba(242, 234, 214, 0.42);
@@ -145,7 +145,7 @@ html[data-theme="dark"] {
     --session-ink:            #F2EAD6;
     --session-ink-soft:       rgba(242, 234, 214, 0.85);
     --session-ink-persona:    rgba(242, 234, 214, 0.72);
-    --session-ink-user:       rgba(242, 234, 214, 0.85);
+    --session-ink-user:       rgba(242, 234, 214, 0.70);
     --session-ink-mid:        rgba(242, 234, 214, 0.62);
     --session-ink-faded:      rgba(242, 234, 214, 0.42);
     --session-ink-ghost:      rgba(242, 234, 214, 0.42);
