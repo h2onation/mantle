@@ -14,8 +14,8 @@ import { posthog } from "./posthog-client";
 export type Channel = "web" | "sms";
 
 // Extend this union when resonant-content and personal-upload entry
-// points ship. As of 2026-04-16 only the situation entry point exists.
-export type EntryPoint = "situation";
+// points ship.
+export type EntryPoint = "situation" | "guided-intake";
 
 export function trackConversationStarted(props: {
   conversation_id: string;

@@ -965,7 +965,7 @@ export function useChat() {
         conversationStartedAt.current = Date.now();
         trackConversationStarted({
           conversation_id: completeEvent.conversationId,
-          entry_point: "situation",
+          entry_point: "guided-intake",
           channel: "web",
         });
         trackMessageSent({
