@@ -925,6 +925,67 @@ export function useChat() {
     }
   }
 
+  async function startGuidedIntake(): Promise<boolean> {
+    if (isLoading || isStreaming) return false;
+    if (messages.length > 0) return false;
+
+    if (!firstSessionCompleted) {
+      setFirstSessionCompleted(true);
+      localStorage.setItem("mw_first_session_completed", "true");
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: null,
+          conversationId: null,
+          mode: "guided-intake",
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push("/login");
+        return false;
+      }
+
+      if (!res.ok) {
+        setErrorMessage("Something went wrong. Try again.");
+        return false;
+      }
+
+      const { completeEvent } = await streamFromResponse(res);
+
+      if (completeEvent?.conversationId) {
+        setConversationId(completeEvent.conversationId);
+        conversationStartedAt.current = Date.now();
+        trackConversationStarted({
+          conversation_id: completeEvent.conversationId,
+          entry_point: "situation",
+          channel: "web",
+        });
+        trackMessageSent({
+          conversation_id: completeEvent.conversationId,
+          role: "assistant",
+          message_number: 1,
+          channel: "web",
+        });
+        refreshConversations();
+      }
+
+      return true;
+    } catch {
+      setErrorMessage("Connection lost. Try again.");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return {
     messages,
     conversationId,
@@ -954,6 +1015,7 @@ export function useChat() {
     loadConversation,
     startNewSession,
     startExploration,
+    startGuidedIntake,
     refreshConversations,
     loadManual,
     // Modal 2 trigger inputs — refreshed on every message_complete.
