@@ -121,8 +121,8 @@ export default function ChatWindowModal({
           width: "100%",
           maxWidth: "380px",
           backgroundColor: "var(--session-cream)",
-          borderRadius: 12,
-          padding: "32px",
+          border: "1px solid var(--session-hair)",
+          padding: "var(--sp-lg)",
           boxSizing: "border-box",
         }}
       >
@@ -133,8 +133,9 @@ export default function ChatWindowModal({
             fontSize: 24,
             fontWeight: 400,
             color: "var(--session-ink)",
-            margin: "0 0 18px 0",
+            margin: "0 0 var(--sp-md) 0",
             lineHeight: 1.2,
+            letterSpacing: "-0.3px",
           }}
         >
           How this works
@@ -143,46 +144,50 @@ export default function ChatWindowModal({
         <div
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 15,
-            color: "var(--session-ink-mid)",
-            lineHeight: 1.55,
+            fontSize: 16,
+            color: "var(--session-ink-soft)",
+            lineHeight: 1.6,
           }}
         >
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             This is where you talk to {PERSONA_NAME}. Bring a situation you want help processing or working through. Something specific &mdash; a conflict you are still chewing on, a reaction that surprised you, a pattern you keep noticing.
           </p>
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             While we talk, {PERSONA_NAME} is pulling out insights you might not see from inside and reflecting them back. What you confirm gets written to your Manual &mdash; a document about how you operate, authored by you, that builds over time.
           </p>
-          <p style={{ margin: "0 0 14px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
             This takes time, and it is an investment. Start with at least 15 minutes. If now is not that, come back when it is.
           </p>
-          <p style={{ margin: "0 0 24px 0" }}>
+          <p style={{ margin: "0 0 var(--sp-md) 0" }}>
             Nothing gets written without your yes.
           </p>
         </div>
 
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={() => {
-            void handleDismiss();
-          }}
-          style={{
-            width: "100%",
-            padding: "16px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            fontWeight: 500,
-            color: "var(--session-cream)",
-            backgroundColor: "var(--session-persona)",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Got it
-        </button>
+        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)" }}>
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => {
+              void handleDismiss();
+            }}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink)",
+              backgroundColor: "transparent",
+              border: "none",
+              borderBottom: "1px solid var(--session-ink)",
+              padding: "var(--sp-xs) 0 var(--sp-tight)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            Got it &nbsp;›
+          </button>
+        </div>
       </div>
     </div>
   );

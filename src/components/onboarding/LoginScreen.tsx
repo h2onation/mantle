@@ -234,7 +234,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
                     color: "var(--session-cream)",
                     backgroundColor: "var(--session-persona)",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     cursor: "pointer",
                     transition: "opacity 0.2s",
                   }}
@@ -294,7 +294,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
                     color: "var(--session-cream)",
                     backgroundColor: "var(--session-persona)",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     cursor: loading ? "not-allowed" : "pointer",
                     opacity: loading ? 0.7 : 1,
                     transition: "opacity 0.2s",
@@ -456,7 +456,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
                   color: "var(--session-cream)",
                   backgroundColor: "var(--session-persona)",
                   border: "none",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-sm)",
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.7 : 1,
                   transition: "opacity 0.2s",
@@ -502,7 +502,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
                 color: "var(--session-ink-mid)",
                 backgroundColor: "transparent",
                 border: "1px solid var(--session-ink-whisper)",
-                borderRadius: 8,
+                borderRadius: "var(--radius-sm)",
                 cursor: loading ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -590,7 +590,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
               <div
                 style={{
                   border: "1px solid var(--session-ink-whisper)",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-sm)",
                   padding: 16,
                   marginBottom: 24,
                 }}
@@ -712,7 +712,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
                   color: "var(--session-cream)",
                   backgroundColor: "var(--session-persona)",
                   border: "none",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-sm)",
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.7 : 1,
                   transition: "opacity 0.2s",

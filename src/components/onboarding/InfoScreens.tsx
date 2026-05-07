@@ -95,7 +95,7 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
             color: "var(--session-cream)",
             backgroundColor: "var(--session-persona-soft)",
             border: "none",
-            borderRadius: 8,
+            borderRadius: "var(--radius-sm)",
             padding: "12px 28px",
             cursor: "pointer",
           }}

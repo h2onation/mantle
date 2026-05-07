@@ -21,8 +21,8 @@ export default function SWUpdatePrompt({ onUpdate }: SWUpdatePromptProps) {
         padding: "12px 16px",
         backgroundColor: "var(--session-cream)",
         border: "1px solid var(--session-ink-hairline)",
-        borderRadius: 12,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+        borderRadius: "var(--radius-sm)",
+        boxShadow: "var(--lift)",
       }}
     >
       <span

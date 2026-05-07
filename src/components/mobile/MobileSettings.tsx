@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { useTheme, type ThemePreference } from "@/lib/hooks/useTheme";
 import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 interface MobileSettingsProps {
@@ -66,6 +67,7 @@ export default function MobileSettings({
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
+  const { preference: themePref, setPreference: setThemePref } = useTheme();
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
@@ -366,6 +368,43 @@ export default function MobileSettings({
         </div>
       )}
 
+      {/* ─── Appearance ────────────────────────────────────────── */}
+      <SectionHeader label="APPEARANCE" isOpen={openSections.has("appearance")} onToggle={() => toggleSection("appearance")} sectionId="settings-appearance" />
+
+      {openSections.has("appearance") && (
+        <div id="settings-appearance">
+          <SettingsRow title="Theme" noBorder>
+            <div style={{ display: "flex", gap: 0, width: "100%" }}>
+              {(["system", "light", "dark"] as ThemePreference[]).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setThemePref(opt)}
+                  style={{
+                    flex: 1,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "1.8px",
+                    textTransform: "uppercase",
+                    color: themePref === opt ? "var(--session-ink)" : "var(--session-ink-mid)",
+                    background: "none",
+                    border: "none",
+                    borderBottom: themePref === opt
+                      ? "1px solid var(--session-ink)"
+                      : "1px solid var(--session-hair-soft)",
+                    padding: "10px 0 8px",
+                    cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
+                    transition: "color 0.2s ease, border-color 0.2s ease",
+                  }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </SettingsRow>
+        </div>
+      )}
+
       {/* ─── Crisis Support ──────────────────────────────────────── */}
       <SectionHeader label="CRISIS SUPPORT" isOpen={openSections.has("crisis")} onToggle={() => toggleSection("crisis")} sectionId="settings-crisis" />
 
@@ -465,7 +504,7 @@ export default function MobileSettings({
                   width: "100%",
                   background: "none",
                   border: "1px solid var(--session-persona-muted)",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-sm)",
                   cursor: "pointer",
                   textAlign: "center",
                   padding: "10px 0",
@@ -500,9 +539,9 @@ export default function MobileSettings({
                     fontFamily: "var(--font-sans)",
                     fontSize: "13px",
                     color: "var(--session-ink-soft)",
-                    background: "rgba(26, 22, 20, 0.03)",
+                    background: "var(--session-cream)",
                     border: "1px solid var(--session-ink-hairline)",
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     padding: "10px 12px",
                     outline: "none",
                     boxSizing: "border-box",
@@ -513,7 +552,7 @@ export default function MobileSettings({
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "var(--size-meta)",
-                    color: "#8a8480",
+                    color: "var(--session-ink-faded)",
                     lineHeight: 1.5,
                     margin: "4px 0 10px 0",
                     padding: "0 2px",
@@ -524,14 +563,14 @@ export default function MobileSettings({
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
-                    style={{ color: "#6e6a66", textDecoration: "underline" }}
+                    style={{ color: "var(--session-ink-mid)", textDecoration: "underline" }}
                   >
                     Privacy Policy
                   </a>{" "}
                   and{" "}
                   <a
                     href="/terms"
-                    style={{ color: "#6e6a66", textDecoration: "underline" }}
+                    style={{ color: "var(--session-ink-mid)", textDecoration: "underline" }}
                   >
                     Terms
                   </a>
@@ -544,7 +583,7 @@ export default function MobileSettings({
                     width: "100%",
                     background: "none",
                     border: `1px solid ${phoneBusy || !phoneInput.trim() ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     cursor: phoneBusy || !phoneInput.trim() ? "default" : "pointer",
                     textAlign: "center",
                     padding: "10px 0",
@@ -573,7 +612,7 @@ export default function MobileSettings({
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "12px",
-                    color: "#8a8480",
+                    color: "var(--session-ink-faded)",
                     margin: "0 0 8px 0",
                   }}
                 >
@@ -595,9 +634,9 @@ export default function MobileSettings({
                     letterSpacing: "4px",
                     textAlign: "center",
                     color: "var(--session-ink)",
-                    background: "rgba(26, 22, 20, 0.03)",
+                    background: "var(--session-cream)",
                     border: "1px solid var(--session-ink-hairline)",
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     padding: "10px 12px",
                     outline: "none",
                     boxSizing: "border-box",
@@ -611,7 +650,7 @@ export default function MobileSettings({
                     width: "100%",
                     background: "none",
                     border: `1px solid ${phoneBusy || codeInput.length !== 6 ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     cursor: phoneBusy || codeInput.length !== 6 ? "default" : "pointer",
                     textAlign: "center",
                     padding: "10px 0",
@@ -642,7 +681,7 @@ export default function MobileSettings({
                     padding: "10px 0 0 0",
                     fontFamily: "var(--font-sans)",
                     fontSize: "var(--size-meta)",
-                    color: "#6e6a66",
+                    color: "var(--session-ink-mid)",
                     textDecoration: "underline",
                     WebkitTapHighlightColor: "transparent",
                   }}
@@ -730,7 +769,7 @@ export default function MobileSettings({
                     width: "100%",
                     background: "none",
                     border: "1px solid var(--session-persona-muted)",
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-sm)",
                     textAlign: "center",
                     padding: "10px 0",
                     textDecoration: "none",
@@ -793,7 +832,7 @@ export default function MobileSettings({
               fontFamily: "var(--font-sans)",
               fontSize: "13px",
               color: "var(--session-ink-soft)",
-              background: "rgba(26, 22, 20, 0.03)",
+              background: "var(--session-cream)",
               border: "1px solid var(--session-ink-hairline)",
               borderRadius: 8,
               padding: "10px 12px",

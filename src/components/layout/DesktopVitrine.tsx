@@ -85,7 +85,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
           maxWidth: 430,
           height: "100%",
           borderRadius: "clamp(0px, (100vw - 430px) * 999, 40px)",
-          border: "clamp(0px, (100vw - 430px) * 999, 1px) solid rgba(26, 22, 20, 0.08)",
+          border: "clamp(0px, (100vw - 430px) * 999, 1px) solid var(--session-hair-soft)",
           overflow: "hidden",
           position: "relative",
         }}

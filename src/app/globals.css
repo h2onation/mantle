@@ -3,36 +3,45 @@
 @tailwind utilities;
 
 :root {
-  /* ─── Linen Design System ─── */
+  /* ─── Linen Design System (v2 — Quiet Journal) ─── */
 
-  /* Surface */
-  --session-linen:       #F4F0EA;
-  --session-cream:       #FAF8F4;
-  --session-parchment:   #E8E2D8;
+  /* Surface — warm bone canvas, not gray-white */
+  --session-linen:       #FAF7F0;
+  --session-cream:       #F4EEDF;
+  --session-parchment:   #EFE8D6;
 
-  /* Ink hierarchy */
-  --session-ink:         #1A1614;
-  --session-ink-soft:    #3D3632;
+  /* Ink hierarchy — role-based, not a weight spectrum.
+     Base ink rgb(22, 20, 18) calibrated against the warm linen. */
+  --session-ink:            #161412;
+  --session-ink-soft:       rgba(22, 20, 18, 0.82);
   --session-ink-persona:    #524C47;
-  --session-ink-user:    #4A4440;
-  --session-ink-mid:     #6B6360;
-  --session-ink-faded:   #5E5855;
-  --session-ink-ghost:   #756E6A;
-  --session-ink-whisper: #D4CEC8;
-  --session-ink-hairline: rgba(26, 22, 20, 0.08);
+  --session-ink-user:       rgba(22, 20, 18, 0.82);
+  --session-ink-mid:        #7A6E5C;
+  --session-ink-faded:      #A59A86;
+  --session-ink-ghost:      rgba(22, 20, 18, 0.58);
+  --session-ink-whisper:    #D4CEC8;
+  --session-ink-hairline:   rgba(22, 20, 18, 0.08);
 
-  /* Sage green (checkpoint accent) */
-  --session-persona:        #556B48;
-  --session-persona-soft:   #7A8B72;
-  --session-persona-muted:  rgba(85, 107, 72, 0.10);
-  --session-persona-border: rgba(85, 107, 72, 0.22);
-  --session-persona-tint:   rgba(85, 107, 72, 0.06);
+  /* Hair — border system, separate from ink text colors */
+  --session-hair:           rgba(22, 20, 18, 0.14);
+  --session-hair-soft:      rgba(22, 20, 18, 0.08);
 
-  /* Error */
-  --session-error:        #B5564D;
-  --session-error-ghost:  rgba(181, 86, 77, 0.12);
-  --session-error-text:   rgba(181, 86, 77, 0.7);
-  --session-error-banner: rgba(181, 86, 77, 0.05);
+  /* Sage green — the single accent. Carries all the product's life. */
+  --session-persona:        #5C6B4E;
+  --session-persona-soft:   rgba(92, 107, 78, 0.50);
+  --session-persona-muted:  rgba(92, 107, 78, 0.14);
+  --session-persona-border: rgba(92, 107, 78, 0.22);
+  --session-persona-tint:   rgba(92, 107, 78, 0.06);
+
+  /* Error — oxblood. Only when the user needs to slow down. */
+  --session-error:        #7A3B2E;
+  --session-error-ghost:  rgba(122, 59, 46, 0.08);
+  --session-error-text:   rgba(122, 59, 46, 0.70);
+  --session-error-banner: rgba(122, 59, 46, 0.05);
+
+  /* Warning — amber. Quiet heads-ups, "in progress." */
+  --session-warning:      #9A6B2A;
+  --session-warning-soft: rgba(154, 107, 42, 0.08);
 
   /* Overlays */
   --session-backdrop:       rgba(0, 0, 0, 0.5);
@@ -48,6 +57,118 @@
   --size-body:    15px;
   --size-prose:   17px;
   --size-heading: 22px;
+
+  /* Spacing — a literary scale. Names, not numbers.
+     Gaps between ideas are big. Reach for the next size up. */
+  --sp-hair:   1px;
+  --sp-tight:  4px;
+  --sp-xs:     8px;
+  --sp-sm:     14px;
+  --sp-md:     22px;
+  --sp-lg:     34px;
+  --sp-xl:     56px;
+  --sp-xxl:    88px;
+
+  /* Radii — almost-flat. Plates are square; only pills round. */
+  --radius-none: 0px;
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-pill: 999px;
+
+  /* Elevation — paper lifts, not glass. Used sparingly. */
+  --lift:    0 1px 0 rgba(22, 20, 18, 0.04), 0 8px 24px rgba(22, 20, 18, 0.06);
+  --lift-hi: 0 1px 0 rgba(22, 20, 18, 0.05), 0 20px 56px rgba(22, 20, 18, 0.10);
+}
+
+/* ─── Dark mode ───
+   The journal at night. Warm, not stark — bone on a deep brown-black.
+   Sage and oxblood are lifted for legibility. Never #000 or #FFF.
+   System-driven by default; explicit override via html[data-theme]. */
+
+html[data-theme="dark"] {
+  --session-linen:       #15110C;
+  --session-cream:       #221C16;
+  --session-parchment:   #1B1712;
+
+  --session-ink:            #F2EAD6;
+  --session-ink-soft:       rgba(242, 234, 214, 0.85);
+  --session-ink-persona:    #F2EAD6;
+  --session-ink-user:       rgba(242, 234, 214, 0.85);
+  --session-ink-mid:        rgba(242, 234, 214, 0.62);
+  --session-ink-faded:      rgba(242, 234, 214, 0.42);
+  --session-ink-ghost:      rgba(242, 234, 214, 0.42);
+  --session-ink-whisper:    rgba(242, 234, 214, 0.22);
+  --session-ink-hairline:   rgba(245, 237, 222, 0.06);
+
+  --session-hair:           rgba(245, 237, 222, 0.10);
+  --session-hair-soft:      rgba(245, 237, 222, 0.06);
+
+  --session-persona:        #9CB18A;
+  --session-persona-soft:   rgba(156, 177, 138, 0.32);
+  --session-persona-muted:  rgba(156, 177, 138, 0.14);
+  --session-persona-border: rgba(156, 177, 138, 0.22);
+  --session-persona-tint:   rgba(156, 177, 138, 0.06);
+
+  --session-error:        #D08278;
+  --session-error-ghost:  rgba(208, 130, 120, 0.10);
+  --session-error-text:   rgba(208, 130, 120, 0.80);
+  --session-error-banner: rgba(208, 130, 120, 0.06);
+
+  --session-warning:      #D4A24A;
+  --session-warning-soft: rgba(212, 162, 74, 0.10);
+
+  --session-backdrop:       rgba(0, 0, 0, 0.65);
+  --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
+
+  --session-glow-cp:     rgba(156, 177, 138, 0.15);
+  --session-glow-scroll: rgba(156, 177, 138, 0.10);
+
+  --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    --session-linen:       #15110C;
+    --session-cream:       #221C16;
+    --session-parchment:   #1B1712;
+
+    --session-ink:            #F2EAD6;
+    --session-ink-soft:       rgba(242, 234, 214, 0.85);
+    --session-ink-persona:    #F2EAD6;
+    --session-ink-user:       rgba(242, 234, 214, 0.85);
+    --session-ink-mid:        rgba(242, 234, 214, 0.62);
+    --session-ink-faded:      rgba(242, 234, 214, 0.42);
+    --session-ink-ghost:      rgba(242, 234, 214, 0.42);
+    --session-ink-whisper:    rgba(242, 234, 214, 0.22);
+    --session-ink-hairline:   rgba(245, 237, 222, 0.06);
+
+    --session-hair:           rgba(245, 237, 222, 0.10);
+    --session-hair-soft:      rgba(245, 237, 222, 0.06);
+
+    --session-persona:        #9CB18A;
+    --session-persona-soft:   rgba(156, 177, 138, 0.32);
+    --session-persona-muted:  rgba(156, 177, 138, 0.14);
+    --session-persona-border: rgba(156, 177, 138, 0.22);
+    --session-persona-tint:   rgba(156, 177, 138, 0.06);
+
+    --session-error:        #D08278;
+    --session-error-ghost:  rgba(208, 130, 120, 0.10);
+    --session-error-text:   rgba(208, 130, 120, 0.80);
+    --session-error-banner: rgba(208, 130, 120, 0.06);
+
+    --session-warning:      #D4A24A;
+    --session-warning-soft: rgba(212, 162, 74, 0.10);
+
+    --session-backdrop:       rgba(0, 0, 0, 0.65);
+    --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
+
+    --session-glow-cp:     rgba(156, 177, 138, 0.15);
+    --session-glow-scroll: rgba(156, 177, 138, 0.10);
+
+    --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
+  }
 }
 
 html {
@@ -92,18 +213,18 @@ textarea::placeholder {
   color: var(--session-ink-faded);
 }
 
-/* Global focus ring — cream spacer + sage outer ring. Hugs border-radius,
-   reads against both linen surface and darker overlays. !important is used
-   because several components apply inline box-shadow that would otherwise
-   win the cascade. */
+/* Global focus ring — 2px sage outline, 3px offset. Reads against both
+   linen surface and dark overlays. outline-offset keeps the ring from
+   hugging tight on square elements. */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 2px var(--session-cream), 0 0 0 4px var(--session-persona) !important;
+  outline: 2px solid var(--session-persona) !important;
+  outline-offset: 3px !important;
+  box-shadow: none !important;
 }
 
 /* Reduced motion — honor the OS preference. */
@@ -206,7 +327,7 @@ select:focus-visible,
      needed because paratext is in the side margins, not above/below. */
 }
 
-/* Thin scrollbars */
+/* Thin scrollbars — use token so they adapt in dark mode */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -216,13 +337,13 @@ select:focus-visible,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--session-ink-hairline);
+  background: var(--session-hair);
   border-radius: 2px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--session-ink-hairline) transparent;
+  scrollbar-color: var(--session-hair) transparent;
 }
 
 /* Checkpoint fade-in */

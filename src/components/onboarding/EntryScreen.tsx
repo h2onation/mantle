@@ -14,7 +14,7 @@ interface EntryScreenProps {
 // steps) hang in the left margin across that line — the one
 // formal gesture, used consistently. Type is carried by Newsreader
 // throughout, with Instrument Serif italic for quoted voice and
-// JetBrains Mono reserved for metadata labels.
+// monospace reserved for metadata labels.
 //
 // Six sections, in reading order:
 //   1. Masthead — wordmark + Log in
@@ -184,7 +184,7 @@ export default function EntryScreen({ onLogin }: EntryScreenProps) {
           gap: 12px;
           padding: 15px 26px 15px 22px;
           border: 1px solid var(--session-ink);
-          border-radius: 2px;
+          border-radius: var(--radius-xs);
           background: transparent;
           transition: background 240ms ease, color 240ms ease,
                       border-color 240ms ease;

@@ -37,7 +37,7 @@ export default function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
         // Structural floor boundary — separates the writing/reading zone from
         // the navigation frame. Keeps the nav recessive so the feed and input
         // can claim priority on the linen surface above.
-        borderTop: "1px solid var(--session-ink-hairline)",
+        borderTop: "1px solid var(--session-hair-soft)",
         zIndex: 100,
       }}
     >

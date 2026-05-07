@@ -211,7 +211,7 @@ export default function WaitlistForm() {
             color: "var(--session-cream)",
             backgroundColor: "var(--session-persona)",
             border: "none",
-            borderRadius: 8,
+            borderRadius: "var(--radius-sm)",
             cursor: submitting ? "not-allowed" : "pointer",
             opacity: submitting ? 0.7 : 1,
             transition: "opacity 0.2s",

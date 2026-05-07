@@ -197,19 +197,20 @@ export default function MobileSession({
                 sendMessage(chip);
               }}
               style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "14px",
+                fontFamily: "var(--font-serif)",
+                fontSize: "16px",
+                fontStyle: "italic",
                 fontWeight: 400,
-                lineHeight: 1.4,
+                lineHeight: 1.5,
                 color: "var(--session-ink-soft)",
-                backgroundColor: "var(--session-persona-muted)",
-                border: "1px solid var(--session-persona-border)",
-                borderRadius: "20px",
-                padding: "10px 16px",
+                backgroundColor: "transparent",
+                border: "none",
+                borderBottom: "1px solid var(--session-hair)",
+                borderRadius: 0,
+                padding: "var(--sp-sm) 0 var(--sp-sm)",
                 cursor: "pointer",
                 textAlign: "left",
                 width: "100%",
-                transition: "background-color 0.2s ease",
               }}
             >
               {chip}
@@ -236,8 +237,9 @@ export default function MobileSession({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 24px",
+          padding: "12px 20px",
           flexShrink: 0,
+          borderBottom: "1px solid var(--session-hair-soft)",
         }}
       >
         {/* Menu button — left */}
@@ -274,18 +276,17 @@ export default function MobileSession({
           ))}
         </button>
 
-        {/* Logo — center */}
+        {/* Wordmark — sage period */}
         <span
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "20px",
             fontWeight: 400,
-            color: "var(--session-ink-faded)",
-            letterSpacing: "1.5px",
-            paddingLeft: "4px",
+            color: "var(--session-ink)",
+            letterSpacing: "-0.5px",
           }}
         >
-          my walnut
+          mywalnut<span style={{ color: "var(--session-persona)" }}>.</span>
         </span>
 
         {/* Right spacer */}
@@ -360,7 +361,7 @@ export default function MobileSession({
             height: "48px",
             zIndex: 1,
             pointerEvents: "none",
-            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, rgba(200,185,140,0.08) 40%, transparent 100%)",
+            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
           }}
         />
 
@@ -437,7 +438,6 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                const primaryBg = "var(--session-persona-soft)";
                 const accentColor = "var(--session-persona)";
 
                 // Track A Phase 7-Mid: refinement-ceiling. After two
@@ -454,14 +454,30 @@ export default function MobileSession({
                     key={msg.id || `msg-${i}`}
                     style={{
                       animation: "checkpointFadeIn 0.45s ease both",
-                      background: "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
-                      border: "1px solid var(--session-persona-border)",
-                      borderRadius: "8px",
-                      boxShadow: "0 8px 44px var(--session-glow-cp), 0 2px 8px rgba(26,22,20,0.05)",
-                      padding: "16px 16px 14px",
-                      margin: "20px 0 12px",
+                      background: "var(--session-cream)",
+                      border: `1px solid var(--session-hair)`,
+                      borderTop: `2px solid var(--session-persona)`,
+                      boxShadow: "var(--lift)",
+                      padding: "var(--sp-xl) var(--sp-lg) var(--sp-lg)",
+                      margin: "var(--sp-md) 0 var(--sp-sm)",
+                      position: "relative",
                     }}
                   >
+                    {/* Opening quote — oversized sage, the only ornament */}
+                    <span aria-hidden="true" style={{
+                      position: "absolute",
+                      top: 6,
+                      left: 14,
+                      fontFamily: "var(--font-serif)",
+                      fontStyle: "italic",
+                      fontSize: "72px",
+                      lineHeight: 1,
+                      color: "var(--session-persona)",
+                      opacity: 0.45,
+                      fontWeight: 400,
+                      userSelect: "none",
+                    }}>&ldquo;</span>
+
                     {/* Layer name header */}
                     {checkpointLayer && LAYER_NAMES[checkpointLayer] && (
                       <div
@@ -471,8 +487,8 @@ export default function MobileSession({
                           fontWeight: 400,
                           letterSpacing: "3px",
                           textTransform: "uppercase",
-                          color: "var(--cp-text-accent, var(--session-persona-soft))",
-                          marginBottom: "12px",
+                          color: "var(--session-ink-mid)",
+                          marginBottom: "var(--sp-sm)",
                           lineHeight: 1,
                         }}
                       >
@@ -480,29 +496,16 @@ export default function MobileSession({
                       </div>
                     )}
 
-                    {/* Header */}
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        fontWeight: 500,
-                        letterSpacing: "2px",
-                        textTransform: "uppercase",
-                        color: accentColor,
-                        marginBottom: "14px",
-                      }}
-                    >
-                      CHECKPOINT
-                    </div>
-
                     {/* Body text */}
                     <div
                       style={{
                         fontFamily: "var(--font-serif)",
-                        fontSize: "16px",
+                        fontSize: "17px",
                         fontWeight: 400,
                         lineHeight: 1.5,
-                        color: "var(--session-ink-soft)",
+                        color: "var(--session-ink)",
+                        letterSpacing: "-0.2px",
+                        position: "relative",
                       }}
                     >
                       {renderMarkdown(msg.content)}
@@ -515,18 +518,13 @@ export default function MobileSession({
                     {isPendingCheckpoint && !checkpointActionState && (
                       <div
                         style={{
-                          marginTop: "18px",
-                          paddingTop: "12px",
-                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
+                          marginTop: "var(--sp-md)",
+                          paddingTop: "var(--sp-sm)",
+                          borderTop: "1px solid var(--session-hair-soft)",
                         }}
                       >
                         {refinementCeilingActive ? (
                           <>
-                            {/* Ceiling inline message (UI string, not
-                                a Jove utterance — Jove already said
-                                what they would say in the prior two
-                                refinement rounds; this is the card
-                                declaring the state change). */}
                             <p
                               style={{
                                 fontFamily: "var(--font-serif)",
@@ -534,34 +532,34 @@ export default function MobileSession({
                                 fontStyle: "italic",
                                 color: "var(--session-ink-mid)",
                                 lineHeight: 1.5,
-                                margin: "0 0 14px 0",
+                                margin: "0 0 var(--sp-sm) 0",
                               }}
                             >
                               Close but not quite is fine. Want me to put it in as it is, or let it go and we come back to it?
                             </p>
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-xs)" }}>
                               <button
                                 onClick={() => {
                                   setCheckpointActionState("confirmed");
                                   confirmCheckpoint("confirmed");
                                 }}
                                 style={{
-                                  fontFamily: "var(--font-sans)",
-                                  fontSize: "var(--size-meta)",
-                                  fontWeight: 500,
-                                  letterSpacing: "0.5px",
-                                  color: "#FFFFFF",
-                                  background: primaryBg,
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: "11px",
+                                  letterSpacing: "2.2px",
+                                  textTransform: "uppercase",
+                                  color: "var(--session-ink)",
+                                  background: "none",
                                   border: "none",
-                                  borderRadius: "6px",
-                                  padding: "9px 0",
+                                  borderBottom: "1px solid var(--session-ink)",
                                   cursor: "pointer",
+                                  padding: "var(--sp-xs) 0 var(--sp-tight)",
                                   width: "100%",
-                                  transition: "opacity 0.25s ease",
+                                  textAlign: "left",
                                 }}
                               >
-                                Put it in as it is
+                                Put it in as it is &nbsp;›
                               </button>
                               <button
                                 onClick={() => {
@@ -569,18 +567,19 @@ export default function MobileSession({
                                   confirmCheckpoint("deferred");
                                 }}
                                 style={{
-                                  fontFamily: "var(--font-sans)",
-                                  fontSize: "var(--size-meta)",
-                                  fontWeight: 500,
+                                  fontFamily: "var(--font-serif)",
+                                  fontSize: "15px",
+                                  fontStyle: "italic",
                                   color: "var(--session-ink-mid)",
                                   background: "none",
                                   border: "none",
                                   cursor: "pointer",
-                                  padding: "9px 0",
+                                  padding: "var(--sp-xs) 0",
                                   width: "100%",
+                                  textAlign: "left",
                                 }}
                               >
-                                Let it go
+                                let it go
                               </button>
                             </div>
                           </>
@@ -589,51 +588,51 @@ export default function MobileSession({
                             <p
                               style={{
                                 fontFamily: "var(--font-serif)",
-                                fontSize: "13px",
+                                fontSize: "14px",
                                 fontStyle: "italic",
                                 color: "var(--session-ink-faded)",
-                                margin: "0 0 12px 0",
+                                margin: "0 0 var(--sp-sm) 0",
                               }}
                             >
                               Does this feel right?
                             </p>
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                              {/* Primary button */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-tight)" }}>
+                              {/* Primary — text button with rule beneath */}
                               <button
                                 onClick={() => {
                                   setCheckpointActionState("confirmed");
                                   confirmCheckpoint("confirmed");
                                 }}
                                 style={{
-                                  fontFamily: "var(--font-sans)",
-                                  fontSize: "var(--size-meta)",
-                                  fontWeight: 500,
-                                  letterSpacing: "0.5px",
-                                  color: "#FFFFFF",
-                                  background: primaryBg,
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: "11px",
+                                  letterSpacing: "2.2px",
+                                  textTransform: "uppercase",
+                                  color: "var(--session-ink)",
+                                  background: "none",
                                   border: "none",
-                                  borderRadius: "6px",
-                                  padding: "9px 0",
+                                  borderBottom: "1px solid var(--session-ink)",
                                   cursor: "pointer",
+                                  padding: "var(--sp-xs) 0 var(--sp-tight)",
                                   width: "100%",
-                                  transition: "opacity 0.25s ease",
+                                  textAlign: "left",
                                 }}
                               >
-                                Put it in my Manual
+                                Put it in my Manual &nbsp;›
                               </button>
 
-                              {/* Secondary row */}
-                              <div style={{ display: "flex", gap: "16px", justifyContent: "center", alignItems: "center" }}>
+                              {/* Secondary — italic text links */}
+                              <div style={{ display: "flex", gap: "var(--sp-lg)", paddingTop: "var(--sp-xs)" }}>
                                 <button
                                   onClick={() => {
                                     setCheckpointActionState("refined");
                                     confirmCheckpoint("refined");
                                   }}
                                   style={{
-                                    fontFamily: "var(--font-sans)",
-                                    fontSize: "var(--size-meta)",
-                                    fontWeight: 500,
+                                    fontFamily: "var(--font-serif)",
+                                    fontSize: "15px",
+                                    fontStyle: "italic",
                                     color: "var(--session-ink-mid)",
                                     background: "none",
                                     border: "none",
@@ -641,33 +640,25 @@ export default function MobileSession({
                                     padding: 0,
                                   }}
                                 >
-                                  Close but not quite
+                                  close but not quite
                                 </button>
-                                <span
-                                  style={{
-                                    fontSize: "var(--size-meta)",
-                                    color: "var(--session-ink-whisper)",
-                                  }}
-                                >
-                                  &middot;
-                                </span>
                                 <button
                                   onClick={() => {
                                     setCheckpointActionState("rejected");
                                     confirmCheckpoint("rejected");
                                   }}
                                   style={{
-                                    fontFamily: "var(--font-sans)",
-                                    fontSize: "var(--size-meta)",
-                                    fontWeight: 500,
-                                    color: "var(--session-ink-ghost)",
+                                    fontFamily: "var(--font-serif)",
+                                    fontSize: "15px",
+                                    fontStyle: "italic",
+                                    color: "var(--session-ink-faded)",
                                     background: "none",
                                     border: "none",
                                     cursor: "pointer",
                                     padding: 0,
                                   }}
                                 >
-                                  This is not me
+                                  this is not me
                                 </button>
                               </div>
                             </div>
@@ -682,7 +673,7 @@ export default function MobileSession({
                         style={{
                           marginTop: "16px",
                           paddingTop: "12px",
-                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
+                          borderTop: "1px solid var(--session-hair-soft)",
                           animation: "checkpointFadeIn 0.4s ease-out both",
                         }}
                       >
@@ -712,7 +703,7 @@ export default function MobileSession({
                         style={{
                           marginTop: "16px",
                           paddingTop: "12px",
-                          borderTop: "1px solid rgba(94, 112, 84, 0.1)",
+                          borderTop: "1px solid var(--session-hair-soft)",
                         }}
                       >
                         <span
@@ -786,26 +777,26 @@ export default function MobileSession({
                         )}
                       </div>
                     )}
-                    {/* Rail — 2px sage-soft line, text indented 14px */}
+                    {/* Rail — 2px sage-soft line, text indented */}
                     <div
                       style={{
                         borderLeft: "2px solid var(--session-persona-soft)",
-                        paddingLeft: "14px",
-                        paddingTop: "4px",
-                        paddingBottom: "4px",
+                        paddingLeft: "var(--sp-sm)",
+                        paddingTop: "var(--sp-tight)",
+                        paddingBottom: "var(--sp-tight)",
                         fontFamily: "var(--font-persona)",
-                        fontSize: "17px",
+                        fontSize: "18px",
                         fontWeight: 400,
-                        lineHeight: 1.55,
-                        color: "var(--session-ink-persona)",
+                        lineHeight: 1.65,
+                        color: "var(--session-ink)",
                       }}
                     >
                       <div
                         style={{
                           fontFamily: "var(--font-persona)",
-                          fontSize: "17px",
+                          fontSize: "18px",
                           fontWeight: 400,
-                          lineHeight: 1.55,
+                          lineHeight: 1.65,
                           display: "flex",
                           flexDirection: "column",
                           gap: "12px",
@@ -826,28 +817,30 @@ export default function MobileSession({
                 return personaPanel;
               }
 
-              // User message — right-positioned, left-justified text
+              // User message — italic serif, sage left rule, indented.
+              // Quieter vertical presence than Jove — the interjection is the
+              // reader's marginalia, not a competing speaker.
               return (
                 <div
                   key={msg.id || `msg-${i}`}
                   style={{
-                    alignSelf: "flex-end",
-                    maxWidth: "88%",
-                    padding: "0 2px 0 0",
+                    paddingLeft: "var(--sp-md)",
+                    borderLeft: `2px solid var(--session-persona-muted)`,
                     animation: "checkpointFadeIn 0.45s ease-out both",
                   }}
                 >
                   {msg.channel === "text" && (
-                    <div style={{ textAlign: "right", marginBottom: "2px", paddingRight: "2px" }}>
+                    <div style={{ marginBottom: "2px" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
                     </div>
                   )}
                   <p
                     style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "15.5px",
+                      fontFamily: "var(--font-persona)",
+                      fontSize: "17.5px",
                       fontWeight: 400,
-                      lineHeight: 1.5,
+                      fontStyle: "italic",
+                      lineHeight: 1.6,
                       color: "var(--session-ink-user)",
                       textAlign: "left",
                       margin: 0,
@@ -918,46 +911,43 @@ export default function MobileSession({
               <div style={{ height: "40px", flexShrink: 0 }} />
             )}
 
-            {/* Error */}
+            {/* Error — oxblood top-rule, plain text, a way forward */}
             {errorMessage && (
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  padding: "12px 0",
+                  borderTop: "2px solid var(--session-error)",
+                  padding: "var(--sp-sm) 0",
+                  margin: "var(--sp-sm) 0",
                 }}
               >
-                <div
+                <span
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "8px",
+                    fontFamily: "var(--font-serif)",
+                    fontSize: "15px",
+                    fontStyle: "italic",
+                    color: "var(--session-ink-mid)",
+                    lineHeight: 1.5,
                   }}
                 >
-                  <span
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "13px",
-                      color: "var(--session-ink-mid)",
-                    }}
-                  >
-                    {errorMessage}
-                  </span>
+                  {errorMessage}
+                </span>
+                <div style={{ marginTop: "var(--sp-xs)" }}>
                   <button
                     onClick={retryLastMessage}
                     style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "13px",
-                      fontWeight: 500,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "2.2px",
+                      textTransform: "uppercase",
                       color: "var(--session-persona)",
                       background: "none",
                       border: "none",
+                      borderBottom: "1px solid var(--session-persona)",
                       cursor: "pointer",
-                      padding: "4px 8px",
+                      padding: "0 0 2px",
                     }}
                   >
-                    Retry
+                    try again &nbsp;›
                   </button>
                 </div>
               </div>

@@ -303,11 +303,13 @@ describe("PR3 onboarding copy pass", () => {
 
     // Track A Phase 7-Low (7a): checkpoint card action label revisions.
     // Underlying action values (confirmed/refined/rejected) are unchanged
-    // — only the display labels move.
+    // — only the display labels move. Primary action is title-case mono
+    // caps; secondary actions are lowercase italic serif (set as literal
+    // lowercase strings, not via text-transform).
     it("uses the new checkpoint card action labels", () => {
       expect(src).toContain("Put it in my Manual");
-      expect(src).toContain("Close but not quite");
-      expect(src).toContain("This is not me");
+      expect(src).toContain("close but not quite");
+      expect(src).toContain("this is not me");
     });
 
     it("does NOT contain the old checkpoint card action labels", () => {
@@ -322,17 +324,20 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     // Track A Phase 7-Mid (7c): refinement-ceiling card UI fires on
-    // refinement_count >= 2.
+    // refinement_count >= 2. The inline message is sentence case; the
+    // primary "Put it in as it is" button is title-case mono caps; the
+    // secondary "let it go" link is lowercase italic serif (literal
+    // lowercase, not text-transform).
     it("renders the refinement-ceiling inline message and two-button fork", () => {
       expect(src).toContain("Close but not quite is fine.");
       expect(src).toContain(
         "Want me to put it in as it is, or let it go and we come back to it?"
       );
       expect(src).toContain("Put it in as it is");
-      expect(src).toContain("Let it go");
+      expect(src).toContain("let it go");
     });
 
-    it("dispatches the new deferred action from the ceiling 'Let it go' button", () => {
+    it("dispatches the new deferred action from the ceiling 'let it go' button", () => {
       // "Let it go" must dispatch the new "deferred" action — NOT
       // "rejected". The two share DB behavior, but the system message
       // differs so Jove skips the POST-REJECTION fixed line. The user

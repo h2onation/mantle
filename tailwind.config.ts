@@ -1,26 +1,17 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Linen Design System — Tailwind projection.
+ * Linen Design System (v2 — Quiet Journal) — Tailwind projection.
  *
- * Token source of truth lives in `src/app/globals.css` as `--session-*` CSS
- * variables. This config projects those variables into Tailwind utility names,
- * dropping the `session-` prefix at the utility surface so components can
- * write `bg-linen` / `text-ink-soft` / `font-persona` instead of reading
- * CSS variables inline.
+ * Token source of truth lives in `src/app/globals.css` as CSS custom
+ * properties. This config projects those variables into Tailwind utility
+ * names, dropping prefixes at the utility surface so components can write
+ * `bg-linen` / `text-ink-soft` / `font-persona` / `gap-sp-md` / `rounded-sm`.
  *
  * Rules:
  *   - No new tokens introduced here. Every value points at an existing var.
  *   - Token names (the CSS var names) stay unchanged in globals.css.
- *   - Utility names intentionally shorter; the prefix was inherited from an
- *     earlier narrower context and is friction at the call site.
- *   - Two naming quirks accepted as tech debt: `border-persona-border` and
- *     `text-error-text` read redundantly because the CSS var names encode
- *     intent-of-use. Revisit if they grate in real use. See decisions.md.
- *
- * What is NOT projected, and why:
- *   - spacing, borderRadius, boxShadow, animation: no named tokens for these
- *     exist yet. Each is a design decision due in a later step.
+ *   - Utility names intentionally shorter than the var names.
  */
 
 const config: Config = {
@@ -37,12 +28,7 @@ const config: Config = {
         cream:     "var(--session-cream)",
         parchment: "var(--session-parchment)",
 
-        // Ink hierarchy.
-        // NOTE: `text-ink` is the body default (darkest value, #1A1614),
-        // not a strongest-emphasis variant. The Linen palette calibrates the
-        // darkest carbon ink to sit correctly on warm linen as primary text.
-        // Softer ink values are specific opinionated choices for specific
-        // roles (persona voice, user message weight), not a weight spectrum.
+        // Ink hierarchy — role-based, not a weight spectrum.
         ink: {
           DEFAULT:  "var(--session-ink)",
           soft:     "var(--session-ink-soft)",
@@ -55,7 +41,13 @@ const config: Config = {
           hairline: "var(--session-ink-hairline)",
         },
 
-        // Sage / persona accent
+        // Hair — border system, separate from ink text colors
+        hair: {
+          DEFAULT: "var(--session-hair)",
+          soft:    "var(--session-hair-soft)",
+        },
+
+        // Sage / persona accent — the single accent
         persona: {
           DEFAULT: "var(--session-persona)",
           soft:    "var(--session-persona-soft)",
@@ -64,12 +56,18 @@ const config: Config = {
           tint:    "var(--session-persona-tint)",
         },
 
-        // Error
+        // Error — oxblood
         error: {
           DEFAULT: "var(--session-error)",
           ghost:   "var(--session-error-ghost)",
           text:    "var(--session-error-text)",
           banner:  "var(--session-error-banner)",
+        },
+
+        // Warning — amber
+        warning: {
+          DEFAULT: "var(--session-warning)",
+          soft:    "var(--session-warning-soft)",
         },
 
         // Overlays
@@ -86,8 +84,6 @@ const config: Config = {
       },
 
       fontFamily: {
-        // Overrides Tailwind defaults: `font-sans`, `font-serif`, `font-mono`
-        // resolve to our project faces rather than system stacks.
         serif:   ["var(--font-serif)"],
         sans:    ["var(--font-sans)"],
         persona: ["var(--font-persona)"],
@@ -95,13 +91,33 @@ const config: Config = {
       },
 
       fontSize: {
-        // Bare sizes without bundled line-heights — matches the --size-*
-        // vars in globals.css, which deliberately leave line-height as a
-        // per-component decision.
         meta:    "var(--size-meta)",
         body:    "var(--size-body)",
         prose:   "var(--size-prose)",
         heading: "var(--size-heading)",
+      },
+
+      spacing: {
+        "sp-hair":  "var(--sp-hair)",
+        "sp-tight": "var(--sp-tight)",
+        "sp-xs":    "var(--sp-xs)",
+        "sp-sm":    "var(--sp-sm)",
+        "sp-md":    "var(--sp-md)",
+        "sp-lg":    "var(--sp-lg)",
+        "sp-xl":    "var(--sp-xl)",
+        "sp-xxl":   "var(--sp-xxl)",
+      },
+
+      borderRadius: {
+        none:  "var(--radius-none)",
+        xs:    "var(--radius-xs)",
+        sm:    "var(--radius-sm)",
+        pill:  "var(--radius-pill)",
+      },
+
+      boxShadow: {
+        lift:   "var(--lift)",
+        "lift-hi": "var(--lift-hi)",
       },
     },
   },

@@ -91,27 +91,30 @@ export default function BetaFeedbackButton() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--size-meta)",
+          fontFamily: "var(--font-mono)",
+          fontSize: "10px",
+          letterSpacing: "1.8px",
+          textTransform: "uppercase",
           lineHeight: 1,
           color: "var(--session-ink-mid)",
           background: "none",
-          border: "1px solid var(--session-ink-ghost)",
-          borderRadius: 999,
-          padding: "5px 12px",
+          border: "none",
+          borderBottom: "1px solid var(--session-hair)",
+          borderRadius: 0,
+          padding: "0 0 2px",
           cursor: "pointer",
           WebkitTapHighlightColor: "transparent",
           transition: "color 0.2s ease, border-color 0.2s ease",
         }}
         onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLButtonElement;
-          el.style.color = "var(--session-ink-soft)";
-          el.style.borderColor = "var(--session-ink-mid)";
+          el.style.color = "var(--session-ink)";
+          el.style.borderBottomColor = "var(--session-persona)";
         }}
         onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLButtonElement;
           el.style.color = "var(--session-ink-mid)";
-          el.style.borderColor = "var(--session-ink-ghost)";
+          el.style.borderBottomColor = "var(--session-hair)";
         }}
       >
         feedback
@@ -129,10 +132,9 @@ export default function BetaFeedbackButton() {
             zIndex: 111,
             width: "min(280px, calc(100% - 32px))",
             background: "var(--session-cream)",
-            border: "1px solid var(--session-ink-hairline)",
-            borderRadius: 12,
-            padding: 12,
-            boxShadow: "0 8px 24px rgba(26, 22, 20, 0.12)",
+            border: "1px solid var(--session-hair)",
+            padding: "var(--sp-sm)",
+            boxShadow: "var(--lift)",
           }}
         >
           {status === "success" ? (
@@ -171,15 +173,14 @@ export default function BetaFeedbackButton() {
                   onClick={handleSubmit}
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "var(--size-meta)",
-                    fontWeight: 600,
-                    letterSpacing: "1px",
+                    fontSize: "10px",
+                    letterSpacing: "2.2px",
                     textTransform: "uppercase",
-                    color: "var(--session-cream)",
-                    background: "var(--session-persona)",
+                    color: "var(--session-ink)",
+                    background: "none",
                     border: "none",
-                    borderRadius: 6,
-                    padding: "7px 14px",
+                    borderBottom: "1px solid var(--session-ink)",
+                    padding: "0 0 2px",
                     cursor: "pointer",
                     WebkitTapHighlightColor: "transparent",
                   }}
@@ -226,9 +227,9 @@ export default function BetaFeedbackButton() {
                   fontFamily: "var(--font-sans)",
                   fontSize: "13px",
                   color: "var(--session-ink)",
-                  background: "rgba(255, 255, 255, 0.7)",
+                  background: "var(--session-cream)",
                   border: "1px solid var(--session-ink-hairline)",
-                  borderRadius: 8,
+                  borderRadius: "var(--radius-sm)",
                   padding: "8px 10px",
                   resize: "none",
                   outline: "none",
@@ -269,15 +270,14 @@ export default function BetaFeedbackButton() {
                   disabled={status === "submitting" || text.trim().length === 0}
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "var(--size-meta)",
-                    fontWeight: 600,
-                    letterSpacing: "1px",
+                    fontSize: "10px",
+                    letterSpacing: "2.2px",
                     textTransform: "uppercase",
-                    color: "var(--session-cream)",
-                    background: "var(--session-persona)",
+                    color: "var(--session-ink)",
+                    background: "none",
                     border: "none",
-                    borderRadius: 6,
-                    padding: "7px 14px",
+                    borderBottom: "1px solid var(--session-ink)",
+                    padding: "0 0 2px",
                     cursor: "pointer",
                     opacity:
                       status === "submitting" || text.trim().length === 0

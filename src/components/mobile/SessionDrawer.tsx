@@ -119,7 +119,7 @@ export default function SessionDrawer({
               color: "var(--session-persona)",
               background: "none",
               border: "1px solid var(--session-persona-muted)",
-              borderRadius: "8px",
+              borderRadius: 0,
               padding: "12px 16px",
               cursor: "pointer",
               textAlign: "left",

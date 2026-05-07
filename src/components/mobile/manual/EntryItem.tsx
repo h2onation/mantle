@@ -23,7 +23,7 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
       style={{
         background: "var(--session-cream)",
         border: "0.5px solid var(--session-ink-hairline)",
-        borderRadius: 12,
+        borderRadius: 0,
         padding: "1rem 1.25rem",
         marginBottom: 10,
       }}
