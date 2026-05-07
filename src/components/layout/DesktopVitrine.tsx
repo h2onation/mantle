@@ -42,6 +42,9 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "var(--session-parchment)",
+        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.012'/%3E%3C/svg%3E\"), radial-gradient(ellipse at center, transparent 50%, rgba(26, 22, 20, 0.02) 100%)",
+        backgroundSize: "256px 256px, 100% 100%",
+        backgroundRepeat: "repeat, no-repeat",
         overflow: "hidden",
         position: "relative",
       }}
@@ -85,7 +88,8 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
           maxWidth: 430,
           height: "100%",
           borderRadius: "clamp(0px, (100vw - 430px) * 999, 40px)",
-          border: "clamp(0px, (100vw - 430px) * 999, 1px) solid rgba(26, 22, 20, 0.08)",
+          border: "clamp(0px, (100vw - 430px) * 999, 1px) solid rgba(26, 22, 20, 0.04)",
+          boxShadow: "0 0 80px rgba(26, 22, 20, 0.06)",
           overflow: "hidden",
           position: "relative",
         }}
