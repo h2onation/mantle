@@ -182,16 +182,12 @@ describe("PR3 onboarding copy pass", () => {
   describe("MobileSession", () => {
     const src = read("src/components/mobile/MobileSession.tsx");
 
-    it("uses new welcome chip labels", () => {
-      expect(src).toContain("I have a situation I want to work through");
-      expect(src).toContain("I know something about myself I want to capture");
-      expect(src).toContain("I just need to think out loud");
-    });
-
-    it("does NOT contain old chip labels", () => {
-      expect(src).not.toContain("I have questions about how this works");
-      expect(src).not.toContain("I have a specific situation on my mind");
-      expect(src).not.toContain("could use help finding a starting point");
+    it("uses entry card labels instead of old welcome chips", () => {
+      expect(src).toContain("Navigate a situation");
+      expect(src).toContain("Guided intake");
+      expect(src).toContain("Upload");
+      expect(src).not.toContain("I have a situation I want to work through");
+      expect(src).not.toContain("I just need to think out loud");
     });
 
     it("does NOT contain the old welcome-prose block", () => {
@@ -206,8 +202,9 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("start small and see where you");
     });
 
-    it("uses new returning-user prompt", () => {
-      expect(src).toContain("What&rsquo;s going on? Or we can pick up where we left off.");
+    it("uses entry cards for empty-state welcome", () => {
+      expect(src).toContain("Navigate a situation");
+      expect(src).toContain("Guided intake");
       expect(src).not.toContain("What&apos;s on your mind? Or if it helps");
     });
 

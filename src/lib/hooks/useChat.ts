@@ -229,7 +229,7 @@ export function useChat() {
 
     // Guided-intake opener-flow detection. Fires per assistant turn that
     // matches one of the four canonical phrases. Multiple events per
-    // session are expected (e.g. default on turn 1, recency_drop later).
+    // session are expected (e.g. default on turn 1, widen_scope later).
     // The dashboard derives "deepest variant per conversation" downstream.
     if (eventMode === "guided-intake" && displayContent) {
       const variant = detectGuidedIntakeOpenerVariant(displayContent);
@@ -287,6 +287,17 @@ export function useChat() {
         }
         return updated;
       });
+    }
+
+    // Attach chips to the message if the server included them.
+    if (completeEvent.chips && completeEvent.chips.length > 0) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === completeEvent!.messageId
+            ? { ...m, chips: completeEvent!.chips }
+            : m
+        )
+      );
     }
 
     if (completeEvent.processingText) {
@@ -444,8 +455,15 @@ export function useChat() {
     initializeConversation();
   }, [initializeConversation]);
 
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, options?: { isChipResponse?: boolean }) {
     if (!text.trim() || isLoading || isStreaming) return;
+
+    // Clear chips from all messages whenever a new user message is sent
+    setMessages((prev) =>
+      prev.some((m) => m.chips)
+        ? prev.map((m) => (m.chips ? { ...m, chips: undefined } : m))
+        : prev
+    );
 
     // Mark first session as started (persists across sessions)
     if (!firstSessionCompleted) {
@@ -470,7 +488,11 @@ export function useChat() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, conversationId }),
+        body: JSON.stringify({
+          message: text,
+          conversationId,
+          ...(options?.isChipResponse ? { isChipResponse: true } : {}),
+        }),
       });
 
       if (res.status === 401) {
@@ -1107,6 +1129,8 @@ export function useChat() {
     promptAuth,
     resetPromptAuth: () => setPromptAuth(false),
     sendMessage,
+    sendChipResponse: (text: string) =>
+      sendMessage(text, { isChipResponse: true }),
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,

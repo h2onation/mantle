@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { message, conversationId, explorationContext, mode: requestedMode } = (await request.json()) as {
+    const { message, conversationId, explorationContext, mode: requestedMode, isChipResponse } = (await request.json()) as {
       message: string | null;
       conversationId: string | null;
       explorationContext?: {
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         content: string;
       };
       mode?: string;
+      isChipResponse?: boolean;
     };
 
     if (
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
       userId: user.id,
       message,
       explorationContext,
+      isChipResponse: isChipResponse === true,
     });
 
     return new Response(stream, {
