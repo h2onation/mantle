@@ -26,11 +26,11 @@ export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensPro
           margin: "32px 18px 0",
           padding: "26px 24px 24px",
           borderRadius: 18,
-          background: "rgba(115,72,42,0.22)",
-          border: "1px solid rgba(170,120,82,0.24)",
+          background: "var(--session-walnut-surface)",
+          border: "1px solid var(--session-bubble-border)",
           backdropFilter: "blur(28px) saturate(140%)",
           WebkitBackdropFilter: "blur(28px) saturate(140%)",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.30), 0 1px 0 rgba(220,170,120,0.12) inset",
+          boxShadow: "var(--session-plate-shadow)",
         }}
       >
         <p

@@ -9,7 +9,7 @@ const CIRCLE_BTN_STYLE: React.CSSProperties = {
   width: 30,
   height: 30,
   borderRadius: "50%",
-  background: "rgba(0,0,0,0.30)",
+  background: "var(--session-button-inset)",
   border: "1px solid rgba(255,255,255,0.10)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",

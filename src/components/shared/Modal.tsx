@@ -66,8 +66,8 @@ export default function Modal({
   if (!open) return null;
 
   const borderColor = destructive
-    ? "rgba(208, 130, 120, 0.35)"
-    : "rgba(170, 120, 82, 0.20)";
+    ? "var(--session-error-border)"
+    : "var(--session-bubble-border)";
 
   return (
     <div
@@ -100,8 +100,7 @@ export default function Modal({
           border: `1px solid ${borderColor}`,
           backdropFilter: "blur(28px) saturate(140%)",
           WebkitBackdropFilter: "blur(28px) saturate(140%)",
-          boxShadow:
-            "0 12px 40px rgba(0,0,0,0.40), inset 0 1px 0 rgba(220,170,120,0.10)",
+          boxShadow: "var(--session-plate-shadow)",
           boxSizing: "border-box",
           outline: "none",
         }}

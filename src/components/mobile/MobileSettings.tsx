@@ -33,12 +33,12 @@ function SectionHeader({
         color:
           tone === "danger"
             ? "var(--session-error-text)"
-            : "rgba(220, 170, 120, 0.80)",
+            : "var(--session-walnut-meta-strong)",
         letterSpacing: "2px",
         textTransform: "uppercase",
         margin: "32px 0 8px 0",
         paddingBottom: 8,
-        borderBottom: `1px solid ${tone === "danger" ? "rgba(208,130,120,0.20)" : "var(--session-walnut-border-soft)"}`,
+        borderBottom: `1px solid ${tone === "danger" ? "var(--session-error-border-soft)" : "var(--session-walnut-border-soft)"}`,
       }}
     >
       {label}

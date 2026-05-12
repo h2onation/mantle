@@ -142,12 +142,12 @@ export default function BetaFeedbackButton() {
               zIndex: 251,
               width: "min(320px, calc(100% - 32px))",
               background: "var(--session-walnut-surface)",
-              border: "1px solid rgba(170,120,82,0.20)",
+              border: "1px solid var(--session-bubble-border)",
               borderRadius: 18,
               padding: 20,
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.30)",
+              boxShadow: "var(--session-plate-shadow)",
             }}
           >
             {status === "success" ? (

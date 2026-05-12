@@ -30,7 +30,7 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
             fontSize: 11,
             letterSpacing: "2px",
             textTransform: "uppercase",
-            color: "rgba(220, 170, 120, 0.55)",
+            color: "var(--session-walnut-meta-soft)",
           }}
         >
           Layer {ROMAN[layer.id]} · {layer.name}

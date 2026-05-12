@@ -41,7 +41,7 @@ export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }
             fontSize: 11,
             letterSpacing: "2px",
             textTransform: "uppercase",
-            color: "rgba(220, 170, 120, 0.80)",
+            color: "var(--session-walnut-meta-strong)",
           }}
         >
           Layer {ROMAN[layer.id]} · {layer.name}

@@ -177,12 +177,12 @@ export default function ChatInput({
           alignItems: "center",
           gap: "10px",
           background: "var(--session-walnut-surface)",
-          border: "1px solid rgba(170,120,82,0.20)",
+          border: "1px solid var(--session-bubble-border)",
           borderRadius: "999px",
           padding: "10px 14px",
           backdropFilter: "blur(32px) saturate(150%)",
           WebkitBackdropFilter: "blur(32px) saturate(150%)",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.40)",
+          boxShadow: "var(--session-plate-shadow)",
         }}
       >
         {/* Visible placeholder — hides on focus or when text present.
@@ -333,7 +333,7 @@ export default function ChatInput({
               width: "32px",
               height: "32px",
               borderRadius: "50%",
-              background: "rgba(0,0,0,0.40)",
+              background: "var(--session-button-inset-strong)",
               flexShrink: 0,
               animation: "voicePulse 2s ease-in-out infinite, mwFadeIn 0.15s ease-out both",
             }}
@@ -371,7 +371,7 @@ export default function ChatInput({
               width: "32px",
               height: "32px",
               borderRadius: "50%",
-              background: "rgba(0,0,0,0.40)",
+              background: "var(--session-button-inset-strong)",
               flexShrink: 0,
               opacity:
                 buttonMode === "mic-denied"

@@ -206,10 +206,10 @@ export default function MobileSession({
                 padding: "14px 18px",
                 borderRadius: 16,
                 background: "var(--session-walnut-surface)",
-                border: "1px solid rgba(170,120,82,0.20)",
+                border: "1px solid var(--session-bubble-border)",
                 backdropFilter: "blur(28px) saturate(140%)",
                 WebkitBackdropFilter: "blur(28px) saturate(140%)",
-                boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
+                boxShadow: "var(--session-bubble-shadow)",
               }}
             >
               <span
@@ -219,7 +219,7 @@ export default function MobileSession({
                   height: 36,
                   flexShrink: 0,
                   borderRadius: 10,
-                  background: "rgba(0,0,0,0.30)",
+                  background: "var(--session-button-inset)",
                   border: "1px solid var(--session-walnut-border-soft)",
                   display: "inline-flex",
                   alignItems: "center",
@@ -260,11 +260,11 @@ export default function MobileSession({
               gap: 14,
               padding: "14px 18px",
               borderRadius: 16,
-              background: "rgba(72,80,98,0.26)",
+              background: "var(--session-slate-soft)",
               border: "1px solid var(--session-walnut-border)",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
-              boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
+              boxShadow: "var(--session-bubble-shadow)",
               opacity: isLoading || isStreaming ? 0.6 : 1,
             }}
           >
@@ -275,7 +275,7 @@ export default function MobileSession({
                 height: 36,
                 flexShrink: 0,
                 borderRadius: 10,
-                background: "rgba(0,0,0,0.30)",
+                background: "var(--session-button-inset)",
                 border: "1px solid var(--session-walnut-border-soft)",
                 display: "inline-flex",
                 alignItems: "center",

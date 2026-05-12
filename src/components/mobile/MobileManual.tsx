@@ -262,14 +262,14 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             style={{
               position: "relative",
               background: "var(--session-walnut-surface)",
-              border: "1px solid rgba(170,120,82,0.20)",
+              border: "1px solid var(--session-bubble-border)",
               borderBottom: "none",
               borderRadius: "22px 22px 0 0",
               padding: "20px 24px calc(28px + env(safe-area-inset-bottom, 0px))",
               animation: "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
-              boxShadow: "0 -12px 40px rgba(0,0,0,0.30), inset 0 1px 0 rgba(220,170,120,0.10)",
+              boxShadow: "var(--session-sheet-shadow)",
             }}
           >
             {/* Drag handle */}
