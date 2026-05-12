@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
 import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
@@ -15,12 +15,23 @@ import Plate from "@/components/shared/Plate";
 import TopBar from "@/components/shared/TopBar";
 import QuickReplyChips from "./QuickReplyChips";
 
-const WELCOME_CHIPS = [
-  "I have a situation I want to work through",
-  "I know something about myself I want to capture",
-  "I just need to think out loud",
-] as const;
+const RETURNING_GREETINGS: ((name?: string | null) => string)[] = [
+  (name) => name ? `Welcome back, ${name}.` : "Welcome back.",
+  (name) => name ? `Good to see you, ${name}.` : "Good to see you.",
+  () => "What's been with you?",
+  (name) => name ? `Hey, ${name}.` : "Hey.",
+  () => "Ready when you are.",
+  () => "What brings you here today?",
+];
 
+function formatWelcomeDate(): string {
+  const now = new Date();
+  return now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).toUpperCase();
+}
 
 interface MobileSessionProps {
   messages: ChatMessage[];
@@ -58,6 +69,7 @@ interface MobileSessionProps {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
+  displayName?: string | null;
   onOpenDrawer: () => void;
 }
 
@@ -77,14 +89,13 @@ export default function MobileSession({
   startGuidedIntake,
   isGuest,
   onSignInPrompt,
-  firstSessionCompleted,
-  sessionOrigin,
   modalProgress = null,
   signupAtMs = null,
   isAnonymous = false,
   emergingPatternSnippet = null,
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
+  displayName = null,
   onOpenDrawer,
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
@@ -103,6 +114,7 @@ export default function MobileSession({
     activeCheckpoint !== null &&
     !modal3Dismissed;
   const [chipsVisible, setChipsVisible] = useState(true);
+  useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -147,85 +159,230 @@ export default function MobileSession({
   }, [activeCheckpoint]);
 
   const hasMessages = messages.length > 0;
+  const isReturning = confirmedEntries.length > 0;
+  const hasRealName =
+    !!displayName &&
+    displayName !== "User" &&
+    displayName !== displayName.toLowerCase();
+  const greetingIndex = useMemo(
+    () => Math.floor(Math.random() * RETURNING_GREETINGS.length),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [conversationId]
+  );
+  const greeting = isReturning
+    ? RETURNING_GREETINGS[greetingIndex](hasRealName ? displayName : null)
+    : "Hello,\nI’m Jove.";
 
-  // Welcome block — shown to new users (no confirmed manual entries).
-  // Phase 7-High / Gate 8: the three-paragraph Jove intro prose that
-  // used to render here is gone. Modal 1 (ChatWindowModal) now carries
-  // that content on the first chat-window entry. The three welcome
-  // chips remain as the empty-state affordance.
-  const showWelcomePanel =
-    !firstSessionCompleted &&
-    sessionOrigin === "new" &&
-    confirmedEntries.length === 0;
-  const showChips = chipsVisible && !hasMessages;
-  const welcomeBlock = (
+  const showEntryCards = chipsVisible && !hasMessages && !isLoading;
+  const entryCards = showEntryCards ? (
     <div
-      key="welcome-block"
+      key="entry-cards"
       style={{
-        margin: "16px 0 0 0",
-        animation: "mwFadeIn 0.6s ease-out",
         display: "flex",
         flexDirection: "column",
+        gap: "12px",
+        animation: "mwFadeIn 0.6s ease-out",
       }}
     >
-      {showChips && (
+      {/* Welcome header */}
+      <div style={{
+        padding: "0 4px 24px",
+      }}>
         <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          marginTop: "16px",
+          fontFamily: "var(--font-sans)",
+          fontSize: "11px",
+          fontWeight: 500,
+          letterSpacing: "1.8px",
+          color: "var(--session-ink-ghost)",
+          marginBottom: "16px",
         }}>
-          {WELCOME_CHIPS.map((chip) => (
-            <button
-              key={chip}
-              onClick={() => {
-                setChipsVisible(false);
-                sendMessage(chip);
-              }}
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "16px",
-                fontStyle: "italic",
-                fontWeight: 400,
-                lineHeight: 1.5,
-                color: "var(--session-ink-soft)",
-                backgroundColor: "transparent",
-                border: "none",
-                borderBottom: "1px solid var(--session-hair)",
-                borderRadius: 0,
-                padding: "var(--sp-sm) 0 var(--sp-sm)",
-                cursor: "pointer",
-                textAlign: "left",
-                width: "100%",
-              }}
-            >
-              {chip}
-            </button>
-          ))}
-          <button
-            onClick={() => {
-              setChipsVisible(false);
-              startGuidedIntake();
-            }}
-            disabled={isLoading || isStreaming}
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "var(--session-ink-mid)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "8px 0 0",
-              textAlign: "center",
-            }}
-          >
-            Help me get started
-          </button>
+          {formatWelcomeDate()}
         </div>
-      )}
+        <h1 style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "44px",
+          fontWeight: 400,
+          color: "var(--session-ink)",
+          lineHeight: 1.1,
+          margin: 0,
+          letterSpacing: "-0.8px",
+          whiteSpace: "pre-line",
+        }}>
+          {greeting.endsWith(".") ? (
+            <>
+              {greeting.slice(0, -1)}
+              <span style={{ color: "var(--session-walnut)" }}>.</span>
+            </>
+          ) : greeting}
+        </h1>
+        <p style={{
+          fontFamily: "var(--font-serif)",
+          fontStyle: "italic",
+          fontSize: "18px",
+          color: "var(--session-ink-persona)",
+          margin: "12px 0 0",
+          lineHeight: 1.4,
+        }}>
+          What&apos;s on your mind today?
+        </p>
+      </div>
+      <button
+        onClick={() => setChipsVisible(false)}
+        disabled={isLoading || isStreaming}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          padding: "14px 16px",
+          backgroundColor: "var(--session-cream)",
+          border: "1px solid var(--session-hair)",
+          borderRadius: "12px",
+          cursor: "pointer",
+          textAlign: "left" as const,
+          width: "100%",
+        }}
+      >
+        <div style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "10px",
+          backgroundColor: "var(--session-persona-muted)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M3 3.5h12a.5.5 0 01.5.5v8a.5.5 0 01-.5.5h-5l-3.5 3V12.5H3a.5.5 0 01-.5-.5V4a.5.5 0 01.5-.5z" stroke="var(--session-persona)" strokeWidth="1.2" fill="none" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "16px",
+            color: "var(--session-ink)",
+            lineHeight: 1.3,
+          }}>Navigate a situation</div>
+          <div style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--session-ink-mid)",
+            marginTop: "2px",
+            lineHeight: 1.3,
+          }}>Something on your mind right now</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <button
+        onClick={() => {
+          setChipsVisible(false);
+          startGuidedIntake();
+        }}
+        disabled={isLoading || isStreaming}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          padding: "14px 16px",
+          backgroundColor: "var(--session-cream)",
+          border: "1px solid var(--session-hair)",
+          borderRadius: "12px",
+          cursor: "pointer",
+          textAlign: "left" as const,
+          width: "100%",
+        }}
+      >
+        <div style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "10px",
+          backgroundColor: "var(--session-persona-muted)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="4" cy="4.5" r="1.5" fill="var(--session-persona)" />
+            <line x1="8" y1="4.5" x2="15" y2="4.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
+            <circle cx="4" cy="9" r="1.5" fill="var(--session-persona)" />
+            <line x1="8" y1="9" x2="15" y2="9" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
+            <circle cx="4" cy="13.5" r="1.5" fill="var(--session-persona)" />
+            <line x1="8" y1="13.5" x2="15" y2="13.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "16px",
+            color: "var(--session-ink)",
+            lineHeight: 1.3,
+          }}>Guided intake</div>
+          <div style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--session-ink-mid)",
+            marginTop: "2px",
+            lineHeight: 1.3,
+          }}>Let Jove lead with questions</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <button
+        disabled
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          padding: "14px 16px",
+          backgroundColor: "var(--session-cream)",
+          border: "1px solid var(--session-hair)",
+          borderRadius: "12px",
+          cursor: "default",
+          textAlign: "left" as const,
+          width: "100%",
+          opacity: 0.4,
+        }}
+      >
+        <div style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "10px",
+          backgroundColor: "var(--session-hair-soft)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3" stroke="var(--session-ink-mid)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M9 3v8M5.5 6.5L9 3l3.5 3.5" stroke="var(--session-ink-mid)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "16px",
+            color: "var(--session-ink)",
+            lineHeight: 1.3,
+          }}>Upload</div>
+          <div style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--session-ink-mid)",
+            marginTop: "2px",
+            lineHeight: 1.3,
+          }}>Share something that&apos;s been with you</div>
+        </div>
+      </button>
     </div>
-  );
+  ) : null;
 
   return (
     <main
@@ -332,83 +489,7 @@ export default function MobileSession({
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
 
-          {/* State 1: First-time user welcome — persists as the first Jove
-              message in the conversation. Renders above all messages so it
-              never reorders relative to user/Jove turns. */}
-          {showWelcomePanel && welcomeBlock}
-
-          {/* State 2: Returning user, new session */}
-          {firstSessionCompleted && sessionOrigin === "new" && !hasMessages && !isLoading && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "40px 24px",
-                gap: "16px",
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: "var(--font-spectral), var(--font-persona), serif",
-                  fontSize: "17px",
-                  color: "var(--session-ink-persona)",
-                  lineHeight: 1.55,
-                  textAlign: "center",
-                }}
-              >
-                What&rsquo;s going on? Or we can pick up where we left off.
-              </p>
-              <button
-                onClick={() => startGuidedIntake()}
-                disabled={isLoading || isStreaming}
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  fontWeight: 400,
-                  color: "var(--session-ink-mid)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                Help me get started
-              </button>
-            </div>
-          )}
-
-          {/* Fallback: empty conversation that matches neither State 1 nor State 2
-              (e.g. user has entries but localStorage flag unset). Show the
-              guided intake link so it's always discoverable. */}
-          {!hasMessages && !isLoading && !showWelcomePanel && !(firstSessionCompleted && sessionOrigin === "new") && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "40px 24px",
-              }}
-            >
-              <button
-                onClick={() => startGuidedIntake()}
-                disabled={isLoading || isStreaming}
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  fontWeight: 400,
-                  color: "var(--session-ink-mid)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                Help me get started
-              </button>
-            </div>
-          )}
+          {entryCards}
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;

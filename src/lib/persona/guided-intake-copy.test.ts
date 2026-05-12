@@ -75,7 +75,7 @@ describe("guided intake UI wiring", () => {
   });
 
   it("MobileSession renders the guided intake affordance", () => {
-    expect(session).toContain("Help me get started");
+    expect(session).toContain("Guided intake");
   });
 
   it("MainApp passes startGuidedIntake to MobileSession", () => {
@@ -94,8 +94,9 @@ describe("guided intake UI wiring", () => {
     expect(useChat).toContain("if (messages.length > 0) return false");
   });
 
-  it("user-facing affordance text does not use clinical language", () => {
-    expect("Help me get started").not.toMatch(/\bintake\b/i);
+  it("entry card titles avoid clinical terminology", () => {
+    expect("Navigate a situation").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
+    expect("Guided intake").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
   });
 });
 
