@@ -3,9 +3,14 @@
 @tailwind utilities;
 
 :root {
-  /* ─── Walnut + Slate — dark mode only ───
-     Cool graphite ground; walnut as the warm accent.
-     Sage stays for Jove. No light mode. */
+  /* ─── Dark mode (default) — Walnut + Slate ───
+     Cool graphite ground; walnut as the warm accent. Sage stays for
+     Jove. Light mode lives in the [data-theme="light"] block below
+     and re-binds the same --session-* token names to V3 Embossed
+     linen values. Both modes share the walnut spine (#5C3A1E in
+     light, rgb(170,120,82) in dark) — only the surrounding tone
+     shifts. Source of truth for dark: src/app/demo/glass/page.tsx.
+     Source of truth for light: src/app/demo/linen/page.tsx (V3). */
 
   /* Surface — cool graphite ground */
   --session-linen:       #0A0B10;
@@ -112,6 +117,213 @@
   /* Elevation — dark lifts */
   --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
   --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
+
+  /* ─── Phase 4 audit tokens ─────────────────────────────────────────
+     Added during the light-mode audit. These cover surfaces that were
+     hardcoded inline in components (bubble borders, button insets,
+     drawer panel, shadows, oxblood error edges, walnut highlights).
+     The dark values match the previously-hardcoded inline values
+     exactly so dark mode is byte-equivalent to pre-light-mode. */
+
+  /* Bubble + plate primary border — heavier than --session-walnut-border.
+     Used on chat bubbles, checkpoint plate, ChatInput, modals. */
+  --session-bubble-border:      rgba(170, 120, 82, 0.20);
+
+  /* User bubble fill — slate wash that distinguishes user from Jove.
+     Light mode flips to a walnut wash since slate doesn't read on linen. */
+  --session-bubble-user:        rgba(72, 80, 98, 0.30);
+  --session-bubble-user-border: rgba(170, 180, 200, 0.12);
+
+  /* Slate-tinted soft surface — guided-intake card on the welcome state. */
+  --session-slate-soft:         rgba(72, 80, 98, 0.26);
+
+  /* Circular button inset — TopBar circle, drag handle, mic icon
+     background. The -strong variant is for ChatInput's mic/stop circles
+     which need slightly more contrast against the walnut pill. */
+  --session-button-inset:        rgba(0, 0, 0, 0.30);
+  --session-button-inset-strong: rgba(0, 0, 0, 0.40);
+
+  /* Drawer panel background — slate on dark, linen on light. */
+  --session-drawer-bg:           rgba(20, 22, 28, 0.92);
+
+  /* Chat bubble shadow — quiet float over the chat gradient. */
+  --session-bubble-shadow:       0 6px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Plate shadow — heavier float for checkpoint, modals, settings sheet. */
+  --session-plate-shadow:        0 12px 40px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(220, 170, 120, 0.10);
+
+  /* Sheet shadow — same shape inverted upward for bottom-up sheets. */
+  --session-sheet-shadow:        0 -12px 40px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(220, 170, 120, 0.10);
+
+  /* Walnut highlight tones — bright meta caps, plate inset sheen. */
+  --session-walnut-meta-strong:  rgba(220, 170, 120, 0.85);
+  --session-walnut-meta-soft:    rgba(220, 170, 120, 0.55);
+  --session-walnut-highlight:    rgba(220, 170, 120, 0.12);
+
+  /* User bubble text — slightly faded cream on dark for tonal warmth;
+     primary ink on light since the walnut-wash bubble can carry full ink. */
+  --session-ink-user-text:       rgba(245, 243, 238, 0.92);
+
+  /* Oxblood error borders — destructive modal, crisis row, connection error. */
+  --session-error-border:        rgba(208, 130, 120, 0.35);
+  --session-error-border-soft:   rgba(208, 130, 120, 0.20);
+
+  /* OAuth button surface — quiet neutral wash. Cream on dark; faint
+     ink wash on light. Used by LoginScreen + AuthPromptModal. */
+  --session-oauth-surface:       rgba(245, 243, 238, 0.08);
+  --session-oauth-border:        rgba(245, 243, 238, 0.14);
+}
+
+/* ─── Light mode — V3 Embossed linen ───
+   Medium linen ground (#E5D8BE) — not pure white. Paper surfaces
+   (bubbles, plates, Manual cards) are *barely* lighter than the
+   ground; lift comes from shadow + border, not fill contrast.
+   Walnut spine (#5C3A1E) is the same hue identity as dark — only the
+   surrounding tone shifts. Espresso ink for AAA contrast on linen.
+   Source: src/app/demo/linen/page.tsx (Version 03 — Embossed linen). */
+[data-theme="light"] {
+  /* Surface — medium linen, with cream and parchment variants for
+     slightly-warmer / slightly-cooler paper. */
+  --session-linen:       #E5D8BE;
+  --session-cream:       #ECE0C8;
+  --session-parchment:   #DFD3B5;
+
+  /* Ink hierarchy — espresso on linen. The primary ink hits AAA on
+     the linen ground; faded/whisper tiers cascade down for hint
+     copy, meta rows, and disabled affordances. */
+  --session-ink:            #1F140A;
+  --session-ink-soft:       #4A3220;
+  --session-ink-persona:    rgba(31, 20, 10, 0.78);
+  --session-ink-user:       rgba(31, 20, 10, 0.72);
+  --session-ink-mid:        rgba(31, 20, 10, 0.64);
+  --session-ink-faded:      #7A5E40;
+  --session-ink-ghost:      rgba(31, 20, 10, 0.42);
+  --session-ink-whisper:    rgba(31, 20, 10, 0.22);
+  --session-ink-hairline:   rgba(92, 58, 30, 0.10);
+
+  /* Hair — warm walnut borders on linen. */
+  --session-hair:           rgba(92, 58, 30, 0.28);
+  --session-hair-soft:      rgba(92, 58, 30, 0.14);
+
+  /* Sage — kept for Jove continuity; dialed for legibility on linen. */
+  --session-persona:        #5E7A4F;
+  --session-persona-soft:   rgba(94, 122, 79, 0.32);
+  --session-persona-muted:  rgba(94, 122, 79, 0.14);
+  --session-persona-border: rgba(94, 122, 79, 0.30);
+  --session-persona-tint:   rgba(94, 122, 79, 0.08);
+
+  /* Walnut — same spine identity as dark, but the surface variants
+     re-tune for linen: the surface tints are walnut washes (V3
+     Embossed values) and the meta tone is the espresso mono-caps
+     reading on linen. */
+  --session-walnut:             #5C3A1E;
+  --session-walnut-light:       rgba(92, 58, 30, 0.55);
+  --session-walnut-surface:     rgba(232, 220, 196, 0.90);
+  --session-walnut-surface-soft:rgba(236, 224, 200, 0.93);
+  --session-walnut-border:      rgba(92, 58, 30, 0.32);
+  --session-walnut-border-soft: rgba(92, 58, 30, 0.22);
+  --session-walnut-meta:        #5C3F23;
+
+  /* Error — oxblood, AAA on linen. */
+  --session-error:        #7A2E2E;
+  --session-error-ghost:  rgba(122, 46, 46, 0.08);
+  --session-error-text:   rgba(122, 46, 46, 0.95);
+  --session-error-banner: rgba(122, 46, 46, 0.06);
+
+  /* Warning — amber, slightly deeper for linen. */
+  --session-warning:      #B6852A;
+  --session-warning-soft: rgba(182, 133, 42, 0.10);
+
+  /* Overlays — warm tint on linen reads better than pure black. */
+  --session-backdrop:       rgba(31, 20, 10, 0.45);
+  --session-backdrop-heavy: rgba(31, 20, 10, 0.55);
+
+  /* Glow */
+  --session-glow-cp:     rgba(94, 122, 79, 0.18);
+  --session-glow-scroll: rgba(92, 58, 30, 0.04);
+
+  /* Vignette — gentle ink wash on linen edges. */
+  --session-vignette: rgba(31, 20, 10, 0.05);
+
+  /* Per-surface gradients — V3 Embossed linen, verbatim from
+     src/app/demo/linen/page.tsx C object. Cream highlight at top,
+     caramel pool mid-bottom, deep walnut at a corner. */
+  --session-bg-welcome:
+    radial-gradient(ellipse 110% 55% at 30% 18%, rgba(255, 248, 228, 0.85), transparent 60%),
+    radial-gradient(ellipse 75% 50% at 100% 88%, rgba(92, 58, 30, 0.34), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(212, 176, 128, 0.62), transparent 60%);
+  --session-bg-chat:
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(255, 248, 232, 0.85), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(212, 176, 128, 0.58), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 105%, rgba(92, 58, 30, 0.38), transparent 60%);
+  --session-bg-checkpoint:
+    radial-gradient(ellipse 120% 60% at 50% 25%, rgba(255, 250, 232, 0.85), transparent 65%),
+    radial-gradient(ellipse 95% 55% at 35% 100%, rgba(208, 168, 118, 0.60), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(92, 58, 30, 0.34), transparent 60%);
+  --session-bg-manual:
+    radial-gradient(ellipse 130% 60% at 50% 10%, rgba(255, 250, 232, 0.78), transparent 60%),
+    radial-gradient(ellipse 100% 55% at 50% 100%, rgba(208, 168, 118, 0.48), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 0% 90%, rgba(92, 58, 30, 0.28), transparent 60%);
+
+  /* Elevation — light lifts use ink shadows, not transparent dark. */
+  --lift:    0 5px 14px rgba(31, 20, 10, 0.08), 0 1px 3px rgba(31, 20, 10, 0.06);
+  --lift-hi: 0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10);
+
+  /* ─── Phase 4 audit tokens (light values) ──────────────────────────
+     Same token names as the dark block above; remapped to V3 Embossed
+     linen equivalents. */
+
+  /* Bubble + plate primary border — V3 paper-border 0.32 walnut. */
+  --session-bubble-border:      rgba(92, 58, 30, 0.32);
+
+  /* User bubble — walnut wash (V3 puts users on a deeper walnut tint,
+     not slate, since slate reads cold against linen). */
+  --session-bubble-user:        rgba(92, 58, 30, 0.16);
+  --session-bubble-user-border: rgba(92, 58, 30, 0.32);
+
+  /* Slate-tinted soft surface re-maps to a lighter walnut wash on linen. */
+  --session-slate-soft:         rgba(92, 58, 30, 0.10);
+
+  /* Circular button inset — warm ink at low alpha. */
+  --session-button-inset:        rgba(31, 20, 10, 0.08);
+  --session-button-inset-strong: rgba(31, 20, 10, 0.12);
+
+  /* Drawer panel — warm linen with a touch of opacity for the
+     backdrop-filter to lift the surface above the page gradient. */
+  --session-drawer-bg:           rgba(229, 216, 190, 0.95);
+
+  /* V3 paper-shadow (chat bubble) and plate-shadow (modals). */
+  --session-bubble-shadow:       0 8px 24px rgba(31, 20, 10, 0.12), 0 2px 5px rgba(31, 20, 10, 0.10);
+  --session-plate-shadow:        0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
+  --session-sheet-shadow:        0 -22px 56px rgba(31, 20, 10, 0.16), 0 -6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
+
+  /* Walnut meta highlights — V3 espresso mono-caps tone for headings
+     and eyebrows. The "soft" variant fades it for low-emphasis labels. */
+  --session-walnut-meta-strong:  #5C3F23;
+  --session-walnut-meta-soft:    rgba(92, 63, 35, 0.55);
+  --session-walnut-highlight:    rgba(245, 235, 215, 0.4);
+
+  /* User bubble text — full ink on linen; the walnut-wash bubble has
+     enough contrast to carry the primary text color directly. */
+  --session-ink-user-text:       #1F140A;
+
+  /* Oxblood error borders — deeper to maintain contrast on linen. */
+  --session-error-border:        rgba(122, 46, 46, 0.35);
+  --session-error-border-soft:   rgba(122, 46, 46, 0.20);
+
+  /* OAuth button — quiet ink wash on linen. */
+  --session-oauth-surface:       rgba(31, 20, 10, 0.04);
+  --session-oauth-border:        rgba(92, 58, 30, 0.18);
+}
+
+/* No-JS fallback. When the FOUC script doesn't run (JS disabled) and
+   data-theme is not explicitly "dark", users with prefers-color-scheme:
+   light still get the light palette. SSR sets data-theme="dark" so this
+   block normally never fires; it's a safety net. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
 }
 
 html {

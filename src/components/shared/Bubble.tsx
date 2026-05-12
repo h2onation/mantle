@@ -11,7 +11,7 @@ const JOVE_STYLE: React.CSSProperties = {
   marginLeft: 0,
   marginRight: "auto",
   background: "var(--session-walnut-surface)",
-  border: "1px solid rgba(170,120,82,0.20)",
+  border: "1px solid var(--session-bubble-border)",
   borderRadius: "16px",
   borderTopLeftRadius: "5px",
 };
@@ -20,8 +20,8 @@ const USER_STYLE: React.CSSProperties = {
   maxWidth: "88%",
   marginLeft: "auto",
   marginRight: 0,
-  background: "rgba(72,80,98,0.30)",
-  border: "1px solid rgba(170,180,200,0.12)",
+  background: "var(--session-bubble-user)",
+  border: "1px solid var(--session-bubble-user-border)",
   borderRadius: "16px",
   borderTopRightRadius: "5px",
 };
@@ -35,7 +35,7 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
         padding: "12px 20px 14px",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
-        boxShadow: "0 6px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",
+        boxShadow: "var(--session-bubble-shadow)",
       }}
     >
       {isJove && showLabel && (
@@ -60,7 +60,7 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
           fontSize: "17px",
           lineHeight: 1.62,
           letterSpacing: "-0.05px",
-          color: isJove ? "var(--session-ink)" : "rgba(245,243,238,0.92)",
+          color: isJove ? "var(--session-ink)" : "var(--session-ink-user-text)",
           textWrap: "pretty" as React.CSSProperties["textWrap"],
         }}
       >

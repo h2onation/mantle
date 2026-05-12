@@ -24,11 +24,10 @@ export default function ConnectionErrorPlate({
         padding: "18px 20px 18px",
         borderRadius: 16,
         background: "var(--session-walnut-surface)",
-        border: "1px solid rgba(208, 130, 120, 0.35)",
+        border: "1px solid var(--session-error-border)",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
-        boxShadow:
-          "0 6px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",
+        boxShadow: "var(--session-bubble-shadow)",
         animation: "checkpointFadeIn 0.3s ease-out both",
       }}
     >
