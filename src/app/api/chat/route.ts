@@ -15,6 +15,7 @@ import {
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MAX_MESSAGE_LENGTH = 4000;
+const MAX_UPLOAD_LENGTH = 16000;
 const ANON_CHECKPOINT_LIMIT = 2;
 
 export async function POST(request: Request) {
@@ -47,20 +48,24 @@ export async function POST(request: Request) {
     if (
       requestedMode !== undefined &&
       requestedMode !== "situation" &&
-      requestedMode !== "guided-intake"
+      requestedMode !== "guided-intake" &&
+      requestedMode !== "upload"
     ) {
       return Response.json(
-        { error: "Invalid mode. Must be 'situation' or 'guided-intake'." },
+        { error: "Invalid mode. Must be 'situation', 'guided-intake', or 'upload'." },
         { status: 400 }
       );
     }
 
-    // 1a. Message length check (cheapest, no external calls)
-    if (typeof message === "string" && message.length > MAX_MESSAGE_LENGTH) {
+    // 1a. Message length check (cheapest, no external calls).
+    // Upload mode allows longer messages (pasted transcripts, email threads).
+    const maxLen = requestedMode === "upload" ? MAX_UPLOAD_LENGTH : MAX_MESSAGE_LENGTH;
+    if (typeof message === "string" && message.length > maxLen) {
       return Response.json(
         {
-          error:
-            "Message is too long. Please keep messages under 4000 characters.",
+          error: requestedMode === "upload"
+            ? "Upload is too long. Please keep uploads under 16,000 characters."
+            : "Message is too long. Please keep messages under 4,000 characters.",
         },
         { status: 400 }
       );

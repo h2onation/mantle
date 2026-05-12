@@ -44,7 +44,7 @@ export interface ConversationContext {
   turnCount: number;
   checkpointApproaching: boolean;
   personaMode: PersonaMode;
-  mode: "situation" | "guided-intake";
+  mode: "situation" | "guided-intake" | "upload";
 }
 
 export interface CheckpointGateResult {
@@ -125,14 +125,13 @@ export async function loadConversationContext(
   const personaMode: PersonaMode =
     (profileResult.data?.persona_mode as PersonaMode) || "autistic";
 
-  // Conversation mode. Only 'guided-intake' is explicitly recognized;
-  // everything else (including null, missing, or invalid) → 'situation'.
   const rawMode = extractionResult.data?.mode;
-  if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake") {
+  if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
-  const conversationMode: "situation" | "guided-intake" =
-    rawMode === "guided-intake" ? "guided-intake" : "situation";
+  const conversationMode: "situation" | "guided-intake" | "upload" =
+    rawMode === "guided-intake" ? "guided-intake" :
+    rawMode === "upload" ? "upload" : "situation";
 
   // Build conversation history
   let messages = applySlidingWindow(

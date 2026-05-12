@@ -14,14 +14,13 @@ import type { GuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy
 // Web for MainApp, sms for the Linq incoming-webhook path.
 export type Channel = "web" | "sms";
 
-// Extend this union when resonant-content and personal-upload entry
-// points ship.
-export type EntryPoint = "situation" | "guided-intake";
+// Extend this union when resonant-content entry point ships.
+export type EntryPoint = "situation" | "guided-intake" | "upload";
 
 // Mirrors the conversations.mode column. Carried on checkpoint and
 // session-end events so PostHog can answer "how does guided-intake
 // perform vs situation mode" without a DB join.
-export type ConversationMode = "situation" | "guided-intake";
+export type ConversationMode = "situation" | "guided-intake" | "upload";
 
 // GuidedIntakeOpenerVariant is defined alongside the canonical phrases
 // in src/lib/persona/guided-intake-copy.ts and re-exported here for
