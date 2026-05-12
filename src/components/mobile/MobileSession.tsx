@@ -231,7 +231,7 @@ export default function MobileSession({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        paddingBottom: "calc(52px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <TopBar onMenu={onOpenDrawer} />

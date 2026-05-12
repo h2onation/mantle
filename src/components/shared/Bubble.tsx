@@ -32,7 +32,7 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
     <div
       style={{
         ...(isJove ? JOVE_STYLE : USER_STYLE),
-        padding: "12px 20px 20px",
+        padding: "12px 20px 14px",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
         boxShadow: "0 6px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",

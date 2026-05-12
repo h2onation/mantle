@@ -26,7 +26,22 @@ const CIRCLE_BTN_STYLE: React.CSSProperties = {
 
 const SPACER_STYLE: React.CSSProperties = { width: 30, height: 30, flexShrink: 0 };
 
+// Left slot hosts EITHER the menu (authenticated surfaces) or the back
+// chevron (onboarding surfaces). They're mutually exclusive in current
+// usage. Menu takes precedence if both are passed.
 export default function TopBar({ onBack, onMenu }: TopBarProps) {
+  const leftButton = onMenu ? (
+    <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
+      ⋯
+    </button>
+  ) : onBack ? (
+    <button onClick={onBack} aria-label="Go back" style={CIRCLE_BTN_STYLE}>
+      ‹
+    </button>
+  ) : (
+    <span aria-hidden="true" style={SPACER_STYLE} />
+  );
+
   return (
     <div
       style={{
@@ -37,13 +52,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
         borderBottom: "1px solid var(--session-walnut-border)",
       }}
     >
-      {onBack ? (
-        <button onClick={onBack} aria-label="Go back" style={CIRCLE_BTN_STYLE}>
-          ‹
-        </button>
-      ) : (
-        <span aria-hidden="true" style={SPACER_STYLE} />
-      )}
+      {leftButton}
 
       <span
         style={{
@@ -59,13 +68,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
         <span style={{ color: "var(--session-walnut)" }}>.</span>
       </span>
 
-      {onMenu ? (
-        <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
-          ⋯
-        </button>
-      ) : (
-        <span aria-hidden="true" style={SPACER_STYLE} />
-      )}
+      <span aria-hidden="true" style={SPACER_STYLE} />
     </div>
   );
 }

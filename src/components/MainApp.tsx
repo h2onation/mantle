@@ -9,7 +9,6 @@ import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileSettings from "@/components/mobile/MobileSettings";
 import SessionDrawer from "@/components/mobile/SessionDrawer";
-import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
@@ -27,7 +26,6 @@ function sleep(ms: number) {
 export default function MainApp() {
   const [activeView, setActiveView] = useState<MobileView>("session");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
@@ -283,10 +281,6 @@ export default function MainApp() {
     setActiveView("settings");
   }, []);
 
-  const handleOpenFeedback = useCallback(() => {
-    setFeedbackOpen(true);
-  }, []);
-
   // Only block render on useChat init. The onboarding-status check
   // is allowed to resolve in the background — if it comes back as
   // "needed" we swap in PostLoginOnboarding then. Blocking on the
@@ -377,10 +371,7 @@ export default function MainApp() {
         onNewSession={startNewSession}
         onNavigateToManual={handleNavigateToManual}
         onNavigateToSettings={handleNavigateToSettings}
-        onOpenFeedback={handleOpenFeedback}
       />
-
-      <BetaFeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* Exploration interstitial overlay */}
       {explorationPhase !== null && (

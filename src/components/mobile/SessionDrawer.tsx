@@ -13,7 +13,6 @@ interface SessionDrawerProps {
   onNewSession: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
-  onOpenFeedback: () => void;
 }
 
 export default function SessionDrawer({
@@ -26,7 +25,6 @@ export default function SessionDrawer({
   onNewSession,
   onNavigateToManual,
   onNavigateToSettings,
-  onOpenFeedback,
 }: SessionDrawerProps) {
   async function handleNewSession() {
     onClose();
@@ -46,11 +44,6 @@ export default function SessionDrawer({
   function handleNavigateToSettings() {
     onClose();
     onNavigateToSettings();
-  }
-
-  function handleOpenFeedback() {
-    onClose();
-    onOpenFeedback();
   }
 
   return (
@@ -311,7 +304,6 @@ export default function SessionDrawer({
             onClick={handleNavigateToManual}
           />
           <NavRow icon="✷" label="Settings" onClick={handleNavigateToSettings} />
-          <NavRow icon="✎" label="Beta feedback" onClick={handleOpenFeedback} />
         </div>
 
         {/* Crisis support — oxblood, footer-anchored */}
