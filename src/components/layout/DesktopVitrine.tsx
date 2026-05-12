@@ -1,10 +1,17 @@
 "use client";
 
 import { APP_VERSION } from "@/lib/version";
+import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
 
 interface DesktopVitrineProps {
   children: React.ReactNode;
 }
+
+const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
 
 /**
  * The desktop "vitrine" — the parchment canvas, editorial masthead, phone
@@ -33,6 +40,7 @@ interface DesktopVitrineProps {
  * canvas, masthead, frame, and colophon.
  */
 export default function DesktopVitrine({ children }: DesktopVitrineProps) {
+  const { theme, setTheme } = useTheme();
   return (
     <div
       style={{
@@ -135,9 +143,58 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             Nothing enters it unless you confirm.
           </p>
 
+          {/* Theme toggle. Sits above the publication-meta row as an
+              editorial register shift — same mono caps, dot separators,
+              active option in --session-ink + underline. */}
+          <p
+            role="group"
+            aria-label="Appearance"
+            style={{
+              margin: "20px 0 0",
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--size-meta)",
+              fontWeight: 400,
+              letterSpacing: "0.5px",
+              color: "var(--session-ink-mid)",
+              display: "flex",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+              textTransform: "uppercase",
+            }}
+          >
+            <span aria-hidden="true">Theme</span>
+            <span aria-hidden="true">·</span>
+            {THEME_OPTIONS.map((opt, i) => {
+              const isActive = theme === opt.value;
+              return (
+                <span key={opt.value} style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setTheme(opt.value)}
+                    aria-pressed={isActive}
+                    style={{
+                      all: "unset",
+                      cursor: "pointer",
+                      color: isActive ? "var(--session-ink)" : "inherit",
+                      textDecoration: isActive ? "underline" : "none",
+                      textUnderlineOffset: "4px",
+                      textDecorationThickness: "1px",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                  {i < THEME_OPTIONS.length - 1 && <span aria-hidden="true">·</span>}
+                </span>
+              );
+            })}
+          </p>
+
           <p
             style={{
-              margin: "24px 0 0",
+              margin: "10px 0 0",
               fontFamily: "var(--font-mono)",
               fontSize: "var(--size-meta)",
               fontWeight: 400,
