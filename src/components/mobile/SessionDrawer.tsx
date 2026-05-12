@@ -161,33 +161,31 @@ export default function SessionDrawer({
           </button>
         </div>
 
-        {/* New session pill */}
-        <button
-          onClick={handleNewSession}
-          style={{
-            all: "unset",
-            cursor: "pointer",
-            margin: "16px 18px 8px",
-            padding: "12px 16px",
-            borderRadius: 10,
-            background: "var(--session-walnut-surface)",
-            border: "1px solid var(--session-walnut-border)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span style={{ color: "var(--session-walnut)", fontSize: 16, lineHeight: 1 }}>+</span>
-          <span
-            style={{
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontSize: 15,
-              color: "var(--session-ink)",
-            }}
-          >
-            New session
-          </span>
-        </button>
+        {/* Primary actions — New session + Read my Manual, equal weight.
+            Two pills stacked so they share visual register. New session is
+            the action; Manual is the destination. Both walnut-surface +
+            walnut-border, same padding, same type scale. */}
+        <div style={{ margin: "16px 18px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
+          <PrimaryPill
+            icon="+"
+            label="New session"
+            iconColor="var(--session-walnut)"
+            isActive={false}
+            onClick={handleNewSession}
+          />
+          <PrimaryPill
+            icon="❦"
+            label="Read my Manual"
+            iconColor="var(--session-walnut)"
+            count={
+              manualEntryCount > 0
+                ? `${manualEntryCount} ${manualEntryCount === 1 ? "entry" : "entries"}`
+                : null
+            }
+            isActive={activeView === "manual"}
+            onClick={handleNavigateToManual}
+          />
+        </div>
 
         {/* Sessions label */}
         <div style={{ padding: "8px 22px 4px" }}>
@@ -312,24 +310,14 @@ export default function SessionDrawer({
           )}
         </div>
 
-        {/* Primary nav rows — Manual, Settings, Feedback */}
+        {/* Secondary nav — Settings only. Manual lives at the top as a
+            primary pill. */}
         <div
           style={{
             borderTop: "1px solid var(--session-walnut-border-soft)",
             padding: "10px 22px 4px",
           }}
         >
-          <NavRow
-            icon="❦"
-            label="Read my Manual"
-            count={
-              manualEntryCount > 0
-                ? `${manualEntryCount} ${manualEntryCount === 1 ? "entry" : "entries"}`
-                : null
-            }
-            isActive={activeView === "manual"}
-            onClick={handleNavigateToManual}
-          />
           <NavRow
             icon="✷"
             label="Settings"
@@ -390,6 +378,89 @@ export default function SessionDrawer({
         </div>
       </div>
     </>
+  );
+}
+
+// Primary action pill — paired use at the top of the drawer for the two
+// most-tapped entry points (start fresh, open Manual). Walnut surface +
+// border, mono caps-friendly typography. Active state lifts the surface
+// to walnut-surface-strong tone and adds a walnut left rail.
+function PrimaryPill({
+  icon,
+  iconColor,
+  label,
+  count,
+  isActive,
+  onClick,
+}: {
+  icon: string;
+  iconColor: string;
+  label: string;
+  count?: string | null;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        padding: "14px 16px",
+        borderRadius: 10,
+        background: "var(--session-walnut-surface)",
+        border: "1px solid var(--session-walnut-border)",
+        boxShadow: isActive ? "var(--session-card-shadow, none)" : "none",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        WebkitTapHighlightColor: "transparent",
+        position: "relative",
+      }}
+    >
+      {isActive && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: -1,
+            top: 6,
+            bottom: 6,
+            width: 2,
+            background: "var(--session-walnut)",
+            borderRadius: 2,
+          }}
+        />
+      )}
+      <span style={{ color: iconColor, fontSize: 16, lineHeight: 1, width: 16, textAlign: "center" }}>
+        {icon}
+      </span>
+      <span
+        style={{
+          flex: 1,
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 15,
+          color: "var(--session-ink)",
+          textAlign: "left",
+        }}
+      >
+        {label}
+      </span>
+      {count && (
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "1.6px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta)",
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
