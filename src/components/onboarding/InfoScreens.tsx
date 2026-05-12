@@ -1,13 +1,14 @@
 "use client";
 
 import { PERSONA_NAME } from "@/lib/persona/config";
+import TopBar from "@/components/shared/TopBar";
 
 interface InfoScreensProps {
   onNavigateToSeed: () => void;
   onBack: () => void;
 }
 
-export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
+export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensProps) {
   return (
     <main
       style={{
@@ -17,93 +18,102 @@ export default function InfoScreens({ onNavigateToSeed }: InfoScreensProps) {
         boxSizing: "border-box",
       }}
     >
-      {/* Wordmark (top center) */}
+      <TopBar onBack={onBack} />
+
+      {/* Plate — walnut tint, prose-led */}
       <div
         style={{
-          padding: "16px 0",
-          textAlign: "center",
-          fontFamily: "var(--font-serif)",
-          fontSize: 13,
-          fontWeight: 400,
-          letterSpacing: "1.5px",
-          color: "var(--session-ink-faded)",
-          paddingLeft: 4,
+          margin: "32px 18px 0",
+          padding: "26px 24px 24px",
+          borderRadius: 18,
+          background: "rgba(115,72,42,0.22)",
+          border: "1px solid rgba(170,120,82,0.24)",
+          backdropFilter: "blur(28px) saturate(140%)",
+          WebkitBackdropFilter: "blur(28px) saturate(140%)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.30), 0 1px 0 rgba(220,170,120,0.12) inset",
         }}
       >
-        my walnut
+        <p
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta)",
+          }}
+        >
+          Before you begin
+        </p>
+        <h2
+          style={{
+            margin: "14px 0 0",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 24,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: "-0.3px",
+            color: "var(--session-ink)",
+          }}
+        >
+          What this is, and isn&rsquo;t<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+        </h2>
+        <p
+          style={{
+            margin: "16px 0 0",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 15.5,
+            lineHeight: 1.62,
+            color: "var(--session-ink)",
+            letterSpacing: "-0.05px",
+          }}
+        >
+          {PERSONA_NAME} is a careful, direct companion. It listens, reflects, and helps you notice patterns in how you work. Over time, the things you confirm become entries in your Manual.
+        </p>
+        <p
+          style={{
+            margin: "14px 0 0",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 15.5,
+            lineHeight: 1.62,
+            color: "var(--session-ink-soft)",
+            letterSpacing: "-0.05px",
+          }}
+        >
+          This isn&rsquo;t therapy and {PERSONA_NAME} isn&rsquo;t a clinician. If something serious comes up, the Crisis Support link is always one tap away in the menu<span style={{ color: "var(--session-walnut)" }}>.</span>
+        </p>
       </div>
 
-      {/* Spacer pushes content to bottom */}
+      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Content area */}
-      <div style={{ padding: "0 28px 40px" }}>
-        {/* Section label */}
-        <h1
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 8,
-            fontWeight: 500,
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "var(--session-persona)",
-            marginBottom: 16,
-            margin: "0 0 16px 0",
-          }}
-        >
-          HOW IT WORKS
-        </h1>
-
-        {/* Body — 2 paragraphs */}
-        <div
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 16,
-            fontWeight: 400,
-            lineHeight: 1.55,
-            color: "var(--session-ink-mid)",
-          }}
-        >
-          <p style={{ margin: "0 0 16px 0" }}>
-            You&rsquo;ll build your Manual by talking to {PERSONA_NAME}. Bring real situations &mdash; a conflict, a reaction you can&rsquo;t stop thinking about, a pattern you keep noticing. {PERSONA_NAME} reflects patterns back. You decide what goes in.
-          </p>
-          <p style={{ margin: 0 }}>
-            Builds best when you show up most days for the first two weeks.
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom nav */}
+      {/* Action — TextBtn CTA at bottom */}
       <div
         style={{
-          padding: "0 28px",
-          paddingBottom: "calc(32px + env(safe-area-inset-bottom, 0px))",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
+          padding: "0 24px",
+          paddingBottom: "calc(36px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         <button
           onClick={onNavigateToSeed}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontFamily: "var(--font-sans)",
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--session-cream)",
-            backgroundColor: "var(--session-persona-soft)",
-            border: "none",
-            borderRadius: "var(--radius-sm)",
-            padding: "12px 28px",
+            all: "unset",
             cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+            padding: "10px 0",
+            borderBottom: "1px solid var(--session-ink)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            boxSizing: "border-box",
           }}
         >
-          Continue
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M5 3L9.5 7L5 11" stroke="var(--session-cream)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <span>Continue</span>
+          <span aria-hidden="true">&rsaquo;</span>
         </button>
       </div>
     </main>

@@ -3,49 +3,48 @@
 import React from "react";
 import type { Layer } from "./layer-definitions";
 
+const ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
+
 interface EmptyLayerProps {
   layer: Layer;
-  // Kept for prop-shape compatibility with PopulatedLayer callers; unused now
-  // that the Explore button has been removed.
   readOnly?: boolean;
 }
 
 export default function EmptyLayer({ layer }: EmptyLayerProps) {
   return (
-    <section style={{ marginBottom: 32 }}>
-      {/* Section header — muted, flat */}
+    <section style={{ marginBottom: 22 }}>
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
           paddingBottom: 8,
-          borderBottom: "0.5px solid var(--session-ink-hairline)",
+          paddingLeft: 4,
+          paddingRight: 4,
+          borderBottom: "1px solid var(--session-walnut-border-soft)",
         }}
       >
-        <h2
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 16,
-            fontWeight: 500,
-            color: "var(--session-ink-mid)",
-            margin: 0,
-            letterSpacing: "-0.1px",
-            lineHeight: 1.3,
-          }}
-        >
-          {layer.name}
-        </h2>
         <span
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
-            fontWeight: 400,
-            color: "var(--session-ink-ghost)",
-            lineHeight: 1.3,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "rgba(220, 170, 120, 0.55)",
           }}
         >
-          0 entries
+          Layer {ROMAN[layer.id]} · {layer.name}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "1.6px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          0
         </span>
       </div>
     </section>

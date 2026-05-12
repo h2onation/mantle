@@ -9,6 +9,7 @@ import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { trackManualExported } from "@/lib/analytics/events";
+import TopBar from "@/components/shared/TopBar";
 
 const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
@@ -17,12 +18,15 @@ interface MobileManualProps {
   displayName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   onNavigateToSession?: () => void;
+  onOpenDrawer?: () => void;
 }
 
-export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession }: MobileManualProps) {
+export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(entries);
   const isEmpty = layers.every((l) => l.entries.length === 0);
+  const totalEntries = entries.length;
+  const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -67,36 +71,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
         position: "relative",
       }}
     >
-      {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 16px",
-          flexShrink: 0,
-        }}
-      >
-        {/* Left spacer */}
-        <div style={{ minWidth: "44px", minHeight: "44px" }} />
-
-        {/* Logo — center */}
-        <span
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "20px",
-            fontWeight: 400,
-            color: "var(--session-ink-faded)",
-            letterSpacing: "1.5px",
-            paddingLeft: "4px",
-          }}
-        >
-          my walnut
-        </span>
-
-        {/* Right spacer */}
-        <div style={{ minWidth: "44px", minHeight: "44px" }} />
-      </header>
+      <TopBar onMenu={onOpenDrawer} />
 
       {/* Scroll fade overlay */}
       <div
@@ -123,21 +98,36 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           position: "relative",
         }}
       >
-        {/* Page title */}
-        <h1
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "26px",
-            fontWeight: 400,
-            color: "var(--session-ink)",
-            margin: 0,
-            padding: "16px 20px 28px",
-            letterSpacing: "-0.5px",
-            lineHeight: 1.2,
-          }}
-        >
-          Your Manual
-        </h1>
+        {/* Page title — total count eyebrow + heading */}
+        <div style={{ padding: "20px 24px 24px" }}>
+          {totalEntries > 0 && (
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
+              }}
+            >
+              {totalLabel}
+            </p>
+          )}
+          <h1
+            style={{
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: "26px",
+              fontWeight: 500,
+              color: "var(--session-ink)",
+              margin: totalEntries > 0 ? "6px 0 0" : 0,
+              letterSpacing: "-0.5px",
+              lineHeight: 1.2,
+            }}
+          >
+            Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+          </h1>
+        </div>
 
         {/* Layer list — unified ordering, populated and empty render side by side */}
         <div style={{ padding: "0 20px", position: "relative" }}>
@@ -159,9 +149,12 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
         <div
           style={{
             margin: "40px 20px 24px",
-            padding: "1.25rem",
-            background: "var(--session-persona-tint)",
-            borderRadius: 0,
+            padding: "20px 22px 22px",
+            background: "var(--session-walnut-surface)",
+            border: "1px solid var(--session-walnut-border)",
+            borderRadius: "18px",
+            backdropFilter: "blur(28px) saturate(140%)",
+            WebkitBackdropFilter: "blur(28px) saturate(140%)",
           }}
         >
           <h2
@@ -178,10 +171,10 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           </h2>
           <p
             style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 14,
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: 15,
               color: "var(--session-ink-soft)",
-              lineHeight: 1.55,
+              lineHeight: 1.6,
               margin: "0 0 16px 0",
             }}
           >
@@ -197,7 +190,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               fontFamily: "var(--font-sans)",
               fontSize: 14,
               fontWeight: 500,
-              color: "var(--session-persona)",
+              color: "var(--session-walnut-light)",
               background: "none",
               border: "none",
               padding: 0,
@@ -251,9 +244,13 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             style={{
               position: "relative",
               backgroundColor: "var(--session-cream)",
+              border: "1px solid var(--session-walnut-border)",
+              borderBottom: "none",
               borderRadius: "20px 20px 0 0",
               padding: "32px 24px calc(24px + env(safe-area-inset-bottom, 0px))",
               animation: "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
+              backdropFilter: "blur(28px) saturate(140%)",
+              WebkitBackdropFilter: "blur(28px) saturate(140%)",
             }}
           >
             {/* Drag handle */}
@@ -401,8 +398,11 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
               width: "calc(100% - 48px)",
               maxWidth: 380,
               backgroundColor: "var(--session-cream)",
-              borderRadius: 0,
+              border: "1px solid var(--session-walnut-border)",
+              borderRadius: "18px",
               padding: "32px 24px",
+              backdropFilter: "blur(28px) saturate(140%)",
+              WebkitBackdropFilter: "blur(28px) saturate(140%)",
             }}
           >
             <p

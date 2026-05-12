@@ -4,16 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import TopBar from "@/components/shared/TopBar";
 
 interface SeedScreenProps {
-  // When provided, SeedScreen runs in post-login mode: instead of
-  // creating an anonymous account, it writes onboarding_completed_at
-  // on the existing authenticated user's profile and calls onComplete.
-  // When omitted, the legacy anonymous-signup flow runs.
   onComplete?: () => void;
+  onBack?: () => void;
 }
 
-export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
+export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {}) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -28,10 +26,6 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
 
     const supabase = createClient();
 
-    // Branch on auth state. Post-login flow (real beta user finishing
-    // first-time onboarding) writes a timestamp to profiles. Legacy
-    // anonymous flow (currently unreachable from the entry screen but
-    // kept in place for follow-up cleanup) creates an anonymous account.
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
 
@@ -56,14 +50,9 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
       return;
     }
 
-    // Reset first-session localStorage flags before creating a fresh
-    // anonymous user. Otherwise a browser that previously completed a
-    // first session will treat this brand-new anonymous user as returning
-    // and skip the welcome block with chips.
     localStorage.removeItem("mw_first_session_completed");
     localStorage.removeItem("mw_signin_banner_dismissed");
 
-    // Create anonymous auth session
     const { error: authError } = await supabase.auth.signInAnonymously();
     if (authError) {
       console.error("[SeedScreen] signInAnonymously failed:", authError);
@@ -84,50 +73,33 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
         boxSizing: "border-box",
       }}
     >
-      {/* Wordmark (top center) */}
-      <div
-        style={{
-          padding: "16px 0",
-          textAlign: "center",
-          fontFamily: "var(--font-serif)",
-          fontSize: 13,
-          fontWeight: 400,
-          letterSpacing: "1.5px",
-          color: "var(--session-ink-faded)",
-          paddingLeft: 4,
-        }}
-      >
-        my walnut
-      </div>
+      <TopBar onBack={onBack} />
 
       {/* Spacer pushes content to bottom */}
       <div style={{ flex: 1 }} />
 
       {/* Content area */}
       <div style={{ padding: "0 28px 40px" }}>
-        {/* Section label */}
-        <h1
+        <p
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 8,
-            fontWeight: 500,
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "var(--session-persona)",
-            marginBottom: 16,
             margin: "0 0 16px 0",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta)",
           }}
         >
-          BEFORE YOU START
-        </h1>
+          Before you start
+        </p>
 
-        {/* Body — 2 paragraphs */}
         <div
           style={{
-            fontFamily: "var(--font-serif)",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontSize: 16,
             fontWeight: 400,
-            lineHeight: 1.55,
+            lineHeight: 1.62,
             color: "var(--session-ink-mid)",
             marginBottom: 24,
           }}
@@ -154,7 +126,7 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           <div
             role="checkbox"
             aria-checked={ageConfirmed}
-            aria-label="I’m 18 or older"
+            aria-label="I'm 18 or older"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === " " || e.key === "Enter") {
@@ -168,9 +140,9 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
               borderRadius: 4,
               border: ageConfirmed
                 ? "none"
-                : "1.5px solid var(--session-ink-whisper)",
+                : "1.5px solid var(--session-walnut-border)",
               backgroundColor: ageConfirmed
-                ? "var(--session-persona-soft)"
+                ? "var(--session-walnut)"
                 : "transparent",
               display: "flex",
               alignItems: "center",
@@ -224,29 +196,30 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
           </p>
         )}
 
-        {/* Begin button */}
+        {/* Begin — TextBtn pattern */}
         <button
           onClick={handleSubmit}
           disabled={!isEnabled}
           style={{
-            width: "100%",
-            padding: "16px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            fontWeight: 500,
-            color: isEnabled ? "var(--session-cream)" : "var(--session-ink-ghost)",
-            backgroundColor: isEnabled
-              ? "var(--session-ink)"
-              : "var(--session-ink-hairline)",
-            border: "none",
-            borderRadius: "var(--radius-sm)",
+            all: "unset",
             cursor: isEnabled ? "pointer" : "default",
-            transition: "all 0.4s ease",
-            marginBottom: 14,
-            opacity: submitting ? 0.7 : 1,
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+            padding: "10px 0",
+            borderBottom: `1px solid ${isEnabled ? "var(--session-ink)" : "var(--session-ink-whisper)"}`,
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: isEnabled ? "var(--session-ink)" : "var(--session-ink-ghost)",
+            opacity: submitting ? 0.6 : 1,
+            transition: "all 0.3s ease",
+            boxSizing: "border-box",
           }}
         >
-          {submitting ? "Connecting..." : "Begin"}
+          <span>{submitting ? "Connecting..." : "Begin"}</span>
+          <span aria-hidden="true">&rsaquo;</span>
         </button>
 
         {/* Legal footer */}
@@ -256,18 +229,19 @@ export default function SeedScreen({ onComplete }: SeedScreenProps = {}) {
             fontFamily: "var(--font-sans)",
             fontSize: 11,
             fontWeight: 400,
-            color: "var(--session-ink-mid)",
+            color: "var(--session-ink-faded)",
             lineHeight: 1.6,
+            marginTop: 18,
           }}
         >
           By continuing, you agree to the{" "}
-          <span style={{ textDecoration: "underline", cursor: "pointer" }}>
+          <a href="/terms" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "3px" }}>
             Terms of Service
-          </span>{" "}
+          </a>{" "}
           and{" "}
-          <span style={{ textDecoration: "underline", cursor: "pointer" }}>
+          <a href="/privacy" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "3px" }}>
             Privacy Policy
-          </span>
+          </a>
           .
         </div>
       </div>

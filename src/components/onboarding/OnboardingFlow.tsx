@@ -13,6 +13,7 @@ export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
   const [viewOpacity, setViewOpacity] = useState(1);
   const [ready, setReady] = useState(false);
+  const [loginMode, setLoginMode] = useState<"login" | "signup">("login");
   const checkedRef = useRef(false);
 
   // Show UI immediately — middleware already handles redirecting
@@ -32,7 +33,13 @@ export default function OnboardingFlow() {
     }, duration);
   }, []);
 
+  function handleBegin() {
+    setLoginMode("signup");
+    fadeToView("login");
+  }
+
   function handleLogin() {
+    setLoginMode("login");
     fadeToView("login");
   }
 
@@ -71,26 +78,22 @@ export default function OnboardingFlow() {
       }}
     >
       {currentView === "entry" ? (
-        <EntryScreen onLogin={handleLogin} />
+        <EntryScreen onBegin={handleBegin} onLogin={handleLogin} />
       ) : (
         <DesktopVitrine>
           <div
             style={{
               position: "absolute",
               inset: 0,
-              background: "var(--session-linen)",
-              // Paper surface: noise + corner vignette. Matches the authenticated
-              // tab panels so landing and Jove chat share the same paper feel.
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"), radial-gradient(ellipse at center, transparent 50%, var(--session-vignette) 100%)`,
-              backgroundSize: "256px 256px, 100% 100%",
-              backgroundRepeat: "repeat, no-repeat",
+              backgroundColor: "var(--session-linen)",
+              backgroundImage: "var(--session-bg-welcome)",
               overflow: "hidden",
               WebkitTapHighlightColor: "transparent",
             }}
           >
             <div style={{ height: "100%" }}>
               {currentView === "login" && (
-                <LoginScreen onBack={handleBackToEntry} />
+                <LoginScreen onBack={handleBackToEntry} initialMode={loginMode} />
               )}
 
               {currentView === "onboarding" && (
