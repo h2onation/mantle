@@ -1023,10 +1023,9 @@ export function useChat() {
     }
   }
 
-  async function startUpload(content: string): Promise<boolean> {
+  async function startUpload(): Promise<boolean> {
     if (isLoading || isStreaming) return false;
     if (messages.length > 0) return false;
-    if (!content.trim()) return false;
 
     if (!firstSessionCompleted) {
       setFirstSessionCompleted(true);
@@ -1041,7 +1040,7 @@ export function useChat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: content,
+          message: null,
           conversationId: null,
           mode: "upload",
         }),
@@ -1053,8 +1052,7 @@ export function useChat() {
       }
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setErrorMessage(body?.error || "Something went wrong. Try again.");
+        setErrorMessage("Something went wrong. Try again.");
         return false;
       }
 
@@ -1070,14 +1068,8 @@ export function useChat() {
         });
         trackMessageSent({
           conversation_id: completeEvent.conversationId,
-          role: "user",
-          message_number: 1,
-          channel: "web",
-        });
-        trackMessageSent({
-          conversation_id: completeEvent.conversationId,
           role: "assistant",
-          message_number: 2,
+          message_number: 1,
           channel: "web",
         });
         refreshConversations();

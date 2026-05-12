@@ -798,17 +798,25 @@ describe("buildSystemPrompt", () => {
 
   // ─── Upload mode ─────────────────────────────────────────────────────────
   describe("upload mode", () => {
-    it("includes UPLOAD MODE block when mode is upload", () => {
+    it("includes UPLOAD MODE block with opener when mode is upload", () => {
       const result = build({ mode: "upload" });
       expect(result).toContain("UPLOAD MODE");
       expect(result).toContain("chose \"Upload\"");
-      expect(result).toContain("first message IS the uploaded content");
+      expect(result).toContain("Paste something here");
+      expect(result).toContain("use this exact text");
     });
 
     it("includes analysis instructions for upload mode", () => {
       const result = build({ mode: "upload" });
       expect(result).toContain("Cross-reference against the user's confirmed Manual entries");
       expect(result).toContain("Focus on the USER's behavior");
+    });
+
+    it("includes format-specific guidance", () => {
+      const result = build({ mode: "upload" });
+      expect(result).toContain("Speaker-alternating");
+      expect(result).toContain("Email thread");
+      expect(result).toContain("Journal entry");
     });
 
     it("does not include UPLOAD MODE in situation mode", () => {
