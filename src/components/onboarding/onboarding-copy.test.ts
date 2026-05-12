@@ -11,115 +11,38 @@ describe("PR3 onboarding copy pass", () => {
   describe("EntryScreen", () => {
     const src = read("src/components/onboarding/EntryScreen.tsx");
 
-    it("uses a single direct headline", () => {
-      // Hero headline reads as a plain statement of the product's
-      // output: "A private manual of how you work." No line breaks
-      // forced in the source; the terminal "." is wrapped in a span
-      // for the sage-accent treatment.
-      expect(src).toContain("A private manual of how you work");
+    it("uses hero-scale 'mywalnut.' wordmark with walnut period", () => {
+      expect(src).toContain("mywalnut");
+      expect(src).toContain("var(--session-walnut)");
     });
 
-    it("uses a plain-English subhead with the product's promise", () => {
-      // Three short sentences, no affectation. Wordmark spelling is
-      // "my walnut" (two words) — matches the marketing convention.
-      // Prettier may wrap long sentences in JSX across multiple
-      // source lines, so assert on short substrings that stay
-      // contiguous.
-      expect(src).toContain("my walnut is an AI that helps you write one");
-      expect(src).toContain("Nothing enters unless you confirm it.");
-      expect(src).toContain("Built for");
-      expect(src).toContain("neurodivergent adults.");
+    it("uses 'A private manual' eyebrow", () => {
+      expect(src).toContain("A private manual");
     });
 
-    it("shows a sample Manual entry as a visual anchor", () => {
-      // A real entry rendered as type: a meta label, the layer
-      // origin, an italic first-person statement, and prose
-      // elaboration. Assert on short substrings — the JSX
-      // formatter wraps these long phrases across source lines.
-      expect(src).toContain("An entry");
-      expect(src).toContain("How I process things");
-      expect(src).toContain("When plans shift without warning");
-      expect(src).toContain("voice is the first");
-      expect(src).toContain("thing that goes quiet");
-      expect(src).toContain("because speech is");
-      expect(src).toContain("regulation leaves");
+    it("uses italic Spectral thesis line with persona name", () => {
+      expect(src).toContain("A behavioral playbook for how you actually work");
+      expect(src).toContain("{PERSONA_NAME}");
     });
 
-    it("uses three plain numbered method steps", () => {
-      // No roman numerals, no gerund chapter titles. Short,
-      // functional prose. Persona name is interpolated via
-      // PERSONA_NAME, asserted without the name.
-      expect(src).toContain("Talk to {PERSONA_NAME} about things on your mind.");
-      expect(src).toContain("Conversations, situations, patterns you keep noticing.");
-      expect(src).toContain("{PERSONA_NAME} proposes patterns it sees. You confirm");
-      expect(src).toContain("what&rsquo;s true.");
-      expect(src).toContain("Nothing gets written without your explicit confirmation.");
-      expect(src).toContain("The patterns become your Manual.");
-      expect(src).toContain("Yours to");
-      expect(src).toContain("keep, revise, or share with the people you trust");
+    it("uses 'Begin' as the primary CTA", () => {
+      expect(src).toContain("Begin");
+      expect(src).toContain("onBegin");
     });
 
-    it("numbers method steps as 01 / 02 / 03", () => {
-      // Two-digit mono numerals that hang in the rail margin —
-      // the matching gesture to the roman numerals on the
-      // five-layers list.
-      expect(src).toContain(">\n                  01\n");
-      expect(src).toContain(">\n                  02\n");
-      expect(src).toContain(">\n                  03\n");
-    });
-
-    it("lists the five Manual layers with roman numerals I–V", () => {
-      // Product surface area shown literally. The roman numerals
-      // hang in the left rail; the names render in Newsreader
-      // beside them.
-      expect(src).toContain("Your Manual, in five layers");
-      expect(src).toContain("Some of my patterns");
-      expect(src).toContain("How I process things");
-      expect(src).toContain("What helps");
-      expect(src).toContain("How I show up with people");
-      expect(src).toContain("Where I&rsquo;m strong");
-      // The roman numerals sit as discrete JSX children, one per
-      // layer, so each appears on its own line after the span tag.
-      expect(src).toContain(">\n                  I\n");
-      expect(src).toContain(">\n                  II\n");
-      expect(src).toContain(">\n                  III\n");
-      expect(src).toContain(">\n                  IV\n");
-      expect(src).toContain(">\n                  V\n");
-    });
-
-    it("uses 'Join the waitlist' as the primary CTA pointing to /waitlist", () => {
-      expect(src).toContain("Join the waitlist");
-      expect(src).toContain('href="/waitlist"');
-    });
-
-    it("uses 'Already have access? Log in.' as the secondary entry to login", () => {
+    it("uses 'Already have access? Sign in' as secondary", () => {
       expect(src).toContain("Already have access?");
-      expect(src).toContain("Log in.");
+      expect(src).toContain("Sign in");
     });
 
-    it("preserves the 'my walnut' wordmark at the top", () => {
-      expect(src).toContain("my walnut");
-    });
-
-    it("exposes a masthead Log in affordance alongside the final one", () => {
-      // Two onLogin hooks: one tucked into the top masthead, one
-      // in the final tail block. The masthead version is a
-      // monospace text link; both invoke the same handler.
-      const loginMatches = src.match(/onClick=\{onLogin\}/g) ?? [];
-      expect(loginMatches.length).toBeGreaterThanOrEqual(2);
-    });
-
-    it("declares responsive breakpoints", () => {
-      expect(src).toContain("min-width: 768px");
-      expect(src).toContain("min-width: 1024px");
-      expect(src).toContain("min-width: 1440px");
+    it("includes privacy and terms links", () => {
+      expect(src).toContain('href="/privacy"');
+      expect(src).toContain('href="/terms"');
     });
 
     // ── Dead copy and old concepts (negative assertions) ─────
 
     it("does NOT carry editorial-pastiche paratext or colophon", () => {
-      // The previous "Issue One · Spring 2026" masthead + "Set in
-      // Newsreader. Printed on linen..." colophon were costume.
       expect(src).not.toContain("Issue One");
       expect(src).not.toContain("Spring 2026");
       expect(src).not.toContain("Set in Newsreader");
@@ -127,9 +50,6 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("does NOT contain gerund chapter titles", () => {
-      // The "On bringing / On listening / On composing / On
-      // sharing" chapter affect was twee. Replaced with three
-      // plain method steps.
       expect(src).not.toContain("On bringing");
       expect(src).not.toContain("On listening");
       expect(src).not.toContain("On composing");
@@ -155,18 +75,15 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("You understand yourself in fragments.");
     });
 
-    it("does NOT contain the old 'That's why' prefix pattern", () => {
-      expect(src).not.toContain("That&apos;s why");
-    });
-
-    it("does NOT contain a Create account link", () => {
-      expect(src).not.toContain("Create account");
-      expect(src).not.toContain("onSignup");
-    });
-
     it("does NOT contain (Coming soon) qualifiers", () => {
       expect(src).not.toContain("(Coming soon)");
       expect(src).not.toContain("mw-entry-soon");
+    });
+
+    it("does NOT contain the old multi-section landing page content", () => {
+      expect(src).not.toContain("Join the waitlist");
+      expect(src).not.toContain("Your Manual, in five layers");
+      expect(src).not.toContain("How it works");
     });
   });
 
@@ -174,14 +91,21 @@ describe("PR3 onboarding copy pass", () => {
   describe("InfoScreens", () => {
     const src = read("src/components/onboarding/InfoScreens.tsx");
 
-    it("contains the 2 new body beats", () => {
-      // Persona name is interpolated via PERSONA_NAME constant; assert the
-      // surrounding copy without the name.
-      expect(src).toContain("You&rsquo;ll build your Manual by talking to {PERSONA_NAME}.");
-      expect(src).toContain("Bring real situations &mdash;");
-      expect(src).toContain("{PERSONA_NAME} reflects patterns back.");
-      expect(src).toContain("You decide what goes in.");
-      expect(src).toContain("Builds best when you show up most days for the first two weeks.");
+    it("contains the disclaimer prose", () => {
+      expect(src).toContain("{PERSONA_NAME} is a careful, direct companion.");
+      expect(src).toContain("helps you notice patterns in how you work");
+      expect(src).toContain("the things you confirm become entries in your Manual");
+      expect(src).toContain("isn&rsquo;t therapy");
+      expect(src).toContain("Crisis Support");
+    });
+
+    it("uses 'Before you begin' eyebrow", () => {
+      expect(src).toContain("Before you begin");
+    });
+
+    it("uses 'What this is, and isn't' heading with walnut period", () => {
+      expect(src).toContain("What this is, and isn&rsquo;t");
+      expect(src).toContain("var(--session-walnut)");
     });
 
     it("does NOT contain the old 'finds the pattern underneath' headline", () => {
@@ -200,7 +124,6 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/onboarding/SeedScreen.tsx");
 
     it("contains the 2 new body beats", () => {
-      // Persona name is interpolated via PERSONA_NAME constant.
       expect(src).toContain("{PERSONA_NAME} is AI. It surfaces patterns using psychological frameworks.");
       expect(src).toContain("It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work.");
       expect(src).toContain("You&rsquo;re the authority on your own experience.");
@@ -219,7 +142,6 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("uses new disclaimer about complement to therapy", () => {
-      // Persona name is interpolated via PERSONA_NAME constant.
       expect(src).toContain("{PERSONA_NAME} is a great complement to therapy");
     });
 
@@ -229,9 +151,6 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("clears first-session flags before creating a fresh anonymous user", () => {
-      // Prevents a browser that previously completed a first session from
-      // treating a brand-new anonymous user as returning and skipping the
-      // welcome block with chips.
       expect(src).toContain('removeItem("mw_first_session_completed")');
       expect(src).toContain('removeItem("mw_signin_banner_dismissed")');
     });
@@ -275,10 +194,6 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("could use help finding a starting point");
     });
 
-    // Gate 8: the welcome-prose block (three-paragraph Jove intro +
-    // "no wrong place to start" line) was deleted. Modal 1 carries
-    // that teaching now. The chips remain as the empty-state
-    // affordance.
     it("does NOT contain the old welcome-prose block", () => {
       expect(src).not.toContain("This is where you talk to {PERSONA_NAME}.");
       expect(src).not.toContain("Navigate a situation.");
@@ -301,11 +216,6 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("Sign in to keep your progress");
     });
 
-    // Track A Phase 7-Low (7a): checkpoint card action label revisions.
-    // Underlying action values (confirmed/refined/rejected) are unchanged
-    // — only the display labels move. Primary action is title-case mono
-    // caps; secondary actions are lowercase italic serif (set as literal
-    // lowercase strings, not via text-transform).
     it("uses the new checkpoint card action labels", () => {
       expect(src).toContain("Put it in my Manual");
       expect(src).toContain("close but not quite");
@@ -314,20 +224,10 @@ describe("PR3 onboarding copy pass", () => {
 
     it("does NOT contain the old checkpoint card action labels", () => {
       expect(src).not.toContain("Yes, write to manual");
-      // "Not quite" is also a substring of "Close but not quite" so an
-      // exact-string negative would fail. Asserting on the old standalone
-      // button text (with its closing tag context) is more precise — but
-      // since both labels live in JSX with the same </button> closing,
-      // we use the surrounding whitespace pattern from the source.
       expect(src).not.toMatch(/>\s*Not quite\s*</);
       expect(src).not.toMatch(/>\s*Not at all\s*</);
     });
 
-    // Track A Phase 7-Mid (7c): refinement-ceiling card UI fires on
-    // refinement_count >= 2. The inline message is sentence case; the
-    // primary "Put it in as it is" button is title-case mono caps; the
-    // secondary "let it go" link is lowercase italic serif (literal
-    // lowercase, not text-transform).
     it("renders the refinement-ceiling inline message and two-button fork", () => {
       expect(src).toContain("Close but not quite is fine.");
       expect(src).toContain(
@@ -338,19 +238,11 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("dispatches the new deferred action from the ceiling 'let it go' button", () => {
-      // "Let it go" must dispatch the new "deferred" action — NOT
-      // "rejected". The two share DB behavior, but the system message
-      // differs so Jove skips the POST-REJECTION fixed line. The user
-      // already explained twice what was off; the rejection probe
-      // would be wrong here.
       expect(src).toMatch(/setCheckpointActionState\("deferred"\)/);
       expect(src).toMatch(/confirmCheckpoint\("deferred"\)/);
     });
 
     it("computes refinement-ceiling state from refinement_count >= 2", () => {
-      // The threshold is "third attempt" — count 0 (initial) + count 1
-      // (after first refinement) → user sees normal UI; count 2 (after
-      // second refinement) → user sees ceiling UI on the next render.
       expect(src).toContain("refinement_count");
       expect(src).toMatch(/>=\s*2/);
     });
