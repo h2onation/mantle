@@ -3,68 +3,75 @@
 @tailwind utilities;
 
 :root {
-  /* ─── Linen Design System (v2 — Quiet Journal) ─── */
+  /* ─── Walnut + Slate — dark mode only ───
+     Cool graphite ground; walnut as the warm accent.
+     Sage stays for Jove. No light mode. */
 
-  /* Surface — warm bone canvas, not gray-white */
-  --session-linen:       #FAF7F0;
-  --session-cream:       #F4EEDF;
-  --session-parchment:   #EFE8D6;
+  /* Surface — cool graphite ground */
+  --session-linen:       #0A0B10;
+  --session-cream:       #12141B;
+  --session-parchment:   #0E1017;
 
-  /* Ink hierarchy — role-based, not a weight spectrum.
-     Base ink rgb(22, 20, 18) calibrated against the warm linen. */
-  --session-ink:            #161412;
-  --session-ink-soft:       rgba(22, 20, 18, 0.82);
-  --session-ink-persona:    #524C47;
-  --session-ink-user:       rgba(22, 20, 18, 0.68);
-  --session-ink-mid:        #7A6E5C;
-  --session-ink-faded:      #A59A86;
-  --session-ink-ghost:      rgba(22, 20, 18, 0.58);
-  --session-ink-whisper:    #D4CEC8;
-  --session-ink-hairline:   rgba(22, 20, 18, 0.08);
+  /* Ink hierarchy — warm cream text on cool ground.
+     Hero base rgb(245,243,238); body base rgb(228,224,214). */
+  --session-ink:            rgba(245, 243, 238, 0.97);
+  --session-ink-soft:       rgba(245, 243, 238, 0.85);
+  --session-ink-persona:    rgba(228, 224, 214, 0.72);
+  --session-ink-user:       rgba(228, 224, 214, 0.70);
+  --session-ink-mid:        rgba(228, 224, 214, 0.62);
+  --session-ink-faded:      rgba(228, 224, 214, 0.45);
+  --session-ink-ghost:      rgba(228, 224, 214, 0.38);
+  --session-ink-whisper:    rgba(228, 224, 214, 0.22);
+  --session-ink-hairline:   rgba(245, 237, 222, 0.06);
 
-  /* Hair — border system, separate from ink text colors */
-  --session-hair:           rgba(22, 20, 18, 0.14);
-  --session-hair-soft:      rgba(22, 20, 18, 0.08);
+  /* Hair — border system */
+  --session-hair:           rgba(245, 237, 222, 0.10);
+  --session-hair-soft:      rgba(245, 237, 222, 0.06);
 
-  /* Sage green — the single accent. Carries all the product's life. */
-  --session-persona:        #5C6B4E;
-  --session-persona-soft:   rgba(92, 107, 78, 0.50);
-  --session-persona-muted:  rgba(92, 107, 78, 0.14);
-  --session-persona-border: rgba(92, 107, 78, 0.22);
-  --session-persona-tint:   rgba(92, 107, 78, 0.06);
+  /* Sage — Jove accent, lifted for legibility on dark ground */
+  --session-persona:        #9CB18A;
+  --session-persona-soft:   rgba(156, 177, 138, 0.32);
+  --session-persona-muted:  rgba(156, 177, 138, 0.14);
+  --session-persona-border: rgba(156, 177, 138, 0.22);
+  --session-persona-tint:   rgba(156, 177, 138, 0.06);
 
-  /* Error — oxblood. Only when the user needs to slow down. */
-  --session-error:        #7A3B2E;
-  --session-error-ghost:  rgba(122, 59, 46, 0.08);
-  --session-error-text:   rgba(122, 59, 46, 0.70);
-  --session-error-banner: rgba(122, 59, 46, 0.05);
+  /* Walnut — brand accent (period mark, plate borders, gradient corner) */
+  --session-walnut:             rgb(170, 120, 82);
+  --session-walnut-light:       rgba(170, 120, 82, 0.55);
+  --session-walnut-surface:     rgba(115, 72, 42, 0.20);
+  --session-walnut-surface-soft:rgba(115, 72, 42, 0.10);
+  --session-walnut-border:      rgba(170, 120, 82, 0.18);
+  --session-walnut-border-soft: rgba(170, 120, 82, 0.14);
+  --session-walnut-meta:        rgba(170, 120, 82, 0.65);
 
-  /* Warning — amber. Quiet heads-ups, "in progress." */
-  --session-warning:      #9A6B2A;
-  --session-warning-soft: rgba(154, 107, 42, 0.08);
+  /* Error — oxblood, lifted for dark ground */
+  --session-error:        #D08278;
+  --session-error-ghost:  rgba(208, 130, 120, 0.10);
+  --session-error-text:   rgba(208, 130, 120, 0.80);
+  --session-error-banner: rgba(208, 130, 120, 0.06);
+
+  /* Warning — amber */
+  --session-warning:      #D4A24A;
+  --session-warning-soft: rgba(212, 162, 74, 0.10);
 
   /* Overlays */
-  --session-backdrop:       rgba(0, 0, 0, 0.5);
-  --session-backdrop-heavy: rgba(0, 0, 0, 0.6);
+  --session-backdrop:       rgba(0, 0, 0, 0.65);
+  --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
 
-  /* Gold shadow system */
-  --session-glow-cp:     rgba(185, 170, 110, 0.30);
-  --session-glow-scroll: rgba(200, 185, 140, 0.25);
+  /* Glow */
+  --session-glow-cp:     rgba(156, 177, 138, 0.15);
+  --session-glow-scroll: rgba(156, 177, 138, 0.04);
 
-  /* Vignette — always darkens edges. Independent of ink/hair tokens
-     so it doesn't invert in dark mode (where light-on-light hair would
-     read as a halo, not a vignette). */
-  --session-vignette: rgba(22, 20, 18, 0.06);
+  /* Vignette — darkens edges */
+  --session-vignette: rgba(0, 0, 0, 0.35);
 
-  /* Typography sizes — minimums that stay readable on the linen surface.
-     Prefer these over raw pixel values in new inline styles. */
+  /* Typography sizes */
   --size-meta:    12px;
   --size-body:    15px;
   --size-prose:   17px;
   --size-heading: 22px;
 
-  /* Spacing — a literary scale. Names, not numbers.
-     Gaps between ideas are big. Reach for the next size up. */
+  /* Spacing — a literary scale. Names, not numbers. */
   --sp-hair:   1px;
   --sp-tight:  4px;
   --sp-xs:     8px;
@@ -80,106 +87,9 @@
   --radius-sm:   4px;
   --radius-pill: 999px;
 
-  /* Elevation — paper lifts, not glass. Used sparingly. */
-  --lift:    0 1px 0 rgba(22, 20, 18, 0.04), 0 8px 24px rgba(22, 20, 18, 0.06);
-  --lift-hi: 0 1px 0 rgba(22, 20, 18, 0.05), 0 20px 56px rgba(22, 20, 18, 0.10);
-}
-
-/* ─── Dark mode ───
-   The journal at night. Warm, not stark — bone on a deep brown-black.
-   Sage and oxblood are lifted for legibility. Never #000 or #FFF.
-   System-driven by default; explicit override via html[data-theme]. */
-
-html[data-theme="dark"] {
-  --session-linen:       #15110C;
-  --session-cream:       #221C16;
-  --session-parchment:   #1B1712;
-
-  --session-ink:            #F2EAD6;
-  --session-ink-soft:       rgba(242, 234, 214, 0.85);
-  --session-ink-persona:    rgba(242, 234, 214, 0.72);
-  --session-ink-user:       rgba(242, 234, 214, 0.70);
-  --session-ink-mid:        rgba(242, 234, 214, 0.62);
-  --session-ink-faded:      rgba(242, 234, 214, 0.42);
-  --session-ink-ghost:      rgba(242, 234, 214, 0.42);
-  --session-ink-whisper:    rgba(242, 234, 214, 0.22);
-  --session-ink-hairline:   rgba(245, 237, 222, 0.06);
-
-  --session-hair:           rgba(245, 237, 222, 0.10);
-  --session-hair-soft:      rgba(245, 237, 222, 0.06);
-
-  --session-persona:        #9CB18A;
-  --session-persona-soft:   rgba(156, 177, 138, 0.32);
-  --session-persona-muted:  rgba(156, 177, 138, 0.14);
-  --session-persona-border: rgba(156, 177, 138, 0.22);
-  --session-persona-tint:   rgba(156, 177, 138, 0.06);
-
-  --session-error:        #D08278;
-  --session-error-ghost:  rgba(208, 130, 120, 0.10);
-  --session-error-text:   rgba(208, 130, 120, 0.80);
-  --session-error-banner: rgba(208, 130, 120, 0.06);
-
-  --session-warning:      #D4A24A;
-  --session-warning-soft: rgba(212, 162, 74, 0.10);
-
-  --session-backdrop:       rgba(0, 0, 0, 0.65);
-  --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
-
-  --session-glow-cp:     rgba(156, 177, 138, 0.15);
-  --session-glow-scroll: rgba(156, 177, 138, 0.04);
-
-  /* Dark vignette — deeper black, opposite of the light hair-soft
-     overlay, so corners darken instead of lifting. */
-  --session-vignette: rgba(0, 0, 0, 0.35);
-
+  /* Elevation — dark lifts */
   --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
   --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) {
-    --session-linen:       #15110C;
-    --session-cream:       #221C16;
-    --session-parchment:   #1B1712;
-
-    --session-ink:            #F2EAD6;
-    --session-ink-soft:       rgba(242, 234, 214, 0.85);
-    --session-ink-persona:    rgba(242, 234, 214, 0.72);
-    --session-ink-user:       rgba(242, 234, 214, 0.70);
-    --session-ink-mid:        rgba(242, 234, 214, 0.62);
-    --session-ink-faded:      rgba(242, 234, 214, 0.42);
-    --session-ink-ghost:      rgba(242, 234, 214, 0.42);
-    --session-ink-whisper:    rgba(242, 234, 214, 0.22);
-    --session-ink-hairline:   rgba(245, 237, 222, 0.06);
-
-    --session-hair:           rgba(245, 237, 222, 0.10);
-    --session-hair-soft:      rgba(245, 237, 222, 0.06);
-
-    --session-persona:        #9CB18A;
-    --session-persona-soft:   rgba(156, 177, 138, 0.32);
-    --session-persona-muted:  rgba(156, 177, 138, 0.14);
-    --session-persona-border: rgba(156, 177, 138, 0.22);
-    --session-persona-tint:   rgba(156, 177, 138, 0.06);
-
-    --session-error:        #D08278;
-    --session-error-ghost:  rgba(208, 130, 120, 0.10);
-    --session-error-text:   rgba(208, 130, 120, 0.80);
-    --session-error-banner: rgba(208, 130, 120, 0.06);
-
-    --session-warning:      #D4A24A;
-    --session-warning-soft: rgba(212, 162, 74, 0.10);
-
-    --session-backdrop:       rgba(0, 0, 0, 0.65);
-    --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
-
-    --session-glow-cp:     rgba(156, 177, 138, 0.15);
-    --session-glow-scroll: rgba(156, 177, 138, 0.04);
-
-    --session-vignette: rgba(0, 0, 0, 0.35);
-
-    --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
-    --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
-  }
 }
 
 html {

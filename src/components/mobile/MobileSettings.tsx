@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
-import { useTheme, type ThemePreference } from "@/lib/hooks/useTheme";
 import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 interface MobileSettingsProps {
@@ -67,8 +66,7 @@ export default function MobileSettings({
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
-  const { preference: themePref, setPreference: setThemePref } = useTheme();
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account", "appearance"]));
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
   const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "code" | "linked">("loading");
@@ -365,43 +363,6 @@ export default function MobileSettings({
             onClick={() => setShowDeleteAccountConfirm(true)}
             noBorder
           />
-        </div>
-      )}
-
-      {/* ─── Appearance ────────────────────────────────────────── */}
-      <SectionHeader label="APPEARANCE" isOpen={openSections.has("appearance")} onToggle={() => toggleSection("appearance")} sectionId="settings-appearance" />
-
-      {openSections.has("appearance") && (
-        <div id="settings-appearance">
-          <SettingsRow title="Theme" noBorder>
-            <div style={{ display: "flex", gap: 0, width: "100%" }}>
-              {(["system", "light", "dark"] as ThemePreference[]).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setThemePref(opt)}
-                  style={{
-                    flex: 1,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px",
-                    letterSpacing: "1.8px",
-                    textTransform: "uppercase",
-                    color: themePref === opt ? "var(--session-ink)" : "var(--session-ink-mid)",
-                    background: "none",
-                    border: "none",
-                    borderBottom: themePref === opt
-                      ? "1px solid var(--session-ink)"
-                      : "1px solid var(--session-hair-soft)",
-                    padding: "10px 0 8px",
-                    cursor: "pointer",
-                    WebkitTapHighlightColor: "transparent",
-                    transition: "color 0.2s ease, border-color 0.2s ease",
-                  }}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </SettingsRow>
         </div>
       )}
 
