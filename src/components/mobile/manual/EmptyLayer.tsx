@@ -13,24 +13,23 @@ interface EmptyLayerProps {
 export default function EmptyLayer({ layer }: EmptyLayerProps) {
   return (
     <section style={{ marginBottom: 32 }}>
-      {/* Section header — muted, flat */}
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
           paddingBottom: 8,
-          borderBottom: "0.5px solid var(--session-ink-hairline)",
+          borderBottom: "1px solid var(--session-walnut-border-soft)",
         }}
       >
         <h2
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 16,
-            fontWeight: 500,
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 17,
+            fontWeight: 400,
             color: "var(--session-ink-mid)",
             margin: 0,
-            letterSpacing: "-0.1px",
+            letterSpacing: "-0.2px",
             lineHeight: 1.3,
           }}
         >
@@ -38,10 +37,11 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
         </h2>
         <span
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
             fontWeight: 400,
             color: "var(--session-ink-ghost)",
+            letterSpacing: "0.5px",
             lineHeight: 1.3,
           }}
         >

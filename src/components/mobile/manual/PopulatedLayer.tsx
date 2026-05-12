@@ -22,25 +22,24 @@ export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }
         ...(layer.isNew ? { animation: "layerFadeUp 0.5s ease-out both" } : {}),
       }}
     >
-      {/* Section header — flat */}
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
           paddingBottom: 8,
-          borderBottom: "0.5px solid var(--session-ink-hairline)",
+          borderBottom: "1px solid var(--session-walnut-border-soft)",
           marginBottom: 12,
         }}
       >
         <h2
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 16,
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 17,
             fontWeight: 500,
             color: "var(--session-ink)",
             margin: 0,
-            letterSpacing: "-0.1px",
+            letterSpacing: "-0.2px",
             lineHeight: 1.3,
           }}
         >
@@ -48,10 +47,11 @@ export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }
         </h2>
         <span
           style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
             fontWeight: 400,
-            color: "var(--session-ink-ghost)",
+            color: "var(--session-walnut-meta)",
+            letterSpacing: "0.5px",
             lineHeight: 1.3,
           }}
         >

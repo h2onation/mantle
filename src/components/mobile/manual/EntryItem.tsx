@@ -21,70 +21,75 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
   return (
     <div
       style={{
-        background: "var(--session-cream)",
-        border: "0.5px solid var(--session-ink-hairline)",
-        borderRadius: 0,
-        padding: "1rem 1.25rem",
+        background: "var(--session-walnut-surface)",
+        border: "1px solid var(--session-walnut-border)",
+        borderRadius: "12px",
+        padding: "14px 18px",
         marginBottom: 10,
+        backdropFilter: "blur(20px) saturate(130%)",
+        WebkitBackdropFilter: "blur(20px) saturate(130%)",
       }}
     >
-      {/* Title — the scannable line */}
+      {/* Title row — clickable with chevron */}
       <div
+        onClick={toggle}
+        role={readOnly ? undefined : "button"}
+        aria-expanded={readOnly ? undefined : expanded}
+        aria-label={readOnly ? undefined : expanded ? `Collapse ${entry.name}` : `Expand ${entry.name}`}
         style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: 15,
-          fontWeight: 500,
-          color: "var(--session-ink)",
-          lineHeight: 1.4,
-          marginBottom: 8,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          cursor: readOnly ? "default" : "pointer",
+          gap: "12px",
         }}
       >
-        {entry.name}
-      </div>
-
-      {/* Body — clamped when collapsed, full when expanded */}
-      <div
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: 14,
-          fontWeight: 400,
-          lineHeight: 1.7,
-          color: "var(--session-ink-soft)",
-          whiteSpace: "pre-line" as const,
-          ...(expanded
-            ? {}
-            : {
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }),
-        }}
-      >
-        {entry.body}
-      </div>
-
-      {/* Read more / Show less */}
-      {!readOnly && (
-        <button
-          onClick={toggle}
-          aria-expanded={expanded}
-          aria-label={expanded ? `Show less of ${entry.name}` : `Read more about ${entry.name}`}
+        <span
           style={{
-            display: "block",
-            marginTop: 10,
-            padding: 0,
-            background: "none",
-            border: "none",
-            fontFamily: "var(--font-sans)",
-            fontSize: 13,
-            fontWeight: 400,
-            color: "var(--session-ink-ghost)",
-            cursor: "pointer",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 15,
+            fontWeight: 500,
+            color: "var(--session-ink)",
+            lineHeight: 1.4,
+            flex: 1,
           }}
         >
-          {expanded ? "Show less" : "Read more"}
-        </button>
+          {entry.name}
+        </span>
+        {!readOnly && (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+            style={{
+              flexShrink: 0,
+              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+
+      {/* Body — shown when expanded */}
+      {(expanded || readOnly) && (
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 15,
+            fontWeight: 400,
+            lineHeight: 1.65,
+            color: "var(--session-ink-soft)",
+            whiteSpace: "pre-line" as const,
+          }}
+        >
+          {entry.body}
+        </div>
       )}
 
       {/* Explore further — preserved Sage flow, restyled as a subtle text link */}
