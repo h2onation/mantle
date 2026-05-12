@@ -18,9 +18,10 @@ interface MobileManualProps {
   displayName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   onNavigateToSession?: () => void;
+  onOpenDrawer?: () => void;
 }
 
-export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession }: MobileManualProps) {
+export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(entries);
   const isEmpty = layers.every((l) => l.entries.length === 0);
@@ -68,7 +69,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
         position: "relative",
       }}
     >
-      <TopBar />
+      <TopBar onMenu={onOpenDrawer} />
 
       {/* Scroll fade overlay */}
       <div

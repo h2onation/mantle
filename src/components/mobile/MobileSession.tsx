@@ -2,12 +2,10 @@
 
 import React from "react";
 import { useState, useRef, useEffect } from "react";
-import SessionDrawer from "./SessionDrawer";
 import ChatInput from "./ChatInput";
 import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import FirstCheckpointModal from "@/components/modals/FirstCheckpointModal";
-import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
@@ -37,16 +35,12 @@ interface MobileSessionProps {
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
-  conversations: ConversationSummaryItem[];
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
     action: "confirmed" | "rejected" | "refined" | "deferred"
   ) => void;
-  switchConversation: (id: string) => Promise<void>;
-  startNewSession: () => Promise<void>;
   startGuidedIntake: () => Promise<boolean>;
-  refreshConversations: () => Promise<void>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
   // Onboarding modal state. modalProgress=null means MainApp hasn't
@@ -62,6 +56,7 @@ interface MobileSessionProps {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
+  onOpenDrawer: () => void;
 }
 
 export default function MobileSession({
@@ -73,14 +68,10 @@ export default function MobileSession({
   activeCheckpoint,
   checkpointError,
   errorMessage,
-  conversations,
   sendMessage,
   retryLastMessage,
   confirmCheckpoint,
-  switchConversation,
-  startNewSession,
   startGuidedIntake,
-  refreshConversations,
   isGuest,
   onSignInPrompt,
   firstSessionCompleted,
@@ -91,6 +82,7 @@ export default function MobileSession({
   emergingPatternSnippet = null,
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
+  onOpenDrawer,
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
@@ -107,7 +99,6 @@ export default function MobileSession({
     !isAnonymous &&
     activeCheckpoint !== null &&
     !modal3Dismissed;
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [chipsVisible, setChipsVisible] = useState(true);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
@@ -151,11 +142,6 @@ export default function MobileSession({
     }
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
-
-  async function handleOpenDrawer() {
-    setDrawerOpen(true);
-    await refreshConversations();
-  }
 
   const hasMessages = messages.length > 0;
 
@@ -248,7 +234,7 @@ export default function MobileSession({
         paddingBottom: "calc(52px + env(safe-area-inset-bottom, 0px))",
       }}
     >
-      <TopBar onMenu={handleOpenDrawer} />
+      <TopBar onMenu={onOpenDrawer} />
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
@@ -835,15 +821,6 @@ export default function MobileSession({
       <ChatInput
         onSend={sendMessage}
         disabled={isLoading || isStreaming || conversationId === "text-channel"}
-      />
-
-      <SessionDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        conversations={conversations}
-        activeConversationId={conversationId}
-        onSelectSession={switchConversation}
-        onNewSession={startNewSession}
       />
 
       <ChatWindowModal

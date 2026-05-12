@@ -3,12 +3,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
-import MobileLayout from "@/components/layout/MobileLayout";
-import type { MobileTab } from "@/components/layout/MobileNav";
+import MobileLayout, { type MobileView } from "@/components/layout/MobileLayout";
 import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileSettings from "@/components/mobile/MobileSettings";
+import SessionDrawer from "@/components/mobile/SessionDrawer";
+import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
@@ -24,7 +25,9 @@ function sleep(ms: number) {
 }
 
 export default function MainApp() {
-  const [activeTab, setActiveTab] = useState<MobileTab>("session");
+  const [activeView, setActiveView] = useState<MobileView>("session");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
@@ -200,7 +203,7 @@ export default function MainApp() {
   // is a rough retention signal computed from a localStorage timestamp —
   // no server round-trip; PostHog can aggregate visit counts itself.
   useEffect(() => {
-    if (activeTab !== "manual") return;
+    if (activeView !== "manual") return;
     const stored = localStorage.getItem(MANUAL_LAST_VIEW_KEY);
     const now = Date.now();
     const daysSinceLastView = stored
@@ -211,7 +214,7 @@ export default function MainApp() {
       days_since_last_view: daysSinceLastView,
     });
     localStorage.setItem(MANUAL_LAST_VIEW_KEY, String(now));
-  }, [activeTab, confirmedEntries.length]);
+  }, [activeView, confirmedEntries.length]);
 
   // Inline sign-in banner state
   const [bannerAuthRequested, setBannerAuthRequested] = useState(false);
@@ -252,7 +255,7 @@ export default function MainApp() {
     await sleep(800);
 
     // Phase 3: Switch to session (thinking dots will be visible), fade out interstitial
-    setActiveTab("session");
+    setActiveView("session");
     setExplorationPhase("revealing");
     await sleep(350);
 
@@ -263,9 +266,26 @@ export default function MainApp() {
   const handleSimulationEvent = useCallback((type: string, conversationId: string) => {
     loadConversation(conversationId);
     if (type === "start") {
-      setActiveTab("session");
+      setActiveView("session");
     }
   }, [loadConversation]);
+
+  const handleOpenDrawer = useCallback(async () => {
+    setDrawerOpen(true);
+    await refreshConversations();
+  }, [refreshConversations]);
+
+  const handleNavigateToManual = useCallback(() => {
+    setActiveView("manual");
+  }, []);
+
+  const handleNavigateToSettings = useCallback(() => {
+    setActiveView("settings");
+  }, []);
+
+  const handleOpenFeedback = useCallback(() => {
+    setFeedbackOpen(true);
+  }, []);
 
   // Only block render on useChat init. The onboarding-status check
   // is allowed to resolve in the background — if it comes back as
@@ -296,8 +316,7 @@ export default function MainApp() {
   return (
     <>
       <MobileLayout
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+        activeView={activeView}
         sessionContent={
           <MobileSession
             messages={messages}
@@ -311,14 +330,10 @@ export default function MainApp() {
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
             errorMessage={errorMessage}
-            conversations={conversations}
             sendMessage={sendMessage}
             retryLastMessage={retryLastMessage}
             confirmCheckpoint={confirmCheckpoint}
-            switchConversation={switchConversation}
-            startNewSession={startNewSession}
             startGuidedIntake={startGuidedIntake}
-            refreshConversations={refreshConversations}
             isGuest={isGuest}
             onSignInPrompt={handleSignInPrompt}
             firstSessionCompleted={firstSessionCompleted}
@@ -329,19 +344,42 @@ export default function MainApp() {
             emergingPatternSnippet={emergingPatternSnippet}
             hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
             concreteExamples={concreteExamples}
+            onOpenDrawer={handleOpenDrawer}
           />
         }
         manualContent={
-          <MobileManual entries={confirmedEntries} displayName={displayName} onExploreWithPersona={handleExploreWithPersona} onNavigateToSession={() => setActiveTab("session")} />
+          <MobileManual
+            entries={confirmedEntries}
+            displayName={displayName}
+            onExploreWithPersona={handleExploreWithPersona}
+            onNavigateToSession={() => setActiveView("session")}
+            onOpenDrawer={handleOpenDrawer}
+          />
         }
         settingsContent={
           <MobileSettings
             userEmail={userEmail}
             onSimulationEvent={handleSimulationEvent}
             onPopulateComplete={loadManual}
+            onOpenDrawer={handleOpenDrawer}
           />
         }
       />
+
+      <SessionDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        conversations={conversations}
+        activeConversationId={conversationId}
+        manualEntryCount={confirmedEntries.length}
+        onSelectSession={switchConversation}
+        onNewSession={startNewSession}
+        onNavigateToManual={handleNavigateToManual}
+        onNavigateToSettings={handleNavigateToSettings}
+        onOpenFeedback={handleOpenFeedback}
+      />
+
+      <BetaFeedbackButton open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* Exploration interstitial overlay */}
       {explorationPhase !== null && (

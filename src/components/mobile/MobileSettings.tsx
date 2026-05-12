@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
+import TopBar from "@/components/shared/TopBar";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
@@ -10,6 +11,7 @@ interface MobileSettingsProps {
   userEmail: string;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
+  onOpenDrawer?: () => void;
 }
 
 function SectionHeader({
@@ -56,6 +58,7 @@ export default function MobileSettings({
   userEmail,
   onSimulationEvent,
   onPopulateComplete,
+  onOpenDrawer,
 }: MobileSettingsProps) {
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
@@ -319,23 +322,31 @@ export default function MobileSettings({
     <main
       style={{
         height: "100%",
-        overflowY: "auto",
-        padding: "40px 24px calc(52px + env(safe-area-inset-bottom, 0px))",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <h1
+      <TopBar onMenu={onOpenDrawer} />
+
+      <div
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--size-meta)",
-          color: "var(--session-ink-ghost)",
-          letterSpacing: "3px",
-          textTransform: "uppercase",
-          margin: "0 0 32px 0",
-          fontWeight: 400,
+          flex: 1,
+          overflowY: "auto",
+          padding: "32px 24px calc(40px + env(safe-area-inset-bottom, 0px))",
         }}
       >
-        SETTINGS
+      <h1
+        style={{
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 26,
+          fontWeight: 500,
+          color: "var(--session-ink)",
+          margin: "0 0 24px 0",
+          letterSpacing: "-0.5px",
+          lineHeight: 1.2,
+        }}
+      >
+        Settings<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
       </h1>
 
       {/* ─── Account ─────────────────────────────────────────────── */}
@@ -1019,6 +1030,7 @@ export default function MobileSettings({
         confirmLabel="Delete account"
         isDestructive
       />
+      </div>
     </main>
   );
 }
