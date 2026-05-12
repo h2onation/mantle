@@ -3,6 +3,14 @@ import { Instrument_Serif, DM_Sans, DM_Mono, Source_Serif_4, Newsreader, Spectra
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import ThemeInit from "@/components/ThemeInit";
+
+// FOUC-safe theme bootstrap. Reads localStorage.mywalnut.theme; falls
+// back to prefers-color-scheme; falls back to "dark". Sets the
+// resolved theme on <html data-theme> AND updates the meta
+// theme-color tag (iOS PWA status bar) — both before the first paint.
+// Subsequent theme changes flow through useTheme / ThemeInit.
+const THEME_FOUC_SCRIPT = `(function(){try{var s=localStorage.getItem('mywalnut.theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);var c=t==='light'?'#E5D8BE':'#0A0B10';var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('content',c);}}catch(e){}})();`;
 
 const AgentationDev = dynamic(() => import("agentation").then((m) => ({ default: m.Agentation })), { ssr: false });
 
@@ -75,9 +83,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${dmMono.variable} ${newsreader.variable} ${spectral.variable}`}>
+    <html
+      lang="en"
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${dmMono.variable} ${newsreader.variable} ${spectral.variable}`}
+    >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_FOUC_SCRIPT }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`,
@@ -85,6 +101,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
+        <ThemeInit />
         <PostHogProvider>
           {children}
         </PostHogProvider>
