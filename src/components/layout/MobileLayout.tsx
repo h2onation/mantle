@@ -3,12 +3,13 @@
 import DesktopVitrine from "./DesktopVitrine";
 import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 
-export type MobileView = "session" | "manual" | "settings";
+export type MobileView = "session" | "manual" | "settings" | "crisis";
 
 interface MobileLayoutProps {
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
   settingsContent: React.ReactNode;
+  crisisContent: React.ReactNode;
   activeView: MobileView;
   // When true and the active view is "session", swap the panel gradient
   // from --session-bg-chat to --session-bg-checkpoint. The checkpoint
@@ -23,7 +24,7 @@ function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): string {
       ? "var(--session-bg-checkpoint)"
       : "var(--session-bg-chat)";
   }
-  if (view === "manual" || view === "settings") {
+  if (view === "manual" || view === "settings" || view === "crisis") {
     return "var(--session-bg-manual)";
   }
   return "var(--session-bg-chat)";
@@ -33,6 +34,7 @@ export default function MobileLayout({
   sessionContent,
   manualContent,
   settingsContent,
+  crisisContent,
   activeView,
   hasActiveCheckpoint,
 }: MobileLayoutProps) {
@@ -49,6 +51,7 @@ export default function MobileLayout({
           ["session", sessionContent, "session-panel"],
           ["manual", manualContent, "manual-panel"],
           ["settings", settingsContent, "settings-panel"],
+          ["crisis", crisisContent, "crisis-panel"],
         ] as const).map(([view, content, panelId]) => (
           <div
             key={view}
@@ -70,7 +73,7 @@ export default function MobileLayout({
             {content}
           </div>
         ))}
-        <BetaFeedbackButton />
+        {activeView === "session" && <BetaFeedbackButton />}
       </div>
     </DesktopVitrine>
   );

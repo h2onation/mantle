@@ -13,6 +13,7 @@ interface MobileSettingsProps {
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
   onOpenDrawer?: () => void;
+  onNavigateToSession?: () => void;
 }
 
 function SectionHeader({
@@ -52,6 +53,7 @@ export default function MobileSettings({
   onSimulationEvent,
   onPopulateComplete,
   onOpenDrawer,
+  onNavigateToSession,
 }: MobileSettingsProps) {
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
@@ -309,7 +311,7 @@ export default function MobileSettings({
         flexDirection: "column",
       }}
     >
-      <TopBar onMenu={onOpenDrawer} />
+      <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />
 
       <div
         style={{
@@ -404,76 +406,9 @@ export default function MobileSettings({
         </SettingsRow>
       </div>
 
-      {/* ─── Crisis Support ──────────────────────────────────────── */}
-      <SectionHeader label="CRISIS SUPPORT" tone="danger" sectionId="settings-crisis" />
-
-      {true && (
-      <div id="settings-crisis">
-      <SettingsRow title="Crisis Support" noBorder>
-        <div>
-          <div>
-            <p
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--size-meta)",
-                color: "var(--session-ink-ghost)",
-                letterSpacing: "0.5px",
-                margin: "0 0 4px 0",
-              }}
-            >
-              988 Suicide &amp; Crisis Lifeline
-            </p>
-            <a
-              href="tel:988"
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--session-persona)",
-                textDecoration: "none",
-              }}
-            >
-              Call or text 988
-            </a>
-          </div>
-          <div style={{ marginTop: "10px" }}>
-            <p
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--size-meta)",
-                color: "var(--session-ink-ghost)",
-                letterSpacing: "0.5px",
-                margin: "0 0 4px 0",
-              }}
-            >
-              Crisis Text Line
-            </p>
-            <a
-              href="sms:741741?body=HOME"
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                color: "var(--session-persona)",
-                textDecoration: "none",
-              }}
-            >
-              Text HOME to 741741
-            </a>
-          </div>
-          <p
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
-              color: "var(--session-ink-ghost)",
-              letterSpacing: "0.5px",
-              margin: "10px 0 0 0",
-            }}
-          >
-            Free, confidential, available 24/7
-          </p>
-        </div>
-      </SettingsRow>
-      </div>
-      )}
+      {/* Crisis Support moved to its own surface — drawer footer row
+          navigates to MobileCrisis. Keeps Settings about settings,
+          gives Crisis a real destination rather than an anchored section. */}
 
       {/* ─── Text Sage ─────────────────────────────────────────── */}
       <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage" />
