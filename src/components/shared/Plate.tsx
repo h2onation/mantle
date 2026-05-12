@@ -13,7 +13,7 @@ export default function Plate({ eyebrow, heading, children }: PlateProps) {
         padding: "20px 22px 22px",
         borderRadius: "18px",
         background: "var(--session-walnut-surface)",
-        border: "1px solid var(--session-walnut-border)",
+        border: "1px solid rgba(170,120,82,0.20)",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
         boxShadow:

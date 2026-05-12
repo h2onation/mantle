@@ -317,6 +317,7 @@ export default function MainApp() {
     <>
       <MobileLayout
         activeView={activeView}
+        hasActiveCheckpoint={activeCheckpoint !== null}
         sessionContent={
           <MobileSession
             messages={messages}

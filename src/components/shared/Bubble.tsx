@@ -11,7 +11,7 @@ const JOVE_STYLE: React.CSSProperties = {
   marginLeft: 0,
   marginRight: "auto",
   background: "var(--session-walnut-surface)",
-  border: "1px solid var(--session-walnut-border)",
+  border: "1px solid rgba(170,120,82,0.20)",
   borderRadius: "16px",
   borderTopLeftRadius: "5px",
 };

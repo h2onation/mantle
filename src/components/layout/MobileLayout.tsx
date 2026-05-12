@@ -9,19 +9,31 @@ interface MobileLayoutProps {
   manualContent: React.ReactNode;
   settingsContent: React.ReactNode;
   activeView: MobileView;
+  // When true and the active view is "session", swap the panel gradient
+  // from --session-bg-chat to --session-bg-checkpoint. The checkpoint
+  // stack centers walnut warmth at the top instead of the bottom-right,
+  // matching the demo's "3 · Checkpoint" surface.
+  hasActiveCheckpoint?: boolean;
 }
 
-const PANEL_GRADIENTS: Record<MobileView, string> = {
-  session: "var(--session-bg-chat)",
-  manual: "var(--session-bg-manual)",
-  settings: "var(--session-bg-manual)",
-};
+function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): string {
+  if (view === "session") {
+    return hasActiveCheckpoint
+      ? "var(--session-bg-checkpoint)"
+      : "var(--session-bg-chat)";
+  }
+  if (view === "manual" || view === "settings") {
+    return "var(--session-bg-manual)";
+  }
+  return "var(--session-bg-chat)";
+}
 
 export default function MobileLayout({
   sessionContent,
   manualContent,
   settingsContent,
   activeView,
+  hasActiveCheckpoint,
 }: MobileLayoutProps) {
   return (
     <DesktopVitrine>
@@ -50,7 +62,8 @@ export default function MobileLayout({
               overflowX: "hidden",
               display: activeView === view ? "block" : "none",
               backgroundColor: "var(--session-linen)",
-              backgroundImage: PANEL_GRADIENTS[view],
+              backgroundImage: gradientFor(view, hasActiveCheckpoint),
+              transition: "background-image 0.3s ease",
             }}
           >
             {content}
