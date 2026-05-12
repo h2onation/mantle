@@ -42,9 +42,12 @@ describe("ChatWindowModal — Track A Modal 1", () => {
   });
 
   it("declares dialog accessibility attributes", () => {
-    expect(src).toContain('role="dialog"');
-    expect(src).toContain('aria-modal="true"');
-    expect(src).toContain('aria-labelledby="chat-window-modal-heading"');
+    // role + aria-modal live in the shared Modal primitive; the caller
+    // passes aria-labelledby via Modal's ariaLabelledBy prop.
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('role="dialog"');
+    expect(modalSrc).toContain('aria-modal="true"');
+    expect(src).toContain('ariaLabelledBy="chat-window-modal-heading"');
   });
 
   it("targets modal_progress = 1 on dismissal POST", () => {

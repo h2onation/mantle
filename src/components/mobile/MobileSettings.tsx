@@ -16,41 +16,33 @@ interface MobileSettingsProps {
 
 function SectionHeader({
   label,
-  isOpen,
-  onToggle,
+  tone,
   sectionId,
 }: {
   label: string;
-  isOpen: boolean;
-  onToggle: () => void;
+  tone?: "danger";
   sectionId?: string;
 }) {
   return (
-    <button
-      onClick={onToggle}
-      aria-expanded={isOpen}
-      aria-controls={sectionId}
+    <h2
+      id={sectionId}
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
         fontFamily: "var(--font-mono)",
-        fontSize: "var(--size-meta)",
-        color: "var(--session-ink-faded)",
-        letterSpacing: "3px",
+        fontSize: 11,
+        fontWeight: 500,
+        color:
+          tone === "danger"
+            ? "var(--session-error-text)"
+            : "rgba(220, 170, 120, 0.80)",
+        letterSpacing: "2px",
         textTransform: "uppercase",
-        margin: "32px 0 12px 0",
-        padding: "8px 0",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        WebkitTapHighlightColor: "transparent",
+        margin: "32px 0 8px 0",
+        paddingBottom: 8,
+        borderBottom: `1px solid ${tone === "danger" ? "rgba(208,130,120,0.20)" : "var(--session-walnut-border-soft)"}`,
       }}
     >
       {label}
-      <span aria-hidden="true" style={{ fontSize: "10px" }}>{isOpen ? "\u25BE" : "\u25B8"}</span>
-    </button>
+    </h2>
   );
 }
 
@@ -69,7 +61,6 @@ export default function MobileSettings({
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["account"]));
 
   // ── Text Sage phone linking ──────────────────────────────────────
   const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "code" | "linked">("loading");
@@ -178,15 +169,6 @@ export default function MobileSettings({
     } finally {
       setPhoneBusy(false);
     }
-  }
-
-  function toggleSection(key: string) {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   }
 
   async function handleLogout() {
@@ -350,9 +332,9 @@ export default function MobileSettings({
       </h1>
 
       {/* ─── Account ─────────────────────────────────────────────── */}
-      <SectionHeader label="ACCOUNT" isOpen={openSections.has("account")} onToggle={() => toggleSection("account")} sectionId="settings-account" />
+      <SectionHeader label="ACCOUNT" sectionId="settings-account" />
 
-      {openSections.has("account") && (
+      {true && (
         <div id="settings-account">
           <SettingsRow
             title="Log out"
@@ -378,9 +360,9 @@ export default function MobileSettings({
       )}
 
       {/* ─── Crisis Support ──────────────────────────────────────── */}
-      <SectionHeader label="CRISIS SUPPORT" isOpen={openSections.has("crisis")} onToggle={() => toggleSection("crisis")} sectionId="settings-crisis" />
+      <SectionHeader label="CRISIS SUPPORT" tone="danger" sectionId="settings-crisis" />
 
-      {openSections.has("crisis") && (
+      {true && (
       <div id="settings-crisis">
       <SettingsRow title="Crisis Support" noBorder>
         <div>
@@ -449,9 +431,9 @@ export default function MobileSettings({
       )}
 
       {/* ─── Text Sage ─────────────────────────────────────────── */}
-      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} isOpen={openSections.has("textsage")} onToggle={() => toggleSection("textsage")} sectionId="settings-textsage" />
+      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage" />
 
-      {openSections.has("textsage") && (
+      {true && (
         <div id="settings-textsage">
         <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
@@ -785,9 +767,9 @@ export default function MobileSettings({
       {/* ─── Dev Tools (admin only) ────────────────────────────── */}
       {isAdmin && (
       <>
-      <SectionHeader label="DEV TOOLS" isOpen={openSections.has("devtools")} onToggle={() => toggleSection("devtools")} sectionId="settings-devtools" />
+      <SectionHeader label="DEV TOOLS" sectionId="settings-devtools" />
 
-      {openSections.has("devtools") && (
+      {true && (
         <div id="settings-devtools">
       {/* Simulate user */}
       <SettingsRow title="Simulate user">

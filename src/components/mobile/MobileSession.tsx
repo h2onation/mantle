@@ -13,12 +13,24 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import TopBar from "@/components/shared/TopBar";
+import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 
 const WELCOME_CHIPS = [
   "I have a situation I want to work through",
   "I know something about myself I want to capture",
   "I just need to think out loud",
 ] as const;
+
+// Spelled-out layer ordinals for the "Saved to Layer N" receipt that
+// appears under a confirmed checkpoint. Matches the demo's "Saved to
+// Layer Two" framing.
+const LAYER_ORDINAL: Record<number, string> = {
+  1: "One",
+  2: "Two",
+  3: "Three",
+  4: "Four",
+  5: "Five",
+};
 
 
 interface MobileSessionProps {
@@ -57,6 +69,10 @@ interface MobileSessionProps {
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
   onOpenDrawer: () => void;
+  /** Snapshot of the entry the user is exploring further. Drives the
+      walnut context chip at the top of chat. */
+  currentExploration?: import("@/lib/types").ExplorationContext | null;
+  onDismissExploration?: () => void;
 }
 
 export default function MobileSession({
@@ -83,6 +99,8 @@ export default function MobileSession({
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
   onOpenDrawer,
+  currentExploration = null,
+  onDismissExploration,
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
@@ -169,8 +187,8 @@ export default function MobileSession({
         <div style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
-          marginTop: "16px",
+          gap: 10,
+          marginTop: 16,
         }}>
           {WELCOME_CHIPS.map((chip) => (
             <button
@@ -180,23 +198,52 @@ export default function MobileSession({
                 sendMessage(chip);
               }}
               style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "16px",
-                fontStyle: "italic",
-                fontWeight: 400,
-                lineHeight: 1.5,
-                color: "var(--session-ink-soft)",
-                backgroundColor: "transparent",
-                border: "none",
-                borderBottom: "1px solid var(--session-hair)",
-                borderRadius: 0,
-                padding: "var(--sp-sm) 0 var(--sp-sm)",
+                all: "unset",
                 cursor: "pointer",
-                textAlign: "left",
-                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 18px",
+                borderRadius: 16,
+                background: "var(--session-walnut-surface)",
+                border: "1px solid rgba(170,120,82,0.20)",
+                backdropFilter: "blur(28px) saturate(140%)",
+                WebkitBackdropFilter: "blur(28px) saturate(140%)",
+                boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
               }}
             >
-              {chip}
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 36,
+                  height: 36,
+                  flexShrink: 0,
+                  borderRadius: 10,
+                  background: "rgba(0,0,0,0.30)",
+                  border: "1px solid var(--session-walnut-border-soft)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--session-walnut)",
+                  fontSize: 16,
+                  lineHeight: 1,
+                }}
+              >
+                ›
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontSize: 15,
+                  fontStyle: "italic",
+                  lineHeight: 1.4,
+                  color: "var(--session-ink)",
+                  textAlign: "left",
+                }}
+              >
+                {chip}
+              </span>
             </button>
           ))}
           <button
@@ -206,18 +253,67 @@ export default function MobileSession({
             }}
             disabled={isLoading || isStreaming}
             style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "var(--session-ink-mid)",
-              background: "none",
-              border: "none",
+              all: "unset",
               cursor: "pointer",
-              padding: "8px 0 0",
-              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 18px",
+              borderRadius: 16,
+              background: "rgba(72,80,98,0.26)",
+              border: "1px solid var(--session-walnut-border)",
+              backdropFilter: "blur(28px) saturate(140%)",
+              WebkitBackdropFilter: "blur(28px) saturate(140%)",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
+              opacity: isLoading || isStreaming ? 0.6 : 1,
             }}
           >
-            Help me get started
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36,
+                height: 36,
+                flexShrink: 0,
+                borderRadius: 10,
+                background: "rgba(0,0,0,0.30)",
+                border: "1px solid var(--session-walnut-border-soft)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--session-walnut)",
+                fontSize: 16,
+                lineHeight: 1,
+              }}
+            >
+              ✻
+            </span>
+            <span style={{ flex: 1, textAlign: "left" }}>
+              <span
+                style={{
+                  display: "block",
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontSize: 15.5,
+                  fontWeight: 500,
+                  color: "var(--session-ink)",
+                  lineHeight: 1.3,
+                }}
+              >
+                Guided intake
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 2,
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontSize: 12.5,
+                  fontStyle: "italic",
+                  color: "var(--session-ink-mid)",
+                  lineHeight: 1.4,
+                }}
+              >
+                Let {PERSONA_NAME} lead with questions
+              </span>
+            </span>
           </button>
         </div>
       )}
@@ -235,6 +331,78 @@ export default function MobileSession({
       }}
     >
       <TopBar onMenu={onOpenDrawer} />
+
+      {/* Explore-further context chip — surfaces the entry being
+          explored at the top of chat. Small walnut chip; layer eyebrow
+          + entry name (or layer name if no entry). Dismissable. */}
+      {currentExploration && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            margin: "10px 18px 0",
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "var(--session-walnut-surface)",
+            border: "1px solid var(--session-walnut-border)",
+            backdropFilter: "blur(20px) saturate(140%)",
+            WebkitBackdropFilter: "blur(20px) saturate(140%)",
+            animation: "checkpointFadeIn 0.3s ease-out both",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 9,
+                letterSpacing: "1.6px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
+                lineHeight: 1,
+              }}
+            >
+              Layer {LAYER_ORDINAL[currentExploration.layerId] ?? currentExploration.layerId} · {currentExploration.layerName}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 13,
+                color: "var(--session-ink)",
+                lineHeight: 1.3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {currentExploration.name || currentExploration.layerName}
+            </span>
+          </div>
+          {onDismissExploration && (
+            <button
+              onClick={onDismissExploration}
+              aria-label="Dismiss exploration context"
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--session-ink-mid)",
+                fontSize: 12,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
@@ -430,8 +598,6 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                const accentColor = "var(--session-persona)";
-
                 // Track A Phase 7-Mid: refinement-ceiling. After two
                 // refinements on the same chain, the third proposed
                 // entry shows a different action surface — the user
@@ -610,7 +776,11 @@ export default function MobileSession({
                       </div>
                     )}
 
-                    {/* Action state feedback */}
+                    {/* Action state feedback. For "confirmed" this is
+                        the composing state — Sonnet writes the polished
+                        entry server-side (5-15s); show a pulsing fleuron
+                        and italic "Putting it on the page…". For all
+                        other action states show the mono-caps receipt. */}
                     {isPendingCheckpoint && checkpointActionState && (
                       <div
                         style={{
@@ -620,27 +790,63 @@ export default function MobileSession({
                           animation: "checkpointFadeIn 0.4s ease-out both",
                         }}
                       >
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "var(--size-meta)",
-                            fontWeight: 500,
-                            letterSpacing: "2px",
-                            textTransform: "uppercase",
-                            color: checkpointActionState === "confirmed"
-                              ? accentColor
-                              : "var(--session-ink-ghost)",
-                          }}
-                        >
-                          {checkpointActionState === "confirmed" && "Written to manual"}
-                          {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
-                          {checkpointActionState === "rejected" && "Discarded"}
-                          {checkpointActionState === "deferred" && "Set aside"}
-                        </span>
+                        {checkpointActionState === "confirmed" ? (
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "baseline",
+                              gap: 10,
+                            }}
+                          >
+                            <span
+                              aria-label="Putting it on the page"
+                              style={{
+                                fontFamily: "var(--font-serif)",
+                                fontSize: 18,
+                                color: "var(--session-persona)",
+                                lineHeight: 1,
+                                display: "inline-block",
+                                animation: "personaPulse 2.4s ease-in-out infinite",
+                              }}
+                            >
+                              ❦
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                                fontSize: 15,
+                                fontStyle: "italic",
+                                color: "var(--session-ink-soft)",
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              Putting it on the page…
+                            </span>
+                          </div>
+                        ) : (
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "var(--size-meta)",
+                              fontWeight: 500,
+                              letterSpacing: "2px",
+                              textTransform: "uppercase",
+                              color: "var(--session-ink-ghost)",
+                            }}
+                          >
+                            {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
+                            {checkpointActionState === "rejected" && "Discarded"}
+                            {checkpointActionState === "deferred" && "Set aside"}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Already-resolved checkpoints (loaded from DB) */}
+                    {/* Already-resolved checkpoints (loaded from DB) —
+                        confirmed entries render "Saved to Layer N"
+                        with walnut accent (the entry is now part of
+                        the Manual); other statuses keep the mono-caps
+                        receipt in ink-ghost. */}
                     {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                       <div
                         style={{
@@ -657,11 +863,15 @@ export default function MobileSession({
                             letterSpacing: "2px",
                             textTransform: "uppercase",
                             color: msg.checkpointMeta.status === "confirmed"
-                              ? accentColor
+                              ? "var(--session-walnut)"
                               : "var(--session-ink-ghost)",
                           }}
                         >
-                          {msg.checkpointMeta.status === "confirmed" && "Written to manual"}
+                          {msg.checkpointMeta.status === "confirmed" && checkpointLayer
+                            ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
+                            : msg.checkpointMeta.status === "confirmed"
+                              ? "Saved to your Manual"
+                              : null}
                           {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
                           {msg.checkpointMeta.status === "rejected" && "Discarded"}
                         </span>
@@ -774,46 +984,15 @@ export default function MobileSession({
               <div style={{ height: "40px", flexShrink: 0 }} />
             )}
 
-            {/* Error — oxblood top-rule, plain text, a way forward */}
+            {/* Connection / send error — walnut plate with oxblood
+                eyebrow. Same plate-on-chat pattern as the checkpoint
+                proposal, so the error reads as a moment in the
+                conversation rather than a takeover screen. */}
             {errorMessage && (
-              <div
-                style={{
-                  borderTop: "2px solid var(--session-error)",
-                  padding: "var(--sp-sm) 0",
-                  margin: "var(--sp-sm) 0",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: "15px",
-                    fontStyle: "italic",
-                    color: "var(--session-ink-mid)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {errorMessage}
-                </span>
-                <div style={{ marginTop: "var(--sp-xs)" }}>
-                  <button
-                    onClick={retryLastMessage}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      letterSpacing: "2.2px",
-                      textTransform: "uppercase",
-                      color: "var(--session-persona)",
-                      background: "none",
-                      border: "none",
-                      borderBottom: "1px solid var(--session-persona)",
-                      cursor: "pointer",
-                      padding: "0 0 2px",
-                    }}
-                  >
-                    try again &nbsp;›
-                  </button>
-                </div>
-              </div>
+              <ConnectionErrorPlate
+                message={errorMessage}
+                onRetry={retryLastMessage}
+              />
             )}
         </div>
       </div>

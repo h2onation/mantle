@@ -129,6 +129,24 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           </h1>
         </div>
 
+        {/* Quiet day-one placeholder — appears only when no entries exist.
+            The five labeled sections below are the structural promise. */}
+        {isEmpty && (
+          <p
+            style={{
+              margin: "0 24px 18px",
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: 15,
+              fontStyle: "italic",
+              lineHeight: 1.55,
+              color: "var(--session-ink-mid)",
+            }}
+          >
+            Your Manual fills as you and {PERSONA_NAME} find patterns together
+            <span style={{ color: "var(--session-walnut)", fontStyle: "normal" }}>.</span>
+          </p>
+        )}
+
         {/* Layer list — unified ordering, populated and empty render side by side */}
         <div style={{ padding: "0 20px", position: "relative" }}>
           {layers.map((layer) =>
@@ -239,113 +257,135 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
             }}
           />
 
-          {/* Sheet */}
+          {/* Sheet — walnut glass, Spectral prose, TextBtn CTA */}
           <div
             style={{
               position: "relative",
-              backgroundColor: "var(--session-cream)",
-              border: "1px solid var(--session-walnut-border)",
+              background: "var(--session-walnut-surface)",
+              border: "1px solid rgba(170,120,82,0.20)",
               borderBottom: "none",
-              borderRadius: "20px 20px 0 0",
-              padding: "32px 24px calc(24px + env(safe-area-inset-bottom, 0px))",
+              borderRadius: "22px 22px 0 0",
+              padding: "20px 24px calc(28px + env(safe-area-inset-bottom, 0px))",
               animation: "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
+              boxShadow: "0 -12px 40px rgba(0,0,0,0.30), inset 0 1px 0 rgba(220,170,120,0.10)",
             }}
           >
             {/* Drag handle */}
             <div
               aria-hidden="true"
               style={{
-                width: 36,
+                width: 40,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor: "var(--session-hair)",
-                margin: "0 auto 24px",
+                backgroundColor: "var(--session-walnut-border)",
+                margin: "0 auto 18px",
               }}
             />
 
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
+              }}
+            >
+              {totalLabel} · PDF
+            </p>
             <h2
               id="share-sheet-heading"
               style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: 20,
-                fontWeight: 400,
+                margin: "8px 0 0",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 22,
+                fontWeight: 500,
                 color: "var(--session-ink)",
-                margin: "0 0 16px 0",
+                lineHeight: 1.25,
                 letterSpacing: "-0.3px",
               }}
             >
-              What gets shared
+              Share your manual
+              <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
             </h2>
 
             <p
               style={{
-                fontFamily: "var(--font-sans)",
+                margin: "14px 0 0",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
                 fontSize: 15,
                 color: "var(--session-ink-soft)",
-                lineHeight: 1.6,
-                margin: "0 0 20px 0",
+                lineHeight: 1.62,
+                letterSpacing: "-0.05px",
               }}
             >
               Everything on this page — your sections, your narratives, your
-              patterns — will be exported as a document you can send to anyone.
-              Your conversations with {PERSONA_NAME} and any session transcripts are never
-              included.
+              patterns — exports as a document you can send to anyone. Your
+              conversations with {PERSONA_NAME} and any session transcripts
+              are never included.
             </p>
 
             <p
               style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 15,
-                color: "var(--session-ink-soft)",
+                margin: "10px 0 22px",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 14,
+                fontStyle: "italic",
+                color: "var(--session-ink-mid)",
                 lineHeight: 1.6,
-                margin: "0 0 28px 0",
               }}
             >
-              Feel free to send it to yourself first if you want to see how it
-              looks.
+              Send it to yourself first if you want to see how it looks.
             </p>
 
-            {/* Export button */}
+            {/* Generate-and-share — TextBtn pattern */}
             <button
               onClick={doExportAndShare}
               disabled={isGenerating}
               style={{
+                all: "unset",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
                 width: "100%",
-                padding: 16,
-                fontFamily: "var(--font-sans)",
-                fontSize: 15,
-                fontWeight: 500,
-                color: "var(--session-linen)",
-                backgroundColor: isGenerating ? "var(--session-ink-faded)" : "var(--session-persona)",
-                border: "none",
-                borderRadius: 0,
+                padding: "10px 0",
+                borderBottom: "1px solid var(--session-ink)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                letterSpacing: "2.4px",
+                textTransform: "uppercase",
+                color: "var(--session-ink)",
                 cursor: isGenerating ? "default" : "pointer",
-                transition: "background-color 0.2s ease",
+                opacity: isGenerating ? 0.6 : 1,
+                boxSizing: "border-box",
               }}
             >
-              {isGenerating ? "Preparing your manual..." : "Export and share"}
+              <span>{isGenerating ? "Preparing your manual…" : "Generate PDF & share"}</span>
+              <span aria-hidden="true">›</span>
             </button>
 
             {/* Cancel */}
             <button
               onClick={() => setShowSheet(false)}
               style={{
+                all: "unset",
                 display: "block",
                 width: "100%",
-                marginTop: 12,
-                padding: "10px 0",
-                fontFamily: "var(--font-sans)",
+                marginTop: 16,
+                padding: "8px 0",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
                 fontSize: 14,
-                fontWeight: 400,
-                color: "var(--session-ink-faded)",
-                background: "none",
-                border: "none",
+                fontStyle: "italic",
+                color: "var(--session-ink-mid)",
                 cursor: "pointer",
+                textAlign: "center",
+                boxSizing: "border-box",
               }}
             >
-              Cancel
+              cancel
             </button>
           </div>
         </div>

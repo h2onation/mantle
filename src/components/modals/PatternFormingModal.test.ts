@@ -32,9 +32,10 @@ describe("PatternFormingModal — Track A Modal 2", () => {
   });
 
   it("declares dialog accessibility attributes", () => {
-    expect(src).toContain('role="dialog"');
-    expect(src).toContain('aria-modal="true"');
-    expect(src).toContain('aria-labelledby="pattern-forming-modal-heading"');
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('role="dialog"');
+    expect(modalSrc).toContain('aria-modal="true"');
+    expect(src).toContain('ariaLabelledBy="pattern-forming-modal-heading"');
   });
 
   it("targets modal_progress = 2 on dismissal POST", () => {
