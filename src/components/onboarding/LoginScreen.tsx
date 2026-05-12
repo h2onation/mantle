@@ -183,8 +183,13 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
+          justifyContent: "center",
           padding: "0 28px",
           boxSizing: "border-box",
+          // The form is shorter than the available phone-frame height
+          // on desktop; centering vertically keeps it balanced. When
+          // content exceeds the container (small viewports) the
+          // min-height + scroll pattern still works.
         }}
       >
         {/* ── Forgot password mode ── */}

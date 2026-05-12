@@ -75,11 +75,19 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
     >
       <TopBar onBack={onBack} />
 
-      {/* Spacer pushes content to bottom */}
-      <div style={{ flex: 1 }} />
-
-      {/* Content area */}
-      <div style={{ padding: "0 28px 40px" }}>
+      {/* Content area — vertically centered in the available height.
+          On mobile the phone-frame is the viewport, so this centers
+          on the visible screen. On desktop the phone-frame is ~932px
+          tall, so this prevents content falling to the bottom edge. */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "0 28px 40px",
+        }}
+      >
         <p
           style={{
             margin: "0 0 16px 0",
@@ -207,7 +215,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             justifyContent: "space-between",
             width: "100%",
             padding: "10px 0",
-            borderBottom: `1px solid ${isEnabled ? "var(--session-ink)" : "var(--session-ink-whisper)"}`,
+            borderBottom: `1px solid ${isEnabled ? "var(--session-ink)" : "var(--session-walnut-border)"}`,
             fontFamily: "var(--font-mono)",
             fontSize: 12,
             letterSpacing: "2.4px",

@@ -55,6 +55,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
       {leftButton}
 
       <span
+        className="mw-topbar-wordmark"
         style={{
           fontFamily: "var(--font-serif)",
           fontSize: "19px",
