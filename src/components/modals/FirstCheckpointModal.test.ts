@@ -38,9 +38,10 @@ describe("FirstCheckpointModal — Track A Modal 3", () => {
   });
 
   it("declares dialog accessibility attributes", () => {
-    expect(src).toContain('role="dialog"');
-    expect(src).toContain('aria-modal="true"');
-    expect(src).toContain('aria-labelledby="first-checkpoint-modal-heading"');
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('role="dialog"');
+    expect(modalSrc).toContain('aria-modal="true"');
+    expect(src).toContain('ariaLabelledBy="first-checkpoint-modal-heading"');
   });
 
   it("targets modal_progress = 3 on dismissal POST", () => {

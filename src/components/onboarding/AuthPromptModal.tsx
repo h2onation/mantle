@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Modal from "@/components/shared/Modal";
 
 interface AuthPromptModalProps {
   onDismiss: () => void;
@@ -36,7 +37,6 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
 
   async function handleGoogle() {
     setError("");
-    // Store flag so we can detect the conversion on redirect return
     localStorage.setItem("mw_pending_conversion", "true");
     const { error: linkError } = await supabase.auth.linkIdentity({
       provider: "google",
@@ -48,268 +48,221 @@ export default function AuthPromptModal({ onDismiss, onSuccess }: AuthPromptModa
       localStorage.removeItem("mw_pending_conversion");
       setError(linkError.message);
     }
-    // If no error, browser redirects to Google
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    fontFamily: "var(--font-spectral), var(--font-serif), serif",
+    fontSize: 16,
+    color: "var(--session-ink)",
+    backgroundColor: "transparent",
+    border: "none",
+    borderBottom: "1px solid var(--session-walnut-border)",
+    borderRadius: 0,
+    padding: "10px 0 6px",
+    outline: "none",
+    boxSizing: "border-box",
+    letterSpacing: "-0.05px",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "var(--font-mono)",
+    fontSize: 10,
+    fontWeight: 500,
+    letterSpacing: "2px",
+    textTransform: "uppercase",
+    color: "var(--session-walnut-meta)",
+  };
+
+  function handleInputFocus(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderBottomColor = "var(--session-walnut)";
+  }
+
+  function handleInputBlur(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderBottomColor = "var(--session-walnut-border)";
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="auth-prompt-heading"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 400,
-        backgroundColor: "var(--session-backdrop-heavy)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-        boxSizing: "border-box",
-      }}
-    >
+    <Modal open onClose={onDismiss} ariaLabelledBy="auth-prompt-heading">
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: "var(--session-walnut-meta)",
+        }}
+      >
+        Save your conversation
+      </p>
+      <h2
+        id="auth-prompt-heading"
+        style={{
+          margin: "10px 0 0",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 22,
+          fontWeight: 500,
+          color: "var(--session-ink)",
+          lineHeight: 1.25,
+          letterSpacing: "-0.3px",
+        }}
+      >
+        Keep your manual
+        <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+      </h2>
+      <p
+        style={{
+          margin: "12px 0 18px",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 15.5,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.62,
+          letterSpacing: "-0.05px",
+        }}
+      >
+        Create an account so you don&rsquo;t lose what you&rsquo;ve built.
+      </p>
+
+      {error && (
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13,
+            color: "var(--session-error-text)",
+            margin: "0 0 14px 0",
+          }}
+        >
+          {error}
+        </p>
+      )}
+
+      <form onSubmit={handleEmailSubmit}>
+        <label style={labelStyle}>Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          inputMode="email"
+          style={{ ...inputStyle, marginBottom: 14 }}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+        />
+        <label style={labelStyle}>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+          minLength={6}
+          style={{ ...inputStyle, marginBottom: 22 }}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            all: "unset",
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+            padding: "10px 0",
+            borderBottom: "1px solid var(--session-ink)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.6 : 1,
+            boxSizing: "border-box",
+          }}
+        >
+          <span>{loading ? "Creating account..." : "Create account"}</span>
+          <span aria-hidden="true">›</span>
+        </button>
+      </form>
+
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          margin: "20px 0 14px",
+        }}
+      >
+        <div style={{ flex: 1, height: 1, background: "var(--session-walnut-border)" }} />
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta)",
+          }}
+        >
+          or
+        </span>
+        <div style={{ flex: 1, height: 1, background: "var(--session-walnut-border)" }} />
+      </div>
+
+      <button
+        onClick={handleGoogle}
+        disabled={loading}
+        style={{
+          all: "unset",
+          cursor: loading ? "not-allowed" : "pointer",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 10,
           width: "100%",
-          maxWidth: "380px",
-          backgroundColor: "var(--session-cream)",
-          borderRadius: 0,
-          padding: "32px",
+          padding: "12px 0",
+          borderRadius: 12,
+          background: "rgba(245,243,238,0.08)",
+          border: "1px solid rgba(245,243,238,0.14)",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 14,
+          color: "var(--session-ink)",
           boxSizing: "border-box",
         }}
       >
-        {/* Headline */}
-        <h2
-          id="auth-prompt-heading"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 24,
-            fontWeight: 400,
-            color: "var(--session-ink)",
-            margin: "0 0 8px 0",
-            lineHeight: 1.2,
-          }}
-        >
-          Keep your manual
-        </h2>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
 
-        {/* Body */}
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 14,
-            color: "var(--session-ink-mid)",
-            margin: "0 0 28px 0",
-            lineHeight: 1.5,
-          }}
-        >
-          Create an account so you don&rsquo;t lose what you&rsquo;ve built.
-        </p>
-
-        {error && (
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              color: "var(--session-error)",
-              margin: "0 0 16px 0",
-            }}
-          >
-            {error}
-          </p>
-        )}
-
-        <form onSubmit={handleEmailSubmit}>
-          {/* Email label */}
-          <label
-            style={{
-              display: "block",
-              fontFamily: "var(--font-mono)",
-              fontSize: 8,
-              fontWeight: 500,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "var(--session-ink-faded)",
-              marginBottom: 8,
-            }}
-          >
-            EMAIL
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            inputMode="email"
-            style={{
-              width: "100%",
-              fontFamily: "var(--font-sans)",
-              fontSize: 16,
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              borderBottom: "1px solid var(--session-ink-whisper)",
-              borderRadius: 0,
-              padding: "12px 0",
-              outline: "none",
-              boxSizing: "border-box",
-              marginBottom: 28,
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-persona-soft)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
-          />
-
-          {/* Password label */}
-          <label
-            style={{
-              display: "block",
-              fontFamily: "var(--font-mono)",
-              fontSize: 8,
-              fontWeight: 500,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "var(--session-ink-faded)",
-              marginBottom: 8,
-            }}
-          >
-            PASSWORD
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            minLength={6}
-            style={{
-              width: "100%",
-              fontFamily: "var(--font-sans)",
-              fontSize: 16,
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              borderBottom: "1px solid var(--session-ink-whisper)",
-              borderRadius: 0,
-              padding: "12px 0",
-              outline: "none",
-              boxSizing: "border-box",
-              marginBottom: 32,
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-persona-soft)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderBottomColor = "var(--session-ink-whisper)"; }}
-          />
-
-          {/* Create account button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "16px 0",
-              fontFamily: "var(--font-sans)",
-              fontSize: 15,
-              fontWeight: 500,
-              color: "var(--session-cream)",
-              backgroundColor: "var(--session-persona)",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-              transition: "opacity 0.2s",
-              marginBottom: 20,
-            }}
-          >
-            {loading ? "Creating account..." : "Create account"}
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
-          <div style={{ flex: 1, height: 1, backgroundColor: "var(--session-ink-hairline)" }} />
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 11,
-              color: "var(--session-ink-ghost)",
-            }}
-          >
-            or
-          </span>
-          <div style={{ flex: 1, height: 1, backgroundColor: "var(--session-ink-hairline)" }} />
-        </div>
-
-        {/* Google OAuth button */}
+      <p
+        style={{
+          margin: "18px 0 0",
+          textAlign: "center",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 14,
+          fontStyle: "italic",
+          color: "var(--session-ink-mid)",
+        }}
+      >
         <button
-          onClick={handleGoogle}
-          disabled={loading}
+          onClick={onDismiss}
           style={{
-            width: "100%",
-            padding: "14px 0",
-            fontFamily: "var(--font-sans)",
-            fontSize: 14,
-            fontWeight: 500,
+            all: "unset",
+            cursor: "pointer",
             color: "var(--session-ink-mid)",
-            backgroundColor: "transparent",
-            border: "1px solid var(--session-ink-whisper)",
-            borderRadius: "var(--radius-sm)",
-            cursor: loading ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            marginBottom: 20,
+            fontStyle: "italic",
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-          </svg>
-          Continue with Google
+          maybe later
         </button>
-
-        {/* Dismiss */}
-        <div style={{ textAlign: "center" }}>
-          <button
-            onClick={onDismiss}
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              color: "var(--session-ink-ghost)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "4px 8px",
-              marginBottom: 16,
-            }}
-          >
-            Not now
-          </button>
-        </div>
-
-        {/* Disclaimer */}
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 11,
-            color: "var(--session-ink-mid)",
-            margin: 0,
-            lineHeight: 1.5,
-            textAlign: "center",
-          }}
-        >
-          Already have an account? Your current session will continue. Create a new account to save this work.
-        </p>
-      </div>
-    </div>
+      </p>
+    </Modal>
   );
 }

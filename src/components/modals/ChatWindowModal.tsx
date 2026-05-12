@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Modal from "@/components/shared/Modal";
 import { trackModal1Shown } from "@/lib/analytics/events";
 import { PERSONA_NAME } from "@/lib/persona/config";
 
@@ -97,98 +98,86 @@ export default function ChatWindowModal({
     onDismiss();
   }
 
-  if (!open) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="chat-window-modal-heading"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 400,
-        backgroundColor: "var(--session-backdrop-heavy)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-        boxSizing: "border-box",
-      }}
+    <Modal
+      open={open}
+      onClose={() => void handleDismiss()}
+      ariaLabelledBy="chat-window-modal-heading"
     >
-      <div
+      <p
         style={{
-          width: "100%",
-          maxWidth: "380px",
-          backgroundColor: "var(--session-cream)",
-          border: "1px solid var(--session-hair)",
-          padding: "var(--sp-lg)",
-          boxSizing: "border-box",
+          margin: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: "var(--session-walnut-meta)",
         }}
       >
-        <h2
-          id="chat-window-modal-heading"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 24,
-            fontWeight: 400,
-            color: "var(--session-ink)",
-            margin: "0 0 var(--sp-md) 0",
-            lineHeight: 1.2,
-            letterSpacing: "-0.3px",
-          }}
-        >
-          How this works
-        </h2>
+        Before you begin
+      </p>
+      <h2
+        id="chat-window-modal-heading"
+        style={{
+          margin: "10px 0 0",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 22,
+          fontWeight: 500,
+          color: "var(--session-ink)",
+          lineHeight: 1.25,
+          letterSpacing: "-0.3px",
+        }}
+      >
+        How this works
+        <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+      </h2>
 
-        <div
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 16,
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.6,
-          }}
-        >
-          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
-            This is where you talk to {PERSONA_NAME}. Bring a situation you want help processing or working through. Something specific &mdash; a conflict you are still chewing on, a reaction that surprised you, a pattern you keep noticing.
-          </p>
-          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
-            While we talk, {PERSONA_NAME} is pulling out insights you might not see from inside and reflecting them back. What you confirm gets written to your Manual &mdash; a document about how you operate, authored by you, that builds over time.
-          </p>
-          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
-            This takes time, and it is an investment. Start with at least 15 minutes. If now is not that, come back when it is.
-          </p>
-          <p style={{ margin: "0 0 var(--sp-md) 0" }}>
-            Nothing gets written without your yes.
-          </p>
-        </div>
-
-        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)" }}>
-          <button
-            ref={buttonRef}
-            type="button"
-            onClick={() => {
-              void handleDismiss();
-            }}
-            style={{
-              width: "100%",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "2.2px",
-              textTransform: "uppercase",
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              borderBottom: "1px solid var(--session-ink)",
-              padding: "var(--sp-xs) 0 var(--sp-tight)",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            Got it &nbsp;›
-          </button>
-        </div>
+      <div
+        style={{
+          marginTop: 14,
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 15.5,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.62,
+          letterSpacing: "-0.05px",
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          This is where you talk to {PERSONA_NAME}. Bring a situation you want help processing or working through. Something specific &mdash; a conflict you are still chewing on, a reaction that surprised you, a pattern you keep noticing.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          While we talk, {PERSONA_NAME} is pulling out insights you might not see from inside and reflecting them back. What you confirm gets written to your Manual &mdash; a document about how you operate, authored by you, that builds over time.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          This takes time, and it is an investment. Start with at least 15 minutes. If now is not that, come back when it is.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          Nothing gets written without your yes.
+        </p>
       </div>
-    </div>
+
+      <div style={{ marginTop: 22, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => {
+            void handleDismiss();
+          }}
+          style={{
+            all: "unset",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            borderBottom: "1px solid var(--session-ink)",
+            padding: "4px 0",
+            cursor: "pointer",
+          }}
+        >
+          Got it ›
+        </button>
+      </div>
+    </Modal>
   );
 }

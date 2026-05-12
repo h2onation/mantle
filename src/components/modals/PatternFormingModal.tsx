@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Modal from "@/components/shared/Modal";
 import { trackModal2Shown } from "@/lib/analytics/events";
 
 interface PatternFormingModalProps {
@@ -104,100 +105,88 @@ export default function PatternFormingModal({
     onDismiss();
   }
 
-  if (!open) return null;
-
   // Defensive fallback: if the snapshot effect hasn't run yet (single
   // render frame between open=true and the effect's commit), use the
   // current prop. The snapshot will overwrite on the next render.
   const displayedSnippet = snapshotSnippet ?? patternSnippet;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pattern-forming-modal-heading"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 400,
-        backgroundColor: "var(--session-backdrop-heavy)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-        boxSizing: "border-box",
-      }}
+    <Modal
+      open={open}
+      onClose={() => void handleDismiss()}
+      ariaLabelledBy="pattern-forming-modal-heading"
     >
-      <div
+      <p
         style={{
-          width: "100%",
-          maxWidth: "380px",
-          backgroundColor: "var(--session-cream)",
-          border: "1px solid var(--session-hair)",
-          padding: "var(--sp-lg)",
-          boxSizing: "border-box",
+          margin: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: "var(--session-walnut-meta)",
         }}
       >
-        <h2
-          id="pattern-forming-modal-heading"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 24,
-            fontWeight: 400,
-            color: "var(--session-ink)",
-            margin: "0 0 var(--sp-md) 0",
-            lineHeight: 1.2,
-            letterSpacing: "-0.3px",
-          }}
-        >
-          Something is taking shape
-        </h2>
+        Halfway there
+      </p>
+      <h2
+        id="pattern-forming-modal-heading"
+        style={{
+          margin: "10px 0 0",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 22,
+          fontWeight: 500,
+          color: "var(--session-ink)",
+          lineHeight: 1.25,
+          letterSpacing: "-0.3px",
+        }}
+      >
+        Something is taking shape
+        <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+      </h2>
 
-        <div
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 16,
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.6,
-          }}
-        >
-          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
-            I am seeing a pattern around {displayedSnippet}. Let&rsquo;s keep going so I can get it right.
-          </p>
-          <p style={{ margin: "0 0 var(--sp-sm) 0" }}>
-            You are roughly halfway to your first entry. A few more turns and I will propose a piece for your Manual. You will see it on a card and decide whether it fits.
-          </p>
-          <p style={{ margin: "0 0 var(--sp-md) 0" }}>
-            Honest expression produces sharper reflections than careful writing. Typos, tangents, going long &mdash; none of it matters. You can dictate if typing is slowing you down.
-          </p>
-        </div>
-
-        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)" }}>
-          <button
-            ref={buttonRef}
-            type="button"
-            onClick={() => {
-              void handleDismiss();
-            }}
-            style={{
-              width: "100%",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "2.2px",
-              textTransform: "uppercase",
-              color: "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              borderBottom: "1px solid var(--session-ink)",
-              padding: "var(--sp-xs) 0 var(--sp-tight)",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            Keep going &nbsp;›
-          </button>
-        </div>
+      <div
+        style={{
+          marginTop: 14,
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 15.5,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.62,
+          letterSpacing: "-0.05px",
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          I am seeing a pattern around {displayedSnippet}. Let&rsquo;s keep going so I can get it right.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          You are roughly halfway to your first entry. A few more turns and I will propose a piece for your Manual. You will see it on a card and decide whether it fits.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          Honest expression produces sharper reflections than careful writing. Typos, tangents, going long &mdash; none of it matters. You can dictate if typing is slowing you down.
+        </p>
       </div>
-    </div>
+
+      <div style={{ marginTop: 22, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => {
+            void handleDismiss();
+          }}
+          style={{
+            all: "unset",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            borderBottom: "1px solid var(--session-ink)",
+            padding: "4px 0",
+            cursor: "pointer",
+          }}
+        >
+          Keep going ›
+        </button>
+      </div>
+    </Modal>
   );
 }

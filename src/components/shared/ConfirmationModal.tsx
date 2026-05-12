@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "./Modal";
+
 interface ConfirmationModalProps {
   open: boolean;
   onClose: () => void;
@@ -17,80 +19,83 @@ export default function ConfirmationModal({
   confirmLabel,
   isDestructive,
 }: ConfirmationModalProps) {
-  if (!open) return null;
+  const accent = isDestructive
+    ? "var(--session-error)"
+    : "var(--session-ink)";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-message"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--session-backdrop-heavy)",
-        padding: "32px",
-      }}
+    <Modal
+      open={open}
+      onClose={onClose}
+      ariaLabelledBy="confirm-modal-message"
+      destructive={isDestructive}
+      maxWidth={340}
     >
-      <div
+      <p
         style={{
-          backgroundColor: "var(--session-cream)",
-          border: "1px solid var(--session-hair)",
-          padding: "var(--sp-lg)",
-          maxWidth: "320px",
-          width: "100%",
+          margin: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: isDestructive
+            ? "var(--session-error-text)"
+            : "var(--session-walnut-meta)",
         }}
       >
-        <p
-          id="confirm-modal-message"
+        {isDestructive ? "Confirm" : "Confirm"}
+      </p>
+      <p
+        id="confirm-modal-message"
+        style={{
+          margin: "10px 0 22px",
+          fontFamily: "var(--font-spectral), var(--font-serif), serif",
+          fontSize: 16,
+          color: "var(--session-ink)",
+          lineHeight: 1.55,
+          letterSpacing: "-0.05px",
+        }}
+      >
+        {message}
+      </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+        }}
+      >
+        <button
+          onClick={onClose}
           style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "16px",
-            color: "var(--session-ink)",
-            lineHeight: 1.6,
-            margin: "0 0 var(--sp-md) 0",
+            all: "unset",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 15,
+            fontStyle: "italic",
+            color: "var(--session-ink-mid)",
+            cursor: "pointer",
           }}
         >
-          {message}
-        </p>
-        <div style={{ borderTop: "1px solid var(--session-hair-soft)", paddingTop: "var(--sp-sm)", display: "flex", gap: "var(--sp-lg)" }}>
-          <button
-            onClick={onClose}
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "15px",
-              fontStyle: "italic",
-              color: "var(--session-ink-mid)",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              letterSpacing: "2.2px",
-              textTransform: "uppercase",
-              color: isDestructive ? "var(--session-error)" : "var(--session-ink)",
-              backgroundColor: "transparent",
-              border: "none",
-              borderBottom: `1px solid ${isDestructive ? "var(--session-error)" : "var(--session-ink)"}`,
-              cursor: "pointer",
-              padding: "0 0 2px",
-            }}
-          >
-            {confirmLabel} &nbsp;›
-          </button>
-        </div>
+          cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          style={{
+            all: "unset",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: accent,
+            borderBottom: `1px solid ${accent}`,
+            cursor: "pointer",
+            padding: "4px 0",
+          }}
+        >
+          {confirmLabel} ›
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }
