@@ -63,6 +63,7 @@ interface MobileSessionProps {
     action: "confirmed" | "rejected" | "refined" | "deferred"
   ) => void;
   startGuidedIntake: () => Promise<boolean>;
+  startUpload: () => Promise<boolean>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
   // Onboarding modal state. modalProgress=null means MainApp hasn't
@@ -100,6 +101,7 @@ export default function MobileSession({
   retryLastMessage,
   confirmCheckpoint,
   startGuidedIntake,
+  startUpload,
   isGuest,
   onSignInPrompt,
   modalProgress = null,
@@ -350,7 +352,11 @@ export default function MobileSession({
       </button>
 
       <button
-        disabled
+        onClick={() => {
+          setChipsVisible(false);
+          startUpload();
+        }}
+        disabled={isLoading || isStreaming}
         style={{
           display: "flex",
           alignItems: "center",
@@ -359,25 +365,24 @@ export default function MobileSession({
           backgroundColor: "var(--session-cream)",
           border: "1px solid var(--session-hair)",
           borderRadius: "12px",
-          cursor: "default",
+          cursor: "pointer",
           textAlign: "left" as const,
           width: "100%",
-          opacity: 0.4,
         }}
       >
         <div style={{
           width: "36px",
           height: "36px",
           borderRadius: "10px",
-          backgroundColor: "var(--session-hair-soft)",
+          backgroundColor: "var(--session-persona-muted)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
         }}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3" stroke="var(--session-ink-mid)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <path d="M9 3v8M5.5 6.5L9 3l3.5 3.5" stroke="var(--session-ink-mid)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M9 3v8M5.5 6.5L9 3l3.5 3.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -395,6 +400,9 @@ export default function MobileSession({
             lineHeight: 1.3,
           }}>Share something that&apos;s been with you</div>
         </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
     </div>
   ) : null;

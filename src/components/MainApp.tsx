@@ -191,6 +191,7 @@ export default function MainApp() {
     startNewSession,
     startExploration,
     startGuidedIntake,
+    startUpload,
     refreshConversations,
     loadManual,
     emergingPatternSnippet,
@@ -410,6 +411,7 @@ export default function MainApp() {
             retryLastMessage={retryLastMessage}
             confirmCheckpoint={confirmCheckpoint}
             startGuidedIntake={startGuidedIntake}
+            startUpload={startUpload}
             isGuest={isGuest}
             onSignInPrompt={handleSignInPrompt}
             firstSessionCompleted={firstSessionCompleted}
