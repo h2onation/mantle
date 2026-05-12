@@ -492,14 +492,11 @@ textarea:focus-visible {
      needed because paratext is in the side margins, not above/below. */
 
   /* At wide desktop the DesktopVitrine masthead displays "mywalnut." at
-     publication scale on the left margin. The in-frame TopBar repeats
-     the same wordmark — drop the duplicate so the brand only says
-     itself once on the canvas. The TopBar's flex layout keeps the
-     wordmark slot empty (an invisible flex item) so back / menu /
-     feedback positions remain unchanged. */
-  .mw-phone-frame .mw-topbar-wordmark {
-    visibility: hidden;
-  }
+     publication scale on the left margin. The in-frame TopBar wordmark
+     stays visible at UI scale — they're different roles, not duplicates:
+     outer is publication-scale brand on the canvas, inner is a UI label
+     anchoring the surface. Hiding the inner one left the phone frame
+     feeling unbranded at desktop widths. */
 }
 
 /* Thin scrollbars — use token so they adapt in dark mode */

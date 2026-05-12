@@ -8,6 +8,7 @@ import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileSettings from "@/components/mobile/MobileSettings";
+import MobileCrisis from "@/components/mobile/MobileCrisis";
 import SessionDrawer from "@/components/mobile/SessionDrawer";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
@@ -303,6 +304,19 @@ export default function MainApp() {
     setActiveView("settings");
   }, []);
 
+  const handleNavigateToCrisis = useCallback(() => {
+    setActiveView("crisis");
+  }, []);
+
+  // Wraps the chat-state reset so the user always lands on the session
+  // view after starting fresh. Without the view switch, tapping
+  // "+ New session" from Manual or Settings reset state but stranded
+  // the user on the wrong panel — they thought the button was broken.
+  const handleNewSession = useCallback(() => {
+    setActiveView("session");
+    startNewSession();
+  }, [startNewSession]);
+
   // Only block render on useChat init. The onboarding-status check
   // is allowed to resolve in the background — if it comes back as
   // "needed" we swap in PostLoginOnboarding then. Blocking on the
@@ -381,6 +395,13 @@ export default function MainApp() {
             onSimulationEvent={handleSimulationEvent}
             onPopulateComplete={loadManual}
             onOpenDrawer={handleOpenDrawer}
+            onNavigateToSession={() => setActiveView("session")}
+          />
+        }
+        crisisContent={
+          <MobileCrisis
+            onNavigateToSession={() => setActiveView("session")}
+            onOpenDrawer={handleOpenDrawer}
           />
         }
       />
@@ -390,11 +411,13 @@ export default function MainApp() {
         onClose={() => setDrawerOpen(false)}
         conversations={conversations}
         activeConversationId={conversationId}
+        activeView={activeView}
         manualEntryCount={confirmedEntries.length}
         onSelectSession={switchConversation}
-        onNewSession={startNewSession}
+        onNewSession={handleNewSession}
         onNavigateToManual={handleNavigateToManual}
         onNavigateToSettings={handleNavigateToSettings}
+        onNavigateToCrisis={handleNavigateToCrisis}
       />
 
       {/* Exploration interstitial overlay */}

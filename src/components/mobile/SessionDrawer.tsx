@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
+import type { MobileView } from "@/components/layout/MobileLayout";
 import { formatShortDate } from "@/lib/utils/format";
 
 interface SessionDrawerProps {
@@ -8,11 +10,13 @@ interface SessionDrawerProps {
   onClose: () => void;
   conversations: ConversationSummaryItem[];
   activeConversationId: string | null;
+  activeView: MobileView;
   manualEntryCount: number;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
+  onNavigateToCrisis: () => void;
 }
 
 export default function SessionDrawer({
@@ -20,12 +24,28 @@ export default function SessionDrawer({
   onClose,
   conversations,
   activeConversationId,
+  activeView,
   manualEntryCount,
   onSelectSession,
   onNewSession,
   onNavigateToManual,
   onNavigateToSettings,
+  onNavigateToCrisis,
 }: SessionDrawerProps) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // a11y: Escape closes, focus moves to close button on open. The drawer
+  // claims aria-modal=true so it has to honor keyboard expectations.
+  useEffect(() => {
+    if (!open) return;
+    closeBtnRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   async function handleNewSession() {
     onClose();
     await onNewSession();
@@ -44,6 +64,11 @@ export default function SessionDrawer({
   function handleNavigateToSettings() {
     onClose();
     onNavigateToSettings();
+  }
+
+  function handleNavigateToCrisis() {
+    onClose();
+    onNavigateToCrisis();
   }
 
   return (
@@ -114,19 +139,20 @@ export default function SessionDrawer({
             mywalnut<span style={{ color: "var(--session-walnut)" }}>.</span>
           </span>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             aria-label="Close menu"
             style={{
-              width: 28,
-              height: 28,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
               background: "var(--session-button-inset)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              border: "1px solid var(--session-walnut-border-soft)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "rgba(255,255,255,0.85)",
-              fontSize: 12,
+              color: "var(--session-ink)",
+              fontSize: 14,
               cursor: "pointer",
               padding: 0,
             }}
@@ -301,12 +327,20 @@ export default function SessionDrawer({
                 ? `${manualEntryCount} ${manualEntryCount === 1 ? "entry" : "entries"}`
                 : null
             }
+            isActive={activeView === "manual"}
             onClick={handleNavigateToManual}
           />
-          <NavRow icon="✷" label="Settings" onClick={handleNavigateToSettings} />
+          <NavRow
+            icon="✷"
+            label="Settings"
+            isActive={activeView === "settings"}
+            onClick={handleNavigateToSettings}
+          />
         </div>
 
-        {/* Crisis support — oxblood, footer-anchored */}
+        {/* Crisis support — oxblood, footer-anchored. Own destination,
+            not a deep-link into Settings — gives the row a real surface
+            to land on and matches the user's mental model. */}
         <div
           style={{
             borderTop: "1px solid var(--session-walnut-border-soft)",
@@ -314,7 +348,7 @@ export default function SessionDrawer({
           }}
         >
           <button
-            onClick={handleNavigateToSettings}
+            onClick={handleNavigateToCrisis}
             style={{
               all: "unset",
               cursor: "pointer",
@@ -322,6 +356,12 @@ export default function SessionDrawer({
               alignItems: "center",
               gap: 14,
               width: "100%",
+              padding: "8px 0",
+              borderLeft: activeView === "crisis"
+                ? "2px solid var(--session-error-text)"
+                : "2px solid transparent",
+              paddingLeft: 8,
+              marginLeft: -8,
               WebkitTapHighlightColor: "transparent",
             }}
             aria-label="Open crisis support resources"
@@ -357,20 +397,27 @@ function NavRow({
   icon,
   label,
   count,
+  isActive,
   onClick,
 }: {
   icon: string;
   label: string;
   count?: string | null;
+  isActive?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
       style={{
         all: "unset",
         cursor: "pointer",
-        padding: "12px 0",
+        padding: "12px 0 12px 8px",
+        marginLeft: -8,
+        borderLeft: isActive
+          ? "2px solid var(--session-walnut)"
+          : "2px solid transparent",
         display: "flex",
         alignItems: "center",
         gap: 14,
@@ -395,7 +442,7 @@ function NavRow({
           flex: 1,
           fontFamily: "var(--font-spectral), var(--font-serif), serif",
           fontSize: 15,
-          color: "var(--session-ink)",
+          color: isActive ? "var(--session-ink)" : "var(--session-ink-soft)",
           textAlign: "left",
         }}
       >

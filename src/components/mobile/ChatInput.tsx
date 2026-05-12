@@ -391,7 +391,7 @@ export default function ChatInput({
               stroke={
                 buttonMode === "mic-denied"
                   ? "var(--session-error-text)"
-                  : "rgba(255,255,255,0.78)"
+                  : "var(--session-ink)"
               }
               strokeWidth="1.7"
               strokeLinecap="round"

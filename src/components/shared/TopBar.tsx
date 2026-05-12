@@ -6,37 +6,49 @@ interface TopBarProps {
 }
 
 const CIRCLE_BTN_STYLE: React.CSSProperties = {
-  width: 30,
-  height: 30,
+  width: 44,
+  height: 44,
   borderRadius: "50%",
   background: "var(--session-button-inset)",
-  border: "1px solid rgba(255,255,255,0.10)",
+  border: "1px solid var(--session-walnut-border-soft)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "rgba(255,255,255,0.85)",
-  fontSize: "13.5px",
+  color: "var(--session-ink)",
+  fontSize: "16px",
   lineHeight: 1,
   cursor: "pointer",
   padding: 0,
   flexShrink: 0,
 };
 
-const SPACER_STYLE: React.CSSProperties = { width: 30, height: 30, flexShrink: 0 };
+const SPACER_STYLE: React.CSSProperties = { width: 44, height: 44, flexShrink: 0 };
 
-// Left slot hosts EITHER the menu (authenticated surfaces) or the back
-// chevron (onboarding surfaces). They're mutually exclusive in current
-// usage. Menu takes precedence if both are passed.
+// Left slot hosts the back chevron when present (returning to chat from
+// a sub-view), right slot hosts the menu glyph. When only one is passed,
+// it occupies the left slot — preserves the chat surface's single-button
+// layout. When both are passed, back goes left + menu goes right, the
+// standard iOS sub-view pattern.
 export default function TopBar({ onBack, onMenu }: TopBarProps) {
-  const leftButton = onMenu ? (
+  const showBoth = !!onBack && !!onMenu;
+
+  const leftButton = onBack ? (
+    <button onClick={onBack} aria-label="Back to chat" style={CIRCLE_BTN_STYLE}>
+      ‹
+    </button>
+  ) : onMenu ? (
     <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
       ⋯
     </button>
-  ) : onBack ? (
-    <button onClick={onBack} aria-label="Go back" style={CIRCLE_BTN_STYLE}>
-      ‹
+  ) : (
+    <span aria-hidden="true" style={SPACER_STYLE} />
+  );
+
+  const rightButton = showBoth ? (
+    <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
+      ⋯
     </button>
   ) : (
     <span aria-hidden="true" style={SPACER_STYLE} />
@@ -48,7 +60,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "14px 22px",
+        padding: "10px 22px",
         borderBottom: "1px solid var(--session-walnut-border)",
       }}
     >
@@ -69,7 +81,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
         <span style={{ color: "var(--session-walnut)" }}>.</span>
       </span>
 
-      <span aria-hidden="true" style={SPACER_STYLE} />
+      {rightButton}
     </div>
   );
 }

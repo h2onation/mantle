@@ -71,7 +71,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
         position: "relative",
       }}
     >
-      <TopBar onMenu={onOpenDrawer} />
+      <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />
 
       {/* Scroll fade overlay */}
       <div
