@@ -128,7 +128,6 @@
 - PWA Phase 3 pending: standalone polish, auth flow testing, splash screens — needs device QA
 - Beta recruitment: target 10 late-diagnosed autistic adults, ages 25-45
 - **🚨 Beta-blocking — Upstash env vars missing in Vercel production.** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are unset; all rate limiters fail open in prod per runtime logs. After ADR-038 removed the per-row `otp_attempts` counter (2026-04-16), Upstash is the **only** remaining abuse-protection layer on the OTP send + verify endpoints. Until these env vars are set and redeploy lands, an attacker with a valid phone number can attempt unlimited verify-code guesses within the 10-minute TTL. Fix: provision Upstash Redis REST, add both env vars to Vercel (Production + Preview + Development), redeploy. See ADR-038 for the rationale + bounds analysis. Do not open beta enrollment until this is closed.
-- **Migration pending** — `20260513000000_add_message_metadata.sql` adds `metadata jsonb DEFAULT '{}'` column to `messages` table. Needs to be applied to remote Supabase. Chip-tap annotation won't persist until this lands (no runtime errors — the column just won't exist, so `metadata` inserts will be ignored by Supabase).
 - Linq deprecation: dual-provider architecture shipped 2026-04-16 — 1:1 text on Sendblue, group facilitator on Linq. Future work: port group facilitator once participant-diff logic is rebuilt around per-message `participants[]` arrays. See ADR-035.
 
 ## Beta Users
