@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import TopBar from "@/components/shared/TopBar";
+import AppearanceToggle from "@/components/shared/AppearanceToggle";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
@@ -358,6 +359,50 @@ export default function MobileSettings({
           />
         </div>
       )}
+
+      {/* ─── Appearance ──────────────────────────────────────────── */}
+      <SectionHeader label="APPEARANCE" sectionId="settings-appearance" />
+      <div id="settings-appearance">
+        <SettingsRow title="Theme" noBorder>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 18,
+              width: "100%",
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  color: "var(--session-ink)",
+                  letterSpacing: "0.2px",
+                  margin: 0,
+                }}
+              >
+                Theme
+              </p>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "var(--size-meta)",
+                  color: "var(--session-ink-ghost)",
+                  letterSpacing: "0.5px",
+                  margin: "3px 0 0 0",
+                }}
+              >
+                System follows OS preference
+              </p>
+            </div>
+            <div style={{ minWidth: 240, flexShrink: 0 }}>
+              <AppearanceToggle />
+            </div>
+          </div>
+        </SettingsRow>
+      </div>
 
       {/* ─── Crisis Support ──────────────────────────────────────── */}
       <SectionHeader label="CRISIS SUPPORT" tone="danger" sectionId="settings-crisis" />
