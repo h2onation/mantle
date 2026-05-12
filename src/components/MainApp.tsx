@@ -296,6 +296,49 @@ export default function MainApp() {
     await refreshConversations();
   }, [refreshConversations]);
 
+  // Swipe-from-left-edge to open the drawer. Standard mobile gesture —
+  // touchstart within 24px of the left edge, then a horizontal swipe of
+  // 60px+ that's clearly horizontal (dx > 1.5 * dy) opens the drawer.
+  // Only active when the drawer is closed; doesn't fight scrolling.
+  useEffect(() => {
+    if (drawerOpen) return;
+    let startX = 0;
+    let startY = 0;
+    let armed = false;
+    function onStart(e: TouchEvent) {
+      const t = e.touches[0];
+      if (!t || t.clientX > 24) return;
+      startX = t.clientX;
+      startY = t.clientY;
+      armed = true;
+    }
+    function onMove(e: TouchEvent) {
+      if (!armed) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (dx > 60 && dx > dy * 1.5) {
+        armed = false;
+        handleOpenDrawer();
+      } else if (dy > 30) {
+        // Vertical scroll wins — disarm so we don't fire mid-scroll.
+        armed = false;
+      }
+    }
+    function onEnd() {
+      armed = false;
+    }
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+    };
+  }, [drawerOpen, handleOpenDrawer]);
+
   const handleNavigateToManual = useCallback(() => {
     setActiveView("manual");
   }, []);
