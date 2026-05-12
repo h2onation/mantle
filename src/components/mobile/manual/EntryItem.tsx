@@ -47,14 +47,15 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
         <span
           style={{
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
-            fontSize: 15,
-            fontWeight: 500,
+            fontSize: 16,
+            fontWeight: expanded ? 500 : 400,
             color: "var(--session-ink)",
             lineHeight: 1.4,
             flex: 1,
           }}
         >
           {entry.name}
+          <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
         </span>
         {!readOnly && (
           <svg
@@ -92,7 +93,7 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
         </div>
       )}
 
-      {/* Explore further — preserved Sage flow, restyled as a subtle text link */}
+      {/* Explore further — walnut mono-caps TextBtn pattern */}
       {expanded && !readOnly && onExploreWithPersona && (
         <button
           onClick={(e) => {
@@ -106,19 +107,24 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
             });
           }}
           style={{
-            display: "block",
-            marginTop: 6,
-            padding: 0,
-            background: "none",
-            border: "none",
-            fontFamily: "var(--font-sans)",
-            fontSize: 13,
-            fontWeight: 400,
-            color: "var(--session-ink-ghost)",
+            all: "unset",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--sp-xs)",
             cursor: "pointer",
+            marginTop: 14,
+            paddingBottom: 2,
+            borderBottom: "1px solid var(--session-walnut)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut)",
           }}
+          aria-label={`Explore further with ${PERSONA_NAME}`}
         >
-          Explore further with {PERSONA_NAME} →
+          <span>Explore further</span>
+          <span aria-hidden="true">›</span>
         </button>
       )}
     </div>

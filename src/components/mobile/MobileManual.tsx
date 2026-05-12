@@ -25,6 +25,8 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(entries);
   const isEmpty = layers.every((l) => l.entries.length === 0);
+  const totalEntries = entries.length;
+  const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -96,21 +98,36 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           position: "relative",
         }}
       >
-        {/* Page title */}
-        <h1
-          style={{
-            fontFamily: "var(--font-spectral), var(--font-serif), serif",
-            fontSize: "26px",
-            fontWeight: 500,
-            color: "var(--session-ink)",
-            margin: 0,
-            padding: "16px 20px 28px",
-            letterSpacing: "-0.5px",
-            lineHeight: 1.2,
-          }}
-        >
-          Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
-        </h1>
+        {/* Page title — total count eyebrow + heading */}
+        <div style={{ padding: "20px 24px 24px" }}>
+          {totalEntries > 0 && (
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
+              }}
+            >
+              {totalLabel}
+            </p>
+          )}
+          <h1
+            style={{
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: "26px",
+              fontWeight: 500,
+              color: "var(--session-ink)",
+              margin: totalEntries > 0 ? "6px 0 0" : 0,
+              letterSpacing: "-0.5px",
+              lineHeight: 1.2,
+            }}
+          >
+            Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+          </h1>
+        </div>
 
         {/* Layer list — unified ordering, populated and empty render side by side */}
         <div style={{ padding: "0 20px", position: "relative" }}>

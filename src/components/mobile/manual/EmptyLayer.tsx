@@ -3,49 +3,48 @@
 import React from "react";
 import type { Layer } from "./layer-definitions";
 
+const ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
+
 interface EmptyLayerProps {
   layer: Layer;
-  // Kept for prop-shape compatibility with PopulatedLayer callers; unused now
-  // that the Explore button has been removed.
   readOnly?: boolean;
 }
 
 export default function EmptyLayer({ layer }: EmptyLayerProps) {
   return (
-    <section style={{ marginBottom: 32 }}>
+    <section style={{ marginBottom: 22 }}>
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
           paddingBottom: 8,
+          paddingLeft: 4,
+          paddingRight: 4,
           borderBottom: "1px solid var(--session-walnut-border-soft)",
         }}
       >
-        <h2
-          style={{
-            fontFamily: "var(--font-spectral), var(--font-serif), serif",
-            fontSize: 17,
-            fontWeight: 400,
-            color: "var(--session-ink-mid)",
-            margin: 0,
-            letterSpacing: "-0.2px",
-            lineHeight: 1.3,
-          }}
-        >
-          {layer.name}
-        </h2>
         <span
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: 11,
-            fontWeight: 400,
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "0.5px",
-            lineHeight: 1.3,
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "rgba(220, 170, 120, 0.55)",
           }}
         >
-          0 entries
+          Layer {ROMAN[layer.id]} · {layer.name}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "1.6px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          0
         </span>
       </div>
     </section>

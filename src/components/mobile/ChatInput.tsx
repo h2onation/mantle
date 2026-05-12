@@ -312,9 +312,9 @@ export default function ChatInput({
           </button>
         )}
 
-        {/* Stop recording — pulsing sage glyph. Smaller and quieter than
-            the prior 32px filled circle; reads as a contextual marker,
-            not a bubble button. */}
+        {/* Stop recording — pulsing sage square inside a 32px circular
+            dark surface. Matches the PillComposer mic-slot dimensions
+            from the dark-mode demo. */}
         {buttonMode === "stop" && (
           <button
             onClick={handleButtonClick}
@@ -326,8 +326,10 @@ export default function ChatInput({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "28px",
-              height: "28px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: "rgba(0,0,0,0.40)",
               flexShrink: 0,
               animation: "voicePulse 2s ease-in-out infinite, mwFadeIn 0.15s ease-out both",
             }}
@@ -343,11 +345,9 @@ export default function ChatInput({
           </button>
         )}
 
-        {/* Mic — small icon-button at SG's expand-glyph register
-            (28×28, ink-ghost stroke). Voice is a mywalnut-specific
-            feature the SG doesn't sanction directly; we keep the
-            affordance but recast it from a 44px sage circle to a
-            quiet glyph that doesn't shout next to the textarea. */}
+        {/* Mic — 32px circular dark surface containing a 14px stroke
+            glyph. Matches the demo PillComposer's mic affordance:
+            walnut-pill background, dark circular icon slot inside. */}
         {(buttonMode === "mic" || buttonMode === "mic-denied") && (
           <button
             onClick={handleButtonClick}
@@ -364,8 +364,10 @@ export default function ChatInput({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "28px",
-              height: "28px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: "rgba(0,0,0,0.40)",
               flexShrink: 0,
               opacity:
                 buttonMode === "mic-denied"
@@ -378,16 +380,16 @@ export default function ChatInput({
             }}
           >
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke={
                 buttonMode === "mic-denied"
                   ? "var(--session-error-text)"
-                  : "var(--session-ink-ghost)"
+                  : "rgba(255,255,255,0.78)"
               }
-              strokeWidth="1.5"
+              strokeWidth="1.7"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
