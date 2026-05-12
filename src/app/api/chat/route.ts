@@ -15,6 +15,7 @@ import {
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MAX_MESSAGE_LENGTH = 4000;
+const MAX_UPLOAD_LENGTH = 16000;
 const ANON_CHECKPOINT_LIMIT = 2;
 
 export async function POST(request: Request) {
@@ -47,26 +48,43 @@ export async function POST(request: Request) {
     if (
       requestedMode !== undefined &&
       requestedMode !== "situation" &&
-      requestedMode !== "guided-intake"
+      requestedMode !== "guided-intake" &&
+      requestedMode !== "upload"
     ) {
       return Response.json(
-        { error: "Invalid mode. Must be 'situation' or 'guided-intake'." },
-        { status: 400 }
-      );
-    }
-
-    // 1a. Message length check (cheapest, no external calls)
-    if (typeof message === "string" && message.length > MAX_MESSAGE_LENGTH) {
-      return Response.json(
-        {
-          error:
-            "Message is too long. Please keep messages under 4000 characters.",
-        },
+        { error: "Invalid mode. Must be 'situation', 'guided-intake', or 'upload'." },
         { status: 400 }
       );
     }
 
     const admin = createAdminClient();
+
+    // 1a. Message length check. Upload-mode conversations allow longer
+    // messages (pasted transcripts, email threads). When continuing an
+    // existing conversation, read its mode from the DB so the limit
+    // applies to follow-up messages too (the paste typically arrives as
+    // the second message, after Jove's opener).
+    let effectiveMode = requestedMode;
+    if (!effectiveMode && conversationId) {
+      const { data: convRow } = await admin
+        .from("conversations")
+        .select("mode")
+        .eq("id", conversationId)
+        .single();
+      if (convRow?.mode === "upload") effectiveMode = "upload";
+    }
+    const isUpload = effectiveMode === "upload";
+    const maxLen = isUpload ? MAX_UPLOAD_LENGTH : MAX_MESSAGE_LENGTH;
+    if (typeof message === "string" && message.length > maxLen) {
+      return Response.json(
+        {
+          error: isUpload
+            ? "Upload is too long. Please keep uploads under 16,000 characters."
+            : "Message is too long. Please keep messages under 4,000 characters.",
+        },
+        { status: 400 }
+      );
+    }
     const isAnonymous = user.is_anonymous === true;
 
     // 1b. Anonymous checkpoint conversion gate (Gate B). Runs before any

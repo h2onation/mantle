@@ -796,67 +796,55 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  // ─── Shared content (URL) ────────────────────────────────────────────────
-  describe("shared content (URL)", () => {
-    it("includes fetched content and 'you HAVE read it' when fetch succeeds", () => {
-      const result = build({
-        contentContext: {
-          urlDetection: {
-            hasUrl: true,
-            urls: ["https://example.com/article"],
-            userContext: "",
-          },
-          fetchedContent: {
-            success: true,
-            title: "Test Article",
-            text: "Article body text here.",
-          },
-        },
-      });
-      expect(result).toContain("SHARED CONTENT");
-      expect(result).toContain("you HAVE read it");
-      expect(result).toContain("Article body text here.");
-      expect(result).toContain("Title: Test Article");
+  // ─── Upload mode ─────────────────────────────────────────────────────────
+  describe("upload mode", () => {
+    it("includes UPLOAD MODE block with opener when mode is upload", () => {
+      const result = build({ mode: "upload" });
+      expect(result).toContain("UPLOAD MODE");
+      expect(result).toContain("chose \"Upload\"");
+      expect(result).toContain("Paste something here");
+      expect(result).toContain("use this exact text");
     });
 
-    it("includes hard prohibition against guessing when fetch fails", () => {
-      const result = build({
-        contentContext: {
-          urlDetection: {
-            hasUrl: true,
-            urls: ["https://example.com/article"],
-            userContext: "",
-          },
-          fetchedContent: { success: false, error: "blocked" },
-        },
-      });
-      expect(result).toContain("FETCH FAILED");
-      expect(result).toContain("MUST NOT describe, summarize, or characterize");
-      expect(result).toContain("Do not guess from the URL");
-      expect(result).not.toContain("you HAVE read it");
+    it("includes analysis instructions for upload mode", () => {
+      const result = build({ mode: "upload" });
+      expect(result).toContain("Cross-reference against the user's confirmed Manual entries");
+      expect(result).toContain("Focus on the USER's behavior");
     });
 
-    it("includes hard prohibition when fetch returns null", () => {
-      const result = build({
-        contentContext: {
-          urlDetection: {
-            hasUrl: true,
-            urls: ["https://example.com/article"],
-            userContext: "",
-          },
-          fetchedContent: null,
-        },
-      });
-      expect(result).toContain("FETCH FAILED");
-      expect(result).toContain("MUST NOT describe, summarize, or characterize");
+    it("includes format-specific guidance", () => {
+      const result = build({ mode: "upload" });
+      expect(result).toContain("Speaker-alternating");
+      expect(result).toContain("Email thread");
+      expect(result).toContain("Journal entry");
     });
 
+    it("does not include UPLOAD MODE in situation mode", () => {
+      const result = build({ mode: "situation" });
+      expect(result).not.toContain("UPLOAD MODE");
+    });
+
+    it("does not include UPLOAD MODE in guided-intake mode", () => {
+      const result = build({ mode: "guided-intake" });
+      expect(result).not.toContain("UPLOAD MODE");
+    });
+  });
+
+  // ─── Fabricated content guard ───────────────────────────────────────────
+  describe("fabricated content guard", () => {
     it("base prompt always contains the fabricated-content guard in Tier 3", () => {
       const result = build();
       expect(result).toContain("FABRICATED CONTENT");
       expect(result).toContain(
         "Do not describe, summarize, or guess from the URL, domain name, path"
       );
+    });
+
+    it("no longer contains SHARED CONTENT blocks (URL path removed)", () => {
+      const result = build();
+      expect(result).not.toContain("SHARED CONTENT");
+      expect(result).not.toContain("you HAVE read it");
+      expect(result).not.toContain("FETCH FAILED");
     });
   });
 

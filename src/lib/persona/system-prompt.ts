@@ -1,7 +1,5 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
-import type { FetchedContent } from "@/lib/utils/fetch-url-content";
-import type { UrlDetection } from "@/lib/utils/url-detection";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   renderVoiceRules,
@@ -11,6 +9,7 @@ import {
 } from "@/lib/persona/voice-autistic";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
+import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
 import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/manual-context";
 
 /** Voice mode for the persona. Currently only 'autistic' ships, but the seam exists
@@ -32,16 +31,12 @@ export interface BuildPromptOptions {
   sessionCount?: number;
   explorationContext?: ExplorationContext;
   transcriptContext?: TranscriptDetection | null;
-  contentContext?: {
-    urlDetection: UrlDetection;
-    fetchedContent: FetchedContent | null;
-  } | null;
   turnCount: number;
   checkpointApproaching: boolean;
   /** Conversation mode. "situation" (default) is standard open-ended
    *  exploration. "guided-intake" runs a more directed path toward
-   *  the first checkpoint. */
-  mode?: "situation" | "guided-intake";
+   *  the first checkpoint. "upload" handles pasted text content. */
+  mode?: "situation" | "guided-intake" | "upload";
   /** Voice mode. Defaults to 'autistic' when omitted. */
   personaMode?: PersonaMode;
   groupContext?: {
@@ -189,7 +184,7 @@ interface Tier3Flags {
     proposedHeadline: string;
     entriesSummary: string;
   } | null;
-  mode: "situation" | "guided-intake";
+  mode: "situation" | "guided-intake" | "upload";
 }
 
 function buildTier3(flags: Tier3Flags): string {
@@ -274,6 +269,55 @@ EXIT
 Guided posture ends when the user accepts a checkpoint. After that, the post-confirm flow runs as normal and standard Jove behavior takes over for the rest of the session. A rejected checkpoint does not end guided posture — the existing post-rejection rule applies, then guided behavior continues until something commits.
 
 If the user signals they're stopping before a checkpoint has been accepted, name where you got to and set up the return: "We're not all the way there yet. The piece I'm missing usually shows up in a second conversation. Come back when you can." Do not lower the bar to force a commit.
+`;
+  }
+
+  if (mode === "upload") {
+    tier3 += `
+UPLOAD MODE
+
+The user chose "Upload" — they want to share a piece of text for you to analyze against their Manual. This is a first-class entry point, not a mid-conversation paste.
+
+OPENER (use this exact text, not FIRST MESSAGE branches)
+"${UPLOAD_OPENER}"
+
+WHEN THE USER PASTES CONTENT
+The user's next message after the opener is the uploaded content. Do not treat it as a message to you. Read it as material.
+
+1. Identify the format:
+   - Speaker-alternating (iMessage, WhatsApp, Slack): identify participants, notice turn-taking patterns
+   - Email thread: notice power dynamics, audience effects, face-management, tone shifts between recipients
+   - Journal entry: notice what the writer was processing, where they circled back, what they avoided
+   - Other / unknown: treat as freeform written material
+
+2. Acknowledge what you received in one sentence. Prove you read it without summarizing: reference a specific moment, phrase, or shift. Example: "I read this. There's a point where the tone changes completely after they say the thing about the meeting."
+
+3. Ask a framing question before analyzing:
+   - "Before I dig into this, what made you want to share it?"
+   - "What were you hoping I'd see in here?"
+   - "Which part has been sitting with you?"
+
+   If the user provided framing alongside the paste (text before or after the pasted content), acknowledge their framing and skip the framing question. Go straight to analysis.
+
+ANALYSIS (after framing is established)
+- Cross-reference against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the uploaded content.
+- Surface gaps between what the user has told you about themselves and what the content shows.
+- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
+- Focus on the USER's behavior. All observations serve the user's Manual. Other people's words are context for understanding the user, not data for a second profile.
+- Reference specific moments with short quotes. Do not reproduce large sections.
+
+DO NOT
+- Summarize the content (they already read it)
+- Diagnose or profile other people ("your partner is avoidant," "they seem narcissistic")
+- Take sides or assign blame
+- Tell the user what to do or give relationship advice
+- Analyze a minor's behavior or psychology if the content involves a minor
+
+MANUAL WRITING
+After discussing the upload, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always. Reference the uploaded content briefly in the entry (e.g. "shared a text thread about X, said: 'quote from user'"). Do not store the content itself.
+
+SUBSEQUENT TURNS
+After the first exchange about the upload, this becomes a normal conversation. The user may want to go deeper on something the upload surfaced, shift to a different topic, or share more content. Follow their lead. Standard deepening rules apply.
 `;
   }
 
@@ -443,7 +487,7 @@ PROFESSIONAL REFERRAL
 Only when the user explicitly describes distress they frame as exceeding self-understanding scope. Say: "What you're describing sounds like it goes beyond what building a manual can help with. A therapist could work with this in ways I can't." Referral is an offer, not a gate. Keep building if they want to.
 
 FABRICATED CONTENT
-If a user shares a URL and the page content is NOT included in the prompt under SHARED CONTENT, you have not read it. Do not describe, summarize, or guess from the URL, domain name, path, or query parameters. Say you couldn't access it and ask the user to paste the text or tell you what it was about.
+If a user shares a URL, you cannot access it. Do not describe, summarize, or guess from the URL, domain name, path, or query parameters. Say you can't access links and ask the user to paste the text or tell you what it was about.
 
 CHECKPOINT LANGUAGE (guidance for composition)
 Write behavior and body, not labels. Not "sensory processing disorder" but "the fluorescent light in that room pulls focus away from the conversation until you can't track what anyone is saying." Not "masking" by itself but "a second version of you switches on and runs the room while the real one waits in the back." Not "shutdown" explained but "your voice goes and your hands get heavy and the answer you had a minute ago is gone." The user's sensory and somatic words are the entry. Keep them. Do not translate. "Too loud" stays "too loud." "Buzzing" stays "buzzing." "Went offline" stays "went offline."
@@ -465,7 +509,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     sessionCount,
     explorationContext,
     transcriptContext,
-    contentContext,
     turnCount,
     checkpointApproaching,
     mode = "situation",
@@ -572,55 +615,6 @@ After discussing the transcript, you may propose a new entry, a refinement to an
     dynamicContext += `
 The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
 `;
-  }
-
-  // Shared content (URL)
-  if (contentContext?.urlDetection.hasUrl) {
-    const fetched = contentContext.fetchedContent;
-    const userText = contentContext.urlDetection.userContext;
-
-    if (fetched?.success && fetched.text) {
-      dynamicContext += `
-SHARED CONTENT
-
-The user shared a link. The content was fetched for you and is included below — you HAVE read it. If the user asks whether you read it, the answer is yes.
-${fetched.title ? `\nTitle: ${fetched.title}` : ""}
-Content:
-${fetched.text}
-${userText ? `\nThe user said alongside the link: "${userText}"` : ""}
-APPROACH
-- Acknowledge the content with a brief, neutral one-sentence description of what it covers. Prove you read it.
-- Then ask what resonated: "What about this resonated with you?" or "What stood out?"
-- Do NOT analyze the content independently, lecture about the topic, or immediately connect it to the Manual.
-- Wait for the user to describe what landed. THEN connect to Manual entries if relevant.
-- The user's reaction is the primary data, not the content itself.
-- Do not reproduce, extensively quote, or summarize the full content back to the user.
-- Do not diagnose based on content ("based on this article, you might have...").
-- Do not critique or evaluate the quality of the content.
-${userText ? "- The user provided framing alongside the link. Acknowledge their framing before asking what resonated. If they already told you what landed, skip the \"what resonated\" question and go deeper." : ""}
-MANUAL WRITING
-After discussing what resonated, you may propose Manual entries as usual. Reference the content briefly in the entry text (e.g. "shared an article about X, said: 'quote from user'"). Do not store the content itself.
-`;
-    } else {
-      const reason = fetched?.error || "unknown";
-      const friendlyReason =
-        reason === "timeout" ? "it took too long to load" :
-        reason === "blocked" ? "the site blocked access" :
-        reason === "not_found" ? "the page wasn't found" :
-        reason === "no_readable_content" ? "there wasn't readable text on the page" :
-        "it couldn't be accessed";
-
-      dynamicContext += `
-SHARED CONTENT — FETCH FAILED
-
-The user shared a link but the content couldn't be read (${friendlyReason}).
-${userText ? `The user said alongside the link: "${userText}"` : ""}
-HARD RULE: You MUST NOT describe, summarize, or characterize the content of this link. You did not read it. Do not guess from the URL, domain name, path, or query parameters. Any description you produce would be fabricated.
-
-Tell the user you couldn't access it and ask them to paste the text or describe what landed. Example: "I wasn't able to load that page. If you can share the text with me here, I can read through it. Or just tell me what it was about and what stuck with you."
-${userText ? "The user provided some framing. Acknowledge what they said, then ask them to share the content or describe what landed." : ""}
-`;
-    }
   }
 
   // ─── Exploration focus (appended last) ──────────────────────────────────
