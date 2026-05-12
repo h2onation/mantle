@@ -1,6 +1,7 @@
 "use client";
 
 import DesktopVitrine from "./DesktopVitrine";
+import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 
 export type MobileView = "session" | "manual" | "settings";
 
@@ -69,6 +70,7 @@ export default function MobileLayout({
             {content}
           </div>
         ))}
+        <BetaFeedbackButton />
       </div>
     </DesktopVitrine>
   );

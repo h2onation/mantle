@@ -175,25 +175,29 @@ export default function ChatInput({
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          gap: "12px",
+          gap: "10px",
           background: "var(--session-walnut-surface)",
-          border: "1px solid var(--session-walnut-border)",
-          borderRadius: "22px",
-          padding: "6px 16px",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(170,120,82,0.20)",
+          borderRadius: "999px",
+          padding: "10px 14px",
+          backdropFilter: "blur(32px) saturate(150%)",
+          WebkitBackdropFilter: "blur(32px) saturate(150%)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.40)",
         }}
       >
-        {/* Visible placeholder — hides on focus or when text present */}
+        {/* Visible placeholder — hides on focus or when text present.
+            Positioned to align with the textarea's content edge: pill
+            padding-left (14px) so the italic hint sits at the same
+            x-coordinate the user's typed text will land at. */}
         {!input && !inputFocused && !isRecording && (
           <span
             style={{
               position: "absolute",
-              left: 0,
+              left: "14px",
               top: "50%",
               transform: "translateY(-50%)",
               fontFamily: "var(--font-spectral), var(--font-persona), serif",
-              fontSize: "17px",
+              fontSize: "15px",
               fontStyle: "italic",
               fontWeight: 400,
               color: "var(--session-ink-faded)",
@@ -209,7 +213,7 @@ export default function ChatInput({
           <div
             style={{
               position: "absolute" as const,
-              left: 0,
+              left: "14px",
               top: "50%",
               transform: "translateY(-50%)",
               display: "flex",

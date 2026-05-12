@@ -94,7 +94,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
           flex: 1,
           overflowY: "auto",
           padding: 0,
-          paddingBottom: "calc(52px + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
           position: "relative",
         }}
       >
