@@ -11,11 +11,11 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf-8");
 
 describe("GUIDED_INTAKE_OPENER constant", () => {
   it("starts with the expected opening phrase", () => {
-    expect(GUIDED_INTAKE_OPENER).toMatch(/^Tell me about a moment/);
+    expect(GUIDED_INTAKE_OPENER).toMatch(/^Pick someone of note/);
   });
 
   it("ends with the expected closing phrase", () => {
-    expect(GUIDED_INTAKE_OPENER).toMatch(/Whatever comes to mind first is fine\.$/);
+    expect(GUIDED_INTAKE_OPENER).toMatch(/Just someone worth naming\.$/);
   });
 
   it("is used in system-prompt.ts (not hardcoded)", () => {
@@ -99,6 +99,67 @@ describe("guided intake UI wiring", () => {
   });
 });
 
+describe("guided intake chip wiring", () => {
+  const session = read("src/components/mobile/MobileSession.tsx");
+  const mainApp = read("src/components/MainApp.tsx");
+  const useChat = read("src/lib/hooks/useChat.ts");
+  const callPersona = read("src/lib/persona/call-persona.ts");
+  const sseParser = read("src/lib/utils/sse-parser.ts");
+  const types = read("src/lib/types.ts");
+
+  it("MessageCompleteEvent declares optional chips field", () => {
+    expect(sseParser).toContain("chips?: string[]");
+  });
+
+  it("ChatMessage declares optional chips field", () => {
+    expect(types).toContain("chips?: string[]");
+  });
+
+  it("call-persona parses ---chips--- delimiter", () => {
+    expect(callPersona).toContain("---chips---");
+  });
+
+  it("call-persona emits chips in message_complete payload", () => {
+    expect(callPersona).toContain("chips: parsedChips");
+  });
+
+  it("useChat exports sendChipResponse", () => {
+    expect(useChat).toContain("sendChipResponse");
+  });
+
+  it("useChat clears chips from messages on send", () => {
+    expect(useChat).toContain("chips: undefined");
+  });
+
+  it("useChat passes isChipResponse in fetch body", () => {
+    expect(useChat).toContain("isChipResponse");
+  });
+
+  it("MobileSession accepts sendChipResponse prop", () => {
+    expect(session).toContain("sendChipResponse");
+  });
+
+  it("MobileSession renders QuickReplyChips component", () => {
+    expect(session).toContain("QuickReplyChips");
+  });
+
+  it("MainApp passes sendChipResponse to MobileSession", () => {
+    expect(mainApp).toContain("sendChipResponse={sendChipResponse}");
+  });
+
+  it("call-persona accepts isChipResponse option", () => {
+    expect(callPersona).toContain("isChipResponse");
+  });
+
+  it("call-persona stores chip_response in message metadata", () => {
+    expect(callPersona).toContain("chip_response: true");
+  });
+
+  it("call-persona annotates chip-tap messages in history", () => {
+    expect(callPersona).toContain("[selected from options]");
+  });
+});
+
 describe("detectGuidedIntakeOpenerVariant", () => {
   it("returns 'default' for the literal opener constant", () => {
     expect(detectGuidedIntakeOpenerVariant(GUIDED_INTAKE_OPENER)).toBe("default");
@@ -106,20 +167,20 @@ describe("detectGuidedIntakeOpenerVariant", () => {
 
   it("returns 'default' when the default-anchor substring is embedded in a longer turn", () => {
     const msg =
-      "Tell me about a moment in the last week or two that's still sitting with you. " +
+      "Pick someone of note in your life. " +
       "Don't worry about getting it right.";
     expect(detectGuidedIntakeOpenerVariant(msg)).toBe("default");
   });
 
-  it("returns 'recency_drop' when the recency-drop phrase appears", () => {
+  it("returns 'widen_scope' when the widen-scope phrase appears", () => {
     const msg =
-      "Doesn't have to be recent. Anything you've found yourself returning to.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("recency_drop");
+      "Who did you last have a conversation with that wasn't transactional?";
+    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("widen_scope");
   });
 
-  it("returns 'moments_to_states' when the moments-to-states phrase appears", () => {
-    const msg = "Skip the moment. What's been hardest lately?";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("moments_to_states");
+  it("returns 'relationship_to_pattern' when the relationship-to-pattern phrase appears", () => {
+    const msg = "Skip the person. What's a relationship where you show up differently?";
+    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("relationship_to_pattern");
   });
 
   it("returns 'gentle_end' when the gentle-end phrase appears", () => {
@@ -137,34 +198,26 @@ describe("detectGuidedIntakeOpenerVariant", () => {
     expect(detectGuidedIntakeOpenerVariant("")).toBeNull();
   });
 
-  it("normalizes smart quotes — apostrophe variants still match recency_drop", () => {
-    const msg = "Doesn’t have to be recent. Anything that's stuck.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("recency_drop");
-  });
-
   it("normalizes smart quotes — apostrophe variants still match gentle_end", () => {
     const msg = "Doesn’t have to happen today.";
     expect(detectGuidedIntakeOpenerVariant(msg)).toBe("gentle_end");
   });
 
   it("ignores leading and trailing whitespace", () => {
-    expect(detectGuidedIntakeOpenerVariant("   Skip the moment.   ")).toBe(
-      "moments_to_states"
+    expect(detectGuidedIntakeOpenerVariant("   Skip the person.   ")).toBe(
+      "relationship_to_pattern"
     );
   });
 
   it("is case-insensitive (defensive — model usually preserves case)", () => {
-    expect(detectGuidedIntakeOpenerVariant("doesn't have to be recent.")).toBe(
-      "recency_drop"
+    expect(detectGuidedIntakeOpenerVariant("who did you last have a conversation with that wasn't transactional?")).toBe(
+      "widen_scope"
     );
   });
 
   it("returns the deepest variant when multiple phrases coexist (defensive)", () => {
-    // The prompt's flow makes this combination unlikely, but the
-    // detector should not regress to the lighter variant if it ever
-    // happens. Order: gentle_end > moments_to_states > recency_drop > default.
     const msg =
-      "Doesn't have to be recent. Skip the moment. Doesn't have to happen today.";
+      "Who did you last have a conversation with that wasn't transactional? Skip the person. Doesn't have to happen today.";
     expect(detectGuidedIntakeOpenerVariant(msg)).toBe("gentle_end");
   });
 });

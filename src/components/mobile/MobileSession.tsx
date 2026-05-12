@@ -13,6 +13,7 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import TopBar from "@/components/shared/TopBar";
+import QuickReplyChips from "./QuickReplyChips";
 
 const WELCOME_CHIPS = [
   "I have a situation I want to work through",
@@ -36,6 +37,7 @@ interface MobileSessionProps {
   checkpointError: string | null;
   errorMessage: string | null;
   sendMessage: (text: string) => void;
+  sendChipResponse: (text: string) => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
     action: "confirmed" | "rejected" | "refined" | "deferred"
@@ -69,6 +71,7 @@ export default function MobileSession({
   checkpointError,
   errorMessage,
   sendMessage,
+  sendChipResponse,
   retryLastMessage,
   confirmCheckpoint,
   startGuidedIntake,
@@ -696,6 +699,13 @@ export default function MobileSession({
               })();
 
               if (!isUser) {
+                const showChipsForMsg =
+                  msg.chips &&
+                  msg.chips.length > 0 &&
+                  i === messages.length - 1 &&
+                  !isStreaming &&
+                  !isLoading;
+
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -717,6 +727,13 @@ export default function MobileSession({
                         )}
                       </div>
                     </Bubble>
+                    {showChipsForMsg && (
+                      <QuickReplyChips
+                        chips={msg.chips!}
+                        onSelect={sendChipResponse}
+                        disabled={isLoading || isStreaming}
+                      />
+                    )}
                   </div>
                 );
               }

@@ -92,7 +92,7 @@ export async function loadConversationContext(
   ] = await Promise.all([
     admin
       .from("messages")
-      .select("role, content, created_at")
+      .select("role, content, created_at, metadata")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true }),
     admin

@@ -27,6 +27,7 @@ export interface MessageCompleteEvent {
   // backward compatibility with older server builds (treated as
   // "situation" when missing).
   mode?: "situation" | "guided-intake";
+  chips?: string[];
 }
 
 interface SSECallbacks {

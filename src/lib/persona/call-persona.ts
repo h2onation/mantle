@@ -31,7 +31,7 @@ import {
  * so Sage sees them naturally in the conversation flow.
  */
 export function mapSystemMessages(
-  dbMessages: { role: string; content: string }[]
+  dbMessages: { role: string; content: string; metadata?: Record<string, unknown> | null }[]
 ): { role: "user" | "assistant"; content: string }[] {
   const history: { role: "user" | "assistant"; content: string }[] = [];
   for (const msg of dbMessages) {
@@ -66,9 +66,15 @@ export function mapSystemMessages(
         });
       }
     } else {
+      const isChipTap =
+        msg.role === "user" &&
+        msg.metadata &&
+        (msg.metadata as Record<string, unknown>).chip_response === true;
       history.push({
         role: msg.role as "user" | "assistant",
-        content: msg.content,
+        content: isChipTap
+          ? `[selected from options] ${msg.content}`
+          : msg.content,
       });
     }
   }
@@ -153,6 +159,7 @@ interface CallPersonaOptions {
   message: string | null;
   explorationContext?: ExplorationContext;
   promptAuth?: boolean;
+  isChipResponse?: boolean;
   /** Track A Phase 7-High — messages to emit on this stream before the
    *  main LLM response starts. Each is rendered as a normal assistant
    *  bubble (checkpoint: null). Empty / undefined = no prepends. */
@@ -176,6 +183,7 @@ export function callPersona({
   message,
   explorationContext,
   promptAuth,
+  isChipResponse,
   prependedMessages,
   postConfirmMode = null,
   postConfirmContext = null,
@@ -241,6 +249,7 @@ export function callPersona({
               conversation_id: convId,
               role: "user",
               content: message,
+              metadata: isChipResponse ? { chip_response: true } : {},
             });
 
           if (msgError) {
@@ -393,6 +402,23 @@ export function callPersona({
 
         // 10. Conversational text is the full Sage response.
         let conversationalText = fullText;
+
+        // 10a. Chip extraction — strip quick-reply chips before crisis check.
+        // Jove may append a ---chips--- block with tappable options in
+        // guided-intake mode. Parse them out so cleanContent and DB
+        // storage get text-only, and the chip array rides the SSE event.
+        const chipDelimiter = "\n---chips---\n";
+        let parsedChips: string[] = [];
+        const chipIdx = conversationalText.indexOf(chipDelimiter);
+        if (chipIdx !== -1) {
+          const chipBlock = conversationalText.slice(chipIdx + chipDelimiter.length);
+          parsedChips = chipBlock
+            .split("\n")
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0)
+            .slice(0, 6);
+          conversationalText = conversationalText.slice(0, chipIdx);
+        }
 
         // 10b. Crisis detection — output validation + logging
         if (message !== null) {
@@ -686,6 +712,7 @@ export function callPersona({
               concreteExamples:
                 previousExtraction?.checkpoint_gate.concrete_examples ?? 0,
               mode: conversationMode,
+              ...(parsedChips.length > 0 ? { chips: parsedChips } : {}),
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )

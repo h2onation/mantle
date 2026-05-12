@@ -4,6 +4,7 @@ export interface ChatMessage {
   content: string;
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
+  chips?: string[];
   checkpointMeta?: {
     layer: number;
     name: string | null;

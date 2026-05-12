@@ -178,6 +178,7 @@ export default function MainApp() {
     promptAuth,
     resetPromptAuth,
     sendMessage,
+    sendChipResponse,
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,
@@ -326,6 +327,7 @@ export default function MainApp() {
             checkpointError={checkpointError}
             errorMessage={errorMessage}
             sendMessage={sendMessage}
+            sendChipResponse={sendChipResponse}
             retryLastMessage={retryLastMessage}
             confirmCheckpoint={confirmCheckpoint}
             startGuidedIntake={startGuidedIntake}
