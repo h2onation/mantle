@@ -3,9 +3,14 @@
 @tailwind utilities;
 
 :root {
-  /* ─── Walnut + Slate — dark mode only ───
-     Cool graphite ground; walnut as the warm accent.
-     Sage stays for Jove. No light mode. */
+  /* ─── Dark mode (default) — Walnut + Slate ───
+     Cool graphite ground; walnut as the warm accent. Sage stays for
+     Jove. Light mode lives in the [data-theme="light"] block below
+     and re-binds the same --session-* token names to V3 Embossed
+     linen values. Both modes share the walnut spine (#5C3A1E in
+     light, rgb(170,120,82) in dark) — only the surrounding tone
+     shifts. Source of truth for dark: src/app/demo/glass/page.tsx.
+     Source of truth for light: src/app/demo/linen/page.tsx (V3). */
 
   /* Surface — cool graphite ground */
   --session-linen:       #0A0B10;
@@ -112,6 +117,112 @@
   /* Elevation — dark lifts */
   --lift:    0 1px 0 rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.25);
   --lift-hi: 0 1px 0 rgba(0, 0, 0, 0.25), 0 20px 56px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── Light mode — V3 Embossed linen ───
+   Medium linen ground (#E5D8BE) — not pure white. Paper surfaces
+   (bubbles, plates, Manual cards) are *barely* lighter than the
+   ground; lift comes from shadow + border, not fill contrast.
+   Walnut spine (#5C3A1E) is the same hue identity as dark — only the
+   surrounding tone shifts. Espresso ink for AAA contrast on linen.
+   Source: src/app/demo/linen/page.tsx (Version 03 — Embossed linen). */
+[data-theme="light"] {
+  /* Surface — medium linen, with cream and parchment variants for
+     slightly-warmer / slightly-cooler paper. */
+  --session-linen:       #E5D8BE;
+  --session-cream:       #ECE0C8;
+  --session-parchment:   #DFD3B5;
+
+  /* Ink hierarchy — espresso on linen. The primary ink hits AAA on
+     the linen ground; faded/whisper tiers cascade down for hint
+     copy, meta rows, and disabled affordances. */
+  --session-ink:            #1F140A;
+  --session-ink-soft:       #4A3220;
+  --session-ink-persona:    rgba(31, 20, 10, 0.78);
+  --session-ink-user:       rgba(31, 20, 10, 0.72);
+  --session-ink-mid:        rgba(31, 20, 10, 0.64);
+  --session-ink-faded:      #7A5E40;
+  --session-ink-ghost:      rgba(31, 20, 10, 0.42);
+  --session-ink-whisper:    rgba(31, 20, 10, 0.22);
+  --session-ink-hairline:   rgba(92, 58, 30, 0.10);
+
+  /* Hair — warm walnut borders on linen. */
+  --session-hair:           rgba(92, 58, 30, 0.28);
+  --session-hair-soft:      rgba(92, 58, 30, 0.14);
+
+  /* Sage — kept for Jove continuity; dialed for legibility on linen. */
+  --session-persona:        #5E7A4F;
+  --session-persona-soft:   rgba(94, 122, 79, 0.32);
+  --session-persona-muted:  rgba(94, 122, 79, 0.14);
+  --session-persona-border: rgba(94, 122, 79, 0.30);
+  --session-persona-tint:   rgba(94, 122, 79, 0.08);
+
+  /* Walnut — same spine identity as dark, but the surface variants
+     re-tune for linen: the surface tints are walnut washes (V3
+     Embossed values) and the meta tone is the espresso mono-caps
+     reading on linen. */
+  --session-walnut:             #5C3A1E;
+  --session-walnut-light:       rgba(92, 58, 30, 0.55);
+  --session-walnut-surface:     rgba(232, 220, 196, 0.90);
+  --session-walnut-surface-soft:rgba(236, 224, 200, 0.93);
+  --session-walnut-border:      rgba(92, 58, 30, 0.32);
+  --session-walnut-border-soft: rgba(92, 58, 30, 0.22);
+  --session-walnut-meta:        #5C3F23;
+
+  /* Error — oxblood, AAA on linen. */
+  --session-error:        #7A2E2E;
+  --session-error-ghost:  rgba(122, 46, 46, 0.08);
+  --session-error-text:   rgba(122, 46, 46, 0.95);
+  --session-error-banner: rgba(122, 46, 46, 0.06);
+
+  /* Warning — amber, slightly deeper for linen. */
+  --session-warning:      #B6852A;
+  --session-warning-soft: rgba(182, 133, 42, 0.10);
+
+  /* Overlays — warm tint on linen reads better than pure black. */
+  --session-backdrop:       rgba(31, 20, 10, 0.45);
+  --session-backdrop-heavy: rgba(31, 20, 10, 0.55);
+
+  /* Glow */
+  --session-glow-cp:     rgba(94, 122, 79, 0.18);
+  --session-glow-scroll: rgba(92, 58, 30, 0.04);
+
+  /* Vignette — gentle ink wash on linen edges. */
+  --session-vignette: rgba(31, 20, 10, 0.05);
+
+  /* Per-surface gradients — V3 Embossed linen, verbatim from
+     src/app/demo/linen/page.tsx C object. Cream highlight at top,
+     caramel pool mid-bottom, deep walnut at a corner. */
+  --session-bg-welcome:
+    radial-gradient(ellipse 110% 55% at 30% 18%, rgba(255, 248, 228, 0.85), transparent 60%),
+    radial-gradient(ellipse 75% 50% at 100% 88%, rgba(92, 58, 30, 0.34), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(212, 176, 128, 0.62), transparent 60%);
+  --session-bg-chat:
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(255, 248, 232, 0.85), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(212, 176, 128, 0.58), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 105%, rgba(92, 58, 30, 0.38), transparent 60%);
+  --session-bg-checkpoint:
+    radial-gradient(ellipse 120% 60% at 50% 25%, rgba(255, 250, 232, 0.85), transparent 65%),
+    radial-gradient(ellipse 95% 55% at 35% 100%, rgba(208, 168, 118, 0.60), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(92, 58, 30, 0.34), transparent 60%);
+  --session-bg-manual:
+    radial-gradient(ellipse 130% 60% at 50% 10%, rgba(255, 250, 232, 0.78), transparent 60%),
+    radial-gradient(ellipse 100% 55% at 50% 100%, rgba(208, 168, 118, 0.48), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 0% 90%, rgba(92, 58, 30, 0.28), transparent 60%);
+
+  /* Elevation — light lifts use ink shadows, not transparent dark. */
+  --lift:    0 5px 14px rgba(31, 20, 10, 0.08), 0 1px 3px rgba(31, 20, 10, 0.06);
+  --lift-hi: 0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10);
+}
+
+/* No-JS fallback. When the FOUC script doesn't run (JS disabled) and
+   data-theme is not explicitly "dark", users with prefers-color-scheme:
+   light still get the light palette. SSR sets data-theme="dark" so this
+   block normally never fires; it's a safety net. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
 }
 
 html {
