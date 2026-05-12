@@ -143,11 +143,7 @@ export default function ChatInput({
     <div
       style={{
         flexShrink: 0,
-        padding: "var(--sp-md) 20px var(--sp-sm)",
-        // SG §05.5: composer is separated from the chat above by a single
-        // hairline borderTop. Replaces an earlier bottom-inset shadow on
-        // the inner row, which was opposite-edge from spec.
-        borderTop: "1px solid var(--session-hair)",
+        padding: "var(--sp-sm) 16px var(--sp-sm)",
       }}
     >
       {/* Voice error toast — oxblood top-rule */}
@@ -173,10 +169,6 @@ export default function ChatInput({
         </div>
       )}
 
-      {/* Input row — no inner border, no inset shadow. The composer's
-          separation from chat is carried by the wrapper's borderTop
-          (above). The focus state lives on the textarea's sage caret;
-          no per-row underline competes with it. Per SG §05.5. */}
       <div
         style={{
           position: "relative" as const,
@@ -184,6 +176,12 @@ export default function ChatInput({
           flexDirection: "row",
           alignItems: "center",
           gap: "12px",
+          background: "var(--session-walnut-surface)",
+          border: "1px solid var(--session-walnut-border)",
+          borderRadius: "22px",
+          padding: "6px 16px",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
         }}
       >
         {/* Visible placeholder — hides on focus or when text present */}
@@ -194,7 +192,7 @@ export default function ChatInput({
               left: 0,
               top: "50%",
               transform: "translateY(-50%)",
-              fontFamily: "var(--font-persona)",
+              fontFamily: "var(--font-spectral), var(--font-persona), serif",
               fontSize: "17px",
               fontStyle: "italic",
               fontWeight: 400,
@@ -268,7 +266,7 @@ export default function ChatInput({
             fontWeight: 400,
             fontStyle: "italic",
             lineHeight: 1.6,
-            fontFamily: "var(--font-persona)",
+            fontFamily: "var(--font-spectral), var(--font-persona), serif",
             padding: 0,
             boxSizing: "border-box",
             color:

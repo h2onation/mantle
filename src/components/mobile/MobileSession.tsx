@@ -12,6 +12,9 @@ import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import Bubble from "@/components/shared/Bubble";
+import Plate from "@/components/shared/Plate";
+import TopBar from "@/components/shared/TopBar";
 
 const WELCOME_CHIPS = [
   "I have a situation I want to work through",
@@ -19,18 +22,6 @@ const WELCOME_CHIPS = [
   "I just need to think out loud",
 ] as const;
 
-// "Jove" speaker tag — micro-caps per SG §05.1. Capital J, uppercase
-// transform, full sage. Appears only above the first block in a Jove
-// sequence, never above user blocks (the user is the reader, not a
-// labeled speaker).
-const personaLabelStyle = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "10px",
-  fontWeight: 400,
-  letterSpacing: "2.2px",
-  textTransform: "uppercase" as const,
-  color: "var(--session-persona)",
-} as const;
 
 interface MobileSessionProps {
   messages: ChatMessage[];
@@ -257,67 +248,7 @@ export default function MobileSession({
         paddingBottom: "calc(52px + env(safe-area-inset-bottom, 0px))",
       }}
     >
-      {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 20px",
-          flexShrink: 0,
-          borderBottom: "1px solid var(--session-hair-soft)",
-        }}
-      >
-        {/* Menu button — left */}
-        <button
-          onClick={handleOpenDrawer}
-          aria-label="Open session menu"
-          aria-expanded={drawerOpen}
-          aria-controls="session-drawer"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            width: "40px",
-            height: "40px",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              aria-hidden="true"
-              style={{
-                width: i === 2 ? "13px" : "18px",
-                height: "1.5px",
-                backgroundColor: "var(--session-ink-ghost)",
-                borderRadius: "1px",
-              }}
-            />
-          ))}
-        </button>
-
-        {/* Wordmark — sage period */}
-        <span
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "20px",
-            fontWeight: 400,
-            color: "var(--session-ink)",
-            letterSpacing: "-0.5px",
-          }}
-        >
-          mywalnut<span style={{ color: "var(--session-persona)" }}>.</span>
-        </span>
-
-        {/* Right spacer */}
-        <div style={{ width: "40px" }} />
-      </header>
+      <TopBar onMenu={handleOpenDrawer} />
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
@@ -431,7 +362,7 @@ export default function MobileSession({
             >
               <p
                 style={{
-                  fontFamily: "var(--font-persona)",
+                  fontFamily: "var(--font-spectral), var(--font-persona), serif",
                   fontSize: "17px",
                   color: "var(--session-ink-persona)",
                   lineHeight: 1.55,
@@ -529,62 +460,13 @@ export default function MobileSession({
                     key={msg.id || `msg-${i}`}
                     style={{
                       animation: "checkpointFadeIn 0.45s ease both",
-                      background: "var(--session-cream)",
-                      border: `1px solid var(--session-hair)`,
-                      borderTop: `2px solid var(--session-persona)`,
-                      boxShadow: "var(--lift)",
-                      padding: "var(--sp-xl) var(--sp-lg) var(--sp-lg)",
                       margin: "var(--sp-md) 0 var(--sp-sm)",
-                      position: "relative",
                     }}
                   >
-                    {/* Opening quote — oversized sage, the only ornament */}
-                    <span aria-hidden="true" style={{
-                      position: "absolute",
-                      top: 6,
-                      left: 14,
-                      fontFamily: "var(--font-serif)",
-                      fontStyle: "italic",
-                      fontSize: "72px",
-                      lineHeight: 1,
-                      color: "var(--session-persona)",
-                      opacity: 0.45,
-                      fontWeight: 400,
-                      userSelect: "none",
-                    }}>&ldquo;</span>
-
-                    {/* Layer name header */}
-                    {checkpointLayer && LAYER_NAMES[checkpointLayer] && (
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          fontWeight: 400,
-                          letterSpacing: "3px",
-                          textTransform: "uppercase",
-                          color: "var(--session-ink-mid)",
-                          marginBottom: "var(--sp-sm)",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {LAYER_NAMES[checkpointLayer]}
-                      </div>
-                    )}
-
-                    {/* Body text */}
-                    <div
-                      style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: "17px",
-                        fontWeight: 400,
-                        lineHeight: 1.5,
-                        color: "var(--session-ink)",
-                        letterSpacing: "-0.2px",
-                        position: "relative",
-                      }}
+                    <Plate
+                      eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
                     >
                       {renderMarkdown(msg.content)}
-                    </div>
 
                     {/* Divider + prompt + buttons (pending only).
                         Two action surfaces: normal three-button row,
@@ -813,6 +695,7 @@ export default function MobileSession({
                         {checkpointError}
                       </span>
                     )}
+                    </Plate>
                   </div>
                 );
               }
@@ -826,62 +709,19 @@ export default function MobileSession({
                 return prev.role !== "assistant" || prev.isCheckpoint === true;
               })();
 
-              // Jove message — rail treatment. Left sage rail marks the
-              // utterance; text indents from the rail. No fill, no radius —
-              // Jove is an annotator in the margin of your thinking, not a
-              // speaker on the other end of a line.
               if (!isUser) {
-                const personaPanel = (
+                return (
                   <div
                     key={msg.id || `msg-${i}`}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      animation: "checkpointFadeIn 0.8s ease-out both",
-                    }}
+                    style={{ animation: "checkpointFadeIn 0.8s ease-out both" }}
                   >
-                    {/* Jove label — first in sequence only. Aligned to the
-                        rail's left edge so label + rail read as a single
-                        structural marker. 6px marginBottom keeps the label
-                        visually tethered to the rail below. */}
-                    {isFirstInPersonaSequence && (
-                      <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={personaLabelStyle}>{PERSONA_NAME}</span>
-                        {msg.channel === "text" && (
+                    <Bubble speaker="jove" showLabel={isFirstInPersonaSequence}>
+                      {msg.channel === "text" && (
+                        <div style={{ marginBottom: "4px" }}>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
-                        )}
-                      </div>
-                    )}
-                    {/* Jove block — plain roman, flush-left. NO rail, NO
-                        chrome. Per style guide §05.1: "The type itself
-                        does the role-marking — roman for Jove,
-                        italic-behind-rule for the user." Jove is the
-                        primary voice; the page belongs to him.
-                        Differentiation comes from the type itself
-                        (roman vs italic) and the user's indented rail,
-                        not from a competing rail on Jove's column. */}
-                    <div
-                      style={{
-                        paddingTop: "var(--sp-tight)",
-                        paddingBottom: "var(--sp-tight)",
-                        fontFamily: "var(--font-persona)",
-                        fontSize: "18px",
-                        fontWeight: 400,
-                        lineHeight: 1.65,
-                        color: "var(--session-ink-persona)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontFamily: "var(--font-persona)",
-                          fontSize: "18px",
-                          fontWeight: 400,
-                          lineHeight: 1.65,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "12px",
-                        }}
-                      >
+                        </div>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {React.Children.map(renderMarkdown(msg.content), (child) =>
                           React.isValidElement(child)
                             ? React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
@@ -890,48 +730,24 @@ export default function MobileSession({
                             : child
                         )}
                       </div>
-                    </div>
+                    </Bubble>
                   </div>
                 );
-
-                return personaPanel;
               }
 
-              // User message — italic serif, sage left rule, indented from
-              // a deeper margin than Jove so the reader's interjections sit
-              // visually "to the right" of Jove's annotations. The left
-              // margin pulls the rail in past Jove's column; the rule and
-              // text both shift together. Marginalia, not a competing
-              // speaker, but clearly the reader's hand.
               return (
                 <div
                   key={msg.id || `msg-${i}`}
-                  style={{
-                    marginLeft: "var(--sp-xl)",
-                    paddingLeft: "var(--sp-sm)",
-                    borderLeft: `2px solid var(--session-persona-muted)`,
-                    animation: "checkpointFadeIn 0.45s ease-out both",
-                  }}
+                  style={{ animation: "checkpointFadeIn 0.45s ease-out both" }}
                 >
-                  {msg.channel === "text" && (
-                    <div style={{ marginBottom: "2px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
-                    </div>
-                  )}
-                  <p
-                    style={{
-                      fontFamily: "var(--font-persona)",
-                      fontSize: "17.5px",
-                      fontWeight: 400,
-                      fontStyle: "italic",
-                      lineHeight: 1.6,
-                      color: "var(--session-ink-user)",
-                      textAlign: "left",
-                      margin: 0,
-                    }}
-                  >
+                  <Bubble speaker="user">
+                    {msg.channel === "text" && (
+                      <div style={{ marginBottom: "4px" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)", color: "var(--session-ink-ghost)", letterSpacing: "1px" }}>TEXT</span>
+                      </div>
+                    )}
                     {msg.content}
-                  </p>
+                  </Bubble>
                 </div>
               );
             })}
@@ -939,30 +755,14 @@ export default function MobileSession({
             {/* Typing indicator */}
             {(isLoading || isStreaming) &&
               (messages.length === 0 || messages[messages.length - 1].role === "user") && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    animation: "checkpointFadeIn 0.3s ease-out both",
-                  }}
-                >
-                  {/* Show Jove label when prev message was user or checkpoint */}
-                  {(messages.length === 0 ||
-                    messages[messages.length - 1]?.role !== "assistant" ||
-                    messages[messages.length - 1]?.isCheckpoint === true) && (
-                    <div style={{ marginTop: "-4px", marginBottom: "6px", paddingLeft: "0" }}>
-                      <span style={personaLabelStyle}>{PERSONA_NAME}</span>
-                    </div>
-                  )}
-                  {/* Typing indicator — single sage fleuron pulsing.
-                      Per SG §05.1: a typographic ornament marks "Jove
-                      is composing," not three speech-bubble dots. */}
-                  <div
-                    style={{
-                      paddingTop: "4px",
-                      paddingBottom: "4px",
-                      alignSelf: "flex-start",
-                    }}
+                <div style={{ animation: "checkpointFadeIn 0.3s ease-out both" }}>
+                  <Bubble
+                    speaker="jove"
+                    showLabel={
+                      messages.length === 0 ||
+                      messages[messages.length - 1]?.role !== "assistant" ||
+                      messages[messages.length - 1]?.isCheckpoint === true
+                    }
                   >
                     <span
                       aria-label="Jove is typing"
@@ -977,7 +777,7 @@ export default function MobileSession({
                     >
                       ❦
                     </span>
-                  </div>
+                  </Bubble>
                 </div>
               )}
 
