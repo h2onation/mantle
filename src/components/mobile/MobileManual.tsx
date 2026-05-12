@@ -15,13 +15,13 @@ const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
 interface MobileManualProps {
   entries: ManualEntry[];
-  displayName: string;
+  firstName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   onNavigateToSession?: () => void;
   onOpenDrawer?: () => void;
 }
 
-export default function MobileManual({ entries, displayName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
+export default function MobileManual({ entries, firstName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = buildLayers(entries);
   const isEmpty = layers.every((l) => l.entries.length === 0);
@@ -51,7 +51,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
       const currentLayers = buildLayers(entries);
-      const name = displayName || "User";
+      const name = firstName || "User";
       const pdf = generateManualPdf(name, currentLayers);
       await shareManual(pdf, name);
       trackManualExported({ format: "pdf", entry_count: entries.length });
@@ -60,7 +60,7 @@ export default function MobileManual({ entries, displayName, onExploreWithPerson
     } finally {
       setIsGenerating(false);
     }
-  }, [displayName, entries]);
+  }, [firstName, entries]);
 
   return (
     <main

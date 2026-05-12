@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
+import { firstNameFrom } from "@/lib/utils/name";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
 import {
   trackConversationStarted,
@@ -74,7 +75,10 @@ export function useChat() {
   const [confirmedEntries, setConfirmedEntries] = useState<
     ManualEntry[]
   >([]);
-  const [displayName, setDisplayName] = useState("");
+  // First name only — see firstNameFrom() docstring. The DB may carry a
+  // full "First Last" but every UI surface that addresses the user
+  // (PDF export header/title, future greetings) reads from here.
+  const [firstName, setFirstName] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [sessionSummary, setSessionSummary] = useState<string | null>(null);
@@ -125,7 +129,7 @@ export function useChat() {
       if (res.ok) {
         const data = await res.json();
         setConfirmedEntries(data.components || []);
-        if (data.displayName) setDisplayName(data.displayName);
+        if (data.displayName) setFirstName(firstNameFrom(data.displayName));
       }
     } catch (err) {
       console.error("[useChat] Failed to load manual:", err);
@@ -1113,7 +1117,7 @@ export function useChat() {
     isStreaming,
     activeCheckpoint,
     confirmedEntries,
-    displayName,
+    firstName,
     initialized,
     isNewUser,
     firstSessionCompleted,

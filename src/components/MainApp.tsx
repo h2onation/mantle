@@ -168,7 +168,7 @@ export default function MainApp() {
     isStreaming,
     activeCheckpoint,
     confirmedEntries,
-    displayName,
+    firstName,
     initialized,
     isNewUser,
     firstSessionCompleted,
@@ -429,7 +429,7 @@ export default function MainApp() {
         manualContent={
           <MobileManual
             entries={confirmedEntries}
-            displayName={displayName}
+            firstName={firstName}
             onExploreWithPersona={handleExploreWithPersona}
             onNavigateToSession={() => setActiveView("session")}
             onOpenDrawer={handleOpenDrawer}
