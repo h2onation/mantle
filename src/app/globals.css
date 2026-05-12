@@ -65,6 +65,28 @@
   /* Vignette — darkens edges */
   --session-vignette: rgba(0, 0, 0, 0.35);
 
+  /* Surface gradients — walnut + slate radial blends.
+     Each surface has a distinct gradient that places walnut warmth
+     in a different corner. Source: demo/glass/page.tsx. */
+  --session-bg-welcome:
+    radial-gradient(ellipse 120% 70% at 30% 25%, rgba(60, 68, 82, 0.92), transparent 65%),
+    radial-gradient(ellipse 100% 70% at 60% 100%, rgba(36, 42, 55, 0.85), transparent 70%),
+    radial-gradient(ellipse 75% 55% at 100% 100%, rgba(115, 72, 42, 0.65), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 20% 50%, rgba(15, 18, 26, 0.35), transparent 70%);
+  --session-bg-chat:
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(54, 62, 76, 0.85), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(36, 42, 55, 0.55), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 105%, rgba(115, 72, 42, 0.55), transparent 60%);
+  --session-bg-checkpoint:
+    radial-gradient(ellipse 110% 75% at 50% 25%, rgba(115, 72, 42, 0.42), transparent 65%),
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(48, 54, 68, 0.85), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 0% 100%, rgba(85, 55, 30, 0.40), transparent 65%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(36, 42, 55, 0.50), transparent 70%);
+  --session-bg-manual:
+    radial-gradient(ellipse 140% 80% at 40% 10%, rgba(115, 72, 42, 0.50), transparent 70%),
+    radial-gradient(ellipse 90% 50% at 50% 100%, rgba(40, 46, 60, 0.85), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(60, 68, 82, 0.65), transparent 60%);
+
   /* Typography sizes */
   --size-meta:    12px;
   --size-body:    15px;

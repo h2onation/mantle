@@ -11,6 +11,12 @@ interface MobileLayoutProps {
   activeView: MobileView;
 }
 
+const PANEL_GRADIENTS: Record<MobileView, string> = {
+  session: "var(--session-bg-chat)",
+  manual: "var(--session-bg-manual)",
+  settings: "var(--session-bg-manual)",
+};
+
 export default function MobileLayout({
   sessionContent,
   manualContent,
@@ -43,7 +49,8 @@ export default function MobileLayout({
               bottom: 0,
               overflowX: "hidden",
               display: activeView === view ? "block" : "none",
-              background: "var(--session-linen)",
+              backgroundColor: "var(--session-linen)",
+              backgroundImage: PANEL_GRADIENTS[view],
             }}
           >
             {content}

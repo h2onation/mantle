@@ -11,7 +11,7 @@ export default function SWUpdatePrompt({ onUpdate }: SWUpdatePromptProps) {
       aria-label="Update available"
       style={{
         position: "fixed",
-        bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
         left: 16,
         right: 16,
         zIndex: 200,

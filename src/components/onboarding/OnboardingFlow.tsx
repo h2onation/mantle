@@ -85,7 +85,8 @@ export default function OnboardingFlow() {
             style={{
               position: "absolute",
               inset: 0,
-              background: "var(--session-linen)",
+              backgroundColor: "var(--session-linen)",
+              backgroundImage: "var(--session-bg-welcome)",
               overflow: "hidden",
               WebkitTapHighlightColor: "transparent",
             }}

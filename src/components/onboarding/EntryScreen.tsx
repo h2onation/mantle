@@ -17,8 +17,10 @@ export default function EntryScreen({ onBegin, onLogin }: EntryScreenProps) {
         width: "100%",
         boxSizing: "border-box",
         backgroundColor: "var(--session-linen)",
+        backgroundImage: "var(--session-bg-welcome)",
         color: "var(--session-ink)",
         WebkitTapHighlightColor: "transparent",
+        overflow: "hidden",
       }}
     >
       <style>{`
