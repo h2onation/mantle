@@ -460,6 +460,183 @@ body.journey .content { max-width: 920px; }
   font-style: italic;
   margin-left: auto;
 }
+.matrix-controls {
+  background: #fff;
+  border: 1px solid #ece8e1;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 50px;
+  z-index: 50;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+.matrix-controls .opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.matrix-controls .opt-row:last-child { margin-bottom: 0; }
+.matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  font-size: 12.5px;
+}
+.matrix-table thead th {
+  background: #2c2520;
+  color: #faf8f5;
+  padding: 12px 10px;
+  text-align: center;
+  vertical-align: top;
+  border-right: 1px solid #44372e;
+}
+.matrix-table thead th:last-child { border-right: none; }
+.matrix-table thead th:first-child {
+  background: #1a1612;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #b5a89a;
+  font-weight: 600;
+  width: 240px;
+}
+.matrix-table thead .phase-num {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #c7b8aa;
+  margin-bottom: 4px;
+}
+.matrix-table thead .phase-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #faf8f5;
+  line-height: 1.3;
+}
+.matrix-table thead .phase-context {
+  font-size: 10px;
+  color: #9a8d80;
+  margin-top: 4px;
+  font-weight: 400;
+  font-style: italic;
+}
+.matrix-table .section-row td {
+  background: #f5f1ea;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #7a6f64;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-top: 1px solid #ece8e1;
+  border-bottom: 1px solid #ece8e1;
+}
+.matrix-table .block-row td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid #f5f1ea;
+  font-variant-numeric: tabular-nums;
+}
+.matrix-table .block-row .block-name {
+  text-align: left;
+  color: #2c2520;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+}
+.matrix-table .block-row .block-name .block-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.matrix-table .matrix-cell.active {
+  color: #2c2520;
+  font-weight: 500;
+}
+.matrix-table .matrix-cell.active.tier-intro { background: #eef1f6; }
+.matrix-table .matrix-cell.active.tier-1 { background: #f3eee5; }
+.matrix-table .matrix-cell.active.tier-2 { background: #fbf1d8; }
+.matrix-table .matrix-cell.active.tier-3 { background: #e8f0e8; }
+.matrix-table .matrix-cell.active.tier-dynamic { background: #ece6f5; }
+.matrix-table .matrix-cell.inactive {
+  color: #c5bdb3;
+}
+.matrix-table .matrix-cell.added {
+  background: #c4e2c9 !important;
+  color: #1a5226 !important;
+  font-weight: 700;
+  position: relative;
+}
+.matrix-table .matrix-cell.added::before {
+  content: '+ ';
+  font-size: 11px;
+}
+.matrix-table .matrix-cell.removed {
+  background: #f0d6d6 !important;
+  color: #802a2a !important;
+  text-decoration: line-through;
+  font-size: 11px;
+}
+.matrix-table .total-row td {
+  background: #faf6ee;
+  border-top: 2px solid #8b7355;
+  padding: 12px 10px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.matrix-table .total-row .block-name {
+  text-align: left;
+  color: #2c2520;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  padding-left: 14px;
+}
+.matrix-table .total-row .total-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c2520;
+}
+.matrix-table .total-row .total-delta {
+  font-size: 11px;
+  color: #8a7f74;
+  margin-top: 2px;
+}
+.matrix-table .total-row .total-delta.up { color: #2a6238; }
+.matrix-table .total-row .total-delta.down { color: #802a2a; }
+.matrix-legend {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #7a6f64;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+.matrix-legend .swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.matrix-legend .swatch.added { background: #c4e2c9; }
+.matrix-legend .swatch.removed { background: #f0d6d6; }
+.matrix-legend .swatch.active { background: #fbf1d8; }
+.matrix-legend .swatch.inactive { background: #fff; border: 1px solid #ece8e1; }
 .overview-intro {
   padding-bottom: 20px;
   margin-bottom: 8px;
@@ -947,73 +1124,147 @@ function renderStageOptions(stage) {
   return `<div class="journey-options">${personaRow}${modeRow}</div>`;
 }
 
+function renderJourneyControls() {
+  const sel = effectiveSelection(1);
+  let html = '<div class="matrix-controls">';
+  let row = '<div class="opt-row"><span class="opt-label">Persona</span>';
+  ['autistic', 'audhd', 'dyslexic', 'general'].forEach(m => {
+    const isActive = sel.personas.includes(m);
+    row += `<span class="opt-chip persona-${m} ${isActive ? 'active' : ''}" onclick="togglePersonaInStage(1, '${m}')">${PERSONA_LABELS[m]}</span>`;
+  });
+  row += '<span class="hint">Multi-select to stack additional voices</span></div>';
+  html += row;
+  row = '<div class="opt-row"><span class="opt-label">Conv mode</span>';
+  ['standard', 'guided', 'upload'].forEach(m => {
+    const label = m === 'standard' ? 'Standard' : m === 'guided' ? 'Guided Intake' : 'Upload';
+    row += `<span class="opt-chip mode-chip ${sel.convMode === m ? 'active' : ''}" onclick="setConvModeInStage(1, '${m}')">${label}</span>`;
+  });
+  row += '<span class="hint">Applies across all phases</span></div>';
+  html += row;
+  html += '</div>';
+  return html;
+}
+
+const ROW_SECTIONS = [
+  { tier: 'tier-intro', label: 'Foundation' },
+  { tier: 'tier-1', label: null },
+  { tier: 'tier-2', label: 'Tier 2 — Voice' },
+  { tier: 'tier-3', label: 'Tier 3 — Mechanics' },
+  { tier: 'tier-dynamic', label: 'Dynamic — Runtime' }
+];
+
 function renderJourney() {
   let html = '';
   html += `<div class="overview-intro">
-    <strong>A user moving through the product. At each stage, see what's in Jove's prompt — and what choices change it.</strong>
-    Stages 1 and 3 have live option chips: click Persona or Conv Mode to see the prompt update. Stages 2 and 4 carry forward the previous choices (locked — those decisions were already made).
+    <strong>How the prompt evolves across a user's journey.</strong>
+    Each column is one moment in time. Each row is a possible block. A filled cell means the block is in the prompt at that moment. Watch how rows turn on and off as the user moves through the product.
   </div>`;
 
-  let prevIds = null;
-  let prevTotal = null;
-  JOURNEY_STAGES.forEach((stage) => {
-    const blocks = getStageBlocks(stage.num);
-    const ids = new Set(blocks.map(b => b.id));
-    const total = blocks.reduce((s, b) => s + b.tokens, 0);
+  html += renderJourneyControls();
 
-    const added = prevIds ? blocks.filter(b => !prevIds.has(b.id)).map(b => b.id) : [];
-    const removed = prevIds ? [...prevIds].filter(id => !ids.has(id)) : [];
-    const isFirst = prevIds === null;
-
-    let changesHtml = '';
-    if (!isFirst) {
-      const parts = [];
-      added.forEach(id => parts.push(`<span class="diff-pill added">+ ${blockLabelFor(id)}</span>`));
-      removed.forEach(id => parts.push(`<span class="diff-pill removed">− ${blockLabelFor(id)}</span>`));
-      changesHtml = `<div class="journey-changes">
-        <span class="label">What changed:</span>
-        ${parts.length > 0 ? parts.join('') : '<em style="color:#9a8f84">Same blocks as previous stage.</em>'}
-      </div>`;
-    }
-
-    const blocksHtml = blocks.map(b => `
-      <li class="${added.includes(b.id) ? 'added' : ''}">
-        <span class="block-dot ${b.tier}"></span>
-        <span class="name">${b.label}</span>
-        <span class="tok">${fmt(b.tokens)}</span>
-        ${added.includes(b.id) && !isFirst ? '<span class="new-tag">NEW</span>' : ''}
-      </li>
-    `).join('');
-
-    let deltaHtml = '';
-    if (prevTotal !== null) {
-      const diff = total - prevTotal;
-      const sign = diff > 0 ? '+' : '';
-      const cls = diff > 0 ? 'up' : (diff < 0 ? 'down' : '');
-      deltaHtml = `<span class="delta ${cls}">${sign}${fmt(diff)} vs previous</span>`;
-    }
-
-    html += `<div class="journey-stage">
-      <div class="journey-num">${stage.num}</div>
-      <div class="journey-header">
-        <div>
-          <div class="journey-title">${stage.title}</div>
-          <div class="journey-subtitle">${stage.subtitle}</div>
-        </div>
-      </div>
-      <div class="journey-scenario">${stage.scenario}</div>
-      ${renderStageOptions(stage)}
-      ${changesHtml}
-      <ul class="journey-blocks">${blocksHtml}</ul>
-      <div class="journey-total">
-        <span>Total in prompt at this moment</span>
-        <span><span class="num">~${fmt(total)} tokens</span> ${deltaHtml}</span>
-      </div>
-    </div>`;
-
-    prevIds = ids;
-    prevTotal = total;
+  // Compute active blocks per phase
+  const phaseBlocks = JOURNEY_STAGES.map(p => getStageBlocks(p.num));
+  const phaseIds = phaseBlocks.map(blocks => new Set(blocks.map(b => b.id)));
+  const phaseTokens = phaseBlocks.map(blocks => {
+    const map = {};
+    blocks.forEach(b => { map[b.id] = b.tokens; });
+    return map;
   });
+  const totals = phaseBlocks.map(blocks => blocks.reduce((s, b) => s + b.tokens, 0));
+
+  // Collect all unique blocks across phases, preserving order from earliest phase they appear
+  const seen = new Set();
+  const orderedBlocks = [];
+  for (let p = 0; p < phaseBlocks.length; p++) {
+    for (const b of phaseBlocks[p]) {
+      if (!seen.has(b.id)) {
+        seen.add(b.id);
+        orderedBlocks.push(b);
+      }
+    }
+  }
+
+  // Group by tier
+  const grouped = {};
+  orderedBlocks.forEach(b => {
+    if (!grouped[b.tier]) grouped[b.tier] = [];
+    grouped[b.tier].push(b);
+  });
+
+  // Build matrix
+  html += '<table class="matrix-table">';
+  // Header
+  html += '<thead><tr><th>Block</th>';
+  JOURNEY_STAGES.forEach(p => {
+    let context = '';
+    if (p.state.isNew) context = 'New user';
+    if (p.state.isReturning) context = 'Returning user';
+    if (p.state.isCheckpoint) context += (context ? ', ' : '') + 'checkpoint approaching';
+    html += `<th>
+      <div class="phase-num">Phase ${p.num} — ${p.title.split(' · ')[0]}</div>
+      <div class="phase-title">${p.subtitle}</div>
+      <div class="phase-context">${context}</div>
+    </th>`;
+  });
+  html += '</tr></thead>';
+
+  // Body
+  html += '<tbody>';
+  ROW_SECTIONS.forEach(section => {
+    const rows = grouped[section.tier] || [];
+    if (rows.length === 0) return;
+    if (section.label) {
+      html += `<tr class="section-row"><td colspan="${JOURNEY_STAGES.length + 1}">${section.label}</td></tr>`;
+    }
+    rows.forEach(b => {
+      html += `<tr class="block-row">
+        <td class="block-name"><span class="block-dot ${b.tier}"></span>${b.label}</td>`;
+      for (let p = 0; p < phaseIds.length; p++) {
+        const isActive = phaseIds[p].has(b.id);
+        const wasActive = p > 0 && phaseIds[p - 1].has(b.id);
+        const isAdded = isActive && !wasActive && p > 0;
+        const willBeRemoved = isActive && p < phaseIds.length - 1 && !phaseIds[p + 1].has(b.id);
+        const isRemoved = !isActive && wasActive;
+        let cls = `matrix-cell ${isActive ? 'active' : 'inactive'} ${b.tier}`;
+        if (isAdded) cls += ' added';
+        if (isRemoved) cls += ' removed';
+        let content;
+        if (isActive) {
+          content = fmt(phaseTokens[p][b.id]);
+        } else if (isRemoved) {
+          content = fmt(phaseTokens[p - 1][b.id]);
+        } else {
+          content = '—';
+        }
+        html += `<td class="${cls}">${content}</td>`;
+      }
+      html += '</tr>';
+    });
+  });
+
+  // Total row
+  html += `<tr class="total-row">
+    <td class="block-name">Total tokens</td>`;
+  for (let p = 0; p < totals.length; p++) {
+    const prev = p > 0 ? totals[p - 1] : null;
+    const diff = prev !== null ? totals[p] - prev : null;
+    const sign = diff !== null && diff > 0 ? '+' : '';
+    const cls = diff !== null && diff > 0 ? 'up' : (diff !== null && diff < 0 ? 'down' : '');
+    html += `<td>
+      <div class="total-num">~${fmt(totals[p])}</div>
+      ${diff !== null ? `<div class="total-delta ${cls}">${sign}${fmt(diff)}</div>` : '<div class="total-delta">&nbsp;</div>'}
+    </td>`;
+  }
+  html += '</tr>';
+  html += '</tbody></table>';
+
+  // Legend
+  html += `<div class="matrix-legend">
+    <span><span class="swatch active"></span>In prompt</span>
+    <span><span class="swatch added"></span>Added at this phase</span>
+    <span><span class="swatch removed"></span>Dropped at this phase</span>
+    <span><span class="swatch inactive"></span>Not in prompt</span>
+  </div>`;
 
   document.getElementById('blocks').innerHTML = html;
 }
