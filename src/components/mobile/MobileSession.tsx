@@ -47,11 +47,6 @@ interface MobileSessionProps {
   conversationId: string | null;
   isLoading: boolean;
   isStreaming: boolean;
-  isNewUser?: boolean;
-  firstSessionCompleted?: boolean;
-  sessionOrigin?: "new" | "explore" | "existing";
-  sessionSummary?: string | null;
-  lastSessionDate?: string | null;
   confirmedEntries: ManualEntry[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
@@ -244,7 +239,7 @@ export default function MobileSession({
         </p>
       </div>
       <button
-        onClick={() => setChipsVisible(false)}
+        onClick={() => { setChipsVisible(false); sendMessage("I have a situation I want to work through"); }}
         disabled={isLoading || isStreaming}
         style={{
           display: "flex",
