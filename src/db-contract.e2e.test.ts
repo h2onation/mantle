@@ -165,10 +165,10 @@ describe("DB contract — every code-insert shape is accepted", () => {
     expect(error).toBeNull();
   });
 
-  it("profiles: persona_mode update (settings)", async () => {
+  it("profiles: persona_modes update (settings)", async () => {
     const { error } = await admin
       .from("profiles")
-      .update({ persona_mode: "autistic" })
+      .update({ persona_modes: ["autistic", "dyslexic"] })
       .eq("id", testUserId);
     expect(error).toBeNull();
   });

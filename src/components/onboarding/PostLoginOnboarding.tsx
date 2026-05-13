@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from "react";
 import InfoScreens from "./InfoScreens";
+import PersonaModeScreen from "./PersonaModeScreen";
 import SeedScreen from "./SeedScreen";
 
-// Renders the existing InfoScreens + SeedScreen sequence for an
-// already-authenticated user finishing first-time onboarding.
+// Renders the InfoScreens → PersonaModeScreen → SeedScreen sequence
+// for an already-authenticated user finishing first-time onboarding.
 // Skips EntryScreen / LoginScreen entirely. SeedScreen runs in
 // post-login mode (writes profiles.onboarding_completed_at instead
 // of creating an anonymous account) and calls onComplete when done,
@@ -16,7 +17,7 @@ interface PostLoginOnboardingProps {
   onComplete: () => void;
 }
 
-type View = "info" | "seed";
+type View = "info" | "persona" | "seed";
 
 export default function PostLoginOnboarding({
   onComplete,
@@ -32,13 +33,23 @@ export default function PostLoginOnboarding({
     }, duration);
   }, []);
 
+  function handleNavigateToPersona() {
+    fadeToView("persona");
+  }
+
   function handleNavigateToSeed() {
     fadeToView("seed");
   }
 
   function handleBack() {
-    setCurrentView("info");
-    setViewOpacity(1);
+    if (currentView === "seed") {
+      fadeToView("persona");
+    } else if (currentView === "persona") {
+      fadeToView("info");
+    } else {
+      setCurrentView("info");
+      setViewOpacity(1);
+    }
   }
 
   return (
@@ -66,12 +77,21 @@ export default function PostLoginOnboarding({
       >
         {currentView === "info" && (
           <InfoScreens
-            onNavigateToSeed={handleNavigateToSeed}
+            onNavigateToSeed={handleNavigateToPersona}
             onBack={handleBack}
           />
         )}
 
-        {currentView === "seed" && <SeedScreen onComplete={onComplete} />}
+        {currentView === "persona" && (
+          <PersonaModeScreen
+            onContinue={handleNavigateToSeed}
+            onBack={handleBack}
+          />
+        )}
+
+        {currentView === "seed" && (
+          <SeedScreen onComplete={onComplete} onBack={handleBack} />
+        )}
       </div>
     </div>
   );
