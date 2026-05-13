@@ -1,0 +1,632 @@
+import {
+  composeTier2,
+  buildSystemPrompt,
+  type PersonaMode,
+  type BuildPromptOptions,
+} from "@/lib/persona/system-prompt";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type Tier = "intro" | "1" | "2" | "3" | "dynamic";
+export type ConditionType = "always" | "persona" | "state" | "conv-mode" | "dynamic";
+
+export interface SectionCondition {
+  type: ConditionType;
+  label: string;
+}
+
+export interface SectionSource {
+  file: string;
+  symbol: string;
+}
+
+export interface SectionAlternative {
+  label: string;
+  tokens: number;
+  trigger: string;
+}
+
+export interface PromptSection {
+  id: string;
+  label: string;
+  tier: Tier;
+  text: string;
+  tokens: number;
+  condition: SectionCondition;
+  source: SectionSource;
+  alternatives: SectionAlternative[];
+}
+
+export interface PhaseData {
+  id: string;
+  label: string;
+  description: string;
+  sections: PromptSection[];
+  totalTokens: number;
+  deltaTokens: number | null;
+  deltaBlocks: number | null;
+  changes: string[];
+}
+
+type ConvMode = "situation" | "guided-intake" | "upload";
+
+// ---------------------------------------------------------------------------
+// Section header definitions — ordered by expected appearance in the prompt.
+// Each entry's regex matches a line that starts a new section.
+// ---------------------------------------------------------------------------
+
+interface SectionDef {
+  id: string;
+  label: string;
+  tier: Tier;
+  pattern: RegExp;
+  source: SectionSource;
+  conditionFn: (modes: PersonaMode[], convMode: ConvMode) => SectionCondition;
+  alternativesFn: (
+    modes: PersonaMode[],
+    convMode: ConvMode,
+    altTokenCache: Map<string, number>,
+  ) => SectionAlternative[];
+}
+
+const personaLabel = (modes: PersonaMode[]) => modes.map((m) => m[0].toUpperCase() + m.slice(1)).join(" + ");
+
+const PERSONA_ALL: PersonaMode[] = ["autistic", "audhd", "dyslexic", "general"];
+const CONV_MODES: ConvMode[] = ["situation", "guided-intake", "upload"];
+const CONV_MODE_LABELS: Record<ConvMode, string> = {
+  situation: "Standard",
+  "guided-intake": "Guided Intake",
+  upload: "Upload",
+};
+
+function personaAlternatives(
+  currentModes: PersonaMode[],
+  altTokenCache: Map<string, number>,
+): SectionAlternative[] {
+  return PERSONA_ALL.filter((m) => !currentModes.includes(m)).map((m) => {
+    const key = `tier2-${m}`;
+    if (!altTokenCache.has(key)) {
+      altTokenCache.set(key, estimateTokens(composeTier2([m])));
+    }
+    return {
+      label: `Voice: ${m[0].toUpperCase() + m.slice(1)}`,
+      tokens: altTokenCache.get(key)!,
+      trigger: `Persona: ${m}`,
+    };
+  });
+}
+
+function convModeAlternatives(currentMode: ConvMode): SectionAlternative[] {
+  return CONV_MODES.filter((m) => m !== currentMode).map((m) => ({
+    label: CONV_MODE_LABELS[m],
+    tokens: 0,
+    trigger: `Conv mode: ${CONV_MODE_LABELS[m]}`,
+  }));
+}
+
+const SECTION_DEFS: SectionDef[] = [
+  {
+    id: "intro",
+    label: "Introduction",
+    tier: "intro",
+    pattern: /^You are \w+\./,
+    source: { file: "system-prompt.ts", symbol: "buildSystemPrompt → intro" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "tier1",
+    label: "Tier 1 · Constitutional Rules",
+    tier: "1",
+    pattern: /^TIER 1: CONSTITUTIONAL RULES/,
+    source: { file: "system-prompt.ts", symbol: "TIER_1" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "tier2-voice",
+    label: "Tier 2 · Voice",
+    tier: "2",
+    pattern: /^TIER 2: VOICE AND BEHAVIOR/,
+    source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "TIER_2_HEADER, VOICE_INTRO_PARAGRAPHS" },
+    conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
+    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+  },
+  {
+    id: "voice-rules",
+    label: "Voice Rules",
+    tier: "2",
+    pattern: /^VOICE RULES$/m,
+    source: { file: "voice-*.ts", symbol: "VOICE_RULES" },
+    conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
+    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+  },
+  {
+    id: "banned-phrases",
+    label: "Banned Phrases",
+    tier: "2",
+    pattern: /^BANNED PHRASES$/m,
+    source: { file: "voice-scaffold.ts", symbol: "BANNED_PHRASES, BANNED_PATTERNS" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "example-register",
+    label: "Example Register",
+    tier: "2",
+    pattern: /^EXAMPLE REGISTER$/m,
+    source: { file: "voice-*.ts", symbol: "EXAMPLE_REGISTER" },
+    conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
+    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+  },
+  {
+    id: "landing",
+    label: "Landing",
+    tier: "2",
+    pattern: /^LANDING$/m,
+    source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "LANDING_INTRO, LANDING_EXAMPLES" },
+    conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
+    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+  },
+  {
+    id: "deepening",
+    label: "Deepening",
+    tier: "2",
+    pattern: /^DEEPENING$/m,
+    source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "DEEPENING_INTRO, DEEPENING_ADDITIONS, WEAK_STRONG_EXAMPLES" },
+    conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
+    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+  },
+  {
+    id: "pacing",
+    label: "Pacing",
+    tier: "2",
+    pattern: /^PACING$/m,
+    source: { file: "voice-scaffold.ts", symbol: "PACING_RULE" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "when-wrong",
+    label: "Repair Protocol",
+    tier: "2",
+    pattern: /^WHEN JOVE IS WRONG$/m,
+    source: { file: "voice-scaffold.ts", symbol: "WHEN_JOVE_IS_WRONG" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "advisory",
+    label: "Advisory",
+    tier: "2",
+    pattern: /^WHEN THE USER ASKS/m,
+    source: { file: "voice-scaffold.ts", symbol: "WHEN_USER_ASKS_WHAT_SHOULD_I_DO" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "tier3",
+    label: "Tier 3 · Conversation Mechanics",
+    tier: "3",
+    pattern: /^TIER 3: CONVERSATION MECHANICS$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "first-message",
+    label: "First Message",
+    tier: "3",
+    pattern: /^FIRST MESSAGE \(new user\)$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST MESSAGE" },
+    conditionFn: () => ({ type: "state", label: "State: new user" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "guided-intake",
+    label: "Guided Intake",
+    tier: "3",
+    pattern: /^GUIDED INTAKE$/m,
+    source: { file: "system-prompt.ts + guided-intake-copy.ts", symbol: "buildTier3 → GUIDED INTAKE" },
+    conditionFn: () => ({ type: "conv-mode", label: "Conv mode: Guided Intake" }),
+    alternativesFn: (_, convMode) => convModeAlternatives(convMode),
+  },
+  {
+    id: "upload-mode",
+    label: "Upload Mode",
+    tier: "3",
+    pattern: /^UPLOAD MODE$/m,
+    source: { file: "system-prompt.ts + upload-copy.ts", symbol: "buildTier3 → UPLOAD MODE" },
+    conditionFn: () => ({ type: "conv-mode", label: "Conv mode: Upload" }),
+    alternativesFn: (_, convMode) => convModeAlternatives(convMode),
+  },
+  {
+    id: "returning-user",
+    label: "Returning User",
+    tier: "3",
+    pattern: /^RETURNING USER$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → RETURNING USER" },
+    conditionFn: () => ({ type: "state", label: "State: returning user" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "checkpoints",
+    label: "Checkpoints",
+    tier: "3",
+    pattern: /^CHECKPOINTS$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → CHECKPOINTS" },
+    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "first-checkpoint",
+    label: "First Checkpoint",
+    tier: "3",
+    pattern: /^FIRST CHECKPOINT/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST CHECKPOINT" },
+    conditionFn: () => ({ type: "state", label: "State: first checkpoint" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "post-rejection",
+    label: "Post-Rejection",
+    tier: "3",
+    pattern: /^POST-REJECTION/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → POST-REJECTION" },
+    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "adapting",
+    label: "Adapting",
+    tier: "3",
+    pattern: /^ADAPTING$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → ADAPTING" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "short-answers",
+    label: "Short Answers",
+    tier: "3",
+    pattern: /^SHORT ANSWERS$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → SHORT ANSWERS" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "readiness-gate",
+    label: "Readiness Gate",
+    tier: "3",
+    pattern: /^READINESS GATE/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → READINESS GATE" },
+    conditionFn: () => ({ type: "state", label: "State: 5+ entries" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "clinical-material",
+    label: "Clinical Material",
+    tier: "3",
+    pattern: /^CLINICAL MATERIAL IN CONVERSATION$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → CLINICAL MATERIAL" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "professional-referral",
+    label: "Professional Referral",
+    tier: "3",
+    pattern: /^PROFESSIONAL REFERRAL$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → PROFESSIONAL REFERRAL" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "fabricated-content",
+    label: "Fabricated Content",
+    tier: "3",
+    pattern: /^FABRICATED CONTENT$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → FABRICATED CONTENT" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "checkpoint-language",
+    label: "Checkpoint Language",
+    tier: "3",
+    pattern: /^CHECKPOINT LANGUAGE/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → CHECKPOINT LANGUAGE" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "first-session",
+    label: "First Session",
+    tier: "3",
+    pattern: /^FIRST SESSION$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST SESSION" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  // Dynamic context blocks
+  {
+    id: "confirmed-manual",
+    label: "Confirmed Manual",
+    tier: "dynamic",
+    pattern: /^(?:CONFIRMED MANUAL|NO CONFIRMED ENTRIES)/m,
+    source: { file: "manual-context.ts", symbol: "prepareManualContext" },
+    conditionFn: () => ({ type: "dynamic", label: "Dynamic: appended at runtime" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "session-context",
+    label: "Session Context",
+    tier: "dynamic",
+    pattern: /^SESSION CONTEXT$/m,
+    source: { file: "system-prompt.ts", symbol: "buildSystemPrompt → session context" },
+    conditionFn: () => ({ type: "state", label: "State: returning user" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "extraction-brief",
+    label: "Extraction Brief",
+    tier: "dynamic",
+    pattern: /^EXTRACTION BRIEF/m,
+    source: { file: "system-prompt.ts", symbol: "buildSystemPrompt → extractionContext" },
+    conditionFn: () => ({ type: "dynamic", label: "Dynamic: appended at runtime" }),
+    alternativesFn: () => [],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+// ---------------------------------------------------------------------------
+// Parser — split a rendered prompt into labeled sections
+// ---------------------------------------------------------------------------
+
+export function parsePromptSections(
+  promptText: string,
+  modes: PersonaMode[],
+  convMode: ConvMode,
+  altTokenCache: Map<string, number>,
+): PromptSection[] {
+  const lines = promptText.split("\n");
+  const matches: { def: SectionDef; lineIndex: number }[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    for (const def of SECTION_DEFS) {
+      if (def.pattern.test(line)) {
+        // "VOICE" appearing inside "VOICE RULES" — skip if next word is RULES
+        if (def.id === "tier2-voice" && /^VOICE RULES/.test(line)) continue;
+        matches.push({ def, lineIndex: i });
+        break;
+      }
+    }
+  }
+
+  const sections: PromptSection[] = [];
+
+  for (let m = 0; m < matches.length; m++) {
+    const { def, lineIndex } = matches[m];
+    const nextLineIndex = m + 1 < matches.length ? matches[m + 1].lineIndex : lines.length;
+    const text = lines.slice(lineIndex, nextLineIndex).join("\n").trimEnd();
+
+    const label =
+      def.id === "tier2-voice"
+        ? `Tier 2 · Voice (${personaLabel(modes)})`
+        : def.label;
+
+    sections.push({
+      id: def.id,
+      label,
+      tier: def.tier,
+      text,
+      tokens: estimateTokens(text),
+      condition: def.conditionFn(modes, convMode),
+      source: def.source,
+      alternatives: def.alternativesFn(modes, convMode, altTokenCache),
+    });
+  }
+
+  return sections;
+}
+
+// ---------------------------------------------------------------------------
+// Phase builder — construct the four lifecycle phases
+// ---------------------------------------------------------------------------
+
+interface MockManualEntry {
+  id: string;
+  layer: number;
+  name: string;
+  content: string;
+  summary: string | null;
+  key_words: string[] | null;
+  conversation_id: string;
+  created_at: string;
+}
+
+const MOCK_ENTRIES: MockManualEntry[] = [
+  {
+    id: "mock-1",
+    layer: 1,
+    name: "Voice Goes When Pressure Lands",
+    content:
+      "When someone needs an answer and the room is watching, a second version takes over. The real one goes quiet. The voice flattens. The hands get heavy. The answer was there a minute ago but now it is gone.",
+    summary: "Under pressure, voice flattens and real self retreats while a performing version takes over.",
+    key_words: ["pressure", "voice", "performing", "shutdown"],
+    conversation_id: "mock-conv-old",
+    created_at: "2026-04-01T10:00:00Z",
+  },
+  {
+    id: "mock-2",
+    layer: 2,
+    name: "The Absorber Pattern",
+    content:
+      "In close relationships, the first move is always to absorb. Someone else's stress becomes your project. The body tenses before the mind registers why. By the time the conversation ends, their weight is yours and yours hasn't been named.",
+    summary: "Absorbs others' stress automatically; body registers before mind catches up.",
+    key_words: ["absorbing", "stress", "body", "relationships"],
+    conversation_id: "mock-conv-old",
+    created_at: "2026-04-02T10:00:00Z",
+  },
+  {
+    id: "mock-3",
+    layer: 3,
+    name: "Rehearsal Loop Before Hard Conversations",
+    content:
+      "Before any conversation where the stakes feel high, there is a rehearsal loop. Hours of running every version. By the time the actual conversation happens, every word has been pre-tested. The cost is exhaustion before it starts.",
+    summary: "Rehearses high-stakes conversations for hours; arrives exhausted before they begin.",
+    key_words: ["rehearsal", "conversations", "exhaustion", "stakes"],
+    conversation_id: "mock-conv-recent",
+    created_at: "2026-05-10T10:00:00Z",
+  },
+];
+
+interface PhaseConfig {
+  id: string;
+  label: string;
+  description: string;
+  options: Partial<BuildPromptOptions>;
+}
+
+function buildPhaseConfigs(): PhaseConfig[] {
+  return [
+    {
+      id: "phase-1",
+      label: "Phase 1 — Brand New Account",
+      description: "First turn, first session. No manual entries. User just signed up.",
+      options: {
+        manualComponents: [],
+        currentConversationId: "conv-1",
+        isReturningUser: false,
+        sessionSummary: null,
+        extractionContext: "",
+        isFirstCheckpoint: false,
+        turnCount: 1,
+        checkpointApproaching: false,
+      },
+    },
+    {
+      id: "phase-2",
+      label: "Phase 2 — Approaching First Checkpoint",
+      description: "Still first session. Conversation is deep enough for a checkpoint.",
+      options: {
+        manualComponents: [],
+        currentConversationId: "conv-1",
+        isReturningUser: false,
+        sessionSummary: null,
+        extractionContext:
+          "\nEXTRACTION BRIEF\nThere is enough material to reflect a piece back. The user has walked through a concrete scene, named a mechanism, and used charged language. A checkpoint is approaching.\n",
+        isFirstCheckpoint: true,
+        turnCount: 8,
+        checkpointApproaching: true,
+      },
+    },
+    {
+      id: "phase-3",
+      label: "Phase 3 — Returning User",
+      description: "Days later. User comes back with confirmed entries in the manual.",
+      options: {
+        manualComponents: MOCK_ENTRIES,
+        currentConversationId: "mock-conv-recent",
+        isReturningUser: true,
+        sessionSummary:
+          "Explored the pressure-to-perform pattern at work. Named the voice-goes-flat moment. Confirmed one entry on Layer 1.",
+        extractionContext: "",
+        isFirstCheckpoint: false,
+        sessionCount: 3,
+        turnCount: 1,
+        checkpointApproaching: false,
+      },
+    },
+    {
+      id: "phase-4",
+      label: "Phase 4 — Returning, Approaching Checkpoint",
+      description: "Same returning user, conversation has deepened to checkpoint territory.",
+      options: {
+        manualComponents: MOCK_ENTRIES,
+        currentConversationId: "mock-conv-recent",
+        isReturningUser: true,
+        sessionSummary:
+          "Explored the pressure-to-perform pattern at work. Named the voice-goes-flat moment. Confirmed one entry on Layer 1.",
+        extractionContext:
+          "\nEXTRACTION BRIEF\nThe user has walked through a new scene involving a family dynamic. Body language surfaced: jaw tightening, chest pressure. The bind is visible: protecting the relationship by absorbing, but the cost is losing their own position. Checkpoint approaching.\n",
+        isFirstCheckpoint: false,
+        sessionCount: 3,
+        turnCount: 10,
+        checkpointApproaching: true,
+      },
+    },
+  ];
+}
+
+export function buildAllPhases(
+  personaModes: PersonaMode[],
+  convMode: ConvMode,
+): PhaseData[] {
+  const configs = buildPhaseConfigs();
+  const altTokenCache = new Map<string, number>();
+  const phases: PhaseData[] = [];
+  let prevSectionIds: Set<string> | null = null;
+  let prevTotalTokens = 0;
+
+  for (const config of configs) {
+    const prompt = buildSystemPrompt({
+      ...config.options,
+      mode: convMode,
+      personaModes,
+    } as BuildPromptOptions);
+
+    const sections = parsePromptSections(prompt, personaModes, convMode, altTokenCache);
+    const totalTokens = sections.reduce((sum, s) => sum + s.tokens, 0);
+    const currentIds = new Set(sections.map((s) => s.id));
+
+    const changes: string[] = [];
+    let deltaTokens: number | null = null;
+    let deltaBlocks: number | null = null;
+
+    if (prevSectionIds) {
+      deltaTokens = totalTokens - prevTotalTokens;
+      deltaBlocks = currentIds.size - prevSectionIds.size;
+      const currentArr = sections.map((s) => s.id);
+      const prevArr = Array.from(prevSectionIds);
+      for (const id of currentArr) {
+        if (!prevSectionIds.has(id)) {
+          const sec = sections.find((s) => s.id === id);
+          changes.push(`+ ${sec?.label ?? id}`);
+        }
+      }
+      for (const id of prevArr) {
+        if (!currentIds.has(id)) {
+          const def = SECTION_DEFS.find((d) => d.id === id);
+          changes.push(`− ${def?.label ?? id}`);
+        }
+      }
+    }
+
+    phases.push({
+      id: config.id,
+      label: config.label,
+      description: config.description,
+      sections,
+      totalTokens,
+      deltaTokens,
+      deltaBlocks,
+      changes,
+    });
+
+    prevSectionIds = currentIds;
+    prevTotalTokens = totalTokens;
+  }
+
+  return phases;
+}

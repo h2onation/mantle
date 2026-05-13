@@ -217,6 +217,21 @@ function AdminPageInner() {
           >
             Docs
           </Link>
+          <Link
+            href="/admin/prompt-architecture"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--session-ink-ghost)",
+              background: "none",
+              borderRadius: 6,
+              padding: "8px 12px",
+              textDecoration: "none",
+            }}
+          >
+            Prompt Architecture
+          </Link>
           <div style={{ flex: 1 }} />
           <a
             href="/"
