@@ -38,6 +38,9 @@ function makeExtractionState(
     next_prompt: "",
     sage_brief: "",
     emerging_pattern_snippet: null,
+    pattern_engaged: false,
+    user_named_cost: false,
+    user_named_stance: false,
     ...overrides,
   };
 }
@@ -66,6 +69,7 @@ describe("validateMaterialQuality", () => {
 
   it("requires 2 scenes for the standard gate", () => {
     const state = makeExtractionState({
+      pattern_engaged: true,
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: true,
@@ -81,6 +85,7 @@ describe("validateMaterialQuality", () => {
 
   it("requires 1 scene for the first-checkpoint gate", () => {
     const state = makeExtractionState({
+      pattern_engaged: true,
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: true,
@@ -109,6 +114,7 @@ describe("validateMaterialQuality", () => {
 
   it("standard gate passes when all four criteria are met", () => {
     const state = makeExtractionState({
+      pattern_engaged: true,
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,
@@ -189,6 +195,7 @@ describe("applyCheckpointGates with material quality", () => {
 
   it("permits the checkpoint when extraction state confirms quality", () => {
     const state = makeExtractionState({
+      pattern_engaged: true,
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,
@@ -209,6 +216,7 @@ describe("applyCheckpointGates with material quality", () => {
 
   it("still applies the turn-count gate after material quality passes", () => {
     const state = makeExtractionState({
+      pattern_engaged: true,
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,

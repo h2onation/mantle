@@ -5,6 +5,7 @@ export interface Entry {
   id: string;
   name: string;
   body: string;
+  soWhat?: string | null;
 }
 
 export interface Layer {
@@ -32,6 +33,7 @@ export function buildLayers(entries: ManualEntry[]): Layer[] {
         id: e.id || `entry-${def.id}-${e.name ?? e.content.slice(0, 20)}`,
         name: e.name || "Untitled",
         body: e.content,
+        soWhat: e.so_what,
       }));
 
     return {

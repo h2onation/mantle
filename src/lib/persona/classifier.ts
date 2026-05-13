@@ -59,15 +59,25 @@ export async function classifyResponse(
 ): Promise<ClassificationResult> {
   try {
     const checkpointThreshold = isFirstSession
-      ? `A checkpoint is a sustained reflection (usually 60+ words for first-session users) where ${PERSONA_NAME} proposes an entry for the user's Manual. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). For first-session users, a well-formed single observation with one concrete example qualifies as a checkpoint. Short observations, mid-conversation reflections, questions, transitions, and post-checkpoint acknowledgements are NOT checkpoints.`
-      : `A checkpoint is a sustained reflection (usually 100+ words) where ${PERSONA_NAME} proposes an entry for the user's Manual. It traces behavior using the user's own words and specific examples. It typically ends by offering a name and asking for validation ("Does that fit?" or "What would you change?"). Short observations, mid-conversation reflections, questions, transitions, and post-checkpoint acknowledgements are NOT checkpoints.`;
+      ? `For first-session users, a well-formed single observation with one concrete example qualifies if the transition line is present. Short observations, mid-conversation reflections, questions, transitions, and post-checkpoint acknowledgements are NOT checkpoints.`
+      : `Short observations, mid-conversation reflections, questions, transitions, and post-checkpoint acknowledgements are NOT checkpoints.`;
 
     const response = await anthropicFetch({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       system: `You analyze messages from a conversational AI called ${PERSONA_NAME} that builds Manuals. Two jobs:
 
-1. CHECKPOINT DETECTION: Is this message a checkpoint? ${checkpointThreshold}
+1. CHECKPOINT DETECTION: Is this message a checkpoint?
+
+A checkpoint REQUIRES ALL of:
+- The pinned transition line: "I want to put something in your Manual" (or a minor variant like "I want to put this in your Manual"). This line is the contract with the user. Without it, the message is NOT a checkpoint regardless of how reflective it is.
+- A sustained reflection (usually 80+ words) that traces behavior using the user's own words and specific examples.
+- A proposed headline name (4-8 words).
+- An open validation question at the end ("What would you change or sharpen?" or equivalent).
+
+If the message contains a sustained reflection or observation but LACKS the pinned transition line, it is NOT a checkpoint. It is a naming move. Mark is_checkpoint: false.
+
+${checkpointThreshold}
 
 2. PROCESSING TEXT: Generate a short phrase (5-12 words) representing what ${PERSONA_NAME} is currently tracking. Should sound like internal notes. Examples: "trust patterns... conditional, earned not given" or "the shutdown is protection, not avoidance" or "seeing a loop forming around control and withdrawal"
 

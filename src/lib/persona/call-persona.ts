@@ -494,7 +494,8 @@ export function callPersona({
             manualComponents,
             turnsSinceCheckpoint,
             previousExtraction,
-            isFirstCheckpoint
+            isFirstCheckpoint,
+            turnCount
           );
           isCheckpoint = gateResult.isCheckpoint;
           checkpointLayer = gateResult.layer;
@@ -514,6 +515,7 @@ export function callPersona({
         //      composition rules — they live in confirm-checkpoint.ts.
         let composedEntry: {
           content: string;
+          so_what: string | null;
           name: string;
           changelog: string;
           summary: string;
@@ -659,6 +661,7 @@ export function callPersona({
               // their Manual on confirm. Falls back to the assistant
               // message content when composition didn't run.
               composed_content: composedEntry?.content || null,
+              composed_so_what: composedEntry?.so_what || null,
             }
           : null;
 

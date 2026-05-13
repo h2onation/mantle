@@ -58,6 +58,7 @@ export interface CheckpointMeta {
   name: string | null;
   status: "pending";
   composed_content: string | null;
+  composed_so_what: string | null;
   composed_name: string | null;
   changelog: string | null;
   composed_summary: string | null;
@@ -97,7 +98,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("manual_entries")
-      .select("layer, name, content, summary, key_words, created_at, source_message_id")
+      .select("layer, name, content, so_what, summary, key_words, created_at, source_message_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: true }),
     admin
@@ -148,6 +149,7 @@ export async function loadConversationContext(
     layer: number;
     name: string | null;
     content: string;
+    so_what: string | null;
     summary: string | null;
     key_words: string[] | null;
     created_at: string | null;
@@ -175,6 +177,7 @@ export async function loadConversationContext(
     layer: e.layer,
     name: e.name,
     content: e.content,
+    so_what: e.so_what,
     summary: e.summary,
     key_words: e.key_words,
     created_at: e.created_at || undefined,
@@ -409,7 +412,8 @@ export function handleCrisisDetection(
  */
 export function validateMaterialQuality(
   extractionState: ExtractionState | null,
-  isFirstCheckpoint: boolean
+  isFirstCheckpoint: boolean,
+  turnCount?: number
 ): { ok: boolean; reasons: string[] } {
   if (!extractionState) {
     return { ok: true, reasons: [] };
@@ -418,6 +422,21 @@ export function validateMaterialQuality(
   const cf = extractionState.clinical_flag;
   if (cf?.active && cf.level === "crisis") {
     return { ok: false, reasons: ["crisis active — checkpoint blocked"] };
+  }
+
+  // Phase gate: pattern must be engaged before checkpoint can fire.
+  // Override at turn 12+: if extraction missed the engagement signal
+  // but material quality is otherwise strong, allow the checkpoint.
+  if (!extractionState.pattern_engaged) {
+    if (turnCount === undefined || turnCount < 12) {
+      return { ok: false, reasons: ["pattern not yet engaged in conversation"] };
+    }
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        "[persona-pipeline] pattern_engaged override at turn %d",
+        turnCount
+      );
+    }
   }
 
   const gate = extractionState.checkpoint_gate;
@@ -447,7 +466,7 @@ export function validateMaterialQuality(
 /**
  * Apply material-quality gate and turn-count suppression to a detected checkpoint.
  *
- * Rule 1: Material quality must meet the gate (validateMaterialQuality).
+ * Rule 1: Pattern engagement + material quality (validateMaterialQuality).
  * Rule 2: Suppress if fewer than 5 user turns since last checkpoint.
  */
 export function applyCheckpointGates(
@@ -455,7 +474,8 @@ export function applyCheckpointGates(
   _manualComponents: ManualEntry[],
   turnsSinceCheckpoint: number,
   extractionState?: ExtractionState | null,
-  isFirstCheckpoint?: boolean
+  isFirstCheckpoint?: boolean,
+  turnCount?: number
 ): CheckpointGateResult {
   void _manualComponents;
   if (!manualEntry) {
@@ -464,11 +484,12 @@ export function applyCheckpointGates(
 
   const { layer, name } = manualEntry;
 
-  // Rule 1: material-quality pre-emit gate (silent, server-side)
+  // Rule 1: pattern engagement + material-quality pre-emit gate
   if (extractionState !== undefined) {
     const quality = validateMaterialQuality(
       extractionState ?? null,
-      isFirstCheckpoint ?? false
+      isFirstCheckpoint ?? false,
+      turnCount
     );
     if (!quality.ok) {
       if (process.env.NODE_ENV !== "production") {
@@ -714,6 +735,7 @@ export function buildCheckpointMeta(
   gateResult: CheckpointGateResult,
   composedEntry: {
     content: string;
+    so_what?: string | null;
     name: string;
     changelog: string;
     summary?: string;
@@ -726,6 +748,7 @@ export function buildCheckpointMeta(
     name: composedEntry?.name || gateResult.name,
     status: "pending",
     composed_content: composedEntry?.content || null,
+    composed_so_what: composedEntry?.so_what || null,
     composed_name: composedEntry?.name || null,
     changelog: composedEntry?.changelog || null,
     composed_summary: composedEntry?.summary || null,

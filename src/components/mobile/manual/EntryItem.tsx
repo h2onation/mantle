@@ -90,6 +90,23 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
           }}
         >
           {entry.body}
+          {entry.soWhat && (
+            <div
+              style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: "1px solid var(--session-hair-soft)",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 14,
+                fontWeight: 400,
+                lineHeight: 1.6,
+                color: "var(--session-ink-mid)",
+                fontStyle: "italic",
+              }}
+            >
+              {entry.soWhat}
+            </div>
+          )}
         </div>
       )}
 
