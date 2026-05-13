@@ -170,11 +170,6 @@ export default function MainApp() {
     confirmedEntries,
     firstName,
     initialized,
-    isNewUser,
-    firstSessionCompleted,
-    sessionOrigin,
-    sessionSummary,
-    lastSessionDate,
     userEmail,
     errorMessage,
     checkpointError,
@@ -399,9 +394,6 @@ export default function MainApp() {
             conversationId={conversationId}
             isLoading={isLoading}
             isStreaming={isStreaming}
-            isNewUser={isNewUser}
-            sessionSummary={sessionSummary}
-            lastSessionDate={lastSessionDate}
             confirmedEntries={confirmedEntries}
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
@@ -414,8 +406,6 @@ export default function MainApp() {
             startUpload={startUpload}
             isGuest={isGuest}
             onSignInPrompt={handleSignInPrompt}
-            firstSessionCompleted={firstSessionCompleted}
-            sessionOrigin={sessionOrigin}
             modalProgress={modalState?.modalProgress ?? null}
             signupAtMs={modalState?.signupAtMs ?? null}
             isAnonymous={modalState?.isAnonymous ?? false}

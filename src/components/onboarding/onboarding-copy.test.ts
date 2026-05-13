@@ -182,8 +182,11 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).toContain("Navigate a situation");
       expect(src).toContain("Guided intake");
       expect(src).toContain("Upload");
-      expect(src).not.toContain("I have a situation I want to work through");
       expect(src).not.toContain("I just need to think out loud");
+    });
+
+    it("sends a kickstart message when Navigate a situation is tapped", () => {
+      expect(src).toContain('sendMessage("I have a situation I want to work through")');
     });
 
     it("does NOT contain the old welcome-prose block", () => {
