@@ -393,7 +393,17 @@ export function useChat() {
       console.error("[useChat] Failed to load conversations:", err);
     }
 
-    if (allConversations.length > 0) {
+    // If the user clicked "New session" before this refresh, honour
+    // that intent instead of restoring the most-recent conversation.
+    let pendingNewSession = false;
+    try {
+      if (sessionStorage.getItem("mw_new_session")) {
+        pendingNewSession = true;
+        sessionStorage.removeItem("mw_new_session");
+      }
+    } catch {}
+
+    if (allConversations.length > 0 && !pendingNewSession) {
       setSessionOrigin("existing");
       const latest = allConversations[0];
       setConversationId(latest.id);
@@ -447,6 +457,13 @@ export function useChat() {
         }
         setInitialized(true);
       }
+    } else if (pendingNewSession) {
+      // Returning user who clicked "New session" before this refresh.
+      // Load manual so the greeting knows they're returning, but don't
+      // restore any conversation.
+      setSessionOrigin("new");
+      await loadManual();
+      setInitialized(true);
     } else {
       // Brand new user — let MainApp decide whether to show onboarding
       setIsNewUser(true);
@@ -902,6 +919,10 @@ export function useChat() {
     setActiveCheckpoint(null);
     setErrorMessage(null);
     setCheckpointError(null);
+
+    // Persist intent so a page refresh stays on the new-session screen
+    // instead of reloading the most recent conversation.
+    try { sessionStorage.setItem("mw_new_session", "1"); } catch {}
 
     // Refresh conversation list
     await refreshConversations();

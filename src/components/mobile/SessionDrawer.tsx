@@ -167,15 +167,8 @@ export default function SessionDrawer({
             walnut-border, same padding, same type scale. */}
         <div style={{ margin: "16px 18px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
           <PrimaryPill
-            icon="+"
-            label="New session"
-            iconColor="var(--session-walnut)"
-            isActive={false}
-            onClick={handleNewSession}
-          />
-          <PrimaryPill
             icon="❦"
-            label="Read my Manual"
+            label="My Manual"
             iconColor="var(--session-walnut)"
             count={
               manualEntryCount > 0
@@ -184,6 +177,13 @@ export default function SessionDrawer({
             }
             isActive={activeView === "manual"}
             onClick={handleNavigateToManual}
+          />
+          <PrimaryPill
+            icon="+"
+            label="New session"
+            iconColor="var(--session-walnut)"
+            isActive={false}
+            onClick={handleNewSession}
           />
         </div>
 

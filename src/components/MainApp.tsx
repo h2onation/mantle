@@ -422,7 +422,7 @@ export default function MainApp() {
             emergingPatternSnippet={emergingPatternSnippet}
             hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
             concreteExamples={concreteExamples}
-            displayName={displayName}
+            displayName={firstName}
             onOpenDrawer={handleOpenDrawer}
             currentExploration={currentExploration}
             onDismissExploration={() => setCurrentExploration(null)}
