@@ -328,16 +328,26 @@ describe("buildSystemPrompt", () => {
       expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
     });
 
-    it("instructs not to introduce by name or explain layers on turn 1", () => {
+    it("instructs to introduce by name on first message, not explain layers", () => {
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      expect(result).toContain("Do not introduce yourself by name");
+      expect(result).toContain("Introduce yourself by name on your very first message");
       expect(result).toContain(
         "Do not explain checkpoints, Manual structure, or the five layers on turn 1"
       );
+    });
+
+    it("instructs returning users not to introduce by name", () => {
+      const result = build({
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        isReturningUser: true,
+        turnCount: 1,
+      });
+      expect(result).toContain("Do not introduce yourself by name");
+      expect(result).toContain("the user already knows who you are");
     });
 
     it("instructs never to claim objectivity", () => {

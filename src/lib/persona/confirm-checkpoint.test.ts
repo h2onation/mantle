@@ -316,6 +316,75 @@ describe("confirmCheckpoint", () => {
     expect(args!.p_summary).toBe("First sentence here.");
   });
 
+  it("passes composed_so_what to the RPC when present", async () => {
+    tableResponses.messages = {
+      data: {
+        content: "text",
+        checkpoint_meta: {
+          ...pendingMessage.checkpoint_meta,
+          composed_so_what: "I need people to ask once and wait.",
+        },
+      },
+      error: null,
+    };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint(baseOptions);
+
+    const args = rpcArgs();
+    expect(args!.p_so_what).toBe("I need people to ask once and wait.");
+  });
+
+  it("passes null for so_what when composed_so_what is missing", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint(baseOptions);
+
+    const args = rpcArgs();
+    expect(args!.p_so_what).toBeNull();
+  });
+
+  it("uses editedContent over composed_content when edits are provided", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint({
+      ...baseOptions,
+      editedContent: "My edited version of the entry.",
+    });
+
+    const args = rpcArgs();
+    expect(args!.p_content).toBe("My edited version of the entry.");
+    expect(args!.p_summary).toBe("My edited version of the entry.");
+    expect(args!.p_key_words).toBeNull();
+  });
+
+  it("uses editedName over composed_name when edits are provided", async () => {
+    tableResponses.messages = { data: pendingMessage, error: null };
+    rpcResponse = {
+      data: [{ entry_id: "entry-1", was_already_confirmed: false }],
+      error: null,
+    };
+
+    await confirmCheckpoint({
+      ...baseOptions,
+      editedName: "My Custom Title",
+    });
+
+    const args = rpcArgs();
+    expect(args!.p_name).toBe("My Custom Title");
+  });
+
   it("passes null for key_words when composed_key_words is empty or missing", async () => {
     tableResponses.messages = {
       data: {
