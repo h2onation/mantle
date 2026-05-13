@@ -47,18 +47,9 @@ export async function POST(request: Request) {
 
     const summary = await generateSessionSummary(conversationId, admin);
 
-    if (summary === null) {
-      await recordApiError({
-        admin,
-        route: "/api/session/summary",
-        method: "POST",
-        statusCode: 500,
-        error: new Error("generateSessionSummary returned null"),
-        userId: capturedUserId,
-      });
-      return Response.json({ error: "Failed to generate summary" }, { status: 500 });
-    }
-
+    // null means either no messages (expected for new conversations) or
+    // a transient Anthropic failure. Either way the client treats a
+    // missing summary gracefully — don't pollute the error dashboard.
     return Response.json({ summary });
   } catch (err) {
     await recordApiError({

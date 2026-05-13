@@ -197,6 +197,7 @@ export default function MainApp() {
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
+    displayName,
   } = useChat();
 
   // When promptAuth fires, clear any previous dismiss so modal shows
@@ -466,6 +467,10 @@ export default function MainApp() {
         onNavigateToManual={handleNavigateToManual}
         onNavigateToSettings={handleNavigateToSettings}
         onNavigateToCrisis={handleNavigateToCrisis}
+        onLogout={async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
+          window.location.href = "/login";
+        }}
       />
 
       {/* Exploration interstitial overlay */}

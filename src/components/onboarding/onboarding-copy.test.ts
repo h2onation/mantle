@@ -25,14 +25,10 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).toContain("{PERSONA_NAME}");
     });
 
-    it("uses 'Begin' as the primary CTA", () => {
-      expect(src).toContain("Begin");
-      expect(src).toContain("onBegin");
-    });
-
-    it("uses 'Already have access? Sign in' as secondary", () => {
-      expect(src).toContain("Already have access?");
+    it("uses 'Sign in' as the primary CTA (closed beta)", () => {
       expect(src).toContain("Sign in");
+      expect(src).toContain("onLogin");
+      expect(src).not.toContain("Already have access?");
     });
 
     it("includes privacy and terms links", () => {

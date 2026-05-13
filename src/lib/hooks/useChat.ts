@@ -79,6 +79,7 @@ export function useChat() {
   // full "First Last" but every UI surface that addresses the user
   // (PDF export header/title, future greetings) reads from here.
   const [firstName, setFirstName] = useState("");
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [sessionSummary, setSessionSummary] = useState<string | null>(null);
@@ -129,7 +130,10 @@ export function useChat() {
       if (res.ok) {
         const data = await res.json();
         setConfirmedEntries(data.components || []);
-        if (data.displayName) setFirstName(firstNameFrom(data.displayName));
+        if (data.displayName) {
+          setDisplayName(data.displayName);
+          setFirstName(firstNameFrom(data.displayName));
+        }
       }
     } catch (err) {
       console.error("[useChat] Failed to load manual:", err);
@@ -865,7 +869,7 @@ export function useChat() {
   async function startNewSession() {
     if (isLoading || isStreaming) return;
 
-    // Complete current conversation if one exists
+    // Complete current conversation fire-and-forget (don't block UI)
     if (conversationId) {
       const durationSeconds = conversationStartedAt.current
         ? Math.round((Date.now() - conversationStartedAt.current) / 1000)
@@ -878,19 +882,13 @@ export function useChat() {
         mode: conversationMode.current,
       });
       conversationStartedAt.current = null;
-      // Reset for the next conversation. The new conversation's
-      // mode is set on the first message_complete it produces.
       conversationMode.current = "situation";
 
-      try {
-        await fetch("/api/conversations/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId }),
-        });
-      } catch {
-        // Continue anyway
-      }
+      fetch("/api/conversations/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      }).catch(() => {});
     }
 
     // Reset state for new session
@@ -903,8 +901,8 @@ export function useChat() {
     setErrorMessage(null);
     setCheckpointError(null);
 
-    // Refresh conversation list
-    await refreshConversations();
+    // Refresh conversation list in background
+    refreshConversations();
   }
 
   async function startExploration(context: ExplorationContext): Promise<boolean> {
@@ -1145,6 +1143,7 @@ export function useChat() {
     startUpload,
     refreshConversations,
     loadManual,
+    displayName,
     // Modal 2 trigger inputs — refreshed on every message_complete.
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
