@@ -1,6 +1,14 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import type {
   PhaseData,
@@ -29,29 +37,55 @@ const CONV_MODE_OPTIONS: { id: ConvMode; label: string }[] = [
   { id: "upload", label: "Upload" },
 ];
 
-const TIER_COLORS: Record<Tier, string> = {
-  intro: "rgba(100, 140, 200, 0.7)",
-  "1": "rgba(140, 100, 70, 0.7)",
-  "2": "rgba(196, 154, 60, 0.7)",
-  "3": "rgba(90, 138, 106, 0.7)",
-  dynamic: "rgba(120, 100, 160, 0.7)",
+const TIER_LABELS: Record<Tier, string> = {
+  intro: "Introduction",
+  "1": "Tier 1",
+  "2": "Tier 2",
+  "3": "Tier 3",
+  dynamic: "Dynamic",
 };
 
-const TIER_BG: Record<Tier, string> = {
-  intro: "rgba(100, 140, 200, 0.06)",
-  "1": "rgba(140, 100, 70, 0.06)",
-  "2": "rgba(196, 154, 60, 0.06)",
-  "3": "rgba(90, 138, 106, 0.06)",
-  dynamic: "rgba(120, 100, 160, 0.06)",
-};
+// ---------------------------------------------------------------------------
+// Absent section — sections present in other phases but not this one
+// ---------------------------------------------------------------------------
 
-const CONDITION_COLORS: Record<ConditionType, string> = {
-  always: "rgba(120, 120, 120, 0.55)",
-  persona: "rgba(196, 154, 60, 0.75)",
-  state: "rgba(90, 138, 106, 0.75)",
-  "conv-mode": "rgba(100, 140, 200, 0.75)",
-  dynamic: "rgba(120, 100, 160, 0.75)",
-};
+interface AbsentSection {
+  id: string;
+  label: string;
+  tier: Tier;
+  presentIn: string[];
+  condition: { type: ConditionType; label: string };
+}
+
+function computeAbsentSections(
+  currentPhase: PhaseData,
+  allPhases: PhaseData[],
+): AbsentSection[] {
+  const currentIds = new Set(currentPhase.sections.map((s) => s.id));
+  const absent: AbsentSection[] = [];
+  const seen = new Set<string>();
+
+  for (const phase of allPhases) {
+    if (phase.id === currentPhase.id) continue;
+    for (const section of phase.sections) {
+      if (!currentIds.has(section.id) && !seen.has(section.id)) {
+        seen.add(section.id);
+        const presentIn = allPhases
+          .filter((p) => p.sections.some((s) => s.id === section.id))
+          .map((p) => p.label.replace(/^Phase \d+ — /, ""));
+        absent.push({
+          id: section.id,
+          label: section.label,
+          tier: section.tier,
+          presentIn,
+          condition: section.condition,
+        });
+      }
+    }
+  }
+
+  return absent;
+}
 
 // ---------------------------------------------------------------------------
 // Page wrapper
@@ -76,7 +110,9 @@ function PromptArchitectureInner() {
   const [phases, setPhases] = useState<PhaseData[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activePhase, setActivePhase] = useState<string | null>(null);
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const fetchData = useCallback(async (modes: PersonaMode[], cm: ConvMode) => {
     setLoading(true);
@@ -100,6 +136,12 @@ function PromptArchitectureInner() {
   useEffect(() => {
     if (isAdmin) fetchData(personaModes, convMode);
   }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (phases && phases.length > 0 && !activePhase) {
+      setActivePhase(phases[0].id);
+    }
+  }, [phases, activePhase]);
 
   function handlePersonaToggle(mode: PersonaMode) {
     let next: PersonaMode[];
@@ -126,175 +168,270 @@ function PromptArchitectureInner() {
   }
 
   function scrollToPhase(phaseId: string) {
-    phaseRefs.current[phaseId]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActivePhase(phaseId);
+    phaseRefs.current[phaseId]?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
 
   if (!isAdmin) {
     return (
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--size-meta)",
-          color: "var(--session-ink-ghost)",
-          letterSpacing: "1px",
-          padding: "80px 24px",
-          textAlign: "center",
-        }}
-      >
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "var(--size-meta)",
+        color: "var(--session-ink-ghost)",
+        letterSpacing: "1px",
+        padding: "80px 24px",
+        textAlign: "center",
+      }}>
         Not authorized.
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "var(--session-linen)",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* ── Sticky header ─────────────────────────────────────── */}
+      <header style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
         background: "var(--session-linen)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* ── Sticky header ─────────────────────────────────────────── */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 20,
-          background: "var(--session-linen)",
-          borderBottom: "1px solid var(--session-ink-hairline)",
-          padding: "16px 32px 12px",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 4 }}>
-          <h1
-            style={{
+        borderBottom: "1px solid var(--session-ink-hairline)",
+        padding: "20px 40px 16px",
+        flexShrink: 0,
+      }}>
+        {/* Title row */}
+        <div style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}>
+          <div>
+            <div style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              color: "var(--session-walnut-meta)",
+              marginBottom: 6,
+            }}>
+              System Prompt Reference
+            </div>
+            <h1 style={{
               fontFamily: "var(--font-spectral, var(--font-serif))",
-              fontSize: "20px",
-              fontWeight: 500,
+              fontSize: "26px",
+              fontWeight: 400,
+              fontStyle: "italic",
               color: "var(--session-ink)",
               margin: 0,
-            }}
-          >
-            Jove System Prompt Architecture
-          </h1>
+              letterSpacing: "-0.3px",
+            }}>
+              Jove Prompt Architecture
+            </h1>
+          </div>
           <a
             href="/admin"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
+              fontSize: "10px",
               color: "var(--session-ink-ghost)",
-              letterSpacing: "1px",
+              letterSpacing: "1.5px",
               textDecoration: "none",
+              textTransform: "uppercase",
+              padding: "6px 12px",
+              border: "1px solid var(--session-ink-hairline)",
+              borderRadius: 4,
             }}
           >
-            ← ADMIN
+            ← Admin
           </a>
         </div>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            color: "var(--session-ink-ghost)",
-            margin: "0 0 12px",
-            maxWidth: 640,
-            lineHeight: 1.5,
-          }}
-        >
-          Live rendering of the Jove system prompt across four lifecycle phases.
-          Every section imports directly from the source modules — no copy-pasted text.
-        </p>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
-          {/* Persona checkboxes */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={controlLabelStyle}>Persona</span>
+        {/* Controls row */}
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 24,
+          alignItems: "center",
+        }}>
+          {/* Persona */}
+          <ControlGroup label="Persona">
             {PERSONA_OPTIONS.map((p) => {
               const active = personaModes.includes(p.id);
               return (
-                <button
+                <ToggleChip
                   key={p.id}
+                  active={active}
                   onClick={() => handlePersonaToggle(p.id)}
-                  style={{
-                    ...chipStyle,
-                    background: active ? "rgba(196, 154, 60, 0.18)" : "transparent",
-                    color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
-                    borderColor: active ? "rgba(196, 154, 60, 0.4)" : "var(--session-ink-hairline)",
-                  }}
+                  accentVar="--session-walnut"
                 >
-                  {active && <span style={{ marginRight: 3 }}>✓</span>}
                   {p.label}
-                </button>
+                </ToggleChip>
               );
             })}
-          </div>
+          </ControlGroup>
 
-          {/* Conv mode radio */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={controlLabelStyle}>Mode</span>
+          {/* Conv mode */}
+          <ControlGroup label="Mode">
             {CONV_MODE_OPTIONS.map((cm) => {
               const active = convMode === cm.id;
               return (
-                <button
+                <ToggleChip
                   key={cm.id}
+                  active={active}
                   onClick={() => handleConvModeChange(cm.id)}
-                  style={{
-                    ...chipStyle,
-                    background: active ? "rgba(100, 140, 200, 0.15)" : "transparent",
-                    color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
-                    borderColor: active ? "rgba(100, 140, 200, 0.4)" : "var(--session-ink-hairline)",
-                  }}
+                  accentVar="--session-persona"
                 >
                   {cm.label}
-                </button>
+                </ToggleChip>
               );
             })}
-          </div>
+          </ControlGroup>
 
           {/* Phase nav */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
             {(phases ?? []).map((p, i) => (
               <button
                 key={p.id}
                 onClick={() => scrollToPhase(p.id)}
                 style={{
-                  ...chipStyle,
-                  fontSize: "10px",
-                  color: "var(--session-ink-ghost)",
-                  borderColor: "var(--session-ink-hairline)",
-                  background: "transparent",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  letterSpacing: "0.5px",
+                  color: activePhase === p.id
+                    ? "var(--session-ink)"
+                    : "var(--session-ink-ghost)",
+                  background: activePhase === p.id
+                    ? "var(--session-walnut-surface)"
+                    : "transparent",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "5px 10px",
+                  cursor: "pointer",
+                  fontWeight: activePhase === p.id ? 500 : 400,
                 }}
               >
-                Phase {i + 1}
+                {i + 1}
               </button>
             ))}
           </div>
         </div>
       </header>
 
-      {/* ── Scrollable body ───────────────────────────────────────── */}
+      {/* ── Scrollable body ───────────────────────────────────── */}
       <main
+        ref={scrollRef}
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "0 32px 80px",
+          padding: "0 40px 120px",
         }}
       >
         {loading && !phases && (
-          <div style={{ ...statusStyle, marginTop: 60 }}>Loading prompt data…</div>
+          <div style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            color: "var(--session-ink-ghost)",
+            textAlign: "center",
+            marginTop: 80,
+            letterSpacing: "1px",
+          }}>
+            Loading…
+          </div>
         )}
-        {error && <div style={{ ...statusStyle, marginTop: 60, color: "var(--session-error)" }}>Error: {error}</div>}
-        {phases && phases.map((phase) => (
-          <PhaseBlock
-            key={phase.id}
-            phase={phase}
-            ref={(el) => { phaseRefs.current[phase.id] = el; }}
-          />
-        ))}
+        {error && (
+          <div style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            color: "var(--session-error)",
+            textAlign: "center",
+            marginTop: 80,
+          }}>
+            Error: {error}
+          </div>
+        )}
+        {phases &&
+          phases.map((phase) => (
+            <PhaseBlock
+              key={phase.id}
+              phase={phase}
+              allPhases={phases}
+              ref={(el) => {
+                phaseRefs.current[phase.id] = el;
+              }}
+            />
+          ))}
       </main>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Control group + toggle chip
+// ---------------------------------------------------------------------------
+
+function ControlGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "10px",
+        letterSpacing: "2px",
+        textTransform: "uppercase",
+        color: "var(--session-ink-ghost)",
+        marginRight: 4,
+      }}>
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function ToggleChip({
+  active,
+  onClick,
+  accentVar,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  accentVar: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: "12px",
+        fontWeight: active ? 500 : 400,
+        color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
+        background: active ? `var(${accentVar}-surface, var(--session-walnut-surface))` : "transparent",
+        border: `1px solid ${active ? `var(${accentVar}-border, var(--session-walnut-border))` : "var(--session-ink-hairline)"}`,
+        borderRadius: 4,
+        padding: "4px 12px",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -302,38 +439,40 @@ function PromptArchitectureInner() {
 // Phase block
 // ---------------------------------------------------------------------------
 
-import { forwardRef } from "react";
+const PhaseBlock = forwardRef<
+  HTMLDivElement,
+  { phase: PhaseData; allPhases: PhaseData[] }
+>(function PhaseBlock({ phase, allPhases }, ref) {
+  const absentSections = useMemo(
+    () => computeAbsentSections(phase, allPhases),
+    [phase, allPhases],
+  );
 
-const PhaseBlock = forwardRef<HTMLDivElement, { phase: PhaseData }>(function PhaseBlock(
-  { phase },
-  ref,
-) {
   return (
-    <div
-      ref={ref}
-      style={{ marginTop: 40, scrollMarginTop: 180 }}
-    >
+    <div ref={ref} style={{ marginTop: 48, scrollMarginTop: 160 }}>
       {/* Phase heading */}
-      <div style={{ marginBottom: 16 }}>
-        <h2
-          style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontSize: "17px",
-            fontWeight: 500,
-            color: "var(--session-ink)",
-            margin: 0,
-          }}
-        >
+      <div style={{
+        borderBottom: "1px solid var(--session-ink-hairline)",
+        paddingBottom: 12,
+        marginBottom: 24,
+      }}>
+        <h2 style={{
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: "20px",
+          fontWeight: 400,
+          color: "var(--session-ink)",
+          margin: 0,
+          letterSpacing: "-0.2px",
+        }}>
           {phase.label}
         </h2>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            color: "var(--session-ink-ghost)",
-            margin: "4px 0 0",
-          }}
-        >
+        <p style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "13px",
+          color: "var(--session-ink-faded)",
+          margin: "6px 0 0",
+          lineHeight: 1.5,
+        }}>
           {phase.description}
         </p>
       </div>
@@ -343,6 +482,27 @@ const PhaseBlock = forwardRef<HTMLDivElement, { phase: PhaseData }>(function Pha
         <SectionRow key={section.id} section={section} />
       ))}
 
+      {/* Absent sections */}
+      {absentSections.length > 0 && (
+        <div style={{ marginTop: 20, marginBottom: 8 }}>
+          <div style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+            marginBottom: 10,
+            paddingTop: 12,
+            borderTop: "1px dashed var(--session-ink-hairline)",
+          }}>
+            Not active in this phase
+          </div>
+          {absentSections.map((abs) => (
+            <AbsentRow key={abs.id} section={abs} />
+          ))}
+        </div>
+      )}
+
       {/* Phase footer */}
       <PhaseFooter phase={phase} />
     </div>
@@ -350,75 +510,90 @@ const PhaseBlock = forwardRef<HTMLDivElement, { phase: PhaseData }>(function Pha
 });
 
 // ---------------------------------------------------------------------------
-// Section row — main column + margin
+// Section row — manuscript layout with margin annotations
 // ---------------------------------------------------------------------------
 
 function SectionRow({ section }: { section: PromptSection }) {
   const [expanded, setExpanded] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const previewLines = 3;
   const lines = section.text.split("\n");
-  const needsTruncation = lines.length > previewLines + 2;
+  const needsTruncation = lines.length > 5;
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          gap: 0,
-          marginBottom: 2,
-          borderLeft: `3px solid ${TIER_COLORS[section.tier]}`,
-          background: TIER_BG[section.tier],
-          borderRadius: "0 6px 6px 0",
-          minHeight: 48,
-        }}
-      >
-        {/* ── Main column ──────────────────────────────────────── */}
-        <div style={{ flex: "1 1 65%", padding: "12px 16px", minWidth: 0 }}>
-          <div
-            style={{
+      <div style={{
+        display: "flex",
+        gap: 0,
+        marginBottom: 1,
+      }}>
+        {/* Tier indicator — thin vertical rule */}
+        <div style={{
+          width: 3,
+          flexShrink: 0,
+          background: tierColor(section.tier),
+          borderRadius: "2px 0 0 2px",
+        }} />
+
+        {/* ── Main column ─────────────────────────────────────── */}
+        <div style={{
+          flex: "1 1 62%",
+          padding: "14px 20px 14px 16px",
+          minWidth: 0,
+          background: "var(--session-walnut-surface-soft)",
+        }}>
+          {/* Section header */}
+          <div style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 10,
+            marginBottom: 8,
+          }}>
+            <span style={{
               fontFamily: "var(--font-mono)",
               fontSize: "10px",
               letterSpacing: "1.5px",
               textTransform: "uppercase",
-              color: TIER_COLORS[section.tier],
-              marginBottom: 6,
+              color: tierColor(section.tier),
               fontWeight: 600,
-            }}
-          >
-            {section.label}
+            }}>
+              {section.label}
+            </span>
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              color: "var(--session-ink-ghost)",
+              letterSpacing: "0.5px",
+            }}>
+              {TIER_LABELS[section.tier]}
+            </span>
           </div>
 
+          {/* Prompt text */}
           <div style={{ position: "relative" }}>
-            <pre
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "12px",
-                lineHeight: 1.55,
-                color: "var(--session-ink)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                margin: 0,
-                maxHeight: expanded || !needsTruncation ? "none" : "4.7em",
-                overflow: "hidden",
-                opacity: 0.85,
-              }}
-            >
+            <pre style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              lineHeight: 1.65,
+              color: "var(--session-ink-soft)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              margin: 0,
+              maxHeight: expanded || !needsTruncation ? "none" : "5.5em",
+              overflow: "hidden",
+            }}>
               {section.text}
             </pre>
 
             {needsTruncation && !expanded && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 40,
-                  background: `linear-gradient(transparent, ${tierBgSolid(section.tier)})`,
-                  pointerEvents: "none",
-                }}
-              />
+              <div style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 48,
+                background: "linear-gradient(transparent, var(--session-linen))",
+                pointerEvents: "none",
+              }} />
             )}
           </div>
 
@@ -429,11 +604,11 @@ function SectionRow({ section }: { section: PromptSection }) {
                 fontFamily: "var(--font-mono)",
                 fontSize: "10px",
                 letterSpacing: "0.5px",
-                color: TIER_COLORS[section.tier],
+                color: "var(--session-walnut-meta)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: "4px 0 0",
+                padding: "6px 0 0",
               }}
             >
               {expanded ? "▴ Collapse" : "▾ Show full text"}
@@ -441,84 +616,34 @@ function SectionRow({ section }: { section: PromptSection }) {
           )}
         </div>
 
-        {/* ── Margin column ────────────────────────────────────── */}
-        <div
-          style={{
-            flex: "0 0 35%",
-            padding: "12px 14px",
-            borderLeft: "1px solid var(--session-ink-hairline)",
+        {/* ── Margin column ───────────────────────────────────── */}
+        <div style={{
+          flex: "0 0 280px",
+          padding: "14px 16px",
+          borderLeft: "1px solid var(--session-ink-hairline)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}>
+          {/* Token count + condition */}
+          <div style={{
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
             gap: 8,
-          }}
-        >
-          {/* Token count */}
-          <span
-            style={{
+            flexWrap: "wrap",
+          }}>
+            <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: "var(--session-ink-ghost)",
-              letterSpacing: "0.5px",
-            }}
-          >
-            ~{section.tokens.toLocaleString()} tokens
-          </span>
+              fontSize: "11px",
+              color: "var(--session-ink-faded)",
+              fontWeight: 500,
+            }}>
+              {section.tokens.toLocaleString()} tok
+            </span>
+            <ConditionPill condition={section.condition} />
+          </div>
 
-          {/* Condition pill */}
-          <span
-            style={{
-              display: "inline-block",
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.5px",
-              color: "#fff",
-              background: CONDITION_COLORS[section.condition.type],
-              borderRadius: 10,
-              padding: "2px 8px",
-              alignSelf: "flex-start",
-            }}
-          >
-            {section.condition.label}
-          </span>
-
-          {/* Alternatives */}
-          {section.alternatives.length > 0 && (
-            <div style={{ marginTop: 2 }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
-                  letterSpacing: "1px",
-                  textTransform: "uppercase",
-                  color: "var(--session-ink-ghost)",
-                  marginBottom: 3,
-                }}
-              >
-                Alternatives
-              </div>
-              {section.alternatives.map((alt, i) => (
-                <div
-                  key={i}
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "11px",
-                    color: "var(--session-ink-ghost)",
-                    lineHeight: 1.4,
-                    marginBottom: 2,
-                  }}
-                >
-                  {alt.label}
-                  {alt.tokens > 0 && (
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", marginLeft: 4 }}>
-                      ~{alt.tokens.toLocaleString()}t
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Info button */}
+          {/* Source reference */}
           <button
             onClick={() => setInfoOpen(true)}
             style={{
@@ -526,24 +651,144 @@ function SectionRow({ section }: { section: PromptSection }) {
               fontSize: "10px",
               color: "var(--session-ink-ghost)",
               background: "none",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: 4,
-              padding: "2px 8px",
+              border: "none",
               cursor: "pointer",
-              alignSelf: "flex-start",
-              marginTop: "auto",
+              padding: 0,
+              textAlign: "left",
+              textDecoration: "underline",
+              textDecorationColor: "var(--session-ink-hairline)",
+              textUnderlineOffset: "3px",
             }}
           >
-            ⓘ Info
+            {section.source.file}
           </button>
+
+          {/* Alternatives */}
+          {section.alternatives.length > 0 && (
+            <div>
+              <div style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "1.5px",
+                textTransform: "uppercase",
+                color: "var(--session-ink-ghost)",
+                marginBottom: 5,
+              }}>
+                Alternatives
+              </div>
+              {section.alternatives.map((alt, i) => (
+                <div key={i} style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "12px",
+                  color: "var(--session-ink-faded)",
+                  lineHeight: 1.4,
+                  marginBottom: 3,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}>
+                  <span>{alt.label}</span>
+                  {alt.tokens > 0 && (
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      color: "var(--session-ink-ghost)",
+                      flexShrink: 0,
+                    }}>
+                      {alt.tokens.toLocaleString()}t
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Info modal ─────────────────────────────────────────── */}
       {infoOpen && (
         <InfoModal section={section} onClose={() => setInfoOpen(false)} />
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Absent section row — ghosted entry for sections not in this phase
+// ---------------------------------------------------------------------------
+
+function AbsentRow({ section }: { section: AbsentSection }) {
+  return (
+    <div style={{
+      display: "flex",
+      gap: 0,
+      marginBottom: 1,
+      opacity: 0.45,
+    }}>
+      <div style={{
+        width: 3,
+        flexShrink: 0,
+        background: tierColor(section.tier),
+        borderRadius: "2px 0 0 2px",
+      }} />
+      <div style={{
+        flex: 1,
+        padding: "10px 20px 10px 16px",
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 12,
+        borderBottom: "1px dashed var(--session-ink-hairline)",
+      }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "1.5px",
+            textTransform: "uppercase",
+            color: tierColor(section.tier),
+          }}>
+            {section.label}
+          </span>
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            color: "var(--session-ink-ghost)",
+          }}>
+            {TIER_LABELS[section.tier]}
+          </span>
+        </div>
+        <div style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "11px",
+          color: "var(--session-ink-ghost)",
+          fontStyle: "italic",
+          textAlign: "right",
+          flexShrink: 0,
+        }}>
+          Active in: {section.presentIn.join(", ")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Condition pill
+// ---------------------------------------------------------------------------
+
+function ConditionPill({ condition }: { condition: { type: ConditionType; label: string } }) {
+  return (
+    <span style={{
+      fontFamily: "var(--font-mono)",
+      fontSize: "9px",
+      letterSpacing: "0.5px",
+      color: conditionColor(condition.type),
+      border: `1px solid ${conditionBorder(condition.type)}`,
+      borderRadius: 3,
+      padding: "1px 6px",
+    }}>
+      {condition.label}
+    </span>
   );
 }
 
@@ -558,6 +803,14 @@ function InfoModal({
   section: PromptSection;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <div
       onClick={onClose}
@@ -565,20 +818,20 @@ function InfoModal({
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "rgba(0,0,0,0.45)",
+        background: "rgba(0,0,0,0.4)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
+        padding: 32,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--session-linen)",
-          borderRadius: 10,
-          border: "1px solid var(--session-ink-hairline)",
-          maxWidth: 720,
+          borderRadius: 8,
+          border: "1px solid var(--session-walnut-border)",
+          maxWidth: 760,
           width: "100%",
           maxHeight: "80vh",
           display: "flex",
@@ -586,116 +839,105 @@ function InfoModal({
           overflow: "hidden",
         }}
       >
-        {/* Modal header */}
-        <div
-          style={{
-            padding: "16px 20px 12px",
-            borderBottom: "1px solid var(--session-ink-hairline)",
+        {/* Header */}
+        <div style={{
+          padding: "20px 24px 16px",
+          borderBottom: "1px solid var(--session-ink-hairline)",
+        }}>
+          <div style={{
             display: "flex",
-            alignItems: "baseline",
+            alignItems: "flex-start",
             justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <h3
-              style={{
+          }}>
+            <div>
+              <h3 style={{
                 fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "16px",
-                fontWeight: 500,
+                fontSize: "18px",
+                fontWeight: 400,
+                fontStyle: "italic",
                 color: "var(--session-ink)",
                 margin: 0,
+              }}>
+                {section.label}
+              </h3>
+              <div style={{
+                display: "flex",
+                gap: 16,
+                marginTop: 8,
+                alignItems: "center",
+              }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  color: "var(--session-ink-faded)",
+                }}>
+                  {section.source.file}
+                </span>
+                <span style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  color: "var(--session-ink-ghost)",
+                }}>
+                  → {section.source.symbol}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "16px",
+                color: "var(--session-ink-ghost)",
+                cursor: "pointer",
+                padding: "4px 8px",
               }}
             >
-              {section.label}
-            </h3>
-            <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  color: "var(--session-ink-ghost)",
-                }}
-              >
-                {section.source.file} → {section.source.symbol}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  color: "var(--session-ink-ghost)",
-                }}
-              >
-                ~{section.tokens.toLocaleString()} tokens
-              </span>
-            </div>
+              ✕
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "18px",
-              color: "var(--session-ink-ghost)",
-              cursor: "pointer",
-              padding: "0 4px",
-            }}
-          >
-            ✕
-          </button>
-        </div>
 
-        {/* Modal metadata */}
-        <div
-          style={{
-            padding: "10px 20px",
-            borderBottom: "1px solid var(--session-ink-hairline)",
+          {/* Metadata row */}
+          <div style={{
             display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
+            gap: 10,
+            marginTop: 12,
+            alignItems: "center",
+          }}>
+            <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.5px",
-              color: "#fff",
-              background: CONDITION_COLORS[section.condition.type],
-              borderRadius: 10,
-              padding: "2px 8px",
-            }}
-          >
-            {section.condition.label}
-          </span>
-          <span
-            style={{
+              fontSize: "11px",
+              color: "var(--session-ink-faded)",
+              fontWeight: 500,
+            }}>
+              {section.tokens.toLocaleString()} tokens
+            </span>
+            <ConditionPill condition={section.condition} />
+            <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              letterSpacing: "0.5px",
-              color: "#fff",
-              background: TIER_COLORS[section.tier],
-              borderRadius: 10,
-              padding: "2px 8px",
-            }}
-          >
-            Tier {section.tier === "intro" ? "Intro" : section.tier === "dynamic" ? "Dynamic" : section.tier}
-          </span>
+              fontSize: "10px",
+              color: tierColor(section.tier),
+              border: `1px solid ${tierColor(section.tier)}`,
+              borderRadius: 3,
+              padding: "1px 6px",
+              opacity: 0.7,
+            }}>
+              {TIER_LABELS[section.tier]}
+            </span>
+          </div>
         </div>
 
-        {/* Modal body — full text */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 24px" }}>
-          <pre
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "12px",
-              lineHeight: 1.6,
-              color: "var(--session-ink)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              margin: 0,
-              opacity: 0.9,
-            }}
-          >
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 32px" }}>
+          <pre style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            lineHeight: 1.7,
+            color: "var(--session-ink-soft)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            margin: 0,
+          }}>
             {section.text}
           </pre>
         </div>
@@ -710,124 +952,128 @@ function InfoModal({
 
 function PhaseFooter({ phase }: { phase: PhaseData }) {
   return (
-    <div
-      style={{
-        marginTop: 8,
-        padding: "12px 16px",
-        background: "rgba(0,0,0,0.02)",
-        borderRadius: 6,
-        border: "1px solid var(--session-ink-hairline)",
-      }}
-    >
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline" }}>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "11px",
-            color: "var(--session-ink)",
-            fontWeight: 500,
-          }}
-        >
-          {phase.totalTokens.toLocaleString()} tokens total
+    <div style={{
+      marginTop: 20,
+      padding: "16px 20px",
+      borderTop: "1px solid var(--session-ink-hairline)",
+      borderBottom: "1px solid var(--session-ink-hairline)",
+    }}>
+      <div style={{
+        display: "flex",
+        gap: 24,
+        alignItems: "baseline",
+        flexWrap: "wrap",
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "12px",
+          color: "var(--session-ink)",
+          fontWeight: 500,
+        }}>
+          {phase.totalTokens.toLocaleString()} tokens
         </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "11px",
-            color: "var(--session-ink-ghost)",
-          }}
-        >
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "12px",
+          color: "var(--session-ink-faded)",
+        }}>
           {phase.sections.length} sections
         </span>
         {phase.deltaTokens !== null && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: phase.deltaTokens > 0 ? "rgba(90, 138, 106, 0.9)" : "rgba(196, 100, 60, 0.9)",
-            }}
-          >
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "12px",
+            color: phase.deltaTokens > 0
+              ? "var(--session-persona)"
+              : "var(--session-error)",
+          }}>
             {phase.deltaTokens > 0 ? "+" : ""}
             {phase.deltaTokens.toLocaleString()} tokens
           </span>
         )}
         {phase.deltaBlocks !== null && phase.deltaBlocks !== 0 && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: "var(--session-ink-ghost)",
-            }}
-          >
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "12px",
+            color: "var(--session-ink-faded)",
+          }}>
             {phase.deltaBlocks > 0 ? "+" : ""}
             {phase.deltaBlocks} sections
           </span>
         )}
       </div>
       {phase.changes.length > 0 && (
-        <ul
-          style={{
-            margin: "6px 0 0",
-            paddingLeft: 16,
-            fontFamily: "var(--font-sans)",
-            fontSize: "11px",
-            color: "var(--session-ink-ghost)",
-            lineHeight: 1.5,
-          }}
-        >
+        <div style={{
+          marginTop: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+        }}>
           {phase.changes.map((c, i) => (
-            <li key={i}>{c}</li>
+            <span key={i} style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              color: c.startsWith("+")
+                ? "var(--session-persona)"
+                : c.startsWith("−")
+                  ? "var(--session-error-text)"
+                  : "var(--session-ink-faded)",
+              lineHeight: 1.5,
+            }}>
+              {c}
+            </span>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Shared styles
+// Color helpers — using design tokens, not hardcoded values
 // ---------------------------------------------------------------------------
 
-const chipStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "11px",
-  letterSpacing: "0.3px",
-  border: "1px solid",
-  borderRadius: 14,
-  padding: "3px 10px",
-  cursor: "pointer",
-  transition: "all 0.15s",
-  background: "transparent",
-};
-
-const controlLabelStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "9px",
-  letterSpacing: "1.5px",
-  textTransform: "uppercase",
-  color: "var(--session-ink-ghost)",
-  marginRight: 2,
-};
-
-const statusStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "12px",
-  color: "var(--session-ink-ghost)",
-  textAlign: "center",
-  letterSpacing: "0.5px",
-};
-
-function tierBgSolid(tier: Tier): string {
+function tierColor(tier: Tier): string {
   switch (tier) {
     case "intro":
-      return "rgba(245, 243, 238, 1)";
+      return "var(--session-ink-faded)";
     case "1":
-      return "rgba(245, 243, 238, 1)";
+      return "var(--session-walnut)";
     case "2":
-      return "rgba(247, 244, 238, 1)";
+      return "var(--session-walnut-meta)";
     case "3":
-      return "rgba(244, 246, 243, 1)";
+      return "var(--session-persona)";
     case "dynamic":
-      return "rgba(244, 243, 246, 1)";
+      return "var(--session-error-text)";
+  }
+}
+
+function conditionColor(type: ConditionType): string {
+  switch (type) {
+    case "always":
+      return "var(--session-ink-ghost)";
+    case "persona":
+      return "var(--session-walnut)";
+    case "state":
+      return "var(--session-persona)";
+    case "conv-mode":
+      return "var(--session-ink-faded)";
+    case "dynamic":
+      return "var(--session-error-text)";
+  }
+}
+
+function conditionBorder(type: ConditionType): string {
+  switch (type) {
+    case "always":
+      return "var(--session-ink-hairline)";
+    case "persona":
+      return "var(--session-walnut-border)";
+    case "state":
+      return "var(--session-persona-border)";
+    case "conv-mode":
+      return "var(--session-ink-hairline)";
+    case "dynamic":
+      return "var(--session-error-border-soft)";
   }
 }
