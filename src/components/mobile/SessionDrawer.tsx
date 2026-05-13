@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { MobileView } from "@/components/layout/MobileLayout";
 import { formatShortDate } from "@/lib/utils/format";
+
+const VISIBLE_SESSION_COUNT = 3;
 
 interface SessionDrawerProps {
   open: boolean;
@@ -17,6 +19,7 @@ interface SessionDrawerProps {
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
   onNavigateToCrisis: () => void;
+  onLogout: () => void;
 }
 
 export default function SessionDrawer({
@@ -31,8 +34,15 @@ export default function SessionDrawer({
   onNavigateToManual,
   onNavigateToSettings,
   onNavigateToCrisis,
+  onLogout,
 }: SessionDrawerProps) {
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Reset expanded state when drawer closes so it's fresh on reopen.
+  useEffect(() => {
+    if (!open) setShowAllSessions(false);
+  }, [open]);
 
   // a11y: Escape closes, focus moves to close button on open. The drawer
   // claims aria-modal=true so it has to honor keyboard expectations.
@@ -70,6 +80,16 @@ export default function SessionDrawer({
     onClose();
     onNavigateToCrisis();
   }
+
+  function handleLogout() {
+    onClose();
+    onLogout();
+  }
+
+  const visibleConversations = showAllSessions
+    ? conversations
+    : conversations.slice(0, VISIBLE_SESSION_COUNT);
+  const hiddenCount = conversations.length - VISIBLE_SESSION_COUNT;
 
   return (
     <>
@@ -161,14 +181,11 @@ export default function SessionDrawer({
           </button>
         </div>
 
-        {/* Primary actions — New session + Read my Manual, equal weight.
-            Two pills stacked so they share visual register. New session is
-            the action; Manual is the destination. Both walnut-surface +
-            walnut-border, same padding, same type scale. */}
+        {/* Primary actions — Manual first, then New session. */}
         <div style={{ margin: "16px 18px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
           <PrimaryPill
             icon="❦"
-            label="My Manual"
+            label="my Manual"
             iconColor="var(--session-walnut)"
             count={
               manualEntryCount > 0
@@ -211,7 +228,7 @@ export default function SessionDrawer({
             padding: "0 4px",
           }}
         >
-          {conversations.map((conv) => {
+          {visibleConversations.map((conv) => {
             const isActive = conv.id === activeConversationId;
             const isText = conv.is_text_channel === true;
             return (
@@ -219,7 +236,9 @@ export default function SessionDrawer({
                 key={conv.id}
                 onClick={() => handleSelectSession(conv.id)}
                 style={{
-                  display: "block",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 8,
                   width: "100%",
                   textAlign: "left",
                   background: "none",
@@ -228,72 +247,72 @@ export default function SessionDrawer({
                     ? "2px solid var(--session-walnut)"
                     : "2px solid transparent",
                   borderBottom: "1px solid var(--session-walnut-border-soft)",
-                  padding: "12px 14px",
+                  padding: "10px 14px",
                   cursor: "pointer",
                   WebkitTapHighlightColor: "transparent",
                 }}
               >
-                <p
+                <span
                   style={{
-                    margin: 0,
+                    flex: 1,
                     fontFamily: "var(--font-spectral), var(--font-serif), serif",
                     fontSize: 14,
                     color: isActive ? "var(--session-ink)" : "var(--session-ink-soft)",
                     lineHeight: 1.4,
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 8,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <span
-                    style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {conv.title || conv.preview || "Untitled session"}
-                  </span>
-                  {isText && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 9,
-                        letterSpacing: "1.6px",
-                        color: "var(--session-walnut-meta)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      TEXT
-                    </span>
-                  )}
-                </p>
-                <div style={{ display: "flex", gap: 14, marginTop: 4 }}>
+                  {conv.title || conv.preview || "Untitled session"}
+                </span>
+                {isText && (
                   <span
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      letterSpacing: "1.4px",
-                      color: "var(--session-ink-ghost)",
+                      fontSize: 9,
+                      letterSpacing: "1.6px",
+                      color: "var(--session-walnut-meta)",
+                      flexShrink: 0,
                     }}
                   >
-                    {formatShortDate(conv.updated_at)}
+                    TEXT
                   </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      letterSpacing: "1.4px",
-                      color: "var(--session-ink-ghost)",
-                    }}
-                  >
-                    {conv.message_count} msgs
-                  </span>
-                </div>
+                )}
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    letterSpacing: "1.4px",
+                    color: "var(--session-ink-ghost)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {formatShortDate(conv.updated_at)}
+                </span>
               </button>
             );
           })}
+
+          {!showAllSessions && hiddenCount > 0 && (
+            <button
+              onClick={() => setShowAllSessions(true)}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                display: "block",
+                width: "100%",
+                padding: "10px 14px",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 13,
+                color: "var(--session-ink-mid)",
+                textAlign: "left",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              Show all ({conversations.length})
+            </button>
+          )}
 
           {conversations.length === 0 && (
             <p
@@ -310,8 +329,7 @@ export default function SessionDrawer({
           )}
         </div>
 
-        {/* Secondary nav — Settings only. Manual lives at the top as a
-            primary pill. */}
+        {/* Secondary nav */}
         <div
           style={{
             borderTop: "1px solid var(--session-walnut-border-soft)",
@@ -323,6 +341,11 @@ export default function SessionDrawer({
             label="Settings"
             isActive={activeView === "settings"}
             onClick={handleNavigateToSettings}
+          />
+          <NavRow
+            icon="↗"
+            label="Log out"
+            onClick={handleLogout}
           />
         </div>
 

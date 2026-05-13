@@ -2,6 +2,7 @@
 
 import { APP_VERSION } from "@/lib/version";
 import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
 interface DesktopVitrineProps {
   children: React.ReactNode;
@@ -41,6 +42,7 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
  */
 export default function DesktopVitrine({ children }: DesktopVitrineProps) {
   const { theme, setTheme } = useTheme();
+  const isAdmin = useIsAdmin();
   return (
     <div
       style={{
@@ -191,6 +193,30 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
               );
             })}
           </p>
+
+          {isAdmin && (
+            <p
+              style={{
+                margin: "10px 0 0",
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--size-meta)",
+                fontWeight: 400,
+                letterSpacing: "0.5px",
+                color: "var(--session-ink-mid)",
+              }}
+            >
+              <a
+                href="/admin"
+                style={{
+                  color: "inherit",
+                  textDecoration: "none",
+                  textTransform: "uppercase",
+                }}
+              >
+                Admin
+              </a>
+            </p>
+          )}
 
           <p
             style={{

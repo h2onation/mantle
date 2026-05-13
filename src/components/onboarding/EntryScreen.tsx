@@ -3,7 +3,7 @@
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface EntryScreenProps {
-  onBegin: () => void;
+  onBegin?: () => void;
   onLogin: () => void;
 }
 
@@ -15,7 +15,7 @@ interface EntryScreenProps {
 //     hero scaled up to 96px
 //   - Wide desktop (≥1280px): centered single column, hero 120px,
 //     generous vertical breathing
-export default function EntryScreen({ onBegin, onLogin }: EntryScreenProps) {
+export default function EntryScreen({ onLogin }: EntryScreenProps) {
   return (
     <main
       className="scrollable-page mw-entry-page"
@@ -139,16 +139,12 @@ export default function EntryScreen({ onBegin, onLogin }: EntryScreenProps) {
         <div
           className="mw-rise mw-rise-4"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 20,
             marginTop: 44,
           }}
         >
           <button
             type="button"
-            onClick={onBegin}
+            onClick={onLogin}
             style={{
               cursor: "pointer",
               display: "flex",
@@ -170,33 +166,9 @@ export default function EntryScreen({ onBegin, onLogin }: EntryScreenProps) {
               boxSizing: "border-box",
             }}
           >
-            <span>Begin</span>
+            <span>Sign in</span>
             <span aria-hidden="true">&rsaquo;</span>
           </button>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontSize: 14,
-              fontStyle: "italic",
-              color: "var(--session-ink-mid)",
-            }}
-          >
-            Already have access?{" "}
-            <button
-              type="button"
-              onClick={onLogin}
-              style={{
-                all: "unset",
-                cursor: "pointer",
-                color: "var(--session-ink)",
-                borderBottom: "1px solid var(--session-walnut-light)",
-                paddingBottom: 1,
-              }}
-            >
-              Sign in
-            </button>
-          </p>
         </div>
       </div>
 

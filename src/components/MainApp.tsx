@@ -466,6 +466,10 @@ export default function MainApp() {
         onNavigateToManual={handleNavigateToManual}
         onNavigateToSettings={handleNavigateToSettings}
         onNavigateToCrisis={handleNavigateToCrisis}
+        onLogout={async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
+          window.location.href = "/login";
+        }}
       />
 
       {/* Exploration interstitial overlay */}
