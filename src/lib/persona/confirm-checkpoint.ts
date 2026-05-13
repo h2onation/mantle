@@ -97,9 +97,9 @@ VOICE RULES:
 - Do not use dashes or hyphens to join clauses. Use periods.
 
 HEADLINE (field: "name"):
-4-8 words. Flatly descriptive. Says what the mechanism IS in behavioral or body terms.
-Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms"
-Bad: "The Masking Loop," "Sensory Overwhelm Pattern," clinical labels, metaphors.
+4-8 words. Flatly descriptive. Says what the mechanism IS in behavioral or body terms. Plain subject-verb. No poetry, no imagery, no literary flair.
+Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "Body Locks Before the Ask"
+Bad: "The Masking Loop," "Sensory Overwhelm Pattern," clinical labels, metaphors, poetic titles like "Gaps Open and the Reach Fires" or "The Silence Between the Asking." If the title sounds like a poem or a chapter heading, rewrite it as a flat behavioral description.
 
 COMPRESSED REPRESENTATION (for future reference):
 - summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If the so-what produced a clear stance, mention it.

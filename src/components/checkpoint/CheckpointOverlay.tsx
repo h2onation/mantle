@@ -329,7 +329,7 @@ export default function CheckpointOverlay({
                   fontSize: 11,
                   letterSpacing: "1.6px",
                   textTransform: "uppercase",
-                  color: "var(--session-error-border, rgba(208, 130, 120, 0.85))",
+                  color: "var(--session-ink)",
                   margin: "0 0 12px 0",
                   textAlign: "center",
                 }}
