@@ -205,9 +205,48 @@ body.overview .token-total { display: none; }
 .trigger-tag.always { background: #ece8e1; color: #6a6258; }
 .trigger-tag.persona { background: #f5e8c8; color: #7a5e1f; }
 .trigger-tag.persona-add { background: #fff; color: #7a5e1f; border: 1px solid #c49a3c; }
+.trigger-tag.persona-autistic { background: #fce6c4; color: #7a4e0f; }
+.trigger-tag.persona-audhd { background: #fbd8c0; color: #8a3a0f; }
+.trigger-tag.persona-dyslexic { background: #e8dcf4; color: #5a3a8a; }
+.trigger-tag.persona-general { background: #e0e0e0; color: #5a5a5a; }
 .trigger-tag.state { background: #d8e4d8; color: #2f5a3a; }
 .trigger-tag.mode { background: #d6e3ef; color: #2c4a6a; }
 .trigger-tag.dynamic { background: #e0dbf0; color: #4a3a78; }
+.block.persona-autistic { border-left-color: #d4a347; }
+.block.persona-audhd { border-left-color: #d57437; }
+.block.persona-dyslexic { border-left-color: #8b6db4; }
+.block.persona-general { border-left-color: #8a8a8a; }
+body.overview .content { max-width: 1280px; }
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.persona-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.persona-grid .block { margin-bottom: 0; }
+.section-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7a6f64;
+  margin: 20px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ece8e1;
+}
+.section-header .sub {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: #9a8f84;
+  margin-left: 8px;
+}
+@media (max-width: 1100px) {
+  .persona-grid { grid-template-columns: repeat(2, 1fr); }
+  .persona-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+}
 .overview-intro {
   padding-bottom: 20px;
   margin-bottom: 8px;
@@ -333,11 +372,11 @@ function getState() {
   return { personas, convMode, isNew, isReturning, isCheckpoint };
 }
 
-function makeOverviewBlock(id, tierClass, label, triggerHtml, text) {
+function makeOverviewBlock(id, tierClass, label, triggerHtml, text, extraClass = '') {
   const tokens = tokenCount(text);
   const lines = text.split("\n");
   const collapsed = lines.length > 3;
-  return `<div class="block ${tierClass}" data-block-id="${id}" data-tokens="${tokens}">
+  return `<div class="block ${tierClass} ${extraClass}" data-block-id="${id}" data-tokens="${tokens}">
     <div class="block-header">
       <div class="block-label">${label}${triggerHtml}</div>
       <div class="token-badge">${fmt(tokens)} tokens</div>
@@ -357,18 +396,23 @@ function renderOverview() {
   let html = '';
 
   html += `<div class="overview-intro">
-    <strong>Every block that can ever appear in the system prompt, in stacking order.</strong>
-    Each row's trigger tag shows what flips it on. Tier 2 blocks stack: the first selected persona contributes its full Voice block; additional personas contribute a smaller "Additional Voice" block.
+    <strong>Every block that can ever appear in the system prompt, grouped by where the decision is made.</strong>
+    Voice blocks (Tier 2) are shown side-by-side so you can compare them at a glance — only one is "primary" at a time, with optional secondary blocks stacked on top.
     <div class="legend">
-      <span class="legend-label">Triggers:</span>
+      <span class="legend-label">Personas:</span>
+      ${tag('persona-autistic', 'Autistic')}
+      ${tag('persona-audhd', 'AuDHD')}
+      ${tag('persona-dyslexic', 'Dyslexic')}
+      ${tag('persona-general', 'General')}
+      <span class="legend-label" style="margin-left:12px">Other:</span>
       ${tag('always', 'Always')}
-      ${tag('persona', 'Persona: primary')}
-      ${tag('persona-add', 'Persona: +secondary')}
       ${tag('state', 'State')}
       ${tag('mode', 'Conv mode')}
       ${tag('dynamic', 'Dynamic')}
     </div>
   </div>`;
+
+  html += `<div class="section-header">Foundation <span class="sub">In the prompt on every turn, for every user.</span></div>`;
 
   html += makeOverviewBlock('ov_intro', 'tier-intro',
     '<span class="tier-tag">Intro</span>Persona Intro',
@@ -378,22 +422,32 @@ function renderOverview() {
     '<span class="tier-tag">Tier 1</span>Constitutional Rules',
     tag('always', 'Always'), D.tier1);
 
+  html += `<div class="section-header">Tier 2 — Voice (primary) <span class="sub">Pick one. Renders in full.</span></div>`;
+  html += '<div class="persona-grid">';
   for (const m of ['autistic', 'audhd', 'dyslexic', 'general']) {
     const label = PERSONA_LABELS[m];
     html += makeOverviewBlock('ov_t2_' + m, 'tier-2',
       `<span class="tier-tag">Tier 2</span>Voice (${label})`,
-      tag('persona', 'Persona primary: ' + label.toLowerCase()),
-      D['tier2_' + m]);
+      tag('persona-' + m, label),
+      D['tier2_' + m],
+      'persona-' + m);
   }
+  html += '</div>';
 
+  html += `<div class="section-header">Tier 2 — Additional Voice (secondary) <span class="sub">Stacks on top of the primary when a second persona is selected.</span></div>`;
+  html += '<div class="persona-grid cols-3">';
   for (const m of ['autistic', 'audhd', 'dyslexic']) {
     const label = PERSONA_LABELS[m];
     const addText = 'ADDITIONAL VOICE GUIDANCE (' + label + ')' + D['additions_' + m];
     html += makeOverviewBlock('ov_add_' + m, 'tier-2',
-      `<span class="tier-tag">Tier 2</span>Additional Voice (${label})`,
-      tag('persona-add', '+ ' + label.toLowerCase() + ' (secondary)'),
-      addText);
+      `<span class="tier-tag">Tier 2</span>Additional (${label})`,
+      tag('persona-' + m, '+ ' + label.toLowerCase()),
+      addText,
+      'persona-' + m);
   }
+  html += '</div>';
+
+  html += `<div class="section-header">Tier 3 — Conditional <span class="sub">Appears only when the matching state or conversation mode is active.</span></div>`;
 
   html += makeOverviewBlock('ov_firstMessage', 'tier-3',
     '<span class="tier-tag">Tier 3</span>First Message',
@@ -414,6 +468,8 @@ function renderOverview() {
   html += makeOverviewBlock('ov_checkpoints', 'tier-3',
     '<span class="tier-tag">Tier 3</span>Checkpoints',
     tag('state', 'State: returning or checkpoint approaching'), D.checkpoints);
+
+  html += `<div class="section-header">Tier 3 — Always-on <span class="sub">In the prompt on every turn.</span></div>`;
 
   html += makeOverviewBlock('ov_adapting', 'tier-3',
     '<span class="tier-tag">Tier 3</span>Adapting + Short Answers',
@@ -438,6 +494,8 @@ function renderOverview() {
   html += makeOverviewBlock('ov_firstSession', 'tier-3',
     '<span class="tier-tag">Tier 3</span>First Session',
     tag('state', 'State: new user'), D.firstSession);
+
+  html += `<div class="section-header">Dynamic — Appended at runtime <span class="sub">Built from DB state and pipeline output, not from static templates.</span></div>`;
 
   html += makeOverviewBlock('ov_manual', 'tier-dynamic',
     '<span class="tier-tag">Dynamic</span>Manual Entries',
