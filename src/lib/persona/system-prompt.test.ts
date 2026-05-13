@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { buildSystemPrompt, composeTier2 } from "@/lib/persona/system-prompt";
 import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
@@ -9,6 +9,19 @@ import {
   EXAMPLE_REGISTER,
   LANDING_EXAMPLES,
 } from "@/lib/persona/voice-autistic";
+import {
+  VOICE_RULES as GENERAL_VOICE_RULES,
+  BANNED_PHRASES as GENERAL_BANNED_PHRASES,
+  LANDING_EXAMPLES as GENERAL_LANDING_EXAMPLES,
+} from "@/lib/persona/voice-general";
+import {
+  VOICE_RULES as AUDHD_VOICE_RULES,
+  LANDING_EXAMPLES as AUDHD_LANDING_EXAMPLES,
+} from "@/lib/persona/voice-audhd";
+import {
+  VOICE_RULES as DYSLEXIC_VOICE_RULES,
+  LANDING_EXAMPLES as DYSLEXIC_LANDING_EXAMPLES,
+} from "@/lib/persona/voice-dyslexic";
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
@@ -1300,6 +1313,215 @@ describe("buildSystemPrompt", () => {
       for (const phrase of BANNED_PHRASES) {
         expect(guidedBlock).not.toContain(phrase);
       }
+    });
+  });
+
+  // ─── PersonaMode branching ──────────────────────────────────────────────
+  describe("personaMode voice branching", () => {
+    it("defaults to autistic mode when personaMode is omitted", () => {
+      const result = build();
+      expect(result).toContain("late-diagnosed autistic adults");
+    });
+
+    it("autistic mode renders autistic-specific Tier 2 content", () => {
+      const result = build({ personaModes: ["autistic"] });
+      expect(result).toContain("late-diagnosed autistic adults");
+      expect(result).toContain("exhausted from translating themselves");
+      for (const rule of VOICE_RULES) {
+        expect(result).toContain(rule);
+      }
+    });
+
+    it("general mode renders general-specific Tier 2 content", () => {
+      const result = build({ personaModes: ["general"] });
+      expect(result).not.toContain("late-diagnosed autistic adults");
+      expect(result).toContain("reflective, curious, and looking for language");
+      for (const rule of GENERAL_VOICE_RULES) {
+        expect(result).toContain(rule);
+      }
+    });
+
+    it("general mode has its own landing examples", () => {
+      const result = build({ personaModes: ["general"] });
+      for (const { line } of GENERAL_LANDING_EXAMPLES) {
+        expect(result).toContain(line);
+      }
+    });
+
+    it("general mode shares the same banned phrases", () => {
+      const result = build({ personaModes: ["general"] });
+      for (const phrase of GENERAL_BANNED_PHRASES) {
+        expect(result).toContain(phrase);
+      }
+    });
+
+    it("audhd mode renders audhd-specific Tier 2 content", () => {
+      const result = build({ personaModes: ["audhd"] });
+      expect(result).toContain("both autistic and ADHD");
+      expect(result).toContain("two systems that pull in opposite directions");
+      for (const rule of AUDHD_VOICE_RULES) {
+        expect(result).toContain(rule);
+      }
+    });
+
+    it("audhd mode has its own landing examples", () => {
+      const result = build({ personaModes: ["audhd"] });
+      for (const { line } of AUDHD_LANDING_EXAMPLES) {
+        expect(result).toContain(line);
+      }
+    });
+
+    it("audhd mode deepening tracks both systems", () => {
+      const result = build({ personaModes: ["audhd"] });
+      expect(result).toContain("Track both systems");
+      expect(result).toContain("Walk me through what was going on between knowing and doing");
+    });
+
+    it("dyslexic mode renders dyslexic-specific Tier 2 content", () => {
+      const result = build({ personaModes: ["dyslexic"] });
+      expect(result).toContain("think in pictures, patterns, and stories");
+      expect(result).toContain("see the big picture fast");
+      for (const rule of DYSLEXIC_VOICE_RULES) {
+        expect(result).toContain(rule);
+      }
+    });
+
+    it("dyslexic mode has its own landing examples", () => {
+      const result = build({ personaModes: ["dyslexic"] });
+      for (const { line } of DYSLEXIC_LANDING_EXAMPLES) {
+        expect(result).toContain(line);
+      }
+    });
+
+    it("dyslexic mode bans journaling suggestions", () => {
+      const result = build({ personaModes: ["dyslexic"] });
+      expect(result).toContain("Never suggest journaling, writing things down, or reading as a tool");
+    });
+
+    it("dyslexic mode deepening uses story invitations", () => {
+      const result = build({ personaModes: ["dyslexic"] });
+      expect(result).toContain("Use story invitations");
+      expect(result).toContain("Tell me the story of what happens right before it starts");
+    });
+
+    it("all modes share the same structural sections in order", () => {
+      const sections = [
+        "TIER 1: CONSTITUTIONAL RULES",
+        "TIER 2: VOICE AND BEHAVIOR",
+        "VOICE RULES",
+        "BANNED PHRASES",
+        "EXAMPLE REGISTER",
+        "LANDING",
+        "DEEPENING",
+        "PACING",
+        "WHEN JOVE IS WRONG",
+        'WHEN THE USER ASKS "WHAT SHOULD I DO"',
+        "TIER 3: CONVERSATION MECHANICS",
+      ];
+      for (const mode of ["autistic", "audhd", "dyslexic", "general"] as const) {
+        const result = build({ personaModes: [mode], turnCount: 1 });
+        let cursor = 0;
+        for (const section of sections) {
+          const idx = result.indexOf(section, cursor);
+          expect(
+            idx,
+            `Section "${section}" missing or out of order in ${mode} mode`
+          ).toBeGreaterThanOrEqual(cursor);
+          cursor = idx + section.length;
+        }
+      }
+    });
+
+    it("Tier 1 and Tier 3 are identical across all modes", () => {
+      const extractTier1 = (s: string) =>
+        s.slice(s.indexOf("TIER 1:"), s.indexOf("TIER 2:"));
+      const extractTier3 = (s: string) =>
+        s.slice(s.indexOf("TIER 3:"));
+      const autistic = build({ personaModes: ["autistic"] });
+      for (const mode of ["audhd", "dyslexic", "general"] as const) {
+        const result = build({ personaModes: [mode] });
+        expect(extractTier1(result)).toBe(extractTier1(autistic));
+        expect(extractTier3(result)).toBe(extractTier3(autistic));
+      }
+    });
+
+    it("each mode produces a distinct Tier 2", () => {
+      const extractTier2 = (s: string) =>
+        s.slice(s.indexOf("TIER 2:"), s.indexOf("TIER 3:"));
+      const modes = ["autistic", "audhd", "dyslexic", "general"] as const;
+      const tier2s = modes.map((m) => extractTier2(build({ personaModes: [m] })));
+      for (let i = 0; i < tier2s.length; i++) {
+        for (let j = i + 1; j < tier2s.length; j++) {
+          expect(
+            tier2s[i],
+            `${modes[i]} and ${modes[j]} Tier 2 should differ`
+          ).not.toBe(tier2s[j]);
+        }
+      }
+    });
+
+    it("general mode deepening uses different examples than autistic mode", () => {
+      const autistic = build({ personaModes: ["autistic"] });
+      const general = build({ personaModes: ["general"] });
+      expect(autistic).toContain("what your body was doing right then");
+      expect(general).toContain("what was happening for you right then");
+      expect(autistic).toContain("What happens when you realize you didn't know the code");
+      expect(general).not.toContain("What happens when you realize you didn't know the code");
+    });
+  });
+
+  // ─── Multi-select composition ────────────────────────────────────────────
+  describe("composeTier2 multi-select", () => {
+    it("single mode returns that mode's full Tier 2", () => {
+      const single = composeTier2(["autistic"]);
+      expect(single).toContain("late-diagnosed autistic adults");
+      expect(single).not.toContain("ADDITIONAL VOICE GUIDANCE");
+    });
+
+    it("empty array defaults to autistic", () => {
+      const empty = composeTier2([]);
+      expect(empty).toContain("late-diagnosed autistic adults");
+    });
+
+    it("autistic + dyslexic appends dyslexic unique content", () => {
+      const result = composeTier2(["autistic", "dyslexic"]);
+      expect(result).toContain("late-diagnosed autistic adults");
+      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
+      expect(result).toContain("Never suggest journaling");
+      expect(result).toContain("Use story invitations");
+    });
+
+    it("autistic + audhd appends audhd unique content", () => {
+      const result = composeTier2(["autistic", "audhd"]);
+      expect(result).toContain("late-diagnosed autistic adults");
+      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (AuDHD)");
+      expect(result).toContain("Track both systems");
+    });
+
+    it("audhd + dyslexic uses audhd as base, appends dyslexic", () => {
+      const result = composeTier2(["audhd", "dyslexic"]);
+      expect(result).toContain("both autistic and ADHD");
+      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
+      expect(result).toContain("Never suggest journaling");
+    });
+
+    it("general is ignored when combined with neurotype-specific modes", () => {
+      const result = composeTier2(["autistic", "general"]);
+      expect(result).toContain("late-diagnosed autistic adults");
+      expect(result).not.toContain("reflective, curious");
+    });
+
+    it("general alone uses general voice", () => {
+      const result = composeTier2(["general"]);
+      expect(result).toContain("reflective, curious");
+    });
+
+    it("multi-select prompt builds correctly end-to-end", () => {
+      const result = build({ personaModes: ["autistic", "dyslexic"] });
+      expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
+      expect(result).toContain("late-diagnosed autistic adults");
+      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
+      expect(result).toContain("TIER 3: CONVERSATION MECHANICS");
     });
   });
 });

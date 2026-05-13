@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jove Prompt Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #faf8f5;
+    color: #2c2520;
+    padding: 40px 32px 80px;
+    max-width: 900px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #7a6f64; margin-bottom: 32px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 32px 0 12px; color: #5a4e42; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+
+  /* Mode checkboxes */
+  .modes { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; padding: 16px 20px; background: #f0ece6; border-radius: 10px; }
+  .modes label { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; cursor: pointer; user-select: none; }
+  .modes input[type="checkbox"] { accent-color: #8b7355; width: 16px; height: 16px; }
+
+  /* Tier headers */
+  .tier-label { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px; }
+  .tier-label.t1 { background: #e8ddd0; color: #6b5a48; }
+  .tier-label.t2 { background: #d4c4ae; color: #5a4a38; }
+  .tier-label.t3 { background: #c8d8c4; color: #3a5a38; }
+  .tier-label.dyn { background: #c4d0d8; color: #384a5a; }
+
+  /* Block rows */
+  .block { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 16px; padding: 12px 16px; border-radius: 8px; margin-bottom: 6px; border: 1px solid #e8e2da; background: #fff; }
+  .block.shared { border-left: 3px solid #8b7355; }
+  .block.varies { border-left: 3px solid #c49a3c; }
+  .block.unique { border-left: 3px solid #5a8a6a; }
+  .block.conditional { border-left: 3px solid #6a7a9a; }
+  .block .name { font-size: 14px; font-weight: 500; }
+  .block .detail { font-size: 12px; color: #7a6f64; margin-top: 2px; }
+  .block .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .badge.all { background: #e8ddd0; color: #6b5a48; }
+  .badge.autistic { background: #dde8f0; color: #3a5a7a; }
+  .badge.audhd { background: #e8ddf0; color: #5a3a7a; }
+  .badge.dyslexic { background: #f0e8dd; color: #7a5a3a; }
+  .badge.general { background: #ddf0e0; color: #3a6a3a; }
+
+  /* Legend */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; font-size: 12px; color: #7a6f64; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #e0d8ce; }
+  .legend-swatch.shared { background: #8b7355; }
+  .legend-swatch.varies { background: #c49a3c; }
+  .legend-swatch.unique { background: #5a8a6a; }
+  .legend-swatch.conditional { background: #6a7a9a; }
+
+  /* Faded when not selected */
+  .block.faded { opacity: 0.35; }
+  .badge.faded { opacity: 0.3; }
+
+  .section-note { font-size: 12px; color: #9a8e82; margin: -2px 0 10px 4px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>Jove Prompt Architecture</h1>
+<p class="subtitle">How the system prompt is assembled. Tier 2 varies by persona mode — the rest is shared.</p>
+
+<div class="modes">
+  <span style="font-size: 12px; color: #7a6f64; margin-right: 4px; padding-top: 1px;">Persona modes:</span>
+  <label><input type="checkbox" value="autistic" checked> Autistic</label>
+  <label><input type="checkbox" value="audhd" checked> AuDHD</label>
+  <label><input type="checkbox" value="dyslexic" checked> Dyslexic</label>
+  <label><input type="checkbox" value="general" checked> General</label>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch shared"></div> Identical across all modes</div>
+  <div class="legend-item"><div class="legend-swatch varies"></div> Same structure, content varies</div>
+  <div class="legend-item"><div class="legend-swatch unique"></div> Unique to specific mode(s)</div>
+  <div class="legend-item"><div class="legend-swatch conditional"></div> Conditional on conversation state</div>
+</div>
+
+<!-- TIER 1 -->
+<h2>Tier 1 — Constitutional</h2>
+<p class="section-note">Seven immutable rules. Never changes regardless of mode.</p>
+<div id="blocks">
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Constitutional Rules (7)</div>
+    <div class="detail">Not a therapist. User is the author. Mirror exact language. One question per turn. Nothing enters manual without confirmation. No clinical framework names. Direct when asked what Jove is.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<!-- TIER 2 -->
+<h2>Tier 2 — Voice &amp; Behavior</h2>
+<p class="section-note">One block per section. Selected mode(s) determine content.</p>
+
+<div class="block varies" data-modes="autistic audhd dyslexic general">
+  <div>
+    <div class="name">Voice Intro</div>
+    <div class="detail">
+      <strong>Autistic:</strong> "late-diagnosed autistic adults… exhausted from translating themselves"<br>
+      <strong>AuDHD:</strong> "both autistic and ADHD… two systems that pull in opposite directions"<br>
+      <strong>Dyslexic:</strong> "think in pictures, patterns, and stories… see the big picture fast"<br>
+      <strong>General:</strong> "reflective, curious… looking for language to describe patterns"
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge autistic">AUT</span>
+    <span class="badge audhd">AUDHD</span>
+    <span class="badge dyslexic">DYS</span>
+    <span class="badge general">GEN</span>
+  </div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Dash Formatting Rule</div>
+    <div class="detail">No dashes to join clauses. Use periods. Identical across all modes.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block varies" data-modes="autistic audhd dyslexic general">
+  <div>
+    <div class="name">Voice Rules (15)</div>
+    <div class="detail">
+      10 of 15 rules are identical. 5 vary:<br>
+      <strong>#2</strong> body-first (aut/audhd) vs situation-first (dys/gen)<br>
+      <strong>#8</strong> calibration style differs per mode<br>
+      <strong>#9</strong> "I don't know" → body (aut/audhd) vs moment-before (dys/gen)<br>
+      <strong>#13</strong> masking (aut/audhd) · no-journaling (dys) · performing (gen)<br>
+      <strong>#14</strong> "silence is processing" (aut/audhd) vs "silence is thinking" (dys/gen)
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge autistic">AUT</span>
+    <span class="badge audhd">AUDHD</span>
+    <span class="badge dyslexic">DYS</span>
+    <span class="badge general">GEN</span>
+  </div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Banned Phrases (14)</div>
+    <div class="detail">"That must be so hard," "I hear you," "Let's explore that," etc. Identical list across all modes.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Banned Patterns (3)</div>
+    <div class="detail">Evaluating honesty, therapy-isms, announcing observations. Identical across all modes.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block varies" data-modes="autistic audhd dyslexic general">
+  <div>
+    <div class="name">Example Register (5)</div>
+    <div class="detail">
+      "First turn" and "You were wrong" are identical. "Naming a pattern" and "Vulnerable share" vary per mode. "User stuck" nearly identical.
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge autistic">AUT</span>
+    <span class="badge audhd">AUDHD</span>
+    <span class="badge dyslexic">DYS</span>
+    <span class="badge general">GEN</span>
+  </div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Landing Intro</div>
+    <div class="detail">"Before asking your next question, land what you just heard. The rhythm is: receive, land, ask." Identical.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block varies" data-modes="autistic audhd dyslexic general">
+  <div>
+    <div class="name">Landing Examples (6)</div>
+    <div class="detail">
+      Same structure (6 labeled examples). Different situations per mode.<br>
+      <strong>Autistic:</strong> internal escalation, absorbing stress, masking, flat delivery, pattern repetition<br>
+      <strong>AuDHD:</strong> exec function collapse, interest-based motivation, structure-novelty tension, burnout cycle<br>
+      <strong>Dyslexic:</strong> seeing the whole picture, workaround nobody sees, speed mismatch<br>
+      <strong>General:</strong> absorbing stress, performing, pattern repetition (neurotype-neutral versions)
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge autistic">AUT</span>
+    <span class="badge audhd">AUDHD</span>
+    <span class="badge dyslexic">DYS</span>
+    <span class="badge general">GEN</span>
+  </div>
+</div>
+
+<div class="block varies" data-modes="autistic audhd dyslexic general">
+  <div>
+    <div class="name">Deepening</div>
+    <div class="detail">
+      Shared core: abstract→concrete, scenes not labels, scene invitation rule, closed-question warnings.<br>
+      <strong>AuDHD adds:</strong> "Track both systems" — check autistic vs ADHD need conflict<br>
+      <strong>Dyslexic adds:</strong> "Use story invitations" — pictures/sequences over analysis<br>
+      Weak→strong examples vary slightly per mode.
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge autistic">AUT</span>
+    <span class="badge audhd">AUDHD</span>
+    <span class="badge dyslexic">DYS</span>
+    <span class="badge general">GEN</span>
+  </div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">Pacing</div>
+    <div class="detail">Signal progress every 8 exchanges. Identical.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">When Jove Is Wrong</div>
+    <div class="detail">3-strike repair: tell me where → listen differently → full reset. Identical.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block shared" data-modes="all">
+  <div>
+    <div class="name">What Should I Do</div>
+    <div class="detail">Advisory through the Manual lens, not general advice. Identical.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<!-- TIER 3 -->
+<h2>Tier 3 — Conversation Mechanics</h2>
+<p class="section-note">Assembled at call time from conversation flags. Same for all modes.</p>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">First Message</div>
+    <div class="detail">When: first turn of a new session. Sets the opening frame.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Returning User</div>
+    <div class="detail">When: user has a prior session. Bridges from previous conversation.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Approaching Checkpoint</div>
+    <div class="detail">When: enough material gathered. Prompts Jove to propose a Manual entry.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Checkpoint Just Returned</div>
+    <div class="detail">When: user just confirmed/rejected an entry. Brief acknowledgement, return to conversation.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Readiness Gate</div>
+    <div class="detail">When: fewer than 3 Manual entries. Keeps Jove in building mode.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Clinical Material</div>
+    <div class="detail">When: user surfaces clinical-level content. Adjusts Jove's handling.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Professional Referral</div>
+    <div class="detail">When: clinical level warrants it. Names what Jove can't do.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">First-Session Wrapper</div>
+    <div class="detail">When: first-ever session. Frames the whole exchange for brand-new users.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<!-- DYNAMIC CONTEXT -->
+<h2>Dynamic Context</h2>
+<p class="section-note">Appended after Tier 3. Not part of the tier structure.</p>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Confirmed Manual</div>
+    <div class="detail">Recent entries in full. Older entries compressed to one-line summaries.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Session Summary</div>
+    <div class="detail">Previous session summary for returning users.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Extraction Brief</div>
+    <div class="detail">Current extraction target when approaching checkpoint.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+<div class="block conditional" data-modes="all">
+  <div>
+    <div class="name">Exploration Focus</div>
+    <div class="detail">Guided intake topic when in structured exploration mode.</div>
+  </div>
+  <div class="badges"><span class="badge all">ALL</span></div>
+</div>
+
+</div><!-- #blocks -->
+
+<script>
+  const checkboxes = document.querySelectorAll('.modes input[type="checkbox"]');
+  const blocks = document.querySelectorAll('.block');
+
+  function update() {
+    const selected = new Set();
+    checkboxes.forEach(cb => { if (cb.checked) selected.add(cb.value); });
+
+    blocks.forEach(block => {
+      const modes = block.dataset.modes;
+      if (modes === 'all') {
+        // Shared blocks: visible if ANY mode is selected
+        block.classList.toggle('faded', selected.size === 0);
+      } else {
+        const blockModes = modes.split(' ');
+        const hasOverlap = blockModes.some(m => selected.has(m));
+        block.classList.toggle('faded', !hasOverlap);
+      }
+
+      // Fade individual badges
+      block.querySelectorAll('.badge').forEach(badge => {
+        if (badge.classList.contains('all')) {
+          badge.classList.toggle('faded', selected.size === 0);
+        } else {
+          const mode = [...badge.classList].find(c => ['autistic','audhd','dyslexic','general'].includes(c));
+          if (mode) badge.classList.toggle('faded', !selected.has(mode));
+        }
+      });
+    });
+  }
+
+  checkboxes.forEach(cb => cb.addEventListener('change', update));
+</script>
+
+</body>
+</html>

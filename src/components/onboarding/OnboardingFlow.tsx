@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import EntryScreen from "./EntryScreen";
 import LoginScreen from "./LoginScreen";
 import InfoScreens from "./InfoScreens";
+import PersonaModeScreen from "./PersonaModeScreen";
 import SeedScreen from "./SeedScreen";
 import DesktopVitrine from "@/components/layout/DesktopVitrine";
 
-type ViewName = "entry" | "login" | "onboarding" | "seed";
+type ViewName = "entry" | "login" | "onboarding" | "persona" | "seed";
 
 export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
@@ -46,6 +47,10 @@ export default function OnboardingFlow() {
   function handleBackToEntry() {
     setCurrentView("entry");
     setViewOpacity(1);
+  }
+
+  function handleNavigateToPersona() {
+    fadeToView("persona");
   }
 
   function handleNavigateToSeed() {
@@ -98,8 +103,15 @@ export default function OnboardingFlow() {
 
               {currentView === "onboarding" && (
                 <InfoScreens
-                  onNavigateToSeed={handleNavigateToSeed}
+                  onNavigateToSeed={handleNavigateToPersona}
                   onBack={handleBackToEntry}
+                />
+              )}
+
+              {currentView === "persona" && (
+                <PersonaModeScreen
+                  onContinue={handleNavigateToSeed}
+                  onBack={() => fadeToView("onboarding")}
                 />
               )}
 

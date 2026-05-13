@@ -43,7 +43,7 @@ export interface ConversationContext {
   extractionForPersona: string;
   turnCount: number;
   checkpointApproaching: boolean;
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
   mode: "situation" | "guided-intake" | "upload";
 }
 
@@ -115,15 +115,13 @@ export async function loadConversationContext(
       .maybeSingle(),
     admin
       .from("profiles")
-      .select("persona_mode")
+      .select("persona_modes")
       .eq("id", userId)
       .maybeSingle(),
   ]);
 
-  // Voice mode. Null/missing → 'autistic' (the only mode that ships in PR1).
-  // The seam exists so future modes can be added without re-plumbing.
-  const personaMode: PersonaMode =
-    (profileResult.data?.persona_mode as PersonaMode) || "autistic";
+  const personaModes: PersonaMode[] =
+    (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["autistic"];
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
@@ -239,7 +237,7 @@ export async function loadConversationContext(
     extractionForPersona,
     turnCount,
     checkpointApproaching,
-    personaMode,
+    personaModes,
     mode: conversationMode,
   };
 }
@@ -262,7 +260,7 @@ export function buildPromptOptionsFromContext(ctx: ConversationContext) {
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
     checkpointApproaching: ctx.checkpointApproaching,
-    personaMode: ctx.personaMode,
+    personaModes: ctx.personaModes,
     mode: ctx.mode,
   };
 }
