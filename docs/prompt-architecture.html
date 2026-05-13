@@ -407,6 +407,59 @@ body.journey .content { max-width: 920px; }
 }
 .journey-total .delta.up { color: #2a6238; }
 .journey-total .delta.down { color: #802a2a; }
+.journey-options {
+  padding: 12px 20px 12px 28px;
+  background: #f5f1ea;
+  border-top: 1px solid #ece8e1;
+  border-bottom: 1px solid #ece8e1;
+}
+.journey-options .opt-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7a6f64;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.journey-options .opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.journey-options .opt-row:last-child { margin-bottom: 0; }
+.opt-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #d8d2c8;
+  cursor: pointer;
+  color: #5a524a;
+  font-weight: 500;
+  transition: background 0.12s, border 0.12s, color 0.12s;
+  user-select: none;
+}
+.opt-chip:hover { border-color: #8b7355; }
+.opt-chip.active.persona-autistic { background: #fce6c4; border-color: #d4a347; color: #7a4e0f; }
+.opt-chip.active.persona-audhd { background: #fbd8c0; border-color: #d57437; color: #8a3a0f; }
+.opt-chip.active.persona-dyslexic { background: #e8dcf4; border-color: #8b6db4; color: #5a3a8a; }
+.opt-chip.active.persona-general { background: #e0e0e0; border-color: #8a8a8a; color: #3a3a3a; }
+.opt-chip.active.mode-chip { background: #d6e3ef; border-color: #5a7a9a; color: #2c4a6a; }
+.opt-chip.fixed {
+  background: #ece8e1;
+  border-color: #ece8e1;
+  cursor: default;
+  color: #7a6f64;
+}
+.opt-chip.fixed::before { content: '🔒 '; font-size: 9px; }
+.opt-row .hint {
+  font-size: 11px;
+  color: #9a8f84;
+  font-style: italic;
+  margin-left: auto;
+}
 .overview-intro {
   padding-bottom: 20px;
   margin-bottom: 8px;
@@ -694,82 +747,217 @@ function setView(view) {
 const JOURNEY_STAGES = [
   {
     num: 1,
-    title: "Session 1 · Turn 1",
-    subtitle: "First message ever",
-    scenario: "The user just signed up. They haven't typed anything yet — Jove is waiting for their first message. Everything Jove will ever know about them starts with what they type next.",
-    flags: { isNew: true, isReturning: false, isCheckpoint: false, convMode: 'standard' }
+    title: "Onboarding · First message ever",
+    subtitle: "Brand new account",
+    scenario: "The user just signed up. This is the moment they pick their persona(s) — the choice that shapes Jove's voice for everything that follows. Conversation mode also gets set here.",
+    state: { isNew: true, isReturning: false, isCheckpoint: false },
+    options: { persona: true, convMode: true },
+    defaults: { personas: ['autistic'], convMode: 'standard' }
   },
   {
     num: 2,
-    title: "Session 1 · Turn 6",
+    title: "Session 1 · Mid-conversation",
     subtitle: "Approaching first checkpoint",
-    scenario: "The conversation has built up enough texture for Jove to see a pattern worth reflecting back. The extraction layer flags that a Manual entry might be ready to propose.",
-    flags: { isNew: true, isReturning: false, isCheckpoint: true, convMode: 'standard' }
+    scenario: "The conversation has built up enough texture for Jove to propose a Manual entry. The extraction layer flagged this — it's not a user choice. Persona is locked in from onboarding.",
+    state: { isNew: true, isReturning: false, isCheckpoint: true },
+    options: { persona: false, convMode: false },
+    defaults: { personas: ['autistic'], convMode: 'standard' }
   },
   {
     num: 3,
-    title: "Session 2 · Turn 1",
+    title: "Session 2 · First turn back",
     subtitle: "Returning user, days later",
-    scenario: "The user opens the app again. They confirmed two entries last session. Jove acknowledges that work and continues — but does NOT run the first-session welcome again.",
-    flags: { isNew: false, isReturning: true, isCheckpoint: false, convMode: 'standard' }
+    scenario: "The user opens the app again. The first-message and first-session blocks drop off automatically. The user could change persona in settings here, or change conv mode for this session.",
+    state: { isNew: false, isReturning: true, isCheckpoint: false },
+    options: { persona: true, convMode: true },
+    defaults: { personas: ['autistic'], convMode: 'standard' }
   },
   {
     num: 4,
-    title: "Session 2 · Turn 8",
-    subtitle: "Returning user, deep in conversation",
-    scenario: "Mid-session, another pattern is forming. The user has been talking about something concrete. Jove is about to propose a second Manual entry.",
-    flags: { isNew: false, isReturning: true, isCheckpoint: true, convMode: 'standard' }
+    title: "Session 2 · Mid-conversation",
+    subtitle: "Returning user, approaching next checkpoint",
+    scenario: "Deeper into session 2. Another pattern is forming. Same locked-in settings as the start of this session.",
+    state: { isNew: false, isReturning: true, isCheckpoint: true },
+    options: { persona: false, convMode: false },
+    defaults: { personas: ['autistic'], convMode: 'standard' }
   }
 ];
 
-function getActiveBlocks(flags) {
+const STAGE_SELECTIONS = {};
+
+function getStageBlocks(stageNum) {
+  const stage = JOURNEY_STAGES.find(s => s.num === stageNum);
+  const sel = effectiveSelection(stageNum);
+  let personas = (sel.personas && sel.personas.length > 0) ? sel.personas : ['autistic'];
+  const neurotype = personas.filter(p => p !== 'general');
+  const effective = neurotype.length > 0 ? neurotype : personas;
+
   const blocks = [];
-  const push = (id, label, text, tier) => blocks.push({ id, label, tokens: tokenCount(text), tier });
+  const push = (id, label, text, tier, extraClass) => blocks.push({
+    id, label, tokens: tokenCount(text), tier,
+    persona: extraClass || null
+  });
 
   push('intro', 'Persona Intro', D.intro, 'tier-intro');
   push('tier1', 'Constitutional Rules', D.tier1, 'tier-1');
-  push('t2_autistic', 'Voice (Autistic)', D.tier2_autistic, 'tier-2');
-  if (flags.isNew) push('firstMessage', 'First Message', D.firstMessage, 'tier-3');
-  if (flags.convMode === 'guided') push('guidedIntake', 'Guided Intake', D.guidedIntake, 'tier-3');
-  if (flags.convMode === 'upload') push('uploadMode', 'Upload Mode', D.uploadMode, 'tier-3');
-  if (flags.isReturning) push('returningUser', 'Returning User', D.returningUser, 'tier-3');
-  if (flags.isReturning || flags.isCheckpoint) push('checkpoints', 'Checkpoints', D.checkpoints, 'tier-3');
+  // Tier 2 primary
+  const primary = effective[0];
+  push('t2_' + primary, `Voice (${PERSONA_LABELS[primary]})`, D['tier2_' + primary], 'tier-2', primary);
+  // Tier 2 additions
+  effective.slice(1).forEach(m => {
+    if (D['additions_' + m]) {
+      const addText = 'ADDITIONAL VOICE GUIDANCE (' + PERSONA_LABELS[m] + ')' + D['additions_' + m];
+      push('add_' + m, `Additional (${PERSONA_LABELS[m]})`, addText, 'tier-2', m);
+    }
+  });
+  // Tier 3 conditional
+  if (stage.state.isNew) push('firstMessage', 'First Message', D.firstMessage, 'tier-3');
+  if (sel.convMode === 'guided') push('guidedIntake', 'Guided Intake', D.guidedIntake, 'tier-3');
+  if (sel.convMode === 'upload') push('uploadMode', 'Upload Mode', D.uploadMode, 'tier-3');
+  if (stage.state.isReturning) push('returningUser', 'Returning User', D.returningUser, 'tier-3');
+  if (stage.state.isReturning || stage.state.isCheckpoint) push('checkpoints', 'Checkpoints', D.checkpoints, 'tier-3');
+  // Tier 3 always-on
   push('adapting', 'Adapting + Short Answers', D.adapting, 'tier-3');
   push('clinical', 'Clinical Material', D.clinicalMaterial, 'tier-3');
   push('referral', 'Professional Referral', D.professionalReferral, 'tier-3');
   push('fabricated', 'Fabricated Content', D.fabricatedContent, 'tier-3');
   push('checkpointLang', 'Checkpoint Language', D.checkpointLanguage, 'tier-3');
-  if (flags.isNew) push('firstSession', 'First Session', D.firstSession, 'tier-3');
-  if (flags.isReturning) {
+  if (stage.state.isNew) push('firstSession', 'First Session', D.firstSession, 'tier-3');
+  // Dynamic (estimated)
+  if (stage.state.isReturning) {
     blocks.push({ id: 'manual', label: 'Manual Entries (compressed)', tokens: 220, tier: 'tier-dynamic' });
     blocks.push({ id: 'sessionCtx', label: 'Session Context', tokens: 60, tier: 'tier-dynamic' });
   }
-  if (flags.isCheckpoint) {
+  if (stage.state.isCheckpoint) {
     blocks.push({ id: 'extraction', label: 'Extraction Brief', tokens: 180, tier: 'tier-dynamic' });
   }
   return blocks;
 }
 
-const BLOCK_LABELS = {
-  intro: 'Persona Intro', tier1: 'Constitutional Rules', t2_autistic: 'Voice (Autistic)',
-  firstMessage: 'First Message', guidedIntake: 'Guided Intake', uploadMode: 'Upload Mode',
-  returningUser: 'Returning User', checkpoints: 'Checkpoints',
-  adapting: 'Adapting + Short Answers', clinical: 'Clinical Material', referral: 'Professional Referral',
-  fabricated: 'Fabricated Content', checkpointLang: 'Checkpoint Language', firstSession: 'First Session',
-  manual: 'Manual Entries (compressed)', sessionCtx: 'Session Context', extraction: 'Extraction Brief'
-};
+function blockLabelFor(id) {
+  const labels = {
+    intro: 'Persona Intro', tier1: 'Constitutional Rules',
+    firstMessage: 'First Message', guidedIntake: 'Guided Intake', uploadMode: 'Upload Mode',
+    returningUser: 'Returning User', checkpoints: 'Checkpoints',
+    adapting: 'Adapting + Short Answers', clinical: 'Clinical Material', referral: 'Professional Referral',
+    fabricated: 'Fabricated Content', checkpointLang: 'Checkpoint Language', firstSession: 'First Session',
+    manual: 'Manual Entries (compressed)', sessionCtx: 'Session Context', extraction: 'Extraction Brief'
+  };
+  if (labels[id]) return labels[id];
+  if (id.startsWith('t2_')) return `Voice (${PERSONA_LABELS[id.slice(3)] || id})`;
+  if (id.startsWith('add_')) return `Additional (${PERSONA_LABELS[id.slice(4)] || id})`;
+  return id;
+}
+
+function togglePersonaInStage(stageNum, mode) {
+  const cur = effectiveSelection(stageNum);
+  let personas = [...cur.personas];
+  if (mode === 'general') {
+    personas = personas.includes('general') ? [] : ['general'];
+  } else {
+    personas = personas.filter(p => p !== 'general');
+    if (personas.includes(mode)) {
+      personas = personas.filter(p => p !== mode);
+    } else {
+      personas.push(mode);
+    }
+  }
+  if (personas.length === 0) personas = ['autistic'];
+  if (!STAGE_SELECTIONS[stageNum]) STAGE_SELECTIONS[stageNum] = {};
+  STAGE_SELECTIONS[stageNum].personas = personas;
+  STAGE_SELECTIONS[stageNum].touchedPersona = true;
+  renderJourney();
+}
+
+function setConvModeInStage(stageNum, mode) {
+  if (!STAGE_SELECTIONS[stageNum]) STAGE_SELECTIONS[stageNum] = {};
+  STAGE_SELECTIONS[stageNum].convMode = mode;
+  STAGE_SELECTIONS[stageNum].touchedConvMode = true;
+  renderJourney();
+}
+
+function effectiveSelection(stageNum) {
+  const stage = JOURNEY_STAGES.find(s => s.num === stageNum);
+  const sel = STAGE_SELECTIONS[stageNum] || {};
+  let personas, convMode;
+
+  // Locked stages always inherit from previous
+  // Unlocked stages inherit unless the user has explicitly touched them
+  if (!stage.options.persona || !sel.touchedPersona) {
+    if (stageNum > 1) {
+      personas = effectiveSelection(stageNum - 1).personas;
+    } else {
+      personas = stage.defaults.personas;
+    }
+  } else {
+    personas = sel.personas;
+  }
+
+  if (!stage.options.convMode || !sel.touchedConvMode) {
+    if (stageNum > 1) {
+      convMode = effectiveSelection(stageNum - 1).convMode;
+    } else {
+      convMode = stage.defaults.convMode;
+    }
+  } else {
+    convMode = sel.convMode;
+  }
+
+  return { personas: [...personas], convMode };
+}
+
+function renderStageOptions(stage) {
+  const sel = effectiveSelection(stage.num);
+  const personas = sel.personas;
+  const convMode = sel.convMode;
+
+  let personaRow = '<div class="opt-row"><span class="opt-label">Persona</span>';
+  ['autistic', 'audhd', 'dyslexic', 'general'].forEach(m => {
+    const isActive = personas.includes(m);
+    if (stage.options.persona) {
+      personaRow += `<span class="opt-chip persona-${m} ${isActive ? 'active' : ''}" onclick="togglePersonaInStage(${stage.num}, '${m}')">${PERSONA_LABELS[m]}</span>`;
+    } else if (isActive) {
+      personaRow += `<span class="opt-chip persona-${m} active fixed">${PERSONA_LABELS[m]}</span>`;
+    }
+  });
+  if (!stage.options.persona) {
+    personaRow += '<span class="hint">Locked in at onboarding</span>';
+  } else {
+    personaRow += '<span class="hint">Multi-select: stack additional voices</span>';
+  }
+  personaRow += '</div>';
+
+  let modeRow = '<div class="opt-row"><span class="opt-label">Conv mode</span>';
+  ['standard', 'guided', 'upload'].forEach(m => {
+    const isActive = convMode === m;
+    const label = m === 'standard' ? 'Standard' : m === 'guided' ? 'Guided Intake' : 'Upload';
+    if (stage.options.convMode) {
+      modeRow += `<span class="opt-chip mode-chip ${isActive ? 'active' : ''}" onclick="setConvModeInStage(${stage.num}, '${m}')">${label}</span>`;
+    } else if (isActive) {
+      modeRow += `<span class="opt-chip mode-chip active fixed">${label}</span>`;
+    }
+  });
+  if (!stage.options.convMode) {
+    modeRow += '<span class="hint">Set at session start</span>';
+  } else {
+    modeRow += '<span class="hint">Click to switch — see blocks change</span>';
+  }
+  modeRow += '</div>';
+
+  return `<div class="journey-options">${personaRow}${modeRow}</div>`;
+}
 
 function renderJourney() {
   let html = '';
   html += `<div class="overview-intro">
-    <strong>A user moving through the product. The prompt evolves with them.</strong>
-    Each stage shows what Jove is reading at that moment, what just got added, and what dropped off. Shown with Autistic primary mode — other modes follow the same pattern, just with a different Voice block.
+    <strong>A user moving through the product. At each stage, see what's in Jove's prompt — and what choices change it.</strong>
+    Stages 1 and 3 have live option chips: click Persona or Conv Mode to see the prompt update. Stages 2 and 4 carry forward the previous choices (locked — those decisions were already made).
   </div>`;
 
   let prevIds = null;
   let prevTotal = null;
   JOURNEY_STAGES.forEach((stage) => {
-    const blocks = getActiveBlocks(stage.flags);
+    const blocks = getStageBlocks(stage.num);
     const ids = new Set(blocks.map(b => b.id));
     const total = blocks.reduce((s, b) => s + b.tokens, 0);
 
@@ -780,11 +968,11 @@ function renderJourney() {
     let changesHtml = '';
     if (!isFirst) {
       const parts = [];
-      added.forEach(id => parts.push(`<span class="diff-pill added">+ ${BLOCK_LABELS[id] || id}</span>`));
-      removed.forEach(id => parts.push(`<span class="diff-pill removed">− ${BLOCK_LABELS[id] || id}</span>`));
+      added.forEach(id => parts.push(`<span class="diff-pill added">+ ${blockLabelFor(id)}</span>`));
+      removed.forEach(id => parts.push(`<span class="diff-pill removed">− ${blockLabelFor(id)}</span>`));
       changesHtml = `<div class="journey-changes">
-        <span class="label">Changes:</span>
-        ${parts.length > 0 ? parts.join('') : '<em style="color:#9a8f84">No structural changes — same blocks as previous stage.</em>'}
+        <span class="label">What changed:</span>
+        ${parts.length > 0 ? parts.join('') : '<em style="color:#9a8f84">Same blocks as previous stage.</em>'}
       </div>`;
     }
 
@@ -814,6 +1002,7 @@ function renderJourney() {
         </div>
       </div>
       <div class="journey-scenario">${stage.scenario}</div>
+      ${renderStageOptions(stage)}
       ${changesHtml}
       <ul class="journey-blocks">${blocksHtml}</ul>
       <div class="journey-total">
