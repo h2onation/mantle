@@ -163,13 +163,82 @@ body {
   padding: 0;
 }
 .toggle-btn:hover { text-decoration: underline; }
+.view-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 2px;
+  margin-right: 12px;
+}
+.view-toggle button {
+  background: none;
+  border: none;
+  color: #faf8f5;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 500;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+}
+.view-toggle button.active {
+  background: rgba(255,255,255,0.18);
+  opacity: 1;
+}
+.view-toggle button:hover { opacity: 1; }
+.sticky-bar .right { display: flex; align-items: center; }
+body.overview .controls { display: none; }
+body.overview .token-total { display: none; }
+.trigger-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.trigger-tag.always { background: #ece8e1; color: #6a6258; }
+.trigger-tag.persona { background: #f5e8c8; color: #7a5e1f; }
+.trigger-tag.persona-add { background: #fff; color: #7a5e1f; border: 1px solid #c49a3c; }
+.trigger-tag.state { background: #d8e4d8; color: #2f5a3a; }
+.trigger-tag.mode { background: #d6e3ef; color: #2c4a6a; }
+.trigger-tag.dynamic { background: #e0dbf0; color: #4a3a78; }
+.overview-intro {
+  padding-bottom: 20px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #5a524a;
+  line-height: 1.6;
+  border-bottom: 1px solid #ece8e1;
+}
+.overview-intro strong { color: #2c2520; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.legend-label { color: #7a6f64; margin-right: 4px; font-size: 11px; }
 </style>
 </head>
 <body>
 
 <div class="sticky-bar">
   <span class="title">Jove System Prompt Architecture</span>
-  <span class="token-total" id="totalTokens">Total: ~0 tokens</span>
+  <span class="right">
+    <span class="view-toggle">
+      <button id="viewInteractive" class="active" onclick="setView('interactive')">Interactive</button>
+      <button id="viewOverview" onclick="setView('overview')">Overview</button>
+    </span>
+    <span class="token-total" id="totalTokens">Total: ~0 tokens</span>
+  </span>
 </div>
 
 <div class="controls">
@@ -262,6 +331,141 @@ function getState() {
   const isReturning = document.getElementById('stateReturning').checked;
   const isCheckpoint = document.getElementById('stateCheckpoint').checked;
   return { personas, convMode, isNew, isReturning, isCheckpoint };
+}
+
+function makeOverviewBlock(id, tierClass, label, triggerHtml, text) {
+  const tokens = tokenCount(text);
+  const lines = text.split("\n");
+  const collapsed = lines.length > 3;
+  return `<div class="block ${tierClass}" data-block-id="${id}" data-tokens="${tokens}">
+    <div class="block-header">
+      <div class="block-label">${label}${triggerHtml}</div>
+      <div class="token-badge">${fmt(tokens)} tokens</div>
+    </div>
+    <div class="block-body">
+      <div class="prompt-text" id="text-${id}">${escHtml(text)}</div>
+      ${collapsed ? `<button class="toggle-btn" onclick="toggleText('${id}')">Show full text &#9656;</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function tag(cls, text) {
+  return `<span class="trigger-tag ${cls}">${text}</span>`;
+}
+
+function renderOverview() {
+  let html = '';
+
+  html += `<div class="overview-intro">
+    <strong>Every block that can ever appear in the system prompt, in stacking order.</strong>
+    Each row's trigger tag shows what flips it on. Tier 2 blocks stack: the first selected persona contributes its full Voice block; additional personas contribute a smaller "Additional Voice" block.
+    <div class="legend">
+      <span class="legend-label">Triggers:</span>
+      ${tag('always', 'Always')}
+      ${tag('persona', 'Persona: primary')}
+      ${tag('persona-add', 'Persona: +secondary')}
+      ${tag('state', 'State')}
+      ${tag('mode', 'Conv mode')}
+      ${tag('dynamic', 'Dynamic')}
+    </div>
+  </div>`;
+
+  html += makeOverviewBlock('ov_intro', 'tier-intro',
+    '<span class="tier-tag">Intro</span>Persona Intro',
+    tag('always', 'Always'), D.intro);
+
+  html += makeOverviewBlock('ov_tier1', 'tier-1',
+    '<span class="tier-tag">Tier 1</span>Constitutional Rules',
+    tag('always', 'Always'), D.tier1);
+
+  for (const m of ['autistic', 'audhd', 'dyslexic', 'general']) {
+    const label = PERSONA_LABELS[m];
+    html += makeOverviewBlock('ov_t2_' + m, 'tier-2',
+      `<span class="tier-tag">Tier 2</span>Voice (${label})`,
+      tag('persona', 'Persona primary: ' + label.toLowerCase()),
+      D['tier2_' + m]);
+  }
+
+  for (const m of ['autistic', 'audhd', 'dyslexic']) {
+    const label = PERSONA_LABELS[m];
+    const addText = 'ADDITIONAL VOICE GUIDANCE (' + label + ')' + D['additions_' + m];
+    html += makeOverviewBlock('ov_add_' + m, 'tier-2',
+      `<span class="tier-tag">Tier 2</span>Additional Voice (${label})`,
+      tag('persona-add', '+ ' + label.toLowerCase() + ' (secondary)'),
+      addText);
+  }
+
+  html += makeOverviewBlock('ov_firstMessage', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>First Message',
+    tag('state', 'State: new user'), D.firstMessage);
+
+  html += makeOverviewBlock('ov_guidedIntake', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Guided Intake',
+    tag('mode', 'Conv mode: guided intake'), D.guidedIntake);
+
+  html += makeOverviewBlock('ov_uploadMode', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Upload Mode',
+    tag('mode', 'Conv mode: upload'), D.uploadMode);
+
+  html += makeOverviewBlock('ov_returningUser', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Returning User',
+    tag('state', 'State: returning user'), D.returningUser);
+
+  html += makeOverviewBlock('ov_checkpoints', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Checkpoints',
+    tag('state', 'State: returning or checkpoint approaching'), D.checkpoints);
+
+  html += makeOverviewBlock('ov_adapting', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Adapting + Short Answers',
+    tag('always', 'Always'), D.adapting);
+
+  html += makeOverviewBlock('ov_clinical', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Clinical Material',
+    tag('always', 'Always'), D.clinicalMaterial);
+
+  html += makeOverviewBlock('ov_referral', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Professional Referral',
+    tag('always', 'Always'), D.professionalReferral);
+
+  html += makeOverviewBlock('ov_fabricated', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Fabricated Content',
+    tag('always', 'Always'), D.fabricatedContent);
+
+  html += makeOverviewBlock('ov_checkpointLang', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>Checkpoint Language',
+    tag('always', 'Always'), D.checkpointLanguage);
+
+  html += makeOverviewBlock('ov_firstSession', 'tier-3',
+    '<span class="tier-tag">Tier 3</span>First Session',
+    tag('state', 'State: new user'), D.firstSession);
+
+  html += makeOverviewBlock('ov_manual', 'tier-dynamic',
+    '<span class="tier-tag">Dynamic</span>Manual Entries',
+    tag('dynamic', 'Dynamic: confirmed entries'),
+    '[Compressed manual entries appended at runtime when the user has confirmed entries. Recent entries render in full; older entries render as one-line summaries.]');
+
+  const sessionCtx = 'SESSION CONTEXT\nThis is session 3.\nReturning user. Do NOT run the first-session entry.\nPrevious session: [summary]';
+  html += makeOverviewBlock('ov_sessionCtx', 'tier-dynamic',
+    '<span class="tier-tag">Dynamic</span>Session Context',
+    tag('dynamic', 'Dynamic: returning user'), sessionCtx);
+
+  html += makeOverviewBlock('ov_extraction', 'tier-dynamic',
+    '<span class="tier-tag">Dynamic</span>Extraction Brief',
+    tag('dynamic', 'Dynamic: checkpoint pipeline'),
+    '[Extraction context appended when a checkpoint is approaching. The pipeline analyzes recent turns and surfaces what the user has said that could become a Manual entry.]');
+
+  document.getElementById('blocks').innerHTML = html;
+}
+
+function setView(view) {
+  document.getElementById('viewInteractive').classList.toggle('active', view === 'interactive');
+  document.getElementById('viewOverview').classList.toggle('active', view === 'overview');
+  document.body.classList.toggle('overview', view === 'overview');
+  if (view === 'overview') {
+    renderOverview();
+  } else {
+    render();
+  }
 }
 
 function render() {
