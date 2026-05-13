@@ -79,7 +79,7 @@ interface MobileSessionProps {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
-  displayName?: string | null;
+  firstName?: string | null;
   onOpenDrawer: () => void;
   /** Snapshot of the entry the user is exploring further. Drives the
       walnut context chip at the top of chat. */
@@ -110,7 +110,7 @@ export default function MobileSession({
   emergingPatternSnippet = null,
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
-  displayName = null,
+  firstName = null,
   onOpenDrawer,
   currentExploration = null,
   onDismissExploration,
@@ -178,16 +178,16 @@ export default function MobileSession({
   const hasMessages = messages.length > 0;
   const isReturning = confirmedEntries.length > 0;
   const hasRealName =
-    !!displayName &&
-    displayName !== "User" &&
-    displayName !== displayName.toLowerCase();
+    !!firstName &&
+    firstName !== "User" &&
+    firstName !== firstName.toLowerCase();
   const greetingIndex = useMemo(
     () => Math.floor(Math.random() * RETURNING_GREETINGS.length),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversationId]
   );
   const greeting = isReturning
-    ? RETURNING_GREETINGS[greetingIndex](hasRealName ? displayName : null)
+    ? RETURNING_GREETINGS[greetingIndex](hasRealName ? firstName : null)
     : "Hello,\nI’m Jove.";
 
   const showEntryCards = chipsVisible && !hasMessages && !isLoading;
