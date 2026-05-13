@@ -5,7 +5,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
 import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
-import FirstCheckpointModal from "@/components/modals/FirstCheckpointModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
@@ -114,19 +113,26 @@ export default function MobileSession({
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
-  const [modal3Dismissed, setModal3Dismissed] = useState(false);
-
-  // Modal 3 is open iff we have loaded a valid modal_progress of 2, the
-  // user is not anonymous, a checkpoint is actively pending, and the
-  // user hasn't dismissed it yet in this session. When open, we
-  // suppress the pending checkpoint card below so the modal reads
-  // first; dismissal makes the card render in the same cycle.
-  const modal3Open =
-    typeof modalProgress === "number" &&
-    modalProgress === 2 &&
-    !isAnonymous &&
-    activeCheckpoint !== null &&
-    !modal3Dismissed;
+  // Auto-advance modal_progress past the first-checkpoint gate when a
+  // checkpoint arrives. No modal shown — the inline trigger card + overlay
+  // handles the experience. Fire-and-forget; ref prevents duplicate POSTs.
+  const modal3AdvancedRef = useRef(false);
+  useEffect(() => {
+    if (
+      typeof modalProgress === "number" &&
+      modalProgress === 2 &&
+      !isAnonymous &&
+      activeCheckpoint !== null &&
+      !modal3AdvancedRef.current
+    ) {
+      modal3AdvancedRef.current = true;
+      fetch("/api/modal-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: 3 }),
+      }).catch(() => {});
+    }
+  }, [modalProgress, isAnonymous, activeCheckpoint]);
   const [chipsVisible, setChipsVisible] = useState(true);
   useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
@@ -618,7 +624,6 @@ export default function MobileSession({
 
               // Checkpoint card rendering
               if (isCheckpoint) {
-                if (isPendingCheckpoint && modal3Open) return null;
                 const checkpointLayer = isPendingCheckpoint
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
@@ -984,11 +989,6 @@ export default function MobileSession({
         signupAtMs={signupAtMs}
       />
 
-      <FirstCheckpointModal
-        open={modal3Open}
-        onDismiss={() => setModal3Dismissed(true)}
-        signupAtMs={signupAtMs}
-      />
 
       {overlayCheckpointRef.current && (
         <CheckpointOverlay
