@@ -599,7 +599,8 @@ export function useChat() {
   }
 
   async function confirmCheckpoint(
-    action: "confirmed" | "rejected" | "refined" | "deferred"
+    action: "confirmed" | "rejected" | "refined" | "deferred",
+    edits?: { editedContent?: string | null; editedName?: string | null }
   ) {
     if (!activeCheckpoint) return;
 
@@ -610,6 +611,12 @@ export function useChat() {
       messageId: activeCheckpoint.messageId,
       action,
       conversationId,
+      ...(action === "confirmed" && edits?.editedContent
+        ? { editedContent: edits.editedContent }
+        : {}),
+      ...(action === "confirmed" && edits?.editedName
+        ? { editedName: edits.editedName }
+        : {}),
     });
 
     // Retry transient failures (network error or 5xx) with short backoff.
@@ -673,14 +680,16 @@ export function useChat() {
       }
 
       if (action === "confirmed") {
-        // Add to confirmed entries locally (optimistic update)
+        // Add to confirmed entries locally (optimistic update). Prefer edited
+        // text so the Manual reflects the user's words immediately; loadManual
+        // reconciles with the server-stored version on the next tick.
         setConfirmedEntries((prev) => [
           ...prev,
           {
             id: activeCheckpoint.messageId,
             layer: activeCheckpoint.layer,
-            name: null,
-            content: activeCheckpoint.content,
+            name: edits?.editedName?.trim() || null,
+            content: edits?.editedContent?.trim() || activeCheckpoint.content,
             created_at: new Date().toISOString(),
           },
         ]);

@@ -233,10 +233,10 @@ describe("PR3 onboarding copy pass", () => {
 
     it("dispatches actions via onAction callback from the overlay", () => {
       const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
-      expect(overlay).toContain("onAction(\"confirmed\")");
-      expect(overlay).toContain("onAction(\"refined\")");
-      expect(overlay).toContain("onAction(\"rejected\")");
-      expect(overlay).toContain("onAction(\"deferred\")");
+      expect(overlay).toMatch(/onAction\("confirmed"/);
+      expect(overlay).toMatch(/onAction\("refined"\)/);
+      expect(overlay).toMatch(/onAction\("rejected"\)/);
+      expect(overlay).toMatch(/onAction\("deferred"\)/);
     });
 
     it("computes refinement-ceiling state from refinement_count >= 2", () => {

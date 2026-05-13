@@ -56,7 +56,8 @@ interface MobileSessionProps {
   sendChipResponse: (text: string) => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
-    action: "confirmed" | "rejected" | "refined" | "deferred"
+    action: "confirmed" | "rejected" | "refined" | "deferred",
+    edits?: { editedContent?: string | null; editedName?: string | null }
   ) => void;
   startGuidedIntake: () => Promise<boolean>;
   startUpload: () => Promise<boolean>;
@@ -1000,9 +1001,9 @@ export default function MobileSession({
                 (m.checkpointMeta?.refinement_count ?? 0) >= 2
             )
           }
-          onAction={(action) => {
+          onAction={(action, edits) => {
             setCheckpointActionState(action);
-            confirmCheckpoint(action);
+            confirmCheckpoint(action, edits);
           }}
           onClose={() => {
             setCheckpointOverlayOpen(false);

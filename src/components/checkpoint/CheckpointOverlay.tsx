@@ -6,13 +6,18 @@ import { renderMarkdown } from "@/lib/utils/format";
 
 type CheckpointAction = "confirmed" | "rejected" | "refined" | "deferred";
 
+interface CheckpointEdits {
+  editedContent?: string | null;
+  editedName?: string | null;
+}
+
 interface CheckpointOverlayProps {
   open: boolean;
   checkpoint: ActiveCheckpoint;
   layerName?: string;
   layerOrdinal?: string;
   refinementCeilingActive: boolean;
-  onAction: (action: CheckpointAction) => void;
+  onAction: (action: CheckpointAction, edits?: CheckpointEdits) => void;
   onClose: () => void;
 }
 
@@ -29,6 +34,7 @@ export default function CheckpointOverlay({
 }: CheckpointOverlayProps) {
   const [phase, setPhase] = useState<Phase>("actions");
   const [editing, setEditing] = useState(false);
+  const editedRef = useRef(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const moduleRef = useRef<HTMLDivElement>(null);
@@ -37,6 +43,7 @@ export default function CheckpointOverlay({
     if (open) {
       setPhase("actions");
       setEditing(false);
+      editedRef.current = false;
     }
   }, [open]);
 
@@ -62,15 +69,29 @@ export default function CheckpointOverlay({
   }, [open, phase, onClose]);
 
   const handleConfirm = useCallback(() => {
+    // Only forward edits when the user actually entered edit mode at some
+    // point during this overlay session — otherwise the rendered-markdown
+    // round-trip via innerText could falsely flag a diff against the raw
+    // markdown source.
+    const edits: CheckpointEdits = {};
+    if (editedRef.current) {
+      const rawContent = bodyRef.current?.innerText?.trim() ?? "";
+      const rawName = headlineRef.current?.innerText?.trim() ?? "";
+      if (rawContent) edits.editedContent = rawContent;
+      if (rawName && rawName !== (checkpoint.name?.trim() ?? "")) {
+        edits.editedName = rawName;
+      }
+    }
+
     if (editing) setEditing(false);
     setPhase("composing");
-    onAction("confirmed");
+    onAction("confirmed", edits);
 
     setTimeout(() => {
       setPhase("confirmed");
       setTimeout(() => onClose(), 1600);
     }, 2200);
-  }, [editing, onAction, onClose]);
+  }, [editing, onAction, onClose, checkpoint.name]);
 
   const handleRefine = useCallback(() => {
     onAction("refined");
@@ -91,6 +112,7 @@ export default function CheckpointOverlay({
     setEditing((prev) => {
       const next = !prev;
       if (next) {
+        editedRef.current = true;
         setTimeout(() => bodyRef.current?.focus(), 50);
       }
       return next;
