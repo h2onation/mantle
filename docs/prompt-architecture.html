@@ -637,6 +637,27 @@ body.journey .content { max-width: 920px; }
 .matrix-legend .swatch.removed { background: #f0d6d6; }
 .matrix-legend .swatch.active { background: #fbf1d8; }
 .matrix-legend .swatch.inactive { background: #fff; border: 1px solid #ece8e1; }
+.matrix-legend .swatch.alternative { background: #faf6ee; border: 1px dashed #d8d2c8; }
+.matrix-table .block-row.row-dimmed td {
+  opacity: 0.45;
+  background: #faf6ee;
+}
+.matrix-table .block-row.row-dimmed .block-name {
+  font-style: italic;
+  color: #8a7f74;
+}
+.matrix-table .row-tag {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9a8f84;
+  background: #fff;
+  border: 1px dashed #c8c2b8;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 6px;
+  font-weight: 600;
+}
 .overview-intro {
   padding-bottom: 20px;
   margin-bottom: 8px;
@@ -1146,11 +1167,77 @@ function renderJourneyControls() {
 }
 
 const ROW_SECTIONS = [
-  { tier: 'tier-intro', label: 'Foundation' },
+  { tier: 'tier-intro', label: 'Foundation — Every prompt, every user' },
   { tier: 'tier-1', label: null },
-  { tier: 'tier-2', label: 'Tier 2 — Voice' },
-  { tier: 'tier-3', label: 'Tier 3 — Mechanics' },
-  { tier: 'tier-dynamic', label: 'Dynamic — Runtime' }
+  { tier: 'tier-2-primary', label: 'Tier 2 — Voice (pick one as primary)' },
+  { tier: 'tier-2-secondary', label: 'Tier 2 — Additional Voice (stacked on primary)' },
+  { tier: 'tier-3-entry', label: 'Tier 3 — Conversation entry point' },
+  { tier: 'tier-3-state', label: 'Tier 3 — State-driven' },
+  { tier: 'tier-3-always', label: 'Tier 3 — Always-on' },
+  { tier: 'tier-dynamic', label: 'Dynamic — Appended at runtime' }
+];
+
+function activeBlock(blockId, phase, sel) {
+  // Returns token count if active, null if not
+  const s = phase.state;
+  const personas = sel.personas;
+  const neurotype = personas.filter(p => p !== 'general');
+  const effective = neurotype.length > 0 ? neurotype : personas;
+  const primary = effective[0];
+  const secondary = effective.slice(1);
+
+  switch (blockId) {
+    case 'intro': return tokenCount(D.intro);
+    case 'tier1': return tokenCount(D.tier1);
+    case 't2_autistic': return primary === 'autistic' ? tokenCount(D.tier2_autistic) : null;
+    case 't2_audhd': return primary === 'audhd' ? tokenCount(D.tier2_audhd) : null;
+    case 't2_dyslexic': return primary === 'dyslexic' ? tokenCount(D.tier2_dyslexic) : null;
+    case 't2_general': return primary === 'general' ? tokenCount(D.tier2_general) : null;
+    case 'add_autistic': return secondary.includes('autistic') ? tokenCount('ADDITIONAL VOICE GUIDANCE (Autistic)' + D.additions_autistic) : null;
+    case 'add_audhd': return secondary.includes('audhd') ? tokenCount('ADDITIONAL VOICE GUIDANCE (AuDHD)' + D.additions_audhd) : null;
+    case 'add_dyslexic': return secondary.includes('dyslexic') ? tokenCount('ADDITIONAL VOICE GUIDANCE (Dyslexic)' + D.additions_dyslexic) : null;
+    case 'firstMessage': return s.isNew ? tokenCount(D.firstMessage) : null;
+    case 'guidedIntake': return sel.convMode === 'guided' ? tokenCount(D.guidedIntake) : null;
+    case 'uploadMode': return sel.convMode === 'upload' ? tokenCount(D.uploadMode) : null;
+    case 'returningUser': return s.isReturning ? tokenCount(D.returningUser) : null;
+    case 'checkpoints': return (s.isReturning || s.isCheckpoint) ? tokenCount(D.checkpoints) : null;
+    case 'adapting': return tokenCount(D.adapting);
+    case 'clinical': return tokenCount(D.clinicalMaterial);
+    case 'referral': return tokenCount(D.professionalReferral);
+    case 'fabricated': return tokenCount(D.fabricatedContent);
+    case 'checkpointLang': return tokenCount(D.checkpointLanguage);
+    case 'firstSession': return s.isNew ? tokenCount(D.firstSession) : null;
+    case 'manual': return s.isReturning ? 220 : null;
+    case 'sessionCtx': return s.isReturning ? 60 : null;
+    case 'extraction': return s.isCheckpoint ? 180 : null;
+  }
+  return null;
+}
+
+const ALL_MATRIX_ROWS = [
+  { id: 'intro', label: 'Persona Intro', tier: 'tier-intro' },
+  { id: 'tier1', label: 'Constitutional Rules', tier: 'tier-1' },
+  { id: 't2_autistic', label: 'Voice (Autistic)', tier: 'tier-2-primary', persona: 'autistic' },
+  { id: 't2_audhd', label: 'Voice (AuDHD)', tier: 'tier-2-primary', persona: 'audhd' },
+  { id: 't2_dyslexic', label: 'Voice (Dyslexic)', tier: 'tier-2-primary', persona: 'dyslexic' },
+  { id: 't2_general', label: 'Voice (General)', tier: 'tier-2-primary', persona: 'general' },
+  { id: 'add_autistic', label: 'Additional (Autistic)', tier: 'tier-2-secondary', persona: 'autistic' },
+  { id: 'add_audhd', label: 'Additional (AuDHD)', tier: 'tier-2-secondary', persona: 'audhd' },
+  { id: 'add_dyslexic', label: 'Additional (Dyslexic)', tier: 'tier-2-secondary', persona: 'dyslexic' },
+  { id: 'firstMessage', label: 'First Message', tier: 'tier-3-entry' },
+  { id: 'guidedIntake', label: 'Guided Intake', tier: 'tier-3-entry' },
+  { id: 'uploadMode', label: 'Upload Mode', tier: 'tier-3-entry' },
+  { id: 'returningUser', label: 'Returning User', tier: 'tier-3-state' },
+  { id: 'checkpoints', label: 'Checkpoints', tier: 'tier-3-state' },
+  { id: 'firstSession', label: 'First Session', tier: 'tier-3-state' },
+  { id: 'adapting', label: 'Adapting + Short Answers', tier: 'tier-3-always' },
+  { id: 'clinical', label: 'Clinical Material', tier: 'tier-3-always' },
+  { id: 'referral', label: 'Professional Referral', tier: 'tier-3-always' },
+  { id: 'fabricated', label: 'Fabricated Content', tier: 'tier-3-always' },
+  { id: 'checkpointLang', label: 'Checkpoint Language', tier: 'tier-3-always' },
+  { id: 'manual', label: 'Manual Entries (compressed)', tier: 'tier-dynamic' },
+  { id: 'sessionCtx', label: 'Session Context', tier: 'tier-dynamic' },
+  { id: 'extraction', label: 'Extraction Brief', tier: 'tier-dynamic' }
 ];
 
 function renderJourney() {
@@ -1162,31 +1249,24 @@ function renderJourney() {
 
   html += renderJourneyControls();
 
-  // Compute active blocks per phase
-  const phaseBlocks = JOURNEY_STAGES.map(p => getStageBlocks(p.num));
-  const phaseIds = phaseBlocks.map(blocks => new Set(blocks.map(b => b.id)));
-  const phaseTokens = phaseBlocks.map(blocks => {
+  const sel = effectiveSelection(1);
+
+  // Compute activity per phase for every possible block
+  const phaseActivity = JOURNEY_STAGES.map(p => {
     const map = {};
-    blocks.forEach(b => { map[b.id] = b.tokens; });
+    ALL_MATRIX_ROWS.forEach(row => {
+      map[row.id] = activeBlock(row.id, p, sel);
+    });
     return map;
   });
-  const totals = phaseBlocks.map(blocks => blocks.reduce((s, b) => s + b.tokens, 0));
 
-  // Collect all unique blocks across phases, preserving order from earliest phase they appear
-  const seen = new Set();
-  const orderedBlocks = [];
-  for (let p = 0; p < phaseBlocks.length; p++) {
-    for (const b of phaseBlocks[p]) {
-      if (!seen.has(b.id)) {
-        seen.add(b.id);
-        orderedBlocks.push(b);
-      }
-    }
-  }
+  const totals = phaseActivity.map(act =>
+    Object.values(act).reduce((s, v) => s + (v || 0), 0)
+  );
 
-  // Group by tier
+  // Group rows by tier
   const grouped = {};
-  orderedBlocks.forEach(b => {
+  ALL_MATRIX_ROWS.forEach(b => {
     if (!grouped[b.tier]) grouped[b.tier] = [];
     grouped[b.tier].push(b);
   });
@@ -1208,7 +1288,7 @@ function renderJourney() {
   });
   html += '</tr></thead>';
 
-  // Body
+  // Body — emit every section, with all its rows (even alternatives that aren't currently selected)
   html += '<tbody>';
   ROW_SECTIONS.forEach(section => {
     const rows = grouped[section.tier] || [];
@@ -1217,25 +1297,39 @@ function renderJourney() {
       html += `<tr class="section-row"><td colspan="${JOURNEY_STAGES.length + 1}">${section.label}</td></tr>`;
     }
     rows.forEach(b => {
-      html += `<tr class="block-row">
-        <td class="block-name"><span class="block-dot ${b.tier}"></span>${b.label}</td>`;
-      for (let p = 0; p < phaseIds.length; p++) {
-        const isActive = phaseIds[p].has(b.id);
-        const wasActive = p > 0 && phaseIds[p - 1].has(b.id);
+      // Is this row "selectable but not currently chosen"? (user could pick it)
+      const anyActive = phaseActivity.some(act => act[b.id] !== null);
+      // For voice/conv-mode rows, distinguish "alternative" from "phase doesn't allow"
+      const isVariable = b.tier === 'tier-2-primary' || b.tier === 'tier-2-secondary' ||
+        (b.tier === 'tier-3-entry' && (b.id === 'guidedIntake' || b.id === 'uploadMode'));
+      const rowDimmed = isVariable && !anyActive;
+
+      const tierBase = b.tier.startsWith('tier-2') ? 'tier-2'
+        : b.tier.startsWith('tier-3') ? 'tier-3'
+        : b.tier;
+
+      html += `<tr class="block-row${rowDimmed ? ' row-dimmed' : ''}">
+        <td class="block-name">
+          <span class="block-dot ${tierBase}"></span>${b.label}
+          ${rowDimmed ? '<span class="row-tag">alternative</span>' : ''}
+        </td>`;
+      for (let p = 0; p < phaseActivity.length; p++) {
+        const tokens = phaseActivity[p][b.id];
+        const prevTokens = p > 0 ? phaseActivity[p - 1][b.id] : null;
+        const isActive = tokens !== null;
+        const wasActive = prevTokens !== null;
         const isAdded = isActive && !wasActive && p > 0;
-        const willBeRemoved = isActive && p < phaseIds.length - 1 && !phaseIds[p + 1].has(b.id);
         const isRemoved = !isActive && wasActive;
-        let cls = `matrix-cell ${isActive ? 'active' : 'inactive'} ${b.tier}`;
+
+        let cls = `matrix-cell ${isActive ? 'active' : 'inactive'} ${tierBase}`;
         if (isAdded) cls += ' added';
         if (isRemoved) cls += ' removed';
+
         let content;
-        if (isActive) {
-          content = fmt(phaseTokens[p][b.id]);
-        } else if (isRemoved) {
-          content = fmt(phaseTokens[p - 1][b.id]);
-        } else {
-          content = '—';
-        }
+        if (isActive) content = fmt(tokens);
+        else if (isRemoved) content = fmt(prevTokens);
+        else content = '—';
+
         html += `<td class="${cls}">${content}</td>`;
       }
       html += '</tr>';
@@ -1264,6 +1358,7 @@ function renderJourney() {
     <span><span class="swatch added"></span>Added at this phase</span>
     <span><span class="swatch removed"></span>Dropped at this phase</span>
     <span><span class="swatch inactive"></span>Not in prompt</span>
+    <span><span class="swatch alternative"></span>Alternative (toggle controls to enable)</span>
   </div>`;
 
   document.getElementById('blocks').innerHTML = html;
