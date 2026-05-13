@@ -57,7 +57,13 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
-  const { messageId, action, conversationId } = (await request.json()) as {
+  const {
+    messageId,
+    action,
+    conversationId,
+    editedContent,
+    editedName,
+  } = (await request.json()) as {
     messageId: string;
     // "deferred" is the refinement-ceiling "Let it go" path. DB level
     // it behaves like rejected (status='rejected'), but the system
@@ -65,6 +71,10 @@ export async function POST(request: Request) {
     // fixed line in response. Track A Phase 7-Mid.
     action: "confirmed" | "rejected" | "refined" | "deferred";
     conversationId: string;
+    // Optional edits from the review overlay. Ignored unless action ===
+    // "confirmed". Trimmed and validated downstream.
+    editedContent?: string | null;
+    editedName?: string | null;
   };
 
   logEvent({
@@ -142,6 +152,8 @@ export async function POST(request: Request) {
       messageId,
       conversationId,
       userId: user.id,
+      editedContent,
+      editedName,
     });
 
     if (!result.success) {

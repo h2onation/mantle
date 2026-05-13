@@ -167,6 +167,11 @@ interface ConfirmCheckpointOptions {
   messageId: string;
   conversationId: string;
   userId: string;
+  /** User-edited content from the review overlay. Overrides composed_content
+   *  when present so the user's words land in their Manual verbatim. */
+  editedContent?: string | null;
+  /** User-edited entry title from the review overlay. Overrides composed_name. */
+  editedName?: string | null;
 }
 
 /**
@@ -189,6 +194,8 @@ interface ConfirmCheckpointOptions {
 export async function confirmCheckpoint({
   messageId,
   userId,
+  editedContent,
+  editedName,
 }: ConfirmCheckpointOptions): Promise<{
   success: boolean;
   error?: string;
@@ -236,12 +243,23 @@ export async function confirmCheckpoint({
         fallbackContent = fallbackContent.substring(0, crisisIdx).trimEnd();
       }
     }
-    const contentToWrite = meta.composed_content || fallbackContent;
-    const nameToWrite = meta.composed_name || meta.name || "Untitled";
-    const summaryToWrite =
-      meta.composed_summary || deriveSummaryFallback(contentToWrite);
-    const keyWordsToWrite =
-      Array.isArray(meta.composed_key_words) && meta.composed_key_words.length > 0
+    // User-edited content from the review overlay takes precedence over
+    // composed_content. The user is the author — their words land in the
+    // Manual verbatim. When edits are present we also recompute the summary
+    // fallback so the compressed view reflects the edited text, and clear
+    // composed key_words (they were derived from the unedited content).
+    const trimmedEditedContent = editedContent?.trim();
+    const trimmedEditedName = editedName?.trim();
+    const contentToWrite =
+      trimmedEditedContent || meta.composed_content || fallbackContent;
+    const nameToWrite =
+      trimmedEditedName || meta.composed_name || meta.name || "Untitled";
+    const summaryToWrite = trimmedEditedContent
+      ? deriveSummaryFallback(trimmedEditedContent)
+      : meta.composed_summary || deriveSummaryFallback(contentToWrite);
+    const keyWordsToWrite = trimmedEditedContent
+      ? null
+      : Array.isArray(meta.composed_key_words) && meta.composed_key_words.length > 0
         ? meta.composed_key_words
         : null;
 

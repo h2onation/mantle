@@ -213,9 +213,10 @@ describe("PR3 onboarding copy pass", () => {
     });
 
     it("uses the new checkpoint card action labels", () => {
-      expect(src).toContain("Put it in my Manual");
-      expect(src).toContain("close but not quite");
-      expect(src).toContain("this is not me");
+      const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
+      expect(overlay).toContain("Add to my Manual");
+      expect(overlay).toContain("Jove, let&rsquo;s rework together");
+      expect(overlay).toContain("Discard");
     });
 
     it("does NOT contain the old checkpoint card action labels", () => {
@@ -224,18 +225,18 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toMatch(/>\s*Not at all\s*</);
     });
 
-    it("renders the refinement-ceiling inline message and two-button fork", () => {
-      expect(src).toContain("Close but not quite is fine.");
-      expect(src).toContain(
-        "Want me to put it in as it is, or let it go and we come back to it?"
-      );
-      expect(src).toContain("Put it in as it is");
-      expect(src).toContain("let it go");
+    it("renders the refinement-ceiling inline message in the overlay", () => {
+      const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
+      expect(overlay).toContain("Close but not quite is fine.");
+      expect(overlay).toContain("let it go");
     });
 
-    it("dispatches the new deferred action from the ceiling 'let it go' button", () => {
-      expect(src).toMatch(/setCheckpointActionState\("deferred"\)/);
-      expect(src).toMatch(/confirmCheckpoint\("deferred"\)/);
+    it("dispatches actions via onAction callback from the overlay", () => {
+      const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
+      expect(overlay).toMatch(/onAction\("confirmed"/);
+      expect(overlay).toMatch(/onAction\("refined"\)/);
+      expect(overlay).toMatch(/onAction\("rejected"\)/);
+      expect(overlay).toMatch(/onAction\("deferred"\)/);
     });
 
     it("computes refinement-ceiling state from refinement_count >= 2", () => {

@@ -604,45 +604,43 @@ export function callPersona({
             .eq("id", messageId);
         }
 
-        // 13b. Subsequent-checkpoint transition (Track A Phase 7-High /
-        //      7f). Before the checkpoint card's message_complete
-        //      fires, emit a separate inline message with the static
-        //      transition line — but only when the user has at least
-        //      one prior confirmed entry (i.e. this is NOT the first
-        //      lifetime checkpoint; Modal 3 handles that case).
+        // 13b. Checkpoint lead-in. Before the checkpoint card's
+        //      message_complete fires, emit a brief conversational
+        //      acknowledgment so the trigger card doesn't appear cold
+        //      after the user's message. Two variants:
+        //        - First lifetime checkpoint: a softer, simpler open.
+        //          (Modal 3 still fires for the educational layer; the
+        //          acknowledgment is the conversational hand-off.)
+        //        - Subsequent: signal that something distinct from any
+        //          prior entry is taking shape.
         //
-        //      The transition is a normal assistant message in the
+        //      The lead-in is a normal assistant message in the
         //      conversation, persisted so it appears on reload and
         //      flows into future Jove context naturally. Its created_at
         //      is set 1 second earlier than the checkpoint message's
-        //      created_at so time-ordered fetches return the transition
-        //      first on reload. (The checkpoint message was inserted
-        //      earlier in this flow; moving that insert later would
-        //      ripple through messageId-dependent code, and the 1 s
-        //      offset is a pragmatic shortcut.)
-        if (
-          isCheckpoint &&
-          manualComponents &&
-          manualComponents.length >= 1 &&
-          savedResponseCreatedAt
-        ) {
-          const TRANSITION_LINE =
-            "Something else is forming. Let me put this one in front of you.";
-          const transitionCreatedAt = new Date(
+        //      created_at so time-ordered fetches return the lead-in
+        //      first on reload.
+        if (isCheckpoint && savedResponseCreatedAt) {
+          const hasPriorEntries =
+            !!manualComponents && manualComponents.length >= 1;
+          const LEAD_IN_LINE = hasPriorEntries
+            ? "Something else is forming. Let me put this one in front of you."
+            : "Hold on — I want to put something in front of you.";
+          const leadInCreatedAt = new Date(
             new Date(savedResponseCreatedAt).getTime() - 1000
           ).toISOString();
-          const { data: transitionRow } = await admin
+          const { data: leadInRow } = await admin
             .from("messages")
             .insert({
               conversation_id: convId,
               role: "assistant",
-              content: TRANSITION_LINE,
-              created_at: transitionCreatedAt,
+              content: LEAD_IN_LINE,
+              created_at: leadInCreatedAt,
             })
             .select("id")
             .single();
-          if (transitionRow?.id) {
-            emitInlineMessage(controller, transitionRow.id, TRANSITION_LINE);
+          if (leadInRow?.id) {
+            emitInlineMessage(controller, leadInRow.id, LEAD_IN_LINE);
           }
         }
 
@@ -651,11 +649,16 @@ export function callPersona({
           ? {
               isCheckpoint: true,
               layer: checkpointLayer,
-              name: checkpointName,
+              name: composedEntry?.name || checkpointName,
               // Surface the refinement_count to the client so the
               // ceiling card UI fires on the third+ attempt without
               // requiring a separate fetch. Track A Phase 7-Mid.
               refinement_count: checkpointRefinementCount,
+              // Surface the polished entry text so the review overlay
+              // can show the user the exact content that will land in
+              // their Manual on confirm. Falls back to the assistant
+              // message content when composition didn't run.
+              composed_content: composedEntry?.content || null,
             }
           : null;
 

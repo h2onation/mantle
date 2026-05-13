@@ -257,6 +257,7 @@ export function useChat() {
         layer: completeEvent.checkpoint.layer,
         name: completeEvent.checkpoint.name,
         content: displayContent,
+        composedContent: completeEvent.checkpoint.composed_content ?? null,
       });
 
       // Capture the moment the proposal became visible so checkpoint
@@ -599,7 +600,8 @@ export function useChat() {
   }
 
   async function confirmCheckpoint(
-    action: "confirmed" | "rejected" | "refined" | "deferred"
+    action: "confirmed" | "rejected" | "refined" | "deferred",
+    edits?: { editedContent?: string | null; editedName?: string | null }
   ) {
     if (!activeCheckpoint) return;
 
@@ -610,6 +612,12 @@ export function useChat() {
       messageId: activeCheckpoint.messageId,
       action,
       conversationId,
+      ...(action === "confirmed" && edits?.editedContent
+        ? { editedContent: edits.editedContent }
+        : {}),
+      ...(action === "confirmed" && edits?.editedName
+        ? { editedName: edits.editedName }
+        : {}),
     });
 
     // Retry transient failures (network error or 5xx) with short backoff.
@@ -673,17 +681,48 @@ export function useChat() {
       }
 
       if (action === "confirmed") {
-        // Add to confirmed entries locally (optimistic update)
+        const finalContent =
+          edits?.editedContent?.trim() ||
+          activeCheckpoint.composedContent ||
+          activeCheckpoint.content;
+        const finalName =
+          edits?.editedName?.trim() || activeCheckpoint.name || null;
+
+        // Add to confirmed entries locally (optimistic update). Prefer edited
+        // text so the Manual reflects the user's words immediately;
+        // loadManual reconciles with the server-stored version on the next
+        // tick.
         setConfirmedEntries((prev) => [
           ...prev,
           {
             id: activeCheckpoint.messageId,
             layer: activeCheckpoint.layer,
-            name: null,
-            content: activeCheckpoint.content,
+            name: finalName,
+            content: finalContent,
             created_at: new Date().toISOString(),
           },
         ]);
+
+        // Reflect the final content + name on the checkpoint message so the
+        // historical Plate in the chat history shows what actually landed in
+        // the Manual rather than the unedited proposal.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === activeCheckpoint.messageId
+              ? {
+                  ...m,
+                  content: finalContent,
+                  checkpointMeta: m.checkpointMeta
+                    ? {
+                        ...m.checkpointMeta,
+                        name: finalName,
+                        status: "confirmed",
+                      }
+                    : m.checkpointMeta,
+                }
+              : m
+          )
+        );
       }
 
       // Report time to decision for the checkpoint event.
@@ -876,8 +915,9 @@ export function useChat() {
         setActiveCheckpoint({
           messageId: lastMsg.id,
           layer: lastMsg.checkpoint_meta.layer,
-          name: lastMsg.checkpoint_meta.name,
+          name: lastMsg.checkpoint_meta.composed_name || lastMsg.checkpoint_meta.name,
           content: lastMsg.content,
+          composedContent: lastMsg.checkpoint_meta.composed_content ?? null,
         });
       }
     }

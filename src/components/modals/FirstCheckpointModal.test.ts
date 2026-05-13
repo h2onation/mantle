@@ -8,18 +8,18 @@ const read = (p: string) =>
 describe("FirstCheckpointModal — Track A Modal 3", () => {
   const src = read("src/components/modals/FirstCheckpointModal.tsx");
 
-  it("uses the title 'A pattern is ready for your Manual'", () => {
-    expect(src).toContain("A pattern is ready for your Manual");
+  it("uses the title 'A suggested entry is ready'", () => {
+    expect(src).toContain("A suggested entry is ready");
   });
 
   it("contains both supplied body paragraphs", () => {
     expect(src).toContain(
-      "I have a pattern to put in front of you. You will see a card. Read it."
+      "I have something to put in front of you. Tap to review it."
     );
     expect(src).toContain(
-      "If it fits, confirm and it becomes an entry in your Manual."
+      "If it fits, add it to your Manual."
     );
-    expect(src).toContain("If it is off, tell me where and we keep going.");
+    expect(src).toContain("we can rework it together");
 
     expect(src).toContain("Your Manual builds one entry at a time.");
     expect(src).toContain(
