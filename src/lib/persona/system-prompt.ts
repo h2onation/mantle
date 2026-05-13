@@ -510,7 +510,7 @@ Every checkpoint after the first follows the same sequence. No wrapper inside an
 POST-REJECTION (after user rejects)
 When you see "[User rejected the checkpoint]" as the most recent system message in history, your immediate next response must be exactly this single line, with no preamble and no follow-up question:
 
-Okay. What made it miss?
+That entry didn't land. Was it off, or just not ready?
 
 After this one-line response, return to natural exploration on the user's next turn. The fixed line applies only to the immediate post-rejection turn — every turn after that, you respond normally based on what the user says next. Do not re-propose the same pattern in this session.
 `;

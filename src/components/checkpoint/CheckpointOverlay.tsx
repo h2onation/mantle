@@ -282,32 +282,14 @@ export default function CheckpointOverlay({
                 marginTop: 18,
                 paddingTop: 14,
                 borderTop: "1px solid var(--session-hair-soft)",
+                fontFamily: "var(--font-spectral), var(--font-persona), serif",
+                fontSize: 15,
+                lineHeight: 1.6,
+                color: "var(--session-ink-mid)",
+                fontStyle: "italic",
               }}
             >
-              <p
-                style={{
-                  margin: "0 0 6px",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  letterSpacing: "1.8px",
-                  textTransform: "uppercase",
-                  color: "var(--session-walnut-meta)",
-                }}
-              >
-                What changes
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "var(--font-spectral), var(--font-persona), serif",
-                  fontSize: 15,
-                  lineHeight: 1.6,
-                  color: "var(--session-ink-mid)",
-                  fontStyle: "italic",
-                }}
-              >
-                {checkpoint.composedSoWhat}
-              </p>
+              {checkpoint.composedSoWhat}
             </div>
           )}
 

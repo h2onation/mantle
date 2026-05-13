@@ -626,8 +626,8 @@ export function callPersona({
           const hasPriorEntries =
             !!manualComponents && manualComponents.length >= 1;
           const LEAD_IN_LINE = hasPriorEntries
-            ? "Something else is forming. Let me put this one in front of you."
-            : "Hold on — I want to put something in front of you.";
+            ? "Something else is taking shape."
+            : "I'm seeing something here.";
           const leadInCreatedAt = new Date(
             new Date(savedResponseCreatedAt).getTime() - 1000
           ).toISOString();

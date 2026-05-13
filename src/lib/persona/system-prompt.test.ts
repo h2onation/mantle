@@ -598,7 +598,7 @@ describe("buildSystemPrompt", () => {
 
     it("pins the exact fixed-string response after rejection", () => {
       const result = build({ checkpointApproaching: true });
-      expect(result).toContain("Okay. What made it miss?");
+      expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
     });
 
     it("scopes the fixed line to the immediate post-rejection turn only", () => {
@@ -615,7 +615,7 @@ describe("buildSystemPrompt", () => {
     it("appears for returning users even without checkpointApproaching", () => {
       const result = build({ isReturningUser: true, checkpointApproaching: false });
       expect(result).toContain("POST-REJECTION");
-      expect(result).toContain("Okay. What made it miss?");
+      expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
     });
   });
 
