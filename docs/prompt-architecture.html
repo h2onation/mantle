@@ -809,7 +809,7 @@ function renderOverview() {
 
   html += `<div class="overview-intro">
     <strong>Every block that can ever appear in the system prompt, grouped by where the decision is made.</strong>
-    Voice blocks (Tier 2) are shown side-by-side so you can compare them at a glance — only one is "primary" at a time, with optional secondary blocks stacked on top.
+    Voice blocks (Tier 2) are shown side-by-side so you can compare them at a glance — every selected persona contributes its full voice block equally, no hierarchy.
     <div class="legend">
       <span class="legend-label">Personas:</span>
       ${tag('persona-autistic', 'Autistic')}
@@ -834,7 +834,7 @@ function renderOverview() {
     '<span class="tier-tag">Tier 1</span>Constitutional Rules',
     tag('always', 'Always'), D.tier1);
 
-  html += `<div class="section-header">Tier 2 — Voice (primary) <span class="sub">Pick one. Renders in full.</span></div>`;
+  html += `<div class="section-header">Tier 2 — Voice <span class="sub">Each selected persona contributes its full voice block. Multi-select stacks them equally.</span></div>`;
   html += '<div class="persona-grid">';
   for (const m of ['autistic', 'audhd', 'dyslexic', 'general']) {
     const label = PERSONA_LABELS[m];
@@ -842,19 +842,6 @@ function renderOverview() {
       `<span class="tier-tag">Tier 2</span>Voice (${label})`,
       tag('persona-' + m, label),
       D['tier2_' + m],
-      'persona-' + m);
-  }
-  html += '</div>';
-
-  html += `<div class="section-header">Tier 2 — Additional Voice (secondary) <span class="sub">Stacks on top of the primary when a second persona is selected.</span></div>`;
-  html += '<div class="persona-grid cols-3">';
-  for (const m of ['autistic', 'audhd', 'dyslexic']) {
-    const label = PERSONA_LABELS[m];
-    const addText = 'ADDITIONAL VOICE GUIDANCE (' + label + ')' + D['additions_' + m];
-    html += makeOverviewBlock('ov_add_' + m, 'tier-2',
-      `<span class="tier-tag">Tier 2</span>Additional (${label})`,
-      tag('persona-' + m, '+ ' + label.toLowerCase()),
-      addText,
       'persona-' + m);
   }
   html += '</div>';
@@ -998,15 +985,9 @@ function getStageBlocks(stageNum) {
 
   push('intro', 'Persona Intro', D.intro, 'tier-intro');
   push('tier1', 'Constitutional Rules', D.tier1, 'tier-1');
-  // Tier 2 primary
-  const primary = effective[0];
-  push('t2_' + primary, `Voice (${PERSONA_LABELS[primary]})`, D['tier2_' + primary], 'tier-2', primary);
-  // Tier 2 additions
-  effective.slice(1).forEach(m => {
-    if (D['additions_' + m]) {
-      const addText = 'ADDITIONAL VOICE GUIDANCE (' + PERSONA_LABELS[m] + ')' + D['additions_' + m];
-      push('add_' + m, `Additional (${PERSONA_LABELS[m]})`, addText, 'tier-2', m);
-    }
+  // Tier 2 — each selected persona contributes its full Voice block equally
+  effective.forEach(m => {
+    push('t2_' + m, `Voice (${PERSONA_LABELS[m]})`, D['tier2_' + m], 'tier-2', m);
   });
   // Tier 3 conditional
   if (stage.state.isNew) push('firstMessage', 'First Message', D.firstMessage, 'tier-3');
@@ -1169,8 +1150,7 @@ function renderJourneyControls() {
 const ROW_SECTIONS = [
   { tier: 'tier-intro', label: 'Foundation — Every prompt, every user' },
   { tier: 'tier-1', label: null },
-  { tier: 'tier-2-primary', label: 'Tier 2 — Voice (pick one as primary)' },
-  { tier: 'tier-2-secondary', label: 'Tier 2 — Additional Voice (stacked on primary)' },
+  { tier: 'tier-2', label: 'Tier 2 — Voice (each selected persona contributes equally)' },
   { tier: 'tier-3-entry', label: 'Tier 3 — Conversation entry point' },
   { tier: 'tier-3-state', label: 'Tier 3 — State-driven' },
   { tier: 'tier-3-always', label: 'Tier 3 — Always-on' },
@@ -1183,19 +1163,14 @@ function activeBlock(blockId, phase, sel) {
   const personas = sel.personas;
   const neurotype = personas.filter(p => p !== 'general');
   const effective = neurotype.length > 0 ? neurotype : personas;
-  const primary = effective[0];
-  const secondary = effective.slice(1);
 
   switch (blockId) {
     case 'intro': return tokenCount(D.intro);
     case 'tier1': return tokenCount(D.tier1);
-    case 't2_autistic': return primary === 'autistic' ? tokenCount(D.tier2_autistic) : null;
-    case 't2_audhd': return primary === 'audhd' ? tokenCount(D.tier2_audhd) : null;
-    case 't2_dyslexic': return primary === 'dyslexic' ? tokenCount(D.tier2_dyslexic) : null;
-    case 't2_general': return primary === 'general' ? tokenCount(D.tier2_general) : null;
-    case 'add_autistic': return secondary.includes('autistic') ? tokenCount('ADDITIONAL VOICE GUIDANCE (Autistic)' + D.additions_autistic) : null;
-    case 'add_audhd': return secondary.includes('audhd') ? tokenCount('ADDITIONAL VOICE GUIDANCE (AuDHD)' + D.additions_audhd) : null;
-    case 'add_dyslexic': return secondary.includes('dyslexic') ? tokenCount('ADDITIONAL VOICE GUIDANCE (Dyslexic)' + D.additions_dyslexic) : null;
+    case 't2_autistic': return effective.includes('autistic') ? tokenCount(D.tier2_autistic) : null;
+    case 't2_audhd': return effective.includes('audhd') ? tokenCount(D.tier2_audhd) : null;
+    case 't2_dyslexic': return effective.includes('dyslexic') ? tokenCount(D.tier2_dyslexic) : null;
+    case 't2_general': return effective.includes('general') ? tokenCount(D.tier2_general) : null;
     case 'firstMessage': return s.isNew ? tokenCount(D.firstMessage) : null;
     case 'guidedIntake': return sel.convMode === 'guided' ? tokenCount(D.guidedIntake) : null;
     case 'uploadMode': return sel.convMode === 'upload' ? tokenCount(D.uploadMode) : null;
@@ -1217,13 +1192,10 @@ function activeBlock(blockId, phase, sel) {
 const ALL_MATRIX_ROWS = [
   { id: 'intro', label: 'Persona Intro', tier: 'tier-intro' },
   { id: 'tier1', label: 'Constitutional Rules', tier: 'tier-1' },
-  { id: 't2_autistic', label: 'Voice (Autistic)', tier: 'tier-2-primary', persona: 'autistic' },
-  { id: 't2_audhd', label: 'Voice (AuDHD)', tier: 'tier-2-primary', persona: 'audhd' },
-  { id: 't2_dyslexic', label: 'Voice (Dyslexic)', tier: 'tier-2-primary', persona: 'dyslexic' },
-  { id: 't2_general', label: 'Voice (General)', tier: 'tier-2-primary', persona: 'general' },
-  { id: 'add_autistic', label: 'Additional (Autistic)', tier: 'tier-2-secondary', persona: 'autistic' },
-  { id: 'add_audhd', label: 'Additional (AuDHD)', tier: 'tier-2-secondary', persona: 'audhd' },
-  { id: 'add_dyslexic', label: 'Additional (Dyslexic)', tier: 'tier-2-secondary', persona: 'dyslexic' },
+  { id: 't2_autistic', label: 'Voice (Autistic)', tier: 'tier-2', persona: 'autistic' },
+  { id: 't2_audhd', label: 'Voice (AuDHD)', tier: 'tier-2', persona: 'audhd' },
+  { id: 't2_dyslexic', label: 'Voice (Dyslexic)', tier: 'tier-2', persona: 'dyslexic' },
+  { id: 't2_general', label: 'Voice (General)', tier: 'tier-2', persona: 'general' },
   { id: 'firstMessage', label: 'First Message', tier: 'tier-3-entry' },
   { id: 'guidedIntake', label: 'Guided Intake', tier: 'tier-3-entry' },
   { id: 'uploadMode', label: 'Upload Mode', tier: 'tier-3-entry' },
@@ -1300,7 +1272,7 @@ function renderJourney() {
       // Is this row "selectable but not currently chosen"? (user could pick it)
       const anyActive = phaseActivity.some(act => act[b.id] !== null);
       // For voice/conv-mode rows, distinguish "alternative" from "phase doesn't allow"
-      const isVariable = b.tier === 'tier-2-primary' || b.tier === 'tier-2-secondary' ||
+      const isVariable = b.tier === 'tier-2' ||
         (b.tier === 'tier-3-entry' && (b.id === 'guidedIntake' || b.id === 'uploadMode'));
       const rowDimmed = isVariable && !anyActive;
 
@@ -1369,8 +1341,8 @@ function render() {
   let personas = state.personas;
   if (personas.length === 0) personas = ['autistic'];
 
-  const primary = personas[0];
-  const secondary = personas.slice(1).filter(p => p !== 'general');
+  const neurotype = personas.filter(p => p !== 'general');
+  const effective = neurotype.length > 0 ? neurotype : personas;
 
   let html = '';
 
@@ -1380,19 +1352,10 @@ function render() {
   // 2. Tier 1 (always)
   html += makeBlock('tier1', 'tier-1', '<span class="tier-tag">Tier 1</span>Constitutional Rules', D.tier1, true);
 
-  // 3. Tier 2 for primary persona
-  const t2key = 'tier2_' + primary;
-  const t2label = PERSONA_LABELS[primary] || primary;
-  html += makeBlock('tier2', 'tier-2', '<span class="tier-tag">Tier 2</span>Voice (' + t2label + ')', D[t2key], true);
-
-  // 4. Additional voice guidance for secondary modes
-  for (const mode of secondary) {
-    const addKey = 'additions_' + mode;
-    if (D[addKey]) {
-      const addLabel = PERSONA_LABELS[mode] || mode;
-      const addText = 'ADDITIONAL VOICE GUIDANCE (' + addLabel + ')' + D[addKey];
-      html += makeBlock('add_' + mode, 'tier-2', '<span class="tier-tag">Tier 2</span>Additional Voice (' + addLabel + ')', addText, true);
-    }
+  // 3. Tier 2 — each selected persona contributes its full Voice block equally
+  for (const m of effective) {
+    const t2label = PERSONA_LABELS[m] || m;
+    html += makeBlock('t2_' + m, 'tier-2', '<span class="tier-tag">Tier 2</span>Voice (' + t2label + ')', D['tier2_' + m], true);
   }
 
   // 5. Tier 3 conditional blocks

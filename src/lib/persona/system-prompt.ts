@@ -1,10 +1,21 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { LAYER_NAMES } from "@/lib/manual/layers";
-import { renderTier2 as renderTier2Autistic } from "@/lib/persona/voice-autistic";
-import { renderTier2 as renderTier2Audhd } from "@/lib/persona/voice-audhd";
-import { renderTier2 as renderTier2Dyslexic } from "@/lib/persona/voice-dyslexic";
-import { renderTier2 as renderTier2General } from "@/lib/persona/voice-general";
+import * as AutisticVoice from "@/lib/persona/voice-autistic";
+import * as AudhdVoice from "@/lib/persona/voice-audhd";
+import * as DyslexicVoice from "@/lib/persona/voice-dyslexic";
+import * as GeneralVoice from "@/lib/persona/voice-general";
+import {
+  TIER_2_HEADER,
+  DASH_TO_PERIOD_RULE,
+  renderBannedPhrases,
+  LANDING_INTRO,
+  DEEPENING_INTRO,
+  DEEPENING_OUTRO,
+  PACING_RULE,
+  WHEN_JOVE_IS_WRONG,
+  WHEN_USER_ASKS_WHAT_SHOULD_I_DO,
+} from "@/lib/persona/voice-scaffold";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
@@ -12,45 +23,123 @@ import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/
 
 export type PersonaMode = "autistic" | "audhd" | "dyslexic" | "general";
 
-const TIER2_RENDERERS: Record<PersonaMode, () => string> = {
-  autistic: renderTier2Autistic,
-  audhd: renderTier2Audhd,
-  dyslexic: renderTier2Dyslexic,
-  general: renderTier2General,
+type VoiceModule = {
+  VOICE_INTRO_PARAGRAPHS: readonly string[];
+  VOICE_RULES: readonly string[];
+  EXAMPLE_REGISTER: readonly { label: string; line: string }[];
+  LANDING_EXAMPLES: readonly { label: string; line: string }[];
+  DEEPENING_ADDITIONS: string;
+  WEAK_STRONG_EXAMPLES: readonly { weak: string; strong: string }[];
 };
 
-const UNIQUE_ADDITIONS: Partial<Record<PersonaMode, string>> = {
-  autistic: `ADDITIONAL VOICE GUIDANCE (Autistic)
-Default to body-first questions: "what happened" and "what did your body do." Use emotion words only after the user uses them.
-Track masking: if the user references masking, name the gap between the performed version and the real one. If they don't, hold observations and return across sessions.
-Silence is processing, not discomfort.`,
-
-  audhd: `ADDITIONAL VOICE GUIDANCE (AuDHD)
-Track both systems. When the user describes a failure or frustration, check whether the autistic need and the ADHD need were in conflict. Name the tension when you see it. Do not collapse it into one explanation.
-Additional landing registers to draw from: executive function collapse (knowing and doing on different circuits), interest-based motivation (14 hours when interesting, three weeks of avoidance when not), the structure-novelty tension (built a system then couldn't follow it), burnout cycle (overcommit in novelty mode, crash, guilt, overcommit again).`,
-
-  dyslexic: `ADDITIONAL VOICE GUIDANCE (Dyslexic)
-Never suggest journaling, writing things down, or reading as a tool. If the user brings up writing or reading, follow their lead. Do not initiate it.
-Use story invitations: "Tell me about a time when" and "walk me through what happened" over "what do you think about." Follow the user's natural way of explaining: if they think in pictures, ask what it looked like; if they think in sequences, ask what happened next.
-Additional landing registers to draw from: seeing the whole picture before anyone else (and words coming out in the wrong order when explaining it), workarounds nobody sees (a whole invisible second job), speed mismatch in conversations (point didn't fit by the time there was space to speak).`,
+const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
+  autistic: AutisticVoice,
+  audhd: AudhdVoice,
+  dyslexic: DyslexicVoice,
+  general: GeneralVoice,
 };
 
+/** Compose the Tier 2 voice block from one or more persona modules.
+ *  Every selected mode contributes equally — its full intro paragraphs,
+ *  voice rules, example register, landing examples, deepening additions,
+ *  and weak→strong examples — assembled onto the shared scaffold once.
+ *  When the same item appears in multiple modules (e.g. shared voice
+ *  rules), the first occurrence wins; subsequent duplicates are dropped.
+ *  General is filtered out when any neurotype mode is also selected, as
+ *  the neurotype voices override the general framing. */
 export function composeTier2(modes: PersonaMode[]): string {
-  if (modes.length === 0) return TIER2_RENDERERS["autistic"]();
+  const requested = modes.length > 0 ? modes : (["autistic"] as PersonaMode[]);
+  const neurotypeModes = requested.filter((m) => m !== "general");
+  const effective = neurotypeModes.length > 0 ? neurotypeModes : requested;
 
-  const neurotypeModes = modes.filter((m) => m !== "general");
-  const effectiveModes = neurotypeModes.length > 0 ? neurotypeModes : modes;
+  const dedupeBy = <T>(items: T[], keyFn: (t: T) => string): T[] => {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const item of items) {
+      const key = keyFn(item);
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(item);
+      }
+    }
+    return out;
+  };
 
-  if (effectiveModes.length === 1) return TIER2_RENDERERS[effectiveModes[0]]();
+  const introParas = dedupeBy(
+    effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_INTRO_PARAGRAPHS]),
+    (s) => s,
+  );
+  const voiceRules = dedupeBy(
+    effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_RULES]),
+    (s) => s,
+  );
+  // Dedupe by full content (label + line) so persona-specific variants
+  // with the same label both appear, but truly identical entries collapse.
+  const exampleRegister = dedupeBy(
+    effective.flatMap((m) => [...VOICE_MODULES[m].EXAMPLE_REGISTER]),
+    (e) => `${e.label}|${e.line}`,
+  );
+  const landingExamples = dedupeBy(
+    effective.flatMap((m) => [...VOICE_MODULES[m].LANDING_EXAMPLES]),
+    (e) => `${e.label}|${e.line}`,
+  );
+  const deepeningAdditions = effective
+    .map((m) => VOICE_MODULES[m].DEEPENING_ADDITIONS)
+    .filter((s) => s.length > 0)
+    .join("\n\n");
+  const weakStrong = dedupeBy(
+    effective.flatMap((m) => [...VOICE_MODULES[m].WEAK_STRONG_EXAMPLES]),
+    (e) => `${e.weak}|${e.strong}`,
+  );
 
-  const base = TIER2_RENDERERS[effectiveModes[0]]();
-  const additions = effectiveModes
-    .slice(1)
-    .map((m) => UNIQUE_ADDITIONS[m])
-    .filter(Boolean);
+  const voiceRulesRendered = voiceRules.map((r, i) => `${i + 1}. ${r}`).join("\n");
+  const exampleRegisterRendered = exampleRegister
+    .map(({ label, line }) => `${label}: "${line}"`)
+    .join("\n");
+  const landingExamplesRendered = landingExamples
+    .map(({ label, line }) => `${label}:\n"${line}"`)
+    .join("\n\n");
+  const weakStrongRendered = weakStrong
+    .map(({ weak, strong }) => `- "${weak}" → "${strong}"`)
+    .join("\n");
 
-  if (additions.length === 0) return base;
-  return base + "\n\n" + additions.join("\n\n");
+  const deepeningBlock = deepeningAdditions
+    ? `${DEEPENING_INTRO}\n\n${deepeningAdditions}\n\nWeak → strong:\n${weakStrongRendered}`
+    : `${DEEPENING_INTRO}\n\nWeak → strong:\n${weakStrongRendered}`;
+
+  return `${TIER_2_HEADER}
+
+VOICE
+${introParas.join("\n\n")}
+
+${DASH_TO_PERIOD_RULE}
+
+VOICE RULES
+${voiceRulesRendered}
+
+${renderBannedPhrases()}
+
+EXAMPLE REGISTER
+${exampleRegisterRendered}
+
+LANDING
+${LANDING_INTRO}
+
+${landingExamplesRendered}
+
+DEEPENING
+${deepeningBlock}
+
+${DEEPENING_OUTRO}
+
+PACING
+${PACING_RULE}
+
+WHEN JOVE IS WRONG
+${WHEN_JOVE_IS_WRONG}
+
+WHEN THE USER ASKS "WHAT SHOULD I DO"
+${WHEN_USER_ASKS_WHAT_SHOULD_I_DO}`;
 }
 
 type ManualComponent = ManualEntryForContext;
@@ -137,10 +226,10 @@ If someone expresses suicidal ideation, self-harm intent, or intent to harm othe
 No treatment plans, no clinical interventions (CBT, EMDR, DBT), no medication commentary, no state assessment. Never assess their state; reflect what they reported, not what you infer. WRONG: "You seem really depressed." RIGHT: "You said nothing's felt worth doing for three weeks. That's heavy." When asked: "Different thing entirely. A therapist works on treatment. I help you build a map of how you operate." Professional referral only when the user describes distress they frame as exceeding self-understanding scope: "What you're describing sounds like it goes beyond what building a manual can help with. A therapist could work with this in ways I can't." Referral is an offer, not a gate. After referring, keep building if they want to.`;
 
 // ---------------------------------------------------------------------------
-// Tier 2 — Voice and behavior. Each PersonaMode has a peer voice file
-// (voice-autistic.ts, voice-general.ts) that owns the complete Tier 2 block.
-// The TIER2_RENDERERS map at the top of this file dispatches to the right
-// renderer based on the personaMode option.
+// Tier 2 — Voice and behavior. composeTier2() (at the top of this file)
+// assembles the block from voice-scaffold.ts (shared structure) plus every
+// selected persona module's unique content. See voice-autistic.ts and its
+// peers for the per-persona modules.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------

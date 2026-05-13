@@ -4,16 +4,20 @@ import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
-  BANNED_PHRASES,
-  BANNED_PATTERNS,
   EXAMPLE_REGISTER,
   LANDING_EXAMPLES,
 } from "@/lib/persona/voice-autistic";
 import {
+  BANNED_PHRASES,
+  BANNED_PATTERNS,
+} from "@/lib/persona/voice-scaffold";
+import {
   VOICE_RULES as GENERAL_VOICE_RULES,
-  BANNED_PHRASES as GENERAL_BANNED_PHRASES,
   LANDING_EXAMPLES as GENERAL_LANDING_EXAMPLES,
 } from "@/lib/persona/voice-general";
+// Banned phrases are scaffold-level now; re-export under the old name
+// to keep the "general mode shares the same banned phrases" test honest.
+const GENERAL_BANNED_PHRASES = BANNED_PHRASES;
 import {
   VOICE_RULES as AUDHD_VOICE_RULES,
   LANDING_EXAMPLES as AUDHD_LANDING_EXAMPLES,
@@ -1471,11 +1475,10 @@ describe("buildSystemPrompt", () => {
   });
 
   // ─── Multi-select composition ────────────────────────────────────────────
-  describe("composeTier2 multi-select", () => {
+  describe("composeTier2 equal-stacking", () => {
     it("single mode returns that mode's full Tier 2", () => {
       const single = composeTier2(["autistic"]);
       expect(single).toContain("late-diagnosed autistic adults");
-      expect(single).not.toContain("ADDITIONAL VOICE GUIDANCE");
     });
 
     it("empty array defaults to autistic", () => {
@@ -1483,29 +1486,38 @@ describe("buildSystemPrompt", () => {
       expect(empty).toContain("late-diagnosed autistic adults");
     });
 
-    it("autistic + dyslexic appends dyslexic unique content", () => {
+    it("autistic + dyslexic stacks both intros and both unique content", () => {
       const result = composeTier2(["autistic", "dyslexic"]);
+      // Both VOICE intros appear
       expect(result).toContain("late-diagnosed autistic adults");
-      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
+      expect(result).toContain("think in pictures, patterns, and stories");
+      // Dyslexic-unique behavioral guidance comes through (in voice rules + deepening)
       expect(result).toContain("Never suggest journaling");
       expect(result).toContain("Use story invitations");
+      // Autistic-unique behavioral guidance is preserved too
+      expect(result).toContain("what did your body do");
+      expect(result).toContain("Silence is processing");
     });
 
-    it("autistic + audhd appends audhd unique content", () => {
+    it("autistic + audhd stacks both intros and audhd's deepening addition", () => {
       const result = composeTier2(["autistic", "audhd"]);
       expect(result).toContain("late-diagnosed autistic adults");
-      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (AuDHD)");
+      expect(result).toContain("both autistic and ADHD");
+      expect(result).toContain("Track both systems");
+      // AuDHD-unique landing examples appear
+      expect(result).toContain("Executive function collapse");
+      expect(result).toContain("Burnout cycle");
+    });
+
+    it("audhd + dyslexic stacks both intros and both unique content", () => {
+      const result = composeTier2(["audhd", "dyslexic"]);
+      expect(result).toContain("both autistic and ADHD");
+      expect(result).toContain("think in pictures, patterns, and stories");
+      expect(result).toContain("Never suggest journaling");
       expect(result).toContain("Track both systems");
     });
 
-    it("audhd + dyslexic uses audhd as base, appends dyslexic", () => {
-      const result = composeTier2(["audhd", "dyslexic"]);
-      expect(result).toContain("both autistic and ADHD");
-      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
-      expect(result).toContain("Never suggest journaling");
-    });
-
-    it("general is ignored when combined with neurotype-specific modes", () => {
+    it("general is filtered out when combined with neurotype-specific modes", () => {
       const result = composeTier2(["autistic", "general"]);
       expect(result).toContain("late-diagnosed autistic adults");
       expect(result).not.toContain("reflective, curious");
@@ -1516,11 +1528,22 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("reflective, curious");
     });
 
+    it("shared scaffold (BANNED PHRASES, repair, advisory) appears exactly once even in multi-mode", () => {
+      const single = composeTier2(["autistic"]);
+      const dual = composeTier2(["autistic", "dyslexic"]);
+      const tripleHeader = "WHEN JOVE IS WRONG";
+      const singleCount = (single.match(new RegExp(tripleHeader, "g")) || []).length;
+      const dualCount = (dual.match(new RegExp(tripleHeader, "g")) || []).length;
+      expect(singleCount).toBe(1);
+      expect(dualCount).toBe(1);
+    });
+
     it("multi-select prompt builds correctly end-to-end", () => {
       const result = build({ personaModes: ["autistic", "dyslexic"] });
       expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
       expect(result).toContain("late-diagnosed autistic adults");
-      expect(result).toContain("ADDITIONAL VOICE GUIDANCE (Dyslexic)");
+      expect(result).toContain("think in pictures, patterns, and stories");
+      expect(result).toContain("Never suggest journaling");
       expect(result).toContain("TIER 3: CONVERSATION MECHANICS");
     });
   });
