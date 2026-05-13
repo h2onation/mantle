@@ -10,6 +10,10 @@ export interface MessageCompleteEvent {
     // chain. Optional for backward compatibility with older server
     // builds; client treats undefined as 0.
     refinement_count?: number;
+    // Polished entry text composed at proposal time. Shown in the
+    // review overlay so the user sees the exact text that will land
+    // in their Manual on confirm. Optional for backward compatibility.
+    composed_content?: string | null;
   } | null;
   processingText: string;
   cleanContent?: string;

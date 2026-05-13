@@ -660,78 +660,104 @@ export default function MobileSession({
                         </span>
                       </div>
 
-                      {/* Trigger card */}
+                      {/* Trigger card with the little guy perched on top */}
                       {checkpointReady && (
-                        <button
-                          onClick={() => {
-                            overlayCheckpointRef.current = activeCheckpoint;
-                            setCheckpointOverlayOpen(true);
-                          }}
+                        <div
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            width: "100%",
-                            padding: "18px 20px",
-                            background: "var(--session-walnut-surface)",
-                            border: "1px solid var(--session-bubble-border)",
-                            borderRadius: 14,
-                            cursor: "pointer",
-                            textAlign: "left",
-                            gap: 14,
+                            position: "relative",
+                            paddingTop: 38,
                             opacity: 0,
                             animation: "checkpointFadeIn 0.5s ease forwards",
-                            transition: "background 0.25s ease, border-color 0.25s ease",
                           }}
                         >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                fontSize: 10,
-                                letterSpacing: "1.8px",
-                                textTransform: "uppercase",
-                                color: "var(--session-walnut-meta-strong)",
-                                lineHeight: 1,
-                              }}
-                            >
-                              Suggested Manual Entry
-                            </div>
-                            {activeCheckpoint?.name && (
-                              <div
-                                style={{
-                                  fontFamily: "var(--font-spectral), var(--font-persona), serif",
-                                  fontSize: 18,
-                                  color: "var(--session-ink)",
-                                  lineHeight: 1.3,
-                                  marginTop: 6,
-                                  letterSpacing: "-0.2px",
-                                }}
-                              >
-                                {activeCheckpoint.name}
-                              </div>
-                            )}
-                            <div
-                              style={{
-                                fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
-                                fontSize: 13,
-                                color: "var(--session-ink-faded)",
-                                marginTop: 6,
-                              }}
-                            >
-                              Tap to review
-                            </div>
-                          </div>
-                          <span
+                          <img
+                            src="/little-guy.svg"
+                            alt=""
+                            aria-hidden="true"
                             style={{
-                              fontFamily: "var(--font-spectral), var(--font-persona), serif",
-                              fontSize: 22,
-                              color: "var(--session-ink-ghost)",
-                              flexShrink: 0,
+                              position: "absolute",
+                              top: 0,
+                              right: 18,
+                              height: 56,
+                              width: "auto",
+                              pointerEvents: "none",
+                              animation:
+                                "littleGuyArrive 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both",
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              overlayCheckpointRef.current = activeCheckpoint;
+                              setCheckpointOverlayOpen(true);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              padding: "18px 20px",
+                              background: "var(--session-walnut-surface)",
+                              border: "1px solid var(--session-bubble-border)",
+                              borderRadius: 14,
+                              cursor: "pointer",
+                              textAlign: "left",
+                              gap: 14,
+                              transition:
+                                "background 0.25s ease, border-color 0.25s ease",
                             }}
                           >
-                            ›
-                          </span>
-                        </button>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: 10,
+                                  letterSpacing: "1.8px",
+                                  textTransform: "uppercase",
+                                  color: "var(--session-walnut-meta-strong)",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                Suggested Manual Entry
+                              </div>
+                              {activeCheckpoint?.name && (
+                                <div
+                                  style={{
+                                    fontFamily:
+                                      "var(--font-spectral), var(--font-persona), serif",
+                                    fontSize: 18,
+                                    color: "var(--session-ink)",
+                                    lineHeight: 1.3,
+                                    marginTop: 6,
+                                    letterSpacing: "-0.2px",
+                                  }}
+                                >
+                                  {activeCheckpoint.name}
+                                </div>
+                              )}
+                              <div
+                                style={{
+                                  fontFamily:
+                                    "var(--font-sans, 'DM Sans', sans-serif)",
+                                  fontSize: 13,
+                                  color: "var(--session-ink-faded)",
+                                  marginTop: 6,
+                                }}
+                              >
+                                Tap to review
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                fontFamily:
+                                  "var(--font-spectral), var(--font-persona), serif",
+                                fontSize: 22,
+                                color: "var(--session-ink-ghost)",
+                                flexShrink: 0,
+                              }}
+                            >
+                              ›
+                            </span>
+                          </button>
+                        </div>
                       )}
 
                       {/* Action state receipt (after overlay closes) */}
@@ -1001,12 +1027,27 @@ export default function MobileSession({
                 (m.checkpointMeta?.refinement_count ?? 0) >= 2
             )
           }
+          confirmStatus={
+            checkpointActionState !== "confirmed"
+              ? "idle"
+              : checkpointError
+                ? "error"
+                : activeCheckpoint === null
+                  ? "success"
+                  : "pending"
+          }
+          errorMessage={checkpointError}
           onAction={(action, edits) => {
             setCheckpointActionState(action);
             confirmCheckpoint(action, edits);
           }}
           onClose={() => {
             setCheckpointOverlayOpen(false);
+            // Allow the user to try again from the trigger card after an
+            // error closes the overlay.
+            if (checkpointActionState === "confirmed" && checkpointError) {
+              setCheckpointActionState(null);
+            }
           }}
         />
       )}

@@ -38,7 +38,13 @@ export interface ActiveCheckpoint {
   messageId: string;
   layer: number;
   name: string | null;
+  /** The assistant message content as it appears in the chat stream.
+   *  Kept as a fallback for the review overlay when composition didn't run. */
   content: string;
+  /** Polished entry text produced by composeManualEntry at proposal time.
+   *  This is what will land in the user's Manual on confirm, so the review
+   *  overlay shows this when present rather than `content`. */
+  composedContent?: string | null;
 }
 
 export interface ExplorationContext {

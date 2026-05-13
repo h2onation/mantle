@@ -570,6 +570,12 @@ textarea:focus-visible {
   50% { opacity: 1; transform: scale(1.3); }
 }
 
+/* Little guy peeks up over the top edge of the trigger card */
+@keyframes littleGuyArrive {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Exploration transition glow */
 @keyframes explorationGlow {
   0%, 100% { opacity: 0.45; transform: scale(0.92); }

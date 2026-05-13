@@ -649,11 +649,16 @@ export function callPersona({
           ? {
               isCheckpoint: true,
               layer: checkpointLayer,
-              name: checkpointName,
+              name: composedEntry?.name || checkpointName,
               // Surface the refinement_count to the client so the
               // ceiling card UI fires on the third+ attempt without
               // requiring a separate fetch. Track A Phase 7-Mid.
               refinement_count: checkpointRefinementCount,
+              // Surface the polished entry text so the review overlay
+              // can show the user the exact content that will land in
+              // their Manual on confirm. Falls back to the assistant
+              // message content when composition didn't run.
+              composed_content: composedEntry?.content || null,
             }
           : null;
 

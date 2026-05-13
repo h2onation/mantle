@@ -11,12 +11,21 @@ interface CheckpointEdits {
   editedName?: string | null;
 }
 
+/** Drives the overlay's visible phase from outside.
+ *  - "idle": show actions surface, accept input
+ *  - "pending": API call in flight, show composing animation
+ *  - "success": API succeeded, show confirmed cover, then close
+ *  - "error": API failed, return to actions with an error line */
+export type ConfirmStatus = "idle" | "pending" | "success" | "error";
+
 interface CheckpointOverlayProps {
   open: boolean;
   checkpoint: ActiveCheckpoint;
   layerName?: string;
   layerOrdinal?: string;
   refinementCeilingActive: boolean;
+  confirmStatus?: ConfirmStatus;
+  errorMessage?: string | null;
   onAction: (action: CheckpointAction, edits?: CheckpointEdits) => void;
   onClose: () => void;
 }
@@ -29,6 +38,8 @@ export default function CheckpointOverlay({
   layerName,
   layerOrdinal,
   refinementCeilingActive,
+  confirmStatus = "idle",
+  errorMessage,
   onAction,
   onClose,
 }: CheckpointOverlayProps) {
@@ -46,6 +57,27 @@ export default function CheckpointOverlay({
       editedRef.current = false;
     }
   }, [open]);
+
+  // Drive the phase from confirmStatus. The actions surface stays put for
+  // idle and error (error renders inline below the buttons). Pending and
+  // success drive the composing/confirmed transitions; success then
+  // auto-closes after the celebration so the trigger card transitions
+  // out of view cleanly.
+  useEffect(() => {
+    if (!open) return;
+    if (confirmStatus === "pending") {
+      setPhase("composing");
+      return;
+    }
+    if (confirmStatus === "success") {
+      setPhase("confirmed");
+      const t = setTimeout(() => onClose(), 1600);
+      return () => clearTimeout(t);
+    }
+    if (confirmStatus === "error") {
+      setPhase("actions");
+    }
+  }, [confirmStatus, open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -86,12 +118,7 @@ export default function CheckpointOverlay({
     if (editing) setEditing(false);
     setPhase("composing");
     onAction("confirmed", edits);
-
-    setTimeout(() => {
-      setPhase("confirmed");
-      setTimeout(() => onClose(), 1600);
-    }, 2200);
-  }, [editing, onAction, onClose, checkpoint.name]);
+  }, [editing, onAction, checkpoint.name]);
 
   const handleRefine = useCallback(() => {
     onAction("refined");
@@ -246,7 +273,7 @@ export default function CheckpointOverlay({
               transition: "all 0.25s ease",
             }}
           >
-            {renderMarkdown(checkpoint.content)}
+            {renderMarkdown(checkpoint.composedContent || checkpoint.content)}
           </div>
 
           {/* Edit hint */}
@@ -277,6 +304,22 @@ export default function CheckpointOverlay({
               animation: "cpFadeIn 0.3s ease forwards",
             }}
           >
+            {confirmStatus === "error" && errorMessage && (
+              <p
+                role="alert"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  letterSpacing: "1.6px",
+                  textTransform: "uppercase",
+                  color: "var(--session-error-border, rgba(208, 130, 120, 0.85))",
+                  margin: "0 0 12px 0",
+                  textAlign: "center",
+                }}
+              >
+                {errorMessage}
+              </p>
+            )}
             {refinementCeilingActive ? (
               <>
                 <p
