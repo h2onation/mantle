@@ -79,9 +79,9 @@
     radial-gradient(ellipse 75% 55% at 100% 100%, rgba(115, 72, 42, 0.65), transparent 60%),
     radial-gradient(ellipse 80% 50% at 20% 50%, rgba(15, 18, 26, 0.35), transparent 70%);
   --session-bg-chat:
-    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(54, 62, 76, 0.85), transparent 65%),
-    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(36, 42, 55, 0.55), transparent 70%),
-    radial-gradient(ellipse 65% 45% at 100% 105%, rgba(115, 72, 42, 0.55), transparent 60%);
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(115, 72, 42, 0.55), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(36, 42, 55, 0.85), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(85, 55, 30, 0.40), transparent 60%);
   --session-bg-checkpoint:
     radial-gradient(ellipse 110% 75% at 50% 25%, rgba(115, 72, 42, 0.42), transparent 65%),
     radial-gradient(ellipse 100% 60% at 50% 100%, rgba(48, 54, 68, 0.85), transparent 70%),
@@ -253,9 +253,9 @@
     radial-gradient(ellipse 75% 50% at 100% 88%, rgba(92, 58, 30, 0.34), transparent 65%),
     radial-gradient(ellipse 70% 50% at 0% 100%, rgba(212, 176, 128, 0.62), transparent 60%);
   --session-bg-chat:
-    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(255, 248, 232, 0.85), transparent 65%),
-    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(212, 176, 128, 0.58), transparent 70%),
-    radial-gradient(ellipse 65% 45% at 100% 105%, rgba(92, 58, 30, 0.38), transparent 60%);
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(212, 176, 128, 0.58), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(255, 248, 232, 0.85), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(92, 58, 30, 0.38), transparent 60%);
   --session-bg-checkpoint:
     radial-gradient(ellipse 120% 60% at 50% 25%, rgba(255, 250, 232, 0.85), transparent 65%),
     radial-gradient(ellipse 95% 55% at 35% 100%, rgba(208, 168, 118, 0.60), transparent 70%),
