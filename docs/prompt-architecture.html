@@ -247,6 +247,166 @@ body.overview .content { max-width: 1280px; }
   .persona-grid { grid-template-columns: repeat(2, 1fr); }
   .persona-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
 }
+body.journey .controls { display: none; }
+body.journey .token-total { display: none; }
+body.journey .content { max-width: 920px; }
+.journey-stage {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid #ece8e1;
+  position: relative;
+}
+.journey-stage::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #8b7355;
+}
+.journey-num {
+  position: absolute;
+  left: -14px;
+  top: 18px;
+  background: #2c2520;
+  color: #faf8f5;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.journey-header {
+  padding: 16px 20px 8px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.journey-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #8b7355;
+  font-weight: 700;
+}
+.journey-subtitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c2520;
+  margin-top: 2px;
+}
+.journey-scenario {
+  padding: 0 20px 12px 28px;
+  font-size: 13px;
+  color: #5a524a;
+  font-style: italic;
+  line-height: 1.55;
+}
+.journey-changes {
+  padding: 10px 20px 10px 28px;
+  background: #faf6ee;
+  border-top: 1px solid #ece8e1;
+  border-bottom: 1px solid #ece8e1;
+  font-size: 12px;
+  color: #5a524a;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.journey-changes .label {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  color: #7a6f64;
+  margin-right: 4px;
+}
+.diff-pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.diff-pill.added { background: #d8ecda; color: #2a6238; }
+.diff-pill.removed { background: #f3dcdc; color: #802a2a; text-decoration: line-through; }
+.journey-blocks {
+  padding: 12px 20px 16px 28px;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 6px 12px;
+}
+.journey-blocks li {
+  font-size: 12.5px;
+  color: #4a4440;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.journey-blocks li.added {
+  background: #f0f7f1;
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.block-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.block-dot.tier-intro, .block-dot.tier-dynamic { background: #6a7a9a; }
+.block-dot.tier-1 { background: #8b7355; }
+.block-dot.tier-2 { background: #c49a3c; }
+.block-dot.tier-3 { background: #5a8a6a; }
+.journey-blocks .name { flex: 1; }
+.journey-blocks .tok {
+  font-size: 11px;
+  color: #8a7f74;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.journey-blocks .new-tag {
+  font-size: 10px;
+  color: #2a6238;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.journey-total {
+  padding: 10px 20px 14px 28px;
+  border-top: 1px solid #ece8e1;
+  font-size: 13px;
+  color: #5a524a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.journey-total .num {
+  font-weight: 700;
+  font-size: 16px;
+  color: #2c2520;
+  font-variant-numeric: tabular-nums;
+}
+.journey-total .delta {
+  font-size: 12px;
+  color: #8a7f74;
+  font-variant-numeric: tabular-nums;
+}
+.journey-total .delta.up { color: #2a6238; }
+.journey-total .delta.down { color: #802a2a; }
 .overview-intro {
   padding-bottom: 20px;
   margin-bottom: 8px;
@@ -275,6 +435,7 @@ body.overview .content { max-width: 1280px; }
     <span class="view-toggle">
       <button id="viewInteractive" class="active" onclick="setView('interactive')">Interactive</button>
       <button id="viewOverview" onclick="setView('overview')">Overview</button>
+      <button id="viewJourney" onclick="setView('journey')">Journey</button>
     </span>
     <span class="token-total" id="totalTokens">Total: ~0 tokens</span>
   </span>
@@ -518,12 +679,154 @@ function renderOverview() {
 function setView(view) {
   document.getElementById('viewInteractive').classList.toggle('active', view === 'interactive');
   document.getElementById('viewOverview').classList.toggle('active', view === 'overview');
+  document.getElementById('viewJourney').classList.toggle('active', view === 'journey');
   document.body.classList.toggle('overview', view === 'overview');
+  document.body.classList.toggle('journey', view === 'journey');
   if (view === 'overview') {
     renderOverview();
+  } else if (view === 'journey') {
+    renderJourney();
   } else {
     render();
   }
+}
+
+const JOURNEY_STAGES = [
+  {
+    num: 1,
+    title: "Session 1 · Turn 1",
+    subtitle: "First message ever",
+    scenario: "The user just signed up. They haven't typed anything yet — Jove is waiting for their first message. Everything Jove will ever know about them starts with what they type next.",
+    flags: { isNew: true, isReturning: false, isCheckpoint: false, convMode: 'standard' }
+  },
+  {
+    num: 2,
+    title: "Session 1 · Turn 6",
+    subtitle: "Approaching first checkpoint",
+    scenario: "The conversation has built up enough texture for Jove to see a pattern worth reflecting back. The extraction layer flags that a Manual entry might be ready to propose.",
+    flags: { isNew: true, isReturning: false, isCheckpoint: true, convMode: 'standard' }
+  },
+  {
+    num: 3,
+    title: "Session 2 · Turn 1",
+    subtitle: "Returning user, days later",
+    scenario: "The user opens the app again. They confirmed two entries last session. Jove acknowledges that work and continues — but does NOT run the first-session welcome again.",
+    flags: { isNew: false, isReturning: true, isCheckpoint: false, convMode: 'standard' }
+  },
+  {
+    num: 4,
+    title: "Session 2 · Turn 8",
+    subtitle: "Returning user, deep in conversation",
+    scenario: "Mid-session, another pattern is forming. The user has been talking about something concrete. Jove is about to propose a second Manual entry.",
+    flags: { isNew: false, isReturning: true, isCheckpoint: true, convMode: 'standard' }
+  }
+];
+
+function getActiveBlocks(flags) {
+  const blocks = [];
+  const push = (id, label, text, tier) => blocks.push({ id, label, tokens: tokenCount(text), tier });
+
+  push('intro', 'Persona Intro', D.intro, 'tier-intro');
+  push('tier1', 'Constitutional Rules', D.tier1, 'tier-1');
+  push('t2_autistic', 'Voice (Autistic)', D.tier2_autistic, 'tier-2');
+  if (flags.isNew) push('firstMessage', 'First Message', D.firstMessage, 'tier-3');
+  if (flags.convMode === 'guided') push('guidedIntake', 'Guided Intake', D.guidedIntake, 'tier-3');
+  if (flags.convMode === 'upload') push('uploadMode', 'Upload Mode', D.uploadMode, 'tier-3');
+  if (flags.isReturning) push('returningUser', 'Returning User', D.returningUser, 'tier-3');
+  if (flags.isReturning || flags.isCheckpoint) push('checkpoints', 'Checkpoints', D.checkpoints, 'tier-3');
+  push('adapting', 'Adapting + Short Answers', D.adapting, 'tier-3');
+  push('clinical', 'Clinical Material', D.clinicalMaterial, 'tier-3');
+  push('referral', 'Professional Referral', D.professionalReferral, 'tier-3');
+  push('fabricated', 'Fabricated Content', D.fabricatedContent, 'tier-3');
+  push('checkpointLang', 'Checkpoint Language', D.checkpointLanguage, 'tier-3');
+  if (flags.isNew) push('firstSession', 'First Session', D.firstSession, 'tier-3');
+  if (flags.isReturning) {
+    blocks.push({ id: 'manual', label: 'Manual Entries (compressed)', tokens: 220, tier: 'tier-dynamic' });
+    blocks.push({ id: 'sessionCtx', label: 'Session Context', tokens: 60, tier: 'tier-dynamic' });
+  }
+  if (flags.isCheckpoint) {
+    blocks.push({ id: 'extraction', label: 'Extraction Brief', tokens: 180, tier: 'tier-dynamic' });
+  }
+  return blocks;
+}
+
+const BLOCK_LABELS = {
+  intro: 'Persona Intro', tier1: 'Constitutional Rules', t2_autistic: 'Voice (Autistic)',
+  firstMessage: 'First Message', guidedIntake: 'Guided Intake', uploadMode: 'Upload Mode',
+  returningUser: 'Returning User', checkpoints: 'Checkpoints',
+  adapting: 'Adapting + Short Answers', clinical: 'Clinical Material', referral: 'Professional Referral',
+  fabricated: 'Fabricated Content', checkpointLang: 'Checkpoint Language', firstSession: 'First Session',
+  manual: 'Manual Entries (compressed)', sessionCtx: 'Session Context', extraction: 'Extraction Brief'
+};
+
+function renderJourney() {
+  let html = '';
+  html += `<div class="overview-intro">
+    <strong>A user moving through the product. The prompt evolves with them.</strong>
+    Each stage shows what Jove is reading at that moment, what just got added, and what dropped off. Shown with Autistic primary mode — other modes follow the same pattern, just with a different Voice block.
+  </div>`;
+
+  let prevIds = null;
+  let prevTotal = null;
+  JOURNEY_STAGES.forEach((stage) => {
+    const blocks = getActiveBlocks(stage.flags);
+    const ids = new Set(blocks.map(b => b.id));
+    const total = blocks.reduce((s, b) => s + b.tokens, 0);
+
+    const added = prevIds ? blocks.filter(b => !prevIds.has(b.id)).map(b => b.id) : [];
+    const removed = prevIds ? [...prevIds].filter(id => !ids.has(id)) : [];
+    const isFirst = prevIds === null;
+
+    let changesHtml = '';
+    if (!isFirst) {
+      const parts = [];
+      added.forEach(id => parts.push(`<span class="diff-pill added">+ ${BLOCK_LABELS[id] || id}</span>`));
+      removed.forEach(id => parts.push(`<span class="diff-pill removed">− ${BLOCK_LABELS[id] || id}</span>`));
+      changesHtml = `<div class="journey-changes">
+        <span class="label">Changes:</span>
+        ${parts.length > 0 ? parts.join('') : '<em style="color:#9a8f84">No structural changes — same blocks as previous stage.</em>'}
+      </div>`;
+    }
+
+    const blocksHtml = blocks.map(b => `
+      <li class="${added.includes(b.id) ? 'added' : ''}">
+        <span class="block-dot ${b.tier}"></span>
+        <span class="name">${b.label}</span>
+        <span class="tok">${fmt(b.tokens)}</span>
+        ${added.includes(b.id) && !isFirst ? '<span class="new-tag">NEW</span>' : ''}
+      </li>
+    `).join('');
+
+    let deltaHtml = '';
+    if (prevTotal !== null) {
+      const diff = total - prevTotal;
+      const sign = diff > 0 ? '+' : '';
+      const cls = diff > 0 ? 'up' : (diff < 0 ? 'down' : '');
+      deltaHtml = `<span class="delta ${cls}">${sign}${fmt(diff)} vs previous</span>`;
+    }
+
+    html += `<div class="journey-stage">
+      <div class="journey-num">${stage.num}</div>
+      <div class="journey-header">
+        <div>
+          <div class="journey-title">${stage.title}</div>
+          <div class="journey-subtitle">${stage.subtitle}</div>
+        </div>
+      </div>
+      <div class="journey-scenario">${stage.scenario}</div>
+      ${changesHtml}
+      <ul class="journey-blocks">${blocksHtml}</ul>
+      <div class="journey-total">
+        <span>Total in prompt at this moment</span>
+        <span><span class="num">~${fmt(total)} tokens</span> ${deltaHtml}</span>
+      </div>
+    </div>`;
+
+    prevIds = ids;
+    prevTotal = total;
+  });
+
+  document.getElementById('blocks').innerHTML = html;
 }
 
 function render() {
