@@ -793,6 +793,11 @@ export default function MobileSession({
                 }
 
                 // ── Historical checkpoint: Plate with status label ──
+                // Rejected/discarded checkpoints collapse to title + status
+                // only — no full content. Confirmed and refined show the
+                // full entry so the user can re-read what landed.
+                const isRejected = msg.checkpointMeta?.status === "rejected";
+
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -805,14 +810,14 @@ export default function MobileSession({
                       eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {renderMarkdown(msg.content)}
+                      {!isRejected && renderMarkdown(msg.content)}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
                           style={{
-                            marginTop: 16,
-                            paddingTop: 12,
-                            borderTop: "1px solid var(--session-hair-soft)",
+                            marginTop: isRejected ? 0 : 16,
+                            paddingTop: isRejected ? 0 : 12,
+                            borderTop: isRejected ? "none" : "1px solid var(--session-hair-soft)",
                           }}
                         >
                           <span

@@ -96,33 +96,15 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
                 marginTop: 16,
                 paddingTop: 12,
                 borderTop: "1px solid var(--session-hair-soft)",
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 14,
+                fontWeight: 400,
+                lineHeight: 1.6,
+                color: "var(--session-ink-mid)",
+                fontStyle: "italic",
               }}
             >
-              <p
-                style={{
-                  margin: "0 0 4px",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 9,
-                  letterSpacing: "1.8px",
-                  textTransform: "uppercase",
-                  color: "var(--session-walnut-meta)",
-                }}
-              >
-                What changes
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                  fontSize: 14,
-                  fontWeight: 400,
-                  lineHeight: 1.6,
-                  color: "var(--session-ink-mid)",
-                  fontStyle: "italic",
-                }}
-              >
-                {entry.soWhat}
-              </p>
+              {entry.soWhat}
             </div>
           )}
         </div>
