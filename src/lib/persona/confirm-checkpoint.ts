@@ -27,6 +27,7 @@ export async function composeManualEntry(
   options: ComposeManualEntryOptions
 ): Promise<{
   content: string;
+  so_what: string | null;
   name: string;
   changelog: string;
   summary: string;
@@ -61,42 +62,60 @@ export async function composeManualEntry(
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n\n");
 
-  const system = `You compose manual entries for a self-authored Manual built by a late-diagnosed autistic adult. You receive a checkpoint reflection from a conversationalist called ${PERSONA_NAME} and the recent conversation. Your job is to distill this into a polished manual entry that reads as a mirror, not a case note.
+  const system = `You compose manual entries for a self-authored Manual. You receive a checkpoint reflection from a conversationalist called ${PERSONA_NAME} and the recent conversation. Your job is to distill this into a structured entry that reads as the user describing themselves to themselves.
 
-AUDIENCE VOICE:
-The reader is the user themselves, re-reading later. They are often AuDHD, often late-diagnosed, and allergic to language that sounds like a diagnosis. Write to someone who has spent their life being described in the wrong vocabulary and is finally getting to hold a description that sounds like them.
+THE ENTRY HAS TWO PARTS:
 
-RULES:
-- Written in second person ("You...")
-- No session references ("you told me," "you came in talking about," "in this conversation"). The entry reads the same six months from now.
-- Use the user's exact charged phrases verbatim where they carry weight. Their sensory and system words ("buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy") carry into the entry without translation. Do not upgrade their vocabulary.
+PART 1 — THE PATTERN (field: "content")
+Statement + passage as continuous prose. The statement is the first sentence: one line, first person, the truest description of the pattern. Hard cap around 20 words. Below that the rhythm carries it.
+
+The passage follows immediately. 80+ words. It makes these moves in any order:
+- Specificity in the first half. A concrete situation the user described, not an abstract claim.
+- A reframe somewhere. The pattern is not what it looks like on the surface. Name what it actually is.
+- Conditions or texture. When it fires hardest. What makes it different from the surface read. The user's own noticing.
+
+PART 2 — THE SO WHAT (field: "so_what")
+What changes now that the user can see this pattern. Continuous prose, first person, same voice as the passage.
+
+If the conversation produced a clear stance — something the user wants from people around them, something they plan to handle differently, or something they now understand about what the pattern is doing for them — write it.
+
+If the user sees the pattern clearly but hasn't landed on a stance, write their own words about where they are. Use language from the conversation, not a canned phrase. If the user said something like "I can see it but I don't know what to do with it yet," use that. If they said nothing about stance, return null for this field — do not fabricate.
+
+The so-what is NOT: advice, a treatment plan, a restatement of the pattern, or what the pattern costs (that belongs in the passage).
+
+VOICE RULES:
+- First person. The user is the author. "I" not "You."
+- No phrase a person wouldn't use about themselves out loud, to someone they trust, on a normal day.
+- No session references ("I told ${PERSONA_NAME}," "we talked about," "in this conversation"). The entry reads the same six months from now.
+- Use the user's exact charged phrases verbatim. Their sensory and system words ("buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy") carry into the entry without translation. Do not upgrade their vocabulary.
 - Grounded in their specific examples and moments. Not abstract.
-- Somatic anchor REQUIRED. If the user described a body sensation or system state (anywhere in the conversation), it must appear in the entry. No entry is complete without it. The body is the evidence the mechanism is real.
-- Length: 80-150 words. Dense. Every sentence earns its place. If a sentence restates something the user said clearly, cut it. Only mechanism, bind, and body survive. No bullet points. Flowing prose.
-- MIN 80 words: if your draft is shorter, expand with mechanism or bind, not summary.
-- NOT A RECAP. If the user has already named the pattern in their own words during the conversation, do not restate it. Go one level deeper. Name what the pattern protects, why it can't stop, and what it costs. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation. The entry is not a recap. It is a reflection that shows the user something they could not see from inside.
-- Talk to them about their life and their body, not about their traits. Not a case note. A mirror.
-- No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "You shut down" not "you dissociate." "A second version of you switches on" not "you mask." "The room got too loud" not "sensory overwhelm."
-- No time references. No "right now," "currently," "at this stage," "these days." The entry describes how they operate, period.
-- EXPLICIT BIND REQUIRED. Every entry must name the bind: what the pattern protects AND what it costs. Not one or the other. Both. If you can only see the cost, name what would happen if the user stopped doing the thing — that's the protection. If you can only see the protection, name what it costs them to keep doing it.
+- Somatic anchor REQUIRED in the passage. If the user described a body sensation or system state anywhere in the conversation, it must appear. The body is the evidence the mechanism is real.
+- NOT A RECAP. Go one level deeper than what was said. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation.
+- No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "I shut down" not "I dissociate." "A second version of me switches on" not "I mask." "The room got too loud" not "sensory overwhelm."
+- No time references. No "right now," "currently," "at this stage," "these days." The entry describes how I operate, period.
+- BIND REQUIRED in the passage. What the pattern protects AND what it costs. Both.
+- Do not use dashes or hyphens to join clauses. Use periods.
+
+HEADLINE (field: "name"):
+4-8 words. Flatly descriptive. Says what the mechanism IS in behavioral or body terms.
+Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms"
+Bad: "The Masking Loop," "Sensory Overwhelm Pattern," clinical labels, metaphors.
+
+COMPRESSED REPRESENTATION (for future reference):
+- summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If the so-what produced a clear stance, mention it.
+- key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
 
 EXEMPLARS:
 
-Wrong: "You engage in masking behaviors in social situations driven by fear of rejection and social anxiety."
-Right: "In a room full of people a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the time you get home your jaw is buzzing and you can't speak."
+Wrong (passage): "When my manager checks in, my chest gets tight. My mind goes blank even though I know the answer."
+Right (passage): "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
-Wrong (recap): "When your manager checks in, your chest gets tight. Your mind goes blank even though you know the answer. Half of you tries to answer while the other half monitors how you're coming across. The monitoring wins, so you hesitate. Then you spend hours replaying what happened."
-Right (mechanism + bind): "Half your system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. You hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. You can't stop monitoring because the one time you didn't manage the impression, it cost you. But the monitoring itself is what makes you look unsure."
-
-Also generate a headline name (4-8 words). Flatly descriptive — says what the mechanism IS in behavioral or body terms. Good: 'Second Version Switches On in Rooms,' 'Voice Goes When Pressure Lands,' 'Buzzing That Pulls Focus Away.' Bad: 'The Masking Loop,' 'The Sensory Trap,' 'Rejection Sensitivity.' No metaphors. No clinical labels. Just describe what happens.
-
-Also generate a compressed representation for future reference. When this entry is old and another conversation is happening, Jove will see this compressed version instead of the full content. The user has no memory that you wrote it — they only feel the effect of Jove having a coherent picture of their Manual in future sessions.
-
-- summary: one sentence, 20-40 words, third-person description of what happens. Keep the user's charged sensory/system words. Describe the mechanism and the bind briefly. Not the examples, not the abstractions. Good: 'A second version switches on in rooms and runs the conversation while the real one waits in the back; afterwards the mask costs hours of flat silence.' Bad: 'Masking behavior and its costs.' Bad: 'You become a different person around people.'
-- key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include any charged sensory/system words they used ('buzzing', 'went offline', 'too loud', 'shut down'). Include the subject the entry is about ('rooms', 'pressure', 'masking'). Do not include clinical or framework terms.
+Wrong (so_what): "I should try to be less anxious in meetings."
+Right (so_what): "I need people to ask me once and then wait. The answer is there. The monitoring just has to finish before I can say it. If they ask again, it starts over."
+Right (so_what, incomplete): "I can see the loop now. Monitoring fires, I hesitate, they check in, monitoring fires harder. I don't know yet what I want to do about it. But I can see it running."
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "The composed narrative...", "name": "The Headline Name", "changelog": "One sentence describing what this adds or changes.", "summary": "One-sentence third-person description.", "key_words": ["word1", "word2", "word3"]}`;
+{"content": "Statement + passage...", "so_what": "What changes now..." or null, "name": "Headline", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
   const userContent = `Layer: ${layer} (${LAYER_NAMES[layer] || "Unknown"})
 ${name ? `Proposed name: "${name}"` : "No name proposed — choose one."}
@@ -110,8 +129,8 @@ ${checkpointText}
 Compose the manual entry.`;
 
   const response = await anthropicFetch({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    model: "claude-opus-4-6",
+    max_tokens: 2048,
     system,
     messages: [{ role: "user", content: userContent }],
   });
@@ -130,6 +149,11 @@ Compose the manual entry.`;
     return null;
   }
 
+  const soWhat =
+    typeof parsed.so_what === "string" && parsed.so_what.trim().length > 0
+      ? parsed.so_what.trim()
+      : null;
+
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim().length > 0
       ? parsed.summary.trim()
@@ -144,6 +168,7 @@ Compose the manual entry.`;
 
   return {
     content: parsed.content,
+    so_what: soWhat,
     name: parsed.name || name || "Untitled",
     changelog: parsed.changelog || `Created Layer ${layer} entry.`,
     summary,
@@ -223,6 +248,7 @@ export async function confirmCheckpoint({
       name: string | null;
       status: string;
       composed_content: string | null;
+      composed_so_what: string | null;
       composed_name: string | null;
       changelog: string | null;
       composed_summary: string | null;
@@ -252,6 +278,7 @@ export async function confirmCheckpoint({
     const trimmedEditedName = editedName?.trim();
     const contentToWrite =
       trimmedEditedContent || meta.composed_content || fallbackContent;
+    const soWhatToWrite = meta.composed_so_what || null;
     const nameToWrite =
       trimmedEditedName || meta.composed_name || meta.name || "Untitled";
     const summaryToWrite = trimmedEditedContent
@@ -274,6 +301,7 @@ export async function confirmCheckpoint({
         p_layer: meta.layer,
         p_name: nameToWrite,
         p_content: contentToWrite,
+        p_so_what: soWhatToWrite,
         p_summary: summaryToWrite,
         p_key_words: keyWordsToWrite,
       }

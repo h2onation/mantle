@@ -9,6 +9,7 @@ export interface ChatMessage {
     layer: number;
     name: string | null;
     status: string;
+    composed_so_what?: string | null;
     // Number of "Close but not quite" refinements that produced this
     // entry. Inherited via the chain rule — see
     // computeInheritedRefinementCount in persona-pipeline.ts. Optional
@@ -24,6 +25,10 @@ export interface ManualEntry {
   name: string | null;
   content: string;
   created_at?: string;
+  // The user's stance on the pattern: what changes now that they can see it.
+  // Nullable — entries before this feature, or entries where the user hasn't
+  // landed on a stance, have no so_what.
+  so_what?: string | null;
   // Compression fields — populated at checkpoint-confirm time. When present,
   // prepareManualContext uses them to render older entries as a terse line
   // instead of the full narrative content.
@@ -45,6 +50,7 @@ export interface ActiveCheckpoint {
    *  This is what will land in the user's Manual on confirm, so the review
    *  overlay shows this when present rather than `content`. */
   composedContent?: string | null;
+  composedSoWhat?: string | null;
 }
 
 export interface ExplorationContext {

@@ -14,6 +14,7 @@ export interface MessageCompleteEvent {
     // review overlay so the user sees the exact text that will land
     // in their Manual on confirm. Optional for backward compatibility.
     composed_content?: string | null;
+    composed_so_what?: string | null;
   } | null;
   processingText: string;
   cleanContent?: string;

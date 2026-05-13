@@ -49,6 +49,13 @@ export interface ExtractionState {
   // Regenerated each cycle — never latched, never fed back into the
   // previous-state input. Null when no clear pattern has emerged.
   emerging_pattern_snippet: string | null;
+  // True when Jove has named a pattern in conversation AND the user has
+  // engaged with it (elaborated, added examples, stayed on thread).
+  // Gates checkpoint firing — no checkpoint until pattern is engaged.
+  pattern_engaged: boolean;
+  // Informational signals — surfaced in the brief as hints, not hard gates.
+  user_named_cost: boolean;
+  user_named_stance: boolean;
 }
 
 interface ManualEntry {
@@ -94,6 +101,9 @@ function defaultState(): ExtractionState {
     next_prompt: "",
     sage_brief: "",
     emerging_pattern_snippet: null,
+    pattern_engaged: false,
+    user_named_cost: false,
+    user_named_stance: false,
   };
 }
 
@@ -255,6 +265,26 @@ Return null if no clear pattern has emerged yet. Do not force a phrase to fill t
 
 Good snippets describe what the pattern IS in behavioral or experiential terms, not what category it falls into. "How control and trust show up together" is good. "Attachment issues" is not.
 
+11. PATTERN ENGAGEMENT TRACKING
+
+Track whether a pattern has been named in conversation and the user has engaged with it.
+
+Set pattern_engaged to true when BOTH conditions are met:
+(1) ${PERSONA_NAME} has made a naming move in a prior turn — pointed at a repetition across two moments, offered a plain description of a pattern, or named a contradiction between what the user claims and what they described.
+(2) The user's subsequent response engaged with it rather than redirecting or rejecting. Engagement means: elaborating, adding a second example, naming what it costs them, sitting with it, or continuing on the same thread. Non-engagement means: changing topic, flat "I don't know," pushing back ("that's not it"), shortening answers, or redirecting to a different situation.
+
+If the user names the pattern themselves before ${PERSONA_NAME} does ("I keep doing this thing," "there's a pattern here"), set pattern_engaged to true immediately.
+
+Once true, stays true for the rest of the session unless the user explicitly rejects the pattern ("actually that's not what's happening" or equivalent clear reversal).
+
+If this is the first turn or ${PERSONA_NAME} has not yet made a naming move, set to false.
+
+12. READINESS SIGNALS (informational — these do NOT gate checkpoints)
+
+user_named_cost: Has the user articulated what the pattern costs them, in their own words? Not a vague "it's hard" but a specific loss, misreading, or consequence they can name.
+
+user_named_stance: Has the user expressed what they want now that they can see the pattern? This could be a request ("I need people to wait"), a decision ("I'm going to stop doing that"), or an honest incomplete ("I see it but I don't know what to do yet"). Any of these count. Silence on the topic does not.
+
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
@@ -286,7 +316,10 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
   "observation_miss_count": 0,
   "next_prompt": "3-6 word placeholder hint...",
   "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}",
-  "emerging_pattern_snippet": "short phrase under 15 words, OR null"
+  "emerging_pattern_snippet": "short phrase under 15 words, OR null",
+  "pattern_engaged": false,
+  "user_named_cost": false,
+  "user_named_stance": false
 }
 
 CRITICAL RULES:
@@ -320,6 +353,9 @@ export async function runExtraction(
     mode: state.mode,
     checkpoint_gate: state.checkpoint_gate,
     observation_miss_count: state.observation_miss_count,
+    pattern_engaged: state.pattern_engaged,
+    user_named_cost: state.user_named_cost,
+    user_named_stance: state.user_named_stance,
   });
   userContent += "\n\n";
 
@@ -390,6 +426,9 @@ export async function runExtraction(
       next_prompt: parsed.next_prompt || "",
       sage_brief: parsed.sage_brief || "",
       emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
+      pattern_engaged: Boolean(parsed.pattern_engaged) || state.pattern_engaged,
+      user_named_cost: Boolean(parsed.user_named_cost) || state.user_named_cost,
+      user_named_stance: Boolean(parsed.user_named_stance) || state.user_named_stance,
     };
   } catch (err) {
     // Re-throw so fireBackgroundExtraction's .catch handles the failure
@@ -525,6 +564,24 @@ export function formatExtractionForPersona(
 
   if (state.current_thread) {
     context += `What's actually being explored right now: ${state.current_thread}\n`;
+  }
+
+  // Phase hint based on pattern_engaged
+  if (!state.pattern_engaged) {
+    context += "\nNo pattern has been named and engaged with yet. Keep exploring. When you see repetition across moments, name it conversationally — do not propose a checkpoint.\n";
+  } else if (gateReady) {
+    context += "\nPattern is live and engaged. Work toward the so-what — what changes now that the user can see this. When you have enough, propose the checkpoint with the pinned transition.\n";
+  } else {
+    context += "\nPattern is engaged but material isn't strong enough yet for a checkpoint. Keep deepening — ask about the body, the cost, what fires it.\n";
+  }
+
+  // Readiness signals
+  if (state.user_named_cost && state.user_named_stance) {
+    context += "The user has named both the cost and their stance. Checkpoint should be strong.\n";
+  } else if (state.user_named_cost && !state.user_named_stance) {
+    context += "The user named the cost but hasn't landed on what they want. Work toward the so-what before checkpointing, or checkpoint with an incomplete stance.\n";
+  } else if (!state.user_named_cost && state.pattern_engaged) {
+    context += "The user hasn't named what this costs them yet. Ask about the cost before proposing.\n";
   }
 
   context += "── END BRIEF ──\n";

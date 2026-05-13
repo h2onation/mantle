@@ -188,7 +188,8 @@ export async function processTextMessage(
       ctx.manualComponents,
       ctx.turnsSinceCheckpoint,
       ctx.previousExtraction,
-      ctx.isFirstCheckpoint
+      ctx.isFirstCheckpoint,
+      ctx.turnCount
     );
     isCheckpoint = gateResult.isCheckpoint;
     checkpointLayer = gateResult.layer;
