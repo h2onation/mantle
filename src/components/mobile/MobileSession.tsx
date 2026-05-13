@@ -134,16 +134,23 @@ export default function MobileSession({
   const [checkpointReady, setCheckpointReady] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
+  // Building indicator timer. Re-runs whenever the active checkpoint's
+  // messageId changes (new proposal arrives, or the user dismisses the
+  // current one and a fresh one comes in). Depending on messageId (not the
+  // ActiveCheckpoint object reference) avoids spurious re-runs when other
+  // fields update, and avoids the StrictMode double-invoke trap that would
+  // skip the second scheduling if we keyed off a "have we seen this
+  // before" ref.
   useEffect(() => {
-    if (activeCheckpoint && !prevCheckpointRef.current) {
-      setCheckpointReady(false);
-      const timer = setTimeout(() => setCheckpointReady(true), 2200);
-      return () => clearTimeout(timer);
-    }
     if (!activeCheckpoint) {
       setCheckpointReady(false);
+      return;
     }
-  }, [activeCheckpoint]);
+    setCheckpointReady(false);
+    const timer = setTimeout(() => setCheckpointReady(true), 2200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCheckpoint?.messageId]);
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
