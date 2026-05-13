@@ -132,7 +132,7 @@ export default function FirstCheckpointModal({
           letterSpacing: "-0.3px",
         }}
       >
-        A pattern is ready for your Manual
+        A suggested entry is ready
         <span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
       </h2>
 
@@ -147,7 +147,7 @@ export default function FirstCheckpointModal({
         }}
       >
         <p style={{ margin: 0 }}>
-          I have a pattern to put in front of you. You will see a card. Read it. If it fits, confirm and it becomes an entry in your Manual. If it is off, tell me where and we keep going.
+          I have something to put in front of you. Tap to review it. If it fits, add it to your Manual. If it&rsquo;s off, we can rework it together.
         </p>
         <p style={{ margin: "12px 0 0" }}>
           Your Manual builds one entry at a time. This is the first, and it will evolve as you add more &mdash; entries sharpen, connect to each other, sometimes get revisited. The Manual is a living document, not a finished one.

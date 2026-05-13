@@ -12,6 +12,7 @@ import { LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
+import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
@@ -128,6 +129,21 @@ export default function MobileSession({
   const [chipsVisible, setChipsVisible] = useState(true);
   useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
+  const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
+  const [checkpointReady, setCheckpointReady] = useState(false);
+  const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
+
+  useEffect(() => {
+    if (activeCheckpoint && !prevCheckpointRef.current) {
+      setCheckpointReady(false);
+      const timer = setTimeout(() => setCheckpointReady(true), 2200);
+      return () => clearTimeout(timer);
+    }
+    if (!activeCheckpoint) {
+      setCheckpointReady(false);
+    }
+  }, [activeCheckpoint]);
+
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
     const dismissed = localStorage.getItem("mw_signin_banner_dismissed");
@@ -594,243 +610,137 @@ export default function MobileSession({
 
               // Checkpoint card rendering
               if (isCheckpoint) {
-                // Track A Gate 6: suppress the pending card while the
-                // first-checkpoint modal is open so the user reads the
-                // modal before the card appears. Dismissal unsets
-                // modal3Open in the same render cycle — the card
-                // appears exactly when the modal disappears.
-                // Historical (non-pending) checkpoints still render.
                 if (isPendingCheckpoint && modal3Open) return null;
                 const checkpointLayer = isPendingCheckpoint
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                // Track A Phase 7-Mid: refinement-ceiling. After two
-                // refinements on the same chain, the third proposed
-                // entry shows a different action surface — the user
-                // chooses between accepting the entry as-is or
-                // letting it go (a defer, not a flat reject).
-                const refinementCeilingActive =
-                  isPendingCheckpoint &&
-                  (msg.checkpointMeta?.refinement_count ?? 0) >= 2;
-
-                return (
-                  <div
-                    key={msg.id || `msg-${i}`}
-                    style={{
-                      animation: "checkpointFadeIn 0.45s ease both",
-                      margin: "var(--sp-md) 0 var(--sp-sm)",
-                    }}
-                  >
-                    <Plate
-                      eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
+                // ── Pending checkpoint: building indicator + trigger card ──
+                if (isPendingCheckpoint) {
+                  return (
+                    <div
+                      key={msg.id || `msg-${i}`}
+                      style={{ margin: "var(--sp-md) 0 var(--sp-sm)" }}
                     >
-                      {renderMarkdown(msg.content)}
-
-                    {/* Divider + prompt + buttons (pending only).
-                        Two action surfaces: normal three-button row,
-                        and the refinement-ceiling fork (two buttons
-                        with a different inline message). */}
-                    {isPendingCheckpoint && !checkpointActionState && (
+                      {/* Building indicator */}
                       <div
                         style={{
-                          marginTop: "var(--sp-md)",
-                          paddingTop: "var(--sp-sm)",
-                          borderTop: "1px solid var(--session-hair-soft)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "14px 0",
+                          opacity: 0,
+                          animation: "checkpointFadeIn 0.7s ease 0.3s forwards",
                         }}
                       >
-                        {refinementCeilingActive ? (
-                          <>
-                            <p
-                              style={{
-                                fontFamily: "var(--font-serif)",
-                                fontSize: "14px",
-                                fontStyle: "italic",
-                                color: "var(--session-ink-mid)",
-                                lineHeight: 1.5,
-                                margin: "0 0 var(--sp-sm) 0",
-                              }}
-                            >
-                              Close but not quite is fine. Want me to put it in as it is, or let it go and we come back to it?
-                            </p>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-xs)" }}>
-                              <button
-                                onClick={() => {
-                                  setCheckpointActionState("confirmed");
-                                  confirmCheckpoint("confirmed");
-                                }}
-                                style={{
-                                  fontFamily: "var(--font-mono)",
-                                  fontSize: "11px",
-                                  letterSpacing: "2.2px",
-                                  textTransform: "uppercase",
-                                  color: "var(--session-ink)",
-                                  background: "none",
-                                  border: "none",
-                                  borderBottom: "1px solid var(--session-ink)",
-                                  cursor: "pointer",
-                                  padding: "var(--sp-xs) 0 var(--sp-tight)",
-                                  width: "100%",
-                                  textAlign: "left",
-                                }}
-                              >
-                                Put it in as it is &nbsp;›
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setCheckpointActionState("deferred");
-                                  confirmCheckpoint("deferred");
-                                }}
-                                style={{
-                                  fontFamily: "var(--font-serif)",
-                                  fontSize: "15px",
-                                  fontStyle: "italic",
-                                  color: "var(--session-ink-mid)",
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  padding: "var(--sp-xs) 0",
-                                  width: "100%",
-                                  textAlign: "left",
-                                }}
-                              >
-                                let it go
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <p
-                              style={{
-                                fontFamily: "var(--font-serif)",
-                                fontSize: "14px",
-                                fontStyle: "italic",
-                                color: "var(--session-ink-faded)",
-                                margin: "0 0 var(--sp-sm) 0",
-                              }}
-                            >
-                              Does this feel right?
-                            </p>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-tight)" }}>
-                              {/* Primary — text button with rule beneath */}
-                              <button
-                                onClick={() => {
-                                  setCheckpointActionState("confirmed");
-                                  confirmCheckpoint("confirmed");
-                                }}
-                                style={{
-                                  fontFamily: "var(--font-mono)",
-                                  fontSize: "11px",
-                                  letterSpacing: "2.2px",
-                                  textTransform: "uppercase",
-                                  color: "var(--session-ink)",
-                                  background: "none",
-                                  border: "none",
-                                  borderBottom: "1px solid var(--session-ink)",
-                                  cursor: "pointer",
-                                  padding: "var(--sp-xs) 0 var(--sp-tight)",
-                                  width: "100%",
-                                  textAlign: "left",
-                                }}
-                              >
-                                Put it in my Manual &nbsp;›
-                              </button>
-
-                              {/* Secondary — italic text links */}
-                              <div style={{ display: "flex", gap: "var(--sp-lg)", paddingTop: "var(--sp-xs)" }}>
-                                <button
-                                  onClick={() => {
-                                    setCheckpointActionState("refined");
-                                    confirmCheckpoint("refined");
-                                  }}
-                                  style={{
-                                    fontFamily: "var(--font-serif)",
-                                    fontSize: "15px",
-                                    fontStyle: "italic",
-                                    color: "var(--session-ink-mid)",
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: 0,
-                                  }}
-                                >
-                                  close but not quite
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setCheckpointActionState("rejected");
-                                    confirmCheckpoint("rejected");
-                                  }}
-                                  style={{
-                                    fontFamily: "var(--font-serif)",
-                                    fontSize: "15px",
-                                    fontStyle: "italic",
-                                    color: "var(--session-ink-faded)",
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: 0,
-                                  }}
-                                >
-                                  this is not me
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "var(--session-walnut)",
+                            flexShrink: 0,
+                            ...(checkpointReady
+                              ? {}
+                              : { animation: "cpDotPulse 2s ease-in-out infinite" }),
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+                            fontSize: 14,
+                            color: "var(--session-ink-mid)",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {checkpointReady
+                            ? "Suggested entry ready."
+                            : "Building a suggested entry from what you’ve shared."}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Action state feedback. For "confirmed" this is
-                        the composing state — Sonnet writes the polished
-                        entry server-side (5-15s); show a pulsing fleuron
-                        and italic "Putting it on the page…". For all
-                        other action states show the mono-caps receipt. */}
-                    {isPendingCheckpoint && checkpointActionState && (
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          paddingTop: "12px",
-                          borderTop: "1px solid var(--session-hair-soft)",
-                          animation: "checkpointFadeIn 0.4s ease-out both",
-                        }}
-                      >
-                        {checkpointActionState === "confirmed" ? (
-                          <div
+                      {/* Trigger card */}
+                      {checkpointReady && (
+                        <button
+                          onClick={() => {
+                            overlayCheckpointRef.current = activeCheckpoint;
+                            setCheckpointOverlayOpen(true);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            width: "100%",
+                            padding: "18px 20px",
+                            background: "var(--session-walnut-surface)",
+                            border: "1px solid var(--session-bubble-border)",
+                            borderRadius: 14,
+                            cursor: "pointer",
+                            textAlign: "left",
+                            gap: 14,
+                            opacity: 0,
+                            animation: "checkpointFadeIn 0.5s ease forwards",
+                            transition: "background 0.25s ease, border-color 0.25s ease",
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-mono)",
+                                fontSize: 10,
+                                letterSpacing: "1.8px",
+                                textTransform: "uppercase",
+                                color: "var(--session-walnut-meta-strong)",
+                                lineHeight: 1,
+                              }}
+                            >
+                              Suggested Manual Entry
+                            </div>
+                            {activeCheckpoint?.name && (
+                              <div
+                                style={{
+                                  fontFamily: "var(--font-spectral), var(--font-persona), serif",
+                                  fontSize: 18,
+                                  color: "var(--session-ink)",
+                                  lineHeight: 1.3,
+                                  marginTop: 6,
+                                  letterSpacing: "-0.2px",
+                                }}
+                              >
+                                {activeCheckpoint.name}
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+                                fontSize: 13,
+                                color: "var(--session-ink-faded)",
+                                marginTop: 6,
+                              }}
+                            >
+                              Tap to review
+                            </div>
+                          </div>
+                          <span
                             style={{
-                              display: "inline-flex",
-                              alignItems: "baseline",
-                              gap: 10,
+                              fontFamily: "var(--font-spectral), var(--font-persona), serif",
+                              fontSize: 22,
+                              color: "var(--session-ink-ghost)",
+                              flexShrink: 0,
                             }}
                           >
-                            <span
-                              aria-label="Putting it on the page"
-                              style={{
-                                fontFamily: "var(--font-serif)",
-                                fontSize: 18,
-                                color: "var(--session-persona)",
-                                lineHeight: 1,
-                                display: "inline-block",
-                                animation: "personaPulse 2.4s ease-in-out infinite",
-                              }}
-                            >
-                              ❦
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                                fontSize: 15,
-                                fontStyle: "italic",
-                                color: "var(--session-ink-soft)",
-                                lineHeight: 1.5,
-                              }}
-                            >
-                              Putting it on the page…
-                            </span>
-                          </div>
-                        ) : (
+                            ›
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Action state receipt (after overlay closes) */}
+                      {checkpointActionState && checkpointActionState !== "confirmed" && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            animation: "checkpointFadeIn 0.4s ease-out both",
+                          }}
+                        >
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
@@ -845,59 +755,71 @@ export default function MobileSession({
                             {checkpointActionState === "rejected" && "Discarded"}
                             {checkpointActionState === "deferred" && "Set aside"}
                           </span>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
 
-                    {/* Already-resolved checkpoints (loaded from DB) —
-                        confirmed entries render "Saved to Layer N"
-                        with walnut accent (the entry is now part of
-                        the Manual); other statuses keep the mono-caps
-                        receipt in ink-ghost. */}
-                    {isCheckpoint && !isPendingCheckpoint && msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          paddingTop: "12px",
-                          borderTop: "1px solid var(--session-hair-soft)",
-                        }}
-                      >
+                      {checkpointError && (
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
                             fontSize: "var(--size-meta)",
-                            fontWeight: 500,
-                            letterSpacing: "2px",
-                            textTransform: "uppercase",
-                            color: msg.checkpointMeta.status === "confirmed"
-                              ? "var(--session-walnut)"
-                              : "var(--session-ink-ghost)",
+                            color: "var(--session-ink-ghost)",
+                            marginTop: 12,
+                            display: "block",
                           }}
                         >
-                          {msg.checkpointMeta.status === "confirmed" && checkpointLayer
-                            ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
-                            : msg.checkpointMeta.status === "confirmed"
-                              ? "Saved to your Manual"
-                              : null}
-                          {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
-                          {msg.checkpointMeta.status === "rejected" && "Discarded"}
+                          {checkpointError}
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  );
+                }
 
-                    {checkpointError && isPendingCheckpoint && (
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          color: "var(--session-ink-ghost)",
-                          marginTop: "12px",
-                          display: "block",
-                        }}
-                      >
-                        {checkpointError}
-                      </span>
-                    )}
+                // ── Historical checkpoint: Plate with status label ──
+                return (
+                  <div
+                    key={msg.id || `msg-${i}`}
+                    style={{
+                      animation: "checkpointFadeIn 0.45s ease both",
+                      margin: "var(--sp-md) 0 var(--sp-sm)",
+                    }}
+                  >
+                    <Plate
+                      eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
+                      heading={msg.checkpointMeta?.name || undefined}
+                    >
+                      {renderMarkdown(msg.content)}
+
+                      {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
+                        <div
+                          style={{
+                            marginTop: 16,
+                            paddingTop: 12,
+                            borderTop: "1px solid var(--session-hair-soft)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "var(--size-meta)",
+                              fontWeight: 500,
+                              letterSpacing: "2px",
+                              textTransform: "uppercase",
+                              color: msg.checkpointMeta.status === "confirmed"
+                                ? "var(--session-walnut)"
+                                : "var(--session-ink-ghost)",
+                            }}
+                          >
+                            {msg.checkpointMeta.status === "confirmed" && checkpointLayer
+                              ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
+                              : msg.checkpointMeta.status === "confirmed"
+                                ? "Saved to your Manual"
+                                : null}
+                            {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
+                            {msg.checkpointMeta.status === "rejected" && "Discarded"}
+                          </span>
+                        </div>
+                      )}
                     </Plate>
                   </div>
                 );
@@ -1055,6 +977,38 @@ export default function MobileSession({
         onDismiss={() => setModal3Dismissed(true)}
         signupAtMs={signupAtMs}
       />
+
+      {overlayCheckpointRef.current && (
+        <CheckpointOverlay
+          open={checkpointOverlayOpen}
+          checkpoint={overlayCheckpointRef.current}
+          layerName={
+            overlayCheckpointRef.current.layer && LAYER_NAMES[overlayCheckpointRef.current.layer]
+              ? LAYER_NAMES[overlayCheckpointRef.current.layer]
+              : undefined
+          }
+          layerOrdinal={
+            overlayCheckpointRef.current.layer
+              ? LAYER_ORDINAL[overlayCheckpointRef.current.layer]
+              : undefined
+          }
+          refinementCeilingActive={
+            activeCheckpoint !== null &&
+            messages.some(
+              (m) =>
+                m.id === activeCheckpoint.messageId &&
+                (m.checkpointMeta?.refinement_count ?? 0) >= 2
+            )
+          }
+          onAction={(action) => {
+            setCheckpointActionState(action);
+            confirmCheckpoint(action);
+          }}
+          onClose={() => {
+            setCheckpointOverlayOpen(false);
+          }}
+        />
+      )}
     </main>
   );
 }

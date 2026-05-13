@@ -1,0 +1,489 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { ActiveCheckpoint } from "@/lib/types";
+import { renderMarkdown } from "@/lib/utils/format";
+
+type CheckpointAction = "confirmed" | "rejected" | "refined" | "deferred";
+
+interface CheckpointOverlayProps {
+  open: boolean;
+  checkpoint: ActiveCheckpoint;
+  layerName?: string;
+  layerOrdinal?: string;
+  refinementCeilingActive: boolean;
+  onAction: (action: CheckpointAction) => void;
+  onClose: () => void;
+}
+
+type Phase = "actions" | "composing" | "confirmed";
+
+export default function CheckpointOverlay({
+  open,
+  checkpoint,
+  layerName,
+  layerOrdinal,
+  refinementCeilingActive,
+  onAction,
+  onClose,
+}: CheckpointOverlayProps) {
+  const [phase, setPhase] = useState<Phase>("actions");
+  const [editing, setEditing] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const moduleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setPhase("actions");
+      setEditing(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (phase === "actions") onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, phase, onClose]);
+
+  const handleConfirm = useCallback(() => {
+    if (editing) setEditing(false);
+    setPhase("composing");
+    onAction("confirmed");
+
+    setTimeout(() => {
+      setPhase("confirmed");
+      setTimeout(() => onClose(), 1600);
+    }, 2200);
+  }, [editing, onAction, onClose]);
+
+  const handleRefine = useCallback(() => {
+    onAction("refined");
+    onClose();
+  }, [onAction, onClose]);
+
+  const handleReject = useCallback(() => {
+    onAction("rejected");
+    onClose();
+  }, [onAction, onClose]);
+
+  const handleDefer = useCallback(() => {
+    onAction("deferred");
+    onClose();
+  }, [onAction, onClose]);
+
+  const toggleEdit = useCallback(() => {
+    setEditing((prev) => {
+      const next = !prev;
+      if (next) {
+        setTimeout(() => bodyRef.current?.focus(), 50);
+      }
+      return next;
+    });
+  }, []);
+
+  if (!open) return null;
+
+  const eyebrowText = layerName
+    ? `Layer ${layerOrdinal ?? ""} — ${layerName}`.trim()
+    : "Suggested Manual Entry";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Review suggested entry"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 500,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: 1,
+        animation: "cpOverlayIn 0.3s ease forwards",
+      }}
+    >
+      {/* Backdrop */}
+      <div
+        onClick={phase === "actions" ? onClose : undefined}
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "var(--session-backdrop-heavy)",
+        }}
+      />
+
+      {/* Module */}
+      <div
+        ref={moduleRef}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: 400,
+          width: "calc(100% - 40px)",
+          maxHeight: "calc(100vh - 80px)",
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 20,
+          background: "var(--session-walnut-surface)",
+          border: "1px solid var(--session-bubble-border)",
+          backdropFilter: "blur(28px) saturate(140%)",
+          WebkitBackdropFilter: "blur(28px) saturate(140%)",
+          boxShadow: "var(--session-plate-shadow)",
+          overflow: "hidden",
+          animation: "cpModuleIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) forwards",
+        }}
+      >
+        {/* Entry section (scrollable) */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "26px 24px 20px",
+            scrollbarWidth: "none",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "var(--session-walnut-meta-strong)",
+              lineHeight: 1,
+            }}
+          >
+            {eyebrowText}
+          </p>
+
+          {checkpoint.name && (
+            <h3
+              ref={headlineRef}
+              contentEditable={editing}
+              suppressContentEditableWarning
+              style={{
+                margin: "14px 0 0",
+                fontFamily: "var(--font-spectral), var(--font-persona), serif",
+                fontSize: 22,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: "-0.3px",
+                color: "var(--session-ink)",
+                outline: "none",
+                borderBottom: editing
+                  ? "1px solid var(--session-walnut-border)"
+                  : "1px solid transparent",
+                paddingBottom: editing ? 4 : 0,
+                transition: "border-color 0.2s, padding-bottom 0.2s",
+              }}
+            >
+              {checkpoint.name}
+            </h3>
+          )}
+
+          <div
+            ref={bodyRef}
+            contentEditable={editing}
+            suppressContentEditableWarning
+            style={{
+              marginTop: 18,
+              fontFamily: "var(--font-spectral), var(--font-persona), serif",
+              fontSize: 17,
+              lineHeight: 1.65,
+              letterSpacing: "-0.05px",
+              color: "var(--session-ink)",
+              textWrap: "pretty" as React.CSSProperties["textWrap"],
+              outline: "none",
+              minHeight: 60,
+              border: editing
+                ? "1px solid var(--session-walnut-border)"
+                : "1px solid transparent",
+              borderRadius: 8,
+              padding: editing ? "12px 14px" : 0,
+              background: editing
+                ? "var(--session-walnut-surface-soft)"
+                : "transparent",
+              transition: "all 0.25s ease",
+            }}
+          >
+            {renderMarkdown(checkpoint.content)}
+          </div>
+
+          {/* Edit hint */}
+          <p
+            style={{
+              fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+              fontSize: 12,
+              color: "var(--session-ink-ghost)",
+              marginTop: 8,
+              maxHeight: editing ? 30 : 0,
+              overflow: "hidden",
+              opacity: editing ? 1 : 0,
+              transition: "all 0.3s ease",
+            }}
+          >
+            Tap the text to make changes. Your words, your Manual.
+          </p>
+        </div>
+
+        {/* Actions section */}
+        {phase === "actions" && (
+          <div
+            style={{
+              padding: "16px 24px 24px",
+              borderTop: "1px solid var(--session-walnut-border-soft)",
+              background: "var(--session-walnut-surface-soft)",
+              flexShrink: 0,
+              animation: "cpFadeIn 0.3s ease forwards",
+            }}
+          >
+            {refinementCeilingActive ? (
+              <>
+                <p
+                  style={{
+                    fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                    fontSize: 14,
+                    fontStyle: "italic",
+                    color: "var(--session-ink-mid)",
+                    lineHeight: 1.5,
+                    margin: "0 0 var(--sp-sm) 0",
+                  }}
+                >
+                  Close but not quite is fine. Want me to put it in as it is, or
+                  let it go and we come back to it?
+                </p>
+                <button
+                  onClick={handleConfirm}
+                  style={{
+                    width: "100%",
+                    padding: "15px 20px",
+                    fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+                    fontSize: 15,
+                    fontWeight: 500,
+                    color: "var(--session-ink)",
+                    background: "var(--session-walnut-border)",
+                    border: "1px solid var(--session-walnut-border)",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    letterSpacing: "0.2px",
+                    transition: "all 0.25s ease",
+                  }}
+                >
+                  Add to my Manual as-is
+                </button>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 12,
+                  }}
+                >
+                  <button onClick={handleDefer} style={linkStyle}>
+                    let it go
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleConfirm}
+                  style={{
+                    width: "100%",
+                    padding: "15px 20px",
+                    fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+                    fontSize: 15,
+                    fontWeight: 500,
+                    color: "var(--session-ink)",
+                    background: "var(--session-walnut-border)",
+                    border: "1px solid var(--session-walnut-border)",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    letterSpacing: "0.2px",
+                    transition: "all 0.25s ease",
+                  }}
+                >
+                  Add to my Manual
+                </button>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 12,
+                  }}
+                >
+                  <button
+                    onClick={toggleEdit}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      letterSpacing: "1.5px",
+                      textTransform: "uppercase",
+                      color: editing
+                        ? "var(--session-walnut-meta-strong)"
+                        : "var(--session-walnut-meta)",
+                      background: editing
+                        ? "var(--session-walnut-highlight)"
+                        : "none",
+                      border: `1px solid ${editing ? "rgba(170, 120, 82, 0.30)" : "var(--session-walnut-border)"}`,
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {editing ? "Done" : "Edit"}
+                  </button>
+                  <span style={dotStyle}>·</span>
+                  <button onClick={handleRefine} style={linkStyle}>
+                    Jove, let&rsquo;s rework together
+                  </button>
+                  <span style={dotStyle}>·</span>
+                  <button onClick={handleReject} style={linkStyle}>
+                    Discard
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Composing state */}
+        {phase === "composing" && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              padding: "20px 24px 24px",
+              borderTop: "1px solid var(--session-walnut-border-soft)",
+              background: "var(--session-walnut-surface-soft)",
+              animation: "cpFadeIn 0.4s ease forwards",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 18,
+                color: "var(--session-walnut)",
+                animation: "personaPulse 2.4s ease-in-out infinite",
+              }}
+            >
+              ❦
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 15,
+                fontStyle: "italic",
+                color: "var(--session-ink-soft)",
+              }}
+            >
+              Adding to your Manual…
+            </span>
+          </div>
+        )}
+
+        {/* Confirmed cover */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--session-walnut-surface)",
+            backdropFilter: "blur(28px) saturate(140%)",
+            WebkitBackdropFilter: "blur(28px) saturate(140%)",
+            borderRadius: 20,
+            zIndex: 5,
+            opacity: phase === "confirmed" ? 1 : 0,
+            pointerEvents: phase === "confirmed" ? "auto" : "none",
+            transition: "opacity 0.5s ease",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: 28,
+              color: "var(--session-walnut)",
+              marginBottom: 14,
+              ...(phase === "confirmed"
+                ? { animation: "cpConfirmPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }
+                : {}),
+            }}
+          >
+            ❦
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
+              color: "var(--session-walnut)",
+            }}
+          >
+            {layerOrdinal
+              ? `Added to Layer ${layerOrdinal}`
+              : "Added to your Manual"}
+          </span>
+          {layerName && (
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 15,
+                fontStyle: "italic",
+                color: "var(--session-ink-mid)",
+                marginTop: 8,
+              }}
+            >
+              {layerName}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const linkStyle: React.CSSProperties = {
+  fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+  fontSize: 14,
+  color: "var(--session-ink-faded)",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  padding: "8px 12px",
+  borderRadius: 8,
+  transition: "all 0.2s",
+};
+
+const dotStyle: React.CSSProperties = {
+  color: "var(--session-ink-whisper)",
+  fontSize: 10,
+};
