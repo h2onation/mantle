@@ -502,25 +502,10 @@ export function callPersona({
           changelog: string;
           summary: string;
           key_words: string[];
+          acknowledgment: string;
         } | null = null;
 
         if (isCheckpoint) {
-          // Emit a transient `composing` event so the client can show a
-          // "Something is forming…" label inside the typing indicator
-          // during the ~10-15s Opus composition wait. This replaces the
-          // previously-persisted "lead-in" assistant message — the
-          // forming label is not a chat bubble, has no DB row, and is
-          // cleared automatically when the trigger card's
-          // message_complete event arrives next.
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "composing",
-                text: "Something is forming…",
-              })}\n\n`
-            )
-          );
-
           try {
             composedEntry = await composeManualEntry({
               checkpointText: conversationalText,
@@ -598,16 +583,50 @@ export function callPersona({
             .eq("id", messageId);
         }
 
-        // 13b. (Removed) Previously a persisted "A pattern came through
-        //      in what you said." lead-in assistant message was inserted
-        //      here so the trigger card didn't appear cold. That bubble
-        //      read as a dead chat message in the transcript and was
-        //      serialized alongside the card rather than replaced by it.
-        //      Replaced upstream (see step 12c) with a transient
-        //      `composing` SSE event that drives a "Something is forming…"
-        //      label inside the typing indicator during the composition
-        //      wait. The label clears automatically when the trigger
-        //      card's message_complete event lands.
+        // 13b. Acknowledgment bubble. Opus produces a specific reflective
+        //      sentence as part of the composition output — quotes a
+        //      moment or phrase from the user's last 1-2 turns and ends
+        //      with the contractual signal ("I want to mark this," etc.).
+        //      Emitted as a regular Jove assistant message right before
+        //      the trigger card's message_complete. Replaces the old
+        //      generic "A pattern came through in what you said" lead-in
+        //      and the transient "Something is forming…" loading label —
+        //      both of which felt mechanical because they didn't quote
+        //      the user's actual words back. Skipped when composition
+        //      returned an empty acknowledgment (Opus declined for lack
+        //      of usable specifics) — better silence than a vague bubble.
+        //
+        //      Backdated 1s before the checkpoint message's created_at
+        //      so time-ordered reload reads acknowledgment → card.
+        if (isCheckpoint && composedEntry?.acknowledgment) {
+          const { data: ackRow } = await admin
+            .from("messages")
+            .select("created_at")
+            .eq("id", messageId!)
+            .single();
+          const ackCreatedAt = ackRow?.created_at
+            ? new Date(
+                new Date(ackRow.created_at).getTime() - 1000
+              ).toISOString()
+            : undefined;
+          const { data: ackInsert } = await admin
+            .from("messages")
+            .insert({
+              conversation_id: convId,
+              role: "assistant",
+              content: composedEntry.acknowledgment,
+              ...(ackCreatedAt ? { created_at: ackCreatedAt } : {}),
+            })
+            .select("id")
+            .single();
+          if (ackInsert?.id) {
+            emitInlineMessage(
+              controller,
+              ackInsert.id,
+              composedEntry.acknowledgment
+            );
+          }
+        }
 
         // 14. Emit final event
         const checkpoint = isCheckpoint && composedEntry

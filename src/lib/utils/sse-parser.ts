@@ -38,13 +38,6 @@ interface SSECallbacks {
   onTextDelta: (text: string) => void;
   onMessageComplete: (data: MessageCompleteEvent) => void;
   onError?: (error: string) => void;
-  /** Transient pre-card state. Fired by the server after deterministic
-   *  checkpoint detection passes but BEFORE the slow composition Opus
-   *  call, so the client can show a forming-state indicator during the
-   *  10-15s wait. The string is the label to display ("Something is
-   *  forming…"). Cleared automatically when the next message_complete
-   *  arrives. Not a persisted message — no role, no id, no DB row. */
-  onComposing?: (text: string) => void;
 }
 
 export async function parseSSEStream(
@@ -78,8 +71,6 @@ export async function parseSSEStream(
             callbacks.onTextDelta(event.text);
           } else if (event.type === "message_complete") {
             callbacks.onMessageComplete(event);
-          } else if (event.type === "composing") {
-            callbacks.onComposing?.(event.text || "");
           } else if (event.type === "error") {
             callbacks.onError?.(event.message || event.error || "Something went wrong.");
           }

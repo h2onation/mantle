@@ -51,10 +51,6 @@ interface MobileSessionProps {
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
-  /** Transient pre-card forming label. Set during the composition wait
-   *  (~10-15s) and cleared automatically when the trigger card arrives.
-   *  When present, renders inside the typing indicator. */
-  composingMessage: string | null;
   sendMessage: (text: string) => void;
   sendChipResponse: (text: string) => void;
   retryLastMessage: () => void;
@@ -96,7 +92,6 @@ export default function MobileSession({
   activeCheckpoint,
   checkpointError,
   errorMessage,
-  composingMessage,
   sendMessage,
   sendChipResponse,
   retryLastMessage,
@@ -142,26 +137,7 @@ export default function MobileSession({
   useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
-  const [checkpointReady, setCheckpointReady] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
-
-  // Building indicator timer. Re-runs whenever the active checkpoint's
-  // messageId changes (new proposal arrives, or the user dismisses the
-  // current one and a fresh one comes in). Depending on messageId (not the
-  // ActiveCheckpoint object reference) avoids spurious re-runs when other
-  // fields update, and avoids the StrictMode double-invoke trap that would
-  // skip the second scheduling if we keyed off a "have we seen this
-  // before" ref.
-  useEffect(() => {
-    if (!activeCheckpoint) {
-      setCheckpointReady(false);
-      return;
-    }
-    setCheckpointReady(false);
-    const timer = setTimeout(() => setCheckpointReady(true), 2200);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCheckpoint?.messageId]);
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -633,146 +609,114 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                // ── Pending checkpoint: building indicator + trigger card ──
+                // ── Pending checkpoint: trigger card only ──
+                // The "Building a suggested entry…" / "Suggested entry
+                // ready." indicator block lived here previously. It was
+                // client-side UX padding (a 2.2s timer) added when the
+                // card was the only post-detection signal. Now the
+                // composition prompt produces an acknowledgment bubble
+                // (rendered as a normal Jove message just above the
+                // card), so the timer + indicator are redundant. Card
+                // appears immediately when activeCheckpoint is set.
                 if (isPendingCheckpoint) {
                   return (
                     <div
                       key={msg.id || `msg-${i}`}
                       style={{ margin: "var(--sp-md) 0 var(--sp-sm)" }}
                     >
-                      {/* Building indicator */}
-                      <div
+                      <button
+                        onClick={() => {
+                          overlayCheckpointRef.current = activeCheckpoint;
+                          setCheckpointOverlayOpen(true);
+                        }}
                         style={{
                           display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "14px 0",
+                          flexDirection: "column",
+                          width: "100%",
+                          background: "var(--session-walnut-surface)",
+                          border: "1px solid var(--session-bubble-border)",
+                          borderRadius: 14,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          overflow: "hidden",
                           opacity: 0,
-                          animation: "checkpointFadeIn 0.7s ease 0.3s forwards",
+                          animation: "checkpointFadeIn 0.5s ease forwards",
+                          transition:
+                            "background 0.25s ease, border-color 0.25s ease",
                         }}
                       >
-                        <span
+                        {/* Layer header with background treatment */}
+                        <div
                           style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: "var(--session-walnut)",
-                            flexShrink: 0,
-                            ...(checkpointReady
-                              ? {}
-                              : { animation: "cpDotPulse 2s ease-in-out infinite" }),
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
-                            fontSize: 14,
-                            color: "var(--session-ink-mid)",
-                            lineHeight: 1.5,
+                            padding: "10px 20px",
+                            background: "var(--session-walnut-highlight, rgba(170, 120, 82, 0.12))",
+                            borderBottom: "1px solid var(--session-walnut-border-soft)",
                           }}
                         >
-                          {checkpointReady
-                            ? "Suggested entry ready."
-                            : "Building a suggested entry from what you’ve shared."}
-                        </span>
-                      </div>
-
-                      {/* Trigger card */}
-                      {checkpointReady && (
-                        <button
-                          onClick={() => {
-                            overlayCheckpointRef.current = activeCheckpoint;
-                            setCheckpointOverlayOpen(true);
-                          }}
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 10,
+                              letterSpacing: "2px",
+                              textTransform: "uppercase",
+                              color: "var(--session-walnut-meta-strong)",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {activeCheckpoint?.layer && LAYER_NAMES[activeCheckpoint.layer]
+                              ? `Layer ${LAYER_ORDINAL[activeCheckpoint.layer] ?? activeCheckpoint.layer} — ${LAYER_NAMES[activeCheckpoint.layer]}`
+                              : "Suggested Entry"}
+                          </span>
+                        </div>
+                        {/* Entry title + tap hint */}
+                        <div
                           style={{
                             display: "flex",
-                            flexDirection: "column",
-                            width: "100%",
-                            background: "var(--session-walnut-surface)",
-                            border: "1px solid var(--session-bubble-border)",
-                            borderRadius: 14,
-                            cursor: "pointer",
-                            textAlign: "left",
-                            overflow: "hidden",
-                            opacity: 0,
-                            animation: "checkpointFadeIn 0.5s ease forwards",
-                            transition:
-                              "background 0.25s ease, border-color 0.25s ease",
+                            alignItems: "center",
+                            padding: "14px 20px 16px",
+                            gap: 14,
                           }}
                         >
-                          {/* Layer header with background treatment */}
-                          <div
-                            style={{
-                              padding: "10px 20px",
-                              background: "var(--session-walnut-highlight, rgba(170, 120, 82, 0.12))",
-                              borderBottom: "1px solid var(--session-walnut-border-soft)",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                fontSize: 10,
-                                letterSpacing: "2px",
-                                textTransform: "uppercase",
-                                color: "var(--session-walnut-meta-strong)",
-                                lineHeight: 1,
-                              }}
-                            >
-                              {activeCheckpoint?.layer && LAYER_NAMES[activeCheckpoint.layer]
-                                ? `Layer ${LAYER_ORDINAL[activeCheckpoint.layer] ?? activeCheckpoint.layer} — ${LAYER_NAMES[activeCheckpoint.layer]}`
-                                : "Suggested Entry"}
-                            </span>
-                          </div>
-                          {/* Entry title + tap hint */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              padding: "14px 20px 16px",
-                              gap: 14,
-                            }}
-                          >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              {activeCheckpoint?.name && (
-                                <div
-                                  style={{
-                                    fontFamily:
-                                      "var(--font-spectral), var(--font-persona), serif",
-                                    fontSize: 18,
-                                    color: "var(--session-ink)",
-                                    lineHeight: 1.3,
-                                    letterSpacing: "-0.2px",
-                                  }}
-                                >
-                                  {activeCheckpoint.name}
-                                </div>
-                              )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {activeCheckpoint?.name && (
                               <div
                                 style={{
                                   fontFamily:
-                                    "var(--font-sans, 'DM Sans', sans-serif)",
-                                  fontSize: 13,
-                                  color: "var(--session-ink-faded)",
-                                  marginTop: 6,
+                                    "var(--font-spectral), var(--font-persona), serif",
+                                  fontSize: 18,
+                                  color: "var(--session-ink)",
+                                  lineHeight: 1.3,
+                                  letterSpacing: "-0.2px",
                                 }}
                               >
-                                Tap to review
+                                {activeCheckpoint.name}
                               </div>
-                            </div>
-                            <span
+                            )}
+                            <div
                               style={{
                                 fontFamily:
-                                  "var(--font-spectral), var(--font-persona), serif",
-                                fontSize: 22,
-                                color: "var(--session-ink-ghost)",
-                                flexShrink: 0,
+                                  "var(--font-sans, 'DM Sans', sans-serif)",
+                                fontSize: 13,
+                                color: "var(--session-ink-faded)",
+                                marginTop: 6,
                               }}
                             >
-                              ›
-                            </span>
+                              Tap to review
+                            </div>
                           </div>
-                        </button>
-                      )}
+                          <span
+                            style={{
+                              fontFamily:
+                                "var(--font-spectral), var(--font-persona), serif",
+                              fontSize: 22,
+                              color: "var(--session-ink-ghost)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            ›
+                          </span>
+                        </div>
+                      </button>
 
                       {/* Action state receipt (after overlay closes) */}
                       {checkpointActionState && checkpointActionState !== "confirmed" && (
@@ -946,11 +890,7 @@ export default function MobileSession({
                   - First-turn boot (messages.length === 0)
                   - Post-user-message wait (default case)
                   - Post-confirm wait (last message is a checkpoint card;
-                    Jove is composing the continue-or-pivot follow-up)
-                When composingMessage is set (server detected a checkpoint
-                and is running the slow composition Opus call), the
-                indicator shows the forming label alongside the glyph.
-                Otherwise just the glyph pulses. */}
+                    Jove is composing the continue-or-pivot follow-up) */}
             {(isLoading || isStreaming) &&
               (messages.length === 0 ||
                messages[messages.length - 1].role === "user" ||
@@ -965,39 +905,17 @@ export default function MobileSession({
                     }
                   >
                     <span
-                      aria-label={composingMessage ? composingMessage : "Jove is typing"}
+                      aria-label="Jove is typing"
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: composingMessage ? 10 : 0,
+                        fontFamily: "var(--font-serif)",
+                        fontSize: "20px",
+                        color: "var(--session-persona)",
+                        lineHeight: 1,
+                        display: "inline-block",
+                        animation: "personaPulse 2.4s ease-in-out infinite",
                       }}
                     >
-                      <span
-                        style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "20px",
-                          color: "var(--session-persona)",
-                          lineHeight: 1,
-                          display: "inline-block",
-                          animation: "personaPulse 2.4s ease-in-out infinite",
-                          flexShrink: 0,
-                        }}
-                      >
-                        ❦
-                      </span>
-                      {composingMessage && (
-                        <span
-                          style={{
-                            fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                            fontSize: 15,
-                            fontStyle: "italic",
-                            color: "var(--session-ink-soft)",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {composingMessage}
-                        </span>
-                      )}
+                      ❦
                     </span>
                   </Bubble>
                 </div>
