@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
@@ -27,14 +27,9 @@ const INITIAL_GREETING =
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const body = (await request.json()) as { phone?: string; code?: string };
   const rawPhone = body.phone;

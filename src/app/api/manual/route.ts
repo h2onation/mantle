@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordApiError } from "@/lib/observability/record-api-error";
 
@@ -7,15 +7,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   let capturedUserId: string | null = null;
   try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    capturedUserId = user?.id ?? null;
-
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof Response) return auth;
+    const { user } = auth;
+    capturedUserId = user.id;
 
     const admin = createAdminClient();
 

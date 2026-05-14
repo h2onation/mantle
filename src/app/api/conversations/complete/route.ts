@@ -1,18 +1,13 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateSessionSummary } from "@/lib/persona/generate-summary";
 
 export async function POST(request: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const { conversationId } = (await request.json()) as {
     conversationId: string;
