@@ -200,6 +200,58 @@ describe("detectCrisisInUserMessage", () => {
   });
 });
 
+// ── Pre-card acknowledgment bubble ──
+// Source-contract tests: composition output includes an `acknowledgment`
+// field; when non-empty, the server must save it as an assistant message
+// and emit it via emitInlineMessage BEFORE the trigger card's
+// message_complete event. This is the "specific reflective beat" between
+// the user's disclosure and the structured artifact — replaces the old
+// generic lead-in and the transient "Something is forming…" label.
+
+describe("call-persona — pre-card acknowledgment bubble", () => {
+  const src = readFileSync(
+    join(process.cwd(), "src/lib/persona/call-persona.ts"),
+    "utf-8"
+  );
+
+  it("local composedEntry type includes the acknowledgment field", () => {
+    // The local type annotation in callPersona's body must carry
+    // `acknowledgment: string` — otherwise consuming code can't access
+    // the field even though the composition function returns it.
+    expect(src).toMatch(/composedEntry:\s*\{[\s\S]*?acknowledgment:\s*string[\s\S]*?\}/);
+  });
+
+  it("emits the acknowledgment via emitInlineMessage when present", () => {
+    // The acknowledgment must be saved as a normal assistant message
+    // (so it persists on reload) and emitted inline so it renders
+    // before the trigger card's message_complete event lands.
+    expect(src).toContain("composedEntry?.acknowledgment");
+    expect(src).toMatch(
+      /composedEntry\.acknowledgment[\s\S]*?role: "assistant"[\s\S]*?emitInlineMessage/
+    );
+  });
+
+  it("backdates the acknowledgment row 1s before the checkpoint message", () => {
+    // Time-ordered reload reads acknowledgment → trigger card. Without
+    // the backdate, the acknowledgment can sort after the checkpoint
+    // message in some pagination contexts.
+    expect(src).toMatch(
+      /ackCreatedAt[\s\S]*?new Date\(\s*new Date\([^)]+\)\.getTime\(\)\s*-\s*1000/
+    );
+  });
+
+  it("does NOT emit a transient 'composing' SSE event before composition", () => {
+    // The previous transient "Something is forming…" label is removed.
+    // The acknowledgment bubble replaces that beat with specific
+    // content; no separate forming-state event needed.
+    expect(src).not.toMatch(/type:\s*"composing"/);
+    // Strip line comments so the historical-context note in step 13b
+    // doesn't count as a false positive.
+    const codeOnly = src.replace(/^\s*\/\/.*$/gm, "");
+    expect(codeOnly).not.toContain("Something is forming");
+  });
+});
+
 // ── Post-confirm error handling ──
 // Source-contract tests: when the Sonnet call for the post-confirm
 // follow-up fails, the catch branch must (a) NOT emit a chat-level
@@ -327,7 +379,11 @@ describe("call-persona — prompt-cache wiring", () => {
   });
 
   it("parses streaming usage and emits a cache_performance log line", () => {
-    expect(src).toContain("parseStreamUsage(event)");
+    // Usage flows through parseAnthropicStream's onUsage callback (the
+    // shared SSE parser surfaces both text and usage events); call-persona
+    // accumulates the result and emits one cache_performance line after
+    // the stream finishes. Was previously inline `parseStreamUsage(event)`.
+    expect(src).toContain("onUsage");
     expect(src).toContain('event: "cache_performance"');
     expect(src).toContain('surface: "chat"');
     expect(src).toContain("cache_creation_input_tokens");

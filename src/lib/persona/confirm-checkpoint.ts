@@ -38,6 +38,14 @@ export async function composeManualEntry(
   changelog: string;
   summary: string;
   key_words: string[];
+  /** Specific reflective bubble rendered as a regular Jove chat message
+   *  immediately before the trigger card. Quotes a phrase or moment from
+   *  the user's last 1-2 turns, then signals the intent to mark this.
+   *  Replaces the old generic "A pattern came through in what you said"
+   *  lead-in and the transient "Something is forming…" loading label.
+   *  May be empty when Opus declines to produce a usable line — caller
+   *  should skip emission in that case. */
+  acknowledgment: string;
 } | null> {
   const {
     checkpointText,
@@ -127,6 +135,29 @@ Bad: abstract / metaphorical verbs ("I Disappear When Nobody Needs Carrying" —
 LAYER (field: "layer", required):
 An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.
 
+ACKNOWLEDGMENT (field: "acknowledgment", required):
+A single sentence rendered as a chat bubble RIGHT BEFORE the trigger card. It's how Jove signals "I heard you" before handing the user a structured artifact. Without this beat, the card lands cold — the user gets processed instead of met.
+
+Rules:
+- 12-22 words. One sentence.
+- Second-person. "you" not "I."
+- Quote or name a SPECIFIC moment, image, or phrase from the user's last 1-2 turns. Not a generic feeling word — the actual concrete thing. "The bit where you said you can't stop monitoring" is specific. "What you just shared about your anxiety" is generic — bad.
+- End with the contractual signal in plain language: "I want to mark this," "I want to put this down," "this is the part I want to capture," or a close variant. This is how the user knows the upcoming card is a Manual entry, not just a reflection.
+- Plain spoken. No clinical labels. No therapy voice ("I'm hearing that..."). No "thank you for sharing." Sounds like a friend who was actually listening.
+
+Good:
+- "That last bit — finding yourself at the monstera with no memory of starting — that's the part I want to mark."
+- "The thing you said about your stomach knowing before your head does, I want to put that down."
+- "What you said about the door locking you in with the danger, not out from it — that's worth capturing."
+
+Bad:
+- "I hear how hard this is for you. Let me put this in your Manual." (therapy voice, generic)
+- "Thank you for sharing that. I want to capture this." (transactional, not specific)
+- "A pattern came through in what you said." (generic, no specifics)
+- "That sounds really painful." (sympathetic but doesn't name anything specific)
+
+If the user's last turns don't have a quotable specific moment, return an empty string and the caller will skip emission. Better silence than a generic acknowledgment.
+
 COMPRESSED REPRESENTATION (for future reference):
 - summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If a clear stance emerged, mention it.
 - key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
@@ -137,7 +168,7 @@ Wrong (passage): "When my manager checks in, my chest gets tight. My mind goes b
 Right (passage): "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Statement + passage...", "name": "Headline", "layer": 1, "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Statement + passage...", "name": "Headline", "layer": 1, "acknowledgment": "Specific reflective sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
   const userContent = `${languageSection}${manualSection}
 RECENT CONVERSATION:
@@ -201,6 +232,16 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
         .filter((w: string) => w.length > 0)
     : [];
 
+  // Acknowledgment: trimmed string, empty if Opus declined or produced
+  // something unusable. Length-cap at ~40 words so a runaway response
+  // doesn't drop a paragraph in chat. Caller skips emission when empty.
+  const rawAck =
+    typeof parsed.acknowledgment === "string"
+      ? parsed.acknowledgment.trim()
+      : "";
+  const acknowledgment =
+    rawAck.length > 0 && rawAck.split(/\s+/).length <= 40 ? rawAck : "";
+
   return {
     content: parsed.content,
     name: parsed.name || "Untitled",
@@ -208,6 +249,7 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     changelog: parsed.changelog || `Created ${LAYER_NAMES[layer] || "Layer " + layer} entry.`,
     summary,
     key_words: keyWords,
+    acknowledgment,
   };
 }
 
