@@ -58,7 +58,6 @@ export interface CheckpointMeta {
   name: string | null;
   status: "pending";
   composed_content: string | null;
-  composed_so_what: string | null;
   composed_name: string | null;
   changelog: string | null;
   composed_summary: string | null;
@@ -98,7 +97,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("manual_entries")
-      .select("layer, name, content, so_what, summary, key_words, created_at, source_message_id")
+      .select("layer, name, content, summary, key_words, created_at, source_message_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: true }),
     admin
@@ -149,7 +148,6 @@ export async function loadConversationContext(
     layer: number;
     name: string | null;
     content: string;
-    so_what: string | null;
     summary: string | null;
     key_words: string[] | null;
     created_at: string | null;
@@ -177,7 +175,6 @@ export async function loadConversationContext(
     layer: e.layer,
     name: e.name,
     content: e.content,
-    so_what: e.so_what,
     summary: e.summary,
     key_words: e.key_words,
     created_at: e.created_at || undefined,
@@ -735,7 +732,6 @@ export function buildCheckpointMeta(
   gateResult: CheckpointGateResult,
   composedEntry: {
     content: string;
-    so_what?: string | null;
     name: string;
     changelog: string;
     summary?: string;
@@ -748,7 +744,6 @@ export function buildCheckpointMeta(
     name: composedEntry?.name || gateResult.name,
     status: "pending",
     composed_content: composedEntry?.content || null,
-    composed_so_what: composedEntry?.so_what || null,
     composed_name: composedEntry?.name || null,
     changelog: composedEntry?.changelog || null,
     composed_summary: composedEntry?.summary || null,

@@ -27,7 +27,6 @@ export async function composeManualEntry(
   options: ComposeManualEntryOptions
 ): Promise<{
   content: string;
-  so_what: string | null;
   name: string;
   changelog: string;
   summary: string;
@@ -64,24 +63,14 @@ export async function composeManualEntry(
 
   const system = `You compose manual entries for a self-authored Manual. You receive a checkpoint reflection from a conversationalist called ${PERSONA_NAME} and the recent conversation. Your job is to distill this into a structured entry that reads as the user describing themselves to themselves.
 
-THE ENTRY HAS TWO PARTS:
-
-PART 1 — THE PATTERN (field: "content")
+THE ENTRY (field: "content")
 Statement + passage as continuous prose. The statement is the first sentence: one line, first person, the truest description of the pattern. Hard cap around 20 words. Below that the rhythm carries it.
 
 The passage follows immediately. 80+ words. It makes these moves in any order:
 - Specificity in the first half. A concrete situation the user described, not an abstract claim.
 - A reframe somewhere. The pattern is not what it looks like on the surface. Name what it actually is.
 - Conditions or texture. When it fires hardest. What makes it different from the surface read. The user's own noticing.
-
-PART 2 — THE SO WHAT (field: "so_what")
-What changes now that the user can see this pattern. Continuous prose, first person, same voice as the passage.
-
-If the conversation produced a clear stance — something the user wants from people around them, something they plan to handle differently, or something they now understand about what the pattern is doing for them — write it.
-
-If the user sees the pattern clearly but hasn't landed on a stance, write their own words about where they are. Use language from the conversation, not a canned phrase. If the user said something like "I can see it but I don't know what to do with it yet," use that. If they said nothing about stance, return null for this field — do not fabricate.
-
-The so-what is NOT: advice, a treatment plan, a restatement of the pattern, or what the pattern costs (that belongs in the passage).
+- What changes now. If the conversation produced a clear stance ("I need people to X" or "I'm going to stop doing Y"), land it in the passage. If the user sees the pattern but hasn't landed on a stance, use their own words about where they are. If they said nothing about stance, omit. Do not fabricate a takeaway. This is not advice or a treatment plan. It flows naturally in the prose, not as a separate section.
 
 VOICE RULES:
 - First person. The user is the author. "I" not "You."
@@ -103,7 +92,7 @@ Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "
 Bad: "The Masking Loop," "Sensory Overwhelm Pattern," "Turned Away Before the Ask," clinical labels, metaphors, nominalizations ("the ask," "the reach," "the pull"), poetic titles like "Gaps Open and the Reach Fires." If the title sounds like a poem or uses a noun where a verb belongs, rewrite it plain.
 
 COMPRESSED REPRESENTATION (for future reference):
-- summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If the so-what produced a clear stance, mention it.
+- summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If a clear stance emerged, mention it.
 - key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
 
 EXEMPLARS:
@@ -111,12 +100,8 @@ EXEMPLARS:
 Wrong (passage): "When my manager checks in, my chest gets tight. My mind goes blank even though I know the answer."
 Right (passage): "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
-Wrong (so_what): "I should try to be less anxious in meetings."
-Right (so_what): "I need people to ask me once and then wait. The answer is there. The monitoring just has to finish before I can say it. If they ask again, it starts over."
-Right (so_what, incomplete): "I can see the loop now. Monitoring fires, I hesitate, they check in, monitoring fires harder. I don't know yet what I want to do about it. But I can see it running."
-
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Statement + passage...", "so_what": "What changes now..." or null, "name": "Headline", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Statement + passage...", "name": "Headline", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
   const userContent = `Layer: ${layer} (${LAYER_NAMES[layer] || "Unknown"})
 ${name ? `Proposed name: "${name}"` : "No name proposed — choose one."}
@@ -150,11 +135,6 @@ Compose the manual entry.`;
     return null;
   }
 
-  const soWhat =
-    typeof parsed.so_what === "string" && parsed.so_what.trim().length > 0
-      ? parsed.so_what.trim()
-      : null;
-
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim().length > 0
       ? parsed.summary.trim()
@@ -169,7 +149,6 @@ Compose the manual entry.`;
 
   return {
     content: parsed.content,
-    so_what: soWhat,
     name: parsed.name || name || "Untitled",
     changelog: parsed.changelog || `Created Layer ${layer} entry.`,
     summary,
@@ -249,7 +228,6 @@ export async function confirmCheckpoint({
       name: string | null;
       status: string;
       composed_content: string | null;
-      composed_so_what: string | null;
       composed_name: string | null;
       changelog: string | null;
       composed_summary: string | null;
@@ -279,7 +257,6 @@ export async function confirmCheckpoint({
     const trimmedEditedName = editedName?.trim();
     const contentToWrite =
       trimmedEditedContent || meta.composed_content || fallbackContent;
-    const soWhatToWrite = meta.composed_so_what || null;
     const nameToWrite =
       trimmedEditedName || meta.composed_name || meta.name || "Untitled";
     const summaryToWrite = trimmedEditedContent
@@ -302,7 +279,6 @@ export async function confirmCheckpoint({
         p_layer: meta.layer,
         p_name: nameToWrite,
         p_content: contentToWrite,
-        p_so_what: soWhatToWrite,
         p_summary: summaryToWrite,
         p_key_words: keyWordsToWrite,
       }

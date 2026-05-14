@@ -570,7 +570,7 @@ export function formatExtractionForPersona(
   if (!state.pattern_engaged) {
     context += "\nNo pattern has been named and engaged with yet. Keep exploring. When you see repetition across moments, name it conversationally — do not propose a checkpoint.\n";
   } else if (gateReady) {
-    context += "\nPattern is live and engaged. Work toward the so-what — what changes now that the user can see this. When you have enough, propose the checkpoint with the pinned transition.\n";
+    context += "\nPattern is live and engaged. Work toward what changes now that the user can see this. When you have enough, propose the checkpoint with the pinned transition.\n";
   } else {
     context += "\nPattern is engaged but material isn't strong enough yet for a checkpoint. Keep deepening — ask about the body, the cost, what fires it.\n";
   }
@@ -579,7 +579,7 @@ export function formatExtractionForPersona(
   if (state.user_named_cost && state.user_named_stance) {
     context += "The user has named both the cost and their stance. Checkpoint should be strong.\n";
   } else if (state.user_named_cost && !state.user_named_stance) {
-    context += "The user named the cost but hasn't landed on what they want. Work toward the so-what before checkpointing, or checkpoint with an incomplete stance.\n";
+    context += "The user named the cost but hasn't landed on what they want. Work toward what changes before checkpointing, or checkpoint with an incomplete stance.\n";
   } else if (!state.user_named_cost && state.pattern_engaged) {
     context += "The user hasn't named what this costs them yet. Ask about the cost before proposing.\n";
   }
