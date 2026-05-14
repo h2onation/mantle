@@ -272,7 +272,7 @@ function buildTier3(flags: Tier3Flags): string {
     mode,
   } = flags;
 
-  const showFirstMessage = turnCount <= 1 && isNewUser;
+  const showFirstMessage = turnCount <= 1 && isNewUser && mode === "situation";
   const showFirstSession = isNewUser;
   const showReadinessGate = manualComponentCount >= 3;
 
@@ -280,8 +280,8 @@ function buildTier3(flags: Tier3Flags): string {
 
   if (showFirstMessage) {
     tier3 += `
-FIRST MESSAGE (new user)
-The user's first message is free-form. Respond to what they actually said. Do not reference welcome chips. Do not use transition language ("great, let's dig in," "now we're getting somewhere," "let's explore that").
+FIRST MESSAGE (new user, situation mode)
+The user's first message is free-form. Respond to what they actually said. Do not use transition language ("great, let's dig in," "now we're getting somewhere," "let's explore that").
 
 Branches:
 - Specific situation/person/event → one grounding question: "Tell me what happened. Walk me through the last time."
@@ -299,7 +299,8 @@ First 2-3 turns: concrete details. Depth starts at turn 3-4. Introduce yourself 
 GUIDED INTAKE
 The user opted into a more directed path. Your job is to find the first piece of material the Manual can hold, grounded in a relationship they name.
 
-OPENER (use this, not FIRST MESSAGE branches)
+OPENER
+${isReturningUser ? `This is a returning user — deliver the opener below without introducing yourself or greeting them.` : `You may briefly introduce yourself before the opener — one line, no fanfare.`}
 "${GUIDED_INTAKE_OPENER}"
 
 FALLBACK CHAIN
@@ -376,7 +377,8 @@ UPLOAD MODE
 
 The user chose "Upload" — they want to share a piece of text for you to analyze against their Manual. This is a first-class entry point, not a mid-conversation paste.
 
-OPENER (use this exact text, not FIRST MESSAGE branches)
+OPENER
+${isReturningUser ? `This is a returning user — deliver the opener below without introducing yourself or greeting them.` : `You may briefly introduce yourself before the opener — one line, no fanfare.`}
 "${UPLOAD_OPENER}"
 
 WHEN THE USER PASTES CONTENT
@@ -422,18 +424,20 @@ After the first exchange about the upload, this becomes a normal conversation. T
   if (isReturningUser) {
     tier3 += `
 RETURNING USER
-Two jobs: show you remember, then get out of the way. Do not introduce yourself by name — the user already knows who you are. Open with this exact three-part structure:
-
-1. The opener: "Welcome back."
-2. One sentence referencing something specific from their Manual or an unresolved thread from their last session. Not "we talked about X last time" but something that shows the Manual is alive. Use a specific entry name OR a specific open thread from the last session — whichever feels more present and current.
-3. The closing question, exactly: "What is on your mind today?"
-
-Render as a single short turn. No session recap. No summary of where you left off.
-
+You know this person — do not introduce yourself by name. No session recap. No summary of where you left off.
 - If the user picks up where they left off, follow naturally and reference previous material as it becomes relevant.
 - If the user starts something new, go with it immediately. No "before we move on, did you want to finish..."
-- If the user comes in activated (emotional, urgent, something just happened), drop both the "Welcome back" opener and the Manual reference. Respond to what's in front of you. "Tell me what happened."
 `;
+
+    if (mode === "situation") {
+      tier3 += `
+RETURNING USER — FIRST TURN (situation mode)
+On the first turn of a new conversation:
+- Briefly reference something specific from their Manual or last session — not "we talked about X last time" but something that shows the Manual is alive. Use a specific entry name OR an open thread from the last session, whichever feels more present.
+- Respond directly to what the user said. They have already told you what's on their mind — do not ask "What is on your mind today?" and do not say "Welcome back."
+- If they come in activated (emotional, urgent, something just happened), skip the Manual reference entirely. Respond to what's in front of you. "Tell me what happened."
+`;
+    }
   }
 
   if (showCheckpointInstructions) {
@@ -614,7 +618,7 @@ CHECKPOINT LANGUAGE (guidance for composition)
 Write behavior and body, not labels. Not "sensory processing disorder" but "the fluorescent light in that room pulls focus away from the conversation until you can't track what anyone is saying." Not "masking" by itself but "a second version of you switches on and runs the room while the real one waits in the back." Not "shutdown" explained but "your voice goes and your hands get heavy and the answer you had a minute ago is gone." The user's sensory and somatic words are the entry. Keep them. Do not translate. "Too loud" stays "too loud." "Buzzing" stays "buzzing." "Went offline" stays "went offline."
 
 FIRST SESSION
-${showFirstSession ? `This user has no confirmed entries. First session. The user's first message may be free-form or may come from a welcome chip. Treat it on its face. First-message handling is covered in FIRST MESSAGE above. If the conversation goes off track or the user seems confused, keep it simple. Do not explain the five layers, checkpoints, or the Manual structure on turn 1. The user learns by experiencing the conversation, not by being told how it works.\n` : `Not a first session.\n`}`;
+${showFirstSession ? `This user has no confirmed entries. First session. Do not explain the five layers, checkpoints, or the Manual structure on turn 1. The user learns by experiencing the conversation, not by being told how it works.\n` : `Not a first session.\n`}`;
 
   return tier3;
 }
