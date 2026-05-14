@@ -468,19 +468,21 @@ export default function MobileSession({
             >
               Layer {LAYER_ORDINAL[currentExploration.layerId] ?? currentExploration.layerId} · {currentExploration.layerName}
             </span>
-            <span
-              style={{
-                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontSize: 13,
-                color: "var(--session-ink)",
-                lineHeight: 1.3,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {currentExploration.name || currentExploration.layerName}
-            </span>
+            {currentExploration.name && (
+              <span
+                style={{
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontSize: 13,
+                  color: "var(--session-ink)",
+                  lineHeight: 1.3,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {currentExploration.name}
+              </span>
+            )}
           </div>
           {onDismissExploration && (
             <button

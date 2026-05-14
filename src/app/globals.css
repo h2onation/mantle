@@ -177,6 +177,13 @@
      ink wash on light. Used by LoginScreen + AuthPromptModal. */
   --session-oauth-surface:       rgba(245, 243, 238, 0.08);
   --session-oauth-border:        rgba(245, 243, 238, 0.14);
+
+  /* Manual page — empty Layer body wash, dotted hairline, popover lift.
+     Walnut tint is fainter than walnut-surface-soft; hair-faint sits one
+     step below hair-soft for sub-divisions inside a single card. */
+  --session-walnut-tint:         rgba(220, 170, 120, 0.05);
+  --session-hair-faint:          rgba(245, 237, 222, 0.05);
+  --session-popover-shadow:      0 12px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
 }
 
 /* ─── Light mode — V3 Embossed linen ───
@@ -320,6 +327,11 @@
   /* OAuth button — quiet ink wash on linen. */
   --session-oauth-surface:       rgba(31, 20, 10, 0.04);
   --session-oauth-border:        rgba(92, 58, 30, 0.18);
+
+  /* Manual page — same names as dark, retuned for linen. */
+  --session-walnut-tint:         rgba(92, 58, 30, 0.07);
+  --session-hair-faint:          rgba(92, 58, 30, 0.10);
+  --session-popover-shadow:      0 10px 32px rgba(31, 20, 10, 0.18), 0 2px 6px rgba(31, 20, 10, 0.10);
 }
 
 /* No-JS fallback. When the FOUC script doesn't run (JS disabled) and

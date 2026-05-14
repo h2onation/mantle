@@ -82,57 +82,69 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           position: "relative",
         }}
       >
-        {/* Page title — total count eyebrow + heading */}
-        <div style={{ padding: "20px 24px 20px" }}>
-          {totalEntries > 0 && (
-            <p
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-mono)",
-                fontSize: 10,
-                letterSpacing: "2px",
-                textTransform: "uppercase",
-                color: "var(--session-walnut-meta)",
-              }}
-            >
-              {totalLabel}
-            </p>
-          )}
+        {/* Publication header — title + italic subtitle + § ornament */}
+        <div style={{ padding: "28px 26px 0" }}>
           <h1
             style={{
               fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontSize: "26px",
+              fontSize: 48,
               fontWeight: 500,
               color: "var(--session-ink)",
-              margin: totalEntries > 0 ? "6px 0 0" : 0,
-              letterSpacing: "-0.5px",
-              lineHeight: 1.2,
+              margin: 0,
+              letterSpacing: "-0.020em",
+              lineHeight: 1,
+              fontFeatureSettings: '"liga","dlig","kern"',
             }}
           >
-            Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+            Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 500 }}>.</span>
           </h1>
-        </div>
-
-        {/* Quiet day-one placeholder — appears only when no entries exist.
-            The five labeled sections below are the structural promise. */}
-        {isEmpty && (
           <p
             style={{
-              margin: "0 24px 18px",
               fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontSize: 15,
               fontStyle: "italic",
+              fontWeight: 400,
+              fontSize: 15.5,
               lineHeight: 1.55,
-              color: "var(--session-ink-mid)",
+              color: "var(--session-ink-soft)",
+              margin: "14px 0 0",
+              maxWidth: 330,
+              letterSpacing: "0.005em",
             }}
           >
-            Your Manual fills as you and {PERSONA_NAME} find patterns together
-            <span style={{ color: "var(--session-walnut)", fontStyle: "normal" }}>.</span>
+            A document about how you operate, in your own voice.
           </p>
-        )}
 
-        {/* Layer list — unified ordering, populated and empty render side by side */}
-        <div style={{ padding: "0 20px", position: "relative" }}>
+          <div
+            aria-hidden="true"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              gap: 14,
+              margin: "30px 0 8px",
+            }}
+          >
+            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontStyle: "italic",
+                color: "var(--session-walnut)",
+                fontSize: 17,
+                lineHeight: 1,
+                transform: "translateY(-1px)",
+              }}
+            >
+              §
+            </span>
+            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+          </div>
+        </div>
+
+        {/* Layer list — unified ordering, populated and empty render side by side.
+            Cards bleed to the screen edges (header gradient touches edge),
+            so the list container itself has no horizontal padding. */}
+        <div style={{ position: "relative" }}>
           {layers.map((layer) =>
             layer.entries.length > 0 ? (
               <PopulatedLayer
@@ -141,7 +153,11 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
                 onExploreWithPersona={onExploreWithPersona}
               />
             ) : (
-              <EmptyLayer key={layer.id} layer={layer} />
+              <EmptyLayer
+                key={layer.id}
+                layer={layer}
+                onExploreWithPersona={onExploreWithPersona}
+              />
             )
           )}
         </div>
@@ -212,6 +228,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           </button>
         </div>
         )}
+
       </div>
 
       {/* Context half-sheet */}

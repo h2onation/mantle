@@ -180,16 +180,35 @@ export default function MainApp() {
   // Clear the exploration chip whenever the active conversation changes
   // — startExploration() creates its own conversation, so the chip's
   // lifetime is that one conversation; switching away clears it.
+  //
+  // The pending-bind flag handles a startExploration race: setCurrentExploration
+  // fires while conversationId is still the prior chat conv. Without the flag
+  // the effect would bind the chip to that prior conv, then the
+  // setConversationId(null) → setConversationId(newExpId) transition inside
+  // startExploration would look like a mismatch and dismiss the chip before
+  // the user ever saw it. handleExploreWithPersona arms the flag; the null
+  // transition disarms it; the next non-null conversationId (the new
+  // exploration conv) is what we actually want to bind to.
   const explorationConvIdRef = useRef<string | null>(null);
+  const explorationPendingBindRef = useRef(false);
   useEffect(() => {
-    if (currentExploration) {
-      if (explorationConvIdRef.current === null) {
-        explorationConvIdRef.current = conversationId;
-      } else if (conversationId !== explorationConvIdRef.current) {
-        setCurrentExploration(null);
+    if (!currentExploration) {
+      explorationConvIdRef.current = null;
+      explorationPendingBindRef.current = false;
+      return;
+    }
+    if (conversationId === null) {
+      if (explorationPendingBindRef.current) {
         explorationConvIdRef.current = null;
+        explorationPendingBindRef.current = false;
       }
-    } else {
+      return;
+    }
+    if (explorationPendingBindRef.current) return;
+    if (explorationConvIdRef.current === null) {
+      explorationConvIdRef.current = conversationId;
+    } else if (conversationId !== explorationConvIdRef.current) {
+      setCurrentExploration(null);
       explorationConvIdRef.current = null;
     }
   }, [conversationId, currentExploration]);
@@ -242,6 +261,7 @@ export default function MainApp() {
   const handleExploreWithPersona = useCallback(async (context: ExplorationContext) => {
     // Build dynamic label and snapshot the context for the in-chat chip.
     const elementName = context.name || context.layerName;
+    explorationPendingBindRef.current = true;
     setExplorationLabel(elementName);
     setCurrentExploration(context);
 
