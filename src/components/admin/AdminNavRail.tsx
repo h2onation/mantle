@@ -13,6 +13,7 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
     label: "Jove's prompt architecture",
     href: "/admin/prompt-architecture",
   },
+  { id: "skills", label: "Skills", href: "/admin/skills" },
 ];
 
 export default function AdminNavRail({
