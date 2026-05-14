@@ -355,6 +355,7 @@ function PromptArchitectureInner() {
 
 function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; tokens: number }) {
   const [open, setOpen] = useState(false);
+  const [expandAll, setExpandAll] = useState(false);
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -366,6 +367,8 @@ function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; toke
         color="var(--session-walnut)"
         open={open}
         onToggle={() => setOpen(!open)}
+        expandAll={expandAll}
+        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
       {open && (
         <div style={{
@@ -374,7 +377,7 @@ function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; toke
           overflow: "hidden",
         }}>
           {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} />
+            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} />
           ))}
         </div>
       )}
@@ -396,6 +399,7 @@ function VoiceLayer({
   personaModes: PersonaMode[];
 }) {
   const [open, setOpen] = useState(true);
+  const [expandAll, setExpandAll] = useState(false);
 
   // Collect alternatives from the first section that has them
   const alts = sections.find((s) => s.alternatives.length > 0)?.alternatives ?? [];
@@ -414,6 +418,8 @@ function VoiceLayer({
         color="var(--session-walnut-meta)"
         open={open}
         onToggle={() => setOpen(!open)}
+        expandAll={expandAll}
+        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
       {open && (
         <div style={{
@@ -453,7 +459,7 @@ function VoiceLayer({
             </div>
           )}
           {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} />
+            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} />
           ))}
         </div>
       )}
@@ -467,6 +473,7 @@ function VoiceLayer({
 
 function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: number }) {
   const [open, setOpen] = useState(true);
+  const [expandAll, setExpandAll] = useState(false);
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -478,6 +485,8 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
         color="var(--session-persona)"
         open={open}
         onToggle={() => setOpen(!open)}
+        expandAll={expandAll}
+        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
       {open && (
         <div style={{
@@ -490,6 +499,7 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
               key={block.section.id}
               block={block}
               last={i === blocks.length - 1}
+              forceExpanded={expandAll}
             />
           ))}
         </div>
@@ -510,6 +520,8 @@ function LayerHeader({
   color,
   open,
   onToggle,
+  expandAll,
+  onToggleExpandAll,
 }: {
   number: number;
   title: string;
@@ -518,6 +530,8 @@ function LayerHeader({
   color: string;
   open: boolean;
   onToggle: () => void;
+  expandAll?: boolean;
+  onToggleExpandAll?: () => void;
 }) {
   return (
     <button
@@ -554,6 +568,18 @@ function LayerHeader({
           }}>
             {stats}
           </span>
+          {open && onToggleExpandAll && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onToggleExpandAll(); }}
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "10px",
+                color: "var(--session-walnut)", cursor: "pointer",
+                marginLeft: 4,
+              }}
+            >
+              {expandAll ? "Collapse all" : "Expand all"}
+            </span>
+          )}
         </div>
         <div style={{
           fontFamily: "var(--font-sans)", fontSize: "12.5px",
@@ -580,8 +606,9 @@ function LayerHeader({
 // Section card — a single prompt block (used in Foundation + Voice layers)
 // ---------------------------------------------------------------------------
 
-function SectionCard({ section, last }: { section: PromptSection; last: boolean }) {
+function SectionCard({ section, last, forceExpanded }: { section: PromptSection; last: boolean; forceExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const isExpanded = forceExpanded || expanded;
   const [infoOpen, setInfoOpen] = useState(false);
   const lines = section.text.split("\n");
   const needsTruncation = lines.length > 5;
@@ -630,12 +657,12 @@ function SectionCard({ section, last }: { section: PromptSection; last: boolean 
             fontFamily: "var(--font-sans)", fontSize: "12.5px",
             lineHeight: 1.6, color: "var(--session-ink-faded)",
             whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: expanded || !needsTruncation ? "none" : "4.8em",
+            maxHeight: isExpanded || !needsTruncation ? "none" : "4.8em",
             overflow: "hidden",
           }}>
             {section.text}
           </pre>
-          {needsTruncation && !expanded && (
+          {needsTruncation && !isExpanded && (
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
               background: "linear-gradient(transparent, var(--session-linen))",
@@ -643,7 +670,7 @@ function SectionCard({ section, last }: { section: PromptSection; last: boolean 
             }} />
           )}
         </div>
-        {needsTruncation && (
+        {needsTruncation && !forceExpanded && (
           <button onClick={() => setExpanded(!expanded)} style={{
             fontFamily: "var(--font-mono)", fontSize: "10px",
             color: "var(--session-walnut)", background: "none",
@@ -662,8 +689,9 @@ function SectionCard({ section, last }: { section: PromptSection; last: boolean 
 // Lifecycle card — conditional block with phase indicators
 // ---------------------------------------------------------------------------
 
-function LifecycleCard({ block, last }: { block: LifecycleBlock; last: boolean }) {
+function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; last: boolean; forceExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const isExpanded = forceExpanded || expanded;
   const [infoOpen, setInfoOpen] = useState(false);
   const { section, presentInPhases } = block;
   const lines = section.text.split("\n");
@@ -737,12 +765,12 @@ function LifecycleCard({ block, last }: { block: LifecycleBlock; last: boolean }
             fontFamily: "var(--font-sans)", fontSize: "12.5px",
             lineHeight: 1.6, color: "var(--session-ink-faded)",
             whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: expanded || !needsTruncation ? "none" : "4.8em",
+            maxHeight: isExpanded || !needsTruncation ? "none" : "4.8em",
             overflow: "hidden",
           }}>
             {section.text}
           </pre>
-          {needsTruncation && !expanded && (
+          {needsTruncation && !isExpanded && (
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
               background: "linear-gradient(transparent, var(--session-linen))",
@@ -750,7 +778,7 @@ function LifecycleCard({ block, last }: { block: LifecycleBlock; last: boolean }
             }} />
           )}
         </div>
-        {needsTruncation && (
+        {needsTruncation && !forceExpanded && (
           <button onClick={() => setExpanded(!expanded)} style={{
             fontFamily: "var(--font-mono)", fontSize: "10px",
             color: "var(--session-walnut)", background: "none",
