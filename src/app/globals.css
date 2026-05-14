@@ -253,9 +253,9 @@
     radial-gradient(ellipse 75% 50% at 100% 88%, rgba(92, 58, 30, 0.34), transparent 65%),
     radial-gradient(ellipse 70% 50% at 0% 100%, rgba(212, 176, 128, 0.62), transparent 60%);
   --session-bg-chat:
-    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(212, 176, 128, 0.58), transparent 65%),
-    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(255, 248, 232, 0.85), transparent 70%),
-    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(92, 58, 30, 0.38), transparent 60%);
+    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(212, 176, 128, 0.40), transparent 65%),
+    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(255, 248, 232, 0.92), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(92, 58, 30, 0.25), transparent 60%);
   --session-bg-checkpoint:
     radial-gradient(ellipse 120% 60% at 50% 25%, rgba(255, 250, 232, 0.85), transparent 65%),
     radial-gradient(ellipse 95% 55% at 35% 100%, rgba(208, 168, 118, 0.60), transparent 70%),
@@ -276,9 +276,10 @@
   /* Bubble + plate primary border — V3 paper-border 0.32 walnut. */
   --session-bubble-border:      rgba(92, 58, 30, 0.32);
 
-  /* User bubble — walnut wash (V3 puts users on a deeper walnut tint,
-     not slate, since slate reads cold against linen). */
-  --session-bubble-user:        rgba(92, 58, 30, 0.16);
+  /* User bubble — walnut wash. Whisper-walnut pass dialed the alpha
+     down from 0.16 → 0.10 so the bubble reads as a warm tint rather
+     than a chocolate panel. The walnut border keeps the ink spine. */
+  --session-bubble-user:        rgba(92, 58, 30, 0.10);
   --session-bubble-user-border: rgba(92, 58, 30, 0.32);
 
   /* Slate-tinted soft surface re-maps to a lighter walnut wash on linen. */
