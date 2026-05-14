@@ -51,6 +51,10 @@ interface MobileSessionProps {
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
+  /** Transient pre-card forming label. Set during the composition wait
+   *  (~10-15s) and cleared automatically when the trigger card arrives.
+   *  When present, renders inside the typing indicator. */
+  composingMessage: string | null;
   sendMessage: (text: string) => void;
   sendChipResponse: (text: string) => void;
   retryLastMessage: () => void;
@@ -92,6 +96,7 @@ export default function MobileSession({
   activeCheckpoint,
   checkpointError,
   errorMessage,
+  composingMessage,
   sendMessage,
   sendChipResponse,
   retryLastMessage,
@@ -851,11 +856,13 @@ export default function MobileSession({
                                 : "var(--session-ink-ghost)",
                             }}
                           >
-                            {msg.checkpointMeta.status === "confirmed" && checkpointLayer
-                              ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}${LAYER_NAMES[checkpointLayer] ? ` — ${LAYER_NAMES[checkpointLayer]}` : ""}`
-                              : msg.checkpointMeta.status === "confirmed"
-                                ? "Saved to your Manual"
-                                : null}
+                            {msg.checkpointMeta.status === "confirmed" && checkpointLayer && LAYER_NAMES[checkpointLayer]
+                              ? `Saved to ${LAYER_NAMES[checkpointLayer]} — Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
+                              : msg.checkpointMeta.status === "confirmed" && checkpointLayer
+                                ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
+                                : msg.checkpointMeta.status === "confirmed"
+                                  ? "Saved to your Manual"
+                                  : null}
                             {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
                             {msg.checkpointMeta.status === "rejected" && "Discarded"}
                           </span>
@@ -932,7 +939,12 @@ export default function MobileSession({
               );
             })}
 
-            {/* Typing indicator */}
+            {/* Typing indicator. When composingMessage is set (server has
+                detected a checkpoint and is running the slow composition
+                Opus call), the indicator shows the forming label alongside
+                the glyph. When unset, just the glyph pulses. The label is
+                transient — cleared automatically when the trigger card's
+                message_complete event arrives. */}
             {(isLoading || isStreaming) &&
               (messages.length === 0 || messages[messages.length - 1].role === "user") && (
                 <div style={{ animation: "checkpointFadeIn 0.3s ease-out both" }}>
@@ -945,17 +957,39 @@ export default function MobileSession({
                     }
                   >
                     <span
-                      aria-label="Jove is typing"
+                      aria-label={composingMessage ? composingMessage : "Jove is typing"}
                       style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: "20px",
-                        color: "var(--session-persona)",
-                        lineHeight: 1,
-                        display: "inline-block",
-                        animation: "personaPulse 2.4s ease-in-out infinite",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: composingMessage ? 10 : 0,
                       }}
                     >
-                      ❦
+                      <span
+                        style={{
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "20px",
+                          color: "var(--session-persona)",
+                          lineHeight: 1,
+                          display: "inline-block",
+                          animation: "personaPulse 2.4s ease-in-out infinite",
+                          flexShrink: 0,
+                        }}
+                      >
+                        ❦
+                      </span>
+                      {composingMessage && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                            fontSize: 15,
+                            fontStyle: "italic",
+                            color: "var(--session-ink-soft)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {composingMessage}
+                        </span>
+                      )}
                     </span>
                   </Bubble>
                 </div>

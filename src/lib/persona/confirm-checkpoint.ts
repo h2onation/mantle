@@ -106,9 +106,14 @@ VOICE RULES:
 - Write like a field note, not literature. Flat, honest, direct. If a sentence sounds like it belongs in a poem or an essay, rewrite it plain.
 
 HEADLINE (field: "name"):
-4-8 words. Flatly descriptive. Names the actual behavior. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject of the headline should be "I" or the behavior itself — NOT a body part as agent.
-Good: "I Switch to Counter-Mode When Talked At," "I Tighten Before Answering," "I Run Interference on Call Tone," "I Freeze Before Someone Can Ask," "I Keep Teaching Him How to Live"
-Bad: body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands," "Body Locks Before Being Asked" — these read poetic, not flat; rewrite with "I" or the behavior as subject); clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern"); nominalizations ("Turned Away Before the Ask," "the reach," "the pull"); metaphors and poetic titles ("Gaps Open and the Reach Fires"). If the title sounds like a poem, or uses a body part as an agent, or uses a noun where a verb belongs, rewrite it plain.
+4-8 words. Flatly descriptive. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject of the headline should be "I" — NOT a body part as agent.
+
+REQUIRED: name a SPECIFIC TRIGGER or CONDITION. Format: "I [verb] when [specific trigger]" or "I [verb] before [specific event]" or "I [verb] after [specific moment]." The trigger names a concrete situation — a person, a moment, a sensation. Not "before I can say it" (vague — what stops me?) but "when guilt hits" or "when someone waits for me to answer" (specific). Not "in real life" (too broad) but "outside the dungeon" or "when there's no contract" (specific). The title should answer "WHEN does this fire?" not just "WHAT happens?"
+
+If the user gave only ONE example, soften the title with "can" or "sometimes" so it does not over-claim from one data point. "I can freeze when asked what I want" beats "I freeze when asked what I want" if only one freezing moment was described. With two or three convergent examples, drop the hedge.
+
+Good: "I Can Freeze When Asked What I Want," "I Swallow the Answer When Guilt Hits," "I Switch to Counter-Mode When Talked At," "I Go Quiet When Someone Waits," "I Tighten Before Answering Hard Questions," "I Keep Teaching Him How to Live"
+Bad: definitive without trigger ("I Swallow the Answer Before I Can Say It" — what triggers the swallowing?; "I Spit the Signal Back Before Anyone Hears It" — when does this fire?); body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands," "Body Locks Before Being Asked" — read poetic, not flat); clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern"); nominalizations ("Turned Away Before the Ask," "the reach," "the pull"); metaphors and poetic titles ("Gaps Open and the Reach Fires"). If the title reads as a defining trait rather than a trigger-bound pattern, rewrite it with the trigger named explicitly.
 
 LAYER (field: "layer", required):
 An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.

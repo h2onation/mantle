@@ -200,40 +200,64 @@ describe("detectCrisisInUserMessage", () => {
   });
 });
 
-// ── Post-confirm error suppression ──
-// Source-contract test: when a stream fails AFTER the manual_entries row
-// has already been written (postConfirmMode set), we must NOT emit a
-// chat-level "Jove lost the thread" error. The confirm succeeded; the
-// Message 2 scaffolding is sugar. Surfacing an error here would trigger
-// the ConnectionErrorPlate retry button, which is wired to re-send a
-// stale user message — broken UX.
+// ── Post-confirm error handling ──
+// Source-contract tests: when the Sonnet call for the post-confirm
+// follow-up fails, the catch branch must (a) NOT emit a chat-level
+// "Jove lost the thread" error (the save itself succeeded), and (b)
+// emit a deterministic fallback Message 2 so the conversation always
+// tees up forward motion — never dead-ends on the stamp line. The
+// fallback uses a generic forward question instead of an LLM-specific
+// one; Sonnet wins when it works, the template wins when it doesn't.
 
-describe("call-persona — post-confirm error suppression", () => {
+describe("call-persona — post-confirm error handling", () => {
   const src = readFileSync(
     join(process.cwd(), "src/lib/persona/call-persona.ts"),
     "utf-8"
   );
 
-  it("branches on postConfirmMode in the top-level catch and closes silently", () => {
-    // The catch block must check postConfirmMode and close the
-    // controller without emitting an error event in that path.
+  it("branches on postConfirmMode in the top-level catch", () => {
     expect(src).toMatch(
-      /catch \(err\)[\s\S]*?if \(postConfirmMode !== null\)[\s\S]*?controller\.close\(\)/
+      /catch \(err\)[\s\S]*?if \(postConfirmMode !== null\)/
     );
   });
 
   it("does NOT call emitError when postConfirmMode is set", () => {
-    // Capture the post-confirm branch and assert emitError is absent.
     const branchMatch = src.match(
-      /if \(postConfirmMode !== null\) \{([\s\S]*?)\n\s*\}/
+      /if \(postConfirmMode !== null\) \{([\s\S]*?)\n {8}\}/
     );
     expect(branchMatch, "could not locate post-confirm catch branch").toBeTruthy();
     expect(branchMatch![1]).not.toContain("emitError");
   });
 
+  it("emits a fallback message before closing the stream", () => {
+    // The post-confirm catch path must call buildPostConfirmFallback,
+    // persist the fallback to messages, and emit it via
+    // emitInlineMessage so the client renders it as a chat bubble.
+    const branchMatch = src.match(
+      /if \(postConfirmMode !== null\) \{([\s\S]*?)\n {8}\}/
+    );
+    expect(branchMatch).toBeTruthy();
+    const branch = branchMatch![1];
+    expect(branch).toContain("buildPostConfirmFallback");
+    expect(branch).toContain("emitInlineMessage");
+    expect(branch).toContain('role: "assistant"');
+  });
+
+  it("first-message-2 fallback carries the pinned opener and a forward question", () => {
+    // Template fidelity: the fallback should mirror the prompt-driven
+    // version's pinned copy (so on-reload the conversation reads the
+    // same whether Sonnet wrote it or we templated it).
+    expect(src).toContain("Four other places still empty");
+    expect(src).toContain("A real Manual takes time");
+    expect(src).toContain("What's still open in this for you?");
+  });
+
+  it("subsequent-single fallback uses stamp line + entries summary + forward question", () => {
+    expect(src).toMatch(/In\. A working name:.*proposedHeadline/);
+    expect(src).toContain("entriesSummary");
+  });
+
   it("preserves the chat-level error path for non-post-confirm streams", () => {
-    // The regular catch path (postConfirmMode === null) still surfaces
-    // a user-facing message via emitError. Pin both variants.
     expect(src).toContain("lost the thread. Try sending that again.");
     expect(src).toContain("took too long to respond. Try again.");
     expect(src).toMatch(/emitError\(controller,\s*msg\)/);
