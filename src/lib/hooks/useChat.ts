@@ -258,7 +258,6 @@ export function useChat() {
         name: completeEvent.checkpoint.name,
         content: displayContent,
         composedContent: completeEvent.checkpoint.composed_content ?? null,
-        composedSoWhat: completeEvent.checkpoint.composed_so_what ?? null,
       });
 
       // Capture the moment the proposal became visible so checkpoint
@@ -919,7 +918,6 @@ export function useChat() {
           name: lastMsg.checkpoint_meta.composed_name || lastMsg.checkpoint_meta.name,
           content: lastMsg.content,
           composedContent: lastMsg.checkpoint_meta.composed_content ?? null,
-          composedSoWhat: lastMsg.checkpoint_meta.composed_so_what ?? null,
         });
       }
     }

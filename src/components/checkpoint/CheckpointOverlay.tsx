@@ -276,23 +276,6 @@ export default function CheckpointOverlay({
             {renderMarkdown(checkpoint.composedContent || checkpoint.content)}
           </div>
 
-          {checkpoint.composedSoWhat && (
-            <div
-              style={{
-                marginTop: 18,
-                paddingTop: 14,
-                borderTop: "1px solid var(--session-hair-soft)",
-                fontFamily: "var(--font-spectral), var(--font-persona), serif",
-                fontSize: 15,
-                lineHeight: 1.6,
-                color: "var(--session-ink-mid)",
-                fontStyle: "italic",
-              }}
-            >
-              {checkpoint.composedSoWhat}
-            </div>
-          )}
-
           {/* Edit hint */}
           <p
             style={{

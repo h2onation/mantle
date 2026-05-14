@@ -23,7 +23,6 @@ const RECENT_FULL_LIMIT = 4;
 
 export interface ManualEntryForContext extends ManualEntry {
   source_conversation_id?: string | null;
-  so_what?: string | null;
 }
 
 /**
@@ -66,11 +65,7 @@ export function prepareManualContext(
     for (const entry of recent) {
       block += `Layer ${entry.layer} (${LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`})`;
       if (entry.name) block += ` — "${entry.name}"`;
-      block += `:\n${entry.content}\n`;
-      if (entry.so_what) {
-        block += `\nWhat changes: ${entry.so_what}\n`;
-      }
-      block += "\n";
+      block += `:\n${entry.content}\n\n`;
     }
   }
 
@@ -80,13 +75,6 @@ export function prepareManualContext(
       block += compressManualEntry(entry) + "\n";
     }
     block += "\n";
-  }
-
-  // Mixed-voice note: old entries use "you" voice, new entries use "I" voice.
-  const hasOldEntries = entries.some((e) => !e.so_what);
-  const hasNewEntries = entries.some((e) => e.so_what != null);
-  if (hasOldEntries && hasNewEntries) {
-    block += "Note: earlier entries use \"you\" voice, newer entries use \"I\" voice. Both are the user's self-description. Reference either naturally.\n\n";
   }
 
   return block;
