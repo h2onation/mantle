@@ -88,6 +88,12 @@ export function useChat() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
   const [processingText, setProcessingText] = useState<string | null>(null);
+  // Transient pre-card forming state. Set by server SSE `composing` event
+  // after detection passes; cleared when message_complete arrives (or on
+  // error / stream end). Renders as a label inside the typing indicator
+  // so the user sees "Something is forming…" during the ~10-15s
+  // composition wait, then the trigger card replaces it.
+  const [composingMessage, setComposingMessage] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
   const [isGuest, setIsGuest] = useState(false);
   const [promptAuth, setPromptAuth] = useState(false);
@@ -171,6 +177,9 @@ export function useChat() {
           const thisMessageStreamedText = fullText;
           fullText = "";
 
+          // Any incoming message clears the transient forming state.
+          setComposingMessage(null);
+
           const displayContent = data.cleanContent || thisMessageStreamedText;
           // Guard against empty messages — a server bug or protocol
           // drift could emit a cleanContent-less event with no
@@ -192,12 +201,21 @@ export function useChat() {
           lastCompleteEvent = data;
           lastMessageFullText = displayContent;
         },
+        onComposing: (text) => {
+          setComposingMessage(text);
+        },
         onError: (error) => {
+          // Forming state is transient — clear it on any error.
+          setComposingMessage(null);
           sseError = error;
         },
       });
     } finally {
       setIsStreaming(false);
+      // Defensive: clear forming state if the stream ends without
+      // emitting message_complete or error (shouldn't happen, but
+      // ensures the indicator never gets stuck).
+      setComposingMessage(null);
     }
 
     if (sseError) {
@@ -1187,6 +1205,7 @@ export function useChat() {
     errorMessage,
     checkpointError,
     processingText,
+    composingMessage,
     conversations,
     isGuest,
     promptAuth,

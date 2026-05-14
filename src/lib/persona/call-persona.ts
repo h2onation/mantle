@@ -174,6 +174,39 @@ interface CallPersonaOptions {
   } | null;
 }
 
+type PostConfirmCtx = NonNullable<CallPersonaOptions["postConfirmContext"]>;
+
+/** Deterministic fallback for the post-confirm follow-up message when the
+ *  LLM call fails. The forward question is the load-bearing piece — every
+ *  confirm should propel the conversation, not dead-end on a stamp line.
+ *  Mirrors the structure of the prompt-driven version (pinned copy + a
+ *  forward question) but uses generic question text so the template is
+ *  context-agnostic. */
+function buildPostConfirmFallback(
+  mode: "first-message-2" | "subsequent-single",
+  ctx: PostConfirmCtx | null | undefined
+): string | null {
+  if (!ctx) return null;
+
+  if (mode === "first-message-2") {
+    return [
+      `That went into ${ctx.layerName}. Four other places still empty — they fill as more shows up.`,
+      "A real Manual takes time. It is not a quiz. You will carry it, return to it, sharpen it. No rush. Just show up. Come back daily for the first two weeks — that is the window where it starts to hold together.",
+      "What's still open in this for you?",
+    ].join("\n\n");
+  }
+
+  if (mode === "subsequent-single") {
+    return [
+      `In. A working name: "${ctx.proposedHeadline}." Yours to change.`,
+      ctx.entriesSummary,
+      "What's still open in this for you?",
+    ].join("\n\n");
+  }
+
+  return null;
+}
+
 export function callPersona({
   conversationId,
   userId,
@@ -426,12 +459,10 @@ export function callPersona({
             role: "assistant",
             content: conversationalText,
           })
-          .select("id, created_at")
+          .select("id")
           .single();
 
         const messageId = savedResponse?.id || null;
-        const savedResponseCreatedAt: string | null =
-          savedResponse?.created_at ?? null;
 
         // 11a. Response structure validation (logs violations, does not block).
         //      Runs on fullText — the raw model output — not conversationalText,
@@ -512,6 +543,22 @@ export function callPersona({
         } | null = null;
 
         if (isCheckpoint) {
+          // Emit a transient `composing` event so the client can show a
+          // "Something is forming…" label inside the typing indicator
+          // during the ~10-15s Opus composition wait. This replaces the
+          // previously-persisted "lead-in" assistant message — the
+          // forming label is not a chat bubble, has no DB row, and is
+          // cleared automatically when the trigger card's
+          // message_complete event arrives next.
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "composing",
+                text: "Something is forming…",
+              })}\n\n`
+            )
+          );
+
           try {
             composedEntry = await composeManualEntry({
               checkpointText: conversationalText,
@@ -589,45 +636,16 @@ export function callPersona({
             .eq("id", messageId);
         }
 
-        // 13b. Checkpoint lead-in. Before the checkpoint card's
-        //      message_complete fires, emit a brief conversational
-        //      acknowledgment so the trigger card doesn't appear cold
-        //      after the user's message. Two variants:
-        //        - First lifetime checkpoint: a softer, simpler open.
-        //          (Modal 3 still fires for the educational layer; the
-        //          acknowledgment is the conversational hand-off.)
-        //        - Subsequent: signal that something distinct from any
-        //          prior entry is taking shape.
-        //
-        //      The lead-in is a normal assistant message in the
-        //      conversation, persisted so it appears on reload and
-        //      flows into future Jove context naturally. Its created_at
-        //      is set 1 second earlier than the checkpoint message's
-        //      created_at so time-ordered fetches return the lead-in
-        //      first on reload.
-        if (isCheckpoint && savedResponseCreatedAt) {
-          const hasPriorEntries =
-            !!manualComponents && manualComponents.length >= 1;
-          const LEAD_IN_LINE = hasPriorEntries
-            ? "A pattern came through in what you said."
-            : "A pattern came through in what you said.";
-          const leadInCreatedAt = new Date(
-            new Date(savedResponseCreatedAt).getTime() - 1000
-          ).toISOString();
-          const { data: leadInRow } = await admin
-            .from("messages")
-            .insert({
-              conversation_id: convId,
-              role: "assistant",
-              content: LEAD_IN_LINE,
-              created_at: leadInCreatedAt,
-            })
-            .select("id")
-            .single();
-          if (leadInRow?.id) {
-            emitInlineMessage(controller, leadInRow.id, LEAD_IN_LINE);
-          }
-        }
+        // 13b. (Removed) Previously a persisted "A pattern came through
+        //      in what you said." lead-in assistant message was inserted
+        //      here so the trigger card didn't appear cold. That bubble
+        //      read as a dead chat message in the transcript and was
+        //      serialized alongside the card rather than replaced by it.
+        //      Replaced upstream (see step 12c) with a transient
+        //      `composing` SSE event that drives a "Something is forming…"
+        //      label inside the typing indicator during the composition
+        //      wait. The label clears automatically when the trigger
+        //      card's message_complete event lands.
 
         // 14. Emit final event
         const checkpoint = isCheckpoint && composedEntry
@@ -691,11 +709,41 @@ export function callPersona({
         // been written and (for first-lifetime confirmations) the templated
         // Message 1 stamp has already been emitted via prependedMessages.
         // Surfacing "Jove lost the thread" here would tell the user their
-        // entry failed when it didn't — and the chat-level retry button
+        // entry failed when it didn't, and the chat-level retry button
         // would re-send a stale user message into a successful-confirm
-        // context. Close cleanly instead; the user keeps Message 1 and
-        // continues the conversation on the next turn.
+        // context.
+        //
+        // Instead of closing silently (which leaves the user staring at
+        // Message 1 with no forward question), emit a deterministic
+        // fallback Message 2 so the conversation always tees up next
+        // movement. Sonnet wins when it works; the template wins when
+        // Sonnet doesn't.
         if (postConfirmMode !== null) {
+          const fallbackText = buildPostConfirmFallback(
+            postConfirmMode,
+            postConfirmContext
+          );
+          if (fallbackText) {
+            try {
+              const { data: fallbackRow } = await admin
+                .from("messages")
+                .insert({
+                  conversation_id: convId,
+                  role: "assistant",
+                  content: fallbackText,
+                })
+                .select("id")
+                .single();
+              if (fallbackRow?.id) {
+                emitInlineMessage(controller, fallbackRow.id, fallbackText);
+              }
+            } catch (fallbackErr) {
+              console.error(
+                "[callPersona] Post-confirm fallback emission failed:",
+                fallbackErr
+              );
+            }
+          }
           try {
             controller.close();
           } catch {

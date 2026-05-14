@@ -173,6 +173,7 @@ export default function MainApp() {
     userEmail,
     errorMessage,
     checkpointError,
+    composingMessage,
     conversations,
     isGuest,
     promptAuth,
@@ -420,6 +421,7 @@ export default function MainApp() {
             activeCheckpoint={activeCheckpoint}
             checkpointError={checkpointError}
             errorMessage={errorMessage}
+            composingMessage={composingMessage}
             sendMessage={sendMessage}
             sendChipResponse={sendChipResponse}
             retryLastMessage={retryLastMessage}
