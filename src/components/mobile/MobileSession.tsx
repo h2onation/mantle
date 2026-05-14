@@ -852,7 +852,7 @@ export default function MobileSession({
                             }}
                           >
                             {msg.checkpointMeta.status === "confirmed" && checkpointLayer
-                              ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
+                              ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}${LAYER_NAMES[checkpointLayer] ? ` — ${LAYER_NAMES[checkpointLayer]}` : ""}`
                               : msg.checkpointMeta.status === "confirmed"
                                 ? "Saved to your Manual"
                                 : null}
