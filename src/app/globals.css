@@ -61,7 +61,7 @@
 
   /* Overlays */
   --session-backdrop:       rgba(0, 0, 0, 0.65);
-  --session-backdrop-heavy: rgba(0, 0, 0, 0.75);
+  --session-backdrop-heavy: rgba(0, 0, 0, 0.92);
 
   /* Glow */
   --session-glow-cp:     rgba(156, 177, 138, 0.15);
@@ -236,7 +236,7 @@
 
   /* Overlays — warm tint on linen reads better than pure black. */
   --session-backdrop:       rgba(31, 20, 10, 0.45);
-  --session-backdrop-heavy: rgba(31, 20, 10, 0.55);
+  --session-backdrop-heavy: rgba(31, 20, 10, 0.85);
 
   /* Glow */
   --session-glow-cp:     rgba(94, 122, 79, 0.18);

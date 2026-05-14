@@ -681,72 +681,91 @@ export default function MobileSession({
                           }}
                           style={{
                             display: "flex",
-                            alignItems: "center",
+                            flexDirection: "column",
                             width: "100%",
-                            padding: "18px 20px",
                             background: "var(--session-walnut-surface)",
                             border: "1px solid var(--session-bubble-border)",
                             borderRadius: 14,
                             cursor: "pointer",
                             textAlign: "left",
-                            gap: 14,
+                            overflow: "hidden",
                             opacity: 0,
                             animation: "checkpointFadeIn 0.5s ease forwards",
                             transition:
                               "background 0.25s ease, border-color 0.25s ease",
                           }}
                         >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
+                          {/* Layer header with background treatment */}
+                          <div
+                            style={{
+                              padding: "10px 20px",
+                              background: "var(--session-walnut-highlight, rgba(170, 120, 82, 0.12))",
+                              borderBottom: "1px solid var(--session-walnut-border-soft)",
+                            }}
+                          >
+                            <span
                               style={{
                                 fontFamily: "var(--font-mono)",
                                 fontSize: 10,
-                                letterSpacing: "1.8px",
+                                letterSpacing: "2px",
                                 textTransform: "uppercase",
                                 color: "var(--session-walnut-meta-strong)",
                                 lineHeight: 1,
                               }}
                             >
-                              Suggested Manual Entry
-                            </div>
-                            {activeCheckpoint?.name && (
+                              {activeCheckpoint?.layer && LAYER_NAMES[activeCheckpoint.layer]
+                                ? `Layer ${LAYER_ORDINAL[activeCheckpoint.layer] ?? activeCheckpoint.layer} — ${LAYER_NAMES[activeCheckpoint.layer]}`
+                                : "Suggested Entry"}
+                            </span>
+                          </div>
+                          {/* Entry title + tap hint */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "14px 20px 16px",
+                              gap: 14,
+                            }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              {activeCheckpoint?.name && (
+                                <div
+                                  style={{
+                                    fontFamily:
+                                      "var(--font-spectral), var(--font-persona), serif",
+                                    fontSize: 18,
+                                    color: "var(--session-ink)",
+                                    lineHeight: 1.3,
+                                    letterSpacing: "-0.2px",
+                                  }}
+                                >
+                                  {activeCheckpoint.name}
+                                </div>
+                              )}
                               <div
                                 style={{
                                   fontFamily:
-                                    "var(--font-spectral), var(--font-persona), serif",
-                                  fontSize: 18,
-                                  color: "var(--session-ink)",
-                                  lineHeight: 1.3,
+                                    "var(--font-sans, 'DM Sans', sans-serif)",
+                                  fontSize: 13,
+                                  color: "var(--session-ink-faded)",
                                   marginTop: 6,
-                                  letterSpacing: "-0.2px",
                                 }}
                               >
-                                {activeCheckpoint.name}
+                                Tap to review
                               </div>
-                            )}
-                            <div
+                            </div>
+                            <span
                               style={{
                                 fontFamily:
-                                  "var(--font-sans, 'DM Sans', sans-serif)",
-                                fontSize: 13,
-                                color: "var(--session-ink-faded)",
-                                marginTop: 6,
+                                  "var(--font-spectral), var(--font-persona), serif",
+                                fontSize: 22,
+                                color: "var(--session-ink-ghost)",
+                                flexShrink: 0,
                               }}
                             >
-                              Tap to review
-                            </div>
+                              ›
+                            </span>
                           </div>
-                          <span
-                            style={{
-                              fontFamily:
-                                "var(--font-spectral), var(--font-persona), serif",
-                              fontSize: 22,
-                              color: "var(--session-ink-ghost)",
-                              flexShrink: 0,
-                            }}
-                          >
-                            ›
-                          </span>
                         </button>
                       )}
 

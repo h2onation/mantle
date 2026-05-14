@@ -85,7 +85,7 @@ The so-what is NOT: advice, a treatment plan, a restatement of the pattern, or w
 
 VOICE RULES:
 - First person. The user is the author. "I" not "You."
-- No phrase a person wouldn't use about themselves out loud, to someone they trust, on a normal day.
+- No phrase a person wouldn't use about themselves out loud, to someone they trust, on a normal day. Read every sentence back and ask: would a person actually say this about themselves? "I turn away before the reach" — no. "I turn away before they can ask me" — yes. Plain spoken language. No nominalizations ("the reach," "the ask," "the pull"). Use verbs, not nouns pretending to be verbs.
 - No session references ("I told ${PERSONA_NAME}," "we talked about," "in this conversation"). The entry reads the same six months from now.
 - Use the user's exact charged phrases verbatim. Their sensory and system words ("buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy") carry into the entry without translation. Do not upgrade their vocabulary.
 - Grounded in their specific examples and moments. Not abstract.
@@ -95,11 +95,12 @@ VOICE RULES:
 - No time references. No "right now," "currently," "at this stage," "these days." The entry describes how I operate, period.
 - BIND REQUIRED in the passage. What the pattern protects AND what it costs. Both.
 - Do not use dashes or hyphens to join clauses. Use periods.
+- Write like a field note, not literature. Flat, honest, direct. If a sentence sounds like it belongs in a poem or an essay, rewrite it plain.
 
 HEADLINE (field: "name"):
 4-8 words. Flatly descriptive. Says what the mechanism IS in behavioral or body terms. Plain subject-verb. No poetry, no imagery, no literary flair.
-Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "Body Locks Before the Ask"
-Bad: "The Masking Loop," "Sensory Overwhelm Pattern," clinical labels, metaphors, poetic titles like "Gaps Open and the Reach Fires" or "The Silence Between the Asking." If the title sounds like a poem or a chapter heading, rewrite it as a flat behavioral description.
+Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "Body Locks Before Being Asked"
+Bad: "The Masking Loop," "Sensory Overwhelm Pattern," "Turned Away Before the Ask," clinical labels, metaphors, nominalizations ("the ask," "the reach," "the pull"), poetic titles like "Gaps Open and the Reach Fires." If the title sounds like a poem or uses a noun where a verb belongs, rewrite it plain.
 
 COMPRESSED REPRESENTATION (for future reference):
 - summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If the so-what produced a clear stance, mention it.
