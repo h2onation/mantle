@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Your Manual.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@400;500&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     SYSTEM TOKENS — pulled from src/app/globals.css --session-*
+     ============================================================ */
+  :root {
+    --serif: 'Spectral', Georgia, serif;
+    --mono:  'DM Mono', ui-monospace, monospace;
+    --sans:  'DM Sans', system-ui, sans-serif;
+  }
+
+  /* LIGHT — exact values from --session-* light theme */
+  .ph-light {
+    --linen:               #E5D8BE;
+    --cream:               #ECE0C8;
+    --parchment:           #DFD3B5;
+
+    --ink:                 #1F140A;
+    --ink-soft:            #4A3220;
+    --ink-mid:             rgba(31, 20, 10, 0.64);
+    --ink-faded:           #7A5E40;
+    --ink-ghost:           rgba(31, 20, 10, 0.42);
+
+    --walnut:              #5C3A1E;
+    --walnut-light:        rgba(92, 58, 30, 0.55);
+    --walnut-surface:      rgba(232, 220, 196, 0.90);
+    --walnut-surface-soft: rgba(236, 224, 200, 0.93);
+    --walnut-border:       rgba(92, 58, 30, 0.32);
+    --walnut-border-soft:  rgba(92, 58, 30, 0.22);
+    --walnut-meta:         #5C3F23;
+    --walnut-meta-soft:    rgba(92, 63, 35, 0.55);
+    --walnut-highlight:    rgba(245, 235, 215, 0.40);
+
+    --hair:                rgba(92, 58, 30, 0.28);
+    --hair-soft:           rgba(92, 58, 30, 0.14);
+    --hair-faint:          rgba(92, 58, 30, 0.10);
+
+    --header-grad:         linear-gradient(180deg, rgba(180,125,75,0.46) 0%, rgba(135,88,52,0.34) 100%);
+    --header-border:       rgba(92,58,30,0.32);
+    --header-name:         var(--ink);
+    --header-meta:         var(--walnut-meta);
+    --action-tint:         rgba(92, 58, 30, 0.07);
+
+    --popover-bg:          var(--cream);
+    --popover-border:      var(--walnut-border);
+    --popover-shadow:      0 10px 32px rgba(31,20,10,0.18), 0 2px 6px rgba(31,20,10,0.10);
+    --popover-ink:         var(--ink-soft);
+
+    --plate-shadow:
+      0 1px 0 rgba(255,250,235,0.7) inset,
+      0 60px 100px -40px rgba(60,32,12,0.45),
+      0 30px 50px -20px rgba(60,32,12,0.30),
+      0 0 0 1px rgba(92,58,30,0.18);
+
+    --paper-grain-opacity: 0.55;
+    --notch-bg: rgba(31,20,10,0.92);
+  }
+
+  /* DARK — exact values from --session-* default theme */
+  .ph-dark {
+    --linen:               #0A0B10;
+    --cream:               #12141B;
+    --parchment:           #0E1017;
+
+    --ink:                 rgba(245, 243, 238, 0.97);
+    --ink-soft:            rgba(245, 243, 238, 0.85);
+    --ink-mid:             rgba(228, 224, 214, 0.62);
+    --ink-faded:           rgba(228, 224, 214, 0.45);
+    --ink-ghost:           rgba(228, 224, 214, 0.38);
+
+    --walnut:              rgb(170, 120, 82);
+    --walnut-light:        rgba(170, 120, 82, 0.55);
+    --walnut-surface:      rgba(115, 72, 42, 0.20);
+    --walnut-surface-soft: rgba(115, 72, 42, 0.10);
+    --walnut-border:       rgba(170, 120, 82, 0.18);
+    --walnut-border-soft:  rgba(170, 120, 82, 0.14);
+    --walnut-meta:         rgba(170, 120, 82, 0.65);
+    --walnut-meta-soft:    rgba(220, 170, 120, 0.55);
+    --walnut-highlight:    rgba(220, 170, 120, 0.12);
+
+    --hair:                rgba(245, 237, 222, 0.10);
+    --hair-soft:           rgba(245, 237, 222, 0.06);
+    --hair-faint:          rgba(245, 237, 222, 0.05);
+
+    --header-grad:         linear-gradient(180deg, rgba(180,125,75,0.46) 0%, rgba(135,88,52,0.34) 100%);
+    --header-border:       rgba(170,120,82,0.22);
+    --header-name:         rgba(255,250,242,0.96);
+    --header-meta:         rgba(220,175,130,0.70);
+    --action-tint:         rgba(220, 170, 120, 0.05);
+
+    --popover-bg:          var(--parchment);
+    --popover-border:      var(--walnut-border);
+    --popover-shadow:      0 12px 40px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30);
+    --popover-ink:         var(--ink-soft);
+
+    --plate-shadow:
+      0 1px 0 rgba(220,170,120,0.08) inset,
+      0 60px 100px -40px rgba(0,0,0,0.65),
+      0 30px 50px -20px rgba(0,0,0,0.50),
+      0 0 0 1px rgba(170,120,82,0.10);
+
+    --paper-grain-opacity: 0;
+    --notch-bg: #000;
+  }
+
+  /* ============================================================
+     PAGE FRAME
+     ============================================================ */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0A0B10;
+    color: rgba(245,243,238,0.97);
+    font-family: var(--serif);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga", "kern", "onum";
+    padding: 56px 32px 96px;
+    min-height: 100vh;
+  }
+
+  .stage { max-width: 1120px; margin: 0 auto; }
+
+  .page-head {
+    text-align: center;
+    margin: 0 auto 48px;
+    max-width: 720px;
+  }
+  .page-head .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: rgba(220,170,120,0.75);
+    margin-bottom: 14px;
+  }
+  .page-head h1 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: -0.012em;
+    color: rgba(245,243,238,0.94);
+    margin: 0 0 12px;
+  }
+  .page-head h1 .dot { color: rgb(214,160,113); font-style: normal; }
+  .page-head p {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(245,243,238,0.62);
+    margin: 0;
+  }
+  .page-head p em { color: rgba(220,170,120,0.85); font-style: italic; }
+
+  /* Section dividers */
+  .mode-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 auto 22px;
+    max-width: 1120px;
+    padding: 0 4px;
+  }
+  .mode-row.next { margin-top: 64px; }
+  .mode-row .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: rgba(245,243,238,0.72);
+  }
+  .mode-row .label .sub {
+    color: rgba(245,243,238,0.40);
+    margin-left: 12px;
+  }
+  .mode-row .line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(170,120,82,0.40), transparent);
+  }
+
+  /* Frames */
+  .frames {
+    display: grid;
+    grid-template-columns: 430px 430px;
+    gap: 56px;
+    justify-content: center;
+    align-items: start;
+  }
+
+  /* Phone */
+  .phone {
+    width: 430px;
+    background: var(--linen);
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--plate-shadow);
+  }
+  .phone::before {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(rgba(92,54,26,0.06) 1px, transparent 1px),
+      radial-gradient(rgba(92,54,26,0.04) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    opacity: var(--paper-grain-opacity);
+    mix-blend-mode: multiply;
+  }
+  .phone::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    border-radius: 46px;
+  }
+  .ph-light.phone::after {
+    box-shadow:
+      inset 0 0 60px rgba(135,90,40,0.10),
+      inset 0 0 0 1px rgba(255,250,235,0.5);
+  }
+  .ph-dark.phone::after {
+    box-shadow:
+      inset 0 0 80px rgba(0,0,0,0.40),
+      inset 0 0 0 1px rgba(170,120,82,0.06);
+  }
+  .notch {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    width: 108px; height: 28px;
+    border-radius: 14px;
+    background: var(--notch-bg);
+    z-index: 5;
+  }
+
+  .screen {
+    position: relative;
+    z-index: 1;
+    padding: 62px 26px 40px;
+    color: var(--ink);
+  }
+
+  /* ============================================================
+     TITLE BLOCK
+     ============================================================ */
+  .title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: -0.020em;
+    color: var(--ink);
+    margin: 0;
+    font-feature-settings: "liga", "dlig", "kern";
+  }
+  .title .dot { color: var(--walnut); }
+  .ph-dark .title .dot { color: rgb(214,160,113); }
+
+  .subtitle {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 15.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 14px 0 0;
+    max-width: 330px;
+    letter-spacing: 0.005em;
+  }
+
+  .ornament {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 14px;
+    margin: 30px 0 0;
+  }
+  .ornament .line { height: 1px; background: var(--hair-soft); }
+  .ornament .glyph {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--walnut);
+    font-size: 17px;
+    line-height: 1;
+    transform: translateY(-1px);
+  }
+  .ph-dark .ornament .glyph { color: rgb(214,160,113); }
+
+  /* ============================================================
+     LAYERS
+     ============================================================ */
+  .layers { margin-top: 8px; }
+  .layer { position: relative; }
+
+  .layer-head {
+    display: grid;
+    grid-template-columns: 28px 1fr 22px;
+    column-gap: 12px;
+    align-items: center;
+    padding: 13px 14px 12px;
+    background: var(--header-grad);
+    border-bottom: 1px solid var(--header-border);
+    margin: 0 -14px;
+  }
+  .roman {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.10em;
+    color: var(--header-meta);
+    padding-top: 2px;
+  }
+  .layer-name {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--header-name);
+    margin: 0;
+  }
+
+  /* Trailing slot — info button (populated) or tap chevron (empty) */
+  .trailer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+  }
+  /* Empty layer header has only Roman + Name (no trailing icon — the
+     CTA in the body carries the action). Populated headers still have
+     the info button + popover in the .trailer slot. */
+  .info-btn {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--header-meta);
+    color: var(--header-meta);
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 15px;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all .18s ease;
+  }
+  .info-btn:hover,
+  .info-btn.open {
+    background: rgba(170,120,82,0.18);
+    color: var(--header-name);
+  }
+  .ph-light .info-btn:hover,
+  .ph-light .info-btn.open {
+    background: rgba(92,58,30,0.16);
+    color: var(--ink);
+  }
+
+  /* Info popover, anchored to the i */
+  .info-pop {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: -6px;
+    width: 270px;
+    background: var(--popover-bg);
+    border: 1px solid var(--popover-border);
+    border-radius: 8px;
+    box-shadow: var(--popover-shadow);
+    padding: 14px 16px 15px;
+    z-index: 10;
+    display: none;
+  }
+  .info-pop.open { display: block; }
+  .info-pop p {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .info-pop .pop-label {
+    display: block;
+    font-family: var(--mono);
+    font-style: normal;
+    font-weight: 500;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--walnut);
+    margin-bottom: 8px;
+  }
+  .ph-dark .info-pop .pop-label { color: rgb(214,160,113); }
+  .info-pop::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    right: 12px;
+    width: 11px; height: 11px;
+    background: var(--popover-bg);
+    border-top: 1px solid var(--popover-border);
+    border-left: 1px solid var(--popover-border);
+    transform: rotate(45deg);
+  }
+  .info-pop::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 7px;
+    width: 21px;
+    height: 1.5px;
+    background: var(--popover-bg);
+  }
+
+  /* ============================================================
+     EMPTY BODY — concise description + explicit empty-state CTA
+     ============================================================ */
+  .empty-body {
+    padding: 16px 14px 18px;
+    background: var(--action-tint);
+    margin: 0 -14px;
+    border-bottom: 1px solid var(--hair-faint);
+    cursor: pointer;
+    transition: background .18s ease;
+  }
+  .layer:hover .empty-body {
+    background: rgba(170,120,82,0.10);
+  }
+  .ph-light .layer:hover .empty-body {
+    background: rgba(92,58,30,0.10);
+  }
+  /* Empty description — Roman for body readability; italic reserved
+     for example phrases (after the em-dash). Full ink contrast. */
+  .empty-desc {
+    margin: 0 0 14px;
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 15.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .empty-desc em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  /* CTA — italic stays for the action register, but bigger and bolder
+     than before so it reads cleanly against the dark linen. */
+  .empty-cta {
+    margin: 0;
+    padding-top: 12px;
+    border-top: 1px dotted var(--hair-faint);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.3;
+    text-align: right;
+    letter-spacing: 0.005em;
+  }
+  .empty-cta .cta-state {
+    color: var(--ink-faded);
+    font-weight: 400;
+  }
+  .empty-cta .cta-divider {
+    color: var(--ink-faded);
+    margin: 0 4px;
+  }
+  .empty-cta .cta-action {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .empty-cta .chev {
+    font-family: var(--mono);
+    font-style: normal;
+    color: var(--walnut);
+    font-size: 15px;
+    margin-left: 5px;
+    display: inline-block;
+    transition: transform .18s ease;
+    vertical-align: -1px;
+  }
+  .ph-dark .empty-cta .chev { color: rgb(214,160,113); }
+  .layer:hover .empty-cta .chev { transform: translateX(3px); }
+
+  /* ============================================================
+     POPULATED ENTRIES
+     All collapsed by default — title visible, body hidden.
+     One per Layer is expanded in the mockup to show the toggle.
+     ============================================================ */
+  .entries { padding: 4px 0 6px; }
+  .entry {
+    border-bottom: 1px dotted var(--hair);
+  }
+  .entry:last-child { border-bottom: none; }
+
+  /* Collapsed: title + chevron, scannable */
+  .entry .entry-head {
+    display: grid;
+    grid-template-columns: 1fr 14px;
+    gap: 12px;
+    align-items: baseline;
+    padding: 13px 0 13px;
+    cursor: pointer;
+  }
+  .entry .entry-head .entry-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 15.5px;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin: 0;
+    font-feature-settings: "liga","dlig","kern";
+  }
+  .entry .entry-head .chev {
+    color: var(--walnut);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1;
+    text-align: right;
+    transition: transform .18s ease, color .18s ease;
+  }
+  .ph-dark .entry .entry-head .chev { color: rgb(214,160,113); }
+  .entry:hover .entry-head .chev { transform: translateX(2px); }
+
+  /* Expanded: bigger title, body, no chevron rotation needed since static */
+  .entry.expanded .entry-head {
+    padding: 16px 0 6px;
+  }
+  .entry.expanded .entry-head .entry-title {
+    font-size: 19.5px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+  .entry.expanded .entry-head .chev {
+    transform: rotate(180deg);
+    transform-origin: center;
+    color: var(--walnut);
+  }
+  .ph-dark .entry.expanded .entry-head .chev { color: rgb(214,160,113); }
+  .entry .entry-body {
+    display: none;
+  }
+  .entry.expanded .entry-body {
+    display: block;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.65;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin: 0;
+    padding: 0 22px 16px 0;
+  }
+
+  /* ============================================================
+     PAGE FOOT — Continue with Jove
+     Sends the user back to the conversation to keep building.
+     One quiet line, anchored by the § rhythm.
+     ============================================================ */
+  .page-foot {
+    margin: 36px 0 0;
+    padding: 22px 0 4px;
+    border-top: 1px solid var(--hair-soft);
+    text-align: center;
+    position: relative;
+  }
+  .page-foot::before {
+    content: "§";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--walnut);
+    font-size: 14px;
+    line-height: 1;
+    background: var(--linen);
+    padding: 0 10px;
+  }
+  .ph-dark .page-foot::before { color: rgb(214,160,113); }
+  .page-action {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: 0.005em;
+    color: var(--ink);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    cursor: pointer;
+    transition: color .18s ease;
+  }
+  .page-action:hover { color: var(--walnut); }
+  .ph-dark .page-action:hover { color: rgba(220,175,130,0.95); }
+  .page-action .chev {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 15px;
+    color: var(--walnut);
+    transition: transform .18s ease;
+  }
+  .ph-dark .page-action .chev { color: rgb(214,160,113); }
+  .page-action:hover .chev { transform: translateX(3px); }
+
+  .caption {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.26em;
+    color: rgba(245,243,238,0.55);
+    text-transform: uppercase;
+    margin-top: 22px;
+  }
+  .caption em {
+    font-family: var(--serif);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0.01em;
+    color: rgba(220,170,120,0.85);
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <header class="page-head">
+    <div class="eyebrow">Polished · State by Content</div>
+    <h1>Empty reads as <em>prepared</em>. Populated reads as <em>scannable</em><span class="dot">.</span></h1>
+    <p>Empty Layers carry their description inline — the whole card is the tap target, marked by a small <em>›</em> in the header. Populated Layers collapse their entries to titles so you can see <em>all</em> patterns at once; one is expanded here to show the toggle. The <em>ⓘ</em> opens a popover anchored to the button.</p>
+  </header>
+
+  <!-- ============================================================
+       LIGHT
+       ============================================================ -->
+  <div class="mode-row">
+    <span class="label">Light<span class="sub">— --session-* light theme</span></span>
+    <span class="line"></span>
+  </div>
+
+  <div class="frames">
+
+    <!-- LIGHT · EMPTY -->
+    <div>
+      <div class="phone ph-light">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <h1 class="title">Your Manual<span class="dot">.</span></h1>
+          <p class="subtitle">A document about how you operate, in your own voice.</p>
+
+          <div class="ornament">
+            <span class="line"></span>
+            <span class="glyph">§</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="layers">
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">I.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">Behavior others might misread — <em>silence, freezing, masking, shutdown</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">II.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">How information lands — <em>sensory experience, change, overload</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">III.</span>
+                <h2 class="layer-name">What Helps</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">What you need to function — <em>alone time, routine, recovery, environment</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">IV.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">How you show up with people — <em>connection, withdrawal, conflict, care</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">V.</span>
+                <h2 class="layer-name">Where I&rsquo;m Strong</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">Strengths in supportive conditions — <em>deep focus, pattern detection, sustained work</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="page-foot">
+            <a class="page-action" href="#">Continue with Jove <span class="chev">→</span></a>
+          </div>
+
+        </div>
+      </div>
+      <div class="caption">Light · Empty <em>— each Layer prepared, tap to begin</em></div>
+    </div>
+
+    <!-- LIGHT · COMPLETED -->
+    <div>
+      <div class="phone ph-light">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <h1 class="title">Your Manual<span class="dot">.</span></h1>
+          <p class="subtitle">A document about how you operate, in your own voice.</p>
+
+          <div class="ornament">
+            <span class="line"></span>
+            <span class="glyph">§</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="layers">
+
+            <!-- LAYER I -->
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">I.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry expanded">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Audit Runs &amp; Work Is the Only Proof.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                  <p class="entry-body">When something gets called into question, the only move that quiets it is producing more evidence. Not explanation — work itself. The audit only stops when there is something material to point at.</p>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">I Go Still When Plans Change.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Masking Costs More Than the Day.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Repetition Quiets the Noise.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER II -->
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">II.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Fluorescent Light Stacks Up by Hour Three.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Change Lands Sideways and Late.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Quiet First, Then Words.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER III -->
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">III.</span>
+                <h2 class="layer-name">What Helps</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">An Hour Alone Is Maintenance, Not Withdrawal.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Routine Lets the Unpredictable Be Survivable.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Bright Light, Quiet Room, No Music.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER IV -->
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">IV.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Raised Voices Take My System Offline.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">I Show Care by Solving, Not by Saying.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER V -->
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">V.</span>
+                <h2 class="layer-name">Where I&rsquo;m Strong</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Deep Focus Lasts for Hours Others Can&rsquo;t Reach.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Pattern Detection in Noise.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="page-foot">
+            <a class="page-action" href="#">Continue with Jove <span class="chev">→</span></a>
+          </div>
+
+        </div>
+      </div>
+      <div class="caption">Light · Completed <em>— headlines collapsed; tap to read</em></div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       DARK
+       ============================================================ -->
+  <div class="mode-row next">
+    <span class="label">Dark<span class="sub">— --session-* default theme</span></span>
+    <span class="line"></span>
+  </div>
+
+  <div class="frames">
+
+    <!-- DARK · EMPTY -->
+    <div>
+      <div class="phone ph-dark">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <h1 class="title">Your Manual<span class="dot">.</span></h1>
+          <p class="subtitle">A document about how you operate, in your own voice.</p>
+
+          <div class="ornament">
+            <span class="line"></span>
+            <span class="glyph">§</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="layers">
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">I.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">Behavior others might misread — <em>silence, freezing, masking, shutdown</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">II.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">How information lands — <em>sensory experience, change, overload</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">III.</span>
+                <h2 class="layer-name">What Helps</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">What you need to function — <em>alone time, routine, recovery, environment</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">IV.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">How you show up with people — <em>connection, withdrawal, conflict, care</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">V.</span>
+                <h2 class="layer-name">Where I&rsquo;m Strong</h2>
+              </div>
+              <div class="empty-body">
+                <p class="empty-desc">Strengths in supportive conditions — <em>deep focus, pattern detection, sustained work</em>.</p>
+                <p class="empty-cta">
+                  <span class="cta-state">Nothing documented yet</span><span class="cta-divider">—</span><span class="cta-action">explore with Jove <span class="chev">→</span></span>
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="page-foot">
+            <a class="page-action" href="#">Continue with Jove <span class="chev">→</span></a>
+          </div>
+
+        </div>
+      </div>
+      <div class="caption">Dark · Empty <em>— each Layer prepared, tap to begin</em></div>
+    </div>
+
+    <!-- DARK · COMPLETED -->
+    <div>
+      <div class="phone ph-dark">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <h1 class="title">Your Manual<span class="dot">.</span></h1>
+          <p class="subtitle">A document about how you operate, in your own voice.</p>
+
+          <div class="ornament">
+            <span class="line"></span>
+            <span class="glyph">§</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="layers">
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">I.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry expanded">
+                  <div class="entry-head">
+                    <h3 class="entry-title">Audit Runs &amp; Work Is the Only Proof.</h3>
+                    <span class="chev">›</span>
+                  </div>
+                  <p class="entry-body">When something gets called into question, the only move that quiets it is producing more evidence. Not explanation — work itself. The audit only stops when there is something material to point at.</p>
+                </div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">I Go Still When Plans Change.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Masking Costs More Than the Day.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Repetition Quiets the Noise.</h3><span class="chev">›</span></div></div>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">II.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Fluorescent Light Stacks Up by Hour Three.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Change Lands Sideways and Late.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Quiet First, Then Words.</h3><span class="chev">›</span></div></div>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">III.</span>
+                <h2 class="layer-name">What Helps</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">An Hour Alone Is Maintenance, Not Withdrawal.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Routine Lets the Unpredictable Be Survivable.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Bright Light, Quiet Room, No Music.</h3><span class="chev">›</span></div></div>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">IV.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Raised Voices Take My System Offline.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">I Show Care by Solving, Not by Saying.</h3><span class="chev">›</span></div></div>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head">
+                <span class="roman">V.</span>
+                <h2 class="layer-name">Where I&rsquo;m Strong</h2>
+                <span class="trailer"><button class="info-btn">i</button></span>
+              </div>
+              <div class="entries">
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Deep Focus Lasts for Hours Others Can&rsquo;t Reach.</h3><span class="chev">›</span></div></div>
+                <div class="entry"><div class="entry-head"><h3 class="entry-title">Pattern Detection in Noise.</h3><span class="chev">›</span></div></div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="page-foot">
+            <a class="page-action" href="#">Continue with Jove <span class="chev">→</span></a>
+          </div>
+
+        </div>
+      </div>
+      <div class="caption">Dark · Completed <em>— headlines collapsed; tap to read</em></div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
