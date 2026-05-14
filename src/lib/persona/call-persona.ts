@@ -1,7 +1,13 @@
-import { anthropicStream } from "@/lib/anthropic";
+import {
+  anthropicStream,
+  parseStreamUsage,
+  type AnthropicUsage,
+  type SystemBlock,
+} from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
-import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { buildSystemPromptBlocks } from "@/lib/persona/system-prompt";
+import { logEvent } from "@/lib/observability/log";
 import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
@@ -164,7 +170,7 @@ interface CallPersonaOptions {
   /** Track A Phase 7-High — when set, this invocation is a post-confirm
    *  follow-up call, not a regular chat turn. Classifier, composer,
    *  and checkpoint_meta writes are skipped. The system prompt loads
-   *  a mode-specific pinned-template block via buildSystemPrompt's
+   *  a mode-specific pinned-template block via buildSystemPromptBlocks's
    *  postConfirmMode option. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
   postConfirmContext?: {
@@ -313,16 +319,31 @@ export function callPersona({
         const transcriptDetection =
           message && ctx.mode !== "upload" ? detectTranscript(message) : null;
 
-        // 8. Build system prompt (shared base + web-specific fields +
-        //    Phase 7-High post-confirm mode when invoked from the
-        //    confirm route for a post-confirm follow-up turn).
-        const systemPrompt = buildSystemPrompt({
+        // 8. Build system prompt as three cacheable blocks. The
+        //    `staticContext` block carries the `cache_control` marker —
+        //    Anthropic caches the prefix up to and including it, which
+        //    covers Tier 1 (constitutional) + Tier 2 (voice) + compressed
+        //    older Manual entries. Tier 3 mechanics and current-session
+        //    Manual entries stay in the uncached `dynamic` tail because
+        //    they change per turn. See `buildSystemPromptBlocks` and
+        //    docs/state.md for the cache boundary rationale.
+        const promptOptions = {
           ...buildPromptOptionsFromContext(ctx),
           explorationContext,
           transcriptContext: transcriptDetection,
           postConfirmMode,
           postConfirmContext,
-        });
+        };
+        const promptBlocks = buildSystemPromptBlocks(promptOptions);
+        const systemBlocks: SystemBlock[] = [
+          { type: "text", text: promptBlocks.tier1 },
+          {
+            type: "text",
+            text: promptBlocks.staticContext,
+            cache_control: { type: "ephemeral" },
+          },
+          { type: "text", text: promptBlocks.dynamic },
+        ];
 
         // 8b. Debug logging (dev only)
         if (process.env.NODE_ENV !== "production") {
@@ -366,13 +387,18 @@ export function callPersona({
         const rawStream = await anthropicStream({
           model: PERSONA_MODEL,
           max_tokens: PERSONA_MAX_TOKENS,
-          system: systemPrompt,
+          system: systemBlocks,
           messages,
         });
 
         const reader = rawStream.getReader();
         const decoder = new TextDecoder();
         let streamBuffer = "";
+        // Cache-perf telemetry: message_start carries input + cache token
+        // counts, message_delta carries final output_tokens. Accumulate as
+        // events stream in so we can log one cache_performance line after
+        // the response finishes.
+        const usage: AnthropicUsage = {};
 
         while (true) {
           const { done, value } = await reader.read();
@@ -396,12 +422,43 @@ export function callPersona({
                 const text = event.delta.text;
                 fullText += text;
                 flushSafe(text);
+              } else {
+                const eventUsage = parseStreamUsage(event);
+                if (eventUsage) {
+                  if (eventUsage.input_tokens !== undefined)
+                    usage.input_tokens = eventUsage.input_tokens;
+                  if (eventUsage.output_tokens !== undefined)
+                    usage.output_tokens = eventUsage.output_tokens;
+                  if (eventUsage.cache_creation_input_tokens !== undefined)
+                    usage.cache_creation_input_tokens =
+                      eventUsage.cache_creation_input_tokens;
+                  if (eventUsage.cache_read_input_tokens !== undefined)
+                    usage.cache_read_input_tokens =
+                      eventUsage.cache_read_input_tokens;
+                }
               }
             } catch {
               // Skip malformed SSE lines
             }
           }
         }
+
+        // Emit cache-perf telemetry. cache_read > 0 means the static prefix
+        // was served from cache (hit). cache_creation > 0 on a fresh
+        // session means we just wrote the prefix to cache. Both zero means
+        // either no prefix was cacheable (block size below the Anthropic
+        // minimum) or the cache_control marker wasn't recognized — that's
+        // the signal to investigate.
+        logEvent({
+          event: "cache_performance",
+          surface: "chat",
+          model: PERSONA_MODEL,
+          conversation_id: convId,
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens,
+          cache_read_input_tokens: usage.cache_read_input_tokens,
+        });
 
         if (!fullText) {
           emitError(

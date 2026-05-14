@@ -42,6 +42,62 @@ export function compressManualEntry(entry: ManualEntryForContext): string {
 }
 
 /**
+ * Split-form output of the Manual context. `older` is byte-stable across a
+ * session unless a new entry is confirmed — that makes it cacheable inside
+ * the Jove static prompt prefix. `recent` changes every turn that adds a
+ * new confirmation, so it stays in the dynamic (uncached) tail of the
+ * prompt.
+ *
+ * Each string is either empty (no entries of that kind) or a complete
+ * block ready to inline into a system prompt. Concatenating them in
+ * `older + recent` order would not reproduce the legacy
+ * `prepareManualContext` shape — see that function for the merged form
+ * preserved for the buildSystemPrompt wrapper path.
+ */
+export interface ManualContextBlocks {
+  /** "EARLIER ENTRIES …" header + one compressed line per older entry.
+   *  Empty string when there are no older entries. */
+  older: string;
+  /** "CONFIRMED MANUAL" header + verbatim recent entries. Empty string
+   *  when there are no recent entries. */
+  recent: string;
+}
+
+/**
+ * Build the split-form Manual context: a stable `older` block (cacheable)
+ * and a `recent` block (current-session content, never cached).
+ */
+export function prepareManualContextBlocks(
+  entries: ManualEntryForContext[],
+  currentConversationId: string | null
+): ManualContextBlocks {
+  if (!entries.length) return { older: "", recent: "" };
+
+  const { recent, older } = partitionEntries(entries, currentConversationId);
+
+  let recentBlock = "";
+  if (recent.length > 0) {
+    recentBlock = "\nCONFIRMED MANUAL\n";
+    for (const entry of recent) {
+      recentBlock += `Layer ${entry.layer} (${LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`})`;
+      if (entry.name) recentBlock += ` — "${entry.name}"`;
+      recentBlock += `:\n${entry.content}\n\n`;
+    }
+  }
+
+  let olderBlock = "";
+  if (older.length > 0) {
+    olderBlock = "EARLIER ENTRIES (compressed — full content lives in the Manual):\n";
+    for (const entry of older) {
+      olderBlock += compressManualEntry(entry) + "\n";
+    }
+    olderBlock += "\n";
+  }
+
+  return { older: olderBlock, recent: recentBlock };
+}
+
+/**
  * Split entries into recent (rendered in full) and older (rendered compressed),
  * then concatenate into a single CONFIRMED MANUAL block ready to paste into
  * the system prompt. Entries authored in the current conversation — or, if
@@ -50,6 +106,11 @@ export function compressManualEntry(entry: ManualEntryForContext): string {
  *
  * Returning an empty string when the user has no entries so the caller can
  * omit the block entirely.
+ *
+ * Note: this preserves the legacy shape (CONFIRMED MANUAL header → recent
+ * entries → EARLIER ENTRIES header → older entries). The cached-prompt
+ * caller path uses `prepareManualContextBlocks` instead, which keeps the
+ * two halves separate so the older block can sit inside the cached prefix.
  */
 export function prepareManualContext(
   entries: ManualEntryForContext[],
@@ -57,27 +118,19 @@ export function prepareManualContext(
 ): string {
   if (!entries.length) return "";
 
-  const { recent, older } = partitionEntries(entries, currentConversationId);
+  const { recent, older } = prepareManualContextBlocks(
+    entries,
+    currentConversationId
+  );
 
-  let block = "\nCONFIRMED MANUAL\n";
-
-  if (recent.length > 0) {
-    for (const entry of recent) {
-      block += `Layer ${entry.layer} (${LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`})`;
-      if (entry.name) block += ` — "${entry.name}"`;
-      block += `:\n${entry.content}\n\n`;
-    }
+  // Recombine into legacy single-block shape. When recent is empty but older
+  // exists, the legacy output still emitted the "\nCONFIRMED MANUAL\n"
+  // header before the EARLIER block — preserve that quirk by prepending it
+  // when needed so existing callers see byte-identical output.
+  if (!recent) {
+    return older ? "\nCONFIRMED MANUAL\n" + older : "";
   }
-
-  if (older.length > 0) {
-    block += "EARLIER ENTRIES (compressed — full content lives in the Manual):\n";
-    for (const entry of older) {
-      block += compressManualEntry(entry) + "\n";
-    }
-    block += "\n";
-  }
-
-  return block;
+  return recent + older;
 }
 
 function partitionEntries(

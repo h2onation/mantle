@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { formatExtractionForPersona, type ExtractionState } from "@/lib/persona/extraction";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
@@ -446,5 +448,39 @@ describe("formatExtractionForPersona", () => {
       expect(missIdx).toBeGreaterThanOrEqual(0);
       expect(briefIdx).toBeGreaterThan(missIdx);
     });
+  });
+});
+
+// ── Prompt-cache wiring ──
+// Extraction is per-turn and runs against a hefty system prompt
+// (EXTRACTION_SYSTEM — the five-layer model, all analysis priorities,
+// JSON shape). Caching the system block cuts the extractor's input cost
+// dramatically. Source-contract tests because the API silently degrades
+// to an uncached call when the request shape is wrong.
+
+describe("extraction — prompt-cache wiring", () => {
+  const src = readFileSync(
+    join(process.cwd(), "src/lib/persona/extraction.ts"),
+    "utf-8"
+  );
+
+  it("sends `system` as an array containing EXTRACTION_SYSTEM with cache_control", () => {
+    // Look for the anthropicFetch call shape: array literal with the
+    // EXTRACTION_SYSTEM constant marked ephemeral.
+    expect(src).toMatch(
+      /system:\s*\[\s*\{\s*type:\s*"text",\s*text:\s*EXTRACTION_SYSTEM,\s*cache_control:\s*\{\s*type:\s*"ephemeral"\s*\}/
+    );
+  });
+
+  it("emits a cache_performance log event with surface=extraction", () => {
+    expect(src).toContain('event: "cache_performance"');
+    expect(src).toContain('surface: "extraction"');
+    expect(src).toContain("response.usage?.cache_read_input_tokens");
+    expect(src).toContain("response.usage?.cache_creation_input_tokens");
+  });
+
+  it("references the response.usage shape (extends AnthropicResponse contract)", () => {
+    expect(src).toContain("response.usage?.input_tokens");
+    expect(src).toContain("response.usage?.output_tokens");
   });
 });

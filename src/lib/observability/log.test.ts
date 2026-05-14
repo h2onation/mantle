@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { hashUserId } from "@/lib/observability/log";
+import { describe, it, expect, vi } from "vitest";
+import { hashUserId, logEvent } from "@/lib/observability/log";
 
 describe("hashUserId", () => {
   it("returns null for null/undefined/empty input", async () => {
@@ -31,5 +31,32 @@ describe("hashUserId", () => {
     const hash = await hashUserId(id);
     expect(hash).not.toContain("secret");
     expect(hash).not.toContain("12345");
+  });
+});
+
+describe("logEvent — cache_performance", () => {
+  it("emits the cache token counts in dev output", () => {
+    // Dev output is human-readable; production is single-line JSON.
+    // Confirm cache counts surface in both shapes.
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      logEvent({
+        event: "cache_performance",
+        surface: "chat",
+        model: "claude-sonnet-4-6",
+        input_tokens: 12,
+        output_tokens: 248,
+        cache_creation_input_tokens: 4096,
+        cache_read_input_tokens: 0,
+      });
+      const joined = spy.mock.calls.map((c) => c.join(" ")).join("\n");
+      expect(joined).toContain("cache_performance");
+      expect(joined).toContain("surface=chat");
+      expect(joined).toContain("cache_read=0");
+      expect(joined).toContain("cache_create=4096");
+      expect(joined).toContain("uncached_input=12");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

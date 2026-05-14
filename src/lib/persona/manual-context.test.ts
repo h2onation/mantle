@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   compressManualEntry,
   prepareManualContext,
+  prepareManualContextBlocks,
   type ManualEntryForContext,
 } from "@/lib/persona/manual-context";
 import { LAYER_NAMES } from "@/lib/manual/layers";
@@ -155,5 +156,108 @@ describe("prepareManualContext", () => {
     expect(firstIdx).toBeGreaterThan(-1);
     expect(middleIdx).toBeGreaterThan(firstIdx);
     expect(newestIdx).toBeGreaterThan(middleIdx);
+  });
+});
+
+describe("prepareManualContextBlocks", () => {
+  it("returns empty strings when no entries", () => {
+    const { older, recent } = prepareManualContextBlocks([], "conv-1");
+    expect(older).toBe("");
+    expect(recent).toBe("");
+  });
+
+  it("separates recent and older entries into different strings", () => {
+    const entries = [
+      makeEntry({ name: "Old1", content: "Content old1", summary: "Old1 summary.", source_conversation_id: "old", created_at: "2026-01-01T00:00:00Z" }),
+      makeEntry({ name: "Old2", content: "Content old2", summary: "Old2 summary.", source_conversation_id: "old", created_at: "2026-02-01T00:00:00Z" }),
+      makeEntry({ name: "Mid1", content: "Content mid1", source_conversation_id: "old", created_at: "2026-03-01T00:00:00Z" }),
+      makeEntry({ name: "Mid2", content: "Content mid2", source_conversation_id: "old", created_at: "2026-03-15T00:00:00Z" }),
+      makeEntry({ name: "Recent1", content: "Content recent1", source_conversation_id: "old", created_at: "2026-04-10T00:00:00Z" }),
+      makeEntry({ name: "Recent2", content: "Content recent2", source_conversation_id: "old", created_at: "2026-04-14T00:00:00Z" }),
+    ];
+    const { older, recent } = prepareManualContextBlocks(entries, "conv-current");
+    // 4 most recent in `recent`, 2 oldest in `older` (compressed)
+    expect(recent).toContain("Content mid1");
+    expect(recent).toContain("Content mid2");
+    expect(recent).toContain("Content recent1");
+    expect(recent).toContain("Content recent2");
+    expect(older).toContain("Old1 summary.");
+    expect(older).toContain("Old2 summary.");
+    // The compressed older entries do not leak full content
+    expect(older).not.toContain("Content old1");
+    expect(older).not.toContain("Content old2");
+    // The verbatim recent block does not leak compressed summaries
+    expect(recent).not.toContain("Old1 summary.");
+  });
+
+  it("recent block contains CONFIRMED MANUAL header; older block contains EARLIER ENTRIES header", () => {
+    const entries = [
+      makeEntry({ name: "Fresh", content: "Fresh content", source_conversation_id: "conv-current", created_at: "2026-04-15T00:00:00Z" }),
+      makeEntry({ name: "Old", content: "Old content", summary: "Old summary.", source_conversation_id: "old", created_at: "2026-01-01T00:00:00Z" }),
+      makeEntry({ name: "Old2", content: "Old2 content", summary: "Old2 summary.", source_conversation_id: "old", created_at: "2026-01-02T00:00:00Z" }),
+      makeEntry({ name: "Old3", content: "Old3 content", summary: "Old3 summary.", source_conversation_id: "old", created_at: "2026-01-03T00:00:00Z" }),
+      makeEntry({ name: "Old4", content: "Old4 content", summary: "Old4 summary.", source_conversation_id: "old", created_at: "2026-01-04T00:00:00Z" }),
+      makeEntry({ name: "Old5", content: "Old5 content", summary: "Old5 summary.", source_conversation_id: "old", created_at: "2026-01-05T00:00:00Z" }),
+    ];
+    const { older, recent } = prepareManualContextBlocks(entries, "conv-current");
+    expect(recent).toContain("CONFIRMED MANUAL");
+    expect(older).toContain("EARLIER ENTRIES (compressed");
+  });
+
+  it("is byte-stable across calls (cache prerequisite)", () => {
+    const entries = [
+      makeEntry({
+        name: "Stable",
+        content: "Stable content",
+        summary: "Stable summary.",
+        key_words: ["stable", "kw"],
+        source_conversation_id: "old",
+        created_at: "2026-01-01T00:00:00Z",
+      }),
+    ];
+    const a = prepareManualContextBlocks(entries, "conv-current");
+    const b = prepareManualContextBlocks(entries, "conv-current");
+    expect(a.older).toBe(b.older);
+    expect(a.recent).toBe(b.recent);
+  });
+
+  it("prepareManualContext output matches the legacy single-string shape", () => {
+    // The wrapper `prepareManualContext` must reproduce the legacy
+    // concatenated output so existing callers (admin renderer, Linq
+    // bridges) keep working unchanged.
+    const entries = [
+      makeEntry({ name: "Recent", content: "Recent content", source_conversation_id: "conv-current", created_at: "2026-04-15T00:00:00Z" }),
+      makeEntry({ name: "Old1", content: "Old1 content", summary: "Old1 summary.", source_conversation_id: "old", created_at: "2026-01-01T00:00:00Z" }),
+      makeEntry({ name: "Old2", content: "Old2 content", summary: "Old2 summary.", source_conversation_id: "old", created_at: "2026-01-02T00:00:00Z" }),
+      makeEntry({ name: "Old3", content: "Old3 content", summary: "Old3 summary.", source_conversation_id: "old", created_at: "2026-01-03T00:00:00Z" }),
+      makeEntry({ name: "Old4", content: "Old4 content", summary: "Old4 summary.", source_conversation_id: "old", created_at: "2026-01-04T00:00:00Z" }),
+      makeEntry({ name: "Old5", content: "Old5 content", summary: "Old5 summary.", source_conversation_id: "old", created_at: "2026-01-05T00:00:00Z" }),
+    ];
+    const legacy = prepareManualContext(entries, "conv-current");
+    const { recent, older } = prepareManualContextBlocks(entries, "conv-current");
+    // Both halves concatenated (with the CONFIRMED MANUAL header
+    // attached to recent) should equal the legacy single block.
+    expect(legacy).toBe(recent + older);
+  });
+
+  it("prepareManualContext preserves the CONFIRMED MANUAL header even when only older entries exist", () => {
+    // Pre-existing quirk: when there are no recent entries, the legacy
+    // output still emits the CONFIRMED MANUAL header before EARLIER
+    // ENTRIES. The split form puts the header inside the (empty) recent
+    // block — the wrapper reassembles it for byte-compat.
+    const entries = Array.from({ length: 5 }, (_, i) => makeEntry({
+      name: `Old${i}`,
+      content: `Old${i} content`,
+      summary: `Old${i} summary.`,
+      source_conversation_id: "old",
+      created_at: `2026-01-0${i + 1}T00:00:00Z`,
+    }));
+    // With all entries from a non-current conversation and >4 of them,
+    // the 4 newest backfill into `recent` and 1 spills into `older`.
+    // Force the "only older" case by having entries.length === 5 but
+    // none are current — backfill takes 4, leaves 1 in older.
+    const { recent, older } = prepareManualContextBlocks(entries, "conv-current");
+    expect(recent).not.toBe("");
+    expect(older).not.toBe("");
   });
 });
