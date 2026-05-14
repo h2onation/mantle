@@ -11,7 +11,6 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 import { trackManualExported } from "@/lib/analytics/events";
 import TopBar from "@/components/shared/TopBar";
 
-const MANUAL_INTRO_KEY = "mw_manual_intro_seen";
 
 interface MobileManualProps {
   entries: ManualEntry[];
@@ -30,20 +29,6 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showIntroModal, setShowIntroModal] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !localStorage.getItem(MANUAL_INTRO_KEY);
-  });
-
-  function dismissIntro() {
-    localStorage.setItem(MANUAL_INTRO_KEY, "1");
-    setShowIntroModal(false);
-  }
-
-  function handleTalkToPersona() {
-    dismissIntro();
-    onNavigateToSession?.();
-  }
 
   const doExportAndShare = useCallback(async () => {
     setShowSheet(false);
@@ -99,7 +84,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
         }}
       >
         {/* Page title — total count eyebrow + heading */}
-        <div style={{ padding: "20px 24px 24px" }}>
+        <div style={{ padding: "20px 24px 20px" }}>
           {totalEntries > 0 && (
             <p
               style={{
@@ -417,113 +402,6 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
         </div>
       )}
 
-      {/* First-visit intro modal */}
-      {showIntroModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="manual-intro-heading"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 400,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "var(--session-backdrop-heavy)",
-          }}
-        >
-          <div
-            style={{
-              width: "calc(100% - 48px)",
-              maxWidth: 380,
-              backgroundColor: "var(--session-cream)",
-              border: "1px solid var(--session-walnut-border)",
-              borderRadius: "18px",
-              padding: "32px 24px",
-              backdropFilter: "blur(28px) saturate(140%)",
-              WebkitBackdropFilter: "blur(28px) saturate(140%)",
-            }}
-          >
-            <p
-              id="manual-intro-heading"
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: 17,
-                fontWeight: 400,
-                color: "var(--session-ink)",
-                lineHeight: 1.55,
-                margin: "0 0 16px 0",
-                letterSpacing: "-0.2px",
-              }}
-            >
-              This is your manual. It&apos;s a guide to how you operate, built
-              from your conversations with {PERSONA_NAME}.
-            </p>
-            <p
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                color: "var(--session-ink-soft)",
-                lineHeight: 1.6,
-                margin: "0 0 12px 0",
-              }}
-            >
-              Each section fills in as you talk. {PERSONA_NAME} will surface patterns,
-              reflect them back, and you decide what&apos;s accurate. Nothing
-              writes without your say.            </p>
-            <p
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                color: "var(--session-ink-soft)",
-                lineHeight: 1.6,
-                margin: "0 0 28px 0",
-              }}
-            >
-              Start a conversation and your manual will take shape.
-            </p>
-
-            <button
-              onClick={handleTalkToPersona}
-              style={{
-                width: "100%",
-                padding: 14,
-                fontFamily: "var(--font-sans)",
-                fontSize: 15,
-                fontWeight: 500,
-                color: "var(--session-cream)",
-                backgroundColor: "var(--session-persona)",
-                border: "none",
-                borderRadius: 0,
-                cursor: "pointer",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              Talk to {PERSONA_NAME}
-            </button>
-            <button
-              onClick={dismissIntro}
-              style={{
-                display: "block",
-                width: "100%",
-                marginTop: 10,
-                padding: "10px 0",
-                fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                fontWeight: 400,
-                color: "var(--session-ink-ghost)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

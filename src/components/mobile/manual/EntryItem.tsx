@@ -11,9 +11,10 @@ interface EntryCardProps {
   layerName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   readOnly?: boolean;
+  showDivider?: boolean;
 }
 
-export default function EntryItem({ entry, layerId, layerName, onExploreWithPersona, readOnly }: EntryCardProps) {
+export default function EntryItem({ entry, layerId, layerName, onExploreWithPersona, readOnly, showDivider }: EntryCardProps) {
   const [expanded, setExpanded] = useState(readOnly ? true : false);
 
   const toggle = readOnly ? undefined : () => setExpanded((v) => !v);
@@ -21,16 +22,11 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
   return (
     <div
       style={{
-        background: "var(--session-walnut-surface)",
-        border: "1px solid var(--session-walnut-border)",
-        borderRadius: "12px",
         padding: "14px 18px",
-        marginBottom: 10,
-        backdropFilter: "blur(20px) saturate(130%)",
-        WebkitBackdropFilter: "blur(20px) saturate(130%)",
+        background: "var(--session-walnut-surface)",
+        ...(showDivider ? { borderTop: "1px solid rgba(170,120,82,0.14)" } : {}),
       }}
     >
-      {/* Title row — clickable with chevron */}
       <div
         onClick={toggle}
         role={readOnly ? undefined : "button"}
@@ -42,6 +38,7 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
           alignItems: "center",
           cursor: readOnly ? "default" : "pointer",
           gap: "12px",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
         <span
@@ -67,7 +64,7 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
             style={{
               flexShrink: 0,
               transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s ease",
+              transition: "transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
               color: "var(--session-ink-ghost)",
             }}
           >
@@ -76,56 +73,56 @@ export default function EntryItem({ entry, layerId, layerName, onExploreWithPers
         )}
       </div>
 
-      {/* Body — shown when expanded */}
       {(expanded || readOnly) && (
-        <div
-          style={{
-            marginTop: 10,
-            fontFamily: "var(--font-spectral), var(--font-serif), serif",
-            fontSize: 15,
-            fontWeight: 400,
-            lineHeight: 1.65,
-            color: "var(--session-ink-soft)",
-            whiteSpace: "pre-line" as const,
-          }}
-        >
-          {entry.body}
-        </div>
-      )}
+        <div style={{ marginTop: 12 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontSize: 15,
+              fontWeight: 400,
+              lineHeight: 1.65,
+              color: "var(--session-ink-soft)",
+              whiteSpace: "pre-line" as const,
+            }}
+          >
+            {entry.body}
+          </div>
 
-      {/* Explore further — walnut mono-caps TextBtn pattern */}
-      {expanded && !readOnly && onExploreWithPersona && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onExploreWithPersona({
-              layerId,
-              layerName,
-              type: "entry",
-              name: entry.name,
-              content: entry.body,
-            });
-          }}
-          style={{
-            all: "unset",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--sp-xs)",
-            cursor: "pointer",
-            marginTop: 14,
-            paddingBottom: 2,
-            borderBottom: "1px solid var(--session-walnut)",
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            color: "var(--session-walnut)",
-          }}
-          aria-label={`Explore further with ${PERSONA_NAME}`}
-        >
-          <span>Explore further</span>
-          <span aria-hidden="true">›</span>
-        </button>
+          {expanded && !readOnly && onExploreWithPersona && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onExploreWithPersona({
+                  layerId,
+                  layerName,
+                  type: "entry",
+                  name: entry.name,
+                  content: entry.body,
+                });
+              }}
+              style={{
+                all: "unset",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+                marginTop: 12,
+                paddingBottom: 2,
+                borderBottom: "1px solid var(--session-walnut)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut)",
+                WebkitTapHighlightColor: "transparent",
+              }}
+              aria-label={`Explore further with ${PERSONA_NAME}`}
+            >
+              <span>Explore further</span>
+              <span aria-hidden="true">›</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
