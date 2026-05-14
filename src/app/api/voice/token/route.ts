@@ -1,16 +1,10 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 
 export async function POST() {
-  // Verify auth
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
 
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {

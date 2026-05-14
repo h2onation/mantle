@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
@@ -25,21 +25,19 @@ export async function POST(request: Request) {
   const reqId = request.headers.get("x-vercel-id") || null;
 
   // 1. Authenticate
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    logEvent({
-      event: "confirm_outcome",
-      req_id: reqId,
-      outcome: "unauthorized",
-      status_code: 401,
-      duration_ms: Date.now() - startedAt,
-    });
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser({
+    onUnauthorized: () => {
+      logEvent({
+        event: "confirm_outcome",
+        req_id: reqId,
+        outcome: "unauthorized",
+        status_code: 401,
+        duration_ms: Date.now() - startedAt,
+      });
+    },
+  });
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const userIdHash = await hashUserId(user.id);
 

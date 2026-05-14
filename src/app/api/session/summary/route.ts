@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateSessionSummary } from "@/lib/persona/generate-summary";
 import {
@@ -13,15 +13,10 @@ import { recordApiError } from "@/lib/observability/record-api-error";
 export async function POST(request: Request) {
   let capturedUserId: string | null = null;
   try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    capturedUserId = user?.id ?? null;
-
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth instanceof Response) return auth;
+    const { user } = auth;
+    capturedUserId = user.id;
 
     const limit = await checkLimit(sessionSummaryHour, user.id);
     if (!limit.success) {

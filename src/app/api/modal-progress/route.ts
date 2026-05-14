@@ -16,7 +16,7 @@
 //   UPDATE profiles SET modal_progress = 0 WHERE id = '<user_id>';
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordApiError } from "@/lib/observability/record-api-error";
 
@@ -27,15 +27,9 @@ export async function GET() {
   const admin = createAdminClient();
 
   try {
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-    }
+    const auth = await requireUser({ errorMessage: "unauthenticated" });
+    if (auth instanceof Response) return auth;
+    const { user } = auth;
     capturedUserId = user.id;
 
     const { data: profile, error: readError } = await admin
@@ -74,15 +68,9 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
 
   try {
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-    }
+    const auth = await requireUser({ errorMessage: "unauthenticated" });
+    if (auth instanceof Response) return auth;
+    const { user } = auth;
     capturedUserId = user.id;
 
     const body = (await req.json().catch(() => null)) as

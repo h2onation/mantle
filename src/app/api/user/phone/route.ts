@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
@@ -16,14 +16,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const admin = createAdminClient();
   const { data: row } = await admin
@@ -50,14 +45,9 @@ export async function GET() {
 // sends the raw code to the phone via Linq. Verification happens in
 // /api/user/phone/verify after the user submits the code.
 export async function POST(request: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const body = await request.json();
   const { phone_number: rawPhone } = body as { phone_number?: string };
@@ -188,14 +178,9 @@ export async function POST(request: NextRequest) {
 
 // ── DELETE: unlink phone number ───────────────────────────────────
 export async function DELETE() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof Response) return auth;
+  const { user } = auth;
 
   const admin = createAdminClient();
   await admin

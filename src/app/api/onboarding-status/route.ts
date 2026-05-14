@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
 
 // Returns whether the authenticated user has completed onboarding.
 // Used by MainApp on mount to gate the app behind the InfoScreens +
@@ -9,16 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return Response.json({ error: "unauthenticated" }, { status: 401 });
-  }
+  const auth = await requireUser({ errorMessage: "unauthenticated" });
+  if (auth instanceof Response) return auth;
+  const { user, supabase } = auth;
 
   const { data, error } = await supabase
     .from("profiles")
