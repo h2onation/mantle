@@ -7,6 +7,14 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+// Pragmatic format check — Postgres won't validate, and we'd rather catch
+// obvious junk before hitting the DB. Anything stricter rejects valid
+// edge-case addresses.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email);
+}
+
 /**
  * Returns true if the given email (after lowercase + trim) appears in
  * beta_allowlist. Errors fail CLOSED — if we cannot confirm allowlist

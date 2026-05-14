@@ -8,7 +8,7 @@ import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 import { LAYER_NAMES } from "@/lib/manual/layers";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
@@ -59,7 +59,7 @@ interface MobileSessionProps {
   sendChipResponse: (text: string) => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
-    action: "confirmed" | "rejected" | "refined" | "deferred",
+    action: CheckpointAction,
     edits?: { editedContent?: string | null; editedName?: string | null }
   ) => void;
   startGuidedIntake: () => Promise<boolean>;
@@ -140,7 +140,7 @@ export default function MobileSession({
   }, [modalProgress, isAnonymous, activeCheckpoint]);
   const [chipsVisible, setChipsVisible] = useState(true);
   useEffect(() => { setChipsVisible(true); }, [conversationId]);
-  const [checkpointActionState, setCheckpointActionState] = useState<"confirmed" | "refined" | "rejected" | "deferred" | null>(null);
+  const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const [checkpointReady, setCheckpointReady] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -207,6 +207,16 @@ export default function MobileSession({
 
   const hasMessages = messages.length > 0;
   const isReturning = confirmedEntries.length > 0;
+  const refinementCeilingActive = useMemo(
+    () =>
+      activeCheckpoint !== null &&
+      messages.some(
+        (m) =>
+          m.id === activeCheckpoint.messageId &&
+          (m.checkpointMeta?.refinement_count ?? 0) >= 2
+      ),
+    [activeCheckpoint, messages]
+  );
   const hasRealName =
     !!firstName &&
     firstName !== "User" &&
@@ -218,7 +228,7 @@ export default function MobileSession({
   );
   const greeting = isReturning
     ? RETURNING_GREETINGS[greetingIndex](hasRealName ? firstName : null)
-    : "Hello,\nI’m Jove.";
+    : `Hello,\nI’m ${PERSONA_NAME}.`;
 
   const showEntryCards = chipsVisible && !hasMessages && !isLoading;
   const entryCards = showEntryCards ? (
@@ -374,7 +384,7 @@ export default function MobileSession({
             color: "var(--session-ink-mid)",
             marginTop: "2px",
             lineHeight: 1.3,
-          }}>Let Jove lead with questions</div>
+          }}>Let {PERSONA_NAME} lead with questions</div>
         </div>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
           <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -965,7 +975,7 @@ export default function MobileSession({
                     }
                   >
                     <span
-                      aria-label={composingMessage ? composingMessage : "Jove is typing"}
+                      aria-label={composingMessage ? composingMessage : `${PERSONA_NAME} is typing`}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
@@ -1070,14 +1080,7 @@ export default function MobileSession({
               ? LAYER_ORDINAL[overlayCheckpointRef.current.layer]
               : undefined
           }
-          refinementCeilingActive={
-            activeCheckpoint !== null &&
-            messages.some(
-              (m) =>
-                m.id === activeCheckpoint.messageId &&
-                (m.checkpointMeta?.refinement_count ?? 0) >= 2
-            )
-          }
+          refinementCeilingActive={refinementCeilingActive}
           confirmStatus={
             checkpointActionState !== "confirmed"
               ? "idle"

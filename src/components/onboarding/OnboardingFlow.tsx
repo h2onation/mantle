@@ -14,6 +14,8 @@ export default function OnboardingFlow() {
   const [loginMode, setLoginMode] = useState<"login" | "signup">("login");
   const checkedRef = useRef(false);
 
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Show UI immediately — middleware already handles redirecting
   // authenticated users from /login to /. No need to duplicate that
   // check here (doing so causes redirect loops with stale cookies).
@@ -23,9 +25,16 @@ export default function OnboardingFlow() {
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    };
+  }, []);
+
   const fadeToView = useCallback((view: ViewName, duration = 400) => {
     setViewOpacity(0);
-    setTimeout(() => {
+    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    fadeTimeoutRef.current = setTimeout(() => {
       setCurrentView(view);
       setViewOpacity(1);
     }, duration);

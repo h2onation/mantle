@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
 
-type CheckpointAction = "confirmed" | "rejected" | "refined" | "deferred";
+import type { CheckpointAction } from "@/lib/persona/config";
 
 interface CheckpointEdits {
   editedContent?: string | null;

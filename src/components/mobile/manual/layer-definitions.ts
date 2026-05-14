@@ -1,6 +1,8 @@
 import type { ManualEntry } from "@/lib/types";
 import { LAYERS } from "@/lib/manual/layers";
 
+export const LAYER_ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
+
 export interface Entry {
   id: string;
   name: string;

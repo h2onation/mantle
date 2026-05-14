@@ -1,9 +1,8 @@
 export const runtime = "edge";
 
-import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
-// Realistic Sage-style narratives for each layer, ~150-200 words each.
+// Realistic Jove-style narratives for each layer, ~150-200 words each.
 const LAYER_CONTENT: Record<number, string> = {
   1: `There's a through-line in everything you've described — the late nights, the solo problem-solving, the way you instinctively pull back when someone tries to help. It's not stubbornness. It's a deep, structural need for autonomy.
 
@@ -41,10 +40,9 @@ The deeper pattern is this: you treat closeness as something you earn through co
 };
 
 export async function POST(request: Request) {
-  const { userId, isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
+  const { userId, admin } = auth;
 
   const { layers } = (await request.json()) as { layers: number[] };
 
@@ -57,8 +55,6 @@ export async function POST(request: Request) {
   if (validLayers.length === 0) {
     return Response.json({ error: "No valid layers (1-5)" }, { status: 400 });
   }
-
-  const admin = createAdminClient();
 
   // Narrowed delete — only removes prior populate-shaped rows (null name).
   // Real confirm-generated entries always have a name from composition, so

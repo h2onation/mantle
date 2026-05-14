@@ -43,26 +43,6 @@ export default function MainApp() {
     signupAtMs: number | null;
     isAnonymous: boolean;
   } | null>(null);
-  // Distinguishes "GET in-flight" from "GET completed with no data
-  // (failure / unauthenticated)." Both leave modalState === null, but
-  // with this flag the difference is observable:
-  //   modalStateLoading === true  → we're still waiting (keep closed)
-  //   modalStateLoading === false
-  //     && modalState === null    → we tried and nothing came back
-  //   modalStateLoading === false
-  //     && modalState !== null    → loaded, use values
-  // Current behavior is fail-open in both null cases (Modal 3 does not
-  // fire without a known modal_progress). The flag is here so future
-  // observability or retry logic can tell the cases apart without
-  // changing the default fail-open behavior. Track A Gate 6.
-  //
-  // The read side of this useState is intentionally unused for now —
-  // the setter fires in the fetch's finally block so the state is
-  // kept up to date for whenever a consumer wires in. Flagged in the
-  // Track A ship notes; if no consumer arrives within a few weeks,
-  // the next engineer to read this comment can delete safely.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [modalStateLoading, setModalStateLoading] = useState(true);
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // One-time migration: rename mantle_* localStorage keys to mw_*
@@ -152,8 +132,6 @@ export default function MainApp() {
         });
       } catch (err) {
         console.error("[MainApp] modal-progress fetch failed:", err);
-      } finally {
-        if (!cancelled) setModalStateLoading(false);
       }
     })();
     return () => {
@@ -220,6 +198,12 @@ export default function MainApp() {
   // Fire manual_viewed when the user lands on the manual tab. Days-since
   // is a rough retention signal computed from a localStorage timestamp —
   // no server round-trip; PostHog can aggregate visit counts itself.
+  //
+  // Effect depends only on activeView so the event fires once per tab visit,
+  // not on every entry-add while the tab is open. entry_count is read at fire
+  // time via a ref to avoid the stale-closure problem.
+  const entryCountRef = useRef(confirmedEntries.length);
+  entryCountRef.current = confirmedEntries.length;
   useEffect(() => {
     if (activeView !== "manual") return;
     const stored = localStorage.getItem(MANUAL_LAST_VIEW_KEY);
@@ -228,11 +212,11 @@ export default function MainApp() {
       ? Math.max(0, Math.round((now - Number(stored)) / (1000 * 60 * 60 * 24)))
       : null;
     trackManualViewed({
-      entry_count: confirmedEntries.length,
+      entry_count: entryCountRef.current,
       days_since_last_view: daysSinceLastView,
     });
     localStorage.setItem(MANUAL_LAST_VIEW_KEY, String(now));
-  }, [activeView, confirmedEntries.length]);
+  }, [activeView]);
 
   // Inline sign-in banner state
   const [bannerAuthRequested, setBannerAuthRequested] = useState(false);
@@ -278,7 +262,7 @@ export default function MainApp() {
     setExplorationPhase("revealing");
     await sleep(350);
 
-    // Done — session is showing with thinking dots while Sage generates
+    // Done — session is showing with thinking dots while Jove generates
     setExplorationPhase(null);
   }, [startExploration]);
 
@@ -454,6 +438,7 @@ export default function MainApp() {
         settingsContent={
           <MobileSettings
             userEmail={userEmail}
+            isActive={activeView === "settings"}
             onSimulationEvent={handleSimulationEvent}
             onPopulateComplete={loadManual}
             onOpenDrawer={handleOpenDrawer}

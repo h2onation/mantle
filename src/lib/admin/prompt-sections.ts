@@ -4,6 +4,7 @@ import {
   type PersonaMode,
   type OneOnOnePromptOptions,
 } from "@/lib/persona/system-prompt";
+import type { ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,7 +51,7 @@ export interface PhaseData {
   changes: string[];
 }
 
-type ConvMode = "situation" | "guided-intake" | "upload";
+type ConvMode = ConversationMode;
 
 // ---------------------------------------------------------------------------
 // Section header definitions — ordered by expected appearance in the prompt.

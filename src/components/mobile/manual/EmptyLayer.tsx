@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import type { Layer } from "./layer-definitions";
-
-const ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
+import { LAYER_ROMAN, type Layer } from "./layer-definitions";
 
 interface EmptyLayerProps {
   layer: Layer;
@@ -36,7 +34,7 @@ export default function EmptyLayer({ layer }: EmptyLayerProps) {
             flexShrink: 0,
           }}
         >
-          {ROMAN[layer.id]}
+          {LAYER_ROMAN[layer.id]}
         </span>
         <span
           style={{

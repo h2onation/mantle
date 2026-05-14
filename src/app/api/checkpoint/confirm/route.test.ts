@@ -18,7 +18,7 @@ let adminMessageResponse: { data: unknown; error: unknown } = {
   error: null,
 };
 let adminConvResponse: { data: unknown; error: unknown } = {
-  data: { user_id: "u1" },
+  data: { id: "c1", user_id: "u1" },
   error: null,
 };
 let adminSelectCallCount = 0;
@@ -103,7 +103,7 @@ beforeEach(() => {
     },
     error: null,
   };
-  adminConvResponse = { data: { user_id: "u1" }, error: null };
+  adminConvResponse = { data: { id: "c1", user_id: "u1" }, error: null };
   mockGetUser.mockResolvedValue({
     data: { user: { id: "u1", is_anonymous: false } },
   });

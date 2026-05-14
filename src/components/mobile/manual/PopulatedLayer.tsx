@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
-import type { Layer } from "./layer-definitions";
+import { LAYER_ROMAN, type Layer } from "./layer-definitions";
 import EntryItem from "./EntryItem";
 import type { ExplorationContext } from "@/lib/types";
-
-const ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
 
 interface PopulatedLayerProps {
   layer: Layer;
@@ -50,7 +48,7 @@ export default function PopulatedLayer({ layer, onExploreWithPersona, readOnly }
               flexShrink: 0,
             }}
           >
-            {ROMAN[layer.id]}
+            {LAYER_ROMAN[layer.id]}
           </span>
           <span
             style={{

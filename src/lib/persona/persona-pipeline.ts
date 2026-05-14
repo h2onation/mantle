@@ -20,8 +20,8 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const PERSONA_MODEL = "claude-sonnet-4-6";
-export const PERSONA_MAX_TOKENS = 2048;
+import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction } from "./config";
+export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
   "\n\nIf you're in crisis or need immediate support, please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. You can also text HOME to 741741 to reach the Crisis Text Line. Both are free, confidential, and available now.";
@@ -628,25 +628,6 @@ export function validateResponseStructure(
 }
 
 // ── 4b. Checkpoint action system message ────────────────────────────────────
-//
-// Single source of truth for the system messages inserted after checkpoint
-// actions. These strings must stay in sync with mapSystemMessages() in
-// call-persona.ts — if you change the wording here, update the mapping there.
-
-const CHECKPOINT_ACTION_MESSAGES: Record<string, string> = {
-  confirmed: "[User confirmed the checkpoint]",
-  rejected: "[User rejected the checkpoint]",
-  refined: "[User wants to refine the checkpoint]",
-  // Track A Phase 7-Mid: separate system message for the
-  // refinement-ceiling "Let it go" path. DB status maps to "rejected"
-  // (same downstream behavior — entry is closed, nothing written to
-  // manual_entries) but Jove sees this distinct message so the
-  // POST-REJECTION fixed line does not fire. The user has already
-  // explained twice what was off; the rejection probe would be wrong.
-  deferred: "[User let the checkpoint go]",
-};
-
-export type CheckpointAction = "confirmed" | "rejected" | "refined" | "deferred";
 
 /**
  * Insert the canonical system message for a checkpoint action.
@@ -661,7 +642,7 @@ export async function insertCheckpointActionMessage(
   await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "system",
-    content: CHECKPOINT_ACTION_MESSAGES[action],
+    content: CHECKPOINT_ACTIONS[action].systemMessage,
   });
 }
 

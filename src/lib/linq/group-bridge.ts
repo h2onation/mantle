@@ -9,8 +9,8 @@
 //   - No extraction pipeline (group messages don't feed the manual)
 //   - No checkpoint detection
 //   - No typing indicators (Linq 403s on group typing)
-//   - Handles [NO_RESPONSE] token (Sage can choose to stay quiet)
-//   - Sender identity prefixed on each message so Sage knows who said what
+//   - Handles [NO_RESPONSE] token (Jove can choose to stay quiet)
+//   - Sender identity prefixed on each message so Jove knows who said what
 //
 // Latency design: The webhook handler calls prefetchGroupContext() once,
 // then passes the result to both processGroupMessage and saveGroupMessage.
@@ -23,6 +23,7 @@ import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/persona-pipeline";
 import { type GroupState } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
+import { firstNameOrNull } from "@/lib/utils/name";
 
 const NO_RESPONSE_TOKEN = "[NO_RESPONSE]";
 const GROUP_PERSONA_TIMEOUT_MS = 15_000;
@@ -48,7 +49,7 @@ export interface PreFetchedContext {
  *   - getOrCreateGroupConversation
  *   - phone_numbers lookup (for sender label)
  *   - profiles lookup (for display name)
- *   - manual_entries lookup (for Sage's system prompt)
+ *   - manual_entries lookup (for Jove's system prompt)
  */
 export async function prefetchGroupContext(
   groupState: GroupState,
@@ -91,8 +92,7 @@ export async function prefetchGroupContext(
     ]);
 
   const ownerUserPhone = phoneResult.data?.phone ?? null;
-  const displayName = profileResult.data?.display_name as string | null;
-  const ownerUserName = displayName?.split(/\s+/)[0] ?? null;
+  const ownerUserName = firstNameOrNull(profileResult.data?.display_name as string | null);
   let manualComponents = manualResult.data || [];
 
   // Determine sender label
@@ -129,7 +129,7 @@ export async function prefetchGroupContext(
 // ---------------------------------------------------------------------------
 
 export interface GroupBridgeResult {
-  /** Sage's response text, or null if Sage chose not to respond */
+  /** Jove's response text, or null if Jove chose not to respond */
   responseText: string | null;
   conversationId: string;
 }
@@ -138,14 +138,14 @@ interface GroupMessageInput {
   linqChatId: string;
   senderPhone: string;
   messageText: string;
-  /** When true, prepend a nudge hint so Sage knows it's been quiet for a while */
+  /** When true, prepend a nudge hint so Jove knows it's been quiet for a while */
   nudgeHint?: boolean;
   /** Pre-fetched context from prefetchGroupContext() */
   prefetched: PreFetchedContext;
 }
 
 /**
- * Process a group chat message through Sage (facilitator mode).
+ * Process a group chat message through Jove (facilitator mode).
  *
  * Uses pre-fetched context to avoid redundant DB queries.
  * Remaining DB work: insert message, load history.
@@ -197,7 +197,7 @@ export async function processGroupMessage(
   // Keep a reasonable window — group chats can get chatty
   let windowedMessages = messages.slice(-30);
 
-  // If nudge hint is active, append a hint so Sage knows it's been quiet.
+  // If nudge hint is active, append a hint so Jove knows it's been quiet.
   // Anthropic requires alternating user/assistant roles, so we merge the hint
   // into an existing user message or add a new one as appropriate.
   if (nudgeHint && windowedMessages.length > 0) {
@@ -227,7 +227,7 @@ export async function processGroupMessage(
     groupContext: { ownerUserName },
   });
 
-  // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
+  // 4. Call Jove (non-streaming, shorter timeout than 1:1 — silence is fine in groups)
   const response = await anthropicFetch(
     {
       model: PERSONA_MODEL,
@@ -252,7 +252,7 @@ export async function processGroupMessage(
     return { responseText: null, conversationId };
   }
 
-  // 6. Save Sage's response
+  // 6. Save Jove's response
   const { error: saveErr } = await admin.from("messages").insert({
     conversation_id: conversationId,
     role: "assistant",
@@ -277,8 +277,8 @@ export async function processGroupMessage(
 }
 
 /**
- * Save a group message without calling Sage. Used when the message gate
- * returns SKIP — the message is stored for future context but Sage doesn't
+ * Save a group message without calling Jove. Used when the message gate
+ * returns SKIP — the message is stored for future context but Jove doesn't
  * see it in real time.
  *
  * Uses pre-fetched context — just a single DB insert.

@@ -2,7 +2,7 @@
 // Group chat detection — identifies owner users and sends introductions.
 //
 // Called from the webhook handler when:
-//   - participant.added fires with Sage's phone number
+//   - participant.added fires with Jove's phone number
 //   - message.received arrives from an unknown is_group chat
 //   - chat.created fires for a group chat
 //
@@ -20,6 +20,7 @@ import {
   type GroupState,
 } from "./group-state";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
+import { firstNameOrNull } from "@/lib/utils/name";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 const INTRO_NO_ACCOUNTS =
@@ -199,9 +200,7 @@ async function sendIntroduction(
     .eq("id", state.owner_user_id)
     .maybeSingle();
 
-  // Extract first name from display_name (take first word)
-  const displayName = profile?.display_name as string | null;
-  const firstName = displayName?.split(/\s+/)[0] ?? null;
+  const firstName = firstNameOrNull(profile?.display_name as string | null);
 
   const introText = firstName
     ? `Hey, I'm ${PERSONA_NAME_FORMAL} by mywalnut. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`

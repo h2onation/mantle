@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizeEmail } from "@/lib/beta-allowlist";
+import { normalizeEmail, isValidEmail } from "@/lib/beta-allowlist";
 import {
   waitlistSubmitHour,
   checkLimit,
@@ -20,13 +20,6 @@ function getClientIp(request: NextRequest): string {
   const real = request.headers.get("x-real-ip");
   if (real) return real.trim();
   return "unknown";
-}
-
-function isValidEmail(email: string): boolean {
-  // Pragmatic check — Postgres won't validate format, and we'd rather catch
-  // obvious junk before hitting the DB. Anything stricter rejects valid
-  // edge-case addresses.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export async function POST(request: NextRequest) {

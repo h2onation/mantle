@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { adminEmptyStyle, formatAdminDate } from "./admin-shared";
+import { useAsyncFetch } from "@/lib/hooks/useAsyncFetch";
 
 interface AppliedMigration {
   version: string;
@@ -23,33 +23,9 @@ interface MigrationStatus {
 }
 
 export default function SchemaHealthTab() {
-  const [status, setStatus] = useState<MigrationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/migration-status");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || `HTTP ${res.status}`);
-        setLoading(false);
-        return;
-      }
-      const data = (await res.json()) as MigrationStatus;
-      setStatus(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data: status, loading, error, reload } = useAsyncFetch<MigrationStatus>(
+    "/api/admin/migration-status"
+  );
 
   if (loading && !status) {
     return <div style={adminEmptyStyle}>Loading…</div>;
@@ -142,7 +118,7 @@ export default function SchemaHealthTab() {
           </div>
         </div>
         <button
-          onClick={load}
+          onClick={reload}
           disabled={loading}
           style={{
             fontFamily: "var(--font-mono)",

@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockVerifyAdmin = vi.fn();
 vi.mock("@/lib/admin/verify-admin", () => ({
   verifyAdmin: () => mockVerifyAdmin(),
+  requireAdmin: async () => {
+    const r = await mockVerifyAdmin();
+    if (!r.isAdmin) return Response.json({ error: "Forbidden" }, { status: 403 });
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    return { userId: r.userId, admin: createAdminClient() };
+  },
 }));
 
 let listResponse: { data: unknown; error: unknown } = { data: [], error: null };

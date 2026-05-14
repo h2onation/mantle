@@ -1,6 +1,6 @@
-import { anthropicFetch } from "@/lib/anthropic";
+import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { PERSONA_NAME } from "./config";
+import { PERSONA_NAME, SUMMARY_MODEL } from "./config";
 
 /**
  * Builds a labeled transcript string from message objects.
@@ -39,15 +39,14 @@ export async function generateSessionSummary(
 
   try {
     const response = await anthropicFetch({
-      model: "claude-haiku-4-5-20251001",
+      model: SUMMARY_MODEL,
       max_tokens: 512,
       system:
         `Summarize this conversation between a user and ${PERSONA_NAME} (an AI building behavioral models). Your response MUST begin with a short title on the first line in this exact format:\nTITLE: [3-8 word descriptive title]\n\nThen a blank line, then the summary. The title should capture the main theme (e.g. "TITLE: Conflict avoidance at work" or "TITLE: Understanding emotional triggers"). No quotes or ending punctuation in the title.\n\nFor the summary: focus on topics explored, what the user revealed, checkpoints confirmed, what was left unresolved. Keep under 300 words. This summary will be injected into ${PERSONA_NAME}'s context next session.`,
       messages: [{ role: "user", content: transcript }],
     });
 
-    const summary =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const summary = extractResponseText(response);
 
     await admin
       .from("conversations")

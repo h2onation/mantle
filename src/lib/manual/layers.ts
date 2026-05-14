@@ -117,7 +117,17 @@ export const LAYER_NAMES: Record<number, string> = Object.fromEntries(
 /** Total layer count. Avoid hardcoding `5` in loops. */
 export const LAYER_COUNT = LAYERS.length;
 
-/** Get a layer by id, or undefined if id is out of range. */
-export function getLayer(id: number): LayerDefinition | undefined {
-  return LAYERS.find((l) => l.id === id);
+/**
+ * Canonical "Manual entry inside a prompt" rendering. Used wherever the
+ * full content of an entry needs to be inlined into an LLM prompt.
+ * Shape: `Layer N (Name) [— "headline"]:\ncontent\n`
+ */
+export function renderManualEntryFull(entry: {
+  layer: number;
+  name: string | null;
+  content: string;
+}): string {
+  const layerLabel = LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`;
+  const headline = entry.name ? ` — "${entry.name}"` : "";
+  return `Layer ${entry.layer} (${layerLabel})${headline}:\n${entry.content}\n`;
 }

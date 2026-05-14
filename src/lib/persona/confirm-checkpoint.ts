@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { anthropicFetch } from "@/lib/anthropic";
+import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
 import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
-import { PERSONA_NAME } from "./config";
+import { PERSONA_NAME, COMPOSITION_MODEL } from "./config";
+import { deriveSummaryFromContent } from "./manual-context";
 
 // ─── Manual entry composition (Sonnet) ─────────────────────────────────────
 
@@ -148,16 +149,13 @@ ${checkpointText}
 Compose the manual entry. Pick the layer, the headline, the prose. Return the JSON.`;
 
   const response = await anthropicFetch({
-    model: "claude-opus-4-6",
+    model: COMPOSITION_MODEL,
     max_tokens: 2048,
     system,
     messages: [{ role: "user", content: userContent }],
   });
 
-  const rawText =
-    response.content[0].type === "text" ? response.content[0].text : "";
-
-  const cleaned = rawText
+  const cleaned = extractResponseText(response)
     .replace(/```json\s*/g, "")
     .replace(/```\s*/g, "")
     .trim();
@@ -194,7 +192,7 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim().length > 0
       ? parsed.summary.trim()
-      : deriveSummaryFallback(parsed.content);
+      : deriveSummaryFromContent(parsed.content);
 
   const keyWords = Array.isArray(parsed.key_words)
     ? parsed.key_words
@@ -211,18 +209,6 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     summary,
     key_words: keyWords,
   };
-}
-
-/**
- * Fallback when the composition model forgets to emit a summary: take the
- * first sentence of content and trim it to roughly the expected length. Not
- * ideal — but better than a null summary that breaks the compressed block.
- */
-function deriveSummaryFallback(content: string): string {
-  const firstSentence = content.split(/(?<=[.!?])\s+/)[0] || content;
-  const trimmed = firstSentence.trim();
-  if (trimmed.length <= 240) return trimmed;
-  return trimmed.slice(0, 237).trimEnd() + "...";
 }
 
 interface ConfirmCheckpointOptions {
@@ -317,8 +303,8 @@ export async function confirmCheckpoint({
     const nameToWrite =
       trimmedEditedName || meta.composed_name || meta.name || "Untitled";
     const summaryToWrite = trimmedEditedContent
-      ? deriveSummaryFallback(trimmedEditedContent)
-      : meta.composed_summary || deriveSummaryFallback(contentToWrite);
+      ? deriveSummaryFromContent(trimmedEditedContent)
+      : meta.composed_summary || deriveSummaryFromContent(contentToWrite);
     const keyWordsToWrite = trimmedEditedContent
       ? null
       : Array.isArray(meta.composed_key_words) && meta.composed_key_words.length > 0

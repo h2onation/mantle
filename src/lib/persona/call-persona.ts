@@ -25,13 +25,18 @@ import {
   validateComposedEntry,
   validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
+import { CHECKPOINT_ACTIONS } from "@/lib/persona/config";
+
+const NATURAL_REPLY_BY_SYSTEM_MESSAGE: Record<string, string> = Object.fromEntries(
+  Object.values(CHECKPOINT_ACTIONS).map((a) => [a.systemMessage, a.naturalReply])
+);
 
 // ── Extracted pure functions (testable without mocking) ──
 
 /**
  * Maps DB messages (including system messages) to conversation history.
  * System messages from checkpoint actions become synthetic user messages
- * so Sage sees them naturally in the conversation flow.
+ * so Jove sees them naturally in the conversation flow.
  */
 export function mapSystemMessages(
   dbMessages: { role: string; content: string; metadata?: Record<string, unknown> | null }[]
@@ -39,35 +44,8 @@ export function mapSystemMessages(
   const history: { role: "user" | "assistant"; content: string }[] = [];
   for (const msg of dbMessages) {
     if (msg.role === "system") {
-      if (msg.content === "[User confirmed the checkpoint]") {
-        history.push({
-          role: "user",
-          content: "I confirmed that checkpoint. That resonates.",
-        });
-      } else if (msg.content === "[User rejected the checkpoint]") {
-        history.push({
-          role: "user",
-          content: "That checkpoint didn't land right for me.",
-        });
-      } else if (
-        msg.content === "[User wants to refine the checkpoint]"
-      ) {
-        history.push({
-          role: "user",
-          content: "That's close but not quite right.",
-        });
-      } else if (msg.content === "[User let the checkpoint go]") {
-        // Track A Phase 7-Mid: refinement-ceiling defer. Distinct
-        // from rejection — the user has already explained twice
-        // what was off and is choosing to set it aside, not
-        // saying it missed entirely. POST-REJECTION fixed line
-        // does not fire for this message.
-        history.push({
-          role: "user",
-          content:
-            "I'll let that one go for now. We can come back to it.",
-        });
-      }
+      const reply = NATURAL_REPLY_BY_SYSTEM_MESSAGE[msg.content];
+      if (reply) history.push({ role: "user", content: reply });
     } else {
       const isChipTap =
         msg.role === "user" &&
@@ -357,7 +335,7 @@ export function callPersona({
           }
         }
 
-        // 9. Stream Sage response (no inline manual-entry sentinel — composition
+        // 9. Stream Jove response (no inline manual-entry sentinel — composition
         //    is always handled server-side after the stream completes).
         let fullText = "";
 
@@ -428,7 +406,7 @@ export function callPersona({
           return;
         }
 
-        // 10. Conversational text is the full Sage response.
+        // 10. Conversational text is the full Jove response.
         let conversationalText = fullText;
 
         // 10a. Chip extraction — strip quick-reply chips before crisis check.
@@ -465,7 +443,7 @@ export function callPersona({
           conversationalText = crisis.responseText;
         }
 
-        // 11. Save Sage's response (conversational part only).
+        // 11. Save Jove's response (conversational part only).
         //     Include created_at so the 7f transition insert below can
         //     offset its own timestamp to sort before this row in
         //     time-ordered queries.

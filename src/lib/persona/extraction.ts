@@ -1,9 +1,7 @@
-import { anthropicFetch } from "@/lib/anthropic";
-import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
+import { LAYERS, LAYER_NAMES, renderManualEntryFull } from "@/lib/manual/layers";
+import { PERSONA_NAME, EXTRACTION_MODEL } from "@/lib/persona/config";
 import { logEvent } from "@/lib/observability/log";
-
-const EXTRACTION_MODEL = "claude-sonnet-4-6";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -367,9 +365,7 @@ export async function runExtraction(
   if (manualComponents.length > 0) {
     userContent += "CONFIRMED MANUAL ENTRIES:\n";
     for (const comp of manualComponents) {
-      userContent += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
-      if (comp.name) userContent += ` — "${comp.name}"`;
-      userContent += `:\n${comp.content}\n\n`;
+      userContent += renderManualEntryFull(comp) + "\n";
     }
   }
 
@@ -411,10 +407,7 @@ export async function runExtraction(
       cache_read_input_tokens: response.usage?.cache_read_input_tokens,
     });
 
-    const rawText =
-      response.content[0].type === "text" ? response.content[0].text : "";
-
-    const cleaned = rawText
+    const cleaned = extractResponseText(response)
       .replace(/```json\s*/g, "")
       .replace(/```\s*/g, "")
       .trim();

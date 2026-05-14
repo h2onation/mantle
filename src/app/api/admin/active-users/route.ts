@@ -6,8 +6,8 @@
 // in the Users and Feedback tabs; surfacing them here is no new
 // exposure. auth user_id included for future deep-link use.
 
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
+import { listAllAuthUsers } from "@/lib/admin/list-auth-users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,24 +35,20 @@ interface ActiveUsersResponse {
 
 export async function GET(): Promise<Response> {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
-
-    // Parallel fetch: allowlist + auth users. listUsers default 50/page
-    // would silently truncate, so bump to 1000 to match /api/admin/beta-feedback.
+    // Parallel fetch: allowlist + auth users.
     const [
       { data: allowlist, error: allowlistError },
-      { data: authData, error: authError },
+      authResult,
     ] = await Promise.all([
       admin
         .from("beta_allowlist")
         .select("email, created_at")
         .order("created_at", { ascending: false }),
-      admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      listAllAuthUsers(admin),
     ]);
 
     if (allowlistError) {
@@ -62,16 +58,12 @@ export async function GET(): Promise<Response> {
         { status: 500 }
       );
     }
-    if (authError) {
-      console.error("[admin/active-users] auth list error:", authError.message);
-      return Response.json({ error: "Failed to list users" }, { status: 500 });
-    }
 
     // email → auth user lookup. Emails from auth.users are already stored
     // lowercased by Supabase; beta_allowlist emails are lowercased by the
     // POST handler. Normalize both sides anyway for safety.
-    const authByEmail = new Map<string, (typeof authData.users)[number]>();
-    for (const u of authData.users) {
+    const authByEmail = new Map<string, (typeof authResult.users)[number]>();
+    for (const u of authResult.users) {
       if (u.email) authByEmail.set(u.email.toLowerCase(), u);
     }
 

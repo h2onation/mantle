@@ -1,12 +1,12 @@
-import { anthropicFetch } from "@/lib/anthropic";
-import { PERSONA_NAME } from "./config";
+import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
+import { PERSONA_NAME, SIMULATION_MODEL } from "./config";
 
 // ─── Role flipping for simulated user ────────────────────────────────────────
 
 /**
  * Flip conversation roles for Haiku's perspective.
  * Haiku IS the simulated user, so:
- *   - Sage's messages (assistant) → become "user" (input to Haiku)
+ *   - Jove's messages (assistant) → become "user" (input to Haiku)
  *   - Simulated user's messages (user) → become "assistant" (Haiku's prior output)
  *
  * When history is empty, returns a single prompt to kick off the conversation.
@@ -126,11 +126,11 @@ ${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}`;
   const messages = flipRolesForSimulation(conversationHistory);
 
   const response = await anthropicFetch({
-    model: "claude-haiku-4-5-20251001",
+    model: SIMULATION_MODEL,
     max_tokens: 300,
     system,
     messages,
   });
 
-  return response.content[0].type === "text" ? response.content[0].text : "";
+  return extractResponseText(response);
 }

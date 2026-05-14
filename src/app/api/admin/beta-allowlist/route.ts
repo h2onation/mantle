@@ -1,16 +1,14 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
+import { isValidEmail } from "@/lib/beta-allowlist";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
     const { data, error } = await admin
       .from("beta_allowlist")
       .select("id, email, notes, created_at")
@@ -30,10 +28,9 @@ export async function GET() {
 
 export async function DELETE(request: Request) {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
@@ -41,7 +38,6 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "missing_id" }, { status: 400 });
     }
 
-    const admin = createAdminClient();
     const { error } = await admin
       .from("beta_allowlist")
       .delete()
@@ -61,10 +57,9 @@ export async function DELETE(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
     let body: { email?: unknown; waitlist_id?: unknown };
     try {
@@ -80,12 +75,9 @@ export async function POST(request: Request) {
 
     const email = rawEmail.trim().toLowerCase();
 
-    // Basic email format check
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(email)) {
       return Response.json({ error: "invalid_email" }, { status: 400 });
     }
-
-    const admin = createAdminClient();
 
     // Check for duplicate
     const { data: existing } = await admin

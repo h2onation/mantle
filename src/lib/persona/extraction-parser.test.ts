@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the anthropic module BEFORE importing extraction so the spy is
 // installed before runExtraction binds the dependency.
-vi.mock("@/lib/anthropic", () => ({
-  anthropicFetch: vi.fn(),
-}));
+vi.mock("@/lib/anthropic", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/anthropic")>();
+  return { ...actual, anthropicFetch: vi.fn() };
+});
 
 import { anthropicFetch } from "@/lib/anthropic";
 import { runExtraction } from "@/lib/persona/extraction";

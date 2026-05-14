@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import TopBar from "@/components/shared/TopBar";
@@ -10,6 +10,10 @@ import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 interface MobileSettingsProps {
   userEmail: string;
+  /** True when the Settings tab is the active view. Used to defer the
+   *  phone-status fetch until the user actually opens Settings — avoids
+   *  a network call on app load for users who never visit this tab. */
+  isActive?: boolean;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
   onOpenDrawer?: () => void;
@@ -50,6 +54,7 @@ function SectionHeader({
 
 export default function MobileSettings({
   userEmail,
+  isActive = false,
   onSimulationEvent,
   onPopulateComplete,
   onOpenDrawer,
@@ -65,7 +70,7 @@ export default function MobileSettings({
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
 
-  // ── Text Sage phone linking ──────────────────────────────────────
+  // ── Text Jove phone linking ──────────────────────────────────────
   const [phoneState, setPhoneState] = useState<"loading" | "unlinked" | "input" | "code" | "linked">("loading");
   const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
   const [pendingPhone, setPendingPhone] = useState<string>("");
@@ -86,7 +91,15 @@ export default function MobileSettings({
     return phone;
   }
 
+  // Defer the phone-status fetch until the user actually opens Settings.
+  // MobileLayout mounts all panels (display:none-toggled) so an unconditional
+  // useEffect would fire GET /api/user/phone on every login regardless of
+  // whether the user ever visits this tab. The hasFetched flag keeps the
+  // request to once per mount.
+  const hasFetchedPhoneRef = useRef(false);
   useEffect(() => {
+    if (!isActive || hasFetchedPhoneRef.current) return;
+    hasFetchedPhoneRef.current = true;
     fetch("/api/user/phone")
       .then((r) => r.json())
       .then((data) => {
@@ -99,7 +112,7 @@ export default function MobileSettings({
         }
       })
       .catch(() => setPhoneState("unlinked"));
-  }, []);
+  }, [isActive]);
 
   async function handleConnectPhone() {
     setPhoneBusy(true);
@@ -337,30 +350,28 @@ export default function MobileSettings({
       {/* ─── Account ─────────────────────────────────────────────── */}
       <SectionHeader label="ACCOUNT" sectionId="settings-account" />
 
-      {true && (
-        <div id="settings-account">
-          <SettingsRow
-            title="Log out"
-            subtitle={userEmail || "—"}
-            onClick={handleLogout}
-          />
+      <div id="settings-account">
+        <SettingsRow
+          title="Log out"
+          subtitle={userEmail || "—"}
+          onClick={handleLogout}
+        />
 
-          <SettingsRow
-            title="Delete user data"
-            titleColor="var(--session-error)"
-            subtitle="Removes manual and conversations"
-            onClick={() => setShowDeleteDataConfirm(true)}
-          />
+        <SettingsRow
+          title="Delete user data"
+          titleColor="var(--session-error)"
+          subtitle="Removes manual and conversations"
+          onClick={() => setShowDeleteDataConfirm(true)}
+        />
 
-          <SettingsRow
-            title="Delete account"
-            titleColor="var(--session-error)"
-            subtitle="Cannot be undone"
-            onClick={() => setShowDeleteAccountConfirm(true)}
-            noBorder
-          />
-        </div>
-      )}
+        <SettingsRow
+          title="Delete account"
+          titleColor="var(--session-error)"
+          subtitle="Cannot be undone"
+          onClick={() => setShowDeleteAccountConfirm(true)}
+          noBorder
+        />
+      </div>
 
       {/* ─── Appearance ──────────────────────────────────────────── */}
       <SectionHeader label="APPEARANCE" sectionId="settings-appearance" />
@@ -410,11 +421,10 @@ export default function MobileSettings({
           navigates to MobileCrisis. Keeps Settings about settings,
           gives Crisis a real destination rather than an anchored section. */}
 
-      {/* ─── Text Sage ─────────────────────────────────────────── */}
+      {/* ─── Text Jove ─────────────────────────────────────────── */}
       <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage" />
 
-      {true && (
-        <div id="settings-textsage">
+      <div id="settings-textsage">
         <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
             {phoneState === "loading" && (
@@ -741,16 +751,14 @@ export default function MobileSettings({
             )}
           </div>
         </SettingsRow>
-        </div>
-      )}
+      </div>
 
       {/* ─── Dev Tools (admin only) ────────────────────────────── */}
       {isAdmin && (
       <>
       <SectionHeader label="DEV TOOLS" sectionId="settings-devtools" />
 
-      {true && (
-        <div id="settings-devtools">
+      <div id="settings-devtools">
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
@@ -970,7 +978,6 @@ export default function MobileSettings({
             Open admin dashboard →
           </a>
         </div>
-      )}
       </>
       )}
 

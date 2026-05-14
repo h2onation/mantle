@@ -1,14 +1,12 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const { userId, isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { userId, admin } = auth;
 
     const body = await request.json();
     const targetUserId = body.userId;
@@ -16,8 +14,6 @@ export async function POST(request: Request) {
     if (!targetUserId || typeof targetUserId !== "string") {
       return Response.json({ error: "userId is required" }, { status: 400 });
     }
-
-    const admin = createAdminClient();
 
     const { data: components, error } = await admin
       .from("manual_entries")

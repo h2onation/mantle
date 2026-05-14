@@ -72,13 +72,7 @@ export function useTheme(): UseThemeReturn {
   }, []);
 
   const resolved: ResolvedTheme =
-    theme === "light"
-      ? "light"
-      : theme === "dark"
-        ? "dark"
-        : systemLight
-          ? "light"
-          : "dark";
+    theme !== "system" ? theme : systemLight ? "light" : "dark";
 
   useEffect(() => {
     applyTheme(resolved);

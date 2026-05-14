@@ -1,6 +1,6 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { renderManualEntryFull } from "@/lib/manual/layers";
 import * as AutisticVoice from "@/lib/persona/voice-autistic";
 import * as AudhdVoice from "@/lib/persona/voice-audhd";
 import * as DyslexicVoice from "@/lib/persona/voice-dyslexic";
@@ -16,7 +16,7 @@ import {
   WHEN_JOVE_IS_WRONG,
   WHEN_USER_ASKS_WHAT_SHOULD_I_DO,
 } from "@/lib/persona/voice-scaffold";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
 import {
@@ -174,7 +174,7 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   /** Conversation mode. "situation" (default) is standard open-ended
    *  exploration. "guided-intake" runs a more directed path toward
    *  the first checkpoint. "upload" handles pasted text content. */
-  mode?: "situation" | "guided-intake" | "upload";
+  mode?: ConversationMode;
   personaModes?: PersonaMode[];
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
    *  follow-up (not a normal chat turn). The mode selects which pinned
@@ -1013,9 +1013,7 @@ MANUAL CONTEXT RULES:
 CONFIRMED MANUAL
 `;
     for (const comp of manualComponents) {
-      prompt += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
-      if (comp.name) prompt += ` — "${comp.name}"`;
-      prompt += `:\n${comp.content}\n\n`;
+      prompt += renderManualEntryFull(comp) + "\n";
     }
   }
 

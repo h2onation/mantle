@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Sage bridge — connects inbound text messages to the existing Sage engine
+// Jove bridge — connects inbound text messages to the existing Jove engine
 // ---------------------------------------------------------------------------
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,14 +29,14 @@ interface PersonaBridgeResult {
 }
 
 /**
- * Processes a text-channel Sage interaction. Handles two cases:
+ * Processes a text-channel Jove interaction. Handles two cases:
  *
  * 1. User message (messageText provided): Save message, load context,
- *    call Sage, handle extraction/crisis/checkpoints. Full pipeline.
+ *    call Jove, handle extraction/crisis/checkpoints. Full pipeline.
  *
  * 2. Post-checkpoint follow-up (messageText is null): Load context
  *    (which includes the system message from confirmCheckpoint), call
- *    Sage so it generates the tee-up response. Same as web's
+ *    Jove so it generates the tee-up response. Same as web's
  *    callPersona({ message: null }).
  */
 export async function processTextMessage(
@@ -78,7 +78,7 @@ export async function processTextMessage(
   // 5. Build system prompt (shared options from context, no channel-specific fields)
   const systemPrompt = buildSystemPrompt(buildPromptOptionsFromContext(ctx));
 
-  // 6. Call Sage non-streaming (text doesn't need SSE)
+  // 6. Call Jove non-streaming (text doesn't need SSE)
   markLatency(timings, "anthropic_start");
   const response = await anthropicFetch({
     model: PERSONA_MODEL,
@@ -121,7 +121,7 @@ export async function processTextMessage(
   );
   responseText = crisis.responseText;
 
-  // 10. Save Sage's response with channel: "text"
+  // 10. Save Jove's response with channel: "text"
   const { data: savedResponse } = await admin
     .from("messages")
     .insert({
@@ -233,7 +233,7 @@ export async function processTextMessage(
       .eq("id", messageId);
 
     // Build the text checkpoint message — only show name + question
-    // (the user already read the insight in Sage's conversational response)
+    // (the user already read the insight in Jove's conversational response)
     const name = composedEntry.name || "Untitled";
     checkpointText =
       `Does this feel right?\n\n` +

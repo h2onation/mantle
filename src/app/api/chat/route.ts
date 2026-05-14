@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
 import { recordApiError } from "@/lib/observability/record-api-error";
+import { CONVERSATION_MODES } from "@/lib/persona/config";
 import {
   chatAuthMinute,
   chatAuthDay,
@@ -43,9 +44,7 @@ export async function POST(request: Request) {
 
     if (
       requestedMode !== undefined &&
-      requestedMode !== "situation" &&
-      requestedMode !== "guided-intake" &&
-      requestedMode !== "upload"
+      !(CONVERSATION_MODES as readonly string[]).includes(requestedMode)
     ) {
       return Response.json(
         { error: "Invalid mode. Must be 'situation', 'guided-intake', or 'upload'." },

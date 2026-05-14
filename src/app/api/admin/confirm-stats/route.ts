@@ -1,5 +1,4 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,10 +29,9 @@ interface ConfirmStatsResponse {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const { isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
+  const { admin } = auth;
 
   const url = new URL(request.url);
   const windowSecondsRaw = url.searchParams.get("windowSeconds");
@@ -41,8 +39,6 @@ export async function GET(request: Request): Promise<Response> {
     60,
     Math.min(7 * 24 * 3600, parseInt(windowSecondsRaw || "86400", 10) || 86400)
   );
-
-  const admin = createAdminClient();
 
   // Parallel queries: stats rollup + recent feed.
   const [{ data: statsRows, error: statsError }, { data: recentRows, error: recentError }] =

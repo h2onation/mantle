@@ -2,8 +2,7 @@
 // grouped by route over a time window, plus a recent feed. Mirrors the
 // shape and guard pattern of /api/admin/confirm-stats.
 
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,10 +32,9 @@ interface ApiErrorStatsResponse {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const { isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
+  const { admin } = auth;
 
   const url = new URL(request.url);
   const windowSecondsRaw = url.searchParams.get("windowSeconds");
@@ -44,8 +42,6 @@ export async function GET(request: Request): Promise<Response> {
     60,
     Math.min(7 * 24 * 3600, parseInt(windowSecondsRaw || "86400", 10) || 86400)
   );
-
-  const admin = createAdminClient();
 
   const [{ data: statsRows, error: statsError }, { data: recentRows, error: recentError }] =
     await Promise.all([

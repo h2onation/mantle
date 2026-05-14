@@ -22,7 +22,7 @@ const INITIAL_GREETING =
 // ── POST: verify a phone OTP ─────────────────────────────────────────────
 //
 // This is the ONLY endpoint that ever sets phone_numbers.verified = true.
-// On success it also kicks off the Linq chat with the Sage greeting that
+// On success it also kicks off the Linq chat with the Jove greeting that
 // used to live in POST /api/user/phone.
 export const dynamic = "force-dynamic";
 

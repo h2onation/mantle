@@ -1,5 +1,7 @@
 "use client";
 
+import { PERSONA_NAME } from "@/lib/persona/config";
+
 interface BubbleProps {
   speaker: "jove" | "user";
   children: React.ReactNode;
@@ -50,7 +52,7 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
             lineHeight: 1,
           }}
         >
-          JOVE
+          {PERSONA_NAME.toUpperCase()}
         </p>
       )}
       <div

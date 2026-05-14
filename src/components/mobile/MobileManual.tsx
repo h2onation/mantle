@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import { buildLayers } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
@@ -22,7 +22,7 @@ interface MobileManualProps {
 
 export default function MobileManual({ entries, firstName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const layers = buildLayers(entries);
+  const layers = useMemo(() => buildLayers(entries), [entries]);
   const isEmpty = layers.every((l) => l.entries.length === 0);
   const totalEntries = entries.length;
   const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
@@ -35,9 +35,8 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
     setIsGenerating(true);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
-      const currentLayers = buildLayers(entries);
       const name = firstName || "User";
-      const pdf = generateManualPdf(name, currentLayers);
+      const pdf = generateManualPdf(name, layers);
       await shareManual(pdf, name);
       trackManualExported({ format: "pdf", entry_count: entries.length });
     } catch (err) {
@@ -45,7 +44,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
     } finally {
       setIsGenerating(false);
     }
-  }, [firstName, entries]);
+  }, [firstName, entries.length, layers]);
 
   return (
     <main

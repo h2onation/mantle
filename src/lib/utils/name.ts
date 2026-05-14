@@ -5,9 +5,20 @@
 // so we don't accumulate divergent split() calls.
 
 export function firstNameFrom(name: string | null | undefined): string {
-  if (!name) return "User";
+  return firstNameOrNull(name) ?? "User";
+}
+
+/**
+ * Same first-name extraction as `firstNameFrom` but returns null when no
+ * usable name is present. Use this where the absence of a name needs a
+ * different code path (e.g., dropping the salutation entirely instead of
+ * substituting "User"). Group-bridge and group-detection use this when
+ * deciding whether to address the owner by name.
+ */
+export function firstNameOrNull(name: string | null | undefined): string | null {
+  if (!name) return null;
   const trimmed = name.trim();
-  if (!trimmed) return "User";
+  if (!trimmed) return null;
   const first = trimmed.split(/\s+/)[0];
-  return first || "User";
+  return first || null;
 }
