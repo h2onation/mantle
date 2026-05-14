@@ -148,7 +148,12 @@ export async function POST(request: Request) {
           );
 
           // Natural session end: Haiku decided the conversation is over.
-          if (userMessage.trim() === "[END]") {
+          // Lenient detection — Haiku sometimes includes [END] at the tail
+          // of a longer goodbye line ("I will. Thanks. [END]"). Exact-match
+          // would miss those and the loop would keep running, eventually
+          // breaking character into an acknowledgment loop ("Standing by."
+          // / "👋"). Substring catches both forms.
+          if (userMessage.includes("[END]")) {
             emit(controller, {
               type: "turn",
               turn,

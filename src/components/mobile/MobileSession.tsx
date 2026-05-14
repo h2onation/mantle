@@ -939,14 +939,22 @@ export default function MobileSession({
               );
             })}
 
-            {/* Typing indicator. When composingMessage is set (server has
-                detected a checkpoint and is running the slow composition
-                Opus call), the indicator shows the forming label alongside
-                the glyph. When unset, just the glyph pulses. The label is
-                transient — cleared automatically when the trigger card's
-                message_complete event arrives. */}
+            {/* Typing indicator. Shows when a Jove turn is in-flight and
+                we don't already have a chat bubble for it. Three cases
+                where the last message is NOT a fresh user message but the
+                indicator should still fire:
+                  - First-turn boot (messages.length === 0)
+                  - Post-user-message wait (default case)
+                  - Post-confirm wait (last message is a checkpoint card;
+                    Jove is composing the continue-or-pivot follow-up)
+                When composingMessage is set (server detected a checkpoint
+                and is running the slow composition Opus call), the
+                indicator shows the forming label alongside the glyph.
+                Otherwise just the glyph pulses. */}
             {(isLoading || isStreaming) &&
-              (messages.length === 0 || messages[messages.length - 1].role === "user") && (
+              (messages.length === 0 ||
+               messages[messages.length - 1].role === "user" ||
+               messages[messages.length - 1].isCheckpoint === true) && (
                 <div style={{ animation: "checkpointFadeIn 0.3s ease-out both" }}>
                   <Bubble
                     speaker="jove"
