@@ -78,9 +78,14 @@
     radial-gradient(ellipse 100% 70% at 60% 100%, rgba(36, 42, 55, 0.85), transparent 70%),
     radial-gradient(ellipse 75% 55% at 100% 100%, rgba(115, 72, 42, 0.65), transparent 60%),
     radial-gradient(ellipse 80% 50% at 20% 50%, rgba(15, 18, 26, 0.35), transparent 70%);
+  /* Paper-halo pass: walnut warmth concentrated at the top (radial 3
+     deep walnut top-right kept full strength as the masthead halo);
+     caramel top-center pulled in and dialed down so it doesn't bleed
+     past the upper third; slate pool expanded and deepened so it owns
+     the lower two-thirds of the viewport. */
   --session-bg-chat:
-    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(115, 72, 42, 0.55), transparent 65%),
-    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(36, 42, 55, 0.85), transparent 70%),
+    radial-gradient(ellipse 110% 45% at 35% 15%, rgba(115, 72, 42, 0.32), transparent 65%),
+    radial-gradient(ellipse 120% 70% at 50% 90%, rgba(36, 42, 55, 0.92), transparent 70%),
     radial-gradient(ellipse 65% 45% at 100% 0%, rgba(85, 55, 30, 0.40), transparent 60%);
   --session-bg-checkpoint:
     radial-gradient(ellipse 110% 75% at 50% 25%, rgba(115, 72, 42, 0.42), transparent 65%),
