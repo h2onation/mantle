@@ -488,12 +488,17 @@ describe("buildSystemPrompt", () => {
       );
     });
 
-    it("instructs the model to produce only the open-thread line and nothing else", () => {
+    it("requires a forward-moving question as the only creative piece", () => {
       const result = build({
         postConfirmMode: "first-message-2",
         postConfirmContext: firstMessage2Context,
       });
-      expect(result).toContain("The open-thread line is the only creative piece");
+      // The final line must be a question that propels the conversation
+      // forward — not a soft "open thread" declaration. See user
+      // testing 2026-05-14 where vague open-thread lines read as a
+      // dead-end after the save.
+      expect(result).toContain("MUST be a question");
+      expect(result).toContain("MUST end with a question mark");
       expect(result).toContain("Do not add a headline");
       expect(result).toContain("Do not re-stamp the entry");
     });
@@ -558,12 +563,13 @@ describe("buildSystemPrompt", () => {
       );
     });
 
-    it("instructs the model to produce only the open-thread line", () => {
+    it("requires a forward-moving question as the only creative piece", () => {
       const result = build({
         postConfirmMode: "subsequent-single",
         postConfirmContext: subsequentContext,
       });
-      expect(result).toContain("The open-thread line is the only creative piece");
+      expect(result).toContain("MUST be a question");
+      expect(result).toContain("MUST end with a question mark");
       expect(result).toContain("Do not restate the entry twice");
     });
   });

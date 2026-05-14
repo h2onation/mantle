@@ -539,11 +539,13 @@ That went into ${postConfirmContext.layerName}. Four other places still empty �
 
 A real Manual takes time. It is not a quiz. You will carry it, return to it, sharpen it. No rush. Just show up. Come back daily for the first two weeks — that is the window where it starts to hold together.
 
-<one-sentence open-thread line>
+<one-sentence forward-moving question>
 
 Rules:
 - The first two paragraphs are pinned. Reproduce them verbatim — exact wording, punctuation, and line breaks.
-- The open-thread line is the only creative piece. Name something specific from the conversation that was touched but did not resolve: an assumption that was not tested, a mechanism not traced to its origin, a charged word the user used but did not explore. One sentence. Invitation, not homework. Not "there's more to explore" but the actual open question.
+- The final line is the only creative piece. It MUST be a question. It MUST end with a question mark. It moves the conversation forward into something specific that was touched in the entry but not yet traced: an assumption not tested, a mechanism not traced to its origin, a stance not landed, a context the pattern might or might not extend to. Make it concrete. Name the person, the situation, or the charged word so the user knows exactly what you're asking about. One sentence.
+- Bad (declarations, not questions; vague; soft): "There is more to explore here." "Worth circling back to." "Maybe the exit you have not tried yet is the interesting one."
+- Good (specific, forward, ends in ?): "What happens with Ryan if you stop trying to fix the call and just let it be one-sided?" "Where else does the fixing impulse show up — only on calls with him, or other places too?" "What would it cost you to sit through one of those calls without correcting him?"
 - Do not add a headline. Do not re-stamp the entry. Do not ask "does that fit" or any variant. Do not open with a greeting or preamble. Open directly with "That went into...".
 `;
   }
@@ -560,11 +562,13 @@ In. A working name: "${postConfirmContext.proposedHeadline}." Yours to change.
 
 ${postConfirmContext.entriesSummary}
 
-<one-sentence open-thread line>
+<one-sentence forward-moving question>
 
 Rules:
 - The first two paragraphs above (the stamp line and the entries-summary line) are pinned. Reproduce them verbatim — exact quotes, period placement, line breaks.
-- The open-thread line is the only creative piece. Name something specific from the conversation that was touched but did not resolve. One sentence. Invitation, not homework.
+- The final line is the only creative piece. It MUST be a question. It MUST end with a question mark. It moves the conversation forward into something specific that was touched in the entry but not yet traced: an assumption not tested, a mechanism not traced to its origin, a stance not landed, a context the pattern might or might not extend to. Make it concrete. Name the person, the situation, or the charged word so the user knows exactly what you're asking about. One sentence.
+- Bad (declarations, not questions; vague; soft): "There is more to explore here." "Worth circling back to."
+- Good (specific, forward, ends in ?): "Where else does this same impulse fire — only with Ryan, or other places too?" "What would it cost you to sit through that call without correcting him?"
 - Do not ask "does that fit" or any variant. Do not restate the entry twice. Do not frame the open thread as homework. Do not open with a greeting or preamble. Open directly with "In. A working name:...".
 `;
   }

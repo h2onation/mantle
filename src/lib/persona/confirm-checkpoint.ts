@@ -96,6 +96,7 @@ VOICE RULES:
 - No session references ("I told ${PERSONA_NAME}," "we talked about," "in this conversation"). The entry reads the same six months from now.
 - Use the user's exact charged phrases verbatim. Their sensory and system words ("buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy") carry into the entry without translation. Do not upgrade their vocabulary.
 - Grounded in their specific examples and moments. Not abstract.
+- Stay within the scope of evidence the user gave you. If they described one example (one person, one situation, one moment), anchor the entry IN that example — name the person, name the context. Do not generalize to "everyone," "every time," "all conversations." Do not use "always," "every," "all," "never" unless the user used those exact words themselves. One example produces a specific claim, not a universal one. Two or three convergent examples can support a wider claim — but only as wide as the examples actually span.
 - Somatic anchor REQUIRED in the passage. If the user described a body sensation or system state anywhere in the conversation, it must appear. The body is the evidence the mechanism is real.
 - NOT A RECAP. Go one level deeper than what was said. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation.
 - No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "I shut down" not "I dissociate." "A second version of me switches on" not "I mask." "The room got too loud" not "sensory overwhelm."
@@ -105,9 +106,9 @@ VOICE RULES:
 - Write like a field note, not literature. Flat, honest, direct. If a sentence sounds like it belongs in a poem or an essay, rewrite it plain.
 
 HEADLINE (field: "name"):
-4-8 words. Flatly descriptive. Says what the mechanism IS in behavioral or body terms. Plain subject-verb. No poetry, no imagery, no literary flair.
-Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "Body Locks Before Being Asked"
-Bad: "The Masking Loop," "Sensory Overwhelm Pattern," "Turned Away Before the Ask," clinical labels, metaphors, nominalizations ("the ask," "the reach," "the pull"), poetic titles like "Gaps Open and the Reach Fires." If the title sounds like a poem or uses a noun where a verb belongs, rewrite it plain.
+4-8 words. Flatly descriptive. Names the actual behavior. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject of the headline should be "I" or the behavior itself — NOT a body part as agent.
+Good: "I Switch to Counter-Mode When Talked At," "I Tighten Before Answering," "I Run Interference on Call Tone," "I Freeze Before Someone Can Ask," "I Keep Teaching Him How to Live"
+Bad: body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands," "Body Locks Before Being Asked" — these read poetic, not flat; rewrite with "I" or the behavior as subject); clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern"); nominalizations ("Turned Away Before the Ask," "the reach," "the pull"); metaphors and poetic titles ("Gaps Open and the Reach Fires"). If the title sounds like a poem, or uses a body part as an agent, or uses a noun where a verb belongs, rewrite it plain.
 
 LAYER (field: "layer", required):
 An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.
