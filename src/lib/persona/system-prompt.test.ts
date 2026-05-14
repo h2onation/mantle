@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildSystemPrompt, composeTier2 } from "@/lib/persona/system-prompt";
-import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
+import type { OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
@@ -29,7 +29,8 @@ import {
 
 describe("buildSystemPrompt", () => {
   // Default options — mid-session new user with no special flags
-  const defaults: BuildPromptOptions = {
+  const defaults: OneOnOnePromptOptions = {
+    kind: "oneOnOne",
     manualComponents: [],
     currentConversationId: "test-conversation-id",
     isReturningUser: false,
@@ -40,7 +41,7 @@ describe("buildSystemPrompt", () => {
     checkpointApproaching: false,
   };
 
-  function build(overrides: Partial<BuildPromptOptions> = {}) {
+  function build(overrides: Partial<OneOnOnePromptOptions> = {}) {
     return buildSystemPrompt({ ...defaults, ...overrides });
   }
 

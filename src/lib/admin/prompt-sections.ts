@@ -2,7 +2,7 @@ import {
   composeTier2,
   buildSystemPrompt,
   type PersonaMode,
-  type BuildPromptOptions,
+  type OneOnOnePromptOptions,
 } from "@/lib/persona/system-prompt";
 
 // ---------------------------------------------------------------------------
@@ -495,7 +495,7 @@ interface PhaseConfig {
   id: string;
   label: string;
   description: string;
-  options: Partial<BuildPromptOptions>;
+  options: Partial<OneOnOnePromptOptions>;
 }
 
 function buildPhaseConfigs(): PhaseConfig[] {
@@ -581,10 +581,11 @@ export function buildAllPhases(
 
   for (const config of configs) {
     const prompt = buildSystemPrompt({
+      kind: "oneOnOne",
       ...config.options,
       mode: convMode,
       personaModes,
-    } as BuildPromptOptions);
+    } as OneOnOnePromptOptions);
 
     const sections = parsePromptSections(prompt, personaModes, convMode, altTokenCache);
     const totalTokens = sections.reduce((sum, s) => sum + s.tokens, 0);

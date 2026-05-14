@@ -15,7 +15,7 @@ import {
   applySlidingWindow,
   detectCrisisInUserMessage,
 } from "@/lib/persona/call-persona";
-import type { PersonaMode } from "@/lib/persona/system-prompt";
+import type { PersonaMode, OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -253,8 +253,11 @@ export async function loadConversationContext(
 // layers on its channel-specific fields (explorationContext, transcriptContext,
 // contentContext). Adding a new field to BuildPromptOptions? Add it here once.
 
-export function buildPromptOptionsFromContext(ctx: ConversationContext) {
+export function buildPromptOptionsFromContext(
+  ctx: ConversationContext
+): OneOnOnePromptOptions {
   return {
+    kind: "oneOnOne",
     manualComponents: ctx.manualComponents,
     currentConversationId: ctx.conversationId,
     isReturningUser: ctx.isReturningUser,

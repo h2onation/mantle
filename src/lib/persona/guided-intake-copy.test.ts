@@ -26,6 +26,7 @@ describe("GUIDED_INTAKE_OPENER constant", () => {
 
   it("appears verbatim in the rendered guided-intake prompt", () => {
     const prompt = buildSystemPrompt({
+      kind: "oneOnOne",
       mode: "guided-intake",
       personaModes: ["autistic"],
       messages: [],
@@ -46,6 +47,7 @@ describe("GUIDED_INTAKE_OPENER constant", () => {
 
   it("does NOT appear in the situation-mode prompt", () => {
     const prompt = buildSystemPrompt({
+      kind: "oneOnOne",
       mode: "situation",
       personaModes: ["autistic"],
       messages: [],
