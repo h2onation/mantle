@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,10 +11,8 @@ export async function GET(
   _req: Request,
   { params }: { params: { name: string } }
 ) {
-  const { isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
 
   const name = params.name;
   if (!ALLOWED.has(name)) {

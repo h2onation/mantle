@@ -3,7 +3,7 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 // ---------------------------------------------------------------------------
 // Group message gate — scoring-based filter for group messages.
 //
-// The gate is the first filter. Even when it says SEND_TO_PERSONA, Sage can
+// The gate is the first filter. Even when it says SEND_TO_PERSONA, Jove can
 // still output [NO_RESPONSE] as a second filter.
 //
 // Scoring signals (all regex/string, zero API cost):
@@ -12,40 +12,40 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 //   - Substantial message length → +1 or +2
 //   - Brief reactions (< 5 chars) → block
 //
-// Counter remains as safety net so Sage never goes silent forever.
+// Counter remains as safety net so Jove never goes silent forever.
 // Cooldown prevents double-responding to rapid messages.
 // ---------------------------------------------------------------------------
 
 /** Minimum messages before counter lowers the scoring threshold */
 export const GATE_MIN_MESSAGES = 3;
 
-/** After this many messages without Sage, auto-send with nudge */
+/** After this many messages without Jove, auto-send with nudge */
 export const GATE_NUDGE_MESSAGES = 6;
 
 /** Messages shorter than this are treated as brief reactions */
 export const GATE_SHORT_MESSAGE_LENGTH = 5;
 
-/** Score needed to trigger Sage (lowered to GATE_REDUCED_THRESHOLD after GATE_MIN_MESSAGES) */
+/** Score needed to trigger Jove (lowered to GATE_REDUCED_THRESHOLD after GATE_MIN_MESSAGES) */
 export const GATE_SCORE_THRESHOLD = 3;
 
 /** Reduced threshold once counter hits GATE_MIN_MESSAGES — any substance gets through */
 export const GATE_REDUCED_THRESHOLD = 1;
 
-/**
- * Detects direct address of the persona in group-chat text.
- * Matches the current brand name (PERSONA_NAME) plus a "sage" transition
- * fallback so users who still type the old name during the rebrand get
- * routed correctly. Case-insensitive, word-boundary matched.
- *
- * TODO: remove the "sage" alternation once the rebrand has settled and
- * telemetry shows no meaningful volume of old-name mentions.
- */
+// Compiled once at module load. Matches the current brand name plus a "sage"
+// transition fallback so users who still type the old name during the rebrand
+// get routed correctly. Case-insensitive, word-boundary matched.
+// TODO: remove the "sage" alternation once telemetry shows no meaningful
+// volume of old-name mentions.
+const PERSONA_MENTION_RE = new RegExp(
+  `\\b(${PERSONA_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|sage)\\b`,
+  "i"
+);
+
 export function mentionsPersona(text: string): boolean {
-  const escaped = PERSONA_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`\\b(${escaped}|sage)\\b`, "i").test(text);
+  return PERSONA_MENTION_RE.test(text);
 }
 
-/** Minimum ms between Sage responses (only direct address bypasses) */
+/** Minimum ms between Jove responses (only direct address bypasses) */
 export const GATE_COOLDOWN_MS = 30_000;
 
 export type GateDecision = "SEND_TO_PERSONA" | "SKIP";
@@ -53,7 +53,7 @@ export type GateDecision = "SEND_TO_PERSONA" | "SKIP";
 export interface GateResult {
   decision: GateDecision;
   reason: string;
-  /** When true, prepend a nudge hint to Sage's context */
+  /** When true, prepend a nudge hint to Jove's context */
   addNudgeHint: boolean;
   /** The computed score for logging/debugging */
   score: number;
@@ -89,12 +89,12 @@ export function scoreMessage(messageText: string): number {
 }
 
 /**
- * Decide whether a group message should be forwarded to Sage.
+ * Decide whether a group message should be forwarded to Jove.
  *
  * Evaluation order:
  *   1. Direct address ("sage") → always SEND
  *   2. Very short message (< 5 chars) → always SKIP
- *   3. Cooldown active (< 30s since Sage spoke) → SKIP
+ *   3. Cooldown active (< 30s since Jove spoke) → SKIP
  *   4. Counter >= GATE_NUDGE_MESSAGES → SEND with nudge
  *   5. Score >= threshold → SEND (threshold drops after GATE_MIN_MESSAGES)
  *   6. Otherwise → SKIP
@@ -122,7 +122,7 @@ export function evaluateGate(
     return SKIP("short_message", 0);
   }
 
-  // 3. Cooldown — if Sage just spoke, let people talk
+  // 3. Cooldown — if Jove just spoke, let people talk
   if (lastPersonaSpokeAt) {
     const elapsed = Date.now() - lastPersonaSpokeAt.getTime();
     if (elapsed < GATE_COOLDOWN_MS) {

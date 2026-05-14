@@ -15,13 +15,14 @@ import type {
   Tier,
   ConditionType,
 } from "@/lib/admin/prompt-sections";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
+import type { ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
 // Types & constants
 // ---------------------------------------------------------------------------
 
-type PersonaMode = "autistic" | "audhd" | "dyslexic" | "general";
-type ConvMode = "situation" | "guided-intake" | "upload";
+type ConvMode = ConversationMode;
 
 const PERSONA_OPTIONS: { id: PersonaMode; label: string }[] = [
   { id: "autistic", label: "Autistic" },

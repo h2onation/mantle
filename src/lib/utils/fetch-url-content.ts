@@ -17,7 +17,7 @@ const MAX_WORDS = 3000;
 /**
  * Strips HTML tags and extracts readable text.
  * Lightweight regex approach — not a full parser, but good enough
- * for Sage to understand what an article is about.
+ * for Jove to understand what an article is about.
  */
 export function extractTextFromHtml(html: string): {
   title: string;

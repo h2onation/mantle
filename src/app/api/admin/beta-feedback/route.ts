@@ -1,32 +1,15 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
+import { listAllAuthUsers } from "@/lib/admin/list-auth-users";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
-
-    // Email map for the user_id → email join. listUsers' default 50/page
-    // would silently truncate, hence perPage 1000.
-    const { data: authData, error: authError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    if (authError) {
-      console.error("[admin/beta-feedback] auth list error:", authError.message);
-      return Response.json({ error: "Failed to list users" }, { status: 500 });
-    }
-
-    const emailMap: Record<string, string> = {};
-    for (const u of authData.users) {
-      emailMap[u.id] = u.email || "";
-    }
+    const { emailMap } = await listAllAuthUsers(admin);
 
     const { data: rows, error } = await admin
       .from("beta_feedback")
@@ -58,10 +41,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
     let body: { id?: unknown };
     try {
@@ -75,7 +57,6 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "invalid_body" }, { status: 400 });
     }
 
-    const admin = createAdminClient();
     const { error } = await admin
       .from("beta_feedback")
       .update({ is_read: true })

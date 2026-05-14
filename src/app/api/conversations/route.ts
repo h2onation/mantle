@@ -51,26 +51,43 @@ export async function GET() {
     return Response.json({ conversations: [] });
   }
 
-  // Get message counts and first user message per conversation
+  // Get message counts and first user message per conversation. The count
+  // and preview are split into two queries: counts don't need content (which
+  // dominates payload size for power users), and the preview only needs
+  // user-role rows. Both fire in parallel.
   const convIds = conversations.map((c) => c.id);
-  const { data: allMessages, error: msgError } = await admin
-    .from("messages")
-    .select("conversation_id, role, content")
-    .in("conversation_id", convIds)
-    .neq("role", "system")
-    .order("created_at", { ascending: true });
+  const [countResult, userMsgResult] = await Promise.all([
+    admin
+      .from("messages")
+      .select("conversation_id")
+      .in("conversation_id", convIds)
+      .neq("role", "system"),
+    admin
+      .from("messages")
+      .select("conversation_id, content")
+      .in("conversation_id", convIds)
+      .eq("role", "user")
+      .order("created_at", { ascending: true }),
+  ]);
 
-  if (msgError) {
-    console.error("[conversations] Messages query error:", msgError);
+  if (countResult.error) {
+    console.error("[conversations] Messages count query error:", countResult.error);
+  }
+  if (userMsgResult.error) {
+    console.error("[conversations] User messages query error:", userMsgResult.error);
   }
 
-  // Count messages and find first user message per conversation
   const countMap: Record<string, number> = {};
-  const previewMap: Record<string, string> = {};
-  if (allMessages) {
-    for (const m of allMessages) {
+  if (countResult.data) {
+    for (const m of countResult.data) {
       countMap[m.conversation_id] = (countMap[m.conversation_id] || 0) + 1;
-      if (m.role === "user" && !previewMap[m.conversation_id]) {
+    }
+  }
+
+  const previewMap: Record<string, string> = {};
+  if (userMsgResult.data) {
+    for (const m of userMsgResult.data) {
+      if (!previewMap[m.conversation_id]) {
         previewMap[m.conversation_id] = m.content;
       }
     }
@@ -87,34 +104,38 @@ export async function GET() {
     message_count: countMap[c.id] || 0,
   }));
 
-  // Build synthetic "Text with Sage" entry if user has text channel messages.
-  // Exclude group conversations (linq_group_chat_id is not null).
-  const { data: textStats } = await admin
-    .from("messages")
-    .select("content, created_at")
-    .in("conversation_id", convIds)
-    .eq("channel", "text")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (textStats) {
-    // Get count and earliest text message
-    const { count: textCount } = await admin
+  // Build synthetic "Text with Jove" entry if user has text channel messages.
+  // The three message queries (latest, count, earliest) are independent of
+  // each other once we know the conversation IDs — fire in parallel.
+  const [latestRes, countRes, firstRes] = await Promise.all([
+    admin
+      .from("messages")
+      .select("content, created_at")
+      .in("conversation_id", convIds)
+      .eq("channel", "text")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
       .from("messages")
       .select("id", { count: "exact", head: true })
       .in("conversation_id", convIds)
-      .eq("channel", "text");
-
-    const { data: firstText } = await admin
+      .eq("channel", "text"),
+    admin
       .from("messages")
       .select("created_at")
       .in("conversation_id", convIds)
       .eq("channel", "text")
       .order("created_at", { ascending: true })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle(),
+  ]);
 
+  const textStats = latestRes.data;
+  const textCount = countRes.count;
+  const firstText = firstRes.data;
+
+  if (textStats) {
     const preview = textStats.content.length > 80
       ? textStats.content.substring(0, 80) + "…"
       : textStats.content;

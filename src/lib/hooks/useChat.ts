@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
 import { firstNameFrom } from "@/lib/utils/name";
+import type { CheckpointAction } from "@/lib/persona/config";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
 import {
   trackConversationStarted,
@@ -440,7 +441,7 @@ export function useChat() {
       // Load manual components (determines returning user status)
       await loadManual();
 
-      // If conversation exists but has no messages, trigger Sage's opener
+      // If conversation exists but has no messages, trigger Jove's opener
       const nonSystemMessages = dbMessages?.filter((m) => m.role !== "system") || [];
       if (nonSystemMessages.length === 0) {
         // Show the chat UI immediately, let opener stream in live
@@ -529,7 +530,7 @@ export function useChat() {
       // Anonymous checkpoint conversion gate: server returns 200 JSON
       // ({ blocked: true, reason: "signup_required" }) instead of an SSE
       // stream. Show the conversion prompt and drop the optimistic user
-      // message — do NOT render an error or a Sage reply.
+      // message — do NOT render an error or a Jove reply.
       const contentType = res.headers.get("content-type") || "";
       if (res.ok && contentType.includes("application/json")) {
         const body = await res.json().catch(() => null);
@@ -600,7 +601,7 @@ export function useChat() {
   }
 
   async function confirmCheckpoint(
-    action: "confirmed" | "rejected" | "refined" | "deferred",
+    action: CheckpointAction,
     edits?: { editedContent?: string | null; editedName?: string | null }
   ) {
     if (!activeCheckpoint) return;
@@ -988,7 +989,7 @@ export function useChat() {
     setErrorMessage(null);
     setCheckpointError(null);
 
-    // Send chat request with exploration context (message=null triggers Sage opener)
+    // Send chat request with exploration context (message=null triggers Jove opener)
     setIsLoading(true);
     try {
       const res = await fetch("/api/chat", {

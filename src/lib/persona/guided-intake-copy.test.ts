@@ -228,14 +228,18 @@ describe("guided intake instrumentation wiring", () => {
   const useChat = read("src/lib/hooks/useChat.ts");
   const callPersona = read("src/lib/persona/call-persona.ts");
   const sseParser = read("src/lib/utils/sse-parser.ts");
+  const personaConfig = read("src/lib/persona/config.ts");
   const eventsTest = read("src/lib/analytics/events.test.ts");
 
   it("EntryPoint type accepts 'guided-intake'", () => {
-    expect(events).toMatch(/EntryPoint\s*=\s*"situation"\s*\|\s*"guided-intake"/);
+    // EntryPoint aliases ConversationMode; ConversationMode lives in config.ts
+    // and includes "guided-intake" in its tuple.
+    expect(events).toMatch(/EntryPoint\s*=\s*ConversationMode/);
+    expect(personaConfig).toMatch(/CONVERSATION_MODES\s*=\s*\[[^\]]*"guided-intake"/);
   });
 
   it("ConversationMode type is exported from events.ts", () => {
-    expect(events).toContain("export type ConversationMode");
+    expect(events).toMatch(/export type \{[^}]*ConversationMode/);
   });
 
   it("trackGuidedIntakeOpenerFired is exported from events.ts", () => {
@@ -292,7 +296,8 @@ describe("guided intake instrumentation wiring", () => {
   });
 
   it("MessageCompleteEvent declares optional mode field", () => {
-    expect(sseParser).toMatch(/mode\?\s*:\s*"situation"\s*\|\s*"guided-intake"/);
+    // mode is typed as the canonical ConversationMode union.
+    expect(sseParser).toMatch(/mode\?\s*:\s*ConversationMode/);
   });
 
   it("call-persona emits mode in message_complete payload", () => {

@@ -1,5 +1,4 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 const ALLOWED_STATUSES = ["waiting", "invited", "declined"] as const;
 type WaitlistStatus = (typeof ALLOWED_STATUSES)[number];
@@ -12,12 +11,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
     const { data, error } = await admin
       .from("waitlist")
       .select("id, email, source, status, created_at")
@@ -37,10 +34,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
     let body: { id?: unknown; status?: unknown };
     try {
@@ -57,7 +53,6 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "invalid_status" }, { status: 400 });
     }
 
-    const admin = createAdminClient();
     const { error } = await admin
       .from("waitlist")
       .update({ status })

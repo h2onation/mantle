@@ -173,7 +173,7 @@ async function handleEvent(event: LinqWebhookEvent): Promise<void> {
 }
 
 /**
- * Handle participant.added — detect if Sage was added to a group.
+ * Handle participant.added — detect if Jove was added to a group.
  */
 async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
   const { data } = event;
@@ -195,7 +195,7 @@ async function handleParticipantAdded(event: LinqWebhookEvent): Promise<void> {
     event.trace_id
   );
 
-  // If the added participant is Sage, this is a group we need to set up
+  // If the added participant is Jove, this is a group we need to set up
   if (addedHandle && normalizePhone(addedHandle) === getPersonaPhone()) {
     console.log("[linq] persona_added_to_group chat_id=%s", chatId);
     // Extract handles from the event payload if available
@@ -236,7 +236,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
 
   const normalizedRemoved = removedHandle ? normalizePhone(removedHandle) : null;
 
-  // Case e: Sage was removed
+  // Case e: Jove was removed
   if (normalizedRemoved && normalizedRemoved === getPersonaPhone()) {
     console.log("[linq] persona_removed_from_group chat_id=%s", chatId);
     await updateGroupState(chatId, { is_active: false });
@@ -270,7 +270,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
     return;
   }
 
-  // Potentially just owner user + Sage remain — verify via API before closing
+  // Potentially just owner user + Jove remain — verify via API before closing
   console.log("[linq] possible_close chat_id=%s — verifying via API", chatId);
   const chatInfo = await getChatInfo(chatId);
 
@@ -285,13 +285,13 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
     return;
   }
 
-  // Count non-Sage participants from the API response
+  // Count non-Jove participants from the API response
   const apiNonPersona = chatInfo.handles
     .map((h) => normalizePhone(h))
     .filter((h) => h && h !== getPersonaPhone());
 
   if (apiNonPersona.length <= 1) {
-    // Confirmed: just owner user (or nobody) + Sage
+    // Confirmed: just owner user (or nobody) + Jove
     await sendMessage(
       chatId,
       "Looks like it's just us. I'm in our regular thread if you want to keep going."
@@ -443,7 +443,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     // Inactive group — check if we should re-detect or ignore
     if (!groupState || !groupState.is_active) {
       // Re-detection: if group was deactivated because no owner accounts were
-      // found (owner_user_id is null), and the message mentions Sage, re-run
+      // found (owner_user_id is null), and the message mentions Jove, re-run
       // detection — a user may have linked their phone since the first attempt.
       const messageText =
         parts.filter((p: { type: string }) => p.type === "text")
@@ -529,7 +529,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
     );
 
     if (gate.decision === "SKIP") {
-      // Save message for future context but don't call Sage
+      // Save message for future context but don't call Jove
       try {
         await saveGroupMessage(prefetched, groupTextContent);
       } catch (err) {
@@ -561,7 +561,7 @@ async function handleInboundMessage(event: LinqWebhookEvent): Promise<void> {
         });
       }
 
-      // Cost logging — track every group Sage API call for threshold tuning
+      // Cost logging — track every group Jove API call for threshold tuning
       console.log(
         "[linq] GROUP_PERSONA_CALL chat_id=%s counter=%d gate_reason=%s score=%d outcome=%s latency_ms=%d response_len=%d",
         chatId,
@@ -660,7 +660,7 @@ export async function POST(request: NextRequest) {
   seenEvents.set(event.event_id, Date.now());
 
   // Process inline. On Next.js 14 there's no reliable waitUntil for API
-  // routes, and Linq's webhook timeout is generous. When Sage pipeline
+  // routes, and Linq's webhook timeout is generous. When Jove pipeline
   // latency becomes an issue, move to a background queue or upgrade to
   // Next.js 15's after() API.
   try {

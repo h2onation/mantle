@@ -1,6 +1,6 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { renderManualEntryFull } from "@/lib/manual/layers";
 import * as AutisticVoice from "@/lib/persona/voice-autistic";
 import * as AudhdVoice from "@/lib/persona/voice-audhd";
 import * as DyslexicVoice from "@/lib/persona/voice-dyslexic";
@@ -16,7 +16,7 @@ import {
   WHEN_JOVE_IS_WRONG,
   WHEN_USER_ASKS_WHAT_SHOULD_I_DO,
 } from "@/lib/persona/voice-scaffold";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
 import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/manual-context";
@@ -162,11 +162,10 @@ export interface BuildPromptOptions {
   /** Conversation mode. "situation" (default) is standard open-ended
    *  exploration. "guided-intake" runs a more directed path toward
    *  the first checkpoint. "upload" handles pasted text content. */
-  mode?: "situation" | "guided-intake" | "upload";
+  mode?: ConversationMode;
   personaModes?: PersonaMode[];
   groupContext?: {
     ownerUserName: string | null;
-    hasManualContext: boolean;
   } | null;
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
    *  follow-up (not a normal chat turn). The mode determines which
@@ -766,10 +765,10 @@ The user's message is unusually long or structured. It may be pasted content. If
 // ---------------------------------------------------------------------------
 
 function buildGroupPrompt(
-  groupContext: { ownerUserName: string | null; hasManualContext: boolean },
+  groupContext: { ownerUserName: string | null },
   manualComponents: ManualComponent[]
 ): string {
-  const { ownerUserName, hasManualContext } = groupContext;
+  const { ownerUserName } = groupContext;
 
   let prompt = `You are ${PERSONA_NAME}, in a group text conversation. Your role is FACILITATOR.
 
@@ -792,7 +791,7 @@ FACILITATOR RULES:
 
 Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones.`;
 
-  if (hasManualContext && ownerUserName && manualComponents.length > 0) {
+  if (ownerUserName && manualComponents.length > 0) {
     prompt += `
 
 MANUAL CONTEXT RULES:
@@ -810,9 +809,7 @@ MANUAL CONTEXT RULES:
 CONFIRMED MANUAL
 `;
     for (const comp of manualComponents) {
-      prompt += `Layer ${comp.layer} (${LAYER_NAMES[comp.layer]})`;
-      if (comp.name) prompt += ` — "${comp.name}"`;
-      prompt += `:\n${comp.content}\n\n`;
+      prompt += renderManualEntryFull(comp) + "\n";
     }
   }
 

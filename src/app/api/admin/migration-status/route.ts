@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,10 +34,9 @@ function parseMigrationFilename(filename: string): FileMigration | null {
 }
 
 export async function GET(): Promise<Response> {
-  const { isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
+  const { admin } = auth;
 
   // 1. List migration files on disk.
   const migrationsDir = path.join(process.cwd(), "supabase", "migrations");
@@ -60,7 +58,6 @@ export async function GET(): Promise<Response> {
 
   // 2. Query applied migrations via the wrapper function installed in
   //    20260417000002_admin_list_migrations.sql.
-  const admin = createAdminClient();
   const { data: appliedRows, error } = await admin.rpc("admin_list_migrations");
 
   if (error) {

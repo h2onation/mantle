@@ -1,31 +1,15 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
+import { listAllAuthUsers } from "@/lib/admin/list-auth-users";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
-
-    // Get auth users for email mapping
-    const { data: authData, error: authError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    if (authError) {
-      console.error("[admin/feedback] Auth list error:", authError);
-      return Response.json({ error: "Failed to list users" }, { status: 500 });
-    }
-
-    const emailMap: Record<string, string> = {};
-    for (const u of authData.users) {
-      emailMap[u.id] = u.email || "";
-    }
+    const { emailMap } = await listAllAuthUsers(admin);
 
     // Fetch all feedback, newest first
     const { data: feedbackRows, error: feedbackError } = await admin

@@ -5,8 +5,8 @@
 // (mono uppercase header, card treatment, listing) for consistency
 // inside /admin?section=health.
 
-import { useEffect, useState } from "react";
 import { adminEmptyStyle, formatAdminDate } from "./admin-shared";
+import { useAsyncFetch } from "@/lib/hooks/useAsyncFetch";
 
 interface BetaUser {
   email: string;
@@ -39,32 +39,9 @@ function relativeDays(iso: string | null): string {
 }
 
 export default function ActiveUsersPanel() {
-  const [data, setData] = useState<ActiveUsersData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/active-users");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || `HTTP ${res.status}`);
-        setLoading(false);
-        return;
-      }
-      setData((await res.json()) as ActiveUsersData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data, loading, error } = useAsyncFetch<ActiveUsersData>(
+    "/api/admin/active-users"
+  );
 
   return (
     <div style={{ marginTop: 40 }}>

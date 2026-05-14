@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { adminEmptyStyle, formatAdminDate } from "./admin-shared";
+import { useAsyncFetch } from "@/lib/hooks/useAsyncFetch";
 
 interface ErrorKindCount {
   error_kind: string;
@@ -35,35 +36,10 @@ const WINDOWS: { label: string; seconds: number }[] = [
 ];
 
 export default function ConfirmHealthPanel() {
-  const [stats, setStats] = useState<ConfirmStats | null>(null);
   const [windowSeconds, setWindowSeconds] = useState<number>(86400);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load(windowSec: number) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/admin/confirm-stats?windowSeconds=${windowSec}`
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || `HTTP ${res.status}`);
-        setLoading(false);
-        return;
-      }
-      setStats((await res.json()) as ConfirmStats);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load(windowSeconds);
-  }, [windowSeconds]);
+  const { data: stats, loading, error } = useAsyncFetch<ConfirmStats>(
+    `/api/admin/confirm-stats?windowSeconds=${windowSeconds}`
+  );
 
   return (
     <div style={{ marginTop: 40 }}>

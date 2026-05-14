@@ -12,6 +12,10 @@ interface AnthropicResponse {
   content: { type: string; text: string }[];
 }
 
+export function extractResponseText(response: AnthropicResponse): string {
+  return response.content[0].type === "text" ? response.content[0].text : "";
+}
+
 export async function anthropicFetch(
   body: AnthropicRequest,
   timeoutMs = 60000

@@ -3,6 +3,7 @@
 import { APP_VERSION } from "@/lib/version";
 import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { PERSONA_NAME } from "@/lib/persona/config";
 import DevToolsPanel from "@/components/admin/DevToolsPanel";
 
 interface DesktopVitrineProps {
@@ -220,7 +221,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             >
               {[
                 { href: "/admin", label: "Admin" },
-                { href: "/admin/prompt-architecture", label: "Jove's prompt architecture" },
+                { href: "/admin/prompt-architecture", label: `${PERSONA_NAME}'s prompt architecture` },
                 { href: "/admin/docs", label: "Docs" },
               ].map((link, i) => (
                 <span key={link.href} style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>

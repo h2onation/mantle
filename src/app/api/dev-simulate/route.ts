@@ -1,7 +1,6 @@
 export const runtime = "edge";
 
-import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
 import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 
@@ -68,10 +67,9 @@ async function consumePersonaStream(stream: ReadableStream): Promise<{
 }
 
 export async function POST(request: Request) {
-  const { userId, isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
+  const { userId, admin } = auth;
 
   // Parse body. `checkpointTarget` is accepted for backwards compatibility
   // with the client but ignored — the simulation now always exits at the first
@@ -94,7 +92,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const admin = createAdminClient();
   const encoder = new TextEncoder();
 
   function emit(
@@ -184,7 +181,7 @@ export async function POST(request: Request) {
                 : userMessage,
           });
 
-          // Call Sage with the simulated user's message
+          // Call Jove with the simulated user's message
           const personaStream = callPersona({
             conversationId,
             userId: userId,

@@ -1,5 +1,5 @@
 import type { ManualEntry } from "@/lib/types";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { LAYER_NAMES, renderManualEntryFull } from "@/lib/manual/layers";
 
 // Why this exists:
 // A returning user's Manual can grow to dozens of entries. Shipping every
@@ -21,9 +21,9 @@ import { LAYER_NAMES } from "@/lib/manual/layers";
 
 const RECENT_FULL_LIMIT = 4;
 
-export interface ManualEntryForContext extends ManualEntry {
-  source_conversation_id?: string | null;
-}
+// Alias kept for callers that import this name; ManualEntry already includes
+// the source_conversation_id field this file relies on.
+export type ManualEntryForContext = ManualEntry;
 
 /**
  * Render an entry in compressed form. Used for older entries that no longer
@@ -63,9 +63,7 @@ export function prepareManualContext(
 
   if (recent.length > 0) {
     for (const entry of recent) {
-      block += `Layer ${entry.layer} (${LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`})`;
-      if (entry.name) block += ` — "${entry.name}"`;
-      block += `:\n${entry.content}\n\n`;
+      block += renderManualEntryFull(entry) + "\n";
     }
   }
 
@@ -121,7 +119,13 @@ function byCreatedAtDesc(a: ManualEntryForContext, b: ManualEntryForContext): nu
   return byCreatedAtAsc(b, a);
 }
 
-function deriveSummaryFromContent(content: string): string {
+/**
+ * First-sentence fallback when an explicit summary is missing. Used here
+ * for older entries from before the compressed-summary feature shipped,
+ * and re-exported for confirm-checkpoint.ts to use when composition omits
+ * a summary or when the user edits content in the review overlay.
+ */
+export function deriveSummaryFromContent(content: string): string {
   const firstSentence = content.split(/(?<=[.!?])\s+/)[0] || content;
   const trimmed = firstSentence.trim();
   if (trimmed.length <= 240) return trimmed;

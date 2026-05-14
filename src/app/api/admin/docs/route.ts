@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { verifyAdmin } from "@/lib/admin/verify-admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,10 +8,8 @@ export const dynamic = "force-dynamic";
 const DOC_NAMES = ["intent", "system", "rules", "state", "decisions"] as const;
 
 export async function GET() {
-  const { isAdmin } = await verifyAdmin();
-  if (!isAdmin) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth instanceof Response) return auth;
 
   const docsDir = path.join(process.cwd(), "docs");
   const docs = await Promise.all(

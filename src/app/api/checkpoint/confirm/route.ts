@@ -117,25 +117,31 @@ export async function POST(request: Request) {
     return Response.json({ error: errorMessage }, { status: statusCode });
   }
 
-  // 2. Load and verify the message
-  const { data: msg, error: msgError } = await admin
-    .from("messages")
-    .select("id, conversation_id, content, is_checkpoint, checkpoint_meta")
-    .eq("id", messageId)
-    .single();
+  // 2. Load and verify the message + ownership in parallel.
+  // The conversation lookup uses the trusted body conversationId; we then
+  // assert it matches the message's conversation_id below to catch any
+  // attempt to pass a messageId from a different conversation.
+  const [msgResult, convResult] = await Promise.all([
+    admin
+      .from("messages")
+      .select("id, conversation_id, content, is_checkpoint, checkpoint_meta")
+      .eq("id", messageId)
+      .single(),
+    admin
+      .from("conversations")
+      .select("id, user_id")
+      .eq("id", conversationId)
+      .single(),
+  ]);
+
+  const { data: msg, error: msgError } = msgResult;
+  const { data: conv } = convResult;
 
   if (msgError || !msg) {
     return failWith(404, "not_found", "Message not found");
   }
 
-  // Verify conversation belongs to this user
-  const { data: conv } = await admin
-    .from("conversations")
-    .select("user_id")
-    .eq("id", msg.conversation_id)
-    .single();
-
-  if (!conv || conv.user_id !== user.id) {
+  if (!conv || conv.user_id !== user.id || conv.id !== msg.conversation_id) {
     return failWith(403, "forbidden", "Unauthorized");
   }
 
@@ -253,7 +259,7 @@ export async function POST(request: Request) {
     promptAuth = true;
   }
 
-  // 5. Call Sage and return streaming response. We log stream_started
+  // 5. Call Jove and return streaming response. We log stream_started
   //    now; stream_ended fires inside callPersona on close. The outcome
   //    log fires when the stream is complete or interrupted — we don't
   //    have a clean hook for that here without wrapping the stream, so

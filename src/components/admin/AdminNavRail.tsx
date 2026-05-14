@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PERSONA_NAME } from "@/lib/persona/config";
 
 const NAV_ITEMS: { id: string; label: string; href: string }[] = [
   { id: "users", label: "Users", href: "/admin?section=users" },
@@ -10,7 +11,7 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
   { id: "docs", label: "Docs", href: "/admin/docs" },
   {
     id: "prompt-architecture",
-    label: "Jove's prompt architecture",
+    label: `${PERSONA_NAME}'s prompt architecture`,
     href: "/admin/prompt-architecture",
   },
 ];

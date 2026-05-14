@@ -1,6 +1,6 @@
 /**
  * Lightweight regex-based detection of pasted transcripts.
- * Runs before Sage to conditionally load transcript-handling prompt sections.
+ * Runs before Jove to conditionally load transcript-handling prompt sections.
  * Zero API cost — pure string matching.
  */
 

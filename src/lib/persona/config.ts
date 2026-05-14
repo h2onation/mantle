@@ -29,3 +29,52 @@ export const PERSONA_NAME = "Jove";
  * Keep in sync with PERSONA_NAME.
  */
 export const PERSONA_NAME_FORMAL = "Jove";
+
+// Model IDs for the four LLM call sites in src/lib/persona/.
+// Centralized here so a model bump touches one file. Verify dated suffixes
+// via Anthropic docs before changing — see CLAUDE.md "Model IDs" rule.
+export const PERSONA_MODEL = "claude-sonnet-4-6";
+export const PERSONA_MAX_TOKENS = 2048;
+export const EXTRACTION_MODEL = "claude-sonnet-4-6";
+export const COMPOSITION_MODEL = "claude-opus-4-6";
+export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";
+export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
+
+// Single source of truth for both the system-message text persisted after a
+// checkpoint action and the natural-language reply mapSystemMessages() in
+// call-persona.ts uses to render that system message as a synthetic user turn
+// for Jove. Lives here (not in persona-pipeline.ts) to avoid a circular import
+// between persona-pipeline.ts and call-persona.ts.
+export const CHECKPOINT_ACTIONS = {
+  confirmed: {
+    systemMessage: "[User confirmed the checkpoint]",
+    naturalReply: "I confirmed that checkpoint. That resonates.",
+  },
+  rejected: {
+    systemMessage: "[User rejected the checkpoint]",
+    naturalReply: "That checkpoint didn't land right for me.",
+  },
+  refined: {
+    systemMessage: "[User wants to refine the checkpoint]",
+    naturalReply: "That's close but not quite right.",
+  },
+  // Refinement-ceiling "Let it go" path. DB status maps to "rejected"
+  // (same downstream behavior — entry is closed, nothing written to
+  // manual_entries) but Jove sees this distinct message so the
+  // POST-REJECTION fixed line does not fire.
+  deferred: {
+    systemMessage: "[User let the checkpoint go]",
+    naturalReply: "I'll let that one go for now. We can come back to it.",
+  },
+} as const;
+
+export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
+
+// Conversation mode: which entry path the user took into a session. Centralized
+// here so the runtime tuple (used for input validation in /api/chat) and the
+// derived type (used in BuildPromptOptions and downstream consumers) stay in
+// sync — previously declared as four near-identical inline literals across
+// system-prompt.ts, chat/route.ts, prompt-architecture/route.ts, and
+// prompt-sections.ts.
+export const CONVERSATION_MODES = ["situation", "guided-intake", "upload"] as const;
+export type ConversationMode = (typeof CONVERSATION_MODES)[number];

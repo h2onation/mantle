@@ -1,32 +1,19 @@
-import { verifyAdmin } from "@/lib/admin/verify-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin/verify-admin";
+import { listAllAuthUsers } from "@/lib/admin/list-auth-users";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { isAdmin } = await verifyAdmin();
-    if (!isAdmin) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
 
-    const admin = createAdminClient();
+    const { users: authUsers, emailMap } = await listAllAuthUsers(admin);
 
-    // Get auth users for emails (perPage avoids default 50-user pagination limit)
-    const { data: authData, error: authError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    if (authError) {
-      console.error("[admin/users] Auth list error:", authError);
-      return Response.json({ error: "Failed to list users" }, { status: 500 });
-    }
-
-    const emailMap: Record<string, string> = {};
     const anonMap: Record<string, boolean> = {};
     const createdMap: Record<string, string> = {};
-    for (const u of authData.users) {
-      emailMap[u.id] = u.email || "";
+    for (const u of authUsers) {
       anonMap[u.id] = !u.email;
       createdMap[u.id] = u.created_at;
     }
@@ -44,7 +31,7 @@ export async function GET() {
     // Include auth users that have no profile row (e.g. admin account
     // created before the auto-profile trigger, or trigger failed)
     const profileIds = new Set((profiles || []).map((p) => p.id));
-    const missingProfiles = authData.users
+    const missingProfiles = authUsers
       .filter((u) => !profileIds.has(u.id))
       .map((u) => ({ id: u.id, display_name: null }));
 
