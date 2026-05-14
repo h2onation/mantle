@@ -36,7 +36,7 @@ export default function ChatInput({
     if (!el) return;
     el.style.height = "auto";
     const lineHeight = 26; // 17px * 1.5 line-height ≈ 25.5, round up
-    const maxHeight = lineHeight * 3.5; // ~91px — 3.5 lines, partial cutoff signals more text
+    const maxHeight = lineHeight * 6; // ~156px — 6 lines, then internal scroll
     el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
     el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
     // Auto-scroll to bottom so latest transcription text is always visible
@@ -174,30 +174,28 @@ export default function ChatInput({
           position: "relative" as const,
           display: "flex",
           flexDirection: "row",
-          alignItems: "center",
-          gap: "10px",
-          background: "var(--session-bubble-user)",
-          border: "1px solid var(--session-bubble-user-border)",
-          borderRadius: "999px",
-          padding: "10px 14px",
+          alignItems: "flex-end",
+          gap: "4px",
+          background: "var(--session-walnut-surface)",
+          border: "1px solid var(--session-bubble-border)",
+          borderRadius: "21px",
+          padding: "12px 8px 12px 16px",
+          minHeight: "56px",
+          maxHeight: "240px",
+          overflow: "hidden",
           backdropFilter: "blur(32px) saturate(150%)",
           WebkitBackdropFilter: "blur(32px) saturate(150%)",
-          boxShadow: "var(--session-plate-shadow)",
+          boxShadow: "var(--session-bubble-shadow)",
         }}
       >
-        {/* Visible placeholder — hides on focus or when text present.
-            Positioned to align with the textarea's content edge: pill
-            padding-left (14px) so the italic hint sits at the same
-            x-coordinate the user's typed text will land at. */}
         {!input && !inputFocused && !isRecording && (
           <span
             style={{
               position: "absolute",
-              left: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
+              left: "16px",
+              bottom: "14px",
               fontFamily: "var(--font-spectral), var(--font-persona), serif",
-              fontSize: "15px",
+              fontSize: "16px",
               fontStyle: "italic",
               fontWeight: 400,
               color: "var(--session-ink-faded)",
@@ -213,9 +211,8 @@ export default function ChatInput({
           <div
             style={{
               position: "absolute" as const,
-              left: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
+              left: "16px",
+              bottom: "16px",
               display: "flex",
               alignItems: "center",
               gap: "3px",
@@ -281,12 +278,8 @@ export default function ChatInput({
           }}
         />
 
-        {/* Action button — 44px tap target (Apple minimum) */}
-        {/* Send affordance — TextBtn pattern (SG §buttons::TextBtn).
-            Mono-caps "send ›" with a thin ink rule beneath. Replaces an
-            earlier sage-filled circle which was bubble-app chrome the
-            SG explicitly forbids. Appears only when buttonMode is
-            "send" — i.e. when there's text. */}
+        {/* Hit area is 44px (iOS HIG) via padding + negative margin,
+            keeping the visible glyph at 18px without inflating the row. */}
         {buttonMode === "send" && (
           <button
             onClick={handleButtonClick}
@@ -296,29 +289,32 @@ export default function ChatInput({
               all: "unset",
               cursor: "pointer",
               display: "inline-flex",
-              alignItems: "baseline",
-              gap: "var(--sp-xs)",
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              letterSpacing: "2.6px",
-              textTransform: "uppercase",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "13px",
+              margin: "-13px",
               color: "var(--session-ink)",
-              paddingBottom: "4px",
-              borderBottom: "1px solid var(--session-ink)",
               flexShrink: 0,
               animation: "mwFadeIn 0.15s ease-out both",
             }}
           >
-            <span>send</span>
-            <span aria-hidden="true" style={{ fontSize: 12, opacity: 0.85 }}>
-              ›
-            </span>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 20 L 12 4" />
+              <path d="M5.5 10.5 L 12 4 L 18.5 10.5" />
+            </svg>
           </button>
         )}
 
-        {/* Stop recording — pulsing sage square inside a 32px circular
-            dark surface. Matches the PillComposer mic-slot dimensions
-            from the dark-mode demo. */}
         {buttonMode === "stop" && (
           <button
             onClick={handleButtonClick}
@@ -330,28 +326,23 @@ export default function ChatInput({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              background: "var(--session-button-inset-strong)",
+              padding: "13px",
+              margin: "-13px",
               flexShrink: 0,
               animation: "voicePulse 2s ease-in-out infinite, mwFadeIn 0.15s ease-out both",
             }}
           >
             <div
               style={{
-                width: "10px",
-                height: "10px",
-                borderRadius: "2px",
+                width: "14px",
+                height: "14px",
+                borderRadius: "3px",
                 backgroundColor: "var(--session-persona)",
               }}
             />
           </button>
         )}
 
-        {/* Mic — 32px circular dark surface containing a 14px stroke
-            glyph. Matches the demo PillComposer's mic affordance:
-            walnut-pill background, dark circular icon slot inside. */}
         {(buttonMode === "mic" || buttonMode === "mic-denied") && (
           <button
             onClick={handleButtonClick}
@@ -368,10 +359,12 @@ export default function ChatInput({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              background: "var(--session-button-inset-strong)",
+              padding: "13px",
+              margin: "-13px",
+              color:
+                buttonMode === "mic-denied"
+                  ? "var(--session-error-text)"
+                  : "var(--session-ink)",
               flexShrink: 0,
               opacity:
                 buttonMode === "mic-denied"
@@ -384,24 +377,19 @@ export default function ChatInput({
             }}
           >
             <svg
-              width="14"
-              height="14"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={
-                buttonMode === "mic-denied"
-                  ? "var(--session-error-text)"
-                  : "var(--session-ink)"
-              }
-              strokeWidth="1.7"
+              stroke="currentColor"
+              strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
             >
-              <rect x="9" y="1" width="6" height="12" rx="3" />
-              <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-              <line x1="12" y1="18" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
+              <rect x="9" y="3" width="6" height="11" rx="3" />
+              <path d="M6 11.5 C 6 14.8, 8.7 17.5, 12 17.5 C 15.3 17.5, 18 14.8, 18 11.5" />
+              <path d="M12 17.5 L 12 21" />
             </svg>
           </button>
         )}
