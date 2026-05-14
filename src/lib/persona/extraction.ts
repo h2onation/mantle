@@ -1,6 +1,9 @@
 import { anthropicFetch } from "@/lib/anthropic";
 import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "@/lib/persona/config";
+import { logEvent } from "@/lib/observability/log";
+
+const EXTRACTION_MODEL = "claude-sonnet-4-6";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -379,11 +382,33 @@ export async function runExtraction(
   userContent += "Analyze the latest exchange and produce the updated extraction state.";
 
   try {
+    // The EXTRACTION_SYSTEM constant is hefty (the five-layer model, all
+    // analysis priorities, the JSON shape) and is identical across every
+    // extraction call. Mark it as the cache prefix so subsequent turns
+    // pay the cheap 0.10x cache-read price on it instead of the full
+    // input rate. The user content stays uncached — that's the per-turn
+    // payload.
     const response = await anthropicFetch({
-      model: "claude-sonnet-4-6",
+      model: EXTRACTION_MODEL,
       max_tokens: 4096,
-      system: EXTRACTION_SYSTEM,
+      system: [
+        {
+          type: "text",
+          text: EXTRACTION_SYSTEM,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
       messages: [{ role: "user", content: userContent }],
+    });
+
+    logEvent({
+      event: "cache_performance",
+      surface: "extraction",
+      model: EXTRACTION_MODEL,
+      input_tokens: response.usage?.input_tokens,
+      output_tokens: response.usage?.output_tokens,
+      cache_creation_input_tokens: response.usage?.cache_creation_input_tokens,
+      cache_read_input_tokens: response.usage?.cache_read_input_tokens,
     });
 
     const rawText =

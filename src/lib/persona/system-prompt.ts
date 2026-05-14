@@ -19,7 +19,11 @@ import {
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
-import { prepareManualContext, type ManualEntryForContext } from "@/lib/persona/manual-context";
+import {
+  prepareManualContext,
+  prepareManualContextBlocks,
+  type ManualEntryForContext,
+} from "@/lib/persona/manual-context";
 
 export type PersonaMode = "autistic" | "audhd" | "dyslexic" | "general";
 
@@ -645,6 +649,182 @@ function buildTier3(flags: Tier3Flags): string {
     .map((b) => b.render(flags))
     .join("");
   return "TIER 3: CONVERSATION MECHANICS\n" + blocks;
+}
+
+/**
+ * The cache-aware split of the Jove system prompt. Three blocks:
+ *   - `tier1`: constitutional intro. Never changes. Lives at the very front
+ *     of the cached prefix.
+ *   - `staticContext`: Tier 2 voice + compressed older Manual entries.
+ *     Stable for the duration of a session unless persona modes change or
+ *     a new Manual entry lands. The `cache_control` marker sits on this
+ *     block — Anthropic caches the prefix up to and including it.
+ *   - `dynamic`: Tier 3 mechanics + current-session Manual entries +
+ *     session/extraction/transcript/exploration context. Changes every
+ *     turn; never cached.
+ *
+ * Callers that just need a plain string still use `buildSystemPrompt`,
+ * which delegates here and reassembles the legacy ordering.
+ */
+export interface SystemPromptBlocks {
+  tier1: string;
+  staticContext: string;
+  dynamic: string;
+}
+
+/**
+ * Build the three-tier cache-aware split. For the 1:1 Jove path. The
+ * group-chat path has its own self-contained prompt builder (no caching
+ * — group sessions are too short and too varied for the cache window to
+ * matter) and is not handled here; callers should branch on `groupContext`
+ * before this point.
+ */
+export function buildSystemPromptBlocks(
+  options: OneOnOnePromptOptions
+): SystemPromptBlocks {
+  const {
+    manualComponents,
+    currentConversationId,
+    isReturningUser,
+    sessionSummary,
+    extractionContext,
+    isFirstCheckpoint,
+    sessionCount,
+    explorationContext,
+    transcriptContext,
+    turnCount,
+    checkpointApproaching,
+    mode = "situation",
+    personaModes = ["autistic"],
+    postConfirmMode = null,
+  } = options;
+
+  const isNewUser = manualComponents.length === 0 && !isReturningUser;
+  const showCheckpointInstructions = checkpointApproaching || isReturningUser;
+
+  const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
+
+  const tier2 = composeTier2(personaModes);
+  const tier3 = buildTier3({
+    isNewUser,
+    isReturningUser,
+    showCheckpointInstructions,
+    isFirstCheckpoint,
+    checkpointApproaching,
+    turnCount,
+    manualComponentCount: manualComponents.length,
+    postConfirmMode,
+    mode,
+  });
+
+  const { older: olderManual, recent: recentManual } =
+    prepareManualContextBlocks(manualComponents, currentConversationId);
+
+  // tier1: intro + constitutional rules. Smallest, most-stable block.
+  const tier1Block = `${intro}\n\n${TIER_1}`;
+
+  // staticContext: voice + compressed older Manual entries. This is the
+  // block carrying the cache_control marker in the caller's request shape.
+  // Older entries are byte-stable across a session unless a new entry is
+  // confirmed; when one is, the next turn rebuilds the prefix and pays a
+  // one-time cache-creation cost, which amortizes over the rest of the
+  // session.
+  let staticBlock = `\n\n${tier2}`;
+  if (olderManual) {
+    staticBlock += `\n\n${olderManual.trimEnd()}\n`;
+  }
+
+  // dynamic: Tier 3 + per-turn context. Never cached. Starts with the
+  // leading newline that the legacy builder inserted between basePrompt
+  // and dynamicContext so the joined output of all three blocks reproduces
+  // the legacy whitespace.
+  let dynamicBlock = `\n\n${tier3}\n`;
+
+  if (recentManual) {
+    dynamicBlock += recentManual;
+  }
+
+  if (isReturningUser) {
+    dynamicBlock += "\nSESSION CONTEXT\n";
+    if (sessionCount && sessionCount > 1) {
+      dynamicBlock += `This is session ${sessionCount}.\n`;
+    }
+    dynamicBlock += "Returning user. Do NOT run the first-session entry.\n";
+    if (sessionSummary) {
+      dynamicBlock += `Previous session: ${sessionSummary}\n`;
+    }
+  }
+
+  if (extractionContext) {
+    dynamicBlock += extractionContext;
+  }
+
+  if (transcriptContext?.isTranscript) {
+    dynamicBlock += `
+TRANSCRIPT DETECTED
+
+The user's message contains pasted content (a conversation thread, email chain, or journal entry). Handle it differently from a normal message.
+
+RECOGNITION
+- Acknowledge you received the transcript. Do not summarize it.
+- If the user provided context alongside the paste (a sentence or paragraph before or after the pasted content), use that context and analyze directly.
+- If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
+- If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
+
+ANALYSIS (after context is established)
+- Cross-reference the transcript against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the transcript.
+- Surface gaps between what the user has told you about themselves and what the transcript shows.
+- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
+- Focus on the USER's behavior. All observations serve the user's Manual. The other person's words are context for understanding the user, not data for a second profile.
+- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
+
+DO NOT
+- Summarize the transcript (they already read it)
+- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
+- Take sides or assign blame
+- Tell the user what to do or give relationship advice
+- Analyze a minor's behavior or psychology if the transcript contains content from a minor
+
+MANUAL WRITING
+After discussing the transcript, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always.
+`;
+  } else if (
+    transcriptContext &&
+    !transcriptContext.isTranscript &&
+    transcriptContext.confidence === "low"
+  ) {
+    dynamicBlock += `
+The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
+`;
+  }
+
+  if (explorationContext) {
+    let explorationBlock = "\nEXPLORATION FOCUS\n";
+    explorationBlock += `The user clicked 'Explore with ${PERSONA_NAME}' on a specific part of their Manual.\n\n`;
+
+    if (explorationContext.type === "entry") {
+      explorationBlock += `They want to explore the entry "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
+      explorationBlock += `Entry content: ${explorationContext.content}\n\n`;
+      explorationBlock += "Open by referencing this entry directly. Use their language from it. ";
+      explorationBlock += "Ask a specific question pulling them into a concrete, recent moment connected to it. ";
+      explorationBlock += "Don't explain the entry back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
+    } else if (explorationContext.type === "empty_layer") {
+      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which is empty.\n`;
+      explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
+      explorationBlock += "Frame what this layer covers conversationally. ";
+      explorationBlock += "Ask a concrete entry question. Reference what you know from their other confirmed layers.\n";
+    }
+
+    explorationBlock += "\nDo NOT run entry sequences. Go straight into the exploration.\n";
+
+    dynamicBlock += "\n" + explorationBlock;
+  }
+
+  return {
+    tier1: tier1Block,
+    staticContext: staticBlock,
+    dynamic: dynamicBlock,
+  };
 }
 
 export function buildSystemPrompt(options: BuildPromptOptions): string {

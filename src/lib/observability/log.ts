@@ -19,7 +19,8 @@ export type ConfirmEvent =
   | "confirm_rpc_fail"
   | "confirm_stream_started"
   | "confirm_stream_ended"
-  | "confirm_outcome";
+  | "confirm_outcome"
+  | "cache_performance";
 
 export type ConfirmOutcome =
   | "success"
@@ -34,6 +35,10 @@ export type ConfirmOutcome =
   | "bad_request"
   | "internal_error";
 
+/** Which Anthropic call surface emitted the cache_performance event.
+ *  Lets log queries split chat-vs-extraction hit rates. */
+export type CachedSurface = "chat" | "extraction";
+
 export interface LogEntry {
   ts: string;
   event: ConfirmEvent;
@@ -47,6 +52,16 @@ export interface LogEntry {
   duration_ms?: number | null;
   error_kind?: string | null;
   error_detail?: string | null;
+  // cache_performance fields. Token counts from the Anthropic Messages
+  // API. input_tokens is the uncached portion; cache_creation is the
+  // prefix tokens written on a miss; cache_read is the prefix tokens
+  // served from cache on a hit. cache_read > 0 indicates a cache hit.
+  surface?: CachedSurface;
+  model?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
 }
 
 // Fixed salt so the same user maps to the same hash across deploys.
@@ -87,12 +102,32 @@ export function logEvent(entry: Partial<LogEntry> & { event: ConfirmEvent }): vo
 
   if (process.env.NODE_ENV !== "production") {
     // Dev: compact but human-readable
-    const { event, outcome, status_code, duration_ms, error_kind } = full;
+    const {
+      event,
+      outcome,
+      status_code,
+      duration_ms,
+      error_kind,
+      surface,
+      cache_read_input_tokens,
+      cache_creation_input_tokens,
+      input_tokens,
+    } = full;
     const bits: string[] = [event];
+    if (surface) bits.push(`surface=${surface}`);
     if (outcome) bits.push(`outcome=${outcome}`);
     if (status_code) bits.push(`status=${status_code}`);
     if (duration_ms !== undefined && duration_ms !== null) {
       bits.push(`${duration_ms}ms`);
+    }
+    if (cache_read_input_tokens !== undefined) {
+      bits.push(`cache_read=${cache_read_input_tokens}`);
+    }
+    if (cache_creation_input_tokens !== undefined) {
+      bits.push(`cache_create=${cache_creation_input_tokens}`);
+    }
+    if (input_tokens !== undefined) {
+      bits.push(`uncached_input=${input_tokens}`);
     }
     if (error_kind) bits.push(`err=${error_kind}`);
     // eslint-disable-next-line no-console

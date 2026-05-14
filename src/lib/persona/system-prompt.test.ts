@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt, composeTier2 } from "@/lib/persona/system-prompt";
+import {
+  buildSystemPrompt,
+  buildSystemPromptBlocks,
+  composeTier2,
+} from "@/lib/persona/system-prompt";
 import type { OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
@@ -1561,6 +1565,166 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("think in pictures, patterns, and stories");
       expect(result).toContain("Never suggest journaling");
       expect(result).toContain("TIER 3: CONVERSATION MECHANICS");
+    });
+  });
+
+  // ─── buildSystemPromptBlocks (prompt-cache split) ─────────────────────────
+  describe("buildSystemPromptBlocks — cache-aware three-tier split", () => {
+    const blocksDefaults: OneOnOnePromptOptions = {
+      kind: "oneOnOne",
+      manualComponents: [],
+      currentConversationId: "test-conversation-id",
+      isReturningUser: false,
+      sessionSummary: null,
+      extractionContext: "",
+      isFirstCheckpoint: false,
+      turnCount: 5,
+      checkpointApproaching: false,
+    };
+
+    function buildBlocks(overrides: Partial<OneOnOnePromptOptions> = {}) {
+      return buildSystemPromptBlocks({ ...blocksDefaults, ...overrides });
+    }
+
+    it("returns three string blocks: tier1, staticContext, dynamic", () => {
+      const blocks = buildBlocks();
+      expect(typeof blocks.tier1).toBe("string");
+      expect(typeof blocks.staticContext).toBe("string");
+      expect(typeof blocks.dynamic).toBe("string");
+      expect(blocks.tier1.length).toBeGreaterThan(0);
+      expect(blocks.staticContext.length).toBeGreaterThan(0);
+      expect(blocks.dynamic.length).toBeGreaterThan(0);
+    });
+
+    it("tier1 contains intro + TIER 1 only — no Tier 2/3 markers", () => {
+      const blocks = buildBlocks();
+      expect(blocks.tier1).toContain("You are Jove");
+      expect(blocks.tier1).toContain("TIER 1: CONSTITUTIONAL RULES");
+      expect(blocks.tier1).not.toContain("TIER 2:");
+      expect(blocks.tier1).not.toContain("TIER 3:");
+    });
+
+    it("staticContext contains Tier 2 voice but NOT Tier 3 mechanics", () => {
+      const blocks = buildBlocks();
+      expect(blocks.staticContext).toContain("TIER 2:");
+      expect(blocks.staticContext).toContain("VOICE RULES");
+      expect(blocks.staticContext).not.toContain("TIER 3:");
+      expect(blocks.staticContext).not.toContain(
+        "TIER 3: CONVERSATION MECHANICS"
+      );
+    });
+
+    it("dynamic contains Tier 3 mechanics but NOT Tier 1/Tier 2 headers", () => {
+      const blocks = buildBlocks();
+      expect(blocks.dynamic).toContain("TIER 3: CONVERSATION MECHANICS");
+      expect(blocks.dynamic).not.toContain("TIER 1: CONSTITUTIONAL RULES");
+      expect(blocks.dynamic).not.toContain("TIER 2: VOICE AND BEHAVIOR");
+    });
+
+    it("recent Manual entries appear in dynamic, NOT in staticContext", () => {
+      // Entries authored in the current conversation MUST stay in the
+      // dynamic block — they change every turn that adds a confirmation
+      // and would invalidate the cache prefix otherwise.
+      const blocks = buildBlocks({
+        currentConversationId: "conv-current",
+        manualComponents: [
+          {
+            layer: 1,
+            name: "Fresh Pattern",
+            content: "Current session content here.",
+            source_conversation_id: "conv-current",
+            created_at: "2026-04-15T12:00:00Z",
+          },
+        ],
+      });
+      expect(blocks.dynamic).toContain("Current session content here.");
+      expect(blocks.dynamic).toContain('"Fresh Pattern"');
+      expect(blocks.staticContext).not.toContain("Current session content here.");
+      expect(blocks.staticContext).not.toContain('"Fresh Pattern"');
+    });
+
+    it("older (compressed) Manual entries appear in staticContext, NOT in dynamic", () => {
+      // Older entries are stable across a session — they're the prime
+      // caching target. Six entries forces some into the compressed
+      // tail past the RECENT_FULL_LIMIT of 4.
+      const blocks = buildBlocks({
+        currentConversationId: "conv-current",
+        manualComponents: Array.from({ length: 6 }, (_, i) => ({
+          layer: 1,
+          name: `Old Entry ${i}`,
+          content: `Old content ${i}`,
+          summary: `Summary for entry ${i}.`,
+          key_words: [`kw${i}a`, `kw${i}b`],
+          source_conversation_id: "conv-old",
+          created_at: `2026-01-${(i + 1).toString().padStart(2, "0")}T00:00:00Z`,
+        })),
+      });
+      // The "EARLIER ENTRIES" header marks the compressed-older block.
+      expect(blocks.staticContext).toContain("EARLIER ENTRIES (compressed");
+      expect(blocks.dynamic).not.toContain("EARLIER ENTRIES (compressed");
+      // The oldest entry's compressed summary lives in staticContext.
+      expect(blocks.staticContext).toContain("Summary for entry 0.");
+      expect(blocks.dynamic).not.toContain("Summary for entry 0.");
+    });
+
+    it("staticContext is byte-identical across calls with the same inputs (cache pre-req)", () => {
+      // Anthropic caches by prefix-byte identity. If the static block
+      // differs even by a character, the cache miss-rate is 100%. This
+      // is the most load-bearing test in the file.
+      const opts: OneOnOnePromptOptions = {
+        ...blocksDefaults,
+        currentConversationId: "conv-cache-stability",
+        isReturningUser: true,
+        manualComponents: [
+          {
+            layer: 1,
+            name: "Persistent",
+            content: "Persistent content",
+            summary: "Persistent summary.",
+            key_words: ["a", "b"],
+            source_conversation_id: "conv-old",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+          {
+            layer: 2,
+            name: "Persistent 2",
+            content: "Persistent content 2",
+            summary: "Persistent 2 summary.",
+            key_words: ["c", "d"],
+            source_conversation_id: "conv-old",
+            created_at: "2026-01-02T00:00:00Z",
+          },
+        ],
+        personaModes: ["autistic"],
+        turnCount: 7,
+        sessionCount: 4,
+      };
+      const a = buildSystemPromptBlocks(opts);
+      const b = buildSystemPromptBlocks(opts);
+      expect(a.tier1).toBe(b.tier1);
+      expect(a.staticContext).toBe(b.staticContext);
+    });
+
+    it("staticContext changes when personaModes change (different user → different cache)", () => {
+      // Cache prefix is per-content; changing the voice block correctly
+      // forces a new cache entry rather than reading a stale one.
+      const autistic = buildBlocks({ personaModes: ["autistic"] });
+      const dyslexic = buildBlocks({ personaModes: ["dyslexic"] });
+      expect(autistic.staticContext).not.toBe(dyslexic.staticContext);
+    });
+
+    it("staticContext is identical across turnCount changes (per-turn flags do not affect cache)", () => {
+      // turnCount flips Tier 3 conditional blocks. None of those should
+      // appear in staticContext; otherwise every turn would miss the cache.
+      const turn1 = buildBlocks({ turnCount: 1, isReturningUser: false });
+      const turn7 = buildBlocks({ turnCount: 7, isReturningUser: false });
+      expect(turn1.staticContext).toBe(turn7.staticContext);
+    });
+
+    it("staticContext is identical across checkpointApproaching changes", () => {
+      const approaching = buildBlocks({ checkpointApproaching: true });
+      const notApproaching = buildBlocks({ checkpointApproaching: false });
+      expect(approaching.staticContext).toBe(notApproaching.staticContext);
     });
   });
 });

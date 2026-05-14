@@ -290,3 +290,48 @@ describe("call-persona — post-confirm error handling", () => {
   });
 });
 
+// ── Prompt-cache wiring ──
+// Source-contract tests for the prompt-caching feature. The Anthropic
+// Messages API only caches when the request shape is right: array-form
+// `system` with a `cache_control: { type: "ephemeral" }` marker on a
+// stable prefix block. A typo here silently degrades to a normal call
+// (the API accepts the request and ignores unknown markers), so we
+// assert the wiring at the source level.
+
+describe("call-persona — prompt-cache wiring", () => {
+  const src = readFileSync(
+    join(process.cwd(), "src/lib/persona/call-persona.ts"),
+    "utf-8"
+  );
+
+  it("uses buildSystemPromptBlocks rather than buildSystemPrompt", () => {
+    expect(src).toContain("buildSystemPromptBlocks(promptOptions)");
+    // Stale import must be gone — leaving it in would suggest a
+    // half-finished migration and rot the cache wiring intent.
+    expect(src).not.toMatch(/import.*\bbuildSystemPrompt\b.*from.*system-prompt/);
+  });
+
+  it("constructs an array-form system with exactly one cache_control marker", () => {
+    expect(src).toMatch(/SystemBlock\[\]\s*=\s*\[/);
+    expect(src).toMatch(
+      /text:\s*promptBlocks\.staticContext,\s*\n\s*cache_control:\s*\{\s*type:\s*"ephemeral"\s*\}/
+    );
+    // Exactly one ephemeral marker — Anthropic allows up to 4 but Phase 1
+    // uses one on the largest stable prefix.
+    const markerCount = (src.match(/cache_control:\s*\{\s*type:\s*"ephemeral"/g) || []).length;
+    expect(markerCount).toBe(1);
+  });
+
+  it("passes the SystemBlock[] to anthropicStream as `system`", () => {
+    expect(src).toMatch(/anthropicStream\(\{[\s\S]*?system:\s*systemBlocks/);
+  });
+
+  it("parses streaming usage and emits a cache_performance log line", () => {
+    expect(src).toContain("parseStreamUsage(event)");
+    expect(src).toContain('event: "cache_performance"');
+    expect(src).toContain('surface: "chat"');
+    expect(src).toContain("cache_creation_input_tokens");
+    expect(src).toContain("cache_read_input_tokens");
+  });
+});
+

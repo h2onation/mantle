@@ -5,13 +5,20 @@
 // vocabularies (content_block_delta / message_delta / message_stop vs.
 // text_delta / message_complete / error), so they cannot share a parser.
 //
-// Only text_delta content blocks are surfaced — that's the sole signal
-// the current consumer (callPersona) extracts. Other event types
-// (message_start, content_block_start/stop, message_delta, message_stop,
-// ping, error) are intentionally skipped to match prior behavior.
+// Surfaces two signals: text_delta content (the streamed model output)
+// and usage tokens (input/output/cache fields from message_start +
+// message_delta — needed for prompt-cache telemetry). All other event
+// types (content_block_start/stop, message_stop, ping, error) are
+// intentionally skipped.
+
+import { parseStreamUsage, type AnthropicUsage } from "@/lib/anthropic";
 
 export interface AnthropicStreamCallbacks {
   onTextDelta: (text: string) => void;
+  /** Fires zero-to-many times during the stream: once for `message_start`
+   *  (input + cache token counts), once for `message_delta` (final
+   *  output_tokens). Callers that don't need usage telemetry can omit. */
+  onUsage?: (usage: AnthropicUsage) => void;
 }
 
 export async function parseAnthropicStream(
@@ -42,6 +49,11 @@ export async function parseAnthropicStream(
           event.delta?.type === "text_delta"
         ) {
           callbacks.onTextDelta(event.delta.text);
+          continue;
+        }
+        if (callbacks.onUsage) {
+          const usage = parseStreamUsage(event);
+          if (usage) callbacks.onUsage(usage);
         }
       } catch {
         // Skip malformed SSE lines

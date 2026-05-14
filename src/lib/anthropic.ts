@@ -1,15 +1,41 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
+/** A single block of the structured `system` form. Optional `cache_control`
+ *  marks the cache breakpoint: Anthropic caches the prompt prefix up to and
+ *  including the marked block, so one marker on the largest stable block
+ *  covers everything before it as well. Prompt caching is GA (no beta header
+ *  needed); `cache_control: { type: "ephemeral" }` requests the default 5
+ *  minute cache. */
+export type SystemBlock = {
+  type: "text";
+  text: string;
+  cache_control?: { type: "ephemeral" };
+};
+
 interface AnthropicRequest {
   model: string;
   max_tokens: number;
-  system: string;
+  system: string | SystemBlock[];
   messages: { role: "user" | "assistant"; content: string }[];
   stream?: boolean;
 }
 
+/** Token-count breakdown returned by the Messages API. Three of the fields
+ *  are cache-related: `input_tokens` is the count AFTER the last cache
+ *  breakpoint (uncached portion), `cache_creation_input_tokens` is the
+ *  prefix tokens written to cache on a miss, `cache_read_input_tokens` is
+ *  the prefix tokens served from cache on a hit. Total processed input is
+ *  the sum of all three. */
+export interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
 interface AnthropicResponse {
   content: { type: string; text: string }[];
+  usage?: AnthropicUsage;
 }
 
 export async function anthropicFetch(
@@ -101,4 +127,22 @@ export async function anthropicStream(
   clearTimeout(timer);
 
   return res.body!;
+}
+
+/** Extract usage tokens from a parsed SSE event during a streaming response.
+ *  `message_start` carries input + cache token counts in its `message.usage`.
+ *  `message_delta` carries the final output_tokens. Callers accumulate both
+ *  to get the full picture for telemetry. Returns null if the event doesn't
+ *  carry usage info. */
+export function parseStreamUsage(event: unknown): AnthropicUsage | null {
+  if (!event || typeof event !== "object") return null;
+  const e = event as Record<string, unknown>;
+  if (e.type === "message_start") {
+    const msg = e.message as { usage?: AnthropicUsage } | undefined;
+    return msg?.usage ?? null;
+  }
+  if (e.type === "message_delta") {
+    return (e.usage as AnthropicUsage | undefined) ?? null;
+  }
+  return null;
 }
