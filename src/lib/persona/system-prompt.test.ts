@@ -270,7 +270,6 @@ describe("buildSystemPrompt", () => {
       });
       expect(result).toContain("free-form");
       expect(result).toContain("progressive narrowing");
-      expect(result).toContain("Do not reference welcome chips");
     });
 
     it("contains framework-question guidance without letting Jove name them back", () => {
@@ -346,8 +345,7 @@ describe("buildSystemPrompt", () => {
         isReturningUser: true,
         turnCount: 1,
       });
-      expect(result).toContain("Do not introduce yourself by name");
-      expect(result).toContain("the user already knows who you are");
+      expect(result).toContain("do not introduce yourself by name");
     });
 
     it("instructs never to claim objectivity", () => {
@@ -631,34 +629,28 @@ describe("buildSystemPrompt", () => {
 
   // ─── Returning-user message (Track A Phase 7-Low / 7d) ───────────────────
   describe("returning-user opening structure", () => {
-    it("uses the new three-part welcome-back template", () => {
+    it("tells Jove to respond to what the user said instead of using a canned opener", () => {
       const result = build({ isReturningUser: true });
-      expect(result).toContain('The opener: "Welcome back."');
-      expect(result).toContain('The closing question, exactly: "What is on your mind today?"');
+      expect(result).toContain("Respond directly to what the user said");
+      expect(result).not.toContain('The opener: "Welcome back."');
     });
 
     it("permits referencing either a recent entry OR an open thread", () => {
       const result = build({ isReturningUser: true });
-      expect(result).toContain("entry name OR a specific open thread");
+      expect(result).toContain("entry name OR an open thread");
     });
 
     it("does NOT contain the old closing-question variants", () => {
       const result = build({ isReturningUser: true });
-      // The old block offered "What's bringing you in today?" or
-      // "What's on your mind?" — the new spec pins the exact question
-      // to "What is on your mind today?" with no apostrophe contraction
-      // and no shortened fallback.
       expect(result).not.toContain("What's bringing you in today?");
       expect(result).not.toContain('opens the door:');
-      // The "Two jobs: show you remember" framing is intentionally
-      // preserved — it captures the philosophy that the new three-part
-      // template implements. Not asserting on removal here.
+      expect(result).not.toContain('The closing question, exactly');
     });
 
-    it("preserves the activated-user carve-out and extends it to drop the Welcome-back opener", () => {
+    it("preserves the activated-user carve-out", () => {
       const result = build({ isReturningUser: true });
       expect(result).toContain("activated");
-      expect(result).toContain('drop both the "Welcome back" opener and the Manual reference');
+      expect(result).toContain("skip the Manual reference entirely");
     });
 
     it("preserves the no-session-recap rule", () => {
@@ -830,7 +822,6 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("UPLOAD MODE");
       expect(result).toContain("chose \"Upload\"");
       expect(result).toContain("Paste something here");
-      expect(result).toContain("use this exact text");
     });
 
     it("includes analysis instructions for upload mode", () => {
@@ -1303,18 +1294,15 @@ describe("buildSystemPrompt", () => {
       }
     });
 
-    it("FIRST MESSAGE block still renders alongside guided intake for new users on turn 1", () => {
+    it("FIRST MESSAGE block does NOT render alongside guided intake — mode block owns the opener", () => {
       const result = build({
         mode: "guided-intake",
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      expect(result).toContain("FIRST MESSAGE");
+      expect(result).not.toContain("FIRST MESSAGE");
       expect(result).toContain("GUIDED INTAKE");
-      const fmIdx = result.indexOf("FIRST MESSAGE");
-      const giIdx = result.indexOf("GUIDED INTAKE");
-      expect(fmIdx).toBeLessThan(giIdx);
     });
 
     it("none of the banned phrases from voice-autistic.ts appear inside the GUIDED INTAKE block", () => {
@@ -1327,6 +1315,50 @@ describe("buildSystemPrompt", () => {
       for (const phrase of BANNED_PHRASES) {
         expect(guidedBlock).not.toContain(phrase);
       }
+    });
+
+    it("guided-intake opener tells returning users not to introduce themselves", () => {
+      const result = build({
+        mode: "guided-intake",
+        isReturningUser: true,
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+      });
+      expect(result).toContain("returning user");
+      expect(result).toContain("without introducing yourself");
+    });
+
+    it("guided-intake opener tells new users they may introduce themselves", () => {
+      const result = build({
+        mode: "guided-intake",
+        isReturningUser: false,
+        manualComponents: [],
+      });
+      expect(result).toContain("briefly introduce yourself");
+    });
+
+    it("upload opener tells returning users not to introduce themselves", () => {
+      const result = build({
+        mode: "upload",
+        isReturningUser: true,
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+      });
+      expect(result).toContain("returning user");
+      expect(result).toContain("without introducing yourself");
+    });
+
+    it("returning-user situation-specific first-turn block only renders in situation mode", () => {
+      const situation = build({
+        mode: "situation",
+        isReturningUser: true,
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+      });
+      const guided = build({
+        mode: "guided-intake",
+        isReturningUser: true,
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+      });
+      expect(situation).toContain("RETURNING USER — FIRST TURN");
+      expect(guided).not.toContain("RETURNING USER — FIRST TURN");
     });
   });
 
