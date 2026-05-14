@@ -145,30 +145,58 @@ export default function DevToolsPanel() {
 
   if (!isAdmin) return null;
 
-  const pillBtn = (
-    active: boolean,
-  ): React.CSSProperties => ({
-    width: 24,
-    height: 24,
+  const pillBtn = (active: boolean): React.CSSProperties => ({
+    width: 26,
+    height: 26,
     borderRadius: 5,
-    border: `1px solid ${active ? "var(--session-persona)" : "var(--session-ink-ghost)"}`,
-    background: active ? "var(--session-persona-muted)" : "none",
-    color: active ? "var(--session-persona)" : "var(--session-ink-ghost)",
+    border: `1px solid ${active ? "var(--session-persona)" : "var(--session-walnut-border)"}`,
+    background: active ? "var(--session-persona-muted)" : "var(--session-walnut-surface-soft)",
+    color: active ? "var(--session-persona)" : "var(--session-ink-soft)",
     fontFamily: "var(--font-mono)",
-    fontSize: 10,
-    fontWeight: 500,
+    fontSize: 11,
+    fontWeight: 600,
     cursor: "pointer",
     padding: 0,
     WebkitTapHighlightColor: "transparent",
   });
 
+  const actionBtn = (disabled: boolean): React.CSSProperties => ({
+    width: "100%",
+    background: disabled
+      ? "var(--session-walnut-surface-soft)"
+      : "var(--session-walnut-surface)",
+    border: `1px solid ${disabled ? "var(--session-walnut-border-soft)" : "var(--session-walnut-border)"}`,
+    borderRadius: 6,
+    cursor: disabled ? "default" : "pointer",
+    textAlign: "center",
+    padding: "9px 0",
+    WebkitTapHighlightColor: "transparent",
+    fontFamily: "var(--font-mono)",
+    fontSize: "var(--size-meta)",
+    fontWeight: 500,
+    color: disabled ? "var(--session-ink-mid)" : "var(--session-walnut)",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+  });
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "var(--size-meta)",
+    color: "var(--session-ink-soft)",
+    letterSpacing: "1.5px",
+    textTransform: "uppercase",
+    fontWeight: 500,
+  };
+
   return (
     <section
       aria-label="Dev tools"
       style={{
-        marginTop: 28,
-        paddingTop: 16,
-        borderTop: "1px solid var(--session-ink-hairline)",
+        marginTop: 24,
+        padding: "14px 14px 16px",
+        background: "var(--session-walnut-surface-soft)",
+        border: "1px solid var(--session-walnut-border)",
+        borderRadius: 8,
       }}
     >
       <p
@@ -176,7 +204,7 @@ export default function DevToolsPanel() {
           margin: "0 0 12px",
           fontFamily: "var(--font-mono)",
           fontSize: "var(--size-meta)",
-          fontWeight: 500,
+          fontWeight: 600,
           letterSpacing: "2px",
           textTransform: "uppercase",
           color: "var(--session-walnut)",
@@ -195,13 +223,13 @@ export default function DevToolsPanel() {
           width: "100%",
           fontFamily: "var(--font-sans)",
           fontSize: 12,
-          color: "var(--session-ink-soft)",
-          background: "var(--session-cream)",
-          border: "1px solid var(--session-ink-hairline)",
+          color: "var(--session-ink)",
+          background: "var(--session-linen)",
+          border: "1px solid var(--session-walnut-border)",
           borderRadius: 6,
           padding: "8px 10px",
           resize: "vertical",
-          marginBottom: 8,
+          marginBottom: 10,
           outline: "none",
           lineHeight: 1.4,
           boxSizing: "border-box",
@@ -216,21 +244,12 @@ export default function DevToolsPanel() {
           marginBottom: 8,
         }}
       >
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "var(--size-meta)",
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "1.5px",
-            textTransform: "uppercase",
-          }}
-        >
-          Checkpoints
-        </span>
+        <span style={labelStyle}>Checkpoints</span>
         <div style={{ display: "flex", gap: 4 }}>
           {[1, 2, 3].map((n) => (
             <button
               key={n}
+              type="button"
               onClick={() => setSimCheckpoints(n)}
               style={pillBtn(simCheckpoints === n)}
             >
@@ -241,26 +260,10 @@ export default function DevToolsPanel() {
       </div>
 
       <button
+        type="button"
         onClick={handleSimulate}
         disabled={simulating || !simulatedUser.trim()}
-        style={{
-          width: "100%",
-          background: "none",
-          border: `1px solid ${simulating || !simulatedUser.trim() ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
-          borderRadius: 6,
-          cursor: simulating || !simulatedUser.trim() ? "default" : "pointer",
-          textAlign: "center",
-          padding: "8px 0",
-          opacity: simulating || !simulatedUser.trim() ? 0.5 : 1,
-          WebkitTapHighlightColor: "transparent",
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--size-meta)",
-          color:
-            simulating || !simulatedUser.trim()
-              ? "var(--session-ink-ghost)"
-              : "var(--session-persona)",
-          letterSpacing: "0.5px",
-        }}
+        style={actionBtn(simulating || !simulatedUser.trim())}
       >
         {simulating
           ? simStatus
@@ -278,8 +281,9 @@ export default function DevToolsPanel() {
               ? "var(--session-error)"
               : "var(--session-persona)",
             letterSpacing: "0.3px",
-            margin: "6px 0 0",
+            margin: "8px 0 0",
             textAlign: "center",
+            fontWeight: 500,
           }}
         >
           {simStatus}
@@ -291,23 +295,18 @@ export default function DevToolsPanel() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginTop: 16,
+          marginTop: 18,
           marginBottom: 8,
+          paddingTop: 14,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
         }}
       >
-        <span
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
-            color: "var(--session-ink-mid)",
-          }}
-        >
-          Populate manual
-        </span>
+        <span style={labelStyle}>Populate manual</span>
         <div style={{ display: "flex", gap: 4 }}>
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
+              type="button"
               onClick={() => togglePopulateLayer(n)}
               style={pillBtn(populateLayers.has(n))}
             >
@@ -318,27 +317,10 @@ export default function DevToolsPanel() {
       </div>
 
       <button
+        type="button"
         onClick={handlePopulate}
         disabled={populating || populateLayers.size === 0}
-        style={{
-          width: "100%",
-          background: "none",
-          border: `1px solid ${populating || populateLayers.size === 0 ? "var(--session-ink-hairline)" : "var(--session-persona-muted)"}`,
-          borderRadius: 6,
-          cursor:
-            populating || populateLayers.size === 0 ? "default" : "pointer",
-          textAlign: "center",
-          padding: "8px 0",
-          opacity: populating ? 0.5 : 1,
-          WebkitTapHighlightColor: "transparent",
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--size-meta)",
-          color:
-            populating || populateLayers.size === 0
-              ? "var(--session-ink-ghost)"
-              : "var(--session-persona)",
-          letterSpacing: "0.5px",
-        }}
+        style={actionBtn(populating || populateLayers.size === 0)}
       >
         {populating
           ? "Populating..."
@@ -356,8 +338,9 @@ export default function DevToolsPanel() {
               ? "var(--session-error)"
               : "var(--session-persona)",
             letterSpacing: "0.3px",
-            margin: "6px 0 0",
+            margin: "8px 0 0",
             textAlign: "center",
+            fontWeight: 500,
           }}
         >
           {populateStatus}
