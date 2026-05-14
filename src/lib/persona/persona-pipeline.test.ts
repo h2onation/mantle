@@ -184,13 +184,12 @@ describe("applyCheckpointGates with material quality", () => {
       },
     });
     const result = applyCheckpointGates(
-      { layer: 1, name: "test" },
-      [],
       10, // plenty of turns since last checkpoint
       state,
       false
     );
-    expect(result.isCheckpoint).toBe(false);
+    expect(result.passed).toBe(false);
+    expect(result.reason).toBeDefined();
   });
 
   it("permits the checkpoint when extraction state confirms quality", () => {
@@ -204,14 +203,8 @@ describe("applyCheckpointGates with material quality", () => {
         strongest_layer: 1,
       },
     });
-    const result = applyCheckpointGates(
-      { layer: 1, name: "test" },
-      [],
-      10,
-      state,
-      false
-    );
-    expect(result.isCheckpoint).toBe(true);
+    const result = applyCheckpointGates(10, state, false);
+    expect(result.passed).toBe(true);
   });
 
   it("still applies the turn-count gate after material quality passes", () => {
@@ -226,22 +219,17 @@ describe("applyCheckpointGates with material quality", () => {
       },
     });
     const result = applyCheckpointGates(
-      { layer: 1, name: "test" },
-      [],
       2, // too soon since last checkpoint
       state,
       false
     );
-    expect(result.isCheckpoint).toBe(false);
+    expect(result.passed).toBe(false);
+    expect(result.reason).toContain("turns since last");
   });
 
   it("preserves backward compatibility when extraction state is omitted", () => {
-    const result = applyCheckpointGates(
-      { layer: 1, name: "test" },
-      [],
-      10
-    );
-    expect(result.isCheckpoint).toBe(true);
+    const result = applyCheckpointGates(10);
+    expect(result.passed).toBe(true);
   });
 });
 

@@ -50,6 +50,17 @@ export default function CheckpointOverlay({
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const moduleRef = useRef<HTMLDivElement>(null);
 
+  // onClose is supplied by the parent as an inline arrow function, so its
+  // identity changes on every parent render. The auto-close timer and the
+  // keyboard handler must NOT depend on it directly — during the post-confirm
+  // stream the parent re-renders many times per second, which would restart
+  // the timer indefinitely and leave the overlay stuck on the confirmed
+  // cover. The ref keeps the latest closure without triggering effect reruns.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (open) {
       setPhase("actions");
@@ -71,13 +82,13 @@ export default function CheckpointOverlay({
     }
     if (confirmStatus === "success") {
       setPhase("confirmed");
-      const t = setTimeout(() => onClose(), 1600);
+      const t = setTimeout(() => onCloseRef.current(), 1600);
       return () => clearTimeout(t);
     }
     if (confirmStatus === "error") {
       setPhase("actions");
     }
-  }, [confirmStatus, open, onClose]);
+  }, [confirmStatus, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,17 +99,20 @@ export default function CheckpointOverlay({
     };
   }, [open]);
 
+  // Escape always dismisses, regardless of phase. The previous gate ("only
+  // when phase === 'actions'") meant a stuck confirmed-cover had no escape
+  // hatch if the auto-close timer failed for any reason.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        if (phase === "actions") onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, phase, onClose]);
+  }, [open]);
 
   const handleConfirm = useCallback(() => {
     // Only forward edits when the user actually entered edit mode at some

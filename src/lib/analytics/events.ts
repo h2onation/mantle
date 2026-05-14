@@ -186,14 +186,6 @@ export function trackModal2Shown(props: ModalProgressEventProps) {
   posthog.capture("modal_2_shown", props);
 }
 
-export function trackModal3Shown(props: ModalProgressEventProps) {
-  posthog.capture("modal_3_shown", props);
-}
-
-export function trackModalFlowCompleted(props: ModalProgressEventProps) {
-  posthog.capture("modal_flow_completed", props);
-}
-
 export function trackFirstCheckpointCompleted(props: {
   conversation_id: string;
   checkpoint_id: string;

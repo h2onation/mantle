@@ -2,7 +2,7 @@ import { anthropicStream } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
-import { classifyResponse } from "@/lib/persona/classifier";
+import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
@@ -454,92 +454,72 @@ export function callPersona({
             });
         }
 
-        // 12. Classification: run the classifier on the conversational
-        //     text. Skipped for post-confirm follow-up calls — Jove is
-        //     producing scaffolding for a JUST-confirmed entry, not
-        //     proposing a new one, so classifier output would be
-        //     noise (and would risk double-checkpointing if the
-        //     LLM's post-confirm language triggered a false positive).
-        //     Composition is handled separately by composeManualEntry
-        //     below, also gated on isCheckpoint.
+        // 12. Checkpoint detection (deterministic). The transition line
+        //     "I want to put something in your Manual" is the contract
+        //     with the user — if Jove wrote it, this turn is a checkpoint.
+        //     No probabilistic classifier sits between Jove's words and
+        //     the card. Layer + name + summary all come from the
+        //     composition Opus call below.
+        //
+        //     Skipped for post-confirm follow-up calls — Jove is producing
+        //     scaffolding for a JUST-confirmed entry, not proposing a new
+        //     one, and would risk double-checkpointing if the post-confirm
+        //     language happened to contain the transition phrase.
         let isCheckpoint = false;
-        let checkpointLayer: number | null = null;
-        let checkpointName: string | null = null;
-        let processingText = "listening...";
+        const processingText = "listening...";
 
         if (postConfirmMode === null) {
-          const last4 = messages.slice(-4);
-          const recentText = last4
-            .map((m) => `${m.role}: ${m.content}`)
-            .join("\n\n");
-
-          const isFirstSession =
-            !manualComponents || manualComponents.length === 0;
-          const classification = await classifyResponse(
-            conversationalText,
-            recentText,
-            isFirstSession
-          );
-
-          isCheckpoint = classification.isCheckpoint;
-          checkpointLayer = classification.layer;
-          checkpointName = classification.name;
-          processingText = classification.processingText;
+          isCheckpoint = detectCheckpointInResponse(conversationalText).isCheckpoint;
         }
 
-        // 12b. Shared checkpoint gates (material quality + turn-count)
-        if (isCheckpoint && checkpointLayer) {
+        // 12b. Shared checkpoint gates (material quality + turn-count).
+        //      Cheap to gate here before paying for the composition call.
+        if (isCheckpoint) {
           const gateResult = applyCheckpointGates(
-            { layer: checkpointLayer, name: checkpointName || "" },
-            manualComponents,
             turnsSinceCheckpoint,
             previousExtraction,
             isFirstCheckpoint,
             turnCount
           );
-          isCheckpoint = gateResult.isCheckpoint;
-          checkpointLayer = gateResult.layer;
-          checkpointName = gateResult.name;
+          if (!gateResult.passed) {
+            isCheckpoint = false;
+          }
         }
 
         // 12b-log. Checkpoint detection debug log (dev only)
         if (process.env.NODE_ENV !== "production") {
-          console.log("[persona-debug] %s", isCheckpoint
-            ? `CHECKPOINT: L${checkpointLayer} "${checkpointName}"`
-            : "No checkpoint this turn");
+          console.log(
+            "[persona-debug] %s",
+            isCheckpoint ? "CHECKPOINT detected" : "No checkpoint this turn"
+          );
         }
 
-        // 12c. Composition: when the classifier detects a checkpoint, always
-        //      compose the polished manual entry server-side so composed_content
-        //      is ready at confirmation. The main Sage prompt no longer carries
-        //      composition rules — they live in confirm-checkpoint.ts.
+        // 12c. Composition: when the detector says yes (and gates pass),
+        //      call Opus to compose the polished entry. Opus picks the
+        //      layer based on the entry content + the existing Manual,
+        //      picks the headline, polishes the prose, and emits the
+        //      compressed summary + key_words. If composition fails OR
+        //      Opus picks an invalid layer, suppress the checkpoint —
+        //      better to silently skip than to file an entry under no
+        //      layer.
         let composedEntry: {
           content: string;
           name: string;
+          layer: number;
           changelog: string;
           summary: string;
           key_words: string[];
         } | null = null;
 
-        if (isCheckpoint && checkpointLayer) {
+        if (isCheckpoint) {
           try {
-            const existingLayerContent = (manualComponents || []).filter(
-              (c) => c.layer === checkpointLayer
-            );
-
             composedEntry = await composeManualEntry({
               checkpointText: conversationalText,
               conversationHistory: messages,
               languageBank: previousExtraction?.language_bank || [],
-              layer: checkpointLayer,
-              name: checkpointName,
-              existingLayerContent:
-                existingLayerContent.length > 0
-                  ? existingLayerContent
-                  : undefined,
+              manualComponents: manualComponents || [],
             });
 
-            // Soft post-validation: log structural drift without blocking.
             if (composedEntry?.content) {
               const validation = validateComposedEntry(composedEntry.content);
               if (!validation.ok) {
@@ -551,9 +531,14 @@ export function callPersona({
             }
           } catch (err) {
             console.error(
-              "[callPersona] Composition failed, saving without composed_content:",
+              "[callPersona] Composition failed, suppressing checkpoint:",
               err
             );
+            composedEntry = null;
+          }
+
+          if (!composedEntry) {
+            isCheckpoint = false;
           }
         }
 
@@ -593,7 +578,6 @@ export function callPersona({
           if (isCheckpoint) {
             updateData.is_checkpoint = true;
             updateData.checkpoint_meta = buildCheckpointMeta(
-              { isCheckpoint, layer: checkpointLayer, name: checkpointName },
               composedEntry,
               checkpointRefinementCount
             );
@@ -646,20 +630,18 @@ export function callPersona({
         }
 
         // 14. Emit final event
-        const checkpoint = isCheckpoint
+        const checkpoint = isCheckpoint && composedEntry
           ? {
               isCheckpoint: true,
-              layer: checkpointLayer,
-              name: composedEntry?.name || checkpointName,
+              layer: composedEntry.layer,
+              name: composedEntry.name,
               // Surface the refinement_count to the client so the
               // ceiling card UI fires on the third+ attempt without
               // requiring a separate fetch. Track A Phase 7-Mid.
               refinement_count: checkpointRefinementCount,
-              // Surface the polished entry text so the review overlay
-              // can show the user the exact content that will land in
-              // their Manual on confirm. Falls back to the assistant
-              // message content when composition didn't run.
-              composed_content: composedEntry?.content || null,
+              // Polished entry text shown in the review overlay so the
+              // user sees the exact prose that will land in their Manual.
+              composed_content: composedEntry.content,
             }
           : null;
 
@@ -702,12 +684,32 @@ export function callPersona({
 
         controller.close();
       } catch (err) {
+        console.error("[callPersona] Error:", err);
+
+        // Post-confirm streams are scaffolding on top of an already-completed
+        // save. By the time we reach this catch, the manual_entries row has
+        // been written and (for first-lifetime confirmations) the templated
+        // Message 1 stamp has already been emitted via prependedMessages.
+        // Surfacing "Jove lost the thread" here would tell the user their
+        // entry failed when it didn't — and the chat-level retry button
+        // would re-send a stale user message into a successful-confirm
+        // context. Close cleanly instead; the user keeps Message 1 and
+        // continues the conversation on the next turn.
+        if (postConfirmMode !== null) {
+          try {
+            controller.close();
+          } catch {
+            // controller may already be closed if the error fired after
+            // a partial enqueue; ignore.
+          }
+          return;
+        }
+
         const isTimeout =
           err instanceof Error && err.name === "AbortError";
         const msg = isTimeout
           ? `${PERSONA_NAME} took too long to respond. Try again.`
           : `${PERSONA_NAME} lost the thread. Try sending that again.`;
-        console.error("[callPersona] Error:", err);
         emitError(controller, msg);
       }
     },

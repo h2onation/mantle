@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME } from "./config";
 
 // ─── Manual entry composition (Sonnet) ─────────────────────────────────────
@@ -9,25 +9,31 @@ interface ComposeManualEntryOptions {
   checkpointText: string;
   conversationHistory: { role: "user" | "assistant"; content: string }[];
   languageBank: { phrase: string; context: string; charge: string }[];
-  layer: number;
-  name: string | null;
-  existingLayerContent?: { name: string | null; content: string }[];
+  /** The user's full Manual so far. Opus uses this for two things: layer
+   *  assignment (which of the 5 layers does this entry belong to, given
+   *  what's already there) and integration (deepen or contrast existing
+   *  entries on the chosen layer). Replaces the old `layer` + `name` +
+   *  `existingLayerContent` inputs — the classifier no longer pre-picks
+   *  these. */
+  manualComponents: { layer: number; name: string | null; content: string }[];
 }
 
 /**
  * Calls Sonnet to compose a polished manual entry from a checkpoint reflection.
- * Always invoked server-side after the classifier flags a checkpoint.
- * Returns null on failure — caller should fall back gracefully.
+ * Invoked server-side after the deterministic transition-line detection.
+ * Opus picks the layer, picks the headline, polishes the prose, and emits
+ * the compressed summary + key_words used to shrink older entries when
+ * they're shown back to Jove in future sessions.
  *
- * Also returns a compressed representation (summary + key_words) used to
- * shrink older entries when they're shown back to Jove in future sessions.
- * See prepareManualContext in system-prompt.ts for how these are consumed.
+ * Returns null on failure or if Opus can't pick a valid layer — caller
+ * should fall back gracefully (no checkpoint surfaced).
  */
 export async function composeManualEntry(
   options: ComposeManualEntryOptions
 ): Promise<{
   content: string;
   name: string;
+  layer: number;
   changelog: string;
   summary: string;
   key_words: string[];
@@ -36,9 +42,7 @@ export async function composeManualEntry(
     checkpointText,
     conversationHistory,
     languageBank,
-    layer,
-    name,
-    existingLayerContent,
+    manualComponents,
   } = options;
 
   const chargedLanguage = languageBank
@@ -50,10 +54,24 @@ export async function composeManualEntry(
       ? `\nUSER'S OWN LANGUAGE (use these exact phrases where they carry weight):\n${chargedLanguage.map((e) => `"${e.phrase}" — re: ${e.context}`).join("\n")}\n`
       : "";
 
-  const existingSection =
-    existingLayerContent && existingLayerContent.length > 0
-      ? `\nEXISTING ENTRIES ON THIS LAYER (your new entry must account for these):\n${existingLayerContent.map((c) => `[entry${c.name ? ` — "${c.name}"` : ""}]\n${c.content}`).join("\n\n")}\n\nIntegrate with or deepen existing entries. If new material contradicts them, name the tension.\n`
-      : "";
+  // Render the full Manual grouped by layer so Opus can both PICK the
+  // right layer for the new entry and integrate with existing entries on
+  // that layer. Empty layers are still listed (so Opus knows the option
+  // exists) but show "(no entries yet)".
+  const layerCatalog = LAYERS.map((l) => {
+    const entries = manualComponents.filter((c) => c.layer === l.id);
+    const entriesText =
+      entries.length === 0
+        ? "(no entries yet)"
+        : entries
+            .map(
+              (c) => `  [entry${c.name ? ` — "${c.name}"` : ""}]\n  ${c.content}`
+            )
+            .join("\n\n");
+    return `Layer ${l.id} — ${l.name} (${l.dimensions.join(", ")}):\n${entriesText}`;
+  }).join("\n\n");
+
+  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the layer this entry belongs to based on what the entry IS (the dimensions above), and how it relates to entries already on that layer. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension.\n`;
 
   // Last 8 messages for context
   const recentHistory = conversationHistory.slice(-8);
@@ -91,6 +109,9 @@ HEADLINE (field: "name"):
 Good: "Voice Goes When Pressure Lands," "Second Version Switches On in Rooms," "Body Locks Before Being Asked"
 Bad: "The Masking Loop," "Sensory Overwhelm Pattern," "Turned Away Before the Ask," clinical labels, metaphors, nominalizations ("the ask," "the reach," "the pull"), poetic titles like "Gaps Open and the Reach Fires." If the title sounds like a poem or uses a noun where a verb belongs, rewrite it plain.
 
+LAYER (field: "layer", required):
+An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.
+
 COMPRESSED REPRESENTATION (for future reference):
 - summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If a clear stance emerged, mention it.
 - key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
@@ -101,18 +122,16 @@ Wrong (passage): "When my manager checks in, my chest gets tight. My mind goes b
 Right (passage): "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Statement + passage...", "name": "Headline", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Statement + passage...", "name": "Headline", "layer": 1, "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
-  const userContent = `Layer: ${layer} (${LAYER_NAMES[layer] || "Unknown"})
-${name ? `Proposed name: "${name}"` : "No name proposed — choose one."}
-${languageSection}${existingSection}
+  const userContent = `${languageSection}${manualSection}
 RECENT CONVERSATION:
 ${historyText}
 
 ${PERSONA_NAME.toUpperCase()}'S CHECKPOINT REFLECTION:
 ${checkpointText}
 
-Compose the manual entry.`;
+Compose the manual entry. Pick the layer, the headline, the prose. Return the JSON.`;
 
   const response = await anthropicFetch({
     model: "claude-opus-4-6",
@@ -135,6 +154,29 @@ Compose the manual entry.`;
     return null;
   }
 
+  // Layer must be a valid integer in 1..5. If Opus emits anything else the
+  // entry can't be filed correctly — return null so the caller suppresses
+  // the checkpoint rather than scattering an entry to an unknown layer.
+  const rawLayer = parsed.layer;
+  const parsedLayer =
+    typeof rawLayer === "number"
+      ? rawLayer
+      : typeof rawLayer === "string"
+        ? Number.parseInt(rawLayer, 10)
+        : NaN;
+  if (
+    !Number.isInteger(parsedLayer) ||
+    parsedLayer < 1 ||
+    parsedLayer > 5
+  ) {
+    console.error(
+      "[composeManualEntry] Composition returned invalid layer:",
+      rawLayer
+    );
+    return null;
+  }
+  const layer: number = parsedLayer;
+
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim().length > 0
       ? parsed.summary.trim()
@@ -149,8 +191,9 @@ Compose the manual entry.`;
 
   return {
     content: parsed.content,
-    name: parsed.name || name || "Untitled",
-    changelog: parsed.changelog || `Created Layer ${layer} entry.`,
+    name: parsed.name || "Untitled",
+    layer,
+    changelog: parsed.changelog || `Created ${LAYER_NAMES[layer] || "Layer " + layer} entry.`,
     summary,
     key_words: keyWords,
   };

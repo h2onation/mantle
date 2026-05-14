@@ -1149,9 +1149,9 @@ describe("buildSystemPrompt", () => {
   // ─── Progress signals (Gate 8: entire block deleted) ─────────────────────
   // The EARLY FRAME / DEPTH BUILDING SIGNAL / CHECKPOINT APPROACHING
   // SIGNAL inline prompts have been removed. Those signals are now
-  // delivered as modals (ChatWindowModal / PatternFormingModal /
-  // FirstCheckpointModal). Negative-regression tests guard against
-  // accidental reintroduction.
+  // delivered as modals (ChatWindowModal / PatternFormingModal) plus
+  // the inline checkpoint trigger card. Negative-regression tests
+  // guard against accidental reintroduction.
   describe("deleted progress-signals block (Gate 8)", () => {
     it("does NOT render the EARLY FRAME block in any state", () => {
       const newUser = build({

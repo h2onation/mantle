@@ -572,10 +572,9 @@ Rules:
   // Phase 7-High / Gate 8: the PROGRESS SIGNALS block (EARLY FRAME,
   // DEPTH BUILDING SIGNAL, CHECKPOINT APPROACHING SIGNAL — both
   // standard and first-ever variants) was deleted here. Those signals
-  // are now delivered as modals (see ChatWindowModal, PatternFormingModal,
-  // FirstCheckpointModal). Keeping the inline prompt instructions
-  // alongside the modals caused duplicate delivery. Removal is complete
-  // once the extraction.ts detection logic (§10 A/B/C) also goes.
+  // are now delivered as modals (see ChatWindowModal, PatternFormingModal)
+  // plus the inline checkpoint trigger card. Keeping the inline prompt
+  // instructions alongside the modals caused duplicate delivery.
 
   tier3 += `
 ADAPTING
