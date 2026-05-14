@@ -13,10 +13,13 @@ export default function DevToolsPanel() {
     new Set([1, 2, 3, 4, 5]),
   );
   const [populating, setPopulating] = useState(false);
+  const [populateStatus, setPopulateStatus] = useState<string>("");
 
   async function handleSimulate() {
     setSimulating(true);
     setSimStatus("Starting simulation...");
+
+    let simConversationId: string | null = null;
 
     try {
       const res = await fetch("/api/dev-simulate", {
@@ -50,14 +53,37 @@ export default function DevToolsPanel() {
           if (!line.startsWith("data: ")) continue;
           try {
             const event = JSON.parse(line.slice(6));
-            if (event.type === "turn") {
+            if (event.type === "started") {
+              simConversationId = event.conversationId;
+              window.dispatchEvent(
+                new CustomEvent("dev-tools:simulation-event", {
+                  detail: { type: "start", conversationId: event.conversationId },
+                }),
+              );
+            } else if (event.type === "turn") {
               setSimStatus(`Turn ${event.turn}...`);
             } else if (event.type === "turn_complete") {
+              if (event.conversationId) simConversationId = event.conversationId;
               setSimStatus(`Turn ${event.turn} complete`);
+              if (simConversationId) {
+                window.dispatchEvent(
+                  new CustomEvent("dev-tools:simulation-event", {
+                    detail: { type: "turn", conversationId: simConversationId },
+                  }),
+                );
+              }
             } else if (event.type === "checkpoint") {
+              if (event.conversationId) simConversationId = event.conversationId;
               setSimStatus(
                 `Checkpoint ${event.checkpointNumber} ${event.action || "confirmed"} (layer ${event.layer}) at turn ${event.turn}`,
               );
+              if (simConversationId) {
+                window.dispatchEvent(
+                  new CustomEvent("dev-tools:simulation-event", {
+                    detail: { type: "checkpoint", conversationId: simConversationId },
+                  }),
+                );
+              }
             } else if (event.type === "complete") {
               const cpInfo =
                 event.totalCheckpoints != null
@@ -91,6 +117,7 @@ export default function DevToolsPanel() {
   async function handlePopulate() {
     if (populateLayers.size === 0) return;
     setPopulating(true);
+    setPopulateStatus("");
     try {
       const res = await fetch("/api/dev-populate", {
         method: "POST",
@@ -98,12 +125,19 @@ export default function DevToolsPanel() {
         body: JSON.stringify({ layers: Array.from(populateLayers).sort() }),
       });
       if (!res.ok) {
-        console.error("[populate] Failed:", await res.text());
+        const errText = await res.text();
+        console.error("[populate] Failed:", errText);
+        setPopulateStatus(`Failed: HTTP ${res.status}`);
       } else {
-        window.location.reload();
+        const sorted = Array.from(populateLayers).sort();
+        setPopulateStatus(
+          `Inserted layer${sorted.length > 1 ? "s" : ""} ${sorted.join(", ")}`,
+        );
+        window.dispatchEvent(new CustomEvent("dev-tools:populate-complete"));
       }
     } catch (err) {
       console.error("[populate] Error:", err);
+      setPopulateStatus("Failed: network error");
     } finally {
       setPopulating(false);
     }
@@ -312,6 +346,23 @@ export default function DevToolsPanel() {
             ? "Select layers"
             : `Insert layers ${Array.from(populateLayers).sort().join(", ")}`}
       </button>
+
+      {!populating && populateStatus && (
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            color: populateStatus.startsWith("Failed")
+              ? "var(--session-error)"
+              : "var(--session-persona)",
+            letterSpacing: "0.3px",
+            margin: "6px 0 0",
+            textAlign: "center",
+          }}
+        >
+          {populateStatus}
+        </p>
+      )}
     </section>
   );
 }

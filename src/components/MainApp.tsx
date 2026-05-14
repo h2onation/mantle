@@ -288,6 +288,28 @@ export default function MainApp() {
     }
   }, [loadConversation]);
 
+  // Bridge events from the desktop DevToolsPanel (which lives outside this
+  // component tree, in DesktopVitrine) back into the in-frame app so
+  // populate refreshes the manual + navigates to it, and simulate switches
+  // to the simulated session.
+  useEffect(() => {
+    function onPopulate() {
+      loadManual();
+      setActiveView("manual");
+    }
+    function onSimulation(e: Event) {
+      const detail = (e as CustomEvent<{ type: string; conversationId: string }>).detail;
+      if (!detail?.conversationId) return;
+      handleSimulationEvent(detail.type, detail.conversationId);
+    }
+    window.addEventListener("dev-tools:populate-complete", onPopulate);
+    window.addEventListener("dev-tools:simulation-event", onSimulation);
+    return () => {
+      window.removeEventListener("dev-tools:populate-complete", onPopulate);
+      window.removeEventListener("dev-tools:simulation-event", onSimulation);
+    };
+  }, [loadManual, handleSimulationEvent]);
+
   const handleOpenDrawer = useCallback(async () => {
     setDrawerOpen(true);
     await refreshConversations();
