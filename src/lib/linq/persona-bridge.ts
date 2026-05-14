@@ -5,7 +5,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
-import { classifyResponse } from "@/lib/persona/classifier";
+import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import {
@@ -158,67 +158,47 @@ export async function processTextMessage(
       });
   }
 
-  // 11. Checkpoint detection — always run the classifier on the conversational
-  //     text. Composition is handled server-side by composeManualEntry below.
+  // 11. Checkpoint detection (deterministic). Same contract as the web
+  //     channel: if Jove wrote the transition line, this turn is a
+  //     checkpoint. Composition picks layer + name + summary.
   let checkpointText: string | null = null;
-  let isCheckpoint = false;
-  let checkpointLayer: number | null = null;
-  let checkpointName: string | null = null;
-
-  if (messageId) {
-    const last4 = ctx.messages.slice(-4);
-    const recentText = last4.map((m) => `${m.role}: ${m.content}`).join("\n\n");
-    const isFirstSession = !ctx.manualComponents || ctx.manualComponents.length === 0;
-
-    const classification = await classifyResponse(
-      responseText,
-      recentText,
-      isFirstSession
-    );
-
-    isCheckpoint = classification.isCheckpoint;
-    checkpointLayer = classification.layer;
-    checkpointName = classification.name;
-  }
+  let isCheckpoint = messageId
+    ? detectCheckpointInResponse(responseText).isCheckpoint
+    : false;
 
   // 11b. Shared checkpoint gates (material quality + turn-count)
-  if (isCheckpoint && checkpointLayer) {
+  if (isCheckpoint) {
     const gateResult = applyCheckpointGates(
-      { layer: checkpointLayer, name: checkpointName || "" },
-      ctx.manualComponents,
       ctx.turnsSinceCheckpoint,
       ctx.previousExtraction,
       ctx.isFirstCheckpoint,
       ctx.turnCount
     );
-    isCheckpoint = gateResult.isCheckpoint;
-    checkpointLayer = gateResult.layer;
-    checkpointName = gateResult.name;
+    if (!gateResult.passed) {
+      isCheckpoint = false;
+    }
   }
 
-  // 11c. Composition — always compose the manual entry server-side when a
-  //      checkpoint is detected so composed_content is ready at confirmation.
+  // 11c. Composition — Opus polishes the entry, picks the layer, picks
+  //      the headline. If composition fails or returns an invalid layer,
+  //      suppress the checkpoint rather than file an entry under no
+  //      layer.
   let composedEntry: {
     content: string;
     name: string;
+    layer: number;
     changelog: string;
     summary: string;
     key_words: string[];
   } | null = null;
 
-  if (isCheckpoint && checkpointLayer) {
+  if (isCheckpoint) {
     try {
-      const existingLayerContent = (ctx.manualComponents || []).filter(
-        (c) => c.layer === checkpointLayer
-      );
-
       composedEntry = await composeManualEntry({
         checkpointText: responseText,
         conversationHistory: ctx.messages,
         languageBank: ctx.previousExtraction?.language_bank || [],
-        layer: checkpointLayer,
-        name: checkpointName,
-        existingLayerContent: existingLayerContent.length > 0 ? existingLayerContent : undefined,
+        manualComponents: ctx.manualComponents || [],
       });
 
       if (composedEntry?.content) {
@@ -232,15 +212,17 @@ export async function processTextMessage(
       }
     } catch (err) {
       console.error("[persona-bridge] Composition failed:", err);
+      composedEntry = null;
+    }
+
+    if (!composedEntry) {
+      isCheckpoint = false;
     }
   }
 
   // 11d. Save checkpoint metadata and build confirmation text
-  if (isCheckpoint && checkpointLayer && messageId) {
-    const meta = buildCheckpointMeta(
-      { isCheckpoint, layer: checkpointLayer, name: checkpointName },
-      composedEntry
-    );
+  if (isCheckpoint && composedEntry && messageId) {
+    const meta = buildCheckpointMeta(composedEntry);
 
     await admin
       .from("messages")
@@ -252,7 +234,7 @@ export async function processTextMessage(
 
     // Build the text checkpoint message — only show name + question
     // (the user already read the insight in Sage's conversational response)
-    const name = meta.name || checkpointName || "Untitled";
+    const name = composedEntry.name || "Untitled";
     checkpointText =
       `Does this feel right?\n\n` +
       `"${name}"\n\n` +
@@ -260,7 +242,7 @@ export async function processTextMessage(
 
     console.log(
       "[persona-bridge] checkpoint_detected layer=%d name=%s message_id=%s",
-      checkpointLayer,
+      composedEntry.layer,
       name,
       messageId
     );

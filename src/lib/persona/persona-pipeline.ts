@@ -47,10 +47,14 @@ export interface ConversationContext {
   mode: "situation" | "guided-intake" | "upload";
 }
 
+/** Outcome of the post-detection gates. `passed` is the only field
+ *  callers act on; `reason` is for dev logging when a checkpoint is
+ *  suppressed (turn-count or material-quality). The classifier-era
+ *  shape carried layer + name pass-throughs; those are now produced by
+ *  the composition step instead. */
 export interface CheckpointGateResult {
-  isCheckpoint: boolean;
-  layer: number | null;
-  name: string | null;
+  passed: boolean;
+  reason?: string;
 }
 
 export interface CheckpointMeta {
@@ -459,26 +463,24 @@ export function validateMaterialQuality(
 }
 
 /**
- * Apply material-quality gate and turn-count suppression to a detected checkpoint.
+ * Apply material-quality gate and turn-count suppression to a detected
+ * checkpoint. Called AFTER the deterministic transition-line detector
+ * says yes, BEFORE the composition Opus call. Cheaper to gate here than
+ * to compose and discard.
  *
  * Rule 1: Pattern engagement + material quality (validateMaterialQuality).
  * Rule 2: Suppress if fewer than 5 user turns since last checkpoint.
+ *
+ * Returns `{ passed: true }` when the checkpoint should proceed, or
+ * `{ passed: false, reason }` when one of the gates fired. The reason
+ * is for dev logging only — callers should never echo it to the user.
  */
 export function applyCheckpointGates(
-  manualEntry: { layer: number; name: string } | null,
-  _manualComponents: ManualEntry[],
   turnsSinceCheckpoint: number,
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean,
   turnCount?: number
 ): CheckpointGateResult {
-  void _manualComponents;
-  if (!manualEntry) {
-    return { isCheckpoint: false, layer: null, name: null };
-  }
-
-  const { layer, name } = manualEntry;
-
   // Rule 1: pattern engagement + material-quality pre-emit gate
   if (extractionState !== undefined) {
     const quality = validateMaterialQuality(
@@ -487,28 +489,27 @@ export function applyCheckpointGates(
       turnCount
     );
     if (!quality.ok) {
+      const reason = quality.reasons.join("; ");
       if (process.env.NODE_ENV !== "production") {
         console.log(
           "[persona-pipeline] Checkpoint suppressed by material-quality gate: %s",
-          quality.reasons.join("; ")
+          reason
         );
       }
-      return { isCheckpoint: false, layer: null, name: null };
+      return { passed: false, reason };
     }
   }
 
   // Rule 2: turn-count suppression
   if (turnsSinceCheckpoint < 5) {
+    const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum 5)`;
     if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "[persona-pipeline] Checkpoint suppressed: %d turns since last (minimum 5)",
-        turnsSinceCheckpoint
-      );
+      console.log("[persona-pipeline] Checkpoint suppressed: %s", reason);
     }
-    return { isCheckpoint: false, layer: null, name: null };
+    return { passed: false, reason };
   }
 
-  return { isCheckpoint: true, layer, name };
+  return { passed: true };
 }
 
 // ── 4c. Composed-entry post-validation ──────────────────────────────────────
@@ -724,13 +725,17 @@ export function buildEntriesSummary(args: {
 
 /**
  * Build the checkpoint_meta object stored on messages.
- * Single shape definition — no drift between web and text.
+ * Single shape definition — no drift between web and text. Layer + name
+ * now come from the composition Opus call (Opus picks the layer based
+ * on the entry content and the existing Manual). If composition failed,
+ * layer/name are null and the checkpoint should not have been surfaced —
+ * callers gate on `composedEntry?.layer` before calling this.
  */
 export function buildCheckpointMeta(
-  gateResult: CheckpointGateResult,
   composedEntry: {
     content: string;
     name: string;
+    layer: number;
     changelog: string;
     summary?: string;
     key_words?: string[];
@@ -738,8 +743,8 @@ export function buildCheckpointMeta(
   inheritedRefinementCount: number = 0
 ): CheckpointMeta {
   return {
-    layer: gateResult.layer,
-    name: composedEntry?.name || gateResult.name,
+    layer: composedEntry?.layer ?? null,
+    name: composedEntry?.name ?? null,
     status: "pending",
     composed_content: composedEntry?.content || null,
     composed_name: composedEntry?.name || null,

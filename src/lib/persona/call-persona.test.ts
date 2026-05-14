@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   applySlidingWindow,
   mapSystemMessages,
@@ -195,6 +197,46 @@ describe("detectCrisisInUserMessage", () => {
     expect(detectCrisisInUserMessage("I don't want to be here anymore")).toBe(true);
     expect(detectCrisisInUserMessage("I dont want to exist")).toBe(true);
     expect(detectCrisisInUserMessage("whats the point of living")).toBe(true);
+  });
+});
+
+// ── Post-confirm error suppression ──
+// Source-contract test: when a stream fails AFTER the manual_entries row
+// has already been written (postConfirmMode set), we must NOT emit a
+// chat-level "Jove lost the thread" error. The confirm succeeded; the
+// Message 2 scaffolding is sugar. Surfacing an error here would trigger
+// the ConnectionErrorPlate retry button, which is wired to re-send a
+// stale user message — broken UX.
+
+describe("call-persona — post-confirm error suppression", () => {
+  const src = readFileSync(
+    join(process.cwd(), "src/lib/persona/call-persona.ts"),
+    "utf-8"
+  );
+
+  it("branches on postConfirmMode in the top-level catch and closes silently", () => {
+    // The catch block must check postConfirmMode and close the
+    // controller without emitting an error event in that path.
+    expect(src).toMatch(
+      /catch \(err\)[\s\S]*?if \(postConfirmMode !== null\)[\s\S]*?controller\.close\(\)/
+    );
+  });
+
+  it("does NOT call emitError when postConfirmMode is set", () => {
+    // Capture the post-confirm branch and assert emitError is absent.
+    const branchMatch = src.match(
+      /if \(postConfirmMode !== null\) \{([\s\S]*?)\n\s*\}/
+    );
+    expect(branchMatch, "could not locate post-confirm catch branch").toBeTruthy();
+    expect(branchMatch![1]).not.toContain("emitError");
+  });
+
+  it("preserves the chat-level error path for non-post-confirm streams", () => {
+    // The regular catch path (postConfirmMode === null) still surfaces
+    // a user-facing message via emitError. Pin both variants.
+    expect(src).toContain("lost the thread. Try sending that again.");
+    expect(src).toContain("took too long to respond. Try again.");
+    expect(src).toMatch(/emitError\(controller,\s*msg\)/);
   });
 });
 

@@ -200,9 +200,6 @@ export default function GlassDemoPage() {
             <Frame label="Empty Manual" description="Day one. Five layer headers visible (the structure is the promise) with '0 entries' meta on each. Quiet placeholder line above the list — 'Your Manual fills as you and Jove find patterns together.' No empty cards, no prompts; the five labeled sections are the page. As entries accumulate, layers populate top-down.">
               <EmptyManual />
             </Frame>
-            <Frame label="First-checkpoint modal" description="The activation moment. Fires once, the first time Jove proposes a Manual entry — before the proposal card appears below. Centered modal on a darkened backdrop. Heading: 'A pattern is ready for your Manual.' Two short paragraphs explain what's happening. Single 'Show me ›' button.">
-              <FirstCheckpointModalScreen />
-            </Frame>
             <Frame label="Export sheet" description="Bottom-sheet export. The Manual is shareable as PDF — that's a primary product use (share with partner, therapist). Drag handle at top, preview of the cover page, entry count, recipient name field optional, 'Generate PDF & share ›' as the action. Walnut + slate aesthetic carries through.">
               <ExportSheet />
             </Frame>
@@ -3211,125 +3208,6 @@ function EmptyManual() {
             </span>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//   FIRST-CHECKPOINT MODAL — the activation moment
-// ═══════════════════════════════════════════════════════════════════
-// Centered modal that fires once, the first time Jove proposes a
-// Manual entry. Explains what's about to happen so the user knows
-// the proposal card is a moment of decision, not just another reply.
-// Copy lifted from the actual FirstCheckpointModal.tsx.
-function FirstCheckpointModalScreen() {
-  return (
-    <div style={{ position: "absolute", inset: 0, background: C.ground, backgroundImage: C.bgChat, overflow: "hidden" }}>
-      <StatusBar />
-      <TopBar />
-
-      {/* Backdrop dimming the chat — modal sits over the chat in
-          context, not as a separate screen. */}
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 5 }} />
-
-      {/* Modal plate — centered, walnut-tinted glass */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: 22,
-          right: 22,
-          transform: "translateY(-50%)",
-          padding: "28px 26px 22px",
-          borderRadius: 18,
-          background: "rgba(115,72,42,0.30)",
-          border: "1px solid rgba(170,120,82,0.30)",
-          backdropFilter: "blur(40px) saturate(150%)",
-          WebkitBackdropFilter: "blur(40px) saturate(150%)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 1px 0 rgba(220,170,120,0.14) inset",
-          zIndex: 10,
-        }}
-      >
-        {/* Sage fleuron at top — the brand mark, signaling something special */}
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <span
-            aria-hidden="true"
-            style={{
-              fontFamily: '"Instrument Serif", serif',
-              fontSize: 22,
-              color: C.walnut,
-              opacity: 0.85,
-            }}
-          >
-            ❦
-          </span>
-        </div>
-
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: '"Spectral", "Source Serif 4", serif',
-            fontSize: 24,
-            fontWeight: 500,
-            lineHeight: 1.25,
-            letterSpacing: -0.3,
-            color: C.hero,
-          }}
-        >
-          A pattern is ready for your Manual<span style={{ color: C.walnut, fontWeight: 400 }}>.</span>
-        </h2>
-
-        <p
-          style={{
-            margin: "16px 0 0",
-            fontFamily: '"Spectral", "Source Serif 4", serif',
-            fontSize: 15.5,
-            lineHeight: 1.62,
-            color: C.hero,
-            letterSpacing: -0.05,
-          }}
-        >
-          I have a pattern to put in front of you. You'll see a card. Read it. If it fits, confirm
-          and it becomes an entry in your Manual. If it's off, tell me where and we keep going.
-        </p>
-        <p
-          style={{
-            margin: "12px 0 0",
-            fontFamily: '"Spectral", "Source Serif 4", serif',
-            fontSize: 15.5,
-            lineHeight: 1.62,
-            color: "rgba(245,243,238,0.78)",
-            letterSpacing: -0.05,
-          }}
-        >
-          Your Manual builds one entry at a time. This is the first, and it will evolve as you
-          add more — entries sharpen, connect, sometimes get revisited. A living document, not a
-          finished one<span style={{ color: C.walnut }}>.</span>
-        </p>
-
-        {/* Action — single CTA */}
-        <div style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid rgba(170,120,82,0.20)" }}>
-          <button
-            style={{
-              all: "unset",
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              width: "100%",
-              padding: "8px 0",
-              borderBottom: `1px solid ${C.hero}`,
-              fontFamily: '"DM Mono", monospace',
-              fontSize: 12,
-              letterSpacing: 2.4,
-              textTransform: "uppercase",
-              color: C.hero,
-            }}
-          >
-            <span>Show me</span>
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
       </div>
     </div>
   );

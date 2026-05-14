@@ -175,16 +175,6 @@ const CASES: Case[] = [
     expectedKeys: ["time_since_signup_ms"],
   },
   {
-    event: "modal_3_shown",
-    call: () => events.trackModal3Shown({ time_since_signup_ms: 1234 }),
-    expectedKeys: ["time_since_signup_ms"],
-  },
-  {
-    event: "modal_flow_completed",
-    call: () => events.trackModalFlowCompleted({ time_since_signup_ms: 1234 }),
-    expectedKeys: ["time_since_signup_ms"],
-  },
-  {
     event: "first_checkpoint_completed",
     call: () =>
       events.trackFirstCheckpointCompleted({
