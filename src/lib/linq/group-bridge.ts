@@ -218,22 +218,13 @@ export async function processGroupMessage(
     }
   }
 
-  // 3. Build system prompt with group context.
-  // currentConversationId is null here: the group-chat prompt path has its
-  // own renderer (buildGroupPrompt) that doesn't use compression.
+  // 3. Build system prompt with group context. The group variant carries
+  // only the fields buildGroupPrompt reads — no currentConversationId,
+  // no checkpoint flags, no turn count.
   const systemPrompt = buildSystemPrompt({
+    kind: "group",
     manualComponents,
-    currentConversationId: null,
-    isReturningUser: false,
-    sessionSummary: null,
-    extractionContext: "",
-    isFirstCheckpoint: false,
-    turnCount: windowedMessages.length,
-    checkpointApproaching: false,
-    groupContext: {
-      ownerUserName,
-      hasManualContext: manualComponents.length > 0,
-    },
+    groupContext: { ownerUserName },
   });
 
   // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)

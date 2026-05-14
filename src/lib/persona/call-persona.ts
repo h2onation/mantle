@@ -1,4 +1,5 @@
 import { anthropicStream } from "@/lib/anthropic";
+import { parseAnthropicStream } from "@/lib/anthropic-sse";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
@@ -370,38 +371,12 @@ export function callPersona({
           messages,
         });
 
-        const reader = rawStream.getReader();
-        const decoder = new TextDecoder();
-        let streamBuffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          streamBuffer += decoder.decode(value, { stream: true });
-          const lines = streamBuffer.split("\n");
-          streamBuffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6);
-            if (data === "[DONE]") continue;
-
-            try {
-              const event = JSON.parse(data);
-              if (
-                event.type === "content_block_delta" &&
-                event.delta?.type === "text_delta"
-              ) {
-                const text = event.delta.text;
-                fullText += text;
-                flushSafe(text);
-              }
-            } catch {
-              // Skip malformed SSE lines
-            }
-          }
-        }
+        await parseAnthropicStream(rawStream, {
+          onTextDelta: (text) => {
+            fullText += text;
+            flushSafe(text);
+          },
+        });
 
         if (!fullText) {
           emitError(

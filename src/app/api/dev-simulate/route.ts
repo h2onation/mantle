@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAdmin } from "@/lib/admin/verify-admin";
 import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
 import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
+import { parseSSEStream } from "@/lib/utils/sse-parser";
 
 /**
  * Consume a callPersona ReadableStream internally, extracting the full text
@@ -20,9 +21,6 @@ async function consumePersonaStream(stream: ReadableStream): Promise<{
   processingText: string | null;
   cleanContent: string | null;
 }> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
   let fullText = "";
   let messageId: string | null = null;
   let checkpoint: {
@@ -32,38 +30,24 @@ async function consumePersonaStream(stream: ReadableStream): Promise<{
   } | null = null;
   let processingText: string | null = null;
   let cleanContent: string | null = null;
+  let streamError: string | null = null;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  await parseSSEStream(new Response(stream), {
+    onTextDelta: (text) => {
+      fullText += text;
+    },
+    onMessageComplete: (event) => {
+      messageId = event.messageId;
+      checkpoint = event.checkpoint;
+      processingText = event.processingText;
+      cleanContent = event.cleanContent || null;
+    },
+    onError: (msg) => {
+      streamError = msg;
+    },
+  });
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const data = line.slice(6);
-
-      try {
-        const event = JSON.parse(data);
-        if (event.type === "text_delta") {
-          fullText += event.text;
-        } else if (event.type === "message_complete") {
-          messageId = event.messageId;
-          checkpoint = event.checkpoint;
-          processingText = event.processingText;
-          cleanContent = event.cleanContent || null;
-        } else if (event.type === "error") {
-          throw new Error(event.message);
-        }
-      } catch (e) {
-        if (e instanceof SyntaxError) continue;
-        throw e;
-      }
-    }
-  }
-
+  if (streamError) throw new Error(streamError);
   return { fullText, messageId, checkpoint, processingText, cleanContent };
 }
 

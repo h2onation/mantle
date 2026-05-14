@@ -144,11 +144,19 @@ ${WHEN_USER_ASKS_WHAT_SHOULD_I_DO}`;
 
 type ManualComponent = ManualEntryForContext;
 
-export interface BuildPromptOptions {
+// BuildPromptOptions is a discriminated union: the group-chat prompt path
+// (buildGroupPrompt) and the 1:1 prompt path share only `manualComponents`,
+// so the type splits cleanly on `kind`. Group early-returns after
+// delegating to buildGroupPrompt; the 1:1 logic below is type-narrowed.
+
+interface SharedPromptInputs {
   manualComponents: ManualComponent[];
+}
+
+export interface OneOnOnePromptOptions extends SharedPromptInputs {
+  kind: "oneOnOne";
   /** Current conversation id. Entries from this conversation render in full;
-   *  everything else is a candidate for compression. Null for the group-chat
-   *  prompt path, which has no concept of an in-progress conversation. */
+   *  everything else is a candidate for compression. */
   currentConversationId: string | null;
   isReturningUser: boolean;
   sessionSummary: string | null;
@@ -164,10 +172,6 @@ export interface BuildPromptOptions {
    *  the first checkpoint. "upload" handles pasted text content. */
   mode?: "situation" | "guided-intake" | "upload";
   personaModes?: PersonaMode[];
-  groupContext?: {
-    ownerUserName: string | null;
-    hasManualContext: boolean;
-  } | null;
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
    *  follow-up (not a normal chat turn). The mode determines which
    *  pinned template block loads; postConfirmContext supplies the
@@ -194,6 +198,21 @@ export interface BuildPromptOptions {
     entriesSummary: string;
   } | null;
 }
+
+export interface GroupPromptOptions extends SharedPromptInputs {
+  kind: "group";
+  groupContext: {
+    ownerUserName: string | null;
+  };
+}
+
+// Partial<BuildPromptOptions> distributes pathologically: TS evaluates
+// Partial<A | B> with keys = keyof A | keyof B but values still constrained
+// per-key by the union, so a partial that supplies a field from only one
+// variant tends not to satisfy either side after spread. If a caller wants
+// to spread partial overrides (test helpers, the admin prompt viewer),
+// narrow to Partial<OneOnOnePromptOptions> or Partial<GroupPromptOptions>.
+export type BuildPromptOptions = OneOnOnePromptOptions | GroupPromptOptions;
 
 // ---------------------------------------------------------------------------
 // Tier 1 — Constitutional rules. These override everything else in the prompt.
@@ -627,6 +646,11 @@ ${showFirstSession ? `This user has no confirmed entries. First session. Do not 
 }
 
 export function buildSystemPrompt(options: BuildPromptOptions): string {
+  // ─── Group chat prompt (completely separate from 1:1 Jove) ────────────
+  if (options.kind === "group") {
+    return buildGroupPrompt(options.groupContext, options.manualComponents);
+  }
+
   const {
     manualComponents,
     currentConversationId,
@@ -641,14 +665,9 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     checkpointApproaching,
     mode = "situation",
     personaModes = ["autistic"],
-    groupContext,
     postConfirmMode = null,
     postConfirmContext = null,
   } = options;
-  // ─── Group chat prompt (completely separate from 1:1 Jove) ────────────
-  if (groupContext) {
-    return buildGroupPrompt(groupContext, manualComponents);
-  }
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
   const showCheckpointInstructions = checkpointApproaching || isReturningUser;
@@ -770,10 +789,10 @@ The user's message is unusually long or structured. It may be pasted content. If
 // ---------------------------------------------------------------------------
 
 function buildGroupPrompt(
-  groupContext: { ownerUserName: string | null; hasManualContext: boolean },
+  groupContext: { ownerUserName: string | null },
   manualComponents: ManualComponent[]
 ): string {
-  const { ownerUserName, hasManualContext } = groupContext;
+  const { ownerUserName } = groupContext;
 
   let prompt = `You are ${PERSONA_NAME}, in a group text conversation. Your role is FACILITATOR.
 
@@ -796,7 +815,7 @@ FACILITATOR RULES:
 
 Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones.`;
 
-  if (hasManualContext && ownerUserName && manualComponents.length > 0) {
+  if (ownerUserName && manualComponents.length > 0) {
     prompt += `
 
 MANUAL CONTEXT RULES:
