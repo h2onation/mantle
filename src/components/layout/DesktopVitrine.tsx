@@ -203,18 +203,32 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
                 fontWeight: 400,
                 letterSpacing: "0.5px",
                 color: "var(--session-ink-mid)",
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+                textTransform: "uppercase",
               }}
             >
-              <a
-                href="/admin"
-                style={{
-                  color: "inherit",
-                  textDecoration: "none",
-                  textTransform: "uppercase",
-                }}
-              >
-                Admin
-              </a>
+              {[
+                { href: "/admin", label: "Admin" },
+                { href: "/admin/prompt-architecture", label: "Prompts" },
+                { href: "/admin/docs", label: "Docs" },
+              ].map((link, i) => (
+                <span key={link.href} style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+                  <a
+                    href={link.href}
+                    style={{
+                      color: "inherit",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                  {i < 2 && <span aria-hidden="true">·</span>}
+                </span>
+              ))}
             </p>
           )}
 
