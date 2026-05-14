@@ -243,18 +243,44 @@ describe("call-persona — post-confirm error handling", () => {
     expect(branch).toContain('role: "assistant"');
   });
 
-  it("first-message-2 fallback carries the pinned opener and a forward question", () => {
-    // Template fidelity: the fallback should mirror the prompt-driven
-    // version's pinned copy (so on-reload the conversation reads the
-    // same whether Sonnet wrote it or we templated it).
-    expect(src).toContain("Four other places still empty");
-    expect(src).toContain("A real Manual takes time");
-    expect(src).toContain("What's still open in this for you?");
+  it("first-message-2 fallback carries the pinned 'Saved.' opener + scaffolding paragraph + continue-or-pivot offer", () => {
+    // Template fidelity: the fallback mirrors the prompt-driven version
+    // — pinned "Saved." + the first-time scaffolding + a generic
+    // continue-or-pivot offer. The fallback uses generic phrasing
+    // ("what we just touched") because it has no LLM to identify a
+    // specific thread.
+    expect(src).toContain('"Saved."');
+    expect(src).toContain("A Manual takes time to build");
+    expect(src).toContain("showing up daily over the next two weeks");
+    expect(src).toContain("keep going with what we just touched, or pivot");
   });
 
-  it("subsequent-single fallback uses stamp line + entries summary + forward question", () => {
-    expect(src).toMatch(/In\. A working name:.*proposedHeadline/);
-    expect(src).toContain("entriesSummary");
+  it("subsequent-single fallback uses 'Saved.' opener + continue-or-pivot offer (no scaffolding paragraph)", () => {
+    // Subsequent fallback is shorter — no first-time scaffolding line.
+    // Just acknowledgment + offer. Both fallbacks share the same
+    // generic offer string so the experience is consistent.
+    expect(src).toContain("keep going with what we just touched, or pivot");
+    // Subsequent must NOT carry the first-time scaffolding line. The
+    // function source includes both branches, so we can't grep the file
+    // globally — we scope the assertion to the subsequent branch.
+    const subsequentBranch = src.match(
+      /\/\/ subsequent-single\s*\n\s*return \[([\s\S]*?)\]\.join/
+    );
+    expect(subsequentBranch).toBeTruthy();
+    expect(subsequentBranch![1]).not.toContain("A Manual takes time to build");
+  });
+
+  it("fallback does NOT reference the old 'A working name' / entries-summary vocabulary", () => {
+    // Round 3 cleanup: the fallback should not regress to the old stamp
+    // line or the entries-count summary.
+    const fallbackFn = src.match(
+      /function buildPostConfirmFallback[\s\S]*?\n\}/
+    );
+    expect(fallbackFn).toBeTruthy();
+    expect(fallbackFn![0]).not.toContain("A working name");
+    expect(fallbackFn![0]).not.toContain("Yours to change");
+    expect(fallbackFn![0]).not.toContain("entriesSummary");
+    expect(fallbackFn![0]).not.toContain("proposedHeadline");
   });
 
   it("preserves the chat-level error path for non-post-confirm streams", () => {

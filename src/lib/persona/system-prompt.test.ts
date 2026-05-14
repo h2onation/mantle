@@ -438,140 +438,107 @@ describe("buildSystemPrompt", () => {
   // post-confirm message for any non-first-lifetime confirmation). Both
   // are loaded via the postConfirmMode option, which is only set on
   // post-confirm callPersona invocations.
+  // 2026-05-14 round 3: post-confirm blocks rewritten to drop the
+  // "A working name:" stamp line, drop the entries-summary line, and
+  // open with a pinned "Saved." instead. The creative piece is now a
+  // continue-or-pivot offer (not a forward-only question), giving the
+  // user agency to pause after a heavy save.
   describe("post-confirm blocks — first-message-2", () => {
-    const firstMessage2Context = {
-      layerName: "Some of My Patterns",
-      proposedHeadline: "Voice Goes When Pressure Lands",
-      entriesSummary:
-        "unused for first-message-2 but context is uniform for both modes",
-    };
-
     it("loads the first-message-2 block only when postConfirmMode is 'first-message-2'", () => {
-      const result = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: firstMessage2Context,
-      });
-      expect(result).toContain(
-        "POST-CONFIRM — FIRST LIFETIME ENTRY (Message 2 only)"
-      );
+      const result = build({ postConfirmMode: "first-message-2" });
+      expect(result).toContain("POST-CONFIRM — FIRST LIFETIME ENTRY");
     });
 
     it("does NOT load first-message-2 block when postConfirmMode is null or subsequent-single", () => {
       const none = build();
       expect(none).not.toContain("POST-CONFIRM — FIRST LIFETIME ENTRY");
-      const sub = build({
-        postConfirmMode: "subsequent-single",
-        postConfirmContext: firstMessage2Context,
-      });
+      const sub = build({ postConfirmMode: "subsequent-single" });
       expect(sub).not.toContain("POST-CONFIRM — FIRST LIFETIME ENTRY");
     });
 
-    it("pre-substitutes the layer name into the opening sentence", () => {
-      const result = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: firstMessage2Context,
-      });
+    it("pins 'Saved.' as the opening line", () => {
+      const result = build({ postConfirmMode: "first-message-2" });
+      expect(result).toContain("Saved.");
+      expect(result).toContain('Open directly with "Saved.".');
+    });
+
+    it("pins the first-time scaffolding paragraph", () => {
+      const result = build({ postConfirmMode: "first-message-2" });
+      expect(result).toContain("A Manual takes time to build");
+      expect(result).toContain("showing up daily over the next two weeks");
       expect(result).toContain(
-        "That went into Some of My Patterns. Four other places still empty"
+        "You can change the name or sharpen the entry anytime"
       );
     });
 
-    it("pins the scaffolding paragraph verbatim (two-week commitment, no-rush framing)", () => {
-      const result = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: firstMessage2Context,
-      });
+    it("requires a continue-or-pivot offer with a specific thread", () => {
+      const result = build({ postConfirmMode: "first-message-2" });
+      // The creative piece must name a specific thread AND offer both
+      // continue + pivot paths. Not a forward-only question — the user
+      // should have agency to pause after a heavy save.
+      expect(result).toContain("Names a SPECIFIC thread");
       expect(result).toContain(
-        "A real Manual takes time. It is not a quiz."
-      );
-      expect(result).toContain(
-        "Come back daily for the first two weeks"
+        "Offers BOTH paths: continue with that thread OR pivot"
       );
     });
 
-    it("requires a forward-moving question as the only creative piece", () => {
-      const result = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: firstMessage2Context,
-      });
-      // The final line must be a question that propels the conversation
-      // forward — not a soft "open thread" declaration. See user
-      // testing 2026-05-14 where vague open-thread lines read as a
-      // dead-end after the save.
-      expect(result).toContain("MUST be a question");
-      expect(result).toContain("MUST end with a question mark");
-      expect(result).toContain("Do not add a headline");
-      expect(result).toContain("Do not re-stamp the entry");
+    it("forbids the old 'A working name' / 'Yours to change' vocabulary", () => {
+      const result = build({ postConfirmMode: "first-message-2" });
+      expect(result).toContain('Do not say "A working name"');
+      expect(result).toContain('"Yours to change"');
+      // Negative regression: the prompt itself must not embed the old
+      // stamp wording as an example or scaffold.
+      expect(result).not.toContain('"In. A working name:');
     });
 
-    it("tells the model Message 1 was already sent by the system", () => {
-      const result = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: firstMessage2Context,
-      });
-      expect(result).toContain(
-        'Message 1 ("In. A working name:'
-      );
-      expect(result).toContain("already sent by the system");
+    it("forbids form-language and vague catch-all questions", () => {
+      const result = build({ postConfirmMode: "first-message-2" });
+      expect(result).toContain("Would you like to");
+      expect(result).toContain("Shall we");
+      expect(result).toContain("What's next for you?");
     });
   });
 
   describe("post-confirm blocks — subsequent-single", () => {
-    const subsequentContext = {
-      layerName: "How I Process Things",
-      proposedHeadline: "The Room Goes Loud Before Words Do",
-      entriesSummary:
-        "3 entries. How I Process Things and Some of My Patterns have material. 3 still empty.",
-    };
-
     it("loads the subsequent-single block only when postConfirmMode is 'subsequent-single'", () => {
-      const result = build({
-        postConfirmMode: "subsequent-single",
-        postConfirmContext: subsequentContext,
-      });
-      expect(result).toContain(
-        "POST-CONFIRM — SUBSEQUENT ENTRY (single message)"
-      );
+      const result = build({ postConfirmMode: "subsequent-single" });
+      expect(result).toContain("POST-CONFIRM — SUBSEQUENT ENTRY");
     });
 
     it("does NOT load subsequent-single block when postConfirmMode is null or first-message-2", () => {
       const none = build();
       expect(none).not.toContain("POST-CONFIRM — SUBSEQUENT ENTRY");
-      const first = build({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: subsequentContext,
-      });
+      const first = build({ postConfirmMode: "first-message-2" });
       expect(first).not.toContain("POST-CONFIRM — SUBSEQUENT ENTRY");
     });
 
-    it("pre-substitutes the proposed headline into the stamp line", () => {
-      const result = build({
-        postConfirmMode: "subsequent-single",
-        postConfirmContext: subsequentContext,
-      });
+    it("pins 'Saved.' as the opening line", () => {
+      const result = build({ postConfirmMode: "subsequent-single" });
+      expect(result).toContain("Saved.");
+      expect(result).toContain('Open directly with "Saved.".');
+    });
+
+    it("does NOT include the first-time scaffolding paragraph", () => {
+      const result = build({ postConfirmMode: "subsequent-single" });
+      // Subsequent users already know how the Manual builds; the
+      // two-week commitment line is first-confirm only.
+      expect(result).not.toContain("A Manual takes time to build");
+      expect(result).not.toContain("showing up daily over the next two weeks");
+    });
+
+    it("requires a continue-or-pivot offer with a specific thread", () => {
+      const result = build({ postConfirmMode: "subsequent-single" });
+      expect(result).toContain("Names a SPECIFIC thread");
       expect(result).toContain(
-        'In. A working name: "The Room Goes Loud Before Words Do." Yours to change.'
+        "Offers BOTH paths: continue with that thread OR pivot"
       );
     });
 
-    it("pre-substitutes the entries-summary line verbatim (server-built)", () => {
-      const result = build({
-        postConfirmMode: "subsequent-single",
-        postConfirmContext: subsequentContext,
-      });
-      expect(result).toContain(
-        "3 entries. How I Process Things and Some of My Patterns have material. 3 still empty."
-      );
-    });
-
-    it("requires a forward-moving question as the only creative piece", () => {
-      const result = build({
-        postConfirmMode: "subsequent-single",
-        postConfirmContext: subsequentContext,
-      });
-      expect(result).toContain("MUST be a question");
-      expect(result).toContain("MUST end with a question mark");
-      expect(result).toContain("Do not restate the entry twice");
+    it("forbids the old 'A working name' / entries-summary / 'Yours to change' vocabulary", () => {
+      const result = build({ postConfirmMode: "subsequent-single" });
+      expect(result).toContain('Do not say "A working name"');
+      expect(result).toContain('"Yours to change"');
+      expect(result).toContain("Do not reproduce an entries-count summary");
     });
   });
 

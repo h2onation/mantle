@@ -173,30 +173,15 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   mode?: "situation" | "guided-intake" | "upload";
   personaModes?: PersonaMode[];
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
-   *  follow-up (not a normal chat turn). The mode determines which
-   *  pinned template block loads; postConfirmContext supplies the
-   *  substitutions the block references literally. Null or absent
-   *  means "this is a normal chat turn," no post-confirm block loads.
+   *  follow-up (not a normal chat turn). The mode selects which pinned
+   *  template block loads in Tier 3. Null or absent means "this is a
+   *  normal chat turn," no post-confirm block loads.
    *
-   *  - "first-message-2" is the scaffolding message after the user's
-   *    first lifetime confirmation. Message 1 ("In. A working name:
-   *    ...") was already server-templated and emitted before this call.
-   *  - "subsequent-single" is the single post-confirm message for any
-   *    non-first-lifetime confirmation. Includes the stamp line AND the
-   *    entries summary AND the open-thread line, all in one turn. */
+   *  Both blocks produce a single message that opens with "Saved." and
+   *  hands the user a continue-or-pivot choice. No substitutions are
+   *  needed — the trigger card already shows the title and layer, and
+   *  the chat-history label already shows where it landed. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
-  postConfirmContext?: {
-    /** Canonical LAYER_NAMES[layer] of the confirmed entry's layer. */
-    layerName: string;
-    /** Composed entry name in quotes for the stamp line. Only read by
-     *  the "subsequent-single" block. */
-    proposedHeadline: string;
-    /** Pre-built summary sentence, e.g. "3 entries. Some of My Patterns
-     *  and How I Process Things have material. 3 still empty." Built
-     *  server-side with correct pluralization. Only read by the
-     *  "subsequent-single" block. */
-    entriesSummary: string;
-  } | null;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -269,11 +254,6 @@ interface Tier3Flags {
   turnCount: number;
   manualComponentCount: number;
   postConfirmMode: "first-message-2" | "subsequent-single" | null;
-  postConfirmContext: {
-    layerName: string;
-    proposedHeadline: string;
-    entriesSummary: string;
-  } | null;
   mode: "situation" | "guided-intake" | "upload";
 }
 
@@ -553,52 +533,59 @@ After this one-line response, return to natural exploration on the user's next t
   },
   {
     id: "post-confirm-first-message-2",
-    shouldRender: (f) =>
-      f.postConfirmMode === "first-message-2" && f.postConfirmContext !== null,
-    render: (f) => `
-POST-CONFIRM — FIRST LIFETIME ENTRY (Message 2 only)
+    shouldRender: (f) => f.postConfirmMode === "first-message-2",
+    render: () => `
+POST-CONFIRM — FIRST LIFETIME ENTRY
 
-The user just confirmed their very first Manual entry. Message 1 ("In. A working name: '<name>.' Yours to change.") was already sent by the system; you are not producing that. This call is ONLY for the follow-up message.
+The user just confirmed their very first Manual entry. The trigger card in chat already shows the title and which layer it landed on. Your job here is to acknowledge the save briefly, set expectations about how the Manual builds, then hand the user a choice for what to do next.
 
-Your output must be a single turn with this exact structure, using the pinned copy verbatim:
+Your output must follow this exact shape:
 
-That went into ${f.postConfirmContext!.layerName}. Four other places still empty — they fill as more shows up.
+Saved.
 
-A real Manual takes time. It is not a quiz. You will carry it, return to it, sharpen it. No rush. Just show up. Come back daily for the first two weeks — that is the window where it starts to hold together.
+A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.
 
-<one-sentence forward-moving question>
+[continuation-offer]
 
 Rules:
-- The first two paragraphs are pinned. Reproduce them verbatim — exact wording, punctuation, and line breaks.
-- The final line is the only creative piece. It MUST be a question. It MUST end with a question mark. It moves the conversation forward into something specific that was touched in the entry but not yet traced: an assumption not tested, a mechanism not traced to its origin, a stance not landed, a context the pattern might or might not extend to. Make it concrete. Name the person, the situation, or the charged word so the user knows exactly what you're asking about. One sentence.
-- Bad (declarations, not questions; vague; soft): "There is more to explore here." "Worth circling back to." "Maybe the exit you have not tried yet is the interesting one."
-- Good (specific, forward, ends in ?): "What happens with Ryan if you stop trying to fix the call and just let it be one-sided?" "Where else does the fixing impulse show up — only on calls with him, or other places too?" "What would it cost you to sit through one of those calls without correcting him?"
-- Do not add a headline. Do not re-stamp the entry. Do not ask "does that fit" or any variant. Do not open with a greeting or preamble. Open directly with "That went into...".
+- The first two paragraphs are pinned. Reproduce them verbatim — exact wording, punctuation, blank-line separators.
+- The continuation-offer is the only creative piece. Write ONE sentence that does TWO things:
+  (a) Names a SPECIFIC thread from the conversation worth coming back to — refer to it concretely. Quote a charged phrase the user used, or name the moment, the person, the situation. Not "the thing we touched" (vague) but "the part about your body in easy rooms" (specific).
+  (b) Offers BOTH paths: continue with that thread OR pivot to something else. Both must be present in the same sentence. Use "or" to join them.
+- Good: "We could keep going with what your body actually does in the easy rooms — or pivot to something else if this is enough for now."
+- Good: "There's something about the part you said where you 'build the door yourself' worth pulling at, or we can move somewhere else."
+- Good: "We could stay with the friend-without-a-job thread, or pivot if you're done with this for now."
+- Bad (no specific thread, vague): "What's next for you?" "Where would you like to go from here?" "Anything else on your mind?"
+- Bad (no pivot offered): "What would change if you stopped scanning?" (forces a specific direction; doesn't honor that the user might be tapped out)
+- Bad (form-language): "Would you like to..." "Shall we..." (sound like a chatbot, not a friend)
+- Do not include a headline. Do not re-stamp the entry. Do not say "A working name" or "Yours to change" — that vocabulary is removed. Do not include an entries-count summary. Open directly with "Saved.".
 `,
   },
   {
     id: "post-confirm-subsequent-single",
-    shouldRender: (f) =>
-      f.postConfirmMode === "subsequent-single" && f.postConfirmContext !== null,
-    render: (f) => `
-POST-CONFIRM — SUBSEQUENT ENTRY (single message)
+    shouldRender: (f) => f.postConfirmMode === "subsequent-single",
+    render: () => `
+POST-CONFIRM — SUBSEQUENT ENTRY
 
-The user just confirmed an entry in their Manual. They already had at least one prior confirmed entry; this is NOT their first lifetime confirmation.
+The user just confirmed an entry in their Manual. They already had at least one prior confirmed entry; this is NOT their first lifetime confirmation. The trigger card in chat already shows the title and which layer it landed on. Your job here is to acknowledge the save briefly and hand the user a choice for what to do next.
 
-Your output must be a single turn with this exact structure, using the pinned copy with the shown substitutions:
+Your output must follow this exact shape:
 
-In. A working name: "${f.postConfirmContext!.proposedHeadline}." Yours to change.
+Saved.
 
-${f.postConfirmContext!.entriesSummary}
-
-<one-sentence forward-moving question>
+[continuation-offer]
 
 Rules:
-- The first two paragraphs above (the stamp line and the entries-summary line) are pinned. Reproduce them verbatim — exact quotes, period placement, line breaks.
-- The final line is the only creative piece. It MUST be a question. It MUST end with a question mark. It moves the conversation forward into something specific that was touched in the entry but not yet traced: an assumption not tested, a mechanism not traced to its origin, a stance not landed, a context the pattern might or might not extend to. Make it concrete. Name the person, the situation, or the charged word so the user knows exactly what you're asking about. One sentence.
-- Bad (declarations, not questions; vague; soft): "There is more to explore here." "Worth circling back to."
-- Good (specific, forward, ends in ?): "Where else does this same impulse fire — only with Ryan, or other places too?" "What would it cost you to sit through that call without correcting him?"
-- Do not ask "does that fit" or any variant. Do not restate the entry twice. Do not frame the open thread as homework. Do not open with a greeting or preamble. Open directly with "In. A working name:...".
+- "Saved." is pinned. First line, period, single blank line after.
+- The continuation-offer is the only creative piece. Write ONE sentence that does TWO things:
+  (a) Names a SPECIFIC thread from the conversation worth coming back to — refer to it concretely. Quote a charged phrase the user used, or name the moment, the person, the situation. Not "the thing we touched" (vague) but "the part about your body in easy rooms" (specific).
+  (b) Offers BOTH paths: continue with that thread OR pivot to something else. Both must be present in the same sentence. Use "or" to join them.
+- Good: "We could keep going with what your body actually does in the easy rooms — or pivot to something else if this is enough for now."
+- Good: "There's something about the part you said where you 'build the door yourself' worth pulling at, or we can move somewhere else."
+- Bad (no specific thread, vague): "What's next for you?" "Anything else on your mind?"
+- Bad (no pivot offered): "What would change if you stopped scanning?"
+- Bad (form-language): "Would you like to..." "Shall we..."
+- Do not include a headline. Do not say "A working name" or "Yours to change" — that vocabulary is removed. Do not reproduce an entries-count summary. Do not re-stamp the entry. Open directly with "Saved.".
 `,
   },
   {
@@ -681,7 +668,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     mode = "situation",
     personaModes = ["autistic"],
     postConfirmMode = null,
-    postConfirmContext = null,
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
@@ -700,7 +686,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     turnCount,
     manualComponentCount: manualComponents.length,
     postConfirmMode,
-    postConfirmContext,
     mode,
   });
 

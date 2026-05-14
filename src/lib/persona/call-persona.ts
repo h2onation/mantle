@@ -163,49 +163,38 @@ interface CallPersonaOptions {
    *  bubble (checkpoint: null). Empty / undefined = no prepends. */
   prependedMessages?: PrependedAssistantMessage[];
   /** Track A Phase 7-High — when set, this invocation is a post-confirm
-   *  follow-up call, not a regular chat turn. Classifier, composer,
+   *  follow-up call, not a regular chat turn. Detection, composition,
    *  and checkpoint_meta writes are skipped. The system prompt loads
    *  a mode-specific pinned-template block via buildSystemPrompt's
-   *  postConfirmMode option. */
+   *  postConfirmMode option. Both modes produce a single message that
+   *  opens with "Saved." and hands the user a continue-or-pivot
+   *  choice — no substitutions, no entries summary, no title repeat. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
-  postConfirmContext?: {
-    layerName: string;
-    proposedHeadline: string;
-    entriesSummary: string;
-  } | null;
 }
 
-type PostConfirmCtx = NonNullable<CallPersonaOptions["postConfirmContext"]>;
-
 /** Deterministic fallback for the post-confirm follow-up message when the
- *  LLM call fails. The forward question is the load-bearing piece — every
- *  confirm should propel the conversation, not dead-end on a stamp line.
- *  Mirrors the structure of the prompt-driven version (pinned copy + a
- *  forward question) but uses generic question text so the template is
- *  context-agnostic. */
+ *  Sonnet call fails. Mirrors the structure of the prompt-driven version
+ *  (pinned "Saved." opener + optional first-time scaffolding paragraph +
+ *  continue-or-pivot offer). The fallback uses a generic offer instead of
+ *  a thread-specific one, since it has no LLM to identify a specific
+ *  thread from the conversation. Better generic-but-present than dead-end.
+ *  The save itself already succeeded by the time this runs. */
 function buildPostConfirmFallback(
-  mode: "first-message-2" | "subsequent-single",
-  ctx: PostConfirmCtx | null | undefined
-): string | null {
-  if (!ctx) return null;
-
+  mode: "first-message-2" | "subsequent-single"
+): string {
   if (mode === "first-message-2") {
     return [
-      `That went into ${ctx.layerName}. Four other places still empty — they fill as more shows up.`,
-      "A real Manual takes time. It is not a quiz. You will carry it, return to it, sharpen it. No rush. Just show up. Come back daily for the first two weeks — that is the window where it starts to hold together.",
-      "What's still open in this for you?",
+      "Saved.",
+      "A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.",
+      "We could keep going with what we just touched, or pivot to something else if this is enough for now.",
     ].join("\n\n");
   }
 
-  if (mode === "subsequent-single") {
-    return [
-      `In. A working name: "${ctx.proposedHeadline}." Yours to change.`,
-      ctx.entriesSummary,
-      "What's still open in this for you?",
-    ].join("\n\n");
-  }
-
-  return null;
+  // subsequent-single
+  return [
+    "Saved.",
+    "We could keep going with what we just touched, or pivot to something else if this is enough for now.",
+  ].join("\n\n");
 }
 
 export function callPersona({
@@ -217,7 +206,6 @@ export function callPersona({
   isChipResponse,
   prependedMessages,
   postConfirmMode = null,
-  postConfirmContext = null,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -322,7 +310,6 @@ export function callPersona({
           explorationContext,
           transcriptContext: transcriptDetection,
           postConfirmMode,
-          postConfirmContext,
         });
 
         // 8b. Debug logging (dev only)
@@ -694,10 +681,7 @@ export function callPersona({
         // movement. Sonnet wins when it works; the template wins when
         // Sonnet doesn't.
         if (postConfirmMode !== null) {
-          const fallbackText = buildPostConfirmFallback(
-            postConfirmMode,
-            postConfirmContext
-          );
+          const fallbackText = buildPostConfirmFallback(postConfirmMode);
           if (fallbackText) {
             try {
               const { data: fallbackRow } = await admin

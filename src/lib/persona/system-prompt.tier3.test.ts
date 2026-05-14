@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
-import type { BuildPromptOptions } from "@/lib/persona/system-prompt";
+import type { OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 
 // Byte-level snapshot coverage for Tier 3 block assembly. These pin the
 // exact text the prompt produces for each block-firing combination so a
@@ -24,7 +24,8 @@ function extractTier3(prompt: string): string {
   return tail.slice(0, dynamicIdx);
 }
 
-const defaults: BuildPromptOptions = {
+const defaults: OneOnOnePromptOptions = {
+  kind: "oneOnOne",
   manualComponents: [],
   currentConversationId: "test-conversation-id",
   isReturningUser: false,
@@ -35,7 +36,9 @@ const defaults: BuildPromptOptions = {
   checkpointApproaching: false,
 };
 
-function buildTier3Region(overrides: Partial<BuildPromptOptions> = {}): string {
+function buildTier3Region(
+  overrides: Partial<OneOnOnePromptOptions> = {}
+): string {
   return extractTier3(buildSystemPrompt({ ...defaults, ...overrides }));
 }
 
@@ -112,14 +115,7 @@ describe("buildTier3 — block-firing snapshots", () => {
 
   it("post-confirm first-message-2 fires when postConfirmMode='first-message-2'", () => {
     expect(
-      buildTier3Region({
-        postConfirmMode: "first-message-2",
-        postConfirmContext: {
-          layerName: "Some of My Patterns",
-          proposedHeadline: "Voice Goes When Pressure Lands",
-          entriesSummary: "unused for first-message-2",
-        },
-      }),
+      buildTier3Region({ postConfirmMode: "first-message-2" }),
     ).toMatchSnapshot();
   });
 
@@ -127,12 +123,6 @@ describe("buildTier3 — block-firing snapshots", () => {
     expect(
       buildTier3Region({
         postConfirmMode: "subsequent-single",
-        postConfirmContext: {
-          layerName: "Some of My Patterns",
-          proposedHeadline: "Voice Goes When Pressure Lands",
-          entriesSummary:
-            "3 entries. Some of My Patterns and How I Process Things have material. 3 still empty.",
-        },
         manualComponents: [{ layer: 1, name: "Existing", content: "Existing entry" }],
         isReturningUser: true,
       }),

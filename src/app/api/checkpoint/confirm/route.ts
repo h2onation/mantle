@@ -4,11 +4,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
-import {
-  insertCheckpointActionMessage,
-  buildEntriesSummary,
-} from "@/lib/persona/persona-pipeline";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import {
   checkpointConfirmHour,
   checkLimit,
@@ -231,16 +227,12 @@ export async function POST(request: Request) {
   //    post-confirm flow is unchanged — Jove responds normally (with
   //    POST-REJECTION fixed line for rejected).
   let totalEntries = 0;
-  let allEntryLayers: number[] = [];
   if (action === "confirmed") {
-    const { data: entries } = await admin
+    const { count } = await admin
       .from("manual_entries")
-      .select("layer")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
-    if (entries) {
-      totalEntries = entries.length;
-      allEntryLayers = entries.map((e) => e.layer as number);
-    }
+    totalEntries = count ?? 0;
   }
 
   // Preserves the original guest-promptAuth semantics: fires for
@@ -279,70 +271,29 @@ export async function POST(request: Request) {
   };
 
   if (action === "confirmed") {
-    const meta = (msg.checkpoint_meta ?? {}) as {
-      layer?: number | null;
-      name?: string | null;
-      composed_name?: string | null;
-    };
-    const layer = meta.layer ?? null;
-    const layerName =
-      layer && LAYER_NAMES[layer] ? LAYER_NAMES[layer] : "your Manual";
-    const proposedHeadline =
-      meta.composed_name ?? meta.name ?? "Untitled";
-
+    // The post-confirm flow used to have:
+    //   - First-confirm: a templated Message 1 ("In. A working name: 'X.'
+    //     Yours to change.") prepended via prependedMessages, then an LLM
+    //     Message 2 for scaffolding + forward question.
+    //   - Subsequent: a single LLM message starting with the same "In. A
+    //     working name:" stamp + an entries-summary line + forward question.
+    //
+    // User testing 2026-05-14 flagged that as mechanical and inauthentic
+    // — the "working name" framing reads like an admin receipt, and the
+    // entries summary leaks Manual metadata into chat. The title is
+    // already visible in the trigger card, and the chat-history label
+    // already shows "Saved to <Layer> — Layer N." Repeating it in Jove's
+    // text is redundant.
+    //
+    // The new flow: a single LLM message that opens with "Saved.", names
+    // a specific thread from the just-finished conversation, and offers
+    // the user a choice — continue with that thread or pivot to
+    // something else. No prepend, no entries summary, no title
+    // repetition. The forming-state indicator carries the visible wait.
     if (totalEntries === 1) {
-      // First lifetime confirmation. Message 1 is server-templated
-      // (deterministic stamp), inserted as an assistant row so it
-      // persists across reloads, and emitted via prependedMessages
-      // before the Message 2 LLM stream begins. Message 2 is the
-      // LLM-generated scaffolding + open-thread line.
-      const message1Content = `In. A working name: "${proposedHeadline}." Yours to change.`;
-      const { data: message1Row } = await admin
-        .from("messages")
-        .insert({
-          conversation_id: conversationId,
-          role: "assistant",
-          content: message1Content,
-        })
-        .select("id")
-        .single();
-
-      if (message1Row?.id) {
-        personaOptions.prependedMessages = [
-          { messageId: message1Row.id, content: message1Content },
-        ];
-      }
       personaOptions.postConfirmMode = "first-message-2";
-      personaOptions.postConfirmContext = {
-        layerName,
-        proposedHeadline,
-        // entriesSummary is unused by the first-message-2 prompt
-        // block but the type requires it; pass a placeholder.
-        entriesSummary: "",
-      };
     } else {
-      // Subsequent confirmation. Single LLM-generated message. The
-      // entries summary is built server-side with proper pluralization
-      // so the LLM reproduces a verbatim string.
-      const distinctLayers = Array.from(new Set(allEntryLayers));
-      const otherLayersWithMaterial = distinctLayers
-        .filter((l) => l !== layer)
-        .map((l) => LAYER_NAMES[l])
-        .filter((n): n is string => Boolean(n));
-      const remainingEmptyCount = 5 - distinctLayers.length;
-      const entriesSummary = buildEntriesSummary({
-        entryCount: totalEntries,
-        confirmedLayerName: layerName,
-        otherLayersWithMaterial,
-        remainingEmptyCount,
-      });
-
       personaOptions.postConfirmMode = "subsequent-single";
-      personaOptions.postConfirmContext = {
-        layerName,
-        proposedHeadline,
-        entriesSummary,
-      };
     }
   }
 
