@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import AdminNavRail from "@/components/admin/AdminNavRail";
 import remarkGfm from "remark-gfm";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
@@ -118,56 +118,7 @@ export default function AdminDocsPage() {
           minHeight: 0,
         }}
       >
-        <nav
-          className="admin-rail"
-          style={{
-            width: 180,
-            borderRight: "1px solid var(--session-ink-hairline)",
-            padding: "20px 12px",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
-              letterSpacing: "2px",
-              color: "var(--session-ink-ghost)",
-              padding: "4px 12px 10px",
-            }}
-          >
-            ADMIN
-          </div>
-          <Link href="/admin?section=users" style={railLinkStyle(false)}>
-            Users
-          </Link>
-          <Link href="/admin?section=beta" style={railLinkStyle(false)}>
-            Beta
-          </Link>
-          <Link href="/admin?section=feedback" style={railLinkStyle(false)}>
-            Feedback
-          </Link>
-          <Link href="/admin/docs" style={railLinkStyle(true)}>
-            Docs
-          </Link>
-          <div style={{ flex: 1 }} />
-          <a
-            href="/"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
-              color: "var(--session-ink-ghost)",
-              letterSpacing: "1px",
-              padding: "8px 12px",
-              textDecoration: "none",
-            }}
-          >
-            ← EXIT ADMIN
-          </a>
-        </nav>
+        <AdminNavRail activeId="docs" />
 
         <main
           style={{
@@ -485,16 +436,3 @@ export default function AdminDocsPage() {
   );
 }
 
-function railLinkStyle(active: boolean): React.CSSProperties {
-  return {
-    display: "block",
-    fontFamily: "var(--font-sans)",
-    fontSize: "13px",
-    color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
-    background: active ? "rgba(255,255,255,0.6)" : "none",
-    borderRadius: 6,
-    padding: "8px 12px",
-    textDecoration: "none",
-    fontWeight: active ? 500 : 400,
-  };
-}

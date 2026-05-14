@@ -7,8 +7,8 @@ import {
   useMemo,
   useState,
 } from "react";
-import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import AdminNavRail from "@/components/admin/AdminNavRail";
 import type {
   PhaseData,
   PromptSection,
@@ -67,15 +67,6 @@ const PHASE_SHORT: Record<string, string> = {
   "phase-4": "Returning + checkpoint",
 };
 
-// Admin nav items (mirrors admin/page.tsx)
-const NAV_ITEMS: { id: string; label: string; href: string }[] = [
-  { id: "users", label: "Users", href: "/admin?section=users" },
-  { id: "beta", label: "Beta", href: "/admin?section=beta" },
-  { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
-  { id: "health", label: "Health", href: "/admin?section=health" },
-  { id: "docs", label: "Docs", href: "/admin/docs" },
-  { id: "prompt-architecture", label: "Prompt Architecture", href: "/admin/prompt-architecture" },
-];
 
 // ---------------------------------------------------------------------------
 // Categorize sections into the three layers
@@ -237,39 +228,7 @@ function PromptArchitectureInner() {
       </div>
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
-        {/* Admin nav rail */}
-        <nav style={{
-          width: 180, borderRight: "1px solid var(--session-ink-hairline)",
-          padding: "20px 12px", flexShrink: 0,
-          display: "flex", flexDirection: "column", gap: 4,
-        }}>
-          <div style={{
-            fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)",
-            letterSpacing: "2px", color: "var(--session-ink-ghost)",
-            padding: "4px 12px 10px",
-          }}>
-            ADMIN
-          </div>
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.id} href={item.href} style={{
-              display: "block", fontFamily: "var(--font-sans)", fontSize: "13px",
-              color: item.id === "prompt-architecture" ? "var(--session-ink)" : "var(--session-ink-ghost)",
-              background: item.id === "prompt-architecture" ? "rgba(255,255,255,0.6)" : "none",
-              borderRadius: 6, padding: "8px 12px", textDecoration: "none",
-              fontWeight: item.id === "prompt-architecture" ? 500 : 400,
-            }}>
-              {item.label}
-            </Link>
-          ))}
-          <div style={{ flex: 1 }} />
-          <a href="/" style={{
-            fontFamily: "var(--font-mono)", fontSize: "var(--size-meta)",
-            color: "var(--session-ink-ghost)", letterSpacing: "1px",
-            padding: "8px 12px", textDecoration: "none",
-          }}>
-            ← EXIT ADMIN
-          </a>
-        </nav>
+        <AdminNavRail activeId="prompt-architecture" />
 
         {/* Main content */}
         <div style={{
@@ -287,7 +246,7 @@ function PromptArchitectureInner() {
               fontSize: "18px", fontWeight: 400, fontStyle: "italic",
               color: "var(--session-ink)", marginRight: 8,
             }}>
-              System Prompt
+              Jove&apos;s prompt architecture
             </div>
             <div style={{ width: 1, height: 20, background: "var(--session-ink-hairline)" }} />
             <ControlGroup label="Persona">

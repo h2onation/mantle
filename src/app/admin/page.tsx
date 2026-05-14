@@ -1,8 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { useAdminData } from "@/lib/hooks/useAdminData";
 import UsersTab from "@/components/admin/UsersTab";
@@ -15,6 +14,7 @@ import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackPanel from "@/components/admin/FeedbackPanel";
+import AdminNavRail from "@/components/admin/AdminNavRail";
 import {
   formatAdminDate,
   adminEmptyStyle,
@@ -39,7 +39,6 @@ export default function AdminPage() {
 }
 
 function AdminPageInner() {
-  const router = useRouter();
   const params = useSearchParams();
   const isAdmin = useIsAdmin();
   const data = useAdminData();
@@ -50,12 +49,6 @@ function AdminPageInner() {
     : "users";
 
   const [betaSubTab, setBetaSubTab] = useState<BetaSubTab>("waitlist");
-
-  function setSection(next: Section) {
-    const q = new URLSearchParams(params.toString());
-    q.set("section", next);
-    router.replace(`/admin?${q.toString()}`);
-  }
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -131,122 +124,17 @@ function AdminPageInner() {
           minHeight: 0,
         }}
       >
-        <nav
-          className="admin-rail"
-          style={{
-            width: 180,
-            borderRight: "1px solid var(--session-ink-hairline)",
-            padding: "20px 12px",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
+        <AdminNavRail
+          activeId={section}
+          badges={{
+            ...(data.betaFeedbackUnreadCount > 0
+              ? { feedback: data.betaFeedbackUnreadCount }
+              : {}),
+            ...(data.apiErrorsCount > 0
+              ? { health: data.apiErrorsCount }
+              : {}),
           }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
-              letterSpacing: "2px",
-              color: "var(--session-ink-ghost)",
-              padding: "4px 12px 10px",
-            }}
-          >
-            ADMIN
-          </div>
-          {SECTIONS.map((s) => {
-            const active = s.id === section;
-            const badge =
-              s.id === "feedback" && data.betaFeedbackUnreadCount > 0
-                ? data.betaFeedbackUnreadCount
-                : s.id === "health" && data.apiErrorsCount > 0
-                  ? data.apiErrorsCount
-                  : null;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSection(s.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  color: active
-                    ? "var(--session-ink)"
-                    : "var(--session-ink-ghost)",
-                  background: active ? "rgba(255,255,255,0.6)" : "none",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  fontWeight: active ? 500 : 400,
-                }}
-              >
-                <span>{s.label}</span>
-                {badge !== null && (
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "var(--size-meta)",
-                      color: "var(--session-cream)",
-                      background: "var(--session-error)",
-                      borderRadius: 10,
-                      padding: "1px 6px",
-                    }}
-                  >
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <Link
-            href="/admin/docs"
-            style={{
-              display: "block",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--session-ink-ghost)",
-              background: "none",
-              borderRadius: 6,
-              padding: "8px 12px",
-              textDecoration: "none",
-            }}
-          >
-            Docs
-          </Link>
-          <Link
-            href="/admin/prompt-architecture"
-            style={{
-              display: "block",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: "var(--session-ink-ghost)",
-              background: "none",
-              borderRadius: 6,
-              padding: "8px 12px",
-              textDecoration: "none",
-            }}
-          >
-            Prompt Architecture
-          </Link>
-          <div style={{ flex: 1 }} />
-          <a
-            href="/"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--size-meta)",
-              color: "var(--session-ink-ghost)",
-              letterSpacing: "1px",
-              padding: "8px 12px",
-              textDecoration: "none",
-            }}
-          >
-            ← EXIT ADMIN
-          </a>
-        </nav>
+        />
 
         <main
           style={{

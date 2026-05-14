@@ -409,6 +409,18 @@ textarea:focus-visible {
   display: none;
 }
 
+/* Dev tools panel — admin-only, only on wide desktop where there's
+   room in the left margin alongside the colophon. */
+.mw-dev-tools {
+  display: none;
+}
+
+@media (min-width: 1030px) {
+  .mw-dev-tools {
+    display: block;
+  }
+}
+
 @media (min-width: 431px) {
   .mw-desktop-paratext {
     display: block;
