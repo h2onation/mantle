@@ -12,8 +12,8 @@ const JOVE_STYLE: React.CSSProperties = {
   maxWidth: "92%",
   marginLeft: 0,
   marginRight: "auto",
-  background: "var(--session-walnut-surface)",
-  border: "1px solid var(--session-bubble-border)",
+  background: "var(--session-jove-bg)",
+  border: "1px solid var(--session-jove-border)",
   borderRadius: "16px",
   borderTopLeftRadius: "5px",
 };
@@ -22,8 +22,8 @@ const USER_STYLE: React.CSSProperties = {
   maxWidth: "88%",
   marginLeft: "auto",
   marginRight: 0,
-  background: "var(--session-bubble-user)",
-  border: "1px solid var(--session-bubble-user-border)",
+  background: "var(--session-user-bg)",
+  border: "1px solid var(--session-user-border)",
   borderRadius: "16px",
   borderTopRightRadius: "5px",
 };

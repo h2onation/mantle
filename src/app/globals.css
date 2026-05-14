@@ -139,6 +139,17 @@
   --session-bubble-user:        rgba(72, 80, 98, 0.30);
   --session-bubble-user-border: rgba(170, 180, 200, 0.12);
 
+  /* Bubble fills, semantic by speaker — bound per theme so each speaker
+     reads with consistent character across modes. In dark: Jove is slate
+     (cool), user is walnut (warm). In light: Jove is cream (paper),
+     user is walnut wash (warm). Walnut stays the user-bubble character
+     in both modes; the navy↔walnut coupling that the legacy
+     `--session-bubble-user` token carried is no longer used by Bubble.tsx. */
+  --session-jove-bg:            rgba(72, 80, 98, 0.30);
+  --session-jove-border:        rgba(170, 180, 200, 0.12);
+  --session-user-bg:            rgba(115, 72, 42, 0.20);
+  --session-user-border:        rgba(170, 120, 82, 0.20);
+
   /* Slate-tinted soft surface — guided-intake card on the welcome state. */
   --session-slate-soft:         rgba(72, 80, 98, 0.26);
 
@@ -293,6 +304,16 @@
      than a chocolate panel. The walnut border keeps the ink spine. */
   --session-bubble-user:        rgba(92, 58, 30, 0.10);
   --session-bubble-user-border: rgba(92, 58, 30, 0.32);
+
+  /* Bubble fills, semantic by speaker — light values. Jove sits on the
+     cream paper surface; user sits on the warm walnut wash. Both surfaces
+     are warm-leaning in light mode (slate doesn't read on linen). The
+     dark block flips Jove to slate so navy is the cool Jove character in
+     dark mode while light mode keeps the cream paper. */
+  --session-jove-bg:            rgba(232, 220, 196, 0.90);
+  --session-jove-border:        rgba(92, 58, 30, 0.32);
+  --session-user-bg:            rgba(92, 58, 30, 0.10);
+  --session-user-border:        rgba(92, 58, 30, 0.32);
 
   /* Slate-tinted soft surface re-maps to a lighter walnut wash on linen. */
   --session-slate-soft:         rgba(92, 58, 30, 0.10);
