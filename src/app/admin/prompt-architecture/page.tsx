@@ -2,13 +2,12 @@
 
 import {
   Suspense,
-  forwardRef,
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import type {
   PhaseData,
@@ -45,6 +44,13 @@ const TIER_LABELS: Record<Tier, string> = {
   dynamic: "Dynamic",
 };
 
+const PHASE_LABELS: Record<string, string> = {
+  "phase-1": "1",
+  "phase-2": "2",
+  "phase-3": "3",
+  "phase-4": "4",
+};
+
 // ---------------------------------------------------------------------------
 // Absent section — sections present in other phases but not this one
 // ---------------------------------------------------------------------------
@@ -53,6 +59,7 @@ interface AbsentSection {
   id: string;
   label: string;
   tier: Tier;
+  tokens: number;
   presentIn: string[];
   condition: { type: ConditionType; label: string };
 }
@@ -77,6 +84,7 @@ function computeAbsentSections(
           id: section.id,
           label: section.label,
           tier: section.tier,
+          tokens: section.tokens,
           presentIn,
           condition: section.condition,
         });
@@ -100,6 +108,23 @@ export default function PromptArchitecturePage() {
 }
 
 // ---------------------------------------------------------------------------
+// Admin nav items (mirrors admin/page.tsx SECTIONS + links)
+// ---------------------------------------------------------------------------
+
+const NAV_ITEMS: { id: string; label: string; href: string }[] = [
+  { id: "users", label: "Users", href: "/admin?section=users" },
+  { id: "beta", label: "Beta", href: "/admin?section=beta" },
+  { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
+  { id: "health", label: "Health", href: "/admin?section=health" },
+  { id: "docs", label: "Docs", href: "/admin/docs" },
+  {
+    id: "prompt-architecture",
+    label: "Prompt Architecture",
+    href: "/admin/prompt-architecture",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -110,9 +135,7 @@ function PromptArchitectureInner() {
   const [phases, setPhases] = useState<PhaseData[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activePhase, setActivePhase] = useState<string | null>(null);
-  const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async (modes: PersonaMode[], cm: ConvMode) => {
     setLoading(true);
@@ -136,12 +159,6 @@ function PromptArchitectureInner() {
   useEffect(() => {
     if (isAdmin) fetchData(personaModes, convMode);
   }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (phases && phases.length > 0 && !activePhase) {
-      setActivePhase(phases[0].id);
-    }
-  }, [phases, activePhase]);
 
   function handlePersonaToggle(mode: PersonaMode) {
     let next: PersonaMode[];
@@ -167,210 +184,282 @@ function PromptArchitectureInner() {
     fetchData(personaModes, cm);
   }
 
-  function scrollToPhase(phaseId: string) {
-    setActivePhase(phaseId);
-    phaseRefs.current[phaseId]?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
+  function togglePhase(phaseId: string) {
+    setExpandedPhases((prev) => {
+      const next = new Set(prev);
+      if (next.has(phaseId)) next.delete(phaseId);
+      else next.add(phaseId);
+      return next;
     });
   }
 
   if (!isAdmin) {
     return (
-      <div style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "var(--size-meta)",
-        color: "var(--session-ink-ghost)",
-        letterSpacing: "1px",
-        padding: "80px 24px",
-        textAlign: "center",
-      }}>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--size-meta)",
+          color: "var(--session-ink-ghost)",
+          letterSpacing: "1px",
+          padding: "80px 24px",
+          textAlign: "center",
+        }}
+      >
         Not authorized.
       </div>
     );
   }
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "var(--session-linen)",
-      display: "flex",
-      flexDirection: "column",
-    }}>
-      {/* ── Sticky header ─────────────────────────────────────── */}
-      <header style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
         background: "var(--session-linen)",
-        borderBottom: "1px solid var(--session-ink-hairline)",
-        padding: "20px 40px 16px",
-        flexShrink: 0,
-      }}>
-        {/* Title row */}
-        <div style={{
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ── Admin banner ─────────────────────────────────────── */}
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--size-meta)",
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: "var(--session-error)",
+          textAlign: "center",
+          padding: "6px 0",
+          borderBottom: "1px solid var(--session-error-ghost)",
+          background: "var(--session-error-banner)",
+          flexShrink: 0,
+        }}
+      >
+        Read Only — Admin
+      </div>
+
+      <div
+        style={{
+          flex: 1,
           display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}>
-          <div>
-            <div style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              letterSpacing: "3px",
-              textTransform: "uppercase",
-              color: "var(--session-walnut-meta)",
-              marginBottom: 6,
-            }}>
-              System Prompt Reference
-            </div>
-            <h1 style={{
-              fontFamily: "var(--font-spectral, var(--font-serif))",
-              fontSize: "26px",
-              fontWeight: 400,
-              fontStyle: "italic",
-              color: "var(--session-ink)",
-              margin: 0,
-              letterSpacing: "-0.3px",
-            }}>
-              Jove Prompt Architecture
-            </h1>
-          </div>
-          <a
-            href="/admin"
+          overflow: "hidden",
+          minHeight: 0,
+        }}
+      >
+        {/* ── Admin nav rail ────────────────────────────────────── */}
+        <nav
+          style={{
+            width: 180,
+            borderRight: "1px solid var(--session-ink-hairline)",
+            padding: "20px 12px",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            overflowY: "auto",
+          }}
+        >
+          <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
+              fontSize: "var(--size-meta)",
+              letterSpacing: "2px",
               color: "var(--session-ink-ghost)",
-              letterSpacing: "1.5px",
-              textDecoration: "none",
-              textTransform: "uppercase",
-              padding: "6px 12px",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: 4,
+              padding: "4px 12px 10px",
             }}
           >
-            ← Admin
+            ADMIN
+          </div>
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              style={{
+                display: "block",
+                fontFamily: "var(--font-sans)",
+                fontSize: "13px",
+                color:
+                  item.id === "prompt-architecture"
+                    ? "var(--session-ink)"
+                    : "var(--session-ink-ghost)",
+                background:
+                  item.id === "prompt-architecture"
+                    ? "rgba(255,255,255,0.6)"
+                    : "none",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 12px",
+                textDecoration: "none",
+                fontWeight: item.id === "prompt-architecture" ? 500 : 400,
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div style={{ flex: 1 }} />
+          <a
+            href="/"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--size-meta)",
+              color: "var(--session-ink-ghost)",
+              letterSpacing: "1px",
+              padding: "8px 12px",
+              textDecoration: "none",
+            }}
+          >
+            ← EXIT ADMIN
           </a>
-        </div>
+        </nav>
 
-        {/* Controls row */}
-        <div style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 24,
-          alignItems: "center",
-        }}>
-          {/* Persona */}
-          <ControlGroup label="Persona">
-            {PERSONA_OPTIONS.map((p) => {
-              const active = personaModes.includes(p.id);
-              return (
+        {/* ── Main content area ──────────────────────────────────── */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
+          {/* ── Controls bar ─────────────────────────────────────── */}
+          <div
+            style={{
+              borderBottom: "1px solid var(--session-ink-hairline)",
+              padding: "16px 28px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 20,
+              alignItems: "center",
+              flexShrink: 0,
+              background: "var(--session-linen)",
+            }}
+          >
+            <ControlGroup label="Persona">
+              {PERSONA_OPTIONS.map((p) => (
                 <ToggleChip
                   key={p.id}
-                  active={active}
+                  active={personaModes.includes(p.id)}
                   onClick={() => handlePersonaToggle(p.id)}
-                  accentVar="--session-walnut"
                 >
                   {p.label}
                 </ToggleChip>
-              );
-            })}
-          </ControlGroup>
+              ))}
+            </ControlGroup>
 
-          {/* Conv mode */}
-          <ControlGroup label="Mode">
-            {CONV_MODE_OPTIONS.map((cm) => {
-              const active = convMode === cm.id;
-              return (
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: "var(--session-ink-hairline)",
+              }}
+            />
+
+            <ControlGroup label="Mode">
+              {CONV_MODE_OPTIONS.map((cm) => (
                 <ToggleChip
                   key={cm.id}
-                  active={active}
+                  active={convMode === cm.id}
                   onClick={() => handleConvModeChange(cm.id)}
-                  accentVar="--session-persona"
                 >
                   {cm.label}
                 </ToggleChip>
-              );
-            })}
-          </ControlGroup>
+              ))}
+            </ControlGroup>
 
-          {/* Phase nav */}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
-            {(phases ?? []).map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => scrollToPhase(p.id)}
+            {/* Phase quick-jump */}
+            {phases && (
+              <>
+                <div
+                  style={{
+                    width: 1,
+                    height: 20,
+                    background: "var(--session-ink-hairline)",
+                    marginLeft: "auto",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 3 }}>
+                  {phases.map((p) => {
+                    const isOpen = expandedPhases.has(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => togglePhase(p.id)}
+                        title={p.label}
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "11px",
+                          color: isOpen
+                            ? "var(--session-linen)"
+                            : "var(--session-ink-ghost)",
+                          background: isOpen
+                            ? "var(--session-walnut)"
+                            : "transparent",
+                          border: `1px solid ${isOpen ? "var(--session-walnut)" : "var(--session-ink-hairline)"}`,
+                          borderRadius: 4,
+                          padding: "3px 9px",
+                          cursor: "pointer",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {PHASE_LABELS[p.id] ?? p.id}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Scrollable phase list ────────────────────────────── */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "12px 28px 80px",
+            }}
+          >
+            {loading && !phases && (
+              <div
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
-                  letterSpacing: "0.5px",
-                  color: activePhase === p.id
-                    ? "var(--session-ink)"
-                    : "var(--session-ink-ghost)",
-                  background: activePhase === p.id
-                    ? "var(--session-walnut-surface)"
-                    : "transparent",
-                  border: "none",
-                  borderRadius: 4,
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                  fontWeight: activePhase === p.id ? 500 : 400,
+                  fontSize: "var(--size-meta)",
+                  color: "var(--session-ink-ghost)",
+                  textAlign: "center",
+                  marginTop: 80,
+                  letterSpacing: "1px",
                 }}
               >
-                {i + 1}
-              </button>
-            ))}
+                Loading…
+              </div>
+            )}
+            {error && (
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "var(--size-meta)",
+                  color: "var(--session-error)",
+                  textAlign: "center",
+                  marginTop: 80,
+                }}
+              >
+                Error: {error}
+              </div>
+            )}
+            {phases &&
+              phases.map((phase, i) => (
+                <PhaseAccordion
+                  key={phase.id}
+                  phase={phase}
+                  phaseIndex={i}
+                  allPhases={phases}
+                  expanded={expandedPhases.has(phase.id)}
+                  onToggle={() => togglePhase(phase.id)}
+                />
+              ))}
           </div>
         </div>
-      </header>
-
-      {/* ── Scrollable body ───────────────────────────────────── */}
-      <main
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "0 40px 120px",
-        }}
-      >
-        {loading && !phases && (
-          <div style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "var(--size-meta)",
-            color: "var(--session-ink-ghost)",
-            textAlign: "center",
-            marginTop: 80,
-            letterSpacing: "1px",
-          }}>
-            Loading…
-          </div>
-        )}
-        {error && (
-          <div style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "var(--size-meta)",
-            color: "var(--session-error)",
-            textAlign: "center",
-            marginTop: 80,
-          }}>
-            Error: {error}
-          </div>
-        )}
-        {phases &&
-          phases.map((phase) => (
-            <PhaseBlock
-              key={phase.id}
-              phase={phase}
-              allPhases={phases}
-              ref={(el) => {
-                phaseRefs.current[phase.id] = el;
-              }}
-            />
-          ))}
-      </main>
+      </div>
     </div>
   );
 }
@@ -387,15 +476,17 @@ function ControlGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "10px",
-        letterSpacing: "2px",
-        textTransform: "uppercase",
-        color: "var(--session-ink-ghost)",
-        marginRight: 4,
-      }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "10px",
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          color: "var(--session-ink-ghost)",
+          marginRight: 2,
+        }}
+      >
         {label}
       </span>
       {children}
@@ -406,12 +497,10 @@ function ControlGroup({
 function ToggleChip({
   active,
   onClick,
-  accentVar,
   children,
 }: {
   active: boolean;
   onClick: () => void;
-  accentVar: string;
   children: React.ReactNode;
 }) {
   return (
@@ -422,10 +511,10 @@ function ToggleChip({
         fontSize: "12px",
         fontWeight: active ? 500 : 400,
         color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
-        background: active ? `var(${accentVar}-surface, var(--session-walnut-surface))` : "transparent",
-        border: `1px solid ${active ? `var(${accentVar}-border, var(--session-walnut-border))` : "var(--session-ink-hairline)"}`,
+        background: active ? "var(--session-walnut-surface)" : "transparent",
+        border: `1px solid ${active ? "var(--session-walnut-border)" : "var(--session-ink-hairline)"}`,
         borderRadius: 4,
-        padding: "4px 12px",
+        padding: "3px 10px",
         cursor: "pointer",
         transition: "all 0.15s ease",
       }}
@@ -436,273 +525,565 @@ function ToggleChip({
 }
 
 // ---------------------------------------------------------------------------
-// Phase block
+// Phase accordion — collapsed by default, expands to two-column layout
 // ---------------------------------------------------------------------------
 
-const PhaseBlock = forwardRef<
-  HTMLDivElement,
-  { phase: PhaseData; allPhases: PhaseData[] }
->(function PhaseBlock({ phase, allPhases }, ref) {
+function PhaseAccordion({
+  phase,
+  phaseIndex,
+  allPhases,
+  expanded,
+  onToggle,
+}: {
+  phase: PhaseData;
+  phaseIndex: number;
+  allPhases: PhaseData[];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const absentSections = useMemo(
     () => computeAbsentSections(phase, allPhases),
     [phase, allPhases],
   );
 
   return (
-    <div ref={ref} style={{ marginTop: 48, scrollMarginTop: 160 }}>
-      {/* Phase heading */}
-      <div style={{
-        borderBottom: "1px solid var(--session-ink-hairline)",
-        paddingBottom: 12,
-        marginBottom: 24,
-      }}>
-        <h2 style={{
-          fontFamily: "var(--font-spectral, var(--font-serif))",
-          fontSize: "20px",
-          fontWeight: 400,
-          color: "var(--session-ink)",
-          margin: 0,
-          letterSpacing: "-0.2px",
-        }}>
-          {phase.label}
-        </h2>
-        <p style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "13px",
-          color: "var(--session-ink-faded)",
-          margin: "6px 0 0",
-          lineHeight: 1.5,
-        }}>
-          {phase.description}
-        </p>
-      </div>
-
-      {/* Sections */}
-      {phase.sections.map((section) => (
-        <SectionRow key={section.id} section={section} />
-      ))}
-
-      {/* Absent sections */}
-      {absentSections.length > 0 && (
-        <div style={{ marginTop: 20, marginBottom: 8 }}>
-          <div style={{
+    <div
+      style={{
+        marginBottom: 8,
+        border: `1px solid ${expanded ? "var(--session-walnut-border)" : "var(--session-ink-hairline)"}`,
+        borderRadius: 8,
+        overflow: "hidden",
+        transition: "border-color 0.2s ease",
+      }}
+    >
+      {/* ── Collapsed header row ─────────────────────────────── */}
+      <button
+        onClick={onToggle}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          width: "100%",
+          padding: "14px 20px",
+          background: expanded
+            ? "var(--session-walnut-surface)"
+            : "transparent",
+          border: "none",
+          cursor: "pointer",
+          textAlign: "left",
+          transition: "background 0.2s ease",
+        }}
+      >
+        {/* Phase number badge */}
+        <span
+          style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            color: "var(--session-ink-ghost)",
-            marginBottom: 10,
-            paddingTop: 12,
-            borderTop: "1px dashed var(--session-ink-hairline)",
-          }}>
-            Not active in this phase
+            fontSize: "11px",
+            fontWeight: 600,
+            color: expanded
+              ? "var(--session-linen)"
+              : "var(--session-ink-ghost)",
+            background: expanded
+              ? "var(--session-walnut)"
+              : "var(--session-ink-hairline)",
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            transition: "all 0.2s ease",
+          }}
+        >
+          {phaseIndex + 1}
+        </span>
+
+        {/* Label + description */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-spectral, var(--font-serif))",
+              fontSize: "15px",
+              fontWeight: 400,
+              color: "var(--session-ink)",
+              letterSpacing: "-0.2px",
+            }}
+          >
+            {phase.label.replace(/^Phase \d+ — /, "")}
           </div>
-          {absentSections.map((abs) => (
-            <AbsentRow key={abs.id} section={abs} />
-          ))}
+          <div
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              color: "var(--session-ink-ghost)",
+              marginTop: 2,
+            }}
+          >
+            {phase.description}
+          </div>
+        </div>
+
+        {/* Summary stats */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              color: "var(--session-ink-faded)",
+            }}
+          >
+            {phase.totalTokens.toLocaleString()} tok
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            {phase.sections.length} sections
+          </span>
+          {phase.deltaTokens !== null && phase.deltaTokens !== 0 && (
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px",
+                color:
+                  phase.deltaTokens > 0
+                    ? "var(--session-persona)"
+                    : "var(--session-error-text)",
+              }}
+            >
+              {phase.deltaTokens > 0 ? "+" : ""}
+              {phase.deltaTokens.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        {/* Chevron */}
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "14px",
+            color: "var(--session-ink-ghost)",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
+            flexShrink: 0,
+          }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {/* ── Expanded content: two-column layout ──────────────── */}
+      {expanded && (
+        <div
+          style={{
+            display: "flex",
+            borderTop: "1px solid var(--session-ink-hairline)",
+            minHeight: 300,
+          }}
+        >
+          {/* LEFT: Variable components (absent from this phase) */}
+          <div
+            style={{
+              width: 260,
+              flexShrink: 0,
+              borderRight: "1px solid var(--session-ink-hairline)",
+              background: "var(--session-walnut-surface-soft)",
+              overflowY: "auto",
+              maxHeight: "70vh",
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 16px 8px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-ink-ghost)",
+                borderBottom: "1px solid var(--session-ink-hairline)",
+              }}
+            >
+              Available Components
+            </div>
+            {absentSections.length === 0 ? (
+              <div
+                style={{
+                  padding: "20px 16px",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "12px",
+                  color: "var(--session-ink-ghost)",
+                  fontStyle: "italic",
+                }}
+              >
+                All components active in this phase
+              </div>
+            ) : (
+              absentSections.map((abs) => (
+                <SlotCard key={abs.id} section={abs} />
+              ))
+            )}
+
+            {/* Alternatives for active persona/mode-dependent sections */}
+            {phase.sections.some((s) => s.alternatives.length > 0) && (
+              <>
+                <div
+                  style={{
+                    padding: "14px 16px 8px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    color: "var(--session-ink-ghost)",
+                    borderTop: "1px solid var(--session-ink-hairline)",
+                    borderBottom: "1px solid var(--session-ink-hairline)",
+                    marginTop: 0,
+                  }}
+                >
+                  Swap Alternatives
+                </div>
+                {phase.sections
+                  .filter((s) => s.alternatives.length > 0)
+                  .map((s) =>
+                    s.alternatives.map((alt, i) => (
+                      <div
+                        key={`${s.id}-alt-${i}`}
+                        style={{
+                          padding: "10px 16px",
+                          borderBottom:
+                            "1px solid var(--session-ink-hairline)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "var(--font-sans)",
+                            fontSize: "12px",
+                            color: "var(--session-ink-faded)",
+                            marginBottom: 2,
+                          }}
+                        >
+                          {alt.label}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "10px",
+                            color: "var(--session-ink-ghost)",
+                          }}
+                        >
+                          {alt.tokens.toLocaleString()} tok · replaces{" "}
+                          {s.label}
+                        </div>
+                      </div>
+                    )),
+                  )}
+              </>
+            )}
+          </div>
+
+          {/* RIGHT: Active prompt */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              maxHeight: "70vh",
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 20px 8px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "9px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-ink-ghost)",
+                borderBottom: "1px solid var(--session-ink-hairline)",
+                position: "sticky",
+                top: 0,
+                background: "var(--session-linen)",
+                zIndex: 2,
+              }}
+            >
+              Active Prompt · {phase.totalTokens.toLocaleString()} tokens
+            </div>
+            {phase.sections.map((section) => (
+              <PromptBlock key={section.id} section={section} />
+            ))}
+
+            {/* Phase footer */}
+            {phase.changes.length > 0 && (
+              <div
+                style={{
+                  padding: "14px 20px",
+                  borderTop: "1px solid var(--session-ink-hairline)",
+                  background: "var(--session-walnut-surface-soft)",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    color: "var(--session-ink-ghost)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Changes from previous phase
+                </div>
+                {phase.changes.map((c, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "12px",
+                      color: c.startsWith("+")
+                        ? "var(--session-persona)"
+                        : c.startsWith("−")
+                          ? "var(--session-error-text)"
+                          : "var(--session-ink-faded)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {c}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Phase footer */}
-      <PhaseFooter phase={phase} />
     </div>
   );
-});
+}
 
 // ---------------------------------------------------------------------------
-// Section row — manuscript layout with margin annotations
+// Slot card — an available/absent component in the left column
 // ---------------------------------------------------------------------------
 
-function SectionRow({ section }: { section: PromptSection }) {
+function SlotCard({ section }: { section: AbsentSection }) {
+  return (
+    <div
+      style={{
+        padding: "10px 16px",
+        borderBottom: "1px solid var(--session-ink-hairline)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
+      >
+        <span
+          style={{
+            width: 3,
+            height: 14,
+            borderRadius: 1,
+            background: tierColor(section.tier),
+            opacity: 0.5,
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-faded)",
+            fontWeight: 500,
+          }}
+        >
+          {section.label}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            color: "var(--session-ink-ghost)",
+            marginLeft: "auto",
+            flexShrink: 0,
+          }}
+        >
+          {section.tokens.toLocaleString()}t
+        </span>
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "11px",
+          color: "var(--session-ink-ghost)",
+          lineHeight: 1.4,
+          paddingLeft: 11,
+        }}
+      >
+        <ConditionPill condition={section.condition} />
+        <span style={{ marginLeft: 6 }}>
+          Active in: {section.presentIn.join(", ")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Prompt block — a single section card in the active prompt column
+// ---------------------------------------------------------------------------
+
+function PromptBlock({ section }: { section: PromptSection }) {
   const [expanded, setExpanded] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const lines = section.text.split("\n");
-  const needsTruncation = lines.length > 5;
+  const needsTruncation = lines.length > 6;
 
   return (
     <>
-      <div style={{
-        display: "flex",
-        gap: 0,
-        marginBottom: 1,
-      }}>
-        {/* Tier indicator — thin vertical rule */}
-        <div style={{
-          width: 3,
-          flexShrink: 0,
-          background: tierColor(section.tier),
-          borderRadius: "2px 0 0 2px",
-        }} />
-
-        {/* ── Main column ─────────────────────────────────────── */}
-        <div style={{
-          flex: "1 1 62%",
-          padding: "14px 20px 14px 16px",
-          minWidth: 0,
-          background: "var(--session-walnut-surface-soft)",
-        }}>
-          {/* Section header */}
-          <div style={{
+      <div
+        style={{
+          padding: "0 20px",
+          borderBottom: "1px solid var(--session-ink-hairline)",
+        }}
+      >
+        {/* Section header bar */}
+        <div
+          style={{
             display: "flex",
-            alignItems: "baseline",
-            gap: 10,
-            marginBottom: 8,
-          }}>
-            <span style={{
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 0 8px",
+          }}
+        >
+          {/* Tier color dot */}
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: tierColor(section.tier),
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              letterSpacing: "1.5px",
+              fontSize: "11px",
+              letterSpacing: "1px",
               textTransform: "uppercase",
-              color: tierColor(section.tier),
+              color: "var(--session-ink)",
               fontWeight: 600,
-            }}>
-              {section.label}
-            </span>
-            <span style={{
+            }}
+          >
+            {section.label}
+          </span>
+          <span
+            style={{
               fontFamily: "var(--font-mono)",
               fontSize: "10px",
               color: "var(--session-ink-ghost)",
-              letterSpacing: "0.5px",
-            }}>
-              {TIER_LABELS[section.tier]}
-            </span>
-          </div>
+            }}
+          >
+            {TIER_LABELS[section.tier]}
+          </span>
 
-          {/* Prompt text */}
-          <div style={{ position: "relative" }}>
-            <pre style={{
+          <div style={{ flex: 1 }} />
+
+          {/* Token + condition */}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            {section.tokens.toLocaleString()} tok
+          </span>
+          <ConditionPill condition={section.condition} />
+
+          {/* Info button */}
+          <button
+            onClick={() => setInfoOpen(true)}
+            title="View full text + source"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              color: "var(--session-ink-ghost)",
+              background: "none",
+              border: "1px solid var(--session-ink-hairline)",
+              borderRadius: 4,
+              padding: "1px 6px",
+              cursor: "pointer",
+            }}
+          >
+            i
+          </button>
+        </div>
+
+        {/* Prompt text */}
+        <div style={{ position: "relative", paddingBottom: 10 }}>
+          <pre
+            style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "13px",
+              fontSize: "12.5px",
               lineHeight: 1.65,
               color: "var(--session-ink-soft)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               margin: 0,
-              maxHeight: expanded || !needsTruncation ? "none" : "5.5em",
+              maxHeight:
+                expanded || !needsTruncation ? "none" : "6.2em",
               overflow: "hidden",
-            }}>
-              {section.text}
-            </pre>
+            }}
+          >
+            {section.text}
+          </pre>
 
-            {needsTruncation && !expanded && (
-              <div style={{
+          {needsTruncation && !expanded && (
+            <div
+              style={{
                 position: "absolute",
-                bottom: 0,
+                bottom: 10,
                 left: 0,
                 right: 0,
-                height: 48,
-                background: "linear-gradient(transparent, var(--session-linen))",
+                height: 40,
+                background:
+                  "linear-gradient(transparent, var(--session-linen))",
                 pointerEvents: "none",
-              }} />
-            )}
-          </div>
-
-          {needsTruncation && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10px",
-                letterSpacing: "0.5px",
-                color: "var(--session-walnut-meta)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 0 0",
               }}
-            >
-              {expanded ? "▴ Collapse" : "▾ Show full text"}
-            </button>
+            />
           )}
         </div>
 
-        {/* ── Margin column ───────────────────────────────────── */}
-        <div style={{
-          flex: "0 0 280px",
-          padding: "14px 16px",
-          borderLeft: "1px solid var(--session-ink-hairline)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}>
-          {/* Token count + condition */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-          }}>
-            <span style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: "var(--session-ink-faded)",
-              fontWeight: 500,
-            }}>
-              {section.tokens.toLocaleString()} tok
-            </span>
-            <ConditionPill condition={section.condition} />
-          </div>
-
-          {/* Source reference */}
+        {needsTruncation && (
           <button
-            onClick={() => setInfoOpen(true)}
+            onClick={() => setExpanded(!expanded)}
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "10px",
-              color: "var(--session-ink-ghost)",
+              letterSpacing: "0.5px",
+              color: "var(--session-walnut)",
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: 0,
-              textAlign: "left",
-              textDecoration: "underline",
-              textDecorationColor: "var(--session-ink-hairline)",
-              textUnderlineOffset: "3px",
+              padding: "0 0 10px",
             }}
           >
-            {section.source.file}
+            {expanded ? "▴ Collapse" : "▾ Show full text"}
           </button>
-
-          {/* Alternatives */}
-          {section.alternatives.length > 0 && (
-            <div>
-              <div style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: "var(--session-ink-ghost)",
-                marginBottom: 5,
-              }}>
-                Alternatives
-              </div>
-              {section.alternatives.map((alt, i) => (
-                <div key={i} style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "12px",
-                  color: "var(--session-ink-faded)",
-                  lineHeight: 1.4,
-                  marginBottom: 3,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 8,
-                }}>
-                  <span>{alt.label}</span>
-                  {alt.tokens > 0 && (
-                    <span style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      color: "var(--session-ink-ghost)",
-                      flexShrink: 0,
-                    }}>
-                      {alt.tokens.toLocaleString()}t
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {infoOpen && (
@@ -713,80 +1094,27 @@ function SectionRow({ section }: { section: PromptSection }) {
 }
 
 // ---------------------------------------------------------------------------
-// Absent section row — ghosted entry for sections not in this phase
-// ---------------------------------------------------------------------------
-
-function AbsentRow({ section }: { section: AbsentSection }) {
-  return (
-    <div style={{
-      display: "flex",
-      gap: 0,
-      marginBottom: 1,
-      opacity: 0.45,
-    }}>
-      <div style={{
-        width: 3,
-        flexShrink: 0,
-        background: tierColor(section.tier),
-        borderRadius: "2px 0 0 2px",
-      }} />
-      <div style={{
-        flex: 1,
-        padding: "10px 20px 10px 16px",
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        gap: 12,
-        borderBottom: "1px dashed var(--session-ink-hairline)",
-      }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            letterSpacing: "1.5px",
-            textTransform: "uppercase",
-            color: tierColor(section.tier),
-          }}>
-            {section.label}
-          </span>
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            color: "var(--session-ink-ghost)",
-          }}>
-            {TIER_LABELS[section.tier]}
-          </span>
-        </div>
-        <div style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "11px",
-          color: "var(--session-ink-ghost)",
-          fontStyle: "italic",
-          textAlign: "right",
-          flexShrink: 0,
-        }}>
-          Active in: {section.presentIn.join(", ")}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Condition pill
 // ---------------------------------------------------------------------------
 
-function ConditionPill({ condition }: { condition: { type: ConditionType; label: string } }) {
+function ConditionPill({
+  condition,
+}: {
+  condition: { type: ConditionType; label: string };
+}) {
   return (
-    <span style={{
-      fontFamily: "var(--font-mono)",
-      fontSize: "9px",
-      letterSpacing: "0.5px",
-      color: conditionColor(condition.type),
-      border: `1px solid ${conditionBorder(condition.type)}`,
-      borderRadius: 3,
-      padding: "1px 6px",
-    }}>
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "9px",
+        letterSpacing: "0.5px",
+        color: conditionColor(condition.type),
+        border: `1px solid ${conditionBorder(condition.type)}`,
+        borderRadius: 3,
+        padding: "1px 6px",
+        whiteSpace: "nowrap",
+      }}
+    >
       {condition.label}
     </span>
   );
@@ -840,44 +1168,56 @@ function InfoModal({
         }}
       >
         {/* Header */}
-        <div style={{
-          padding: "20px 24px 16px",
-          borderBottom: "1px solid var(--session-ink-hairline)",
-        }}>
-          <div style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-          }}>
+        <div
+          style={{
+            padding: "20px 24px 16px",
+            borderBottom: "1px solid var(--session-ink-hairline)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+            }}
+          >
             <div>
-              <h3 style={{
-                fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "18px",
-                fontWeight: 400,
-                fontStyle: "italic",
-                color: "var(--session-ink)",
-                margin: 0,
-              }}>
+              <h3
+                style={{
+                  fontFamily: "var(--font-spectral, var(--font-serif))",
+                  fontSize: "18px",
+                  fontWeight: 400,
+                  fontStyle: "italic",
+                  color: "var(--session-ink)",
+                  margin: 0,
+                }}
+              >
                 {section.label}
               </h3>
-              <div style={{
-                display: "flex",
-                gap: 16,
-                marginTop: 8,
-                alignItems: "center",
-              }}>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
-                  color: "var(--session-ink-faded)",
-                }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  marginTop: 8,
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "11px",
+                    color: "var(--session-ink-faded)",
+                  }}
+                >
                   {section.source.file}
                 </span>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  color: "var(--session-ink-ghost)",
-                }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    color: "var(--session-ink-ghost)",
+                  }}
+                >
                   → {section.source.symbol}
                 </span>
               </div>
@@ -897,47 +1237,56 @@ function InfoModal({
             </button>
           </div>
 
-          {/* Metadata row */}
-          <div style={{
-            display: "flex",
-            gap: 10,
-            marginTop: 12,
-            alignItems: "center",
-          }}>
-            <span style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: "var(--session-ink-faded)",
-              fontWeight: 500,
-            }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              marginTop: 12,
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px",
+                color: "var(--session-ink-faded)",
+                fontWeight: 500,
+              }}
+            >
               {section.tokens.toLocaleString()} tokens
             </span>
             <ConditionPill condition={section.condition} />
-            <span style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: tierColor(section.tier),
-              border: `1px solid ${tierColor(section.tier)}`,
-              borderRadius: 3,
-              padding: "1px 6px",
-              opacity: 0.7,
-            }}>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                color: tierColor(section.tier),
+                border: `1px solid ${tierColor(section.tier)}`,
+                borderRadius: 3,
+                padding: "1px 6px",
+                opacity: 0.7,
+              }}
+            >
               {TIER_LABELS[section.tier]}
             </span>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 32px" }}>
-          <pre style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "13px",
-            lineHeight: 1.7,
-            color: "var(--session-ink-soft)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            margin: 0,
-          }}>
+        <div
+          style={{ flex: 1, overflowY: "auto", padding: "20px 24px 32px" }}
+        >
+          <pre
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              lineHeight: 1.7,
+              color: "var(--session-ink-soft)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              margin: 0,
+            }}
+          >
             {section.text}
           </pre>
         </div>
@@ -947,90 +1296,7 @@ function InfoModal({
 }
 
 // ---------------------------------------------------------------------------
-// Phase footer
-// ---------------------------------------------------------------------------
-
-function PhaseFooter({ phase }: { phase: PhaseData }) {
-  return (
-    <div style={{
-      marginTop: 20,
-      padding: "16px 20px",
-      borderTop: "1px solid var(--session-ink-hairline)",
-      borderBottom: "1px solid var(--session-ink-hairline)",
-    }}>
-      <div style={{
-        display: "flex",
-        gap: 24,
-        alignItems: "baseline",
-        flexWrap: "wrap",
-      }}>
-        <span style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "12px",
-          color: "var(--session-ink)",
-          fontWeight: 500,
-        }}>
-          {phase.totalTokens.toLocaleString()} tokens
-        </span>
-        <span style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "12px",
-          color: "var(--session-ink-faded)",
-        }}>
-          {phase.sections.length} sections
-        </span>
-        {phase.deltaTokens !== null && (
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            color: phase.deltaTokens > 0
-              ? "var(--session-persona)"
-              : "var(--session-error)",
-          }}>
-            {phase.deltaTokens > 0 ? "+" : ""}
-            {phase.deltaTokens.toLocaleString()} tokens
-          </span>
-        )}
-        {phase.deltaBlocks !== null && phase.deltaBlocks !== 0 && (
-          <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            color: "var(--session-ink-faded)",
-          }}>
-            {phase.deltaBlocks > 0 ? "+" : ""}
-            {phase.deltaBlocks} sections
-          </span>
-        )}
-      </div>
-      {phase.changes.length > 0 && (
-        <div style={{
-          marginTop: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-        }}>
-          {phase.changes.map((c, i) => (
-            <span key={i} style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "12px",
-              color: c.startsWith("+")
-                ? "var(--session-persona)"
-                : c.startsWith("−")
-                  ? "var(--session-error-text)"
-                  : "var(--session-ink-faded)",
-              lineHeight: 1.5,
-            }}>
-              {c}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Color helpers — using design tokens, not hardcoded values
+// Color helpers
 // ---------------------------------------------------------------------------
 
 function tierColor(tier: Tier): string {
