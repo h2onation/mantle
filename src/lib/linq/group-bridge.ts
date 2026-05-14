@@ -224,10 +224,7 @@ export async function processGroupMessage(
   const systemPrompt = buildSystemPrompt({
     kind: "group",
     manualComponents,
-    groupContext: {
-      ownerUserName,
-      hasManualContext: manualComponents.length > 0,
-    },
+    groupContext: { ownerUserName },
   });
 
   // 4. Call Sage (non-streaming, shorter timeout than 1:1 — silence is fine in groups)

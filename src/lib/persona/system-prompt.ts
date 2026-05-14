@@ -203,10 +203,15 @@ export interface GroupPromptOptions extends SharedPromptInputs {
   kind: "group";
   groupContext: {
     ownerUserName: string | null;
-    hasManualContext: boolean;
   };
 }
 
+// Partial<BuildPromptOptions> distributes pathologically: TS evaluates
+// Partial<A | B> with keys = keyof A | keyof B but values still constrained
+// per-key by the union, so a partial that supplies a field from only one
+// variant tends not to satisfy either side after spread. If a caller wants
+// to spread partial overrides (test helpers, the admin prompt viewer),
+// narrow to Partial<OneOnOnePromptOptions> or Partial<GroupPromptOptions>.
 export type BuildPromptOptions = OneOnOnePromptOptions | GroupPromptOptions;
 
 // ---------------------------------------------------------------------------
@@ -784,10 +789,10 @@ The user's message is unusually long or structured. It may be pasted content. If
 // ---------------------------------------------------------------------------
 
 function buildGroupPrompt(
-  groupContext: { ownerUserName: string | null; hasManualContext: boolean },
+  groupContext: { ownerUserName: string | null },
   manualComponents: ManualComponent[]
 ): string {
-  const { ownerUserName, hasManualContext } = groupContext;
+  const { ownerUserName } = groupContext;
 
   let prompt = `You are ${PERSONA_NAME}, in a group text conversation. Your role is FACILITATOR.
 
@@ -810,7 +815,7 @@ FACILITATOR RULES:
 
 Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones.`;
 
-  if (hasManualContext && ownerUserName && manualComponents.length > 0) {
+  if (ownerUserName && manualComponents.length > 0) {
     prompt += `
 
 MANUAL CONTEXT RULES:
