@@ -16,6 +16,11 @@ interface MobileLayoutProps {
   // stack centers walnut warmth at the top instead of the bottom-right,
   // matching the demo's "3 · Checkpoint" surface.
   hasActiveCheckpoint?: boolean;
+  // Overlays that should be scoped to the phone frame on desktop (e.g.
+  // SessionDrawer). Rendered as a sibling of the view panels inside the
+  // DesktopVitrine so position: absolute children are clipped by the
+  // phone frame's rounded corners and overflow: hidden.
+  overlay?: React.ReactNode;
 }
 
 function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): string {
@@ -37,6 +42,7 @@ export default function MobileLayout({
   crisisContent,
   activeView,
   hasActiveCheckpoint,
+  overlay,
 }: MobileLayoutProps) {
   return (
     <DesktopVitrine>
@@ -74,6 +80,7 @@ export default function MobileLayout({
           </div>
         ))}
         {activeView === "session" && <BetaFeedbackButton />}
+        {overlay}
       </div>
     </DesktopVitrine>
   );

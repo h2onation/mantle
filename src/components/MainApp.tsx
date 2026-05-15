@@ -469,24 +469,25 @@ export default function MainApp() {
             onOpenDrawer={handleOpenDrawer}
           />
         }
-      />
-
-      <SessionDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        conversations={conversations}
-        activeConversationId={conversationId}
-        activeView={activeView}
-        manualEntryCount={confirmedEntries.length}
-        onSelectSession={switchConversation}
-        onNewSession={handleNewSession}
-        onNavigateToManual={handleNavigateToManual}
-        onNavigateToSettings={handleNavigateToSettings}
-        onNavigateToCrisis={handleNavigateToCrisis}
-        onLogout={async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
-          window.location.href = "/login";
-        }}
+        overlay={
+          <SessionDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            conversations={conversations}
+            activeConversationId={conversationId}
+            activeView={activeView}
+            manualEntryCount={confirmedEntries.length}
+            onSelectSession={switchConversation}
+            onNewSession={handleNewSession}
+            onNavigateToManual={handleNavigateToManual}
+            onNavigateToSettings={handleNavigateToSettings}
+            onNavigateToCrisis={handleNavigateToCrisis}
+            onLogout={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/login";
+            }}
+          />
+        }
       />
 
       {/* Exploration interstitial overlay */}
