@@ -203,6 +203,29 @@
   --session-walnut-tint:         rgba(220, 170, 120, 0.05);
   --session-hair-faint:          rgba(245, 237, 222, 0.05);
   --session-popover-shadow:      0 12px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
+
+  /* Manual Plate shadow — heavier three-layer drop + warm cream rim
+     inset. The Manual is the "bound volume" to chat's "workshop", so its
+     Plates carry more weight than --session-plate-shadow. Empty Plates
+     omit shadow entirely so populated content visibly lifts. */
+  --session-manual-plate-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.42),
+    0 14px 36px rgba(0, 0, 0, 0.48),
+    0 32px 80px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 240, 220, 0.10);
+
+  /* Manual tab pip — the embossed walnut chip protruding above each
+     Plate. The chip is a saturated brand surface; cream-on-walnut must
+     read AA, so the tokens are tuned to a specific value per theme
+     rather than reusing --session-walnut. Hover lightens on the same
+     hue for tactile feedback. */
+  --session-manual-tab-bg:        rgb(135, 90, 55);
+  --session-manual-tab-bg-hover:  rgb(160, 104, 62);
+  --session-manual-tab-text:      rgba(245, 243, 238, 0.96);
+  --session-manual-tab-chev:      rgba(245, 243, 238, 0.75);
+  --session-manual-tab-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 
 /* ─── Light mode — V3 Embossed linen ───
@@ -369,6 +392,24 @@
   --session-walnut-tint:         rgba(92, 58, 30, 0.07);
   --session-hair-faint:          rgba(92, 58, 30, 0.10);
   --session-popover-shadow:      0 10px 32px rgba(31, 20, 10, 0.18), 0 2px 6px rgba(31, 20, 10, 0.10);
+
+  /* Manual Plate shadow — linen variant. Same three-layer grammar
+     keyed in ink-shadows so paper lifts off paper without a dark halo. */
+  --session-manual-plate-shadow:
+    0 22px 56px rgba(31, 20, 10, 0.16),
+    0 6px 14px rgba(31, 20, 10, 0.10),
+    inset 0 1px 0 rgba(245, 235, 215, 0.40);
+
+  /* Manual tab pip — linen variant. Deeper espresso ground (the V3
+     mono-caps tone) keeps the chip distinct from the cream paper Plate
+     surface beneath it; cream text lands ~10:1. */
+  --session-manual-tab-bg:        #5C3F23;
+  --session-manual-tab-bg-hover:  #7A4E2C;
+  --session-manual-tab-text:      rgba(245, 243, 238, 0.96);
+  --session-manual-tab-chev:      rgba(245, 235, 215, 0.78);
+  --session-manual-tab-shadow:
+    0 2px 6px rgba(31, 20, 10, 0.18),
+    inset 0 1px 0 rgba(255, 245, 225, 0.20);
 }
 
 /* No-JS fallback. When the FOUC script doesn't run (JS disabled) and

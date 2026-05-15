@@ -32,10 +32,12 @@ export default function AdminManualView({
   }
 
   return (
-    <div>
-      {populatedLayers.map((layer) => (
-        <PopulatedLayer key={layer.id} layer={layer} readOnly />
-      ))}
+    <div style={{ paddingTop: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        {populatedLayers.map((layer) => (
+          <PopulatedLayer key={layer.id} layer={layer} readOnly />
+        ))}
+      </div>
       {emptyLayers.length > 0 && (
         <>
           <div
@@ -45,14 +47,16 @@ export default function AdminManualView({
               letterSpacing: "3px",
               textTransform: "uppercase",
               color: "var(--session-ink-ghost)",
-              margin: "16px 0 8px",
+              margin: "32px 0 8px",
             }}
           >
             UPCOMING
           </div>
-          {emptyLayers.map((layer) => (
-            <EmptyLayer key={layer.id} layer={layer} readOnly />
-          ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+            {emptyLayers.map((layer) => (
+              <EmptyLayer key={layer.id} layer={layer} readOnly />
+            ))}
+          </div>
         </>
       )}
     </div>
