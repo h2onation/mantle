@@ -22,9 +22,23 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const redis = url && token ? new Redis({ url, token }) : null;
 
+// In Vercel production we hard-fail at module load if the env vars are
+// missing. Silently failing open in prod means our rate limiters do
+// nothing — bot traffic or runaway clients can drain our Anthropic
+// budget and there's no signal. Throwing here makes the function
+// invocation 500 immediately and surfaces in Vercel logs as a clear
+// configuration error, instead of a slow-burn outage.
+//
+// Local dev and preview deploys fail open (with a warning) so devs
+// without Upstash credentials can still run the app.
 if (!redis) {
+  if (process.env.VERCEL_ENV === "production") {
+    throw new Error(
+      "[rate-limit] FATAL: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in Vercel production. Configure them in Project Settings → Environment Variables and redeploy."
+    );
+  }
   console.warn(
-    "[rate-limit] Upstash env vars missing — all rate limiters will fail open"
+    "[rate-limit] Upstash env vars missing — all rate limiters will fail open (dev/preview only)"
   );
 }
 

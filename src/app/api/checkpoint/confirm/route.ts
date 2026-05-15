@@ -188,6 +188,33 @@ export async function POST(request: Request) {
     //              rejected — only the system message differs so Jove
     //              skips the POST-REJECTION fixed line. Track A Phase
     //              7-Mid.)
+    //
+    // Idempotency: a fast double-tap (or any second call before the
+    // overlay closes) would otherwise double-increment refinement_count
+    // and insert two action system messages. We gate on the current
+    // status — only "pending" proceeds. Any terminal status is treated
+    // as already-handled and returns success without writes.
+    const currentStatus =
+      (msg.checkpoint_meta as { status?: string })?.status ?? null;
+    if (currentStatus !== "pending") {
+      logEvent({
+        event: "confirm_outcome",
+        req_id: reqId,
+        user_id_hash: userIdHash,
+        conversation_id: conversationId,
+        message_id: messageId,
+        outcome: "idempotent",
+        status_code: 200,
+        duration_ms: Date.now() - startedAt,
+      });
+      return Response.json({
+        alreadyHandled: true,
+        currentStatus,
+        conversationId,
+        messageId,
+      });
+    }
+
     const currentRefinementCount =
       (msg.checkpoint_meta as { refinement_count?: number })
         ?.refinement_count ?? 0;
@@ -305,18 +332,68 @@ export async function POST(request: Request) {
 
   const stream = callPersona(personaOptions);
 
-  logEvent({
-    event: "confirm_outcome",
-    req_id: reqId,
-    user_id_hash: userIdHash,
-    conversation_id: conversationId,
-    message_id: messageId,
-    outcome: "success",
-    status_code: 200,
-    duration_ms: Date.now() - startedAt,
+  // Wrap the stream so the outcome log fires when the stream actually
+  // closes (or errors), not when callPersona synchronously returns the
+  // stream object. Without this wrap the metric overstates success
+  // because a mid-stream interruption after a successful DB write
+  // would still log "success." The DB write IS successful by this
+  // point — the wrap just lets us distinguish "write + follow-up
+  // delivered" from "write succeeded but follow-up died."
+  let outcomeLogged = false;
+  function logOutcomeOnce(
+    outcome: "success" | "stream_interrupted",
+    errorDetail?: string
+  ) {
+    if (outcomeLogged) return;
+    outcomeLogged = true;
+    logEvent({
+      event: "confirm_outcome",
+      req_id: reqId,
+      user_id_hash: userIdHash,
+      conversation_id: conversationId,
+      message_id: messageId,
+      outcome,
+      status_code: 200,
+      duration_ms: Date.now() - startedAt,
+      ...(errorDetail ? { error_kind: "stream_interrupted", error_detail: errorDetail } : {}),
+    });
+  }
+
+  const taggedStream = stream.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+      },
+      flush() {
+        logOutcomeOnce("success");
+      },
+    })
+  );
+
+  // pipeThrough propagates upstream errors to the TransformStream's
+  // readable side, but flush() doesn't run on error. Attach a
+  // .catch-style observer via a second tap so errors get logged.
+  const observedStream = new ReadableStream({
+    async start(controller) {
+      const reader = taggedStream.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+        }
+        controller.close();
+      } catch (err) {
+        logOutcomeOnce(
+          "stream_interrupted",
+          err instanceof Error ? err.message : "stream error"
+        );
+        controller.error(err);
+      }
+    },
   });
 
-  return new Response(stream, {
+  return new Response(observedStream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",

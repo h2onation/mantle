@@ -202,3 +202,94 @@ describe("/api/checkpoint/confirm idempotency", () => {
     expect(res.headers.get("Content-Type")).toContain("text/event-stream");
   });
 });
+
+describe("/api/checkpoint/confirm reject/refine/defer idempotency", () => {
+  // A fast double-tap on Discard / Rework / Let it go used to insert a
+  // duplicate system message and (for refined) double-increment the
+  // refinement_count. The route now no-ops on any non-pending status
+  // and returns the same shape as the confirm-idempotent path.
+  async function rejectRequest(): Promise<Request> {
+    return new Request("http://localhost/api/checkpoint/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageId: "m1",
+        action: "rejected",
+        conversationId: "c1",
+      }),
+    });
+  }
+
+  it("returns alreadyHandled JSON when status is already 'rejected'", async () => {
+    adminMessageResponse = {
+      data: {
+        id: "m1",
+        conversation_id: "c1",
+        content: "msg content",
+        is_checkpoint: true,
+        checkpoint_meta: { layer: 1, name: "Test", status: "rejected" },
+      },
+      error: null,
+    };
+    const res = await POST(await rejectRequest());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/json");
+    const body = await res.json();
+    expect(body.alreadyHandled).toBe(true);
+    expect(body.currentStatus).toBe("rejected");
+  });
+
+  it("returns alreadyHandled JSON when status is already 'refined'", async () => {
+    adminMessageResponse = {
+      data: {
+        id: "m1",
+        conversation_id: "c1",
+        content: "msg content",
+        is_checkpoint: true,
+        checkpoint_meta: { layer: 1, name: "Test", status: "refined" },
+      },
+      error: null,
+    };
+    const req = new Request("http://localhost/api/checkpoint/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageId: "m1",
+        action: "refined",
+        conversationId: "c1",
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.alreadyHandled).toBe(true);
+    expect(body.currentStatus).toBe("refined");
+  });
+
+  it("returns alreadyHandled JSON when status is 'confirmed' (defer/reject after confirm)", async () => {
+    adminMessageResponse = {
+      data: {
+        id: "m1",
+        conversation_id: "c1",
+        content: "msg content",
+        is_checkpoint: true,
+        checkpoint_meta: { layer: 1, name: "Test", status: "confirmed" },
+      },
+      error: null,
+    };
+    const req = new Request("http://localhost/api/checkpoint/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageId: "m1",
+        action: "deferred",
+        conversationId: "c1",
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.alreadyHandled).toBe(true);
+    expect(body.currentStatus).toBe("confirmed");
+  });
+});
