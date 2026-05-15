@@ -68,4 +68,33 @@ describe("detectCheckpointInResponse", () => {
       ).isCheckpoint
     ).toBe(false);
   });
+
+  it("accepts paraphrased openers the model produces under load", () => {
+    // The model drifts on the exact phrasing more often than expected.
+    // We accept the common paraphrases so a near-miss still produces a
+    // checkpoint rather than a stranded transition line.
+    expect(
+      detectCheckpointInResponse("I'd like to put something in your Manual.")
+        .isCheckpoint
+    ).toBe(true);
+    expect(
+      detectCheckpointInResponse("I'm going to put this in your Manual.")
+        .isCheckpoint
+    ).toBe(true);
+    expect(
+      detectCheckpointInResponse("Let me put that in your Manual.")
+        .isCheckpoint
+    ).toBe(true);
+  });
+
+  it("accepts 'into your Manual' as a variant of 'in your Manual'", () => {
+    expect(
+      detectCheckpointInResponse("I want to put something into your Manual.")
+        .isCheckpoint
+    ).toBe(true);
+    expect(
+      detectCheckpointInResponse("I'd like to put this into your Manual.")
+        .isCheckpoint
+    ).toBe(true);
+  });
 });

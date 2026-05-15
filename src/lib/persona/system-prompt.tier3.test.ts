@@ -80,7 +80,11 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("returning-user main + first-turn-situation + checkpoints + post-rejection fire when isReturningUser=true, mode='situation'", () => {
+  it("returning-user main + first-turn-situation fire when isReturningUser=true, mode='situation' (checkpoints stay gated on checkpointApproaching)", () => {
+    // Returning-user status alone no longer auto-loads the CHECKPOINTS
+    // and POST-REJECTION blocks — those gate on checkpointApproaching
+    // so Jove isn't primed to fire the transition line on a fresh
+    // session before any material has surfaced.
     expect(
       buildTier3Region({
         isReturningUser: true,
@@ -89,12 +93,29 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("returning-user main fires without first-turn-situation when mode='guided-intake'", () => {
-    // The nested situation-only block must NOT fire under guided-intake
+  it("returning-user main fires without first-turn-situation when mode='guided-intake' (checkpoints stay gated on checkpointApproaching)", () => {
+    // The nested situation-only block must NOT fire under guided-intake.
+    // CHECKPOINTS / POST-REJECTION also do not fire here because
+    // checkpointApproaching defaults to false — see the situation-mode
+    // sibling test above for the same gating rationale.
     expect(
       buildTier3Region({
         isReturningUser: true,
         mode: "guided-intake",
+        manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it("checkpoints + post-rejection fire for returning users only when checkpointApproaching=true", () => {
+    // Regression guard for the gating-on-checkpointApproaching change:
+    // a returning user WITH checkpointApproaching set should load the
+    // checkpoint instruction blocks (combination of returning-user
+    // first-turn-situation + checkpoints + post-rejection).
+    expect(
+      buildTier3Region({
+        isReturningUser: true,
+        checkpointApproaching: true,
         manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
       }),
     ).toMatchSnapshot();

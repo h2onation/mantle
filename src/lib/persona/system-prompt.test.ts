@@ -598,8 +598,18 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Do not re-propose the same pattern in this session");
     });
 
-    it("appears for returning users even without checkpointApproaching", () => {
+    it("does NOT auto-load for returning users without checkpointApproaching", () => {
+      // showCheckpointInstructions no longer derives from isReturningUser.
+      // Previously this auto-loaded the POST-REJECTION block on turn 1
+      // of every returning-user session, which primed Jove to write the
+      // transition line before any material had surfaced.
       const result = build({ isReturningUser: true, checkpointApproaching: false });
+      expect(result).not.toContain("POST-REJECTION");
+      expect(result).not.toContain("That entry didn't land. Was it off, or just not ready?");
+    });
+
+    it("appears for returning users once checkpointApproaching is true", () => {
+      const result = build({ isReturningUser: true, checkpointApproaching: true });
       expect(result).toContain("POST-REJECTION");
       expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
     });
@@ -723,12 +733,16 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain("\nCHECKPOINTS\n");
     });
 
-    it("includes CHECKPOINTS for returning users regardless of checkpointApproaching", () => {
+    it("excludes CHECKPOINTS for returning users when checkpointApproaching is false", () => {
+      // Gate flipped from (checkpointApproaching || isReturningUser) to
+      // (checkpointApproaching) alone. Returning-user status flows
+      // through the RETURNING USER block; the CHECKPOINTS block should
+      // not auto-load on turn 1 of a fresh session.
       const result = build({
         isReturningUser: true,
         checkpointApproaching: false,
       });
-      expect(result).toContain("\nCHECKPOINTS\n");
+      expect(result).not.toContain("\nCHECKPOINTS\n");
     });
 
     it("includes CHECKPOINTS when checkpointApproaching is true", () => {
@@ -736,20 +750,25 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("\nCHECKPOINTS\n");
     });
 
-    it("excludes POST-REJECTION when not approaching and not returning", () => {
-      // POST-CHECKPOINT was deleted in Phase 7-High. POST-REJECTION is
-      // the remaining checkpoint-instructions block that gates on
-      // (checkpointApproaching || isReturningUser). Same gate, new
-      // assertion target.
-      const result = build({
-        checkpointApproaching: false,
-        isReturningUser: false,
-      });
-      expect(result).not.toContain("POST-REJECTION");
+    it("includes CHECKPOINTS for returning users once checkpointApproaching is true", () => {
+      const result = build({ isReturningUser: true, checkpointApproaching: true });
+      expect(result).toContain("\nCHECKPOINTS\n");
     });
 
-    it("includes POST-REJECTION for returning users", () => {
-      const result = build({ isReturningUser: true });
+    it("excludes POST-REJECTION when not approaching (regardless of returning status)", () => {
+      // POST-CHECKPOINT was deleted in Phase 7-High. POST-REJECTION now
+      // gates on checkpointApproaching alone — returning-user status no
+      // longer auto-loads the block.
+      expect(
+        build({ checkpointApproaching: false, isReturningUser: false })
+      ).not.toContain("POST-REJECTION");
+      expect(
+        build({ checkpointApproaching: false, isReturningUser: true })
+      ).not.toContain("POST-REJECTION");
+    });
+
+    it("includes POST-REJECTION once checkpointApproaching is true", () => {
+      const result = build({ checkpointApproaching: true });
       expect(result).toContain("POST-REJECTION");
     });
 
