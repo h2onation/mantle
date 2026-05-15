@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manual — Redesign Revised (5 Decisions Applied)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  /* ─── Tokens — verbatim from src/app/globals.css ─── */
+  :root {
+    --session-linen:       #0A0B10;
+    --session-cream:       #12141B;
+    --session-parchment:   #0E1017;
+
+    --session-ink:            rgba(245, 243, 238, 0.97);
+    --session-ink-soft:       rgba(245, 243, 238, 0.85);
+    --session-ink-mid:        rgba(228, 224, 214, 0.62);
+    --session-ink-faded:      rgba(228, 224, 214, 0.45);
+    --session-ink-ghost:      rgba(228, 224, 214, 0.38);
+
+    --session-hair:           rgba(245, 237, 222, 0.10);
+    --session-hair-soft:      rgba(245, 237, 222, 0.06);
+    --session-hair-faint:     rgba(245, 237, 222, 0.05);
+
+    --session-walnut:             rgb(170, 120, 82);
+    --session-walnut-light:       rgba(170, 120, 82, 0.55);
+    --session-walnut-surface:     rgba(115, 72, 42, 0.20);
+    --session-walnut-surface-soft:rgba(115, 72, 42, 0.10);
+    --session-walnut-border:      rgba(170, 120, 82, 0.18);
+    --session-walnut-border-soft: rgba(170, 120, 82, 0.14);
+    --session-walnut-meta:        rgba(170, 120, 82, 0.65);
+    --session-walnut-meta-strong: rgba(220, 170, 120, 0.85);
+    --session-walnut-meta-soft:   rgba(220, 170, 120, 0.55);
+    --session-walnut-highlight:   rgba(220, 170, 120, 0.12);
+    --session-walnut-tint:        rgba(220, 170, 120, 0.05);
+
+    --session-bubble-border:      rgba(170, 120, 82, 0.20);
+    --session-button-inset:       rgba(0, 0, 0, 0.30);
+
+    --session-plate-shadow:       0 12px 40px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(220, 170, 120, 0.10);
+
+    --session-paratext:        rgba(245, 232, 212, 0.88);
+    --session-paratext-mid:    rgba(232, 218, 196, 0.62);
+    --session-paratext-spine:  rgb(200, 145, 95);
+    --session-paratext-strong: rgba(248, 238, 218, 0.97);
+
+    --sp-hair:   1px;
+    --sp-tight:  4px;
+    --sp-xs:     8px;
+    --sp-sm:     14px;
+    --sp-md:     22px;
+    --sp-lg:     34px;
+    --sp-xl:     56px;
+
+    --font-spectral: 'Spectral', serif;
+    --font-serif:    'Instrument Serif', serif;
+    --font-sans:     'DM Sans', sans-serif;
+    --font-mono:     'DM Mono', monospace;
+  }
+
+  [data-theme="light"] {
+    --session-linen:       #E5D8BE;
+    --session-cream:       #ECE0C8;
+    --session-parchment:   #DFD3B5;
+
+    --session-ink:            #1F140A;
+    --session-ink-soft:       #4A3220;
+    --session-ink-mid:        rgba(31, 20, 10, 0.64);
+    --session-ink-faded:      #7A5E40;
+    --session-ink-ghost:      rgba(31, 20, 10, 0.42);
+
+    --session-hair:           rgba(92, 58, 30, 0.28);
+    --session-hair-soft:      rgba(92, 58, 30, 0.14);
+    --session-hair-faint:     rgba(92, 58, 30, 0.10);
+
+    --session-walnut:             #5C3A1E;
+    --session-walnut-light:       rgba(92, 58, 30, 0.55);
+    --session-walnut-surface:     rgba(232, 220, 196, 0.90);
+    --session-walnut-surface-soft:rgba(236, 224, 200, 0.93);
+    --session-walnut-border:      rgba(92, 58, 30, 0.32);
+    --session-walnut-border-soft: rgba(92, 58, 30, 0.22);
+    --session-walnut-meta:        #5C3F23;
+    --session-walnut-meta-strong: #5C3F23;
+    --session-walnut-meta-soft:   rgba(92, 63, 35, 0.55);
+    --session-walnut-highlight:   rgba(245, 235, 215, 0.4);
+    --session-walnut-tint:        rgba(92, 58, 30, 0.07);
+
+    --session-bubble-border:      rgba(92, 58, 30, 0.32);
+    --session-button-inset:       rgba(31, 20, 10, 0.08);
+
+    --session-plate-shadow:
+      0 4px 10px rgba(31, 20, 10, 0.08),
+      0 14px 36px rgba(31, 20, 10, 0.10),
+      0 32px 80px rgba(31, 20, 10, 0.08),
+      inset 0 1px 0 rgba(245, 235, 215, 0.5);
+  }
+
+  /* ─── Canvas — Hearth (dark) ↔ Bloom (light) ─── */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+
+  body {
+    background-color: var(--session-linen);
+    color: var(--session-ink);
+    font-family: var(--font-spectral), serif;
+    min-height: 100vh;
+  }
+
+  .canvas {
+    min-height: 100vh;
+    background-color: transparent;
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse 60% 70% at 50% 50%, rgba(220, 165, 110, 0.18), rgba(220, 165, 110, 0.04) 55%, transparent 80%),
+      radial-gradient(ellipse 110% 110% at 50% 60%, #1c130b 0%, #130b06 60%, #080502 100%);
+    background-size: 220px 220px, 100% 100%, 100% 100%;
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    padding: 64px 24px 96px;
+  }
+  [data-theme="light"] .canvas {
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse 60% 70% at 50% 50%, rgba(255, 240, 210, 0.55), rgba(255, 240, 210, 0.10) 55%, transparent 80%),
+      radial-gradient(ellipse 110% 110% at 50% 60%, #b88a55 0%, #a07644 60%, #7f5a30 100%);
+  }
+
+  /* ─── Theme toggle ─── */
+  .theme-toggle {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 50;
+    display: inline-flex;
+    border: 1px solid var(--session-paratext-mid);
+    border-radius: 999px;
+    overflow: hidden;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--font-mono);
+  }
+  .theme-toggle span {
+    padding: 7px 14px;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--session-paratext-mid);
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  [data-theme="dark"] .theme-toggle .hearth {
+    background: var(--session-paratext-spine);
+    color: #0b0703;
+  }
+  [data-theme="light"] .theme-toggle .bloom {
+    background: var(--session-paratext-strong);
+    color: #5C3A1E;
+  }
+
+  /* ─── Paratext — masthead + caption around the phone frame ─── */
+  .paratext-top {
+    text-align: center;
+    margin: 0 auto 40px;
+    max-width: 720px;
+  }
+  .paratext-top .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: var(--session-paratext-mid);
+    margin-bottom: 14px;
+  }
+  .paratext-top h1 {
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--session-paratext);
+    margin: 0 0 10px;
+  }
+  .paratext-top h1 .em { color: var(--session-paratext-spine); font-style: italic; }
+  .paratext-top p {
+    font-family: var(--font-spectral), serif;
+    font-weight: 400;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--session-paratext-mid);
+    margin: 0;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ─── Phone frame ─── */
+  .frame-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .phone {
+    width: 430px;
+    height: 932px;
+    max-height: min(932px, calc(100vh - 200px));
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--session-linen);
+    background-image:
+      radial-gradient(ellipse 110% 45% at 35% 15%, rgba(115, 72, 42, 0.40), transparent 65%),
+      radial-gradient(ellipse 130% 90% at 50% 85%, rgba(15, 22, 38, 0.96), transparent 75%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(85, 55, 30, 0.45), transparent 60%);
+    box-shadow:
+      0 0 0 1px rgba(245, 235, 215, 0.10) inset,
+      0 60px 120px rgba(0, 0, 0, 0.55),
+      0 8px 32px rgba(0, 0, 0, 0.45);
+  }
+  [data-theme="light"] .phone {
+    background-image:
+      radial-gradient(ellipse 130% 60% at 50% 10%, rgba(255, 250, 232, 0.78), transparent 60%),
+      radial-gradient(ellipse 100% 55% at 50% 100%, rgba(208, 168, 118, 0.48), transparent 70%),
+      radial-gradient(ellipse 60% 45% at 0% 90%, rgba(92, 58, 30, 0.28), transparent 60%);
+    box-shadow:
+      0 0 0 1px rgba(31, 20, 10, 0.10) inset,
+      0 60px 120px rgba(31, 20, 10, 0.30),
+      0 8px 32px rgba(31, 20, 10, 0.20);
+  }
+
+  .phone-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .phone-scroll::-webkit-scrollbar { width: 4px; }
+  .phone-scroll::-webkit-scrollbar-track { background: transparent; }
+  .phone-scroll::-webkit-scrollbar-thumb { background: var(--session-hair); border-radius: 2px; }
+
+  /* ─── TopBar ─── */
+  .topbar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-sm);
+    border-bottom: 1px solid var(--session-hair);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background: rgba(0,0,0,0.05);
+  }
+  [data-theme="light"] .topbar {
+    background: rgba(255, 248, 230, 0.20);
+  }
+  .topbar button {
+    all: unset;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--session-button-inset);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    line-height: 1;
+    color: var(--session-walnut-meta);
+    padding-bottom: 2px;
+  }
+  .topbar .label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--session-walnut-meta-strong);
+  }
+  .topbar .export {
+    background: none;
+    width: auto;
+    height: auto;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--session-walnut-meta-strong);
+    padding: 6px 4px;
+    border-radius: 0;
+  }
+
+  /* ─── Masthead — title + italic subtitle, no § ornament ─── */
+  .masthead {
+    padding: var(--sp-md) 26px var(--sp-xs);
+  }
+  .masthead h1 {
+    font-family: var(--font-spectral), serif;
+    font-size: 48px;
+    font-weight: 500;
+    color: var(--session-ink);
+    margin: 0;
+    letter-spacing: -0.020em;
+    line-height: 1;
+    font-feature-settings: 'liga','dlig','kern';
+    text-wrap: balance;
+  }
+  .masthead h1 .dot { color: var(--session-walnut); font-weight: 500; }
+  .masthead .subtitle {
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 15.5px;
+    line-height: 1.55;
+    color: var(--session-ink-soft);
+    margin: var(--sp-sm) 0 0;
+    max-width: 330px;
+    letter-spacing: 0.005em;
+    text-wrap: pretty;
+  }
+
+  /* ─── Layer Plates ─── */
+  .layers {
+    padding: var(--sp-lg) 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+  }
+
+  /* Populated Plate — walnut glass, floats with three-layer shadow on
+     Hearth. The tab pip protrudes from the top edge. */
+  .plate {
+    position: relative;
+    border-radius: 18px;
+    background: var(--session-walnut-surface);
+    border: 1px solid var(--session-bubble-border);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    box-shadow: var(--session-plate-shadow);
+    padding: 26px var(--sp-sm) var(--sp-md);
+    margin-top: 13px;
+  }
+  /* Hearth — three-layer drop + warm cream rim inset, per mockup spec. */
+  [data-theme="dark"] .plate {
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.42),
+      0 14px 36px rgba(0, 0, 0, 0.48),
+      0 32px 80px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 240, 220, 0.10);
+  }
+
+  /* DECISION #1 — Empty Plate has the same vocabulary as populated, but
+     drops the three-layer shadow. The shadow says "this Plate has weight
+     on it"; an empty Plate has nothing in it yet, so it floats less.
+     Keeps the Plate vocabulary intact (cohesion), signals subordinate
+     state (visual hierarchy), reads as anticipatory rather than
+     under-construction. */
+  .plate.empty {
+    box-shadow: none;
+    border-color: var(--session-walnut-border);
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.18s ease;
+    /* Same padding as populated so the tab pip + info chip sit in
+       identical positions on every Plate, populated or empty. */
+  }
+  [data-theme="dark"] .plate.empty {
+    box-shadow: none;
+  }
+  .plate.empty:hover {
+    background-color: rgba(115, 72, 42, 0.30);
+  }
+  [data-theme="light"] .plate.empty:hover {
+    background-color: rgba(232, 220, 196, 1);
+  }
+  .plate.empty:hover .arrow {
+    transform: translateX(2px);
+  }
+
+  /* ─── Tab pip ─── */
+  /* Embossed walnut chip protruding from the top edge of the Plate.
+     Populated: pip is a span (decorative — the chevron is removed per
+     DECISION #2). Empty: same span, no pointer (the whole Plate is the
+     button). DECISION #2 removes the disclosure mechanism entirely — no
+     button, no chevron, no grid-rows animation. */
+  .tab {
+    position: absolute;
+    top: 0;
+    left: 18px;
+    transform: translateY(-50%);
+    max-width: 320px;
+    border-radius: 8px;
+    background: rgb(135, 90, 55);
+    display: inline-flex;
+    align-items: baseline;
+    font-family: var(--font-spectral), serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: rgba(245, 243, 238, 0.96);
+    padding: 8px 18px;
+    white-space: nowrap;
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+  [data-theme="light"] .tab {
+    background: var(--session-walnut-meta-strong);
+    box-shadow:
+      0 2px 6px rgba(31, 20, 10, 0.18),
+      inset 0 1px 0 rgba(255, 245, 225, 0.20);
+  }
+
+  /* DECISION #2 — Layer description lives behind a quiet "ⓘ" affordance
+     at the top-right of every Plate (populated AND empty — same
+     structure either way). Subtler than a filled walnut chip:
+     transparent background, walnut outline, italic walnut "i". Reads
+     as a small editorial mark rather than a UI button. Fills on hover
+     and when active. Apple's pattern from iOS Settings — known glyph,
+     doesn't compete with content. */
+  .info-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--session-walnut-meta);
+    border: 1px solid var(--session-walnut-meta);
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0 0 2px 0;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 2;
+  }
+  .info-btn:hover,
+  .info-btn[aria-expanded="true"] {
+    background-color: var(--session-walnut-highlight);
+    color: var(--session-ink);
+    border-color: var(--session-walnut-meta-strong);
+  }
+
+  /* Plate gets a high stacking context while its popover is open, so
+     the popover can paint above sibling Plates that come after in
+     document order (each Plate is position: relative which creates
+     local stacking; without elevating the host Plate, the next Plate
+     paints on top of this one's popover). */
+  .plate.popover-active { z-index: 50; }
+
+  .info-popover {
+    position: absolute;
+    top: 36px;
+    right: 8px;
+    width: 270px;
+    background: var(--session-parchment);
+    border: 1px solid var(--session-walnut-border);
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  [data-theme="light"] .info-popover {
+    box-shadow: 0 10px 32px rgba(31, 20, 10, 0.18), 0 2px 6px rgba(31, 20, 10, 0.10);
+  }
+  .info-popover.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .info-popover::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    width: 11px;
+    height: 11px;
+    background: var(--session-parchment);
+    border-top: 1px solid var(--session-walnut-border);
+    border-left: 1px solid var(--session-walnut-border);
+    transform: rotate(45deg);
+  }
+  .info-popover::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 9px;
+    width: 21px;
+    height: 1.5px;
+    background: var(--session-parchment);
+  }
+  .info-popover .pop-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--session-walnut);
+    margin-bottom: 8px;
+  }
+  .info-popover p {
+    margin: 0;
+    font-family: var(--font-spectral), serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--session-ink);
+    text-wrap: pretty;
+  }
+
+  /* ─── Entries ─── */
+  .entry {
+    /* DECISION #3 — Walnut hairline indented 22px from the left, between
+       (not above) the first entry. Centered around 0.18 alpha so it
+       reads as a beat, not a row separator. Anchored as "between-entries"
+       because of the indent — full-bleed rules read as table separators.
+       Calmest option that still demarcates 2-4 entries clearly. */
+    position: relative;
+    padding: var(--sp-sm) 0;
+  }
+  .entry + .entry::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 22px;
+    right: 0;
+    height: 0;
+    border-top: 1px dotted var(--session-walnut-meta-soft);
+  }
+
+  .entry-head {
+    display: grid;
+    grid-template-columns: 1fr 14px;
+    gap: 12px;
+    align-items: baseline;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* DECISION #5 — Entry title = the "sentence" (per intent.md: "the
+     truest one-line description of the pattern"). Treated as the
+     thread headline. Bigger and more authoritative than before
+     (was 17px → 20px) so it reads clearly as the thread heading,
+     not as another paragraph. Ratio to body 1.33x — past the
+     editorial threshold (Apple Books 1.5x, Bear 1.4x, New Yorker
+     1.6x). Italic Spectral preserves the chapter-title voice. */
+  .entry-title {
+    margin: 0;
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--session-ink);
+    text-wrap: balance;
+  }
+  .entry-chev {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: right;
+    color: var(--session-walnut);
+    transform: rotate(0deg);
+    transform-origin: center;
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+  .entry.expanded .entry-chev { transform: rotate(180deg); }
+
+  .entry-body {
+    display: none;
+    padding-top: var(--sp-sm);
+  }
+  .entry.expanded .entry-body { display: block; }
+  /* DECISION #6 — Entry body = the "body" prose (per intent.md: "what
+     happens inside, outside, the gap"). Tuned for comfortable
+     long-form reading, like Apple Books or Substack: 16px / 1.65
+     leading, color softened from full ink to ink-soft so the cream
+     doesn't read as bold against the walnut Plate. The 0.97-alpha
+     cream + 1.55 leading at 15px was creating a "bold" perception
+     from contrast alone — softening both reads as actual body prose. */
+  .entry-body p {
+    font-family: var(--font-spectral), serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.65;
+    letter-spacing: 0;
+    color: var(--session-ink-soft);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .entry-body p + p { margin-top: 12px; }
+
+  .explore-further {
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--session-walnut);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .explore-further .arrow {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 15px;
+    color: var(--session-walnut);
+    display: inline-block;
+    vertical-align: -1px;
+    transition: transform 0.18s ease;
+  }
+  .explore-further:hover .arrow { transform: translateX(2px); }
+
+  /* DECISION #7 — Empty Plate uses the SAME structural vocabulary as
+     populated (tab pip top-left, info chip top-right). The body is
+     two short italic lines: status above, CTA below. State and
+     action separate. Smaller than an entry title so the empty Plate
+     reads as subordinate to a populated one without leaving the
+     family. No arrow — whole Plate is the tap target. */
+  .empty-row {
+    padding: var(--sp-xs) 0 var(--sp-tight);
+  }
+  .empty-status {
+    margin: 0;
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--session-ink-mid);
+    text-wrap: balance;
+  }
+  .empty-cta {
+    margin: 4px 0 0;
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: 0.005em;
+    /* walnut-meta-strong renders brighter in Hearth (cream-walnut)
+       and stays espresso in Bloom — theme-tuned for AA contrast. */
+    color: var(--session-walnut-meta-strong);
+  }
+
+  /* ─── Decision panel — fixed bottom annotation strip ─── */
+  .decisions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    padding: 14px 24px 18px;
+    background: rgba(8, 6, 4, 0.78);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-top: 1px solid rgba(245, 232, 212, 0.10);
+    color: var(--session-paratext);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: flex;
+    gap: 22px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  [data-theme="light"] .decisions {
+    background: rgba(255, 248, 232, 0.85);
+    border-top-color: rgba(92, 58, 30, 0.18);
+    color: var(--session-walnut-meta-strong);
+  }
+  .decisions span.num {
+    color: var(--session-paratext-spine);
+    margin-right: 6px;
+  }
+  [data-theme="light"] .decisions span.num {
+    color: var(--session-walnut);
+  }
+  .decisions .d em {
+    font-family: var(--font-spectral), serif;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    color: var(--session-paratext-strong);
+    margin-left: 4px;
+    font-size: 12px;
+  }
+  [data-theme="light"] .decisions .d em {
+    color: var(--session-walnut);
+  }
+</style>
+</head>
+<body class="canvas">
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+  <span class="hearth">HEARTH</span>
+  <span class="bloom">BLOOM</span>
+</button>
+
+<header class="paratext-top">
+  <div class="eyebrow">Redesign · revision 03</div>
+  <h1>Same structure — <span class="em">populated and empty</span>.</h1>
+  <p>The info chip is a quiet outlined "ⓘ" (smaller, walnut on transparent) at the top-right of every Plate. Empty Plates use the same layout as populated — only the body differs: a quiet placeholder line instead of entries. The eye doesn't reorient when scanning across Layers.</p>
+</header>
+
+<section class="frame-wrap">
+  <div class="phone">
+    <div class="phone-scroll">
+
+      <!-- TopBar -->
+      <div class="topbar">
+        <button aria-label="Back">‹</button>
+        <span class="label">MANUAL</span>
+        <button class="export">EXPORT ›</button>
+      </div>
+
+      <!-- Masthead -->
+      <div class="masthead">
+        <h1>Your Manual<span class="dot">.</span></h1>
+        <p class="subtitle">A document about how you operate, in your own voice.</p>
+      </div>
+
+      <!-- Layer Plates -->
+      <div class="layers">
+
+        <!-- Layer I — populated, 3 entries to demo the hair divider -->
+        <section class="plate">
+          <span class="tab">I. Some of My Patterns</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-1" aria-label="About Layer I" onclick="toggleInfo(this, 'info-1')">i</button>
+          <div class="info-popover" id="info-1" role="dialog" aria-label="Layer I description">
+            <span class="pop-label">LAYER I</span>
+            <p>What behavior means when you can't explain it in the moment. Silence, freezing, shutdown, masking — the signals other people misread.</p>
+          </div>
+
+          <div class="entry expanded">
+            <div class="entry-head" onclick="toggleEntry(this.parentElement)">
+              <h3 class="entry-title">When plans change I go still</h3>
+              <span aria-hidden="true" class="entry-chev">›</span>
+            </div>
+            <div class="entry-body">
+              <p>It looks like resistance — it's recalculation. My system goes offline while the new variables get integrated. Talk to me five minutes later and I'm fine; interrupt me in the first thirty seconds and I lose another five.</p>
+              <p>What helps: a heads-up before the plan changes, even a small one. What hurts: someone reading the stillness as defiance and pressing for an answer.</p>
+              <a class="explore-further" href="#" onclick="event.preventDefault();">
+                explore further <span aria-hidden="true" class="arrow">→</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="entry">
+            <div class="entry-head" onclick="toggleEntry(this.parentElement)">
+              <h3 class="entry-title">Volume control is broken in conflict</h3>
+              <span aria-hidden="true" class="entry-chev">›</span>
+            </div>
+          </div>
+
+          <div class="entry">
+            <div class="entry-head" onclick="toggleEntry(this.parentElement)">
+              <h3 class="entry-title">Masking costs more than the day</h3>
+              <span aria-hidden="true" class="entry-chev">›</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Layer II — populated, single entry -->
+        <section class="plate">
+          <span class="tab">II. How I Process Things</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-2" aria-label="About Layer II" onclick="toggleInfo(this, 'info-2')">i</button>
+          <div class="info-popover" id="info-2" role="dialog" aria-label="Layer II description">
+            <span class="pop-label">LAYER II</span>
+            <p>Sensory experience, how change lands, how information gets taken in, what overload looks and feels like.</p>
+          </div>
+
+          <div class="entry">
+            <div class="entry-head" onclick="toggleEntry(this.parentElement)">
+              <h3 class="entry-title">Fluorescent rooms cost me hours</h3>
+              <span aria-hidden="true" class="entry-chev">›</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Layer III — empty, identical structure to populated -->
+        <section class="plate empty" tabindex="0" role="button" aria-label="Explore What Helps with Jove">
+          <span class="tab">III. What Helps</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-3" aria-label="About Layer III" onclick="event.stopPropagation();toggleInfo(this, 'info-3')">i</button>
+          <div class="info-popover" id="info-3" role="dialog" aria-label="Layer III description">
+            <span class="pop-label">LAYER III</span>
+            <p>What you need to function. Alone time, routine, environment, recovery, structure — why these are non-negotiable, not preferences.</p>
+          </div>
+
+          <div class="empty-row">
+            <p class="empty-status">No patterns discovered yet.</p>
+            <p class="empty-cta">Explore with Jove</p>
+          </div>
+        </section>
+
+        <!-- Layer IV — empty -->
+        <section class="plate empty" tabindex="0" role="button" aria-label="Explore How I Show Up with People with Jove">
+          <span class="tab">IV. How I Show Up with People</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-4" aria-label="About Layer IV" onclick="event.stopPropagation();toggleInfo(this, 'info-4')">i</button>
+          <div class="info-popover" id="info-4" role="dialog" aria-label="Layer IV description">
+            <span class="pop-label">LAYER IV</span>
+            <p>How you connect, handle conflict, show care. What withdrawal and closeness actually look like from your side.</p>
+          </div>
+
+          <div class="empty-row">
+            <p class="empty-status">No patterns discovered yet.</p>
+            <p class="empty-cta">Explore with Jove</p>
+          </div>
+        </section>
+
+        <!-- Layer V — empty -->
+        <section class="plate empty" tabindex="0" role="button" aria-label="Explore Where I'm Strong with Jove">
+          <span class="tab">V. Where I'm Strong</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-5" aria-label="About Layer V" onclick="event.stopPropagation();toggleInfo(this, 'info-5')">i</button>
+          <div class="info-popover" id="info-5" role="dialog" aria-label="Layer V description">
+            <span class="pop-label">LAYER V</span>
+            <p>What you bring when conditions are right. Strengths in context, not in isolation — the state others rarely see and what activates it.</p>
+          </div>
+
+          <div class="empty-row">
+            <p class="empty-status">No patterns discovered yet.</p>
+            <p class="empty-cta">Explore with Jove</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Decisions strip — fixed bottom -->
+<div class="decisions" aria-label="Design decisions">
+  <div class="d"><span class="num">01</span><em>Empty Plate drops shadow; same vocabulary, less weight</em></div>
+  <div class="d"><span class="num">02</span><em>Subtle outlined ⓘ chip (transparent, walnut border)</em></div>
+  <div class="d"><span class="num">03</span><em>Dotted hair indented 22px between entries</em></div>
+  <div class="d"><span class="num">04</span><em>Entry title 20px italic — thread headline scale</em></div>
+  <div class="d"><span class="num">05</span><em>Body 16px / 1.65 / ink-soft — comfortable reading</em></div>
+  <div class="d"><span class="num">06</span><em>Empty = same layout, placeholder body line</em></div>
+</div>
+
+<script>
+  // Theme toggle
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    try {
+      const saved = localStorage.getItem('mw-mockup-theme');
+      if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+    } catch (_) {}
+    btn.addEventListener('click', () => {
+      const next = (root.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('mw-mockup-theme', next); } catch (_) {}
+    });
+  })();
+
+  // Entry expand/collapse
+  function toggleEntry(entry) {
+    entry.classList.toggle('expanded');
+  }
+
+  // Info popover — opens the description anchored to the (i) chip.
+  // The host Plate gets a temporary high z-index so the popover paints
+  // above the next Plate in document order. Click outside or Escape
+  // closes any open popover.
+  function closeAllPopovers() {
+    document.querySelectorAll('.info-popover.open').forEach((p) => {
+      p.classList.remove('open');
+      const btn = document.querySelector(`[aria-controls="${p.id}"]`);
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      const plate = p.closest('.plate');
+      if (plate) plate.classList.remove('popover-active');
+    });
+  }
+  function toggleInfo(btn, popoverId) {
+    event.stopPropagation();
+    const pop = document.getElementById(popoverId);
+    const wasOpen = pop.classList.contains('open');
+    closeAllPopovers();
+    if (!wasOpen) {
+      pop.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      const plate = pop.closest('.plate');
+      if (plate) plate.classList.add('popover-active');
+    }
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.info-btn') || e.target.closest('.info-popover')) return;
+    closeAllPopovers();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAllPopovers();
+  });
+</script>
+
+</body>
+</html>

@@ -82,8 +82,11 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           position: "relative",
         }}
       >
-        {/* Publication header — title + italic subtitle + § ornament */}
-        <div style={{ padding: "28px 26px 0" }}>
+        {/* Publication masthead — title + italic subtitle. The § ornament
+            that used to sit here is gone; the layer tab pip below carries
+            the next visual beat. Zero bottom padding so the layers
+            container owns the masthead→first-Plate gap. */}
+        <div style={{ padding: "var(--sp-lg) 20px 0" }}>
           <h1
             style={{
               fontFamily: "var(--font-spectral), var(--font-serif), serif",
@@ -94,6 +97,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
               letterSpacing: "-0.020em",
               lineHeight: 1,
               fontFeatureSettings: '"liga","dlig","kern"',
+              textWrap: "balance" as React.CSSProperties["textWrap"],
             }}
           >
             Your Manual<span style={{ color: "var(--session-walnut)", fontWeight: 500 }}>.</span>
@@ -106,45 +110,30 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
               fontSize: 15.5,
               lineHeight: 1.55,
               color: "var(--session-ink-soft)",
-              margin: "14px 0 0",
+              margin: "var(--sp-sm) 0 0",
               maxWidth: 330,
               letterSpacing: "0.005em",
+              textWrap: "pretty" as React.CSSProperties["textWrap"],
             }}
           >
             A document about how you operate, in your own voice.
           </p>
-
-          <div
-            aria-hidden="true"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              alignItems: "center",
-              gap: 14,
-              margin: "30px 0 8px",
-            }}
-          >
-            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
-            <span
-              style={{
-                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontStyle: "italic",
-                color: "var(--session-walnut)",
-                fontSize: 17,
-                lineHeight: 1,
-                transform: "translateY(-1px)",
-              }}
-            >
-              §
-            </span>
-            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
-          </div>
         </div>
 
-        {/* Layer list — unified ordering, populated and empty render side by side.
-            Cards bleed to the screen edges (header gradient touches edge),
-            so the list container itself has no horizontal padding. */}
-        <div style={{ position: "relative" }}>
+        {/* Layer list — Plates float in a flex column. Top padding
+            gives the first Plate's tab pip room to protrude into
+            without colliding with the masthead. Horizontal padding
+            matches the masthead so Plate edges align with the title's
+            optical left. */}
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--sp-md)",
+            padding: "var(--sp-lg) 20px 40px",
+          }}
+        >
           {layers.map((layer) =>
             layer.entries.length > 0 ? (
               <PopulatedLayer
@@ -162,71 +151,83 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           )}
         </div>
 
-        {/* Share invitation — only when at least one entry exists */}
+        {/* Share invitation — only when at least one entry exists. § sits
+            above as a quiet section break, echoing publication conventions. */}
         {!isEmpty && (
-        <div
-          style={{
-            margin: "40px 20px 24px",
-            padding: "20px 22px 22px",
-            background: "var(--session-walnut-surface)",
-            border: "1px solid var(--session-walnut-border)",
-            borderRadius: "18px",
-            backdropFilter: "blur(28px) saturate(140%)",
-            WebkitBackdropFilter: "blur(28px) saturate(140%)",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: 18,
-              fontWeight: 400,
-              color: "var(--session-ink)",
-              margin: "0 0 8px 0",
-              letterSpacing: "-0.2px",
-            }}
-          >
-            Share how you operate
-          </h2>
-          <p
-            style={{
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontSize: 15,
-              color: "var(--session-ink-soft)",
-              lineHeight: 1.6,
-              margin: "0 0 16px 0",
-            }}
-          >
-            Share a version of your manual so someone can understand how you
-            work.
-          </p>
-          <button
-            onClick={() => setShowSheet(true)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontFamily: "var(--font-sans)",
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--session-walnut-light)",
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-            }}
-          >
-            Share your manual
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path
-                d="M5 3l4 4-4 4"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+          <div style={{ padding: "var(--sp-lg) var(--sp-md) var(--sp-md)" }}>
+            <div
+              aria-hidden="true"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                gap: "var(--sp-sm)",
+                marginBottom: "var(--sp-md)",
+              }}
+            >
+              <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+              <span
+                style={{
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontStyle: "italic",
+                  color: "var(--session-walnut)",
+                  fontSize: 17,
+                  lineHeight: 1,
+                  transform: "translateY(-1px)",
+                }}
+              >
+                §
+              </span>
+              <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+            </div>
+
+            <h2
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 19,
+                fontWeight: 500,
+                color: "var(--session-ink)",
+                margin: 0,
+                letterSpacing: "-0.005em",
+                lineHeight: 1.25,
+              }}
+            >
+              Share how you operate<span style={{ color: "var(--session-walnut)", fontWeight: 500 }}>.</span>
+            </h2>
+            <p
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 15,
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.6,
+                margin: "var(--sp-xs) 0 var(--sp-sm)",
+                textWrap: "pretty" as React.CSSProperties["textWrap"],
+              }}
+            >
+              Send a version to someone who needs to understand how you work.
+            </p>
+            <button
+              onClick={() => setShowSheet(true)}
+              style={{
+                all: "unset",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                paddingBottom: 2,
+                borderBottom: "1px solid var(--session-walnut)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                letterSpacing: "0.20em",
+                textTransform: "uppercase",
+                color: "var(--session-walnut)",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              <span>Share your manual</span>
+              <span aria-hidden="true">›</span>
+            </button>
+          </div>
         )}
 
       </div>

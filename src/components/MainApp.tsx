@@ -29,10 +29,6 @@ export default function MainApp() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
-  // Snapshot of the entry the user tapped Explore Further on. Drives
-  // the small walnut context chip at the top of chat. Cleared when the
-  // session switches to a fresh conversation.
-  const [currentExploration, setCurrentExploration] = useState<ExplorationContext | null>(null);
   const [authDismissed, setAuthDismissed] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<OnboardingStatus>("loading");
@@ -177,42 +173,6 @@ export default function MainApp() {
     if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
 
-  // Clear the exploration chip whenever the active conversation changes
-  // — startExploration() creates its own conversation, so the chip's
-  // lifetime is that one conversation; switching away clears it.
-  //
-  // The pending-bind flag handles a startExploration race: setCurrentExploration
-  // fires while conversationId is still the prior chat conv. Without the flag
-  // the effect would bind the chip to that prior conv, then the
-  // setConversationId(null) → setConversationId(newExpId) transition inside
-  // startExploration would look like a mismatch and dismiss the chip before
-  // the user ever saw it. handleExploreWithPersona arms the flag; the null
-  // transition disarms it; the next non-null conversationId (the new
-  // exploration conv) is what we actually want to bind to.
-  const explorationConvIdRef = useRef<string | null>(null);
-  const explorationPendingBindRef = useRef(false);
-  useEffect(() => {
-    if (!currentExploration) {
-      explorationConvIdRef.current = null;
-      explorationPendingBindRef.current = false;
-      return;
-    }
-    if (conversationId === null) {
-      if (explorationPendingBindRef.current) {
-        explorationConvIdRef.current = null;
-        explorationPendingBindRef.current = false;
-      }
-      return;
-    }
-    if (explorationPendingBindRef.current) return;
-    if (explorationConvIdRef.current === null) {
-      explorationConvIdRef.current = conversationId;
-    } else if (conversationId !== explorationConvIdRef.current) {
-      setCurrentExploration(null);
-      explorationConvIdRef.current = null;
-    }
-  }, [conversationId, currentExploration]);
-
   // Fire manual_viewed when the user lands on the manual tab. Days-since
   // is a rough retention signal computed from a localStorage timestamp —
   // no server round-trip; PostHog can aggregate visit counts itself.
@@ -259,11 +219,7 @@ export default function MainApp() {
   }, []);
 
   const handleExploreWithPersona = useCallback(async (context: ExplorationContext) => {
-    // Build dynamic label and snapshot the context for the in-chat chip.
-    const elementName = context.name || context.layerName;
-    explorationPendingBindRef.current = true;
-    setExplorationLabel(elementName);
-    setCurrentExploration(context);
+    setExplorationLabel(context.name || context.layerName);
 
     // Phase 1: Fade in interstitial
     setExplorationPhase("transitioning");
@@ -440,8 +396,6 @@ export default function MainApp() {
             concreteExamples={concreteExamples}
             firstName={firstName}
             onOpenDrawer={handleOpenDrawer}
-            currentExploration={currentExploration}
-            onDismissExploration={() => setCurrentExploration(null)}
           />
         }
         manualContent={
