@@ -131,10 +131,15 @@ export default function SessionDrawer({
           backdropFilter: "blur(40px) saturate(140%)",
           WebkitBackdropFilter: "blur(40px) saturate(140%)",
           borderRight: "1px solid var(--session-walnut-border)",
-          boxShadow: "12px 0 60px rgba(0,0,0,0.55)",
+          // Only render the depth shadow while the drawer is open. When
+          // closed and translated -100%, the drawer sits flush against
+          // the phone frame's left edge — the shadow's right-extending
+          // blur would otherwise bleed into the frame's interior and
+          // read as a cool/blue gradient on warm parchment.
+          boxShadow: open ? "12px 0 60px rgba(0,0,0,0.55)" : "none",
           zIndex: 201,
           transform: open ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.3s ease",
+          transition: "transform 0.3s ease, box-shadow 0.3s ease",
           display: "flex",
           flexDirection: "column",
           paddingTop: "env(safe-area-inset-top, 16px)",
