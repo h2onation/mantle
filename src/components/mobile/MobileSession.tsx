@@ -131,19 +131,6 @@ export default function MobileSession({
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
-  // IDs of checkpoint messages the user just took a non-confirmed action
-  // on (Discard / Rework / Defer) within THIS session. Drives the
-  // collapsed Plate (eyebrow + heading + status badge, no content).
-  // Local-only / not persisted — on conversation switch or page reload
-  // the set empties and historical checkpoints expand back to their
-  // full content. The "moment of action" collapse is a focus aid; it
-  // doesn't reach across sessions.
-  const [collapsedCheckpoints, setCollapsedCheckpoints] = useState<Set<string>>(
-    () => new Set()
-  );
-  useEffect(() => {
-    setCollapsedCheckpoints(new Set());
-  }, [conversationId]);
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -773,23 +760,7 @@ export default function MobileSession({
                 // Rejected/discarded checkpoints collapse to title + status
                 // only — no full content. Confirmed and refined show the
                 // full entry so the user can re-read what landed.
-                // Collapse rule: non-confirmed terminal states (rejected,
-                // refined, deferred) collapse to eyebrow + heading +
-                // status badge — but ONLY in the session where the
-                // action was just taken. The collapsedCheckpoints set
-                // above tracks "just-actioned in this session"; it's
-                // empty on first load and clears on conversation
-                // switch. So when the user returns to the chat later
-                // (page reload, switch back to this conv), every
-                // historical checkpoint expands back to its full
-                // content + status badge. Confirmed always expands —
-                // re-reading what landed in the Manual is useful even
-                // outside the action moment.
-                const isConfirmed = msg.checkpointMeta?.status === "confirmed";
-                const justActioned = msg.id
-                  ? collapsedCheckpoints.has(msg.id)
-                  : false;
-                const showContent = isConfirmed || !justActioned;
+                const isRejected = msg.checkpointMeta?.status === "rejected";
 
                 return (
                   <div
@@ -803,14 +774,14 @@ export default function MobileSession({
                       eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {showContent && renderMarkdown(msg.content)}
+                      {!isRejected && renderMarkdown(msg.content)}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
                           style={{
-                            marginTop: showContent ? 16 : 0,
-                            paddingTop: showContent ? 12 : 0,
-                            borderTop: showContent ? "1px solid var(--session-hair-soft)" : "none",
+                            marginTop: isRejected ? 0 : 16,
+                            paddingTop: isRejected ? 0 : 12,
+                            borderTop: isRejected ? "none" : "1px solid var(--session-hair-soft)",
                           }}
                         >
                           <span
@@ -1016,18 +987,6 @@ export default function MobileSession({
           errorMessage={checkpointError}
           onAction={(action, edits) => {
             setCheckpointActionState(action);
-            // Non-confirmed actions collapse the historical Plate to
-            // badge-only for the rest of this session. The set is
-            // cleared on conversation switch / reload, so returning
-            // to the chat later restores the full content.
-            if (action !== "confirmed" && overlayCheckpointRef.current?.messageId) {
-              const messageId = overlayCheckpointRef.current.messageId;
-              setCollapsedCheckpoints((prev) => {
-                const next = new Set(prev);
-                next.add(messageId);
-                return next;
-              });
-            }
             confirmCheckpoint(action, edits);
           }}
           onClose={() => {
