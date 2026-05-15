@@ -581,9 +581,9 @@ export default function MobileSession({
             padding: "20px 16px 4px",
             gap: "14px",
             maskImage:
-              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
+              "linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)",
             WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
+              "linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)",
           }}
         >
           {/* Spacer pushes messages to bottom of viewport */}
