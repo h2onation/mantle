@@ -214,15 +214,14 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - **Mobile-first.** The primary interface is a mobile shell (430px max-width centered). The product will also be accessible via text (MMS) and web. Design for mobile first, other surfaces adapt.
 - **Inline styles only.** Never add `className` to components. Use `style={{}}` with CSS custom properties from `globals.css`. Prefer size tokens (`--size-meta`, `--size-body`, `--size-prose`, `--size-heading`) over raw pixel values.
 - **Linen palette.** Warm linen surface is the design system. The dark void palette (`#0C0B0A`) is deprecated. All new work uses the linen tokens (`--session-linen`, `--session-ink`, `--session-ink-ghost`, `--session-ink-faded`, `--session-ink-hairline`).
-- **Two themes — Hearth (dark) and Bloom (light).** The `data-theme` attribute on `<html>` switches between them. Every `--session-*` token is bound in both `:root` (Hearth) and `[data-theme="light"]` (Bloom). When adding a new token, define both values. When adding RGBA inline, hardcode only theme-stable values (e.g. cream-on-walnut tab text); everything else routes through tokens.
+- **No theme switching.** Single theme. No `data-theme` attribute.
 
 ### Typography Roles
 | Font | Role | Sizing |
 |------|------|--------|
-| Spectral (`--font-spectral`) | Long-form prose: Manual entries, checkpoint bodies, masthead, tab pips. The default reading face for "bound volume" surfaces. | 14.5-48px |
-| Instrument Serif (`--font-serif`) | Display/wordmark and short reflective copy: TopBar wordmark, settings headings, secondary serif fallback. Also the `var(--font-serif)` fallback inside Spectral stacks. | 17-22px (`--size-prose`, `--size-heading`) |
+| Instrument Serif (`--font-serif`) | Emotional and reflective content: session summary, checkpoint text, manual passages, headlines | 17-22px (`--size-prose`, `--size-heading`) |
 | DM Sans (`--font-sans`) | Conversational UI: chat messages, buttons, input, form labels | 14-15px (`--size-body`) |
-| JetBrains Mono / DM Mono (`--font-mono`) | Metadata: nav labels, status lines, timestamps, progress indicators, eyebrows. Always uppercase with letter-spacing. | 11-13px (`--size-meta`) |
+| JetBrains Mono (`--font-mono`) | Metadata: nav labels, status lines, timestamps, progress indicators. Always uppercase with letter-spacing. | 12-13px (`--size-meta`) |
 
 12px is the minimum text size anywhere in the product. Uppercase + letter-spacing preserves the "metadata" feel at 12px — do not go smaller.
 

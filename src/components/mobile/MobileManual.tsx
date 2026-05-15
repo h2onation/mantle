@@ -82,11 +82,8 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           position: "relative",
         }}
       >
-        {/* Publication header — title + italic subtitle. No § ornament:
-            the tab pips on the Plates below carry the chapter-marker
-            voice, so a separator above them would double-state the
-            structural cue. */}
-        <div style={{ padding: "20px 26px 0" }}>
+        {/* Publication header — title + italic subtitle + § ornament */}
+        <div style={{ padding: "28px 26px 0" }}>
           <h1
             style={{
               fontFamily: "var(--font-spectral), var(--font-serif), serif",
@@ -116,19 +113,38 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           >
             A document about how you operate, in your own voice.
           </p>
+
+          <div
+            aria-hidden="true"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              gap: 14,
+              margin: "30px 0 8px",
+            }}
+          >
+            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+            <span
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontStyle: "italic",
+                color: "var(--session-walnut)",
+                fontSize: 17,
+                lineHeight: 1,
+                transform: "translateY(-1px)",
+              }}
+            >
+              §
+            </span>
+            <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
+          </div>
         </div>
 
-        {/* Layer list — unified ordering, populated and empty render
-            side by side. Flex column with gap; each Plate adds its own
-            marginTop:13 to make room for the tab pip protruding above. */}
-        <div
-          style={{
-            padding: "32px 20px 0",
-            display: "flex",
-            flexDirection: "column",
-            gap: 22,
-          }}
-        >
+        {/* Layer list — unified ordering, populated and empty render side by side.
+            Cards bleed to the screen edges (header gradient touches edge),
+            so the list container itself has no horizontal padding. */}
+        <div style={{ position: "relative" }}>
           {layers.map((layer) =>
             layer.entries.length > 0 ? (
               <PopulatedLayer
