@@ -70,6 +70,14 @@
   /* Vignette — darkens edges */
   --session-vignette: rgba(0, 0, 0, 0.35);
 
+  /* Paratext — masthead + colophon copy outside the phone frame.
+     Warm cream on tobacco for the Hearth canvas. Light mode redefines
+     these for the Bloom canvas (still cream — surround is warm too). */
+  --session-paratext:        rgba(245, 232, 212, 0.88);
+  --session-paratext-mid:    rgba(232, 218, 196, 0.62);
+  --session-paratext-spine:  rgb(200, 145, 95);
+  --session-paratext-strong: rgba(248, 238, 218, 0.97);
+
   /* Surface gradients — walnut + slate radial blends.
      Each surface has a distinct gradient that places walnut warmth
      in a different corner. Source: demo/glass/page.tsx. */
@@ -267,6 +275,14 @@
 
   /* Vignette — gentle ink wash on linen edges. */
   --session-vignette: rgba(31, 20, 10, 0.05);
+
+  /* Paratext — masthead + colophon on the Bloom canvas. The canvas
+     surround is warm-walnut (dark), so paratext stays cream rather
+     than espresso. The reading surface for ink is inside the phone. */
+  --session-paratext:        rgba(248, 240, 222, 0.92);
+  --session-paratext-mid:    rgba(245, 230, 200, 0.68);
+  --session-paratext-spine:  rgb(220, 175, 120);
+  --session-paratext-strong: rgba(252, 246, 230, 1);
 
   /* Per-surface gradients — V3 Embossed linen, verbatim from
      src/app/demo/linen/page.tsx C object. Cream highlight at top,
@@ -476,6 +492,32 @@ textarea:focus-visible {
   .mw-mobile-only {
     display: none !important;
   }
+}
+
+/* Vitrine canvas — outer background for the DesktopVitrine wrapper.
+   Paired gradient family: light is Bloom (cream radial on warm-walnut
+   saddle); dark is Hearth (warm cream-walnut radial on deep tobacco).
+   Same gradient grammar, inverted tone — light and dark read as day
+   and night of the same room. Phone surface, frame, and shadow are
+   untouched in either mode. */
+.mw-vitrine-canvas {
+  background-color: transparent;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 60% 70% at 50% 50%, rgba(220, 165, 110, 0.18), rgba(220, 165, 110, 0.04) 55%, transparent 80%),
+    radial-gradient(ellipse 110% 110% at 50% 60%, #1c130b 0%, #130b06 60%, #080502 100%);
+  background-size: 220px 220px, 100% 100%, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+
+[data-theme="light"] .mw-vitrine-canvas {
+  background-color: transparent;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 60% 70% at 50% 50%, rgba(255, 240, 210, 0.55), rgba(255, 240, 210, 0.10) 55%, transparent 80%),
+    radial-gradient(ellipse 110% 110% at 50% 60%, #b88a55 0%, #a07644 60%, #7f5a30 100%);
+  background-size: 220px 220px, 100% 100%, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat;
 }
 
 /* DesktopVitrine paratext positioning.

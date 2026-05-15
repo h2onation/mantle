@@ -47,16 +47,13 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
   const isAdmin = useIsAdmin();
   return (
     <div
+      className="mw-vitrine-canvas"
       style={{
         width: "100%",
         height: "100dvh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "var(--session-parchment)",
-        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.012'/%3E%3C/svg%3E\"), radial-gradient(ellipse at center, transparent 50%, var(--session-vignette) 100%)",
-        backgroundSize: "256px 256px, 100% 100%",
-        backgroundRepeat: "repeat, no-repeat",
         overflow: "hidden",
         position: "relative",
       }}
@@ -82,10 +79,10 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             fontWeight: 400,
             letterSpacing: "-0.5px",
             lineHeight: 1,
-            color: "var(--session-ink-soft)",
+            color: "var(--session-paratext)",
           }}
         >
-          mywalnut<span style={{ color: "var(--session-walnut)" }}>.</span>
+          mywalnut<span style={{ color: "var(--session-paratext-spine)" }}>.</span>
         </p>
       </header>
 
@@ -129,7 +126,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
               fontSize: "18px",
               fontWeight: 400,
               lineHeight: 1.55,
-              color: "var(--session-ink-soft)",
+              color: "var(--session-paratext)",
             }}
           >
             A private manual, written by you and assembled in conversation.
@@ -141,7 +138,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
               fontSize: "18px",
               fontWeight: 400,
               lineHeight: 1.55,
-              color: "var(--session-ink-soft)",
+              color: "var(--session-paratext)",
             }}
           >
             Nothing enters it unless you confirm.
@@ -165,7 +162,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
               fontSize: "var(--size-meta)",
               fontWeight: 400,
               letterSpacing: "0.5px",
-              color: "var(--session-ink-mid)",
+              color: "var(--session-paratext-mid)",
               display: "flex",
               justifyContent: "flex-start",
               alignItems: "center",
@@ -187,7 +184,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
                     style={{
                       all: "unset",
                       cursor: "pointer",
-                      color: isActive ? "var(--session-ink)" : "inherit",
+                      color: isActive ? "var(--session-paratext-strong)" : "inherit",
                       textDecoration: isActive ? "underline" : "none",
                       textUnderlineOffset: "4px",
                       textDecorationThickness: "1px",
@@ -210,7 +207,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
                 fontSize: "var(--size-meta)",
                 fontWeight: 400,
                 letterSpacing: "0.5px",
-                color: "var(--session-ink-mid)",
+                color: "var(--session-paratext-mid)",
                 display: "flex",
                 justifyContent: "flex-start",
                 alignItems: "center",
@@ -247,7 +244,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
               fontSize: "var(--size-meta)",
               fontWeight: 400,
               letterSpacing: "0.5px",
-              color: "var(--session-ink-mid)",
+              color: "var(--session-paratext-mid)",
               display: "flex",
               justifyContent: "flex-start",
               alignItems: "center",
