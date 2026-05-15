@@ -114,6 +114,27 @@ export const LAYER_NAMES: Record<number, string> = Object.fromEntries(
   LAYERS.map((l) => [l.id, l.name])
 );
 
+/** Roman-numeral-as-word ordinal per layer. Used wherever the UI says
+ *  "Layer Two — Some of My Patterns" instead of "Layer 2 — ...". */
+export const LAYER_ORDINAL: Record<number, string> = {
+  1: "One",
+  2: "Two",
+  3: "Three",
+  4: "Four",
+  5: "Five",
+};
+
+/**
+ * Canonical eyebrow string for any checkpoint-shaped surface (compact
+ * trigger card, overlay header, historical Plate). One source of truth
+ * so the three surfaces can't drift visually. Falls back to "Suggested
+ * Entry" when the layer is missing or unknown.
+ */
+export function formatLayerEyebrow(layer: number | null | undefined): string {
+  if (!layer || !LAYER_NAMES[layer]) return "Suggested Entry";
+  return `Layer ${LAYER_ORDINAL[layer] ?? layer} — ${LAYER_NAMES[layer]}`;
+}
+
 /** Total layer count. Avoid hardcoding `5` in loops. */
 export const LAYER_COUNT = LAYERS.length;
 

@@ -7,7 +7,7 @@ import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
 import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
@@ -25,13 +25,6 @@ const RETURNING_GREETINGS: ((name?: string | null) => string)[] = [
   () => "What brings you here today?",
 ];
 
-const LAYER_ORDINAL: Record<number, string> = {
-  1: "One",
-  2: "Two",
-  3: "Three",
-  4: "Four",
-  5: "Five",
-};
 
 function formatWelcomeDate(): string {
   const now = new Date();
@@ -138,6 +131,19 @@ export default function MobileSession({
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
+  // IDs of checkpoint messages the user just took a non-confirmed action
+  // on (Discard / Rework / Defer) within THIS session. Drives the
+  // collapsed Plate (eyebrow + heading + status badge, no content).
+  // Local-only / not persisted — on conversation switch or page reload
+  // the set empties and historical checkpoints expand back to their
+  // full content. The "moment of action" collapse is a focus aid; it
+  // doesn't reach across sessions.
+  const [collapsedCheckpoints, setCollapsedCheckpoints] = useState<Set<string>>(
+    () => new Set()
+  );
+  useEffect(() => {
+    setCollapsedCheckpoints(new Set());
+  }, [conversationId]);
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -566,22 +572,11 @@ export default function MobileSession({
         </div>
       )}
 
-      {/* Messages area wrapper */}
+      {/* Messages area wrapper. The mask on the scroll child below feathers
+          both top and bottom edges so content dissolves into the surrounding
+          surface — top into header space, bottom into the input zone — rather
+          than getting sliced at a hard overflow boundary. */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        {/* Scroll fade overlay */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "48px",
-            zIndex: 1,
-            pointerEvents: "none",
-            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
-          }}
-        />
-
         {/* Scrollable content */}
         <div
           ref={scrollRef}
@@ -598,6 +593,10 @@ export default function MobileSession({
             flexDirection: "column",
             padding: "20px 16px 4px",
             gap: "14px",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
           }}
         >
           {/* Spacer pushes messages to bottom of viewport */}
@@ -675,9 +674,7 @@ export default function MobileSession({
                               lineHeight: 1,
                             }}
                           >
-                            {activeCheckpoint?.layer && LAYER_NAMES[activeCheckpoint.layer]
-                              ? `Layer ${LAYER_ORDINAL[activeCheckpoint.layer] ?? activeCheckpoint.layer} — ${LAYER_NAMES[activeCheckpoint.layer]}`
-                              : "Suggested Entry"}
+                            {formatLayerEyebrow(activeCheckpoint?.layer ?? null)}
                           </span>
                         </div>
                         {/* Entry title + tap hint */}
@@ -776,7 +773,23 @@ export default function MobileSession({
                 // Rejected/discarded checkpoints collapse to title + status
                 // only — no full content. Confirmed and refined show the
                 // full entry so the user can re-read what landed.
-                const isRejected = msg.checkpointMeta?.status === "rejected";
+                // Collapse rule: non-confirmed terminal states (rejected,
+                // refined, deferred) collapse to eyebrow + heading +
+                // status badge — but ONLY in the session where the
+                // action was just taken. The collapsedCheckpoints set
+                // above tracks "just-actioned in this session"; it's
+                // empty on first load and clears on conversation
+                // switch. So when the user returns to the chat later
+                // (page reload, switch back to this conv), every
+                // historical checkpoint expands back to its full
+                // content + status badge. Confirmed always expands —
+                // re-reading what landed in the Manual is useful even
+                // outside the action moment.
+                const isConfirmed = msg.checkpointMeta?.status === "confirmed";
+                const justActioned = msg.id
+                  ? collapsedCheckpoints.has(msg.id)
+                  : false;
+                const showContent = isConfirmed || !justActioned;
 
                 return (
                   <div
@@ -787,17 +800,17 @@ export default function MobileSession({
                     }}
                   >
                     <Plate
-                      eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
+                      eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {!isRejected && renderMarkdown(msg.content)}
+                      {showContent && renderMarkdown(msg.content)}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
                           style={{
-                            marginTop: isRejected ? 0 : 16,
-                            paddingTop: isRejected ? 0 : 12,
-                            borderTop: isRejected ? "none" : "1px solid var(--session-hair-soft)",
+                            marginTop: showContent ? 16 : 0,
+                            paddingTop: showContent ? 12 : 0,
+                            borderTop: showContent ? "1px solid var(--session-hair-soft)" : "none",
                           }}
                         >
                           <span
@@ -990,16 +1003,6 @@ export default function MobileSession({
         <CheckpointOverlay
           open={checkpointOverlayOpen}
           checkpoint={overlayCheckpointRef.current}
-          layerName={
-            overlayCheckpointRef.current.layer && LAYER_NAMES[overlayCheckpointRef.current.layer]
-              ? LAYER_NAMES[overlayCheckpointRef.current.layer]
-              : undefined
-          }
-          layerOrdinal={
-            overlayCheckpointRef.current.layer
-              ? LAYER_ORDINAL[overlayCheckpointRef.current.layer]
-              : undefined
-          }
           refinementCeilingActive={refinementCeilingActive}
           confirmStatus={
             checkpointActionState !== "confirmed"
@@ -1013,6 +1016,18 @@ export default function MobileSession({
           errorMessage={checkpointError}
           onAction={(action, edits) => {
             setCheckpointActionState(action);
+            // Non-confirmed actions collapse the historical Plate to
+            // badge-only for the rest of this session. The set is
+            // cleared on conversation switch / reload, so returning
+            // to the chat later restores the full content.
+            if (action !== "confirmed" && overlayCheckpointRef.current?.messageId) {
+              const messageId = overlayCheckpointRef.current.messageId;
+              setCollapsedCheckpoints((prev) => {
+                const next = new Set(prev);
+                next.add(messageId);
+                return next;
+              });
+            }
             confirmCheckpoint(action, edits);
           }}
           onClose={() => {

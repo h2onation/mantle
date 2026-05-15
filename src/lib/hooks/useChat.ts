@@ -641,6 +641,37 @@ export function useChat() {
     setIsLoading(true);
     setCheckpointError(null);
 
+    // For non-confirmed actions (rejected/refined/deferred), close the
+    // visible "pending" state immediately. Without this, the trigger
+    // card stays in its compact "Tap to review" form while the network
+    // call runs, then snaps to the historical Plate when activeCheckpoint
+    // clears — a flickery interstitial. We optimistically: (1) clear
+    // activeCheckpoint so the message stops rendering as pending, and
+    // (2) write the terminal status onto checkpointMeta so the Plate
+    // renders with the right status badge ("Discarded", etc.) on first
+    // paint. Server route returns the same end state on success; on
+    // failure the error banner surfaces and the user can retry. Mirror
+    // of the server's status mapping in /api/checkpoint/confirm route.
+    if (action !== "confirmed") {
+      const optimisticStatus =
+        action === "refined" ? "refined" : "rejected";
+      const checkpointMessageId = activeCheckpoint.messageId;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === checkpointMessageId && m.checkpointMeta
+            ? {
+                ...m,
+                checkpointMeta: {
+                  ...m.checkpointMeta,
+                  status: optimisticStatus,
+                },
+              }
+            : m
+        )
+      );
+      setActiveCheckpoint(null);
+    }
+
     const body = JSON.stringify({
       messageId: activeCheckpoint.messageId,
       action,

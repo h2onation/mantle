@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
+import {
+  LAYER_NAMES,
+  LAYER_ORDINAL,
+  formatLayerEyebrow,
+} from "@/lib/manual/layers";
 
 import type { CheckpointAction } from "@/lib/persona/config";
 
@@ -21,8 +26,6 @@ export type ConfirmStatus = "idle" | "pending" | "success" | "error";
 interface CheckpointOverlayProps {
   open: boolean;
   checkpoint: ActiveCheckpoint;
-  layerName?: string;
-  layerOrdinal?: string;
   refinementCeilingActive: boolean;
   confirmStatus?: ConfirmStatus;
   errorMessage?: string | null;
@@ -35,8 +38,6 @@ type Phase = "actions" | "composing" | "confirmed";
 export default function CheckpointOverlay({
   open,
   checkpoint,
-  layerName,
-  layerOrdinal,
   refinementCeilingActive,
   confirmStatus = "idle",
   errorMessage,
@@ -162,9 +163,7 @@ export default function CheckpointOverlay({
 
   if (!open) return null;
 
-  const eyebrowText = layerName
-    ? `Layer ${layerOrdinal ?? ""} — ${layerName}`.trim()
-    : "Suggested Manual Entry";
+  const eyebrowText = formatLayerEyebrow(checkpoint.layer);
 
   return (
     <div
@@ -527,11 +526,11 @@ export default function CheckpointOverlay({
               color: "var(--session-walnut)",
             }}
           >
-            {layerOrdinal
-              ? `Added to Layer ${layerOrdinal}`
+            {checkpoint.layer && LAYER_ORDINAL[checkpoint.layer]
+              ? `Added to Layer ${LAYER_ORDINAL[checkpoint.layer]}`
               : "Added to your Manual"}
           </span>
-          {layerName && (
+          {checkpoint.layer && LAYER_NAMES[checkpoint.layer] && (
             <span
               style={{
                 fontFamily: "var(--font-spectral), var(--font-serif), serif",
@@ -541,7 +540,7 @@ export default function CheckpointOverlay({
                 marginTop: 8,
               }}
             >
-              {layerName}
+              {LAYER_NAMES[checkpoint.layer]}
             </span>
           )}
         </div>
