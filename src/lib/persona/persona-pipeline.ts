@@ -222,18 +222,11 @@ export async function loadConversationContext(
     : "";
 
   const turnCount = messages.length;
-  // Only fire checkpoint instructions when at least one layer has reached
-  // "explored" (or beyond). "emerging" is too low a bar — it flips true on
-  // any layer that's been touched at all, which would prime Jove to fire
-  // the transition line before the brief has caught up. The material
-  // quality gate would then silently suppress, producing the broken
-  // chat-without-card UX. Pair this with showCheckpointInstructions no
-  // longer auto-loading for returning users (system-prompt.ts).
-  const checkpointApproaching = previousExtraction
-    ? Object.values(previousExtraction.layers).some(
-        (l) => l.signal === "explored" || l.signal === "checkpoint_ready"
-      )
-    : false;
+  const checkpointApproaching = deriveCheckpointApproaching(
+    previousExtraction,
+    isFirstCheckpoint,
+    turnCount
+  );
 
   return {
     messages,
@@ -470,6 +463,49 @@ export function validateMaterialQuality(
   }
 
   return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Decide whether to load the CHECKPOINTS instructions into Jove's
+ * system prompt for this turn. Two paths to "true":
+ *
+ * (1) Extraction's per-layer signal has promoted at least one layer
+ *     to "explored" or "checkpoint_ready" — its holistic "feels
+ *     developed" read.
+ *
+ * (2) Extraction's mechanical checklist (concrete scenes + charged
+ *     language + mechanism/driver, plus the turn-12 pattern_engaged
+ *     override) would pass the downstream material-quality gate —
+ *     the field-by-field tally the post-detection suppression check
+ *     already uses.
+ *
+ * Both paths read fields from the same Extraction call. The two
+ * readings diverge in practice: long, rich conversations sometimes
+ * fill the checklist while the per-layer signal stays at "emerging".
+ * Under signal-only, Jove never gets the checkpoint instructions and
+ * keeps deepening through material that already qualifies. Reading
+ * the checklist too brings this upstream decision into sync with
+ * `validateMaterialQuality` — same gate logic applied earlier, so the
+ * prompt and the suppression check stay aligned. No new criterion.
+ *
+ * Returns false when previousExtraction is null (cold start).
+ * Exported for direct testing.
+ */
+export function deriveCheckpointApproaching(
+  previousExtraction: ExtractionState | null | undefined,
+  isFirstCheckpoint: boolean,
+  turnCount: number
+): boolean {
+  if (!previousExtraction) return false;
+  const signalReady = Object.values(previousExtraction.layers).some(
+    (l) => l.signal === "explored" || l.signal === "checkpoint_ready"
+  );
+  if (signalReady) return true;
+  return validateMaterialQuality(
+    previousExtraction,
+    isFirstCheckpoint,
+    turnCount
+  ).ok;
 }
 
 /**
