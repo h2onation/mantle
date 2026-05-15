@@ -559,22 +559,11 @@ export default function MobileSession({
         </div>
       )}
 
-      {/* Messages area wrapper */}
+      {/* Messages area wrapper. The mask on the scroll child below feathers
+          both top and bottom edges so content dissolves into the surrounding
+          surface — top into header space, bottom into the input zone — rather
+          than getting sliced at a hard overflow boundary. */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        {/* Scroll fade overlay */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "48px",
-            zIndex: 1,
-            pointerEvents: "none",
-            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
-          }}
-        />
-
         {/* Scrollable content */}
         <div
           ref={scrollRef}
@@ -591,6 +580,10 @@ export default function MobileSession({
             flexDirection: "column",
             padding: "20px 16px 4px",
             gap: "14px",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)",
           }}
         >
           {/* Spacer pushes messages to bottom of viewport */}
