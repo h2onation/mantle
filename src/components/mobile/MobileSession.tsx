@@ -559,22 +559,11 @@ export default function MobileSession({
         </div>
       )}
 
-      {/* Messages area wrapper */}
+      {/* Messages area wrapper. The mask on the scroll child below feathers
+          both top and bottom edges so content dissolves into the surrounding
+          surface — top into header space, bottom into the input zone — rather
+          than getting sliced at a hard overflow boundary. */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        {/* Scroll fade overlay */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "48px",
-            zIndex: 1,
-            pointerEvents: "none",
-            background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
-          }}
-        />
-
         {/* Scrollable content */}
         <div
           ref={scrollRef}
@@ -591,6 +580,10 @@ export default function MobileSession({
             flexDirection: "column",
             padding: "20px 16px 4px",
             gap: "14px",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0, black 44px, black calc(100% - 36px), transparent 100%)",
           }}
         >
           {/* Spacer pushes messages to bottom of viewport */}
@@ -767,7 +760,18 @@ export default function MobileSession({
                 // Rejected/discarded checkpoints collapse to title + status
                 // only — no full content. Confirmed and refined show the
                 // full entry so the user can re-read what landed.
-                const isRejected = msg.checkpointMeta?.status === "rejected";
+                // Confirmed checkpoints show their full content so the
+                // user can re-read what landed in the Manual. All
+                // non-confirmed terminal states (rejected, refined,
+                // deferred) collapse to eyebrow + heading + status
+                // badge — the user moved past the proposal and the
+                // body of an un-taken entry just adds noise to the
+                // scroll. Rework was previously the exception (it
+                // kept its content visible with a "Jove will revisit
+                // this" footer); the user asked for it to match the
+                // Discard collapse so all three non-confirmed actions
+                // produce the same compact historical artifact.
+                const isConfirmed = msg.checkpointMeta?.status === "confirmed";
 
                 return (
                   <div
@@ -781,14 +785,14 @@ export default function MobileSession({
                       eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {!isRejected && renderMarkdown(msg.content)}
+                      {isConfirmed && renderMarkdown(msg.content)}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
                           style={{
-                            marginTop: isRejected ? 0 : 16,
-                            paddingTop: isRejected ? 0 : 12,
-                            borderTop: isRejected ? "none" : "1px solid var(--session-hair-soft)",
+                            marginTop: isConfirmed ? 16 : 0,
+                            paddingTop: isConfirmed ? 12 : 0,
+                            borderTop: isConfirmed ? "1px solid var(--session-hair-soft)" : "none",
                           }}
                         >
                           <span
