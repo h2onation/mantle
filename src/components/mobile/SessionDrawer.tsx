@@ -93,12 +93,15 @@ export default function SessionDrawer({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop. position: absolute so it's scoped to the phone frame
+          on desktop (the nearest positioned ancestor is .mw-phone-frame).
+          On mobile the phone frame fills the viewport, so it behaves
+          identically to position: fixed there. */}
       <div
         onClick={onClose}
         aria-hidden="true"
         style={{
-          position: "fixed",
+          position: "absolute",
           inset: 0,
           backgroundColor: "var(--session-backdrop-heavy)",
           zIndex: 200,
@@ -108,7 +111,9 @@ export default function SessionDrawer({
         }}
       />
 
-      {/* Drawer panel */}
+      {/* Drawer panel. Also absolute — clipped by the phone frame's
+          rounded corners and overflow: hidden so it reads as overlaying
+          the mobile window on desktop. */}
       <div
         id="session-drawer"
         role="dialog"
@@ -116,7 +121,7 @@ export default function SessionDrawer({
         aria-labelledby="session-drawer-heading"
         aria-hidden={!open}
         style={{
-          position: "fixed",
+          position: "absolute",
           top: 0,
           left: 0,
           bottom: 0,
