@@ -214,7 +214,7 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - **Mobile-first.** The primary interface is a mobile shell (430px max-width centered). The product will also be accessible via text (MMS) and web. Design for mobile first, other surfaces adapt.
 - **Inline styles only.** Never add `className` to components. Use `style={{}}` with CSS custom properties from `globals.css`. Prefer size tokens (`--size-meta`, `--size-body`, `--size-prose`, `--size-heading`) over raw pixel values.
 - **Linen palette.** Warm linen surface is the design system. The dark void palette (`#0C0B0A`) is deprecated. All new work uses the linen tokens (`--session-linen`, `--session-ink`, `--session-ink-ghost`, `--session-ink-faded`, `--session-ink-hairline`).
-- **No theme switching.** Single theme. No `data-theme` attribute.
+- **Two themes ship.** Hearth (dark, default) and Bloom (light) — both bind the same `--session-*` token names to per-theme values. Switch via `data-theme="light"` on `<html>`. Every new component must work in both.
 
 ### Typography Roles
 | Font | Role | Sizing |

@@ -70,10 +70,6 @@ interface MobileSessionProps {
   concreteExamples?: number;
   firstName?: string | null;
   onOpenDrawer: () => void;
-  /** Snapshot of the entry the user is exploring further. Drives the
-      walnut context chip at the top of chat. */
-  currentExploration?: import("@/lib/types").ExplorationContext | null;
-  onDismissExploration?: () => void;
 }
 
 export default function MobileSession({
@@ -101,8 +97,6 @@ export default function MobileSession({
   concreteExamples = 0,
   firstName = null,
   onOpenDrawer,
-  currentExploration = null,
-  onDismissExploration,
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
@@ -427,81 +421,6 @@ export default function MobileSession({
       }}
     >
       <TopBar onMenu={onOpenDrawer} />
-
-      {/* Explore-further context chip — surfaces the entry being
-          explored at the top of chat. Small walnut chip; layer eyebrow
-          + entry name (or layer name if no entry). Dismissable. */}
-      {currentExploration && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            margin: "10px 18px 0",
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: "var(--session-walnut-surface)",
-            border: "1px solid var(--session-walnut-border)",
-            backdropFilter: "blur(20px) saturate(140%)",
-            WebkitBackdropFilter: "blur(20px) saturate(140%)",
-            animation: "checkpointFadeIn 0.3s ease-out both",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9,
-                letterSpacing: "1.6px",
-                textTransform: "uppercase",
-                color: "var(--session-walnut-meta)",
-                lineHeight: 1,
-              }}
-            >
-              Layer {LAYER_ORDINAL[currentExploration.layerId] ?? currentExploration.layerId} · {currentExploration.layerName}
-            </span>
-            {currentExploration.name && (
-              <span
-                style={{
-                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                  fontSize: 13,
-                  color: "var(--session-ink)",
-                  lineHeight: 1.3,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {currentExploration.name}
-              </span>
-            )}
-          </div>
-          {onDismissExploration && (
-            <button
-              onClick={onDismissExploration}
-              aria-label="Dismiss exploration context"
-              style={{
-                all: "unset",
-                cursor: "pointer",
-                width: 44,
-                height: 44,
-                marginRight: -10,
-                borderRadius: "50%",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--session-ink)",
-                fontSize: 14,
-                lineHeight: 1,
-                flexShrink: 0,
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (

@@ -32,7 +32,18 @@ export default function AdminManualView({
   }
 
   return (
-    <div>
+    // Flex column with gap — each Plate's tab pip protrudes from its
+    // top edge, so subsequent Plates need vertical clearance above
+    // their box. The `gap` provides it; padding-top gives the first
+    // Plate's pip room within the parent.
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--sp-md)",
+        paddingTop: 18,
+      }}
+    >
       {populatedLayers.map((layer) => (
         <PopulatedLayer key={layer.id} layer={layer} readOnly />
       ))}
@@ -45,7 +56,7 @@ export default function AdminManualView({
               letterSpacing: "3px",
               textTransform: "uppercase",
               color: "var(--session-ink-ghost)",
-              margin: "16px 0 8px",
+              margin: "8px 0 0",
             }}
           >
             UPCOMING
