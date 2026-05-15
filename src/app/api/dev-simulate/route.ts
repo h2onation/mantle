@@ -4,6 +4,12 @@ import { requireAdmin } from "@/lib/admin/verify-admin";
 import { callPersona, mapSystemMessages } from "@/lib/persona/call-persona";
 import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 import { parseSSEStream } from "@/lib/utils/sse-parser";
+import {
+  CONVERSATION_MODES,
+  type ConversationMode,
+} from "@/lib/persona/config";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
+import { isPersonaMode } from "@/lib/persona/persona-mode-toggle";
 
 /**
  * Consume a callPersona ReadableStream internally, extracting the full text
@@ -60,10 +66,32 @@ export async function POST(request: Request) {
   // checkpoint and leaves it in `status: "pending"` so the user can drive the
   // real confirm UI themselves.
   let simulatedUserDescription = "";
+  let personaModesOverride: PersonaMode[] | undefined;
+  let intakeMode: ConversationMode | undefined;
   try {
     const body = await request.json();
     if (body.simulatedUserDescription && typeof body.simulatedUserDescription === "string") {
       simulatedUserDescription = body.simulatedUserDescription.trim();
+    }
+    if (Array.isArray(body.personaModes)) {
+      if (!body.personaModes.every(isPersonaMode)) {
+        return Response.json(
+          { error: "personaModes contains invalid value" },
+          { status: 400 }
+        );
+      }
+      if (body.personaModes.length > 0) {
+        personaModesOverride = body.personaModes as PersonaMode[];
+      }
+    }
+    if (typeof body.mode === "string") {
+      if (!(CONVERSATION_MODES as readonly string[]).includes(body.mode)) {
+        return Response.json(
+          { error: "mode must be one of: " + CONVERSATION_MODES.join(", ") },
+          { status: 400 }
+        );
+      }
+      intakeMode = body.mode as ConversationMode;
     }
   } catch {
     // Invalid JSON
@@ -93,7 +121,10 @@ export async function POST(request: Request) {
         //    untouched — use /api/dev-reset if you need a clean-slate wipe.
         const { data: conv, error: convError } = await admin
           .from("conversations")
-          .insert({ user_id: userId })
+          .insert({
+            user_id: userId,
+            ...(intakeMode ? { mode: intakeMode } : {}),
+          })
           .select("id")
           .single();
 
@@ -175,6 +206,7 @@ export async function POST(request: Request) {
             conversationId,
             userId: userId,
             message: userMessage,
+            personaModesOverride,
           });
 
           const result = await consumePersonaStream(personaStream);

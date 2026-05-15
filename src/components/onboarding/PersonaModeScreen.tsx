@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
+import { togglePersonaMode } from "@/lib/persona/persona-mode-toggle";
 import TopBar from "@/components/shared/TopBar";
 
 interface PersonaModeScreenProps {
@@ -46,14 +47,7 @@ export default function PersonaModeScreen({
   const [error, setError] = useState("");
 
   function toggle(mode: PersonaMode) {
-    setSelected((prev) => {
-      if (mode === "general") {
-        return prev.includes("general") ? [] : ["general"];
-      }
-      const without = prev.filter((m) => m !== mode && m !== "general");
-      if (prev.includes(mode)) return without;
-      return [...without, mode];
-    });
+    setSelected((prev) => togglePersonaMode(prev, mode));
   }
 
   async function handleContinue() {

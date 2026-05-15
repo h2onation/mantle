@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import PersonaIntakeControls from "@/components/admin/PersonaIntakeControls";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
+import type { ConversationMode } from "@/lib/persona/config";
 
 export default function DevToolsPanel() {
   const isAdmin = useIsAdmin();
@@ -9,6 +12,11 @@ export default function DevToolsPanel() {
   const [simStatus, setSimStatus] = useState<string>("");
   const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [simulatedUser, setSimulatedUser] = useState("");
+  const [simPersonaModes, setSimPersonaModes] = useState<PersonaMode[]>([
+    "autistic",
+  ]);
+  const [simIntakeMode, setSimIntakeMode] =
+    useState<ConversationMode>("situation");
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(
     new Set([1, 2, 3, 4, 5]),
   );
@@ -28,6 +36,8 @@ export default function DevToolsPanel() {
         body: JSON.stringify({
           simulatedUserDescription: simulatedUser.trim(),
           checkpointTarget: simCheckpoints,
+          personaModes: simPersonaModes,
+          mode: simIntakeMode,
         }),
       });
       if (!res.ok) {
@@ -234,6 +244,14 @@ export default function DevToolsPanel() {
           lineHeight: 1.4,
           boxSizing: "border-box",
         }}
+      />
+
+      <PersonaIntakeControls
+        personaModes={simPersonaModes}
+        intakeMode={simIntakeMode}
+        onPersonaModesChange={setSimPersonaModes}
+        onIntakeModeChange={setSimIntakeMode}
+        disabled={simulating}
       />
 
       <div
