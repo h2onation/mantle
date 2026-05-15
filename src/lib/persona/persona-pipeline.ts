@@ -85,7 +85,8 @@ export interface CheckpointMeta {
 export async function loadConversationContext(
   admin: ReturnType<typeof createAdminClient>,
   conversationId: string,
-  userId: string
+  userId: string,
+  personaModesOverride?: PersonaMode[]
 ): Promise<ConversationContext> {
   const [
     historyResult,
@@ -125,7 +126,9 @@ export async function loadConversationContext(
   ]);
 
   const personaModes: PersonaMode[] =
-    (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["autistic"];
+    personaModesOverride && personaModesOverride.length > 0
+      ? personaModesOverride
+      : (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["autistic"];
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {

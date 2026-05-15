@@ -6,7 +6,7 @@ import {
 import { parseAnthropicStream } from "@/lib/anthropic-sse";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
-import { buildSystemPromptBlocks } from "@/lib/persona/system-prompt";
+import { buildSystemPromptBlocks, type PersonaMode } from "@/lib/persona/system-prompt";
 import { logEvent } from "@/lib/observability/log";
 import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
@@ -153,6 +153,12 @@ interface CallPersonaOptions {
    *  opens with "Saved." and hands the user a continue-or-pivot
    *  choice — no substitutions, no entries summary, no title repeat. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  /** Dev-only override: force a specific persona-mode set for this turn
+   *  instead of reading the caller's profiles.persona_modes. Used by
+   *  /api/dev-simulate so admins can test Jove against different user
+   *  types without mutating their own profile. Unused outside the
+   *  simulator. */
+  personaModesOverride?: PersonaMode[];
 }
 
 // Broader than the detection regex so we catch paraphrases the strict
@@ -223,6 +229,7 @@ export function callPersona({
   isChipResponse,
   prependedMessages,
   postConfirmMode = null,
+  personaModesOverride,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -295,7 +302,12 @@ export function callPersona({
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
-        const ctx = await loadConversationContext(admin, convId, userId);
+        const ctx = await loadConversationContext(
+          admin,
+          convId,
+          userId,
+          personaModesOverride
+        );
         const {
           messages,
           manualComponents,

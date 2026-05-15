@@ -6,7 +6,13 @@ import SettingsRow from "@/components/shared/SettingsRow";
 import TopBar from "@/components/shared/TopBar";
 import AppearanceToggle from "@/components/shared/AppearanceToggle";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
-import { PERSONA_NAME, PERSONA_NAME_FORMAL } from "@/lib/persona/config";
+import {
+  PERSONA_NAME,
+  PERSONA_NAME_FORMAL,
+  type ConversationMode,
+} from "@/lib/persona/config";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
+import PersonaIntakeControls from "@/components/admin/PersonaIntakeControls";
 
 interface MobileSettingsProps {
   userEmail: string;
@@ -66,6 +72,11 @@ export default function MobileSettings({
   const [simStatus, setSimStatus] = useState<string>("");
   const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [simulatedUser, setSimulatedUser] = useState("");
+  const [simPersonaModes, setSimPersonaModes] = useState<PersonaMode[]>([
+    "autistic",
+  ]);
+  const [simIntakeMode, setSimIntakeMode] =
+    useState<ConversationMode>("situation");
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [populating, setPopulating] = useState(false);
   const isAdmin = useIsAdmin();
@@ -223,7 +234,12 @@ export default function MobileSettings({
       const res = await fetch("/api/dev-simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ simulatedUserDescription: simulatedUser.trim(), checkpointTarget: simCheckpoints }),
+        body: JSON.stringify({
+          simulatedUserDescription: simulatedUser.trim(),
+          checkpointTarget: simCheckpoints,
+          personaModes: simPersonaModes,
+          mode: simIntakeMode,
+        }),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -784,6 +800,14 @@ export default function MobileSettings({
               lineHeight: 1.4,
               boxSizing: "border-box",
             }}
+          />
+
+          <PersonaIntakeControls
+            personaModes={simPersonaModes}
+            intakeMode={simIntakeMode}
+            onPersonaModesChange={setSimPersonaModes}
+            onIntakeModeChange={setSimIntakeMode}
+            disabled={simulating}
           />
 
           {/* Checkpoint target pills */}
