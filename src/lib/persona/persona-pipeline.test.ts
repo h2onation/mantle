@@ -3,6 +3,7 @@ import {
   validateMaterialQuality,
   validateComposedEntry,
   applyCheckpointGates,
+  deriveCheckpointApproaching,
   computeInheritedRefinementCount,
   buildEntriesSummary,
   buildPromptOptionsFromContext,
@@ -230,6 +231,143 @@ describe("applyCheckpointGates with material quality", () => {
   it("preserves backward compatibility when extraction state is omitted", () => {
     const result = applyCheckpointGates(10);
     expect(result.passed).toBe(true);
+  });
+});
+
+// ─── Checkpoint-instructions trigger (gate-mirror, 2026-05-15) ─────────────
+//
+// Regression: an 18-turn conversation with rich material (concrete scenes,
+// body anchors, charged language, mechanism, behavior-driver link) never
+// surfaced a checkpoint. Extraction's per-layer "signal" stayed at
+// "emerging" while its checklist was full. The old gate only read the
+// signal, so Jove never received the CHECKPOINTS instructions and just
+// kept deepening. deriveCheckpointApproaching now reads both.
+describe("deriveCheckpointApproaching", () => {
+  it("returns false when extraction state is null (cold start)", () => {
+    expect(deriveCheckpointApproaching(null, true, 0)).toBe(false);
+    expect(deriveCheckpointApproaching(undefined, true, 0)).toBe(false);
+  });
+
+  it("returns true when any layer signal is 'explored'", () => {
+    const state = makeExtractionState({
+      layers: {
+        1: { signal: "explored", material: [], examples: [], dimensions: [] },
+        2: { signal: "none", material: [], examples: [], dimensions: [] },
+        3: { signal: "none", material: [], examples: [], dimensions: [] },
+        4: { signal: "none", material: [], examples: [], dimensions: [] },
+        5: { signal: "none", material: [], examples: [], dimensions: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
+  });
+
+  it("returns true when any layer signal is 'checkpoint_ready'", () => {
+    const state = makeExtractionState({
+      layers: {
+        1: { signal: "none", material: [], examples: [], dimensions: [] },
+        2: {
+          signal: "checkpoint_ready",
+          material: [],
+          examples: [],
+          dimensions: [],
+        },
+        3: { signal: "none", material: [], examples: [], dimensions: [] },
+        4: { signal: "none", material: [], examples: [], dimensions: [] },
+        5: { signal: "none", material: [], examples: [], dimensions: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
+  });
+
+  // The reported bug. Layer signal stuck at "emerging" while the checklist
+  // is full — old code returned false here. New code consults the gate.
+  it("returns true when checklist passes even if no layer signal beyond 'emerging'", () => {
+    const state = makeExtractionState({
+      pattern_engaged: true,
+      layers: {
+        1: { signal: "emerging", material: [], examples: [], dimensions: [] },
+        2: { signal: "emerging", material: [], examples: [], dimensions: [] },
+        3: { signal: "none", material: [], examples: [], dimensions: [] },
+        4: { signal: "none", material: [], examples: [], dimensions: [] },
+        5: { signal: "none", material: [], examples: [], dimensions: [] },
+      },
+      checkpoint_gate: {
+        concrete_examples: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+      },
+    });
+    expect(deriveCheckpointApproaching(state, true, 8)).toBe(true);
+  });
+
+  // The original concern that motivated the signal-only gate: thin material
+  // should NOT load CHECKPOINTS instructions just because the conversation
+  // has been running a while. The checklist enforces this.
+  it("returns false when both signal is 'emerging' and checklist is empty", () => {
+    const state = makeExtractionState({
+      pattern_engaged: false,
+      layers: {
+        1: { signal: "emerging", material: [], examples: [], dimensions: [] },
+        2: { signal: "none", material: [], examples: [], dimensions: [] },
+        3: { signal: "none", material: [], examples: [], dimensions: [] },
+        4: { signal: "none", material: [], examples: [], dimensions: [] },
+        5: { signal: "none", material: [], examples: [], dimensions: [] },
+      },
+      checkpoint_gate: {
+        concrete_examples: 0,
+        has_mechanism: false,
+        has_charged_language: false,
+        has_behavior_driver_link: false,
+        strongest_layer: null,
+      },
+    });
+    expect(deriveCheckpointApproaching(state, true, 5)).toBe(false);
+  });
+
+  // The crisis path: even with rich material, never load CHECKPOINTS during
+  // an active crisis. validateMaterialQuality enforces this; the gate-mirror
+  // inherits it for free, which is the point of using the same function.
+  it("returns false during an active crisis regardless of checklist", () => {
+    const state = makeExtractionState({
+      pattern_engaged: true,
+      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
+      checkpoint_gate: {
+        concrete_examples: 5,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+      },
+    });
+    expect(deriveCheckpointApproaching(state, true, 12)).toBe(false);
+  });
+
+  // pattern_engaged=false blocks until turn 12. After 12, the override in
+  // validateMaterialQuality kicks in if the rest of the checklist is full.
+  it("respects the pattern_engaged turn-12 override from validateMaterialQuality", () => {
+    const richButNotEngaged = makeExtractionState({
+      pattern_engaged: false,
+      layers: {
+        1: { signal: "emerging", material: [], examples: [], dimensions: [] },
+        2: { signal: "none", material: [], examples: [], dimensions: [] },
+        3: { signal: "none", material: [], examples: [], dimensions: [] },
+        4: { signal: "none", material: [], examples: [], dimensions: [] },
+        5: { signal: "none", material: [], examples: [], dimensions: [] },
+      },
+      checkpoint_gate: {
+        concrete_examples: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+      },
+    });
+    // Before turn 12: blocked by pattern_engaged=false
+    expect(deriveCheckpointApproaching(richButNotEngaged, true, 10)).toBe(false);
+    // At/after turn 12: override allows it through
+    expect(deriveCheckpointApproaching(richButNotEngaged, true, 12)).toBe(true);
   });
 });
 
