@@ -77,7 +77,7 @@ const personaLabel = (modes: PersonaMode[]) => modes.map((m) => m[0].toUpperCase
 const PERSONA_ALL: PersonaMode[] = ["autistic", "audhd", "dyslexic", "general"];
 const CONV_MODES: ConvMode[] = ["situation", "guided-intake", "upload"];
 const CONV_MODE_LABELS: Record<ConvMode, string> = {
-  situation: "Standard",
+  situation: "Situation",
   "guided-intake": "Guided Intake",
   upload: "Upload",
 };

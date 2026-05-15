@@ -12,7 +12,6 @@ import AdminNavRail from "@/components/admin/AdminNavRail";
 import type {
   PhaseData,
   PromptSection,
-  Tier,
   ConditionType,
 } from "@/lib/admin/prompt-sections";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
@@ -32,7 +31,7 @@ const PERSONA_OPTIONS: { id: PersonaMode; label: string }[] = [
 ];
 
 const CONV_MODE_OPTIONS: { id: ConvMode; label: string }[] = [
-  { id: "situation", label: "Standard" },
+  { id: "situation", label: "Situation" },
   { id: "guided-intake", label: "Guided Intake" },
   { id: "upload", label: "Upload" },
 ];
@@ -197,7 +196,7 @@ export default function PromptArchitecturePage() {
 
 function PromptArchitectureInner() {
   const isAdmin = useIsAdmin();
-  const [personaModes, setPersonaModes] = useState<PersonaMode[]>(["autistic"]);
+  const [personaModes, setPersonaModes] = useState<PersonaMode[]>(["general"]);
   const [convMode, setConvMode] = useState<ConvMode>("situation");
   const [phases, setPhases] = useState<PhaseData[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -232,14 +231,12 @@ function PromptArchitectureInner() {
     let next: PersonaMode[];
     const neurotypes: PersonaMode[] = ["autistic", "audhd", "dyslexic"];
     if (mode === "general") {
-      next = personaModes.includes("general") ? ["autistic"] : ["general"];
+      next = ["general"];
+    } else if (personaModes.includes(mode)) {
+      next = personaModes.filter((m) => m !== mode);
+      if (next.length === 0) next = ["general"];
     } else {
-      if (personaModes.includes(mode)) {
-        next = personaModes.filter((m) => m !== mode);
-        if (next.length === 0) next = ["autistic"];
-      } else {
-        next = [...personaModes.filter((m) => neurotypes.includes(m)), mode];
-      }
+      next = [...personaModes.filter((m) => neurotypes.includes(m)), mode];
     }
     setPersonaModes(next);
     fetchData(next, convMode);
@@ -370,9 +367,9 @@ function PromptArchitectureInner() {
 // ---------------------------------------------------------------------------
 
 function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; tokens: number }) {
-  const [open, setOpen] = useState(false);
-  const [expandAll, setExpandAll] = useState(false);
+  const [open, setOpen] = useState(true);
   const theme = THEMES[1];
+  const promptText = sections.map((s) => s.text).join("\n\n");
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -380,25 +377,12 @@ function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; toke
         number={1}
         title="Foundation"
         subtitle="Always present. Constitutional rules, behavioral guardrails, and conversation mechanics that never change regardless of persona, mode, or user state."
-        stats={`${sections.length} sections · ${tokens.toLocaleString()} tokens`}
+        stats={`${tokens.toLocaleString()} tokens`}
         theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
-        expandAll={expandAll}
-        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
-      {open && (
-        <div style={{
-          border: `1px solid ${theme.border}`,
-          borderTop: "none", borderRadius: "0 0 10px 10px",
-          overflow: "hidden",
-          background: theme.surfaceTint,
-        }}>
-          {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} theme={theme} />
-          ))}
-        </div>
-      )}
+      {open && <PromptBlock text={promptText} theme={theme} />}
     </div>
   );
 }
@@ -417,7 +401,6 @@ function VoiceLayer({
   personaModes: PersonaMode[];
 }) {
   const [open, setOpen] = useState(true);
-  const [expandAll, setExpandAll] = useState(false);
   const theme = THEMES[2];
 
   // Collect alternatives from the first section that has them
@@ -427,18 +410,18 @@ function VoiceLayer({
     .map((m) => m[0].toUpperCase() + m.slice(1))
     .join(" + ");
 
+  const promptText = sections.map((s) => s.text).join("\n\n");
+
   return (
     <div style={{ marginBottom: 28 }}>
       <LayerHeader
         number={2}
         title="Voice"
         subtitle={`Currently: ${activeLabel}. These sections define how Jove speaks — tone, rules, examples, conversational patterns. Swap personas above to see how each voice module differs.`}
-        stats={`${sections.length} sections · ${tokens.toLocaleString()} tokens`}
+        stats={`${tokens.toLocaleString()} tokens`}
         theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
-        expandAll={expandAll}
-        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
       {open && (
         <div style={{
@@ -447,7 +430,6 @@ function VoiceLayer({
           overflow: "hidden",
           background: theme.surfaceTint,
         }}>
-          {/* Alternatives bar */}
           {alts.length > 0 && (
             <div style={{
               padding: "12px 22px",
@@ -479,9 +461,7 @@ function VoiceLayer({
               ))}
             </div>
           )}
-          {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} theme={theme} />
-          ))}
+          <PromptBlock text={promptText} theme={theme} inset />
         </div>
       )}
     </div>
@@ -494,7 +474,6 @@ function VoiceLayer({
 
 function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: number }) {
   const [open, setOpen] = useState(true);
-  const [expandAll, setExpandAll] = useState(false);
   const theme = THEMES[3];
 
   return (
@@ -503,12 +482,10 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
         number={3}
         title="Lifecycle"
         subtitle="Conditional blocks that appear or disappear based on where the user is in their journey. Each block lists which phases include it."
-        stats={`${blocks.length} blocks · ${tokens.toLocaleString()} tokens (when all active)`}
+        stats={`${tokens.toLocaleString()} tokens (when all active)`}
         theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
-        expandAll={expandAll}
-        onToggleExpandAll={() => setExpandAll(!expandAll)}
       />
       {open && (
         <div style={{
@@ -518,11 +495,10 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
           background: theme.surfaceTint,
         }}>
           {blocks.map((block, i) => (
-            <LifecycleCard
+            <LifecycleBlockCard
               key={block.section.id}
               block={block}
               last={i === blocks.length - 1}
-              forceExpanded={expandAll}
               theme={theme}
             />
           ))}
@@ -544,8 +520,6 @@ function LayerHeader({
   theme,
   open,
   onToggle,
-  expandAll,
-  onToggleExpandAll,
 }: {
   number: 1 | 2 | 3;
   title: string;
@@ -554,8 +528,6 @@ function LayerHeader({
   theme: LayerTheme;
   open: boolean;
   onToggle: () => void;
-  expandAll?: boolean;
-  onToggleExpandAll?: () => void;
 }) {
   return (
     <button
@@ -599,21 +571,6 @@ function LayerHeader({
           }}>
             {stats}
           </span>
-          {open && onToggleExpandAll && (
-            <span
-              onClick={(e) => { e.stopPropagation(); onToggleExpandAll(); }}
-              style={{
-                fontFamily: "var(--font-mono)", fontSize: "11px",
-                letterSpacing: "1px", textTransform: "uppercase",
-                color: theme.accent, cursor: "pointer",
-                marginLeft: 4, padding: "2px 8px",
-                border: `1px solid ${theme.borderSoft}`,
-                borderRadius: 3,
-              }}
-            >
-              {expandAll ? "Collapse all" : "Expand all"}
-            </span>
-          )}
         </div>
         <div style={{
           fontFamily: "var(--font-sans)", fontSize: "14px",
@@ -637,205 +594,76 @@ function LayerHeader({
 }
 
 // ---------------------------------------------------------------------------
-// Section card — a single prompt block (used in Foundation + Voice layers)
+// PromptBlock — renders the actual prompt text as one continuous block.
 // ---------------------------------------------------------------------------
 
-function SectionCard({ section, last, forceExpanded, theme }: { section: PromptSection; last: boolean; forceExpanded?: boolean; theme: LayerTheme }) {
-  const [expanded, setExpanded] = useState(false);
-  const isExpanded = forceExpanded || expanded;
-  const [infoOpen, setInfoOpen] = useState(false);
-  const lines = section.text.split("\n");
-  const needsTruncation = lines.length > 5;
-
+function PromptBlock({ text, theme, inset }: { text: string; theme: LayerTheme; inset?: boolean }) {
   return (
-    <>
-      <div style={{
-        padding: "16px 22px",
-        borderBottom: last ? "none" : `1px solid ${theme.borderSoft}`,
+    <div style={{
+      ...(inset ? {} : {
+        border: `1px solid ${theme.border}`,
+        borderTop: "none",
+        borderRadius: "0 0 10px 10px",
+      }),
+      background: theme.surfaceTint,
+      padding: "20px 24px",
+    }}>
+      <pre style={{
+        fontFamily: "var(--font-sans)", fontSize: "14px",
+        lineHeight: 1.65, color: "var(--session-ink-soft)",
+        whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
       }}>
-        {/* Header row */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
-        }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: "50%",
-            background: tierColor(section.tier), flexShrink: 0,
-          }} />
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "12.5px",
-            letterSpacing: "0.5px",
-            color: "var(--session-ink)", fontWeight: 500,
-          }}>
-            {section.label}
-          </span>
-          <div style={{ flex: 1 }} />
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11.5px",
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "0.3px",
-          }}>
-            {section.tokens.toLocaleString()} tok
-          </span>
-          <button onClick={() => setInfoOpen(true)} title="View full text + source" style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))", fontSize: "12px",
-            fontStyle: "italic", fontWeight: 500,
-            color: theme.accent, background: "none",
-            border: `1px solid ${theme.borderSoft}`,
-            borderRadius: "50%", width: 20, height: 20, lineHeight: "16px",
-            padding: 0, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-          }}>
-            i
-          </button>
-        </div>
-
-        {/* Preview text */}
-        <div style={{ position: "relative" }}>
-          <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "14px",
-            lineHeight: 1.65, color: "var(--session-ink-soft)",
-            whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: isExpanded || !needsTruncation ? "none" : "5.5em",
-            overflow: "hidden",
-          }}>
-            {section.text}
-          </pre>
-          {needsTruncation && !isExpanded && (
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 36,
-              background: `linear-gradient(transparent, ${theme.surfaceTint})`,
-              pointerEvents: "none",
-            }} />
-          )}
-        </div>
-        {needsTruncation && !forceExpanded && (
-          <button onClick={() => setExpanded(!expanded)} style={{
-            fontFamily: "var(--font-mono)", fontSize: "11.5px",
-            letterSpacing: "0.5px",
-            color: theme.accent, background: "none",
-            border: "none", cursor: "pointer", padding: "8px 0 0",
-          }}>
-            {expanded ? "▴ Collapse" : "▾ Show full text"}
-          </button>
-        )}
-      </div>
-      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} theme={theme} />}
-    </>
+        {text}
+      </pre>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle card — conditional block with phase indicators
+// Lifecycle block — conditional prompt fragment with phase indicators.
+// Always shows full text; each block represents a chunk that may or may
+// not be injected depending on user state.
 // ---------------------------------------------------------------------------
 
-function LifecycleCard({ block, last, forceExpanded, theme }: { block: LifecycleBlock; last: boolean; forceExpanded?: boolean; theme: LayerTheme }) {
-  const [expanded, setExpanded] = useState(false);
-  const isExpanded = forceExpanded || expanded;
-  const [infoOpen, setInfoOpen] = useState(false);
+function LifecycleBlockCard({ block, last, theme }: { block: LifecycleBlock; last: boolean; theme: LayerTheme }) {
   const { section, presentInPhases } = block;
-  const lines = section.text.split("\n");
-  const needsTruncation = lines.length > 5;
 
   return (
-    <>
+    <div style={{
+      padding: "18px 22px 22px",
+      borderBottom: last ? "none" : `1px solid ${theme.borderSoft}`,
+    }}>
       <div style={{
-        padding: "16px 22px",
-        borderBottom: last ? "none" : `1px solid ${theme.borderSoft}`,
+        display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap",
       }}>
-        {/* Header row */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap",
+        <ConditionPill condition={section.condition} />
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: "11px",
+          letterSpacing: "1px", textTransform: "uppercase",
+          color: "var(--session-ink-ghost)",
         }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: "50%",
-            background: tierColor(section.tier), flexShrink: 0,
-          }} />
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "12.5px",
-            letterSpacing: "0.5px",
-            color: "var(--session-ink)", fontWeight: 500,
-          }}>
-            {section.label}
-          </span>
-          <ConditionPill condition={section.condition} />
-          <div style={{ flex: 1 }} />
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11.5px",
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "0.3px",
-          }}>
-            {section.tokens.toLocaleString()} tok
-          </span>
-          <button onClick={() => setInfoOpen(true)} title="View full text + source" style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))", fontSize: "12px",
-            fontStyle: "italic", fontWeight: 500,
-            color: theme.accent, background: "none",
+          Active in
+        </span>
+        {presentInPhases.map((p) => (
+          <span key={p} style={{
+            fontFamily: "var(--font-sans)", fontSize: "12px",
+            color: theme.accent,
+            background: theme.surfaceCard,
             border: `1px solid ${theme.borderSoft}`,
-            borderRadius: "50%", width: 20, height: 20, lineHeight: "16px",
-            padding: 0, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 3, padding: "2px 8px",
           }}>
-            i
-          </button>
-        </div>
-
-        {/* Phase indicators */}
-        <div style={{
-          display: "flex", gap: 6, marginBottom: 12, paddingLeft: 17,
-          alignItems: "center", flexWrap: "wrap",
-        }}>
-          <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11px",
-            letterSpacing: "1px", textTransform: "uppercase",
-            color: "var(--session-ink-ghost)",
-          }}>
-            Active in
+            {p}
           </span>
-          {presentInPhases.map((p) => (
-            <span key={p} style={{
-              fontFamily: "var(--font-sans)", fontSize: "12px",
-              color: theme.accent,
-              background: theme.surfaceCard,
-              border: `1px solid ${theme.borderSoft}`,
-              borderRadius: 3, padding: "2px 8px",
-            }}>
-              {p}
-            </span>
-          ))}
-        </div>
-
-        {/* Preview text */}
-        <div style={{ position: "relative" }}>
-          <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "14px",
-            lineHeight: 1.65, color: "var(--session-ink-soft)",
-            whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: isExpanded || !needsTruncation ? "none" : "5.5em",
-            overflow: "hidden",
-          }}>
-            {section.text}
-          </pre>
-          {needsTruncation && !isExpanded && (
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 36,
-              background: `linear-gradient(transparent, ${theme.surfaceTint})`,
-              pointerEvents: "none",
-            }} />
-          )}
-        </div>
-        {needsTruncation && !forceExpanded && (
-          <button onClick={() => setExpanded(!expanded)} style={{
-            fontFamily: "var(--font-mono)", fontSize: "11.5px",
-            letterSpacing: "0.5px",
-            color: theme.accent, background: "none",
-            border: "none", cursor: "pointer", padding: "8px 0 0",
-          }}>
-            {expanded ? "▴ Collapse" : "▾ Show full text"}
-          </button>
-        )}
+        ))}
       </div>
-      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} theme={theme} />}
-    </>
+      <pre style={{
+        fontFamily: "var(--font-sans)", fontSize: "14px",
+        lineHeight: 1.65, color: "var(--session-ink-soft)",
+        whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
+      }}>
+        {section.text}
+      </pre>
+    </div>
   );
 }
 
@@ -889,96 +717,9 @@ function ConditionPill({ condition }: { condition: { type: ConditionType; label:
   );
 }
 
-function InfoModal({ section, onClose, theme }: { section: PromptSection; onClose: () => void; theme?: LayerTheme }) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const accentBorder = theme?.border ?? "var(--session-walnut-border)";
-  const accentBand = theme?.band ?? "var(--session-walnut-surface-soft)";
-
-  return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 100,
-      background: "rgba(0,0,0,0.4)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 32,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        background: "var(--session-linen)", borderRadius: 10,
-        border: `1px solid ${accentBorder}`,
-        maxWidth: 760, width: "100%", maxHeight: "82vh",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
-      }}>
-        <div style={{
-          padding: "20px 26px 16px",
-          background: accentBand,
-          borderBottom: `1px solid ${accentBorder}`,
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <h3 style={{
-                fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "20px", fontWeight: 500, fontStyle: "italic",
-                color: "var(--session-ink)", margin: 0,
-                letterSpacing: "-0.005em",
-              }}>
-                {section.label}
-              </h3>
-              <div style={{
-                fontFamily: "var(--font-mono)", fontSize: "12px",
-                color: "var(--session-ink-faded)", marginTop: 8,
-                letterSpacing: "0.3px",
-              }}>
-                {section.source.file} → {section.source.symbol}
-              </div>
-            </div>
-            <button onClick={onClose} style={{
-              background: "none", border: "none", fontSize: "18px",
-              color: "var(--session-ink-ghost)", cursor: "pointer", padding: "4px 8px",
-              lineHeight: 1,
-            }}>✕</button>
-          </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: "12px",
-              color: "var(--session-ink-faded)", fontWeight: 500,
-              letterSpacing: "0.3px",
-            }}>
-              {section.tokens.toLocaleString()} tokens
-            </span>
-            <ConditionPill condition={section.condition} />
-          </div>
-        </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 30px" }}>
-          <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "15px", lineHeight: 1.75,
-            color: "var(--session-ink-soft)", whiteSpace: "pre-wrap",
-            wordBreak: "break-word", margin: 0,
-          }}>
-            {section.text}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Color helpers
 // ---------------------------------------------------------------------------
-
-function tierColor(tier: Tier): string {
-  switch (tier) {
-    case "intro": return "var(--session-ink-faded)";
-    case "1": return "var(--session-walnut)";
-    case "2": return "var(--session-walnut-meta)";
-    case "3": return "var(--session-persona)";
-    case "dynamic": return "var(--session-error-text)";
-  }
-}
 
 function conditionColor(type: ConditionType): string {
   switch (type) {
