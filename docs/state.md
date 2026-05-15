@@ -173,7 +173,7 @@
 ## Test Suite
 *Last verified: 2026-05-15*
 
-- Test count: 737
+- Test count: 746
 - All pass, ~1s, zero API cost (all mocked)
 - Framework: Vitest with vite-tsconfig-paths
 - Run: `npm run test` (all) or `npm run test:watch` (dev mode)
