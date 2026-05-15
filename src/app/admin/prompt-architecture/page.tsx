@@ -68,6 +68,60 @@ const PHASE_SHORT: Record<string, string> = {
   "phase-4": "Returning + checkpoint",
 };
 
+// ---------------------------------------------------------------------------
+// Per-layer themes — each layer gets a distinct gradient band, border and
+// surface tint so the three layers are differentiable at a glance, in the
+// same visual idiom as the Manual page's layer header bands.
+// ---------------------------------------------------------------------------
+
+interface LayerTheme {
+  band: string;          // gradient for the header band
+  border: string;        // outer border color
+  borderSoft: string;    // inner divider
+  numeral: string;       // big numeral color
+  accent: string;        // text accent (toggle, links)
+  surfaceTint: string;   // very faint card-area background
+  surfaceCard: string;   // header background when collapsed
+}
+
+const THEMES: Record<1 | 2 | 3, LayerTheme> = {
+  1: {
+    // Foundation — deep walnut warm (matches the Manual band)
+    band:
+      "linear-gradient(180deg, rgba(180,125,75,0.46) 0%, rgba(135,88,52,0.34) 100%)",
+    border: "var(--session-walnut-border)",
+    borderSoft: "var(--session-walnut-border-soft)",
+    numeral: "var(--session-walnut-meta)",
+    accent: "var(--session-walnut)",
+    surfaceTint: "var(--session-walnut-surface-soft)",
+    surfaceCard: "var(--session-walnut-surface)",
+  },
+  2: {
+    // Voice — lighter caramel band, distinct from Foundation but still warm
+    band:
+      "linear-gradient(180deg, rgba(220,170,120,0.40) 0%, rgba(180,135,90,0.28) 100%)",
+    border: "var(--session-walnut-border-soft)",
+    borderSoft: "var(--session-walnut-border-soft)",
+    numeral: "var(--session-walnut-meta-strong, var(--session-walnut-meta))",
+    accent: "var(--session-walnut)",
+    surfaceTint: "var(--session-walnut-tint)",
+    surfaceCard: "var(--session-walnut-surface-soft)",
+  },
+  3: {
+    // Lifecycle — sage, signals "conditional" via color shift
+    band:
+      "linear-gradient(180deg, rgba(156,177,138,0.44) 0%, rgba(94,122,79,0.32) 100%)",
+    border: "var(--session-persona-border)",
+    borderSoft: "var(--session-persona-border)",
+    numeral: "var(--session-persona)",
+    accent: "var(--session-persona)",
+    surfaceTint: "var(--session-persona-tint)",
+    surfaceCard: "var(--session-persona-muted)",
+  },
+};
+
+const LAYER_ROMAN = ["", "I", "II", "III"] as const;
+
 
 // ---------------------------------------------------------------------------
 // Categorize sections into the three layers
@@ -239,24 +293,25 @@ function PromptArchitectureInner() {
           {/* Controls */}
           <div style={{
             borderBottom: "1px solid var(--session-ink-hairline)",
-            padding: "14px 32px", display: "flex", flexWrap: "wrap",
-            gap: 16, alignItems: "center", flexShrink: 0,
+            padding: "18px 32px", display: "flex", flexWrap: "wrap",
+            gap: 18, alignItems: "center", flexShrink: 0,
           }}>
             <div style={{
               fontFamily: "var(--font-spectral, var(--font-serif))",
-              fontSize: "18px", fontWeight: 400, fontStyle: "italic",
+              fontSize: "22px", fontWeight: 400, fontStyle: "italic",
               color: "var(--session-ink)", marginRight: 8,
+              letterSpacing: "-0.005em",
             }}>
               Jove&apos;s prompt architecture
             </div>
-            <div style={{ width: 1, height: 20, background: "var(--session-ink-hairline)" }} />
+            <div style={{ width: 1, height: 22, background: "var(--session-ink-hairline)" }} />
             <ControlGroup label="Persona">
               {PERSONA_OPTIONS.map((p) => (
                 <Chip key={p.id} active={personaModes.includes(p.id)}
                   onClick={() => handlePersonaToggle(p.id)}>{p.label}</Chip>
               ))}
             </ControlGroup>
-            <div style={{ width: 1, height: 20, background: "var(--session-ink-hairline)" }} />
+            <div style={{ width: 1, height: 22, background: "var(--session-ink-hairline)" }} />
             <ControlGroup label="Mode">
               {CONV_MODE_OPTIONS.map((cm) => (
                 <Chip key={cm.id} active={convMode === cm.id}
@@ -265,8 +320,9 @@ function PromptArchitectureInner() {
             </ControlGroup>
             {data && (
               <span style={{
-                fontFamily: "var(--font-mono)", fontSize: "11px",
+                fontFamily: "var(--font-mono)", fontSize: "12px",
                 color: "var(--session-ink-ghost)", marginLeft: "auto",
+                letterSpacing: "0.5px",
               }}>
                 ~{totalTokens.toLocaleString()} tokens total
               </span>
@@ -316,15 +372,16 @@ function PromptArchitectureInner() {
 function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; tokens: number }) {
   const [open, setOpen] = useState(false);
   const [expandAll, setExpandAll] = useState(false);
+  const theme = THEMES[1];
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 28 }}>
       <LayerHeader
         number={1}
         title="Foundation"
         subtitle="Always present. Constitutional rules, behavioral guardrails, and conversation mechanics that never change regardless of persona, mode, or user state."
         stats={`${sections.length} sections · ${tokens.toLocaleString()} tokens`}
-        color="var(--session-walnut)"
+        theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
         expandAll={expandAll}
@@ -332,12 +389,13 @@ function FoundationLayer({ sections, tokens }: { sections: PromptSection[]; toke
       />
       {open && (
         <div style={{
-          border: "1px solid var(--session-ink-hairline)",
-          borderTop: "none", borderRadius: "0 0 8px 8px",
+          border: `1px solid ${theme.border}`,
+          borderTop: "none", borderRadius: "0 0 10px 10px",
           overflow: "hidden",
+          background: theme.surfaceTint,
         }}>
           {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} />
+            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} theme={theme} />
           ))}
         </div>
       )}
@@ -360,6 +418,7 @@ function VoiceLayer({
 }) {
   const [open, setOpen] = useState(true);
   const [expandAll, setExpandAll] = useState(false);
+  const theme = THEMES[2];
 
   // Collect alternatives from the first section that has them
   const alts = sections.find((s) => s.alternatives.length > 0)?.alternatives ?? [];
@@ -369,13 +428,13 @@ function VoiceLayer({
     .join(" + ");
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 28 }}>
       <LayerHeader
         number={2}
         title="Voice"
         subtitle={`Currently: ${activeLabel}. These sections define how Jove speaks — tone, rules, examples, conversational patterns. Swap personas above to see how each voice module differs.`}
         stats={`${sections.length} sections · ${tokens.toLocaleString()} tokens`}
-        color="var(--session-walnut-meta)"
+        theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
         expandAll={expandAll}
@@ -383,34 +442,36 @@ function VoiceLayer({
       />
       {open && (
         <div style={{
-          border: "1px solid var(--session-ink-hairline)",
-          borderTop: "none", borderRadius: "0 0 8px 8px",
+          border: `1px solid ${theme.border}`,
+          borderTop: "none", borderRadius: "0 0 10px 10px",
           overflow: "hidden",
+          background: theme.surfaceTint,
         }}>
           {/* Alternatives bar */}
           {alts.length > 0 && (
             <div style={{
-              padding: "10px 20px",
-              background: "var(--session-walnut-surface-soft)",
-              borderBottom: "1px solid var(--session-ink-hairline)",
-              display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap",
+              padding: "12px 22px",
+              background: theme.surfaceCard,
+              borderBottom: `1px solid ${theme.borderSoft}`,
+              display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap",
             }}>
               <span style={{
-                fontFamily: "var(--font-mono)", fontSize: "10px",
-                letterSpacing: "1.5px", textTransform: "uppercase",
+                fontFamily: "var(--font-mono)", fontSize: "11px",
+                letterSpacing: "2px", textTransform: "uppercase",
                 color: "var(--session-ink-ghost)",
               }}>
                 Other voices
               </span>
               {alts.map((alt) => (
                 <span key={alt.label} style={{
-                  fontFamily: "var(--font-sans)", fontSize: "12px",
+                  fontFamily: "var(--font-sans)", fontSize: "13px",
                   color: "var(--session-ink-faded)",
                 }}>
                   {alt.label}{" "}
                   <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: "10px",
+                    fontFamily: "var(--font-mono)", fontSize: "11px",
                     color: "var(--session-ink-ghost)",
+                    marginLeft: 2,
                   }}>
                     {alt.tokens.toLocaleString()}t
                   </span>
@@ -419,7 +480,7 @@ function VoiceLayer({
             </div>
           )}
           {sections.map((s, i) => (
-            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} />
+            <SectionCard key={s.id} section={s} last={i === sections.length - 1} forceExpanded={expandAll} theme={theme} />
           ))}
         </div>
       )}
@@ -434,15 +495,16 @@ function VoiceLayer({
 function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: number }) {
   const [open, setOpen] = useState(true);
   const [expandAll, setExpandAll] = useState(false);
+  const theme = THEMES[3];
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 28 }}>
       <LayerHeader
         number={3}
         title="Lifecycle"
         subtitle="Conditional blocks that appear or disappear based on where the user is in their journey. Each block lists which phases include it."
         stats={`${blocks.length} blocks · ${tokens.toLocaleString()} tokens (when all active)`}
-        color="var(--session-persona)"
+        theme={theme}
         open={open}
         onToggle={() => setOpen(!open)}
         expandAll={expandAll}
@@ -450,9 +512,10 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
       />
       {open && (
         <div style={{
-          border: "1px solid var(--session-ink-hairline)",
-          borderTop: "none", borderRadius: "0 0 8px 8px",
+          border: `1px solid ${theme.border}`,
+          borderTop: "none", borderRadius: "0 0 10px 10px",
           overflow: "hidden",
+          background: theme.surfaceTint,
         }}>
           {blocks.map((block, i) => (
             <LifecycleCard
@@ -460,6 +523,7 @@ function LifecycleLayer({ blocks, tokens }: { blocks: LifecycleBlock[]; tokens: 
               block={block}
               last={i === blocks.length - 1}
               forceExpanded={expandAll}
+              theme={theme}
             />
           ))}
         </div>
@@ -477,17 +541,17 @@ function LayerHeader({
   title,
   subtitle,
   stats,
-  color,
+  theme,
   open,
   onToggle,
   expandAll,
   onToggleExpandAll,
 }: {
-  number: number;
+  number: 1 | 2 | 3;
   title: string;
   subtitle: string;
   stats: string;
-  color: string;
+  theme: LayerTheme;
   open: boolean;
   onToggle: () => void;
   expandAll?: boolean;
@@ -497,34 +561,41 @@ function LayerHeader({
     <button
       onClick={onToggle}
       style={{
-        display: "flex", gap: 16, alignItems: "flex-start",
-        width: "100%", padding: "18px 20px",
-        background: open ? "var(--session-walnut-surface)" : "transparent",
-        border: `1px solid ${open ? "var(--session-walnut-border)" : "var(--session-ink-hairline)"}`,
-        borderRadius: open ? "8px 8px 0 0" : 8,
+        display: "flex", gap: 18, alignItems: "flex-start",
+        width: "100%", padding: "20px 24px 18px",
+        background: theme.band,
+        border: `1px solid ${theme.border}`,
+        borderBottom: open ? `1px solid ${theme.border}` : `1px solid ${theme.border}`,
+        borderRadius: open ? "10px 10px 0 0" : 10,
         cursor: "pointer", textAlign: "left",
-        transition: "all 0.15s ease",
+        transition: "border-radius 0.15s ease",
+        boxShadow: open ? "inset 0 -1px 0 rgba(0,0,0,0.04)" : "none",
       }}
     >
-      {/* Layer number */}
+      {/* Layer numeral — Roman, serif, color-coded */}
       <span style={{
-        fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 700,
-        color, lineHeight: "22px", flexShrink: 0,
+        fontFamily: "var(--font-spectral, var(--font-serif))",
+        fontStyle: "italic",
+        fontSize: "20px", fontWeight: 500,
+        color: theme.numeral, lineHeight: "26px", flexShrink: 0,
+        minWidth: 22, textAlign: "left",
       }}>
-        {number}
+        {LAYER_ROMAN[number]}.
       </span>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
           <span style={{
             fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontSize: "17px", fontWeight: 400, color: "var(--session-ink)",
+            fontSize: "22px", fontWeight: 500, color: "var(--session-ink)",
+            letterSpacing: "-0.005em", lineHeight: 1.15,
           }}>
             {title}
           </span>
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11px",
-            color: "var(--session-ink-ghost)",
+            fontFamily: "var(--font-mono)", fontSize: "12px",
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-faded)",
           }}>
             {stats}
           </span>
@@ -532,9 +603,12 @@ function LayerHeader({
             <span
               onClick={(e) => { e.stopPropagation(); onToggleExpandAll(); }}
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "10px",
-                color: "var(--session-walnut)", cursor: "pointer",
-                marginLeft: 4,
+                fontFamily: "var(--font-mono)", fontSize: "11px",
+                letterSpacing: "1px", textTransform: "uppercase",
+                color: theme.accent, cursor: "pointer",
+                marginLeft: 4, padding: "2px 8px",
+                border: `1px solid ${theme.borderSoft}`,
+                borderRadius: 3,
               }}
             >
               {expandAll ? "Collapse all" : "Expand all"}
@@ -542,17 +616,17 @@ function LayerHeader({
           )}
         </div>
         <div style={{
-          fontFamily: "var(--font-sans)", fontSize: "12.5px",
-          color: "var(--session-ink-faded)", lineHeight: 1.5, marginTop: 4,
-          maxWidth: 640,
+          fontFamily: "var(--font-sans)", fontSize: "14px",
+          color: "var(--session-ink-soft)", lineHeight: 1.55, marginTop: 6,
+          maxWidth: 720,
         }}>
           {subtitle}
         </div>
       </div>
 
       <span style={{
-        fontFamily: "var(--font-mono)", fontSize: "14px",
-        color: "var(--session-ink-ghost)", flexShrink: 0, lineHeight: "22px",
+        fontFamily: "var(--font-mono)", fontSize: "16px",
+        color: theme.accent, flexShrink: 0, lineHeight: "26px",
         transform: open ? "rotate(180deg)" : "rotate(0deg)",
         transition: "transform 0.15s ease",
       }}>
@@ -566,7 +640,7 @@ function LayerHeader({
 // Section card — a single prompt block (used in Foundation + Voice layers)
 // ---------------------------------------------------------------------------
 
-function SectionCard({ section, last, forceExpanded }: { section: PromptSection; last: boolean; forceExpanded?: boolean }) {
+function SectionCard({ section, last, forceExpanded, theme }: { section: PromptSection; last: boolean; forceExpanded?: boolean; theme: LayerTheme }) {
   const [expanded, setExpanded] = useState(false);
   const isExpanded = forceExpanded || expanded;
   const [infoOpen, setInfoOpen] = useState(false);
@@ -576,36 +650,40 @@ function SectionCard({ section, last, forceExpanded }: { section: PromptSection;
   return (
     <>
       <div style={{
-        padding: "12px 20px",
-        borderBottom: last ? "none" : "1px solid var(--session-ink-hairline)",
+        padding: "16px 22px",
+        borderBottom: last ? "none" : `1px solid ${theme.borderSoft}`,
       }}>
         {/* Header row */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 8, marginBottom: 6,
+          display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
         }}>
           <span style={{
-            width: 6, height: 6, borderRadius: "50%",
+            width: 7, height: 7, borderRadius: "50%",
             background: tierColor(section.tier), flexShrink: 0,
           }} />
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11px",
-            letterSpacing: "0.5px", textTransform: "uppercase",
+            fontFamily: "var(--font-mono)", fontSize: "12.5px",
+            letterSpacing: "0.5px",
             color: "var(--session-ink)", fontWeight: 500,
           }}>
             {section.label}
           </span>
           <div style={{ flex: 1 }} />
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
+            fontFamily: "var(--font-mono)", fontSize: "11.5px",
             color: "var(--session-ink-ghost)",
+            letterSpacing: "0.3px",
           }}>
             {section.tokens.toLocaleString()} tok
           </span>
           <button onClick={() => setInfoOpen(true)} title="View full text + source" style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
-            color: "var(--session-ink-ghost)", background: "none",
-            border: "1px solid var(--session-ink-hairline)",
-            borderRadius: 3, padding: "0 5px", cursor: "pointer",
+            fontFamily: "var(--font-spectral, var(--font-serif))", fontSize: "12px",
+            fontStyle: "italic", fontWeight: 500,
+            color: theme.accent, background: "none",
+            border: `1px solid ${theme.borderSoft}`,
+            borderRadius: "50%", width: 20, height: 20, lineHeight: "16px",
+            padding: 0, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
           }}>
             i
           </button>
@@ -614,33 +692,34 @@ function SectionCard({ section, last, forceExpanded }: { section: PromptSection;
         {/* Preview text */}
         <div style={{ position: "relative" }}>
           <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "12.5px",
-            lineHeight: 1.6, color: "var(--session-ink-faded)",
+            fontFamily: "var(--font-sans)", fontSize: "14px",
+            lineHeight: 1.65, color: "var(--session-ink-soft)",
             whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: isExpanded || !needsTruncation ? "none" : "4.8em",
+            maxHeight: isExpanded || !needsTruncation ? "none" : "5.5em",
             overflow: "hidden",
           }}>
             {section.text}
           </pre>
           {needsTruncation && !isExpanded && (
             <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
-              background: "linear-gradient(transparent, var(--session-linen))",
+              position: "absolute", bottom: 0, left: 0, right: 0, height: 36,
+              background: `linear-gradient(transparent, ${theme.surfaceTint})`,
               pointerEvents: "none",
             }} />
           )}
         </div>
         {needsTruncation && !forceExpanded && (
           <button onClick={() => setExpanded(!expanded)} style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
-            color: "var(--session-walnut)", background: "none",
-            border: "none", cursor: "pointer", padding: "4px 0 0",
+            fontFamily: "var(--font-mono)", fontSize: "11.5px",
+            letterSpacing: "0.5px",
+            color: theme.accent, background: "none",
+            border: "none", cursor: "pointer", padding: "8px 0 0",
           }}>
             {expanded ? "▴ Collapse" : "▾ Show full text"}
           </button>
         )}
       </div>
-      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} />}
+      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} theme={theme} />}
     </>
   );
 }
@@ -649,7 +728,7 @@ function SectionCard({ section, last, forceExpanded }: { section: PromptSection;
 // Lifecycle card — conditional block with phase indicators
 // ---------------------------------------------------------------------------
 
-function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; last: boolean; forceExpanded?: boolean }) {
+function LifecycleCard({ block, last, forceExpanded, theme }: { block: LifecycleBlock; last: boolean; forceExpanded?: boolean; theme: LayerTheme }) {
   const [expanded, setExpanded] = useState(false);
   const isExpanded = forceExpanded || expanded;
   const [infoOpen, setInfoOpen] = useState(false);
@@ -660,20 +739,20 @@ function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; 
   return (
     <>
       <div style={{
-        padding: "12px 20px",
-        borderBottom: last ? "none" : "1px solid var(--session-ink-hairline)",
+        padding: "16px 22px",
+        borderBottom: last ? "none" : `1px solid ${theme.borderSoft}`,
       }}>
         {/* Header row */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 8, marginBottom: 4,
+          display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap",
         }}>
           <span style={{
-            width: 6, height: 6, borderRadius: "50%",
+            width: 7, height: 7, borderRadius: "50%",
             background: tierColor(section.tier), flexShrink: 0,
           }} />
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "11px",
-            letterSpacing: "0.5px", textTransform: "uppercase",
+            fontFamily: "var(--font-mono)", fontSize: "12.5px",
+            letterSpacing: "0.5px",
             color: "var(--session-ink)", fontWeight: 500,
           }}>
             {section.label}
@@ -681,16 +760,20 @@ function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; 
           <ConditionPill condition={section.condition} />
           <div style={{ flex: 1 }} />
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
+            fontFamily: "var(--font-mono)", fontSize: "11.5px",
             color: "var(--session-ink-ghost)",
+            letterSpacing: "0.3px",
           }}>
             {section.tokens.toLocaleString()} tok
           </span>
           <button onClick={() => setInfoOpen(true)} title="View full text + source" style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
-            color: "var(--session-ink-ghost)", background: "none",
-            border: "1px solid var(--session-ink-hairline)",
-            borderRadius: 3, padding: "0 5px", cursor: "pointer",
+            fontFamily: "var(--font-spectral, var(--font-serif))", fontSize: "12px",
+            fontStyle: "italic", fontWeight: 500,
+            color: theme.accent, background: "none",
+            border: `1px solid ${theme.borderSoft}`,
+            borderRadius: "50%", width: 20, height: 20, lineHeight: "16px",
+            padding: 0, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
           }}>
             i
           </button>
@@ -698,21 +781,23 @@ function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; 
 
         {/* Phase indicators */}
         <div style={{
-          display: "flex", gap: 6, marginBottom: 8, paddingLeft: 14,
-          alignItems: "center",
+          display: "flex", gap: 6, marginBottom: 12, paddingLeft: 17,
+          alignItems: "center", flexWrap: "wrap",
         }}>
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
+            fontFamily: "var(--font-mono)", fontSize: "11px",
+            letterSpacing: "1px", textTransform: "uppercase",
             color: "var(--session-ink-ghost)",
           }}>
-            Active in:
+            Active in
           </span>
           {presentInPhases.map((p) => (
             <span key={p} style={{
-              fontFamily: "var(--font-sans)", fontSize: "11px",
-              color: "var(--session-persona)",
-              background: "var(--session-persona-surface, rgba(100,130,100,0.1))",
-              borderRadius: 3, padding: "1px 7px",
+              fontFamily: "var(--font-sans)", fontSize: "12px",
+              color: theme.accent,
+              background: theme.surfaceCard,
+              border: `1px solid ${theme.borderSoft}`,
+              borderRadius: 3, padding: "2px 8px",
             }}>
               {p}
             </span>
@@ -722,33 +807,34 @@ function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; 
         {/* Preview text */}
         <div style={{ position: "relative" }}>
           <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "12.5px",
-            lineHeight: 1.6, color: "var(--session-ink-faded)",
+            fontFamily: "var(--font-sans)", fontSize: "14px",
+            lineHeight: 1.65, color: "var(--session-ink-soft)",
             whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0,
-            maxHeight: isExpanded || !needsTruncation ? "none" : "4.8em",
+            maxHeight: isExpanded || !needsTruncation ? "none" : "5.5em",
             overflow: "hidden",
           }}>
             {section.text}
           </pre>
           {needsTruncation && !isExpanded && (
             <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
-              background: "linear-gradient(transparent, var(--session-linen))",
+              position: "absolute", bottom: 0, left: 0, right: 0, height: 36,
+              background: `linear-gradient(transparent, ${theme.surfaceTint})`,
               pointerEvents: "none",
             }} />
           )}
         </div>
         {needsTruncation && !forceExpanded && (
           <button onClick={() => setExpanded(!expanded)} style={{
-            fontFamily: "var(--font-mono)", fontSize: "10px",
-            color: "var(--session-walnut)", background: "none",
-            border: "none", cursor: "pointer", padding: "4px 0 0",
+            fontFamily: "var(--font-mono)", fontSize: "11.5px",
+            letterSpacing: "0.5px",
+            color: theme.accent, background: "none",
+            border: "none", cursor: "pointer", padding: "8px 0 0",
           }}>
             {expanded ? "▴ Collapse" : "▾ Show full text"}
           </button>
         )}
       </div>
-      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} />}
+      {infoOpen && <InfoModal section={section} onClose={() => setInfoOpen(false)} theme={theme} />}
     </>
   );
 }
@@ -759,11 +845,11 @@ function LifecycleCard({ block, last, forceExpanded }: { block: LifecycleBlock; 
 
 function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <span style={{
-        fontFamily: "var(--font-mono)", fontSize: "10px",
+        fontFamily: "var(--font-mono)", fontSize: "11px",
         letterSpacing: "2px", textTransform: "uppercase",
-        color: "var(--session-ink-ghost)", marginRight: 2,
+        color: "var(--session-ink-ghost)", marginRight: 4,
       }}>
         {label}
       </span>
@@ -777,12 +863,12 @@ function Chip({ active, onClick, children }: {
 }) {
   return (
     <button onClick={onClick} style={{
-      fontFamily: "var(--font-sans)", fontSize: "12px",
+      fontFamily: "var(--font-sans)", fontSize: "13px",
       fontWeight: active ? 500 : 400,
       color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
       background: active ? "var(--session-walnut-surface)" : "transparent",
       border: `1px solid ${active ? "var(--session-walnut-border)" : "var(--session-ink-hairline)"}`,
-      borderRadius: 4, padding: "3px 10px", cursor: "pointer",
+      borderRadius: 4, padding: "4px 12px", cursor: "pointer",
       transition: "all 0.15s ease",
     }}>
       {children}
@@ -793,22 +879,25 @@ function Chip({ active, onClick, children }: {
 function ConditionPill({ condition }: { condition: { type: ConditionType; label: string } }) {
   return (
     <span style={{
-      fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.5px",
+      fontFamily: "var(--font-mono)", fontSize: "10.5px", letterSpacing: "0.5px",
       color: conditionColor(condition.type),
       border: `1px solid ${conditionBorder(condition.type)}`,
-      borderRadius: 3, padding: "1px 6px", whiteSpace: "nowrap",
+      borderRadius: 3, padding: "2px 7px", whiteSpace: "nowrap",
     }}>
       {condition.label}
     </span>
   );
 }
 
-function InfoModal({ section, onClose }: { section: PromptSection; onClose: () => void }) {
+function InfoModal({ section, onClose, theme }: { section: PromptSection; onClose: () => void; theme?: LayerTheme }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const accentBorder = theme?.border ?? "var(--session-walnut-border)";
+  const accentBand = theme?.band ?? "var(--session-walnut-surface-soft)";
 
   return (
     <div onClick={onClose} style={{
@@ -817,49 +906,55 @@ function InfoModal({ section, onClose }: { section: PromptSection; onClose: () =
       display: "flex", alignItems: "center", justifyContent: "center", padding: 32,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: "var(--session-linen)", borderRadius: 8,
-        border: "1px solid var(--session-walnut-border)",
-        maxWidth: 720, width: "100%", maxHeight: "80vh",
+        background: "var(--session-linen)", borderRadius: 10,
+        border: `1px solid ${accentBorder}`,
+        maxWidth: 760, width: "100%", maxHeight: "82vh",
         display: "flex", flexDirection: "column", overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
       }}>
         <div style={{
-          padding: "18px 24px 14px",
-          borderBottom: "1px solid var(--session-ink-hairline)",
+          padding: "20px 26px 16px",
+          background: accentBand,
+          borderBottom: `1px solid ${accentBorder}`,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <h3 style={{
                 fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "17px", fontWeight: 400, fontStyle: "italic",
+                fontSize: "20px", fontWeight: 500, fontStyle: "italic",
                 color: "var(--session-ink)", margin: 0,
+                letterSpacing: "-0.005em",
               }}>
                 {section.label}
               </h3>
               <div style={{
-                fontFamily: "var(--font-mono)", fontSize: "11px",
-                color: "var(--session-ink-ghost)", marginTop: 6,
+                fontFamily: "var(--font-mono)", fontSize: "12px",
+                color: "var(--session-ink-faded)", marginTop: 8,
+                letterSpacing: "0.3px",
               }}>
                 {section.source.file} → {section.source.symbol}
               </div>
             </div>
             <button onClick={onClose} style={{
-              background: "none", border: "none", fontSize: "16px",
+              background: "none", border: "none", fontSize: "18px",
               color: "var(--session-ink-ghost)", cursor: "pointer", padding: "4px 8px",
+              lineHeight: 1,
             }}>✕</button>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
             <span style={{
-              fontFamily: "var(--font-mono)", fontSize: "11px",
+              fontFamily: "var(--font-mono)", fontSize: "12px",
               color: "var(--session-ink-faded)", fontWeight: 500,
+              letterSpacing: "0.3px",
             }}>
               {section.tokens.toLocaleString()} tokens
             </span>
             <ConditionPill condition={section.condition} />
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "18px 24px 28px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 30px" }}>
           <pre style={{
-            fontFamily: "var(--font-sans)", fontSize: "13px", lineHeight: 1.7,
+            fontFamily: "var(--font-sans)", fontSize: "15px", lineHeight: 1.75,
             color: "var(--session-ink-soft)", whiteSpace: "pre-wrap",
             wordBreak: "break-word", margin: 0,
           }}>

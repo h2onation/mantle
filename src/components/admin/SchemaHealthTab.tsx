@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { adminEmptyStyle, formatAdminDate } from "./admin-shared";
 import { useAsyncFetch } from "@/lib/hooks/useAsyncFetch";
 
@@ -23,10 +24,101 @@ interface MigrationStatus {
 }
 
 export default function SchemaHealthTab() {
+  const [open, setOpen] = useState(false);
   const { data: status, loading, error, reload } = useAsyncFetch<MigrationStatus>(
-    "/api/admin/migration-status"
+    open ? "/api/admin/migration-status" : null
   );
 
+  // Collapsed-by-default header. Migrations are the lowest-frequency thing
+  // an admin checks here, so they sit at the bottom of Health and only
+  // fetch when the section is opened.
+  const summary = status
+    ? status.inSync
+      ? `In sync · ${status.applied.length} applied`
+      : `Drift · ${status.missingInDb.length + status.missingOnDisk.length}`
+    : null;
+  const summaryColor = status
+    ? status.inSync
+      ? "var(--session-persona)"
+      : "var(--session-error)"
+    : "var(--session-ink-ghost)";
+
+  return (
+    <div style={{ marginTop: 40 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          width: "100%",
+          padding: "10px 0",
+          background: "none",
+          border: "none",
+          borderBottom: open
+            ? "1px solid var(--session-ink-hairline)"
+            : "none",
+          textAlign: "left",
+          cursor: "pointer",
+          marginBottom: open ? 12 : 0,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform 0.15s ease",
+            display: "inline-block",
+            lineHeight: 1,
+          }}
+        >
+          ▾
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          Migrations
+        </span>
+        {summary && (
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--size-meta)",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: summaryColor,
+            }}
+          >
+            · {summary}
+          </span>
+        )}
+      </button>
+      {open && <MigrationsBody status={status} loading={loading} error={error} reload={reload} />}
+    </div>
+  );
+}
+
+function MigrationsBody({
+  status,
+  loading,
+  error,
+  reload,
+}: {
+  status: MigrationStatus | null;
+  loading: boolean;
+  error: string | null;
+  reload: () => void;
+}) {
   if (loading && !status) {
     return <div style={adminEmptyStyle}>Loading…</div>;
   }
