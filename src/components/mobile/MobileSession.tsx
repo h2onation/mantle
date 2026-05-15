@@ -7,7 +7,7 @@ import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
 import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
@@ -25,13 +25,6 @@ const RETURNING_GREETINGS: ((name?: string | null) => string)[] = [
   () => "What brings you here today?",
 ];
 
-const LAYER_ORDINAL: Record<number, string> = {
-  1: "One",
-  2: "Two",
-  3: "Three",
-  4: "Four",
-  5: "Five",
-};
 
 function formatWelcomeDate(): string {
   const now = new Date();
@@ -675,9 +668,7 @@ export default function MobileSession({
                               lineHeight: 1,
                             }}
                           >
-                            {activeCheckpoint?.layer && LAYER_NAMES[activeCheckpoint.layer]
-                              ? `Layer ${LAYER_ORDINAL[activeCheckpoint.layer] ?? activeCheckpoint.layer} — ${LAYER_NAMES[activeCheckpoint.layer]}`
-                              : "Suggested Entry"}
+                            {formatLayerEyebrow(activeCheckpoint?.layer ?? null)}
                           </span>
                         </div>
                         {/* Entry title + tap hint */}
@@ -787,7 +778,7 @@ export default function MobileSession({
                     }}
                   >
                     <Plate
-                      eyebrow={checkpointLayer && LAYER_NAMES[checkpointLayer] ? LAYER_NAMES[checkpointLayer] : undefined}
+                      eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
                       {!isRejected && renderMarkdown(msg.content)}
@@ -990,16 +981,6 @@ export default function MobileSession({
         <CheckpointOverlay
           open={checkpointOverlayOpen}
           checkpoint={overlayCheckpointRef.current}
-          layerName={
-            overlayCheckpointRef.current.layer && LAYER_NAMES[overlayCheckpointRef.current.layer]
-              ? LAYER_NAMES[overlayCheckpointRef.current.layer]
-              : undefined
-          }
-          layerOrdinal={
-            overlayCheckpointRef.current.layer
-              ? LAYER_ORDINAL[overlayCheckpointRef.current.layer]
-              : undefined
-          }
           refinementCeilingActive={refinementCeilingActive}
           confirmStatus={
             checkpointActionState !== "confirmed"
