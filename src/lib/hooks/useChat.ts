@@ -66,6 +66,45 @@ export function confirmErrorMessage(
   return "Something went wrong saving that. Please try again.";
 }
 
+/**
+ * Convert a streaming `message_complete` SSE event into the optimistic
+ * in-memory ChatMessage we append to `messages`.
+ *
+ * The critical bit: when the event carries a checkpoint payload, the
+ * returned message MUST have `isCheckpoint: true` plus `checkpointMeta`
+ * populated. MobileSession's render logic gates the trigger card on
+ * `msg.isCheckpoint === true`. Without these fields, a pending
+ * checkpoint message falls through to plain-bubble rendering — the
+ * model's structured proposal text (Layer name, headline, validation
+ * CTA) renders inline as raw chat content and the user has no card
+ * to tap into the action overlay. Exported for testing.
+ */
+export function buildChatMessageFromEvent(
+  event: MessageCompleteEvent,
+  displayContent: string
+): ChatMessage {
+  const checkpoint = event.checkpoint;
+  if (checkpoint) {
+    return {
+      role: "assistant",
+      content: displayContent,
+      id: event.messageId,
+      isCheckpoint: true,
+      checkpointMeta: {
+        layer: checkpoint.layer,
+        name: checkpoint.name,
+        status: "pending",
+        refinement_count: checkpoint.refinement_count ?? 0,
+      },
+    };
+  }
+  return {
+    role: "assistant",
+    content: displayContent,
+    id: event.messageId,
+  };
+}
+
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -177,14 +216,7 @@ export function useChat() {
           // drift could emit a cleanContent-less event with no
           // preceding text_delta. Skip appending in that case.
           if (displayContent) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant" as const,
-                content: displayContent,
-                id: data.messageId,
-              },
-            ]);
+            setMessages((prev) => [...prev, buildChatMessageFromEvent(data, displayContent)]);
             // Run the per-event finalize (modal-2 trigger refresh,
             // checkpoint metadata if this event carried one, etc.).
             finalizeMessage(displayContent, data);
