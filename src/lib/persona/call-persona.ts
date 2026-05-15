@@ -155,6 +155,40 @@ interface CallPersonaOptions {
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
 }
 
+// Broader than the detection regex so we catch paraphrases the strict
+// detector doesn't. Used only for suppression rewrites — never for
+// firing a checkpoint. (Firing still goes through detect-checkpoint.ts.)
+const SUPPRESSION_PATTERN =
+  /(?:I want to put|I'd like to put|I'm going to put|Let me put|I want to add|I'd like to add)\s+(?:something|this|that)\s+(?:in|into)\s+your\s+Manual\b/i;
+
+const SUPPRESSION_CONTINUATION =
+  "What was happening right before that landed?";
+const SUPPRESSION_FALLBACK_FULL = `Let me stay with that for a beat. ${SUPPRESSION_CONTINUATION}`;
+
+/**
+ * Rewrite a Jove response that contains a checkpoint transition line
+ * which is being suppressed (gate failed, cooldown active, or
+ * composition errored). Strip the transition line and everything after
+ * it (the checkpoint reflection that would have followed). Keep any
+ * landing or lead-in that preceded it. If nothing substantive remains,
+ * fall back to a neutral continuation.
+ *
+ * Without this, Jove's words ("I want to put something in your Manual")
+ * end up saved to chat without a paired trigger card — the user reads
+ * the promise and sees nothing happen.
+ */
+export function stripCheckpointFromText(text: string): string {
+  const match = text.match(SUPPRESSION_PATTERN);
+  if (!match || match.index === undefined) {
+    return text;
+  }
+  const before = text.slice(0, match.index).trim();
+  if (before.length < 40) {
+    return SUPPRESSION_FALLBACK_FULL;
+  }
+  return `${before}\n\n${SUPPRESSION_CONTINUATION}`;
+}
+
 /** Deterministic fallback for the post-confirm follow-up message when the
  *  Sonnet call fails. Mirrors the structure of the prompt-driven version
  *  (pinned "Saved." opener + optional first-time scaffolding paragraph +
@@ -500,6 +534,10 @@ export function callPersona({
 
         // 12b. Shared checkpoint gates (material quality + turn-count).
         //      Cheap to gate here before paying for the composition call.
+        //      When the gate fails, rewrite conversationalText to strip
+        //      the now-stranded transition line and update the saved row
+        //      — otherwise the user reads "I want to put something in
+        //      your Manual" in chat with no trigger card to back it up.
         if (isCheckpoint) {
           const gateResult = applyCheckpointGates(
             turnsSinceCheckpoint,
@@ -509,6 +547,19 @@ export function callPersona({
           );
           if (!gateResult.passed) {
             isCheckpoint = false;
+            conversationalText = stripCheckpointFromText(conversationalText);
+            if (messageId) {
+              await admin
+                .from("messages")
+                .update({ content: conversationalText })
+                .eq("id", messageId);
+            }
+            if (process.env.NODE_ENV !== "production") {
+              console.log(
+                "[persona-debug] Checkpoint gate failed, response rewritten: %s",
+                gateResult.reason
+              );
+            }
           }
         }
 
@@ -565,7 +616,17 @@ export function callPersona({
           }
 
           if (!composedEntry) {
+            // Composition failed — same broken-promise risk as a gate
+            // failure. Rewrite + update the saved row so the chat
+            // doesn't carry an unresolved transition line.
             isCheckpoint = false;
+            conversationalText = stripCheckpointFromText(conversationalText);
+            if (messageId) {
+              await admin
+                .from("messages")
+                .update({ content: conversationalText })
+                .eq("id", messageId);
+            }
           }
         }
 

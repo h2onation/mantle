@@ -219,12 +219,16 @@ export async function loadConversationContext(
     : "";
 
   const turnCount = messages.length;
+  // Only fire checkpoint instructions when at least one layer has reached
+  // "explored" (or beyond). "emerging" is too low a bar — it flips true on
+  // any layer that's been touched at all, which would prime Jove to fire
+  // the transition line before the brief has caught up. The material
+  // quality gate would then silently suppress, producing the broken
+  // chat-without-card UX. Pair this with showCheckpointInstructions no
+  // longer auto-loading for returning users (system-prompt.ts).
   const checkpointApproaching = previousExtraction
     ? Object.values(previousExtraction.layers).some(
-        (l) =>
-          l.signal === "emerging" ||
-          l.signal === "explored" ||
-          l.signal === "checkpoint_ready"
+        (l) => l.signal === "explored" || l.signal === "checkpoint_ready"
       )
     : false;
 

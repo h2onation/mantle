@@ -700,7 +700,12 @@ export function buildSystemPromptBlocks(
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  const showCheckpointInstructions = checkpointApproaching || isReturningUser;
+  // Checkpoint instructions used to auto-load for every returning-user
+  // turn, including turn 1 of a new session before any material had
+  // surfaced. That primed Jove to write the transition line too early.
+  // Gate on checkpointApproaching alone — returning-user status flows
+  // through the RETURNING USER block, which is enough context.
+  const showCheckpointInstructions = checkpointApproaching;
 
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
@@ -851,7 +856,12 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  const showCheckpointInstructions = checkpointApproaching || isReturningUser;
+  // Checkpoint instructions used to auto-load for every returning-user
+  // turn, including turn 1 of a new session before any material had
+  // surfaced. That primed Jove to write the transition line too early.
+  // Gate on checkpointApproaching alone — returning-user status flows
+  // through the RETURNING USER block, which is enough context.
+  const showCheckpointInstructions = checkpointApproaching;
 
   // ─── Base prompt (tiered) ──────────────────────────────────────────────
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;

@@ -5,6 +5,7 @@ import {
   applySlidingWindow,
   mapSystemMessages,
   detectCrisisInUserMessage,
+  stripCheckpointFromText,
 } from "@/lib/persona/call-persona";
 
 // ── applySlidingWindow ──
@@ -197,6 +198,60 @@ describe("detectCrisisInUserMessage", () => {
     expect(detectCrisisInUserMessage("I don't want to be here anymore")).toBe(true);
     expect(detectCrisisInUserMessage("I dont want to exist")).toBe(true);
     expect(detectCrisisInUserMessage("whats the point of living")).toBe(true);
+  });
+});
+
+// ── stripCheckpointFromText (suppression rewrite) ──
+//
+// When the material-quality gate or composition step suppresses a
+// detected checkpoint, the transition line Jove already wrote needs to
+// come out of the saved response — otherwise the user reads
+// "I want to put something in your Manual" in chat with no trigger
+// card. The helper strips the transition + reflection and falls back
+// to a neutral continuation when nothing substantive precedes the line.
+
+describe("stripCheckpointFromText", () => {
+  it("strips the transition line and everything after it when nothing precedes it", () => {
+    const input =
+      "I want to put something in your Manual. There is a thing your system does when pressure lands. Body Goes Quiet. What would you change or sharpen?";
+    const result = stripCheckpointFromText(input);
+    expect(result).not.toContain("in your Manual");
+    expect(result).not.toContain("Body Goes Quiet");
+    expect(result).not.toContain("What would you change");
+    // Falls back to a single grounding question.
+    expect(result).toContain("?");
+  });
+
+  it("preserves a substantive landing or lead-in that came before the transition", () => {
+    const input =
+      "That moment you described at the dinner table is sitting with me — the way your jaw locked before anyone had even said anything yet. I want to put something in your Manual. Body Goes Quiet First.";
+    const result = stripCheckpointFromText(input);
+    expect(result).toContain("dinner table");
+    expect(result).toContain("jaw locked");
+    expect(result).not.toContain("in your Manual");
+    expect(result).not.toContain("Body Goes Quiet");
+  });
+
+  it("returns the original text unchanged when no transition line is present", () => {
+    const input =
+      "Walk me through what happened. Start from right before it began.";
+    expect(stripCheckpointFromText(input)).toBe(input);
+  });
+
+  it("catches paraphrase variants the strict detector doesn't (broader than detect-checkpoint)", () => {
+    // The suppression pattern needs to be broader than the firing
+    // pattern so a near-miss the model produced still gets cleaned up.
+    const variants = [
+      "I'd like to put this in your Manual. Reflection follows.",
+      "I'm going to put that into your Manual. Reflection follows.",
+      "Let me put something in your Manual. Reflection follows.",
+      "I want to add this in your Manual. Reflection follows.",
+      "I'd like to add something into your Manual. Reflection follows.",
+    ];
+    for (const v of variants) {
+      const result = stripCheckpointFromText(v);
+      expect(result).not.toContain("Reflection follows");
+    }
   });
 });
 
