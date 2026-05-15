@@ -39,6 +39,32 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
+
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return Response.json({ error: "missing_id" }, { status: 400 });
+    }
+
+    const { error } = await admin.from("beta_feedback").delete().eq("id", id);
+
+    if (error) {
+      console.error("[admin/beta-feedback] delete error:", error.message);
+      return Response.json({ error: "Failed to delete" }, { status: 500 });
+    }
+
+    return Response.json({ result: "deleted" });
+  } catch (err) {
+    console.error("[admin/beta-feedback] unexpected error:", err);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const auth = await requireAdmin();

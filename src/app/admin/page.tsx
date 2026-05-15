@@ -7,18 +7,13 @@ import { useAdminData } from "@/lib/hooks/useAdminData";
 import UsersTab from "@/components/admin/UsersTab";
 import WaitlistTab from "@/components/admin/WaitlistTab";
 import BetaAllowlistTab from "@/components/admin/BetaAllowlistTab";
-import BetaFeedbackTab from "@/components/admin/BetaFeedbackTab";
 import UserProfilePane from "@/components/admin/UserProfilePane";
 import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
-import FeedbackPanel from "@/components/admin/FeedbackPanel";
+import FeedbackSection from "@/components/admin/FeedbackSection";
 import AdminNavRail from "@/components/admin/AdminNavRail";
-import {
-  formatAdminDate,
-  adminEmptyStyle,
-} from "@/components/admin/admin-shared";
 
 type Section = "users" | "beta" | "feedback" | "health";
 type BetaSubTab = "waitlist" | "allowlist";
@@ -63,11 +58,6 @@ function AdminPageInner() {
     if (section === "feedback") {
       data.loadBetaFeedback();
       data.loadUserFeedback();
-    }
-    // Health tab surfaces unread feedback alongside errors and active
-    // users, so load the same data the Feedback tab loads.
-    if (section === "health") {
-      data.loadBetaFeedback();
     }
   }, [section, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -224,16 +214,10 @@ function AdminPageInner() {
                 padding: "18px 24px 40px",
               }}
             >
-              <SchemaHealthTab />
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
               <ActiveUsersPanel />
-              <FeedbackPanel
-                items={data.betaFeedback}
-                unreadCount={data.betaFeedbackUnreadCount}
-                loaded={data.betaFeedbackLoaded}
-                onMarkRead={data.markBetaFeedbackRead}
-              />
+              <SchemaHealthTab />
             </div>
           )}
 
@@ -245,68 +229,13 @@ function AdminPageInner() {
                 padding: "18px 24px 40px",
               }}
             >
-              {data.betaFeedback.length === 0 &&
-              data.userFeedback.length === 0 ? (
-                <div style={adminEmptyStyle}>No feedback yet</div>
-              ) : (
-                <>
-                  <BetaFeedbackTab
-                    items={data.betaFeedback}
-                    onMarkRead={data.markBetaFeedbackRead}
-                  />
-                  {data.userFeedback.length > 0 && (
-                    <>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          letterSpacing: "2px",
-                          textTransform: "uppercase",
-                          color: "var(--session-ink-ghost)",
-                          marginTop: 32,
-                          marginBottom: 8,
-                        }}
-                      >
-                        In-app feedback
-                      </div>
-                      {data.userFeedback.map((item) => (
-                        <div
-                          key={item.id}
-                          style={{
-                            padding: "14px 0",
-                            borderBottom:
-                              "1px solid var(--session-ink-hairline)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "var(--size-meta)",
-                              color: "var(--session-ink-ghost)",
-                              letterSpacing: "0.5px",
-                            }}
-                          >
-                            {item.user_email || "Guest"} ·{" "}
-                            {formatAdminDate(item.created_at)}
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-sans)",
-                              fontSize: "13px",
-                              color: "var(--session-ink)",
-                              lineHeight: 1.55,
-                              marginTop: 6,
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {item.message}
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
+              <FeedbackSection
+                betaFeedback={data.betaFeedback}
+                userFeedback={data.userFeedback}
+                onMarkRead={data.markBetaFeedbackRead}
+                onDeleteBeta={data.deleteBetaFeedback}
+                onDeleteUser={data.deleteUserFeedback}
+              />
             </div>
           )}
         </main>

@@ -103,18 +103,19 @@ export async function POST(request: Request) {
 
     console.log("[admin/beta-allowlist] inserted email=%s", email);
 
-    // If a waitlist_id was provided, also update that row's status to "invited"
+    // Remove the matching row from the waitlist — once on the allowlist,
+    // they should no longer appear as pending. Match by id when supplied,
+    // else fall back to email so manual add-form entries also clean up.
     const waitlistId = body.waitlist_id;
-    if (typeof waitlistId === "string" && waitlistId) {
-      const { error: updateError } = await admin
-        .from("waitlist")
-        .update({ status: "invited" })
-        .eq("id", waitlistId);
+    const waitlistDelete = admin.from("waitlist").delete();
+    const { error: deleteError } =
+      typeof waitlistId === "string" && waitlistId
+        ? await waitlistDelete.eq("id", waitlistId)
+        : await waitlistDelete.eq("email", email);
 
-      if (updateError) {
-        console.error("[admin/beta-allowlist] waitlist update error:", updateError.message);
-        // Non-fatal — the allowlist insert succeeded
-      }
+    if (deleteError) {
+      console.error("[admin/beta-allowlist] waitlist delete error:", deleteError.message);
+      // Non-fatal — the allowlist insert succeeded
     }
 
     return Response.json({ result: "added" });

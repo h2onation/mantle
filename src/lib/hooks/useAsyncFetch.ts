@@ -16,19 +16,24 @@ interface AsyncFetchState<T> {
  * setError / try-fetch-finally scaffolding.
  *
  * - Refetches whenever `url` changes.
+ * - Pass `null` to skip the fetch (e.g. lazy-load a collapsible panel).
  * - `reload()` triggers an unconditional refetch (e.g. after a mutation).
  * - On error, parses the JSON body for a `{ error }` field and falls back
  *   to `HTTP <status>` or the network-error message.
  */
-export function useAsyncFetch<T>(url: string): AsyncFetchState<T> {
+export function useAsyncFetch<T>(url: string | null): AsyncFetchState<T> {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(url !== null);
   const [error, setError] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
 
   const reload = useCallback(() => setReloadCount((n) => n + 1), []);
 
   useEffect(() => {
+    if (url === null) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

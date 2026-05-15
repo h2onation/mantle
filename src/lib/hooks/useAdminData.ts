@@ -245,14 +245,17 @@ export function useAdminData() {
       });
       if (!res.ok) throw new Error("Failed to add to beta");
       const data = await res.json();
-      if (data.result === "added" && waitlistId) {
+      if (data.result === "added") {
+        // The API removes the matching waitlist row (by id when provided,
+        // otherwise by email). Mirror that in local state.
+        const normalized = email.trim().toLowerCase();
         setWaitlist((prev) =>
-          prev.map((row) =>
-            row.id === waitlistId ? { ...row, status: "invited" as const } : row
+          prev.filter((row) =>
+            waitlistId
+              ? row.id !== waitlistId
+              : row.email.toLowerCase() !== normalized
           )
         );
-      }
-      if (data.result === "added") {
         await loadAllowlist(true);
       }
       return data.result;
@@ -279,6 +282,30 @@ export function useAdminData() {
       prev.map((row) => (row.id === id ? { ...row, is_read: true } : row))
     );
     setBetaFeedbackUnreadCount((n) => Math.max(0, n - 1));
+  }, []);
+
+  const deleteBetaFeedback = useCallback(async (id: string) => {
+    const res = await fetch(
+      `/api/admin/beta-feedback?id=${encodeURIComponent(id)}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) throw new Error("Failed to delete feedback");
+    setBetaFeedback((prev) => {
+      const removed = prev.find((row) => row.id === id);
+      if (removed && !removed.is_read) {
+        setBetaFeedbackUnreadCount((n) => Math.max(0, n - 1));
+      }
+      return prev.filter((row) => row.id !== id);
+    });
+  }, []);
+
+  const deleteUserFeedback = useCallback(async (id: string) => {
+    const res = await fetch(
+      `/api/admin/feedback?id=${encodeURIComponent(id)}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) throw new Error("Failed to delete feedback");
+    setUserFeedback((prev) => prev.filter((row) => row.id !== id));
   }, []);
 
   return {
@@ -317,6 +344,8 @@ export function useAdminData() {
     addToBeta,
     removeFromAllowlist,
     markBetaFeedbackRead,
+    deleteBetaFeedback,
+    deleteUserFeedback,
   };
 }
 
