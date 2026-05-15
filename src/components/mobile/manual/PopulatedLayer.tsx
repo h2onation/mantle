@@ -44,7 +44,7 @@ export default function PopulatedLayer({
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
         boxShadow: "var(--session-plate-shadow)",
-        padding: "26px var(--sp-sm) var(--sp-md)",
+        padding: "30px var(--sp-sm) var(--sp-md)",
         marginTop: 13,
         ...(layer.isNew ? { animation: "layerFadeUp 0.5s ease-out both" } : {}),
       }}

@@ -17,11 +17,12 @@ interface EntryItemProps {
 /**
  * One Manual entry inside a PopulatedLayer Plate.
  *
- * Title: italic Spectral 20px — the thread headline. Authoritative,
- * sized like a chapter title (1.33× the body), per the editorial
- * intent in docs/intent.md ("the truest one-line description of the
- * pattern"). No size jitter between collapsed and expanded — the
- * chevron rotation carries state.
+ * Title: italic Spectral 18px — the thread headline. Sized between
+ * the Layer header (22px on the tab pip) and the body (16px), so the
+ * hierarchy reads Layer > Pattern > Body. Italic differentiator vs the
+ * upright body keeps the title legible as a section title at 1.125×.
+ * No size jitter between collapsed and expanded — the chevron rotation
+ * carries state.
  *
  * Body: Spectral 16px / 1.65 / ink-soft — comfortable long-form
  * reading register (Apple Books / Substack scale). Ink-soft softens
@@ -72,9 +73,9 @@ export default function EntryItem({
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontStyle: "italic",
             fontWeight: 500,
-            fontSize: 20,
+            fontSize: 18,
             lineHeight: 1.3,
-            letterSpacing: "-0.01em",
+            letterSpacing: "-0.005em",
             color: "var(--session-ink)",
             fontFeatureSettings: '"liga","dlig","kern"',
             textWrap: "balance" as React.CSSProperties["textWrap"],

@@ -65,16 +65,16 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
           left: 18,
           transform: "translateY(-50%)",
           maxWidth: 320,
-          borderRadius: 8,
+          borderRadius: 9,
           background: "rgb(135, 90, 55)",
           color: "rgba(245, 243, 238, 0.96)",
           fontFamily: "var(--font-spectral), var(--font-serif), serif",
           fontStyle: "normal",
           fontWeight: 500,
-          fontSize: 18,
+          fontSize: 22,
           lineHeight: 1,
           letterSpacing: "-0.01em",
-          padding: "8px 18px",
+          padding: "9px 20px",
           whiteSpace: "nowrap",
           boxShadow:
             "0 2px 6px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.10)",
@@ -83,8 +83,11 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
         {LAYER_ROMAN[layer.id]}. {layer.name}
       </span>
 
-      {/* Info chip — subtle outlined "i" at the top-right. Same position
-          on every Plate (populated or empty) so the eye doesn't reorient. */}
+      {/* Info chip — small outlined circle at the top-right, same
+          position on every Plate. The "i" glyph is an inline SVG
+          (rounded-rect stem + circle dot, both currentColor) so its
+          geometry is centered by construction — no font-baseline drift
+          or italic top-lean to fight. */}
       <button
         ref={buttonRef}
         type="button"
@@ -97,10 +100,10 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
         aria-label={`About Layer ${layer.id}`}
         style={{
           position: "absolute",
-          top: 12,
+          top: 13,
           right: 14,
-          width: 22,
-          height: 22,
+          width: 20,
+          height: 20,
           borderRadius: "50%",
           background: open ? "var(--session-walnut-highlight)" : "transparent",
           color: open ? "var(--session-ink)" : "var(--session-walnut-meta)",
@@ -109,12 +112,7 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
               ? "var(--session-walnut-meta-strong)"
               : "var(--session-walnut-meta)"
           }`,
-          fontFamily: "var(--font-spectral), var(--font-serif), serif",
-          fontStyle: "italic",
-          fontWeight: 500,
-          fontSize: 12,
-          lineHeight: 1,
-          padding: "0 0 2px 0",
+          padding: 0,
           cursor: "pointer",
           transition:
             "background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease",
@@ -125,7 +123,17 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
           justifyContent: "center",
         }}
       >
-        i
+        <svg
+          width="2"
+          height="10"
+          viewBox="0 0 2 10"
+          fill="currentColor"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="1" cy="1" r="1" />
+          <rect x="0" y="4" width="2" height="6" rx="1" />
+        </svg>
       </button>
 
       {/* Description popover — always rendered for smooth transition,

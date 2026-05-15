@@ -70,7 +70,7 @@ export default function EmptyLayer({
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
         // Shadow suppressed — see comment above.
         boxShadow: "none",
-        padding: "26px var(--sp-sm) var(--sp-md)",
+        padding: "30px var(--sp-sm) var(--sp-md)",
         marginTop: 13,
         cursor: canTap ? "pointer" : "default",
         WebkitTapHighlightColor: "transparent",
