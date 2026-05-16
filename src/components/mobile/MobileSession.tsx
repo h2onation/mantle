@@ -497,7 +497,7 @@ export default function MobileSession({
             willChange: "transform",
             display: "flex",
             flexDirection: "column",
-            padding: "20px 16px 4px",
+            padding: "20px 16px 14px",
             gap: "14px",
             maskImage:
               "linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 4px), transparent 100%)",
