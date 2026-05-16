@@ -279,7 +279,7 @@ interface ConfirmCheckpointOptions {
  *   success: false, error — message missing, non-pending terminal state, or DB failure
  *
  * See supabase/migrations/20260417000003_confirm_idempotency.sql for the
- * RPC definition and docs/checkpoint-hardening-plan.md Track 2.
+ * RPC definition and docs/reference/checkpoint-hardening-plan.md Track 2.
  */
 export async function confirmCheckpoint({
   messageId,

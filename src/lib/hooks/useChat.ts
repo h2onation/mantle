@@ -35,7 +35,7 @@ export interface ConversationSummaryItem {
 
 /**
  * Maps a failed /api/checkpoint/confirm response (or network failure) to
- * a user-facing message. See docs/checkpoint-hardening-plan.md Track 3
+ * a user-facing message. See docs/reference/checkpoint-hardening-plan.md Track 3
  * for the taxonomy. Exported for testing.
  *
  * `status` is null when the fetch itself rejected (network error, abort,

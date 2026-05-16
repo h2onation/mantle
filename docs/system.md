@@ -213,13 +213,13 @@ Not enforced at the DB layer (stored as untyped JSONB on the `messages` table). 
 }
 ```
 
-## Manual Component Accumulation
+## Manual Entry Accumulation
 
 Layers can hold many entries. Confirmation is always an insert — there is no upsert, no per-layer cap, no replacement rule. The `manual_changelog` table is reserved for explicit edits to existing entries (current write paths do not exercise it).
 
 ## Migration Protocols
 
-Schema changes go through the Supabase CLI with migrations committed to `supabase/migrations/`. The dashboard SQL editor is for **read-only exploration only** — never for DDL. This was changed on 2026-04-17 after silent drift caused a production checkpoint-confirm bug; see `docs/checkpoint-hardening-plan.md` Track 1.
+Schema changes go through the Supabase CLI with migrations committed to `supabase/migrations/`. The dashboard SQL editor is for **read-only exploration only** — never for DDL. This was changed on 2026-04-17 after silent drift caused a production checkpoint-confirm bug; see `docs/reference/checkpoint-hardening-plan.md` Track 1.
 
 The flow:
 

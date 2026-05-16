@@ -3,7 +3,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 // E2E test config — runs `*.e2e.test.ts` files against a running local
 // Supabase instance (started via `supabase start`). See Track 5 of
-// docs/checkpoint-hardening-plan.md.
+// docs/reference/checkpoint-hardening-plan.md.
 //
 // Expects these env vars set before running:
 //   NEXT_PUBLIC_SUPABASE_URL      — typically http://127.0.0.1:54321

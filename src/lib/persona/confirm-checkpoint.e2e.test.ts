@@ -5,7 +5,7 @@
 // Validates: happy path, idempotency on repeat, concurrent-call safety
 // (unique index + FOR UPDATE), already-rejected refusal.
 //
-// Runs against local Supabase. See docs/checkpoint-hardening-plan.md
+// Runs against local Supabase. See docs/reference/checkpoint-hardening-plan.md
 // Track 5.
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
