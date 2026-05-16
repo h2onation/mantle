@@ -77,7 +77,7 @@ export default function PostLoginOnboarding({
       >
         {currentView === "info" && (
           <InfoScreens
-            onNavigateToSeed={handleNavigateToPersona}
+            onContinue={handleNavigateToPersona}
             onBack={handleBack}
           />
         )}

@@ -3,7 +3,6 @@
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface EntryScreenProps {
-  onBegin?: () => void;
   onLogin: () => void;
 }
 
