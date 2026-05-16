@@ -17,12 +17,15 @@ interface EntryItemProps {
 /**
  * One Manual entry inside a PopulatedLayer Plate.
  *
- * Title: italic Spectral 18px — the thread headline. Sized between
- * the Layer header (22px on the tab pip) and the body (16px), so the
- * hierarchy reads Layer > Pattern > Body. Italic differentiator vs the
- * upright body keeps the title legible as a section title at 1.125×.
- * No size jitter between collapsed and expanded — the chevron rotation
- * carries state.
+ * Title: italic Spectral 18px regular — the thread headline. Sized
+ * between the Layer header (22px on the tab pip) and the body (16px),
+ * so the hierarchy reads Layer > Pattern > Body. Regular weight (not
+ * medium) — italic alone carries the title differentiation; adding
+ * weight on top reads as a UI label rather than a literary section
+ * title. Line-height 1.4 (loose for italic) so titles like "I Spit
+ * the Signal Back Before Anyone Hears It" can wrap to two lines
+ * without cramping. No size jitter between collapsed and expanded —
+ * the chevron rotation carries state.
  *
  * Body: Spectral 16px / 1.65 / ink-soft — comfortable long-form
  * reading register (Apple Books / Substack scale). Ink-soft softens
@@ -72,9 +75,9 @@ export default function EntryItem({
             margin: 0,
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontStyle: "italic",
-            fontWeight: 500,
+            fontWeight: 400,
             fontSize: 18,
-            lineHeight: 1.3,
+            lineHeight: 1.4,
             letterSpacing: "-0.005em",
             color: "var(--session-ink)",
             fontFeatureSettings: '"liga","dlig","kern"',
