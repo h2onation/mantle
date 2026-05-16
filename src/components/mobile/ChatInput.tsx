@@ -143,7 +143,7 @@ export default function ChatInput({
     <div
       style={{
         flexShrink: 0,
-        padding: "var(--sp-sm) 16px var(--sp-sm)",
+        padding: "0 16px var(--sp-sm)",
       }}
     >
       {/* Voice error toast — oxblood top-rule */}
