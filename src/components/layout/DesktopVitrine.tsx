@@ -152,12 +152,18 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
 
           {/* Theme toggle. Sits above the publication-meta row as an
               editorial register shift — same mono caps, dot separators,
-              active option in --session-ink + underline. */}
+              active option in --session-ink + underline. The
+              mw-colophon-meta class on this first meta-row anchors it
+              (and every sibling below it) to the bottom of the rail at
+              wide desktop via margin-top:auto on the flex column. */}
           <p
             role="group"
             aria-label="Appearance"
+            className="mw-colophon-meta"
             style={{
-              margin: "20px 0 0",
+              marginRight: 0,
+              marginBottom: 0,
+              marginLeft: 0,
               fontFamily: "var(--font-mono)",
               fontSize: "var(--size-meta)",
               fontWeight: 400,
