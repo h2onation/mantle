@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { LAYER_ROMAN, type Layer } from "./layer-definitions";
+import { type Layer } from "./layer-definitions";
+import TabPip from "./TabPip";
 
 interface LayerHeaderProps {
   layer: Layer;
@@ -56,31 +57,18 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
   return (
     <>
       {/* Tab pip — walnut chip protruding from the top-left edge.
-          Theme-stable hardcoded walnut: cream-on-walnut needs a fixed
-          dark walnut behind it; deriving from tokens would shift hue. */}
+          Host positions it; TabPip carries the visual treatment so the
+          checkpoint trigger card (in chat) and the Manual page Plate
+          render the same chapter mark from a single source. */}
       <span
         style={{
           position: "absolute",
           top: 0,
           left: 18,
           transform: "translateY(-50%)",
-          maxWidth: 320,
-          borderRadius: 9,
-          background: "rgb(135, 90, 55)",
-          color: "rgba(245, 243, 238, 0.96)",
-          fontFamily: "var(--font-spectral), var(--font-serif), serif",
-          fontStyle: "normal",
-          fontWeight: 500,
-          fontSize: 22,
-          lineHeight: 1,
-          letterSpacing: "-0.01em",
-          padding: "9px 20px",
-          whiteSpace: "nowrap",
-          boxShadow:
-            "0 2px 6px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.10)",
         }}
       >
-        {LAYER_ROMAN[layer.id]}. {layer.name}
+        <TabPip layerId={layer.id} layerName={layer.name} />
       </span>
 
       {/* Info chip — small outlined circle at the top-right, same
