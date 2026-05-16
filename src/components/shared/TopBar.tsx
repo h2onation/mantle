@@ -6,8 +6,8 @@ interface TopBarProps {
 }
 
 const CIRCLE_BTN_STYLE: React.CSSProperties = {
-  width: 44,
-  height: 44,
+  width: 38,
+  height: 38,
   borderRadius: "50%",
   background: "var(--session-button-inset)",
   border: "1px solid var(--session-walnut-border-soft)",
@@ -17,14 +17,14 @@ const CIRCLE_BTN_STYLE: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   color: "var(--session-ink)",
-  fontSize: "16px",
+  fontSize: "14px",
   lineHeight: 1,
   cursor: "pointer",
   padding: 0,
   flexShrink: 0,
 };
 
-const SPACER_STYLE: React.CSSProperties = { width: 44, height: 44, flexShrink: 0 };
+const SPACER_STYLE: React.CSSProperties = { width: 38, height: 38, flexShrink: 0 };
 
 // Left slot hosts the back chevron when present (returning to chat from
 // a sub-view), right slot hosts the menu glyph. When only one is passed,
@@ -70,9 +70,9 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
         className="mw-topbar-wordmark"
         style={{
           fontFamily: "var(--font-serif)",
-          fontSize: "19px",
+          fontSize: "16px",
           fontWeight: 400,
-          letterSpacing: "-0.4px",
+          letterSpacing: "-0.3px",
           color: "var(--session-ink)",
           lineHeight: 1,
         }}

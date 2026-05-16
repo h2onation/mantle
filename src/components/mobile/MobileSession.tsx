@@ -221,12 +221,12 @@ export default function MobileSession({
         </div>
         <h1 style={{
           fontFamily: "var(--font-serif)",
-          fontSize: "44px",
+          fontSize: "30px",
           fontWeight: 400,
           color: "var(--session-ink)",
           lineHeight: 1.1,
           margin: 0,
-          letterSpacing: "-0.8px",
+          letterSpacing: "-0.5px",
           whiteSpace: "pre-line",
         }}>
           {greeting.endsWith(".") ? (
@@ -239,9 +239,9 @@ export default function MobileSession({
         <p style={{
           fontFamily: "var(--font-serif)",
           fontStyle: "italic",
-          fontSize: "18px",
+          fontSize: "13.5px",
           color: "var(--session-ink-persona)",
-          margin: "12px 0 0",
+          margin: "10px 0 0",
           lineHeight: 1.4,
         }}>
           What&apos;s on your mind today?
@@ -280,13 +280,13 @@ export default function MobileSession({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "16px",
+            fontSize: "14.5px",
             color: "var(--session-ink)",
             lineHeight: 1.3,
           }}>Navigate a situation</div>
           <div style={{
             fontFamily: "var(--font-sans)",
-            fontSize: "13px",
+            fontSize: "11.5px",
             color: "var(--session-ink-mid)",
             marginTop: "2px",
             lineHeight: 1.3,
@@ -338,13 +338,13 @@ export default function MobileSession({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "16px",
+            fontSize: "14.5px",
             color: "var(--session-ink)",
             lineHeight: 1.3,
           }}>Guided intake</div>
           <div style={{
             fontFamily: "var(--font-sans)",
-            fontSize: "13px",
+            fontSize: "11.5px",
             color: "var(--session-ink-mid)",
             marginTop: "2px",
             lineHeight: 1.3,
@@ -392,13 +392,13 @@ export default function MobileSession({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "16px",
+            fontSize: "14.5px",
             color: "var(--session-ink)",
             lineHeight: 1.3,
           }}>Upload</div>
           <div style={{
             fontFamily: "var(--font-sans)",
-            fontSize: "13px",
+            fontSize: "11.5px",
             color: "var(--session-ink-mid)",
             marginTop: "2px",
             lineHeight: 1.3,
@@ -587,10 +587,10 @@ export default function MobileSession({
                               fontFamily:
                                 "var(--font-spectral), var(--font-persona), serif",
                               fontStyle: "italic",
-                              fontSize: 21,
-                              fontWeight: 500,
-                              lineHeight: 1.3,
-                              letterSpacing: "-0.2px",
+                              fontSize: 17,
+                              fontWeight: 400,
+                              lineHeight: 1.32,
+                              letterSpacing: "-0.15px",
                               color: "var(--session-ink)",
                             }}
                           >
@@ -599,15 +599,15 @@ export default function MobileSession({
                         )}
                         <div
                           style={{
-                            margin: "18px 4px 0",
-                            paddingTop: 14,
+                            margin: "16px 4px 0",
+                            paddingTop: 12,
                             borderTop: "1px solid var(--session-hair-soft)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
                             fontFamily:
                               "var(--font-sans, 'DM Sans', sans-serif)",
-                            fontSize: 13,
+                            fontSize: 11.5,
                             color: "var(--session-ink-faded)",
                           }}
                         >
@@ -616,7 +616,7 @@ export default function MobileSession({
                             style={{
                               fontFamily:
                                 "var(--font-spectral), var(--font-persona), serif",
-                              fontSize: 22,
+                              fontSize: 18,
                               lineHeight: 1,
                               color: "var(--session-walnut)",
                             }}
@@ -816,7 +816,7 @@ export default function MobileSession({
                       aria-label={`${PERSONA_NAME} is typing`}
                       style={{
                         fontFamily: "var(--font-serif)",
-                        fontSize: "20px",
+                        fontSize: "17px",
                         color: "var(--session-persona)",
                         lineHeight: 1,
                         display: "inline-block",

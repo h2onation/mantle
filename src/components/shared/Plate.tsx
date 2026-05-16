@@ -23,7 +23,7 @@ export default function Plate({ eyebrow, heading, children }: PlateProps) {
         <p
           style={{
             margin: 0,
-            fontSize: "11px",
+            fontSize: "10px",
             letterSpacing: "2px",
             textTransform: "uppercase",
             color: "var(--session-walnut-meta-strong)",
@@ -37,12 +37,12 @@ export default function Plate({ eyebrow, heading, children }: PlateProps) {
       {heading && (
         <h3
           style={{
-            margin: eyebrow ? "14px 0 0" : 0,
+            margin: eyebrow ? "12px 0 0" : 0,
             fontFamily: "var(--font-spectral), var(--font-persona), serif",
-            fontSize: "24px",
+            fontSize: "19px",
             fontWeight: 500,
             lineHeight: 1.25,
-            letterSpacing: "-0.2px",
+            letterSpacing: "-0.15px",
             color: "var(--session-ink)",
           }}
         >
@@ -52,11 +52,11 @@ export default function Plate({ eyebrow, heading, children }: PlateProps) {
       )}
       <div
         style={{
-          marginTop: heading || eyebrow ? "16px" : 0,
+          marginTop: heading || eyebrow ? "14px" : 0,
           fontFamily: "var(--font-spectral), var(--font-persona), serif",
-          fontSize: "17px",
-          lineHeight: 1.62,
-          letterSpacing: "-0.05px",
+          fontSize: "14.5px",
+          lineHeight: 1.6,
+          letterSpacing: "-0.03px",
           color: "var(--session-ink)",
           textWrap: "pretty" as React.CSSProperties["textWrap"],
         }}
