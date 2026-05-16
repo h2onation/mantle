@@ -43,8 +43,8 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
       {isJove && showLabel && (
         <p
           style={{
-            margin: "0 0 8px",
-            fontSize: "10px",
+            margin: "0 0 6px",
+            fontSize: "9.5px",
             letterSpacing: "2.2px",
             textTransform: "uppercase",
             color: "var(--session-persona)",
@@ -59,9 +59,9 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
         style={{
           margin: 0,
           fontFamily: "var(--font-spectral), var(--font-persona), serif",
-          fontSize: "17px",
-          lineHeight: 1.62,
-          letterSpacing: "-0.05px",
+          fontSize: "14.5px",
+          lineHeight: 1.6,
+          letterSpacing: "-0.03px",
           color: isJove ? "var(--session-ink)" : "var(--session-ink-user-text)",
           textWrap: "pretty" as React.CSSProperties["textWrap"],
         }}
