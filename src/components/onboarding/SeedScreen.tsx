@@ -78,10 +78,16 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
       {/* Content area — vertically centered in the available height.
           On mobile the phone-frame is the viewport, so this centers
           on the visible screen. On desktop the phone-frame is ~932px
-          tall, so this prevents content falling to the bottom edge. */}
+          tall, so this prevents content falling to the bottom edge.
+          min-height:0 + overflow-y:auto lets the area scroll when the
+          checkbox + disclosure + CTA exceed the available height
+          (short viewports, large system font, browser zoom). */}
       <div
         style={{
           flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",

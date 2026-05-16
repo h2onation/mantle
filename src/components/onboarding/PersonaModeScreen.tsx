@@ -86,6 +86,19 @@ export default function PersonaModeScreen({
     >
       <TopBar onBack={onBack} />
 
+      {/* Scrollable middle — TopBar above stays pinned, Continue footer
+          below stays pinned. min-height:0 lets this flex child shrink
+          below content size so overflow-y: auto actually kicks in (the
+          default min-height: auto on a flex child blocks shrinking and
+          is exactly what made the persona plate clip on short screens). */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
       <div
         style={{
           margin: "32px 18px 0",
@@ -253,12 +266,16 @@ export default function PersonaModeScreen({
         </p>
       )}
 
-      <div style={{ flex: 1 }} />
+      {/* bottom breathing room inside the scroll surface so the last
+          option doesn't sit flush against the pinned footer */}
+      <div style={{ height: 32 }} />
+      </div>
 
       <div
         style={{
-          padding: "0 24px",
+          padding: "16px 24px 0",
           paddingBottom: "calc(36px + env(safe-area-inset-bottom, 0px))",
+          flexShrink: 0,
         }}
       >
         <button

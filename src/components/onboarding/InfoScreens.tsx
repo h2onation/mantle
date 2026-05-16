@@ -20,6 +20,16 @@ export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensPro
     >
       <TopBar onBack={onBack} />
 
+      {/* Scrollable middle — pin TopBar above + CTA footer below, let
+          the prose plate scroll when the viewport can't fit it. */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
       {/* Plate — walnut tint, prose-led */}
       <div
         style={{
@@ -84,14 +94,16 @@ export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensPro
         </p>
       </div>
 
-      {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      {/* bottom breathing room inside scroll surface */}
+      <div style={{ height: 32 }} />
+      </div>
 
-      {/* Action — TextBtn CTA at bottom */}
+      {/* Action — TextBtn CTA pinned at the foot of the screen */}
       <div
         style={{
-          padding: "0 24px",
+          padding: "16px 24px 0",
           paddingBottom: "calc(36px + env(safe-area-inset-bottom, 0px))",
+          flexShrink: 0,
         }}
       >
         <button
