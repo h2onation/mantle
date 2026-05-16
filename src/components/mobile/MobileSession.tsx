@@ -836,13 +836,6 @@ export default function MobileSession({
                 </div>
               )}
 
-            {/* Bottom spacer for checkpoint glow breathing room */}
-            {messages.length > 0 &&
-             messages[messages.length - 1]?.isCheckpoint === true &&
-             !isLoading && (
-              <div style={{ height: "40px", flexShrink: 0 }} />
-            )}
-
             {/* Connection / send error — walnut plate with oxblood
                 eyebrow. Same plate-on-chat pattern as the checkpoint
                 proposal, so the error reads as a moment in the
