@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkpoint — Manual Plate vocabulary (Hearth + Bloom)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #08090c;
+        min-height: 100vh;
+        padding: 48px 24px 96px;
+        color: rgba(245, 235, 220, 0.95);
+      }
+
+      /* ─────────────────────── Page head ─────────────────────── */
+      .page-head { max-width: 1100px; margin: 0 auto 32px; }
+      .page-head h1 {
+        font-family: "Spectral", serif;
+        font-weight: 500;
+        font-size: 36px;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .page-head h1 span { color: rgba(220, 165, 110, 1); }
+      .page-head p {
+        margin: 0 0 14px;
+        font-family: "Spectral", serif;
+        font-style: italic;
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: rgba(235, 220, 200, 0.78);
+        max-width: 720px;
+      }
+      .page-head .crit {
+        margin: 0;
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(180, 165, 145, 0.5);
+      }
+      .changes {
+        margin: 22px auto 0;
+        max-width: 1100px;
+        padding: 16px 18px;
+        background: rgba(60, 45, 32, 0.32);
+        border: 1px solid rgba(180, 130, 88, 0.25);
+        border-radius: 10px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13.5px;
+        line-height: 1.7;
+        color: rgba(235, 220, 200, 0.85);
+      }
+      .changes strong {
+        font-family: "DM Mono", monospace;
+        font-weight: 500;
+        font-size: 10.5px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(220, 165, 110, 0.85);
+        display: block;
+        margin-bottom: 6px;
+      }
+      .changes ul { margin: 0; padding-left: 18px; }
+      .changes li { margin: 4px 0; }
+      .changes code {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        color: rgba(255, 230, 195, 0.9);
+        background: rgba(0, 0, 0, 0.22);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+
+      /* ─────────────────────── Row ─────────────────────── */
+      .row {
+        max-width: 1100px;
+        margin: 36px auto 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 36px;
+      }
+      @media (max-width: 880px) {
+        .row { grid-template-columns: 1fr; max-width: 460px; }
+      }
+
+      .theme-label {
+        text-align: center;
+        margin-bottom: 14px;
+        font-family: "DM Mono", monospace;
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(180, 165, 145, 0.6);
+      }
+      .theme-label span { color: rgba(245, 235, 220, 0.95); }
+      .theme-label.bloom span { color: rgba(60, 35, 18, 0.92); }
+
+      /* ─────────────────────── Phone shells ─────────────────────── */
+      .phone {
+        border-radius: 32px;
+        padding: 22px 0 0;
+        overflow: hidden;
+      }
+      .phone-head {
+        padding: 0 22px 14px;
+        text-align: center;
+        font-family: "Spectral", serif;
+        font-weight: 500;
+        font-size: 19px;
+        letter-spacing: -0.01em;
+      }
+      .scroll {
+        padding: 18px 16px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .composer {
+        margin: 22px 16px 18px;
+        padding: 14px 18px;
+        border-radius: 22px;
+        font-family: "Spectral", serif;
+        font-style: italic;
+        font-size: 15px;
+      }
+      .bubble {
+        max-width: 88%;
+        align-self: flex-start;
+        border-radius: 18px;
+        padding: 13px 16px 14px;
+        font-family: "Spectral", serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      /* ═══════════════ HEARTH (dark) ═══════════════ */
+      .hearth {
+        /* Tokens ported directly from globals.css :root */
+        --session-walnut-surface: rgba(115, 72, 42, 0.20);
+        --session-bubble-border: rgba(170, 120, 82, 0.20);
+        --session-walnut-border: rgba(170, 120, 82, 0.18);
+        --session-jove-bg: rgba(72, 80, 98, 0.30);
+        --session-jove-border: rgba(170, 180, 200, 0.12);
+        --session-plate-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.30),
+          inset 0 1px 0 rgba(220, 170, 120, 0.10);
+        --session-ink: rgba(245, 235, 220, 0.95);
+        --session-ink-soft: rgba(235, 220, 200, 0.78);
+        --session-ink-faded: rgba(200, 185, 165, 0.5);
+        --session-walnut: rgba(220, 165, 110, 1);
+        --session-walnut-meta: rgba(220, 165, 110, 0.62);
+        --session-walnut-meta-strong: rgba(230, 180, 130, 0.82);
+        --session-hair-soft: rgba(160, 130, 100, 0.16);
+
+        background:
+          radial-gradient(ellipse 110% 45% at 50% 0%, rgba(170, 120, 82, 0.32), transparent 80%),
+          radial-gradient(ellipse 120% 70% at 50% 90%, rgba(28, 30, 36, 0.92), transparent),
+          radial-gradient(ellipse 60% 40% at 92% 6%, rgba(115, 72, 42, 0.4), transparent),
+          #14151a;
+        box-shadow:
+          0 1px 0 rgba(255, 240, 215, 0.06) inset,
+          0 30px 80px rgba(0, 0, 0, 0.55),
+          0 0 0 1px rgba(255, 240, 215, 0.04);
+      }
+      .hearth .phone-head { color: var(--session-ink); }
+      .hearth .phone-head .dot { color: var(--session-walnut); }
+      .hearth .bubble {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        color: var(--session-ink);
+      }
+      .hearth .composer {
+        background: rgba(60, 45, 32, 0.55);
+        border: 1px solid var(--session-bubble-border);
+        color: var(--session-ink-faded);
+      }
+
+      /* ═══════════════ BLOOM (light) ═══════════════ */
+      .bloom {
+        /* Tokens ported directly from globals.css [data-theme="light"] */
+        --session-walnut-surface: rgba(232, 220, 196, 0.90);
+        --session-bubble-border: rgba(92, 58, 30, 0.32);
+        --session-walnut-border: rgba(92, 58, 30, 0.32);
+        --session-jove-bg: rgba(232, 220, 196, 0.90);
+        --session-jove-border: rgba(92, 58, 30, 0.32);
+        --session-plate-shadow:
+          0 22px 56px rgba(31, 20, 10, 0.16),
+          0 6px 14px rgba(31, 20, 10, 0.10),
+          0 1px 0 rgba(245, 235, 215, 0.4) inset;
+        --session-ink: rgba(30, 18, 8, 0.96);
+        --session-ink-soft: rgba(60, 35, 18, 0.78);
+        --session-ink-faded: rgba(120, 95, 70, 0.6);
+        --session-walnut: rgba(135, 88, 52, 1);
+        --session-walnut-meta: rgba(135, 88, 52, 0.7);
+        --session-walnut-meta-strong: rgba(110, 70, 38, 0.92);
+        --session-hair-soft: rgba(120, 78, 45, 0.18);
+
+        background:
+          radial-gradient(ellipse 110% 50% at 50% 0%, rgba(255, 245, 220, 0.95), transparent 80%),
+          radial-gradient(ellipse 130% 70% at 50% 95%, rgba(245, 225, 195, 1), transparent),
+          radial-gradient(ellipse 70% 50% at 90% 8%, rgba(225, 180, 130, 0.55), transparent),
+          #f5e6cc;
+        box-shadow:
+          0 1px 0 rgba(255, 250, 235, 0.7) inset,
+          0 30px 80px rgba(80, 50, 25, 0.18),
+          0 0 0 1px rgba(160, 110, 70, 0.12);
+      }
+      .bloom .phone-head { color: var(--session-ink); }
+      .bloom .phone-head .dot { color: var(--session-walnut); }
+      .bloom .bubble {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        color: var(--session-ink);
+      }
+      .bloom .composer {
+        background: rgba(255, 248, 230, 0.65);
+        border: 1px solid var(--session-bubble-border);
+        color: var(--session-ink-faded);
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+         CHECKPOINT — mirrors Manual page Plate + LayerHeader tab-pip.
+         Tokens, dimensions, shadows, and tab-pip styling are ported
+         directly from PopulatedLayer.tsx + LayerHeader.tsx so the
+         shipping component can `<LayerHeader />` straight in.
+         ═══════════════════════════════════════════════════════════════ */
+
+      /* Frame: wraps the Plate and carries the warm halo. Two layered
+         atmospheric pools beneath the card — a tight bright inner core
+         and a wide ambient outer reach — make this read as a marked
+         moment rather than another resting card. */
+      .cp-frame {
+        position: relative;
+        margin-top: 9px;
+      }
+      /* Outer atmospheric reach — wide, faint, far past the card edge */
+      .cp-frame::before {
+        content: "";
+        position: absolute;
+        inset: -48px -56px -72px;
+        background:
+          radial-gradient(ellipse 55% 50% at 50% 55%, rgba(220, 165, 110, 0.18), transparent 70%);
+        z-index: -2;
+        pointer-events: none;
+      }
+      /* Inner core — tighter, brighter, sits right behind the card */
+      .cp-frame::after {
+        content: "";
+        position: absolute;
+        inset: -18px -24px -32px;
+        background:
+          radial-gradient(ellipse 60% 55% at 50% 55%, rgba(220, 165, 110, 0.44), transparent 72%);
+        z-index: -1;
+        pointer-events: none;
+        filter: blur(2px);
+      }
+      .bloom .cp-frame::before {
+        background:
+          radial-gradient(ellipse 55% 50% at 50% 55%, rgba(180, 110, 60, 0.18), transparent 70%);
+      }
+      .bloom .cp-frame::after {
+        background:
+          radial-gradient(ellipse 60% 55% at 50% 55%, rgba(200, 130, 70, 0.32), transparent 72%);
+      }
+
+      /* Plate — same vocabulary as Manual PopulatedLayer, but body now
+         uses --session-jove-bg + --session-jove-border so the card
+         visually belongs to Jove's side of the conversation. Box-shadow
+         stacks the Manual --session-plate-shadow with additional warm
+         halo layers so the card lifts well above any resting card. */
+      .cp-plate {
+        position: relative;
+        border-radius: 18px;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        padding: 26px 14px 22px;
+      }
+      .hearth .cp-plate {
+        box-shadow:
+          /* Manual baseline — cream catch-light rim */
+          inset 0 1px 0 rgba(220, 170, 120, 0.14),
+          /* Sharp surface-defining shadow */
+          0 2px 4px rgba(0, 0, 0, 0.5),
+          /* Lift from chat surface */
+          0 14px 32px rgba(0, 0, 0, 0.42),
+          /* Warm halo close to the card */
+          0 22px 50px rgba(220, 165, 110, 0.32),
+          /* Ambient reach */
+          0 48px 110px rgba(220, 165, 110, 0.22);
+      }
+      .bloom .cp-plate {
+        box-shadow:
+          /* Manual baseline — bright top inner rim */
+          inset 0 1px 0 rgba(245, 235, 215, 0.6),
+          /* Sharp surface shadow */
+          0 2px 4px rgba(31, 20, 10, 0.12),
+          /* Lift */
+          0 14px 32px rgba(31, 20, 10, 0.16),
+          /* Warm halo close */
+          0 22px 50px rgba(180, 120, 70, 0.32),
+          /* Ambient reach */
+          0 48px 110px rgba(180, 120, 70, 0.22);
+      }
+
+      /* Tab pip — EXACT mirror of LayerHeader.tsx tab pip.
+         Theme-stable hardcoded walnut (cream-on-walnut needs a fixed
+         dark walnut behind it; deriving from tokens would shift hue). */
+      .cp-pip {
+        position: absolute;
+        top: 0;
+        left: 18px;
+        transform: translateY(-50%);
+        max-width: 320px;
+        border-radius: 8px;
+        background: rgb(135, 90, 55);
+        color: rgba(245, 243, 238, 0.96);
+        font-family: "Spectral", serif;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 18px;
+        line-height: 1;
+        letter-spacing: -0.01em;
+        padding: 8px 18px;
+        white-space: nowrap;
+        box-shadow:
+          0 2px 6px rgba(0, 0, 0, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.10);
+      }
+
+      /* ─── Body content (distinct from Manual's entry list) ─── */
+      .cp-eyebrow {
+        font-family: "DM Mono", monospace;
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        margin: 0 4px 14px;
+      }
+
+      .cp-title {
+        font-family: "Spectral", serif;
+        font-style: italic;
+        font-size: 21px;
+        font-weight: 500;
+        line-height: 1.3;
+        letter-spacing: -0.2px;
+        color: var(--session-ink);
+        margin: 0 4px;
+      }
+
+      /* Tap hint — inline, the whole Plate is the tap target */
+      .cp-tap {
+        margin: 18px 4px 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--session-hair-soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        color: var(--session-ink-faded);
+      }
+      .cp-tap .chev {
+        font-family: "Spectral", serif;
+        font-size: 22px;
+        line-height: 1;
+        color: var(--session-walnut);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-head">
+      <h1>Checkpoint card <span>·</span> Manual Plate vocabulary</h1>
+      <p>
+        The checkpoint card now mirrors the Manual page's Plate + tab pip
+        exactly. Tab pip is the same solid walnut chip
+        (<code>rgb(135, 90, 55)</code>) used in every layer of the Manual,
+        not a transparent gradient. Plate body uses
+        <code>--session-walnut-surface</code> and
+        <code>--session-plate-shadow</code>. The shipping component can
+        reuse <code>&lt;LayerHeader /&gt;</code> as-is.
+      </p>
+      <p class="crit">Hearth-dark · Bloom-light · Phone-sized</p>
+
+      <div class="changes">
+        <strong>What's exactly the Manual page</strong>
+        <ul>
+          <li>Tab pip: solid <code>rgb(135, 90, 55)</code> walnut chip, cream-on-walnut text, Spectral 18px / 500 / -0.01em, padding <code>8px 18px</code>, radius 8, the same <code>0 2px 6px / inset 0 1px 0</code> shadow. Sits on the top edge with <code>translateY(-50%)</code>.</li>
+          <li>Plate body: <code>--session-walnut-surface</code>, <code>--session-bubble-border</code>, <code>--session-plate-shadow</code>, radius 18, padding <code>26px 14px 22px</code>, backdrop-filter <code>blur(28px) saturate(140%)</code>.</li>
+          <li>Same 18px left inset for the pip — so it sits in the same spot a Manual layer's pip does, on the same x-axis.</li>
+        </ul>
+        <strong style="margin-top: 12px;">What's checkpoint-specific</strong>
+        <ul>
+          <li>Body holds a single italic title at 21px instead of a list of entries — this is one proposal, not a section.</li>
+          <li>Small mono caps eyebrow <code>POTENTIAL MANUAL ENTRY</code> in walnut-meta-strong at the top of the body — the only verbal signal this isn't filed yet.</li>
+          <li>Warm halo glow underneath the whole frame. Manual cards don't carry this — it's what tells the eye "this is the moment to act."</li>
+          <li>Hairline above an inline "Tap to review" with a walnut chevron — the affordance Manual entries don't need.</li>
+          <li>No <code>&lt;i&gt;</code> info chip (the right-side circle in the Manual). The user already knows what they're looking at.</li>
+        </ul>
+      </div>
+    </header>
+
+    <div class="row">
+      <!-- ═══════════════ HEARTH (dark) ═══════════════ -->
+      <section>
+        <div class="theme-label">Hearth · <span>dark</span></div>
+        <div class="phone hearth">
+          <div class="phone-head">mywalnut<span class="dot">.</span></div>
+          <div class="scroll">
+            <div class="bubble">
+              The conversation is supposed to be the regulation but you're
+              talking about the regulation and it feels scarier — I want to
+              put that down.
+            </div>
+
+            <div class="cp-frame">
+              <div class="cp-plate">
+                <span class="cp-pip">I. Some of My Patterns</span>
+                <p class="cp-eyebrow">Potential manual entry</p>
+                <h3 class="cp-title">
+                  I Keep Talking Because Stopping Drops Me Back Into My Body
+                </h3>
+                <div class="cp-tap">
+                  <span>Tap to review</span>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">Write back to Jove…</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════ BLOOM (light) ═══════════════ -->
+      <section>
+        <div class="theme-label bloom">Bloom · <span>light</span></div>
+        <div class="phone bloom">
+          <div class="phone-head">mywalnut<span class="dot">.</span></div>
+          <div class="scroll">
+            <div class="bubble">
+              The conversation is supposed to be the regulation but you're
+              talking about the regulation and it feels scarier — I want to
+              put that down.
+            </div>
+
+            <div class="cp-frame">
+              <div class="cp-plate">
+                <span class="cp-pip">I. Some of My Patterns</span>
+                <p class="cp-eyebrow">Potential manual entry</p>
+                <h3 class="cp-title">
+                  I Keep Talking Because Stopping Drops Me Back Into My Body
+                </h3>
+                <div class="cp-tap">
+                  <span>Tap to review</span>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">Write back to Jove…</div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
