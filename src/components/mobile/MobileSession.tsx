@@ -6,7 +6,7 @@ import ChatInput from "./ChatInput";
 import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
-import { renderMarkdown } from "@/lib/utils/format";
+import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
 import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
@@ -686,7 +686,7 @@ export default function MobileSession({
                       eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {!isRejected && renderMarkdown(msg.content)}
+                      {!isRejected && renderMarkdown(stripCheckpointFooter(msg.content))}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
