@@ -163,6 +163,7 @@ export default function MainApp() {
     startUpload,
     refreshConversations,
     loadManual,
+    updateEntry,
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
@@ -403,6 +404,7 @@ export default function MainApp() {
             entries={confirmedEntries}
             firstName={firstName}
             onExploreWithPersona={handleExploreWithPersona}
+            onUpdateEntry={updateEntry}
             onNavigateToSession={() => setActiveView("session")}
             onOpenDrawer={handleOpenDrawer}
           />

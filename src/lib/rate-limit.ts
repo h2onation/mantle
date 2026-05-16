@@ -67,6 +67,10 @@ export const chatAnonDay = makeLimiter(30, "1 d", "rl:chat:anon:day");
 // Secondary routes
 export const sessionSummaryHour = makeLimiter(10, "1 h", "rl:session-summary");
 export const checkpointConfirmHour = makeLimiter(20, "1 h", "rl:checkpoint-confirm");
+// Manual entry edits — generous enough for normal polishing (rename a few
+// entries in a sitting, fix typos) but tight enough that a runaway client
+// can't flood the table with rewrites.
+export const manualEditHour = makeLimiter(30, "1 h", "rl:manual-edit");
 
 // Phone OTP — keyed by phone number (not user id) so an attacker cannot bypass
 // by spamming a victim's number from many accounts.
