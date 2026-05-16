@@ -4,11 +4,19 @@ import React, { useState } from "react";
 import { type Layer } from "./layer-definitions";
 import EntryItem from "./EntryItem";
 import LayerHeader from "./LayerHeader";
-import type { ExplorationContext } from "@/lib/types";
+import type { ExplorationContext, ManualEntry } from "@/lib/types";
+
+type UpdateEntryResult =
+  | { ok: true; entry: ManualEntry }
+  | { ok: false; error: string };
 
 interface PopulatedLayerProps {
   layer: Layer;
   onExploreWithPersona?: (context: ExplorationContext) => void;
+  onUpdateEntry?: (
+    entryId: string,
+    edits: { name?: string | null; content?: string }
+  ) => Promise<UpdateEntryResult>;
   readOnly?: boolean;
 }
 
@@ -29,6 +37,7 @@ interface PopulatedLayerProps {
 export default function PopulatedLayer({
   layer,
   onExploreWithPersona,
+  onUpdateEntry,
   readOnly,
 }: PopulatedLayerProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -59,6 +68,7 @@ export default function PopulatedLayer({
             layerId={layer.id}
             layerName={layer.name}
             onExploreWithPersona={onExploreWithPersona}
+            onUpdateEntry={onUpdateEntry}
             readOnly={readOnly}
             isLast={index === layer.entries.length - 1}
           />

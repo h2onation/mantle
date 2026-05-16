@@ -180,6 +180,45 @@ export function useChat() {
     }
   }, []);
 
+  /**
+   * Edit an existing Manual entry. Sends PATCH to /api/manual/[id] and
+   * patches the local `confirmedEntries` cache with the returned row so
+   * the UI reflects the new state without a full refetch. Returns the
+   * updated entry on success or an error string on failure.
+   */
+  const updateEntry = useCallback(
+    async (
+      entryId: string,
+      edits: { name?: string | null; content?: string }
+    ): Promise<{ ok: true; entry: ManualEntry } | { ok: false; error: string }> => {
+      try {
+        const res = await fetch(`/api/manual/${entryId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(edits),
+        });
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          return {
+            ok: false,
+            error: payload?.error || "Could not save changes.",
+          };
+        }
+        const { entry } = (await res.json()) as { entry: ManualEntry };
+        setConfirmedEntries((prev) =>
+          prev.map((e) => (e.id === entry.id ? { ...e, ...entry } : e))
+        );
+        return { ok: true, entry };
+      } catch (err) {
+        console.error("[useChat] updateEntry failed:", err);
+        return { ok: false, error: "Network error. Try again." };
+      }
+    },
+    []
+  );
+
   async function streamFromResponse(response: Response): Promise<{
     fullText: string;
     completeEvent: MessageCompleteEvent | null;
@@ -1268,6 +1307,7 @@ export function useChat() {
     startUpload,
     refreshConversations,
     loadManual,
+    updateEntry,
     displayName,
     // Modal 2 trigger inputs — refreshed on every message_complete.
     emergingPatternSnippet,

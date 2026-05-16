@@ -5,6 +5,10 @@ import { buildLayers } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
+
+type UpdateEntryResult =
+  | { ok: true; entry: ManualEntry }
+  | { ok: false; error: string };
 import { generateManualPdf } from "@/lib/utils/generate-manual-pdf";
 import { shareManual } from "@/lib/utils/share-manual";
 import { PERSONA_NAME } from "@/lib/persona/config";
@@ -16,11 +20,15 @@ interface MobileManualProps {
   entries: ManualEntry[];
   firstName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
+  onUpdateEntry?: (
+    entryId: string,
+    edits: { name?: string | null; content?: string }
+  ) => Promise<UpdateEntryResult>;
   onNavigateToSession?: () => void;
   onOpenDrawer?: () => void;
 }
 
-export default function MobileManual({ entries, firstName, onExploreWithPersona, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
+export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = useMemo(() => buildLayers(entries), [entries]);
   const isEmpty = layers.every((l) => l.entries.length === 0);
@@ -140,6 +148,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
                 key={layer.id}
                 layer={layer}
                 onExploreWithPersona={onExploreWithPersona}
+                onUpdateEntry={onUpdateEntry}
               />
             ) : (
               <EmptyLayer
