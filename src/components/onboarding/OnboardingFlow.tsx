@@ -11,7 +11,6 @@ export default function OnboardingFlow() {
   const [currentView, setCurrentView] = useState<ViewName>("entry");
   const [viewOpacity, setViewOpacity] = useState(1);
   const [ready, setReady] = useState(false);
-  const [loginMode, setLoginMode] = useState<"login" | "signup">("login");
   const checkedRef = useRef(false);
 
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,13 +39,7 @@ export default function OnboardingFlow() {
     }, duration);
   }, []);
 
-  function handleBegin() {
-    setLoginMode("signup");
-    fadeToView("login");
-  }
-
   function handleLogin() {
-    setLoginMode("login");
     fadeToView("login");
   }
 
@@ -81,7 +74,7 @@ export default function OnboardingFlow() {
       }}
     >
       {currentView === "entry" ? (
-        <EntryScreen onBegin={handleBegin} onLogin={handleLogin} />
+        <EntryScreen onLogin={handleLogin} />
       ) : (
         <DesktopVitrine>
           <div
@@ -96,7 +89,7 @@ export default function OnboardingFlow() {
           >
             <div style={{ height: "100%" }}>
               {currentView === "login" && (
-                <LoginScreen onBack={handleBackToEntry} initialMode={loginMode} />
+                <LoginScreen onBack={handleBackToEntry} initialMode="login" />
               )}
             </div>
           </div>

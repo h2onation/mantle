@@ -4,11 +4,11 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 import TopBar from "@/components/shared/TopBar";
 
 interface InfoScreensProps {
-  onNavigateToSeed: () => void;
+  onContinue: () => void;
   onBack: () => void;
 }
 
-export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensProps) {
+export default function InfoScreens({ onContinue, onBack }: InfoScreensProps) {
   return (
     <main
       style={{
@@ -107,7 +107,7 @@ export default function InfoScreens({ onNavigateToSeed, onBack }: InfoScreensPro
         }}
       >
         <button
-          onClick={onNavigateToSeed}
+          onClick={onContinue}
           style={{
             all: "unset",
             cursor: "pointer",
