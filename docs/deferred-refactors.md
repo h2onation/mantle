@@ -32,6 +32,12 @@ Across two simplification passes plus four focused follow-up sessions:
 - **`buildTier3` refactor** (shipped): 350-line if/else ladder replaced with
   a `Tier3Block[]` data structure; each block is independently inspectable
   and unit-testable.
+- **Anthropic prompt caching** (shipped 2026-05-14, vigilant-johnson worktree):
+  the static portions of the Jove system prompt and the extraction system
+  prompt now flow through Anthropic's `cache_control` blocks (`system` as a
+  three-block array). Estimated ~90% input-token cost reduction on cached
+  chunks. See state.md 2026-05-14 entry "Anthropic prompt caching on chat +
+  extraction system prompts." Pass-1 efficiency review #1.
 
 ## Small follow-ups
 
@@ -190,21 +196,3 @@ regressions are hard to catch without dedicated UI testing).
   matches the helpers' shape.
 - **Audit reference**: pass-1 reuse review #5, #6, pass-2 risk audit #10.
 
-## Out of simplification scope but worth flagging
-
-#### 11. Prompt caching for Anthropic system prompt
-- **What**: Use Anthropic's `cache_control` on the static portion of the
-  system prompt (Tier 1 + Tier 2 + compressed older Manual entries). Currently
-  every Jove turn re-bills the full ~30-50KB system prompt as input tokens.
-- **Value**: HIGH. Pass-1 efficiency review #1 called this the single largest
-  win in the codebase. Estimated ~90% input-token cost reduction for the
-  cached chunk, and lower TTFB on returning-user turns.
-- **Risk**: MEDIUM. Requires plumbing `cache_control` through `src/lib/anthropic.ts`'s
-  `system: string` field (changes to `system: Array<{type, text, cache_control?}>`).
-  Cache invalidation triggers on any change to the cached chunk, so prompt
-  iteration speed drops slightly.
-- **Status**: A focused session shipped this against a different branch
-  (chat + extraction surfaces, with cache-hit verification). Verify the work
-  has merged to main; if so, move this entry to "shipped" above.
-- **Trigger**: Any cost or latency review of the Jove call path.
-- **Audit reference**: pass-1 efficiency review #1.

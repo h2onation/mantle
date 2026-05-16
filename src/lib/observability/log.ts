@@ -1,5 +1,5 @@
 // Structured JSON logging for observability. See
-// docs/checkpoint-hardening-plan.md Track 4 for the full spec.
+// docs/reference/checkpoint-hardening-plan.md Track 4 for the full spec.
 //
 // Every log line is a single-line JSON object with a fixed shape.
 // Vercel picks these up automatically; the confirm_failures table is

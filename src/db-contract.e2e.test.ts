@@ -8,7 +8,7 @@
 // Runs against local Supabase (via `supabase start`), not prod.
 // Cleans up its own rows with a unique test-run prefix and afterAll.
 //
-// See docs/checkpoint-hardening-plan.md Track 5.
+// See docs/reference/checkpoint-hardening-plan.md Track 5.
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

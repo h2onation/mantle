@@ -1,6 +1,6 @@
 # Service Worker audit — 2026-04-17
 
-Track 3 of `docs/checkpoint-hardening-plan.md` called for a service worker audit to confirm `/api/*` requests are not intercepted by the SW. The `(failed) net::ERR_` row initiated by `sw.js:69` that appeared in DevTools during the 2026-04-16 debugging session looked suspicious, but turned out to be unrelated to the checkpoint confirm bug.
+Track 3 of `docs/reference/checkpoint-hardening-plan.md` called for a service worker audit to confirm `/api/*` requests are not intercepted by the SW. The `(failed) net::ERR_` row initiated by `sw.js:69` that appeared in DevTools during the 2026-04-16 debugging session looked suspicious, but turned out to be unrelated to the checkpoint confirm bug.
 
 ## Handler-by-handler
 
