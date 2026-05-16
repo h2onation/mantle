@@ -485,7 +485,13 @@ export default function CheckpointOverlay({
           </div>
         )}
 
-        {/* Confirmed cover */}
+        {/* Confirmed cover. Must fully obscure the entry section behind it so
+         *  the "Added to Layer N" celebration reads cleanly. `--session-walnut-surface`
+         *  alone is 20% opaque in Hearth and 90% in Bloom — both leak entry text
+         *  through. Layered background stacks the walnut tint over `--session-cream`
+         *  (opaque in both themes) so the cover keeps its warm Manual feel while
+         *  being fully opaque. backdrop-filter dropped — nothing to blur once the
+         *  background is opaque. */}
         <div
           style={{
             position: "absolute",
@@ -494,9 +500,8 @@ export default function CheckpointOverlay({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "var(--session-walnut-surface)",
-            backdropFilter: "blur(28px) saturate(140%)",
-            WebkitBackdropFilter: "blur(28px) saturate(140%)",
+            background:
+              "linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)), var(--session-cream)",
             borderRadius: 20,
             zIndex: 5,
             opacity: phase === "confirmed" ? 1 : 0,
