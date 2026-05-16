@@ -464,6 +464,15 @@ textarea:focus-visible {
   display: none;
 }
 
+/* The colophon meta block — theme · admin · beta line. At narrow desktop
+   it sits 20px below the dev-tools panel as a natural register shift.
+   At wide desktop the .mw-colophon-meta rule inside the @1030 media
+   query overrides this with margin-top:auto, anchoring it to the foot
+   of the side rail. */
+.mw-colophon-meta {
+  margin-top: 20px;
+}
+
 /* Dev tools panel — admin-only, only on wide desktop where there's
    room in the left margin alongside the colophon. */
 .mw-dev-tools {
@@ -568,10 +577,21 @@ textarea:focus-visible {
     right: auto;
     text-align: left;
   }
+  /* Wide-desktop colophon spans the full left rail between masthead and
+     canvas bottom edge so the column flows as one composition rather
+     than two absolute blocks. Without `top` set, a tall admin DevTools
+     panel would push the prose upward until it collided with the
+     masthead. Anchoring both top and bottom gives the column a fixed
+     vertical box; flex-column with margin-top:auto on the meta keeps
+     prose at the top and meta at the bottom, with overflow protection
+     for very-tall content. */
   .mw-colophon {
+    top: 132px;
     bottom: 48px;
     left: 48px;
     right: auto;
+    display: flex;
+    flex-direction: column;
   }
   /* Colophon column caps at 320px but adapts to available margin space
      so it never overlaps the phone at breakpoint edges. At 1030 this
@@ -580,6 +600,19 @@ textarea:focus-visible {
   .mw-colophon-inner {
     max-width: min(320px, calc((100vw - 430px) / 2 - 80px));
     margin: 0;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  /* Push the closing meta block (theme · admin · beta) to the bottom of
+     the rail, so the publication colophon sits at the foot of the page
+     even when the dev-tools panel is short or absent. */
+  .mw-colophon-meta {
+    margin-top: auto;
+    padding-top: 24px;
   }
   /* Phone returns to its natural max-height — no vertical reservation
      needed because paratext is in the side margins, not above/below. */
