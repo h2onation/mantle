@@ -12,6 +12,7 @@ import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
+import TabPip from "@/components/mobile/manual/TabPip";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
@@ -526,106 +527,98 @@ export default function MobileSession({
                   ? activeCheckpoint?.layer
                   : msg.checkpointMeta?.layer;
 
-                // ── Pending checkpoint: trigger card only ──
-                // The "Building a suggested entry…" / "Suggested entry
-                // ready." indicator block lived here previously. It was
-                // client-side UX padding (a 2.2s timer) added when the
-                // card was the only post-detection signal. Now the
-                // composition prompt produces an acknowledgment bubble
-                // (rendered as a normal Jove message just above the
-                // card), so the timer + indicator are redundant. Card
-                // appears immediately when activeCheckpoint is set.
+                // ── Pending checkpoint: trigger card ──
+                // Plate vocabulary borrowed from the Manual page (same
+                // TabPip + cream catch-light rim + 18px radius). Body
+                // uses --session-jove-bg so the card belongs to Jove's
+                // side of the conversation. A four-layer warm-walnut
+                // halo around the frame marks this as a moment, not a
+                // resting Manual card. See .checkpoint-trigger-frame
+                // and .checkpoint-trigger-plate in globals.css for the
+                // halo + shadow stack.
                 if (isPendingCheckpoint) {
+                  const cpLayer = activeCheckpoint?.layer;
+                  const cpLayerName =
+                    cpLayer && LAYER_NAMES[cpLayer]
+                      ? LAYER_NAMES[cpLayer]
+                      : null;
                   return (
                     <div
                       key={msg.id || `msg-${i}`}
-                      style={{ margin: "var(--sp-md) 0 var(--sp-sm)" }}
+                      className="checkpoint-trigger-frame"
                     >
                       <button
+                        type="button"
+                        className="checkpoint-trigger-plate"
                         onClick={() => {
                           overlayCheckpointRef.current = activeCheckpoint;
                           setCheckpointOverlayOpen(true);
                         }}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          width: "100%",
-                          background: "var(--session-walnut-surface)",
-                          border: "1px solid var(--session-bubble-border)",
-                          borderRadius: 14,
-                          cursor: "pointer",
-                          textAlign: "left",
-                          overflow: "hidden",
-                          opacity: 0,
-                          animation: "checkpointFadeIn 0.5s ease forwards",
-                          transition:
-                            "background 0.25s ease, border-color 0.25s ease",
-                        }}
                       >
-                        {/* Layer header with background treatment */}
-                        <div
-                          style={{
-                            padding: "10px 20px",
-                            background: "var(--session-walnut-highlight, rgba(170, 120, 82, 0.12))",
-                            borderBottom: "1px solid var(--session-walnut-border-soft)",
-                          }}
-                        >
+                        {cpLayer && cpLayerName && (
                           <span
                             style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: 10,
-                              letterSpacing: "2px",
-                              textTransform: "uppercase",
-                              color: "var(--session-walnut-meta-strong)",
-                              lineHeight: 1,
+                              position: "absolute",
+                              top: 0,
+                              left: 18,
+                              transform: "translateY(-50%)",
                             }}
                           >
-                            {formatLayerEyebrow(activeCheckpoint?.layer ?? null)}
+                            <TabPip layerId={cpLayer} layerName={cpLayerName} />
                           </span>
-                        </div>
-                        {/* Entry title + tap hint */}
-                        <div
+                        )}
+                        <p
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "14px 20px 16px",
-                            gap: 14,
+                            margin: "0 4px 14px",
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 10,
+                            fontWeight: 500,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            color: "var(--session-walnut-meta-strong)",
                           }}
                         >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            {activeCheckpoint?.name && (
-                              <div
-                                style={{
-                                  fontFamily:
-                                    "var(--font-spectral), var(--font-persona), serif",
-                                  fontSize: 18,
-                                  color: "var(--session-ink)",
-                                  lineHeight: 1.3,
-                                  letterSpacing: "-0.2px",
-                                }}
-                              >
-                                {activeCheckpoint.name}
-                              </div>
-                            )}
-                            <div
-                              style={{
-                                fontFamily:
-                                  "var(--font-sans, 'DM Sans', sans-serif)",
-                                fontSize: 13,
-                                color: "var(--session-ink-faded)",
-                                marginTop: 6,
-                              }}
-                            >
-                              Tap to review
-                            </div>
-                          </div>
+                          Potential manual entry
+                        </p>
+                        {activeCheckpoint?.name && (
+                          <h3
+                            style={{
+                              margin: "0 4px",
+                              fontFamily:
+                                "var(--font-spectral), var(--font-persona), serif",
+                              fontStyle: "italic",
+                              fontSize: 21,
+                              fontWeight: 500,
+                              lineHeight: 1.3,
+                              letterSpacing: "-0.2px",
+                              color: "var(--session-ink)",
+                            }}
+                          >
+                            {activeCheckpoint.name}
+                          </h3>
+                        )}
+                        <div
+                          style={{
+                            margin: "18px 4px 0",
+                            paddingTop: 14,
+                            borderTop: "1px solid var(--session-hair-soft)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            fontFamily:
+                              "var(--font-sans, 'DM Sans', sans-serif)",
+                            fontSize: 13,
+                            color: "var(--session-ink-faded)",
+                          }}
+                        >
+                          <span>Tap to review</span>
                           <span
                             style={{
                               fontFamily:
                                 "var(--font-spectral), var(--font-persona), serif",
                               fontSize: 22,
-                              color: "var(--session-ink-ghost)",
-                              flexShrink: 0,
+                              lineHeight: 1,
+                              color: "var(--session-walnut)",
                             }}
                           >
                             ›
