@@ -17,6 +17,13 @@ interface ComposeManualEntryOptions {
    *  `existingLayerContent` inputs — the classifier no longer pre-picks
    *  these. */
   manualComponents: { layer: number; name: string | null; content: string }[];
+  /** distinct_contexts from the latest extraction state. When 1 or 0 the
+   *  entry came from a single situation, so the headline validator will
+   *  enforce a "can" / "sometimes" softener — prevents over-claiming a
+   *  recurring pattern from one data point. null / undefined means
+   *  "unknown" (e.g. legacy extraction state without this field); the
+   *  softener check is then skipped to preserve prior behavior. */
+  distinctContexts?: number | null;
 }
 
 /**
@@ -52,6 +59,7 @@ export async function composeManualEntry(
     conversationHistory,
     languageBank,
     manualComponents,
+    distinctContexts,
   } = options;
 
   const chargedLanguage = languageBank
@@ -242,15 +250,214 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
   const acknowledgment =
     rawAck.length > 0 && rawAck.split(/\s+/).length <= 40 ? rawAck : "";
 
+  // Headline validation + retry-once. The main composer juggles layer
+  // pick, prose polish, summary, key_words, acknowledgment, AND the
+  // headline. Quality on the headline suffers — "Worst-Case Loop Fills
+  // the Processing" passed through despite the composition prompt
+  // explicitly forbidding nominalization-as-agent. The validator below
+  // catches the structural failures (subject not "I", abstract verb,
+  // no trigger word, missing softener for single-example); on failure
+  // we call a focused headline composer once with a tight prompt that
+  // does nothing but write the headline. Use the better of the two
+  // attempts (lower violation count). Never block the entry — if both
+  // attempts fail, ship the original and log for tuning visibility.
+  const isSingleExample =
+    typeof distinctContexts === "number" && distinctContexts <= 1;
+  const initialName = parsed.name || "Untitled";
+  let finalName = initialName;
+  const headlineCheck = validateHeadline(initialName, isSingleExample);
+  if (!headlineCheck.ok) {
+    console.warn(
+      "[composeManualEntry] Headline failed validation: %s — retrying once",
+      headlineCheck.reasons.join("; ")
+    );
+    const retry = await composeHeadline(
+      parsed.content,
+      isSingleExample,
+      initialName,
+      headlineCheck.reasons
+    );
+    if (retry) {
+      const retryCheck = validateHeadline(retry, isSingleExample);
+      if (retryCheck.reasons.length < headlineCheck.reasons.length) {
+        finalName = retry;
+        if (!retryCheck.ok) {
+          console.warn(
+            "[composeManualEntry] Retry better but still imperfect: %s",
+            retryCheck.reasons.join("; ")
+          );
+        }
+      } else {
+        console.warn(
+          "[composeManualEntry] Retry no better (%d reasons vs %d): keeping original",
+          retryCheck.reasons.length,
+          headlineCheck.reasons.length
+        );
+      }
+    }
+  }
+
   return {
     content: parsed.content,
-    name: parsed.name || "Untitled",
+    name: finalName,
     layer,
     changelog: parsed.changelog || `Created ${LAYER_NAMES[layer] || "Layer " + layer} entry.`,
     summary,
     key_words: keyWords,
     acknowledgment,
   };
+}
+
+// ─── Headline validator + focused retry composer ───────────────────────────
+
+/**
+ * Structural validator for composed headlines. Catches the failures the
+ * main composition prompt is supposed to prevent but routinely lets
+ * through — non-"I" subject, internal/abstract verbs, missing trigger
+ * word, missing "can"/"sometimes" softener when the entry came from a
+ * single example. Returns `{ok, reasons}` so the caller can decide
+ * whether to retry. Word-count check is lenient (4-10) rather than the
+ * prompt's stated 4-8 because the composition prompt's own "good"
+ * exemplars include headlines up to 11 words — the other axes are the
+ * load-bearing ones.
+ */
+function validateHeadline(
+  headline: string,
+  isSingleExample: boolean
+): { ok: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  const trimmed = headline.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+
+  if (words.length < 4 || words.length > 10) {
+    reasons.push(`word count ${words.length} (need 4-10)`);
+  }
+
+  // Subject test: first word must be "I". Catches body-part-as-agent
+  // ("Stomach Pushes Me to Fix the Call") and nominalization-as-agent
+  // ("Worst-Case Loop Fills the Processing") in one shot.
+  if (!/^I\b/.test(trimmed)) {
+    reasons.push("subject is not 'I'");
+  }
+
+  // Banned internal/abstract verbs from confirm-checkpoint composition
+  // prompt. These describe a felt state, not an observable action.
+  const BANNED_VERBS: RegExp[] = [
+    /\bdisappear/i,
+    /\bvanish/i,
+    /\bfade/i,
+    /\bdissolve/i,
+    /\bfall apart\b/i,
+    /\bcome undone\b/i,
+    /\bgo missing\b/i,
+    /\blose myself\b/i,
+    /\bbreak open\b/i,
+    /\bshut down inside\b/i,
+  ];
+  for (const re of BANNED_VERBS) {
+    if (re.test(trimmed)) {
+      reasons.push(`abstract/internal verb matched ${re.source}`);
+    }
+  }
+
+  // Trigger word required: when/before/after/while/once/if signal the
+  // specific condition that fires the behavior. Without one, the
+  // headline names a what but not a when — exactly the failure mode
+  // the composition prompt's "REQUIRED: name a SPECIFIC TRIGGER"
+  // section is trying to prevent.
+  if (!/\b(when|before|after|while|once|if)\b/i.test(trimmed)) {
+    reasons.push("no trigger word (when/before/after/while/once/if)");
+  }
+
+  // Softener required when the user gave only one example. "Can" or
+  // "sometimes" prevents over-claiming a recurring pattern from a
+  // single data point. "Keep"/"always"/etc. are intensifiers and do
+  // NOT count as softeners.
+  if (isSingleExample && !/\b(can|sometimes)\b/i.test(trimmed)) {
+    reasons.push("single-example headline missing 'can' or 'sometimes' softener");
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Focused headline composer for retry-once. The main composer juggles
+ * six outputs at once; this call does nothing but write a headline,
+ * with a 60-line system prompt instead of ~170. The user prompt names
+ * the prior failure explicitly so the retry knows what to avoid.
+ *
+ * Returns null on API failure, empty output, or any error — the caller
+ * falls back to the original attempt. Never throws.
+ */
+async function composeHeadline(
+  content: string,
+  isSingleExample: boolean,
+  previousAttempt: string,
+  failureReasons: string[]
+): Promise<string | null> {
+  const softenerLine = isSingleExample
+    ? '\nMANDATORY: this entry came from a single example. The headline MUST contain "can" or "sometimes" as a softener. "Keep" / "always" / "every" are intensifiers, not softeners — do not use them.'
+    : "";
+
+  const system = `You write headlines for Manual entries.
+
+REQUIRED FORMAT: one of these shapes, exactly:
+- "I [observable verb] when [specific trigger]"
+- "I [observable verb] before [specific event]"
+- "I [observable verb] after [specific moment]"
+- "I [observable verb] while [specific activity]"
+
+HARD RULES (every one must pass):
+- 4-8 words. Hard cap.
+- First word: "I". The subject is always the user. Never a body part, never a system metaphor, never a nominalization.
+- Verb describes an OBSERVABLE BEHAVIOR — what a friend watching would see you do. BANNED verbs (internal/abstract): disappear, vanish, fade, fall apart, dissolve, come undone, lose myself, go missing, break open, shut down inside.
+- Trigger word required: when, before, after, while.
+- BANNED subjects: Loop, Pattern, Response, Reaction, Processing, Stomach, Voice, Body, Mind, System, anything ending in -ing as agent.${softenerLine}
+
+PASSING EXAMPLES:
+- "I Freeze When Asked What I Want"
+- "I Go Quiet When Someone Waits"
+- "I Tighten Before Answering Hard Questions"
+- "I Can Lose the Wheel When Worst-Case Futures Fire"
+- "I Switch to Counter-Mode When Talked At"
+
+FAILING EXAMPLES (and why):
+- "Worst-Case Loop Fills the Processing" — Loop is not the subject. "Fills" is abstract, not observable. No trigger.
+- "Stomach Pushes Me to Fix the Call" — body-part as agent.
+- "I Disappear When Nobody Needs Me" — "Disappear" is internal, not observable.
+- "I Keep Following the Script" — no trigger; "Keep" is an intensifier, not a softener.
+
+OUTPUT: just the headline. No quotes, no JSON, no preamble. Just the words.`;
+
+  const userContent = `Manual entry text:
+${content}
+
+Previous attempt failed: "${previousAttempt}"
+Failures: ${failureReasons.join("; ")}
+
+Write a new headline that passes every rule above.`;
+
+  try {
+    const response = await anthropicFetch({
+      model: COMPOSITION_MODEL,
+      max_tokens: 64,
+      system,
+      messages: [{ role: "user", content: userContent }],
+    });
+    const raw = extractResponseText(response).trim();
+    if (!raw) return null;
+    // Strip wrapping quotes and take only the first line so any chatter
+    // the model added past the headline (rare with this prompt) doesn't
+    // bleed in.
+    return raw
+      .split("\n")[0]
+      .trim()
+      .replace(/^["']/, "")
+      .replace(/["']$/, "");
+  } catch (err) {
+    console.error("[composeHeadline] retry failed:", err);
+    return null;
+  }
 }
 
 interface ConfirmCheckpointOptions {

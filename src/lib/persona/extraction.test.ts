@@ -7,11 +7,11 @@ import { LAYER_NAMES } from "@/lib/manual/layers";
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [], dimensions: [] },
-      2: { signal: "none", material: [], examples: [], dimensions: [] },
-      3: { signal: "none", material: [], examples: [], dimensions: [] },
-      4: { signal: "none", material: [], examples: [], dimensions: [] },
-      5: { signal: "none", material: [], examples: [], dimensions: [] },
+      1: { signal: "none", material: [], examples: [] },
+      2: { signal: "none", material: [], examples: [] },
+      3: { signal: "none", material: [], examples: [] },
+      4: { signal: "none", material: [], examples: [] },
+      5: { signal: "none", material: [], examples: [] },
     },
     language_bank: [],
     depth: "surface",
@@ -33,6 +33,9 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
     next_prompt: "",
     sage_brief: "",
     emerging_pattern_snippet: null,
+    pattern_engaged: false,
+    user_named_cost: false,
+    user_named_stance: false,
     ...overrides,
   };
 }
@@ -109,9 +112,9 @@ describe("formatExtractionForPersona", () => {
       const state = makeState({
         layers: {
           ...makeState().layers,
-          1: { signal: "emerging", material: [], examples: [], dimensions: [] },
-          2: { signal: "explored", material: [], examples: [], dimensions: [] },
-          3: { signal: "checkpoint_ready", material: [], examples: [], dimensions: [] },
+          1: { signal: "emerging", material: [], examples: [] },
+          2: { signal: "explored", material: [], examples: [] },
+          3: { signal: "checkpoint_ready", material: [], examples: [] },
         },
       });
       const result = formatExtractionForPersona(state, false);
@@ -128,7 +131,6 @@ describe("formatExtractionForPersona", () => {
             signal: "emerging",
             material: ["first", "second", "third", "fourth"],
             examples: [],
-            dimensions: [],
           },
         },
       });

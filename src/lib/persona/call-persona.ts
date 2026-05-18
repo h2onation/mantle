@@ -608,6 +608,13 @@ export function callPersona({
               conversationHistory: messages,
               languageBank: previousExtraction?.language_bank || [],
               manualComponents: manualComponents || [],
+              // Plumb distinct_contexts from the latest extraction state
+              // so the headline validator knows whether to enforce a
+              // "can" / "sometimes" softener — prevents the composer
+              // from over-claiming a recurring pattern when the user
+              // only described one situation.
+              distinctContexts:
+                previousExtraction?.checkpoint_gate?.distinct_contexts ?? null,
             });
 
             if (composedEntry?.content) {
