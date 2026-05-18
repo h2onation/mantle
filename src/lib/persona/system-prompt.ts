@@ -672,6 +672,100 @@ export interface SystemPromptBlocks {
   dynamic: string;
 }
 
+// ---------------------------------------------------------------------------
+// Shared dynamic-context helpers
+//
+// Both buildSystemPromptBlocks (cache-aware split) and buildSystemPrompt
+// (legacy string form) assemble the same per-turn context blocks — session,
+// transcript, exploration — in the same shape. These helpers are the single
+// source of truth for those bodies. Whitespace and order are preserved
+// exactly so both consumers' output stays byte-identical to the
+// pre-refactor inlined versions.
+// ---------------------------------------------------------------------------
+
+function renderSessionContextBlock(opts: {
+  isReturningUser: boolean;
+  sessionCount?: number;
+  sessionSummary: string | null;
+}): string {
+  if (!opts.isReturningUser) return "";
+  let block = "\nSESSION CONTEXT\n";
+  if (opts.sessionCount && opts.sessionCount > 1) {
+    block += `This is session ${opts.sessionCount}.\n`;
+  }
+  block += "Returning user. Do NOT run the first-session entry.\n";
+  if (opts.sessionSummary) {
+    block += `Previous session: ${opts.sessionSummary}\n`;
+  }
+  return block;
+}
+
+function renderTranscriptContextBlock(
+  transcriptContext: TranscriptDetection | null | undefined,
+): string {
+  if (!transcriptContext) return "";
+  if (transcriptContext.isTranscript) {
+    return `
+TRANSCRIPT DETECTED
+
+The user's message contains pasted content (a conversation thread, email chain, or journal entry). Handle it differently from a normal message.
+
+RECOGNITION
+- Acknowledge you received the transcript. Do not summarize it.
+- If the user provided context alongside the paste (a sentence or paragraph before or after the pasted content), use that context and analyze directly.
+- If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
+- If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
+
+ANALYSIS (after context is established)
+- Cross-reference the transcript against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the transcript.
+- Surface gaps between what the user has told you about themselves and what the transcript shows.
+- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
+- Focus on the USER's behavior. All observations serve the user's Manual. The other person's words are context for understanding the user, not data for a second profile.
+- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
+
+DO NOT
+- Summarize the transcript (they already read it)
+- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
+- Take sides or assign blame
+- Tell the user what to do or give relationship advice
+- Analyze a minor's behavior or psychology if the transcript contains content from a minor
+
+MANUAL WRITING
+After discussing the transcript, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always.
+`;
+  }
+  if (transcriptContext.confidence === "low") {
+    return `
+The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
+`;
+  }
+  return "";
+}
+
+function renderExplorationContextBlock(
+  explorationContext: ExplorationContext,
+): string {
+  let explorationBlock = "\nEXPLORATION FOCUS\n";
+  explorationBlock += `The user clicked 'Explore with ${PERSONA_NAME}' on a specific part of their Manual.\n\n`;
+
+  if (explorationContext.type === "entry") {
+    explorationBlock += `They want to explore the entry "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
+    explorationBlock += `Entry content: ${explorationContext.content}\n\n`;
+    explorationBlock += "Open by referencing this entry directly. Use their language from it. ";
+    explorationBlock += "Ask a specific question pulling them into a concrete, recent moment connected to it. ";
+    explorationBlock += "Don't explain the entry back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
+  } else if (explorationContext.type === "empty_layer") {
+    explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which is empty.\n`;
+    explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
+    explorationBlock += "Frame what this layer covers conversationally. ";
+    explorationBlock += "Ask a concrete entry question. Reference what you know from their other confirmed layers.\n";
+  }
+
+  explorationBlock += "\nDo NOT run entry sequences. Go straight into the exploration.\n";
+
+  return explorationBlock;
+}
+
 /**
  * Build the three-tier cache-aware split. For the 1:1 Jove path. The
  * group-chat path has its own self-contained prompt builder (no caching
@@ -745,84 +839,12 @@ export function buildSystemPromptBlocks(
   // the legacy whitespace.
   let dynamicBlock = `\n\n${tier3}\n`;
 
-  if (recentManual) {
-    dynamicBlock += recentManual;
-  }
-
-  if (isReturningUser) {
-    dynamicBlock += "\nSESSION CONTEXT\n";
-    if (sessionCount && sessionCount > 1) {
-      dynamicBlock += `This is session ${sessionCount}.\n`;
-    }
-    dynamicBlock += "Returning user. Do NOT run the first-session entry.\n";
-    if (sessionSummary) {
-      dynamicBlock += `Previous session: ${sessionSummary}\n`;
-    }
-  }
-
-  if (extractionContext) {
-    dynamicBlock += extractionContext;
-  }
-
-  if (transcriptContext?.isTranscript) {
-    dynamicBlock += `
-TRANSCRIPT DETECTED
-
-The user's message contains pasted content (a conversation thread, email chain, or journal entry). Handle it differently from a normal message.
-
-RECOGNITION
-- Acknowledge you received the transcript. Do not summarize it.
-- If the user provided context alongside the paste (a sentence or paragraph before or after the pasted content), use that context and analyze directly.
-- If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
-- If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
-
-ANALYSIS (after context is established)
-- Cross-reference the transcript against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the transcript.
-- Surface gaps between what the user has told you about themselves and what the transcript shows.
-- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
-- Focus on the USER's behavior. All observations serve the user's Manual. The other person's words are context for understanding the user, not data for a second profile.
-- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
-
-DO NOT
-- Summarize the transcript (they already read it)
-- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
-- Take sides or assign blame
-- Tell the user what to do or give relationship advice
-- Analyze a minor's behavior or psychology if the transcript contains content from a minor
-
-MANUAL WRITING
-After discussing the transcript, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always.
-`;
-  } else if (
-    transcriptContext &&
-    !transcriptContext.isTranscript &&
-    transcriptContext.confidence === "low"
-  ) {
-    dynamicBlock += `
-The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
-`;
-  }
-
+  if (recentManual) dynamicBlock += recentManual;
+  dynamicBlock += renderSessionContextBlock({ isReturningUser, sessionCount, sessionSummary });
+  if (extractionContext) dynamicBlock += extractionContext;
+  dynamicBlock += renderTranscriptContextBlock(transcriptContext);
   if (explorationContext) {
-    let explorationBlock = "\nEXPLORATION FOCUS\n";
-    explorationBlock += `The user clicked 'Explore with ${PERSONA_NAME}' on a specific part of their Manual.\n\n`;
-
-    if (explorationContext.type === "entry") {
-      explorationBlock += `They want to explore the entry "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
-      explorationBlock += `Entry content: ${explorationContext.content}\n\n`;
-      explorationBlock += "Open by referencing this entry directly. Use their language from it. ";
-      explorationBlock += "Ask a specific question pulling them into a concrete, recent moment connected to it. ";
-      explorationBlock += "Don't explain the entry back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
-    } else if (explorationContext.type === "empty_layer") {
-      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which is empty.\n`;
-      explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
-      explorationBlock += "Frame what this layer covers conversationally. ";
-      explorationBlock += "Ask a concrete entry question. Reference what you know from their other confirmed layers.\n";
-    }
-
-    explorationBlock += "\nDo NOT run entry sequences. Go straight into the exploration.\n";
-
-    dynamicBlock += "\n" + explorationBlock;
+    dynamicBlock += "\n" + renderExplorationContextBlock(explorationContext);
   }
 
   return {
@@ -832,6 +854,21 @@ The user's message is unusually long or structured. It may be pasted content. If
   };
 }
 
+/**
+ * Legacy string-form prompt builder. Preserved as a thin wrapper because:
+ *   - `src/lib/linq/group-bridge.ts` routes through `buildSystemPrompt({ kind: "group" })`
+ *     to reach `buildGroupPrompt` (which is not currently exported).
+ *   - `src/lib/linq/persona-bridge.ts` (1:1 SMS) takes a flat string.
+ *   - The admin prompt-architecture viewer slices the output by section header.
+ *
+ * Output is byte-identical to the pre-refactor inlined assembly. Manual
+ * entries land in their legacy position (`prepareManualContext` — recent +
+ * older together, after Tier 3), distinct from the cache-aware blocks
+ * shape where older entries sit inside `staticContext`.
+ *
+ * Production hot path (`call-persona.ts`) calls `buildSystemPromptBlocks`
+ * directly so the cache-control marker lands on the right block.
+ */
 export function buildSystemPrompt(options: BuildPromptOptions): string {
   // ─── Group chat prompt (completely separate from 1:1 Jove) ────────────
   if (options.kind === "group") {
@@ -844,12 +881,12 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     isReturningUser,
     sessionSummary,
     extractionContext,
-    isFirstCheckpoint,
     sessionCount,
     explorationContext,
     transcriptContext,
     turnCount,
     checkpointApproaching,
+    isFirstCheckpoint,
     mode = "situation",
     personaModes = ["autistic"],
     postConfirmMode = null,
@@ -863,7 +900,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // through the RETURNING USER block, which is enough context.
   const showCheckpointInstructions = checkpointApproaching;
 
-  // ─── Base prompt (tiered) ──────────────────────────────────────────────
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
   const tier2 = composeTier2(personaModes);
@@ -887,86 +923,17 @@ ${tier2}
 
 ${tier3}`;
 
-  // ─── Dynamic context blocks (unchanged injection logic) ──────────────
+  // Dynamic context — assembled in legacy order: manual entries (recent +
+  // older together) → session → extraction → transcript → exploration.
+  // Shared helpers ensure byte-identical strings vs. buildSystemPromptBlocks.
   let dynamicContext = "";
-
-  // Manual contents — recent entries full, older entries compressed.
-  // See src/lib/persona/manual-context.ts for the compression scheme.
   dynamicContext += prepareManualContext(manualComponents, currentConversationId);
+  dynamicContext += renderSessionContextBlock({ isReturningUser, sessionCount, sessionSummary });
+  if (extractionContext) dynamicContext += extractionContext;
+  dynamicContext += renderTranscriptContextBlock(transcriptContext);
 
-  // Session context
-  if (isReturningUser) {
-    dynamicContext += "\nSESSION CONTEXT\n";
-    if (sessionCount && sessionCount > 1) {
-      dynamicContext += `This is session ${sessionCount}.\n`;
-    }
-    dynamicContext += "Returning user. Do NOT run the first-session entry.\n";
-    if (sessionSummary) {
-      dynamicContext += `Previous session: ${sessionSummary}\n`;
-    }
-  }
-
-  // Extraction context
-  if (extractionContext) {
-    dynamicContext += extractionContext;
-  }
-
-  // Transcript context
-  if (transcriptContext?.isTranscript) {
-    dynamicContext += `
-TRANSCRIPT DETECTED
-
-The user's message contains pasted content (a conversation thread, email chain, or journal entry). Handle it differently from a normal message.
-
-RECOGNITION
-- Acknowledge you received the transcript. Do not summarize it.
-- If the user provided context alongside the paste (a sentence or paragraph before or after the pasted content), use that context and analyze directly.
-- If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
-- If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
-
-ANALYSIS (after context is established)
-- Cross-reference the transcript against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the transcript.
-- Surface gaps between what the user has told you about themselves and what the transcript shows.
-- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
-- Focus on the USER's behavior. All observations serve the user's Manual. The other person's words are context for understanding the user, not data for a second profile.
-- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
-
-DO NOT
-- Summarize the transcript (they already read it)
-- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
-- Take sides or assign blame
-- Tell the user what to do or give relationship advice
-- Analyze a minor's behavior or psychology if the transcript contains content from a minor
-
-MANUAL WRITING
-After discussing the transcript, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always.
-`;
-  } else if (transcriptContext && !transcriptContext.isTranscript && transcriptContext.confidence === "low") {
-    dynamicContext += `
-The user's message is unusually long or structured. It may be pasted content. If it looks like a transcript (alternating speakers, email headers, chat formatting, journal entry), treat it as pasted content: acknowledge it and ask for context before analyzing. If it reads as a direct message to you, respond normally.
-`;
-  }
-
-  // ─── Exploration focus (appended last) ──────────────────────────────────
   if (explorationContext) {
-    let explorationBlock = "\nEXPLORATION FOCUS\n";
-    explorationBlock += `The user clicked 'Explore with ${PERSONA_NAME}' on a specific part of their Manual.\n\n`;
-
-    if (explorationContext.type === "entry") {
-      explorationBlock += `They want to explore the entry "${explorationContext.name}" from Layer ${explorationContext.layerId} (${explorationContext.layerName}).\n`;
-      explorationBlock += `Entry content: ${explorationContext.content}\n\n`;
-      explorationBlock += "Open by referencing this entry directly. Use their language from it. ";
-      explorationBlock += "Ask a specific question pulling them into a concrete, recent moment connected to it. ";
-      explorationBlock += "Don't explain the entry back. Go deeper: what triggered it last, what it cost them, what they wish they'd done instead.\n";
-    } else if (explorationContext.type === "empty_layer") {
-      explorationBlock += `They want to explore Layer ${explorationContext.layerId} (${explorationContext.layerName}), which is empty.\n`;
-      explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
-      explorationBlock += "Frame what this layer covers conversationally. ";
-      explorationBlock += "Ask a concrete entry question. Reference what you know from their other confirmed layers.\n";
-    }
-
-    explorationBlock += "\nDo NOT run entry sequences. Go straight into the exploration.\n";
-
+    const explorationBlock = renderExplorationContextBlock(explorationContext);
     return basePrompt + "\n" + dynamicContext + "\n" + explorationBlock;
   }
 
