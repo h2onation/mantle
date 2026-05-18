@@ -14,6 +14,16 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
     label: `${PERSONA_NAME}'s prompt architecture`,
     href: "/admin/prompt-architecture",
   },
+  {
+    id: "extraction-map",
+    label: "Extraction consumer map",
+    href: "/admin/extraction-map",
+  },
+  {
+    id: "schema-map",
+    label: "Schema map",
+    href: "/admin/schema-map",
+  },
   { id: "skills", label: "Skills", href: "/admin/skills" },
 ];
 
