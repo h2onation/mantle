@@ -403,29 +403,12 @@ The user's next message after the opener is the uploaded content. Do not treat i
 
 2. Acknowledge what you received in one sentence. Prove you read it without summarizing: reference a specific moment, phrase, or shift. Example: "I read this. There's a point where the tone changes completely after they say the thing about the meeting."
 
-3. Ask a framing question before analyzing:
+3. Ask a framing question before analyzing (unless the user provided framing alongside the paste — text before or after the pasted content; in that case acknowledge their framing and go straight to analysis):
    - "Before I dig into this, what made you want to share it?"
    - "What were you hoping I'd see in here?"
    - "Which part has been sitting with you?"
 
-   If the user provided framing alongside the paste (text before or after the pasted content), acknowledge their framing and skip the framing question. Go straight to analysis.
-
-ANALYSIS (after framing is established)
-- Cross-reference against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the uploaded content.
-- Surface gaps between what the user has told you about themselves and what the content shows.
-- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
-- Focus on the USER's behavior. All observations serve the user's Manual. Other people's words are context for understanding the user, not data for a second profile.
-- Reference specific moments with short quotes. Do not reproduce large sections.
-
-DO NOT
-- Summarize the content (they already read it)
-- Diagnose or profile other people ("your partner is avoidant," "they seem narcissistic")
-- Take sides or assign blame
-- Tell the user what to do or give relationship advice
-- Analyze a minor's behavior or psychology if the content involves a minor
-
-MANUAL WRITING
-After discussing the upload, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always. Reference the uploaded content briefly in the entry (e.g. "shared a text thread about X, said: 'quote from user'"). Do not store the content itself.
+${renderPastedContentGuidance()}
 
 SUBSEQUENT TURNS
 After the first exchange about the upload, this becomes a normal conversation. The user may want to go deeper on something the upload surfaced, shift to a different topic, or share more content. Follow their lead. Standard deepening rules apply.
@@ -683,6 +666,35 @@ export interface SystemPromptBlocks {
 // pre-refactor inlined versions.
 // ---------------------------------------------------------------------------
 
+/**
+ * Pasted-content guidance shared between the Upload Tier 3 block (active:
+ * the user clicked Upload and pasted) and the transcript_detected dynamic
+ * block (passive: regex caught pasted content mid-conversation in a
+ * non-upload conversation). The mechanical handling — analytical stance,
+ * what-not-to-do, Manual-writing rules — is identical regardless of
+ * trigger. Each caller adds its own framing (UPLOAD opener + format
+ * identification, or TRANSCRIPT recognition + "which side" question)
+ * before invoking this template. See ADR-042.
+ */
+function renderPastedContentGuidance(): string {
+  return `ANALYSIS (after context is established)
+- Cross-reference this content against the user's confirmed Manual entries. Surface patterns from the Manual that appear here.
+- Surface gaps between what the user has told you about themselves and what this content shows.
+- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
+- Focus on the USER's behavior. All observations serve the user's Manual. Other people's words are context for understanding the user, not data for a second profile.
+- Reference specific moments with short quotes. Do not reproduce large sections.
+
+DO NOT
+- Summarize this content (they already read it)
+- Diagnose or profile other people ("your partner is avoidant," "they seem narcissistic")
+- Take sides or assign blame
+- Tell the user what to do or give relationship advice
+- Analyze a minor's behavior or psychology if a minor is involved
+
+MANUAL WRITING
+You may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always. Reference what was shared briefly in the entry; do not store the content itself.`;
+}
+
 function renderSessionContextBlock(opts: {
   isReturningUser: boolean;
   sessionCount?: number;
@@ -716,22 +728,7 @@ RECOGNITION
 - If the paste came with NO context, ask a framing question before analyzing: "Before I dig into this, what was going on when this happened?" or "What made you want to share this with me?"
 - If you cannot tell which person in the transcript is the user, ask: "Which side of this conversation is you?"
 
-ANALYSIS (after context is established)
-- Cross-reference the transcript against the user's confirmed Manual entries. Surface patterns from the Manual that appear in the transcript.
-- Surface gaps between what the user has told you about themselves and what the transcript shows.
-- Notice things the user might have missed: tone shifts, avoidance, deflection, moments where they changed the subject, the other person's attempts that got shut down.
-- Focus on the USER's behavior. All observations serve the user's Manual. The other person's words are context for understanding the user, not data for a second profile.
-- Reference specific moments with short quotes. Do not reproduce large sections of the transcript.
-
-DO NOT
-- Summarize the transcript (they already read it)
-- Diagnose or profile the other person ("your partner is avoidant," "they seem like they might be narcissistic")
-- Take sides or assign blame
-- Tell the user what to do or give relationship advice
-- Analyze a minor's behavior or psychology if the transcript contains content from a minor
-
-MANUAL WRITING
-After discussing the transcript, you may propose a new entry, a refinement to an existing entry, or an update in a new context. All writes require user confirmation as always.
+${renderPastedContentGuidance()}
 `;
   }
   if (transcriptContext.confidence === "low") {

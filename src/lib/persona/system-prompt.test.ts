@@ -823,7 +823,9 @@ describe("buildSystemPrompt", () => {
 
     it("includes analysis instructions for upload mode", () => {
       const result = build({ mode: "upload" });
-      expect(result).toContain("Cross-reference against the user's confirmed Manual entries");
+      // Shared pasted-content guidance (ADR-042, Phase 1.4) — same body
+      // shared between Upload Tier 3 and transcript_detected dynamic block.
+      expect(result).toContain("Cross-reference this content against the user's confirmed Manual entries");
       expect(result).toContain("Focus on the USER's behavior");
     });
 
