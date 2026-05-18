@@ -18,6 +18,7 @@ import {
   trackCheckpointRefined,
   trackGuidedIntakeOpenerFired,
   type ConversationMode,
+  type EntryPoint,
 } from "@/lib/analytics/events";
 import { detectGuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
@@ -1150,7 +1151,22 @@ export function useChat() {
     }
   }
 
-  async function startGuidedIntake(): Promise<boolean> {
+  /**
+   * Shared start-handler for the two "Jove speaks first" entry modes
+   * (guided-intake, upload). Both modes send `message: null` to the chat
+   * route — the server creates the conversation, sets the mode column,
+   * and streams Jove's locked opener back. The flow is identical apart
+   * from the mode flag and the entry_point label fired into analytics.
+   * See ADR-042 §1.
+   *
+   * `startGuidedIntake` and `startUpload` below are kept as named thin
+   * wrappers so MobileSession's prop surface and existing source-grep
+   * tests stay intact.
+   */
+  async function startModeConversation(
+    mode: "guided-intake" | "upload",
+    entryPoint: EntryPoint,
+  ): Promise<boolean> {
     if (isLoading || isStreaming) return false;
     if (messages.length > 0) return false;
 
@@ -1169,7 +1185,7 @@ export function useChat() {
         body: JSON.stringify({
           message: null,
           conversationId: null,
-          mode: "guided-intake",
+          mode,
         }),
       });
 
@@ -1190,7 +1206,7 @@ export function useChat() {
         conversationStartedAt.current = Date.now();
         trackConversationStarted({
           conversation_id: completeEvent.conversationId,
-          entry_point: "guided-intake",
+          entry_point: entryPoint,
           channel: "web",
         });
         trackMessageSent({
@@ -1211,65 +1227,14 @@ export function useChat() {
     }
   }
 
+  async function startGuidedIntake(): Promise<boolean> {
+    // mode: "guided-intake" · entry_point: "guided-intake"
+    return startModeConversation("guided-intake", "guided-intake");
+  }
+
   async function startUpload(): Promise<boolean> {
-    if (isLoading || isStreaming) return false;
-    if (messages.length > 0) return false;
-
-    if (!firstSessionCompleted) {
-      setFirstSessionCompleted(true);
-      localStorage.setItem("mw_first_session_completed", "true");
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: null,
-          conversationId: null,
-          mode: "upload",
-        }),
-      });
-
-      if (res.status === 401) {
-        router.push("/login");
-        return false;
-      }
-
-      if (!res.ok) {
-        setErrorMessage("Something went wrong. Try again.");
-        return false;
-      }
-
-      const { completeEvent } = await streamFromResponse(res);
-
-      if (completeEvent?.conversationId) {
-        setConversationId(completeEvent.conversationId);
-        conversationStartedAt.current = Date.now();
-        trackConversationStarted({
-          conversation_id: completeEvent.conversationId,
-          entry_point: "upload",
-          channel: "web",
-        });
-        trackMessageSent({
-          conversation_id: completeEvent.conversationId,
-          role: "assistant",
-          message_number: 1,
-          channel: "web",
-        });
-        refreshConversations();
-      }
-
-      return true;
-    } catch {
-      setErrorMessage("Connection lost. Try again.");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
+    // mode: "upload" · entry_point: "upload"
+    return startModeConversation("upload", "upload");
   }
 
   return {
