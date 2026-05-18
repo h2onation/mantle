@@ -40,6 +40,30 @@ const KEYWORD_RESPONSES: Record<string, string> = {
   HELP: `This is ${PERSONA_NAME_FORMAL} by mywalnut. Text me anytime. Reply STOP to disconnect. For the full experience, open mywalnut at mywalnut.app`,
 };
 
+// Per CTIA Short Code Monitoring Handbook, carriers expect all of these
+// keywords to be honored as opt-out / opt-in / help requests.
+const KEYWORD_ALIASES: Record<string, keyof typeof KEYWORD_RESPONSES> = {
+  STOP: "STOP",
+  UNSUBSCRIBE: "STOP",
+  CANCEL: "STOP",
+  QUIT: "STOP",
+  END: "STOP",
+  OPTOUT: "STOP",
+  "OPT OUT": "STOP",
+  REVOKE: "STOP",
+  START: "START",
+  UNSTOP: "START",
+  YES: "START",
+  HELP: "HELP",
+  INFO: "HELP",
+  SUPPORT: "HELP",
+};
+
+function resolveKeyword(text: string): keyof typeof KEYWORD_RESPONSES | null {
+  const normalized = text.toUpperCase().trim().replace(/\s+/g, " ");
+  return KEYWORD_ALIASES[normalized] ?? null;
+}
+
 // Rate limit: one unknown-number response per phone per 24 hours.
 // In-memory — same limitations as webhook dedup (serverless warm instance only).
 const unknownNumberCooldown = new Map<string, number>();
@@ -116,9 +140,9 @@ export async function routeInboundMessage(
     hasMedia
   );
 
-  // 1. Check for STOP/START/HELP keywords FIRST
-  const command = textContent.toUpperCase().trim();
-  if (command in KEYWORD_RESPONSES) {
+  // 1. Check for STOP/START/HELP keywords FIRST (with CTIA-required aliases)
+  const command = resolveKeyword(textContent);
+  if (command) {
     if (command === "STOP") {
       await unlinkPhone(senderPhone);
     }
@@ -127,7 +151,7 @@ export async function routeInboundMessage(
       content: KEYWORD_RESPONSES[command],
       contentKind: "system",
     });
-    console.log("[router] reserved command received: %s", command);
+    console.log("[router] reserved command received: %s (raw=%s)", command, textContent.toUpperCase().trim());
     return;
   }
 
