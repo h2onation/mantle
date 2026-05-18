@@ -450,6 +450,22 @@ export function validateMaterialQuality(
       `concrete scenes ${gate.concrete_examples}/${minExamples}`
     );
   }
+
+  // Distinct-contexts gate (two-instance rule, promoted from prose).
+  // A pattern claim "this is how you operate" needs evidence across at
+  // least two contexts, not just multiple moments within one incident.
+  // Falls back gracefully when the field is missing from extraction
+  // states written before this field existed — undefined means "skip
+  // this check" rather than failing closed.
+  const minContexts = isFirstCheckpoint ? 1 : 2;
+  const distinctContexts =
+    typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
+  if (distinctContexts !== null && distinctContexts < minContexts) {
+    reasons.push(
+      `distinct contexts ${distinctContexts}/${minContexts}`
+    );
+  }
+
   if (!gate.has_charged_language) {
     reasons.push("no charged language captured");
   }

@@ -199,6 +199,8 @@ export async function processTextMessage(
         conversationHistory: ctx.messages,
         languageBank: ctx.previousExtraction?.language_bank || [],
         manualComponents: ctx.manualComponents || [],
+        distinctContexts:
+          ctx.previousExtraction?.checkpoint_gate?.distinct_contexts ?? null,
       });
 
       if (composedEntry?.content) {

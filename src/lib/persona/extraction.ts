@@ -9,7 +9,6 @@ export interface LayerSignal {
   signal: "none" | "emerging" | "explored" | "checkpoint_ready";
   material: string[];
   examples: string[];
-  dimensions: string[];
 }
 
 export interface LanguageEntry {
@@ -21,6 +20,14 @@ export interface LanguageEntry {
 
 export interface CheckpointGate {
   concrete_examples: number;
+  // Count of DIFFERENT situations / events / time-periods the user has
+  // narrated. Distinct from concrete_examples: four moments inside one
+  // phone call is ONE distinct context. The pattern claim ("this is how
+  // you operate") requires evidence across at least two contexts for a
+  // non-first checkpoint. Optional on the type because extraction states
+  // written before this field existed will not carry it — validators
+  // treat undefined as "skip this check" for graceful fallback.
+  distinct_contexts?: number;
   has_mechanism: boolean;
   has_charged_language: boolean;
   has_behavior_driver_link: boolean;
@@ -76,11 +83,11 @@ export const EXTRACTION_MESSAGE_WINDOW = 12;
 function defaultState(): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [], dimensions: [] },
-      2: { signal: "none", material: [], examples: [], dimensions: [] },
-      3: { signal: "none", material: [], examples: [], dimensions: [] },
-      4: { signal: "none", material: [], examples: [], dimensions: [] },
-      5: { signal: "none", material: [], examples: [], dimensions: [] },
+      1: { signal: "none", material: [], examples: [] },
+      2: { signal: "none", material: [], examples: [] },
+      3: { signal: "none", material: [], examples: [] },
+      4: { signal: "none", material: [], examples: [] },
+      5: { signal: "none", material: [], examples: [] },
     },
     language_bank: [],
     depth: "surface",
@@ -88,6 +95,7 @@ function defaultState(): ExtractionState {
     mode: "situation_led",
     checkpoint_gate: {
       concrete_examples: 0,
+      distinct_contexts: 0,
       has_mechanism: false,
       has_charged_language: false,
       has_behavior_driver_link: false,
@@ -139,10 +147,6 @@ const LAYER_MODEL_BLOCK = LAYERS.map(
     `Layer ${l.id} (${l.name}): ${l.description}\n  Example: "${l.example}"`
 ).join("\n");
 
-const DIMENSIONS_BLOCK = LAYERS.map(
-  (l) => `- Layer ${l.id}: ${l.dimensions.join(", ")}`
-).join("\n");
-
 const EXTRACTION_SYSTEM = `You are the extraction layer for a conversational AI called ${PERSONA_NAME} that builds Manuals for late-diagnosed autistic adults. You run silently before ${PERSONA_NAME} responds. Your job is to analyze what the user just said and produce structured context so ${PERSONA_NAME} can have a deeper, more grounded conversation.
 
 You receive:
@@ -181,9 +185,6 @@ Capture aggressively. If a phrase has any of the qualities above, log it. The ba
 2. LAYER SIGNALS
 What layers did the user's latest message touch? Be specific about what material surfaced. Don't just say "Layer 1 emerging." Say what behavior or need or sensory experience surfaced and what the evidence is.
 
-Track dimensions within each layer:
-${DIMENSIONS_BLOCK}
-
 3. DEPTH TRACKING
 Where is the conversation in its vertical descent?
 - surface: what happened (events, facts, the situation)
@@ -196,7 +197,8 @@ Where is the conversation in its vertical descent?
 Evaluate whether there is enough material for a meaningful checkpoint. This is purely a quality assessment. Number of turns is irrelevant.
 
 STANDARD GATE (all must be true):
-- concrete_examples >= 2: At least two specific, concrete moments from the user's life (not abstract claims like "I'm always overloaded" but real situations they walked through). A concrete example requires: a specific moment in time, what happened, and what the user's body or system did. References to recurring situations ("when she's loud," "at work") do NOT count. The user must have narrated the scene, not just named the topic.
+- concrete_examples >= 2: Count of specific, concrete moments the user has walked you through. A concrete example requires: a specific moment in time, what happened, and what the user's body or system did. References to recurring situations ("when she's loud," "at work") do NOT count — the user must have narrated the scene, not just named the topic. Moments WITHIN a single incident still count separately here (a phone call where the user described four distinct beats produces concrete_examples = 4). The pattern-recurrence question is handled by distinct_contexts below.
+- distinct_contexts >= 2: Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments inside one phone call is ONE distinct context, not four. Two friendships described in two scenes is two distinct contexts. The pattern claim "this is how you operate" requires evidence from at least two contexts. If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 — the gate will hold and the checkpoint should not fire as a recurring-pattern entry.
 - has_mechanism: The conversation has reached WHY, not just WHAT. There's a connection between an observed behavior or state and an underlying driver — a need, a sensory load, a system state, a bind.
 - has_charged_language: The language bank contains at least one high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor the checkpoint.
 - has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
@@ -206,6 +208,7 @@ Mechanism per layer: For Layer 3 (${LAYER_NAMES[3]}), "mechanism" means why-this
 FIRST-CHECKPOINT GATE (lighter, when "is_first_checkpoint" is true):
 The first checkpoint is a teaching moment. The user needs to experience the confirm-and-write loop quickly. Lighter bar:
 - concrete_examples >= 1: One vivid, specific moment is enough. The user must have narrated the scene (what happened, what they did or felt), not just referenced a topic or recurring situation.
+- distinct_contexts >= 1: One distinct situation is enough for the first checkpoint.
 - has_charged_language: true
 - has_mechanism OR has_behavior_driver_link: at least one.
 
@@ -290,7 +293,7 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
   "layers": {
-    "1": { "signal": "none|emerging|explored|checkpoint_ready", "material": ["specific observation"], "examples": ["concrete moment from user"], "dimensions": ["which aspects touched"] },
+    "1": { "signal": "none|emerging|explored|checkpoint_ready", "material": ["specific observation"], "examples": ["concrete moment from user"] },
     "2": { ... },
     "3": { ... },
     "4": { ... },
@@ -304,6 +307,7 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
   "mode": "situation_led|direct_exploration|synthesis",
   "checkpoint_gate": {
     "concrete_examples": 0,
+    "distinct_contexts": 0,
     "has_mechanism": false,
     "has_charged_language": false,
     "has_behavior_driver_link": false,
@@ -432,13 +436,45 @@ export async function runExtraction(
         : state.observation_miss_count;
     const observationMissCount = Math.max(0, Math.min(3, rawMiss));
 
+    // Monotonic enforcement on accumulating gate counts. Sonnet sometimes
+    // re-evaluates the conversation from a smaller window and returns a
+    // lower concrete_examples / distinct_contexts than the prior turn —
+    // even when no real evidence was removed. previousState is the
+    // authoritative high-water mark for counts: take max() so the gate
+    // doesn't silently regress from "ready" to "not ready" without the
+    // user actually walking back evidence. Booleans are intentionally
+    // NOT enforced monotonically; they're state assessments tied to the
+    // current strongest_layer and can legitimately oscillate if the
+    // conversation shifts focus to a different layer.
+    const mergedGate = (() => {
+      const incoming = parsed.checkpoint_gate;
+      if (!incoming || typeof incoming !== "object") {
+        return state.checkpoint_gate;
+      }
+      const prevExamples = state.checkpoint_gate.concrete_examples ?? 0;
+      const prevContexts = state.checkpoint_gate.distinct_contexts ?? 0;
+      const incomingExamples =
+        typeof incoming.concrete_examples === "number"
+          ? incoming.concrete_examples
+          : prevExamples;
+      const incomingContexts =
+        typeof incoming.distinct_contexts === "number"
+          ? incoming.distinct_contexts
+          : prevContexts;
+      return {
+        ...incoming,
+        concrete_examples: Math.max(incomingExamples, prevExamples),
+        distinct_contexts: Math.max(incomingContexts, prevContexts),
+      };
+    })();
+
     return {
       layers: parsed.layers || state.layers,
       language_bank: parsed.language_bank || state.language_bank,
       depth: parsed.depth || state.depth,
       current_thread: parsed.current_thread || state.current_thread,
       mode: parsed.mode || state.mode,
-      checkpoint_gate: parsed.checkpoint_gate || state.checkpoint_gate,
+      checkpoint_gate: mergedGate,
       clinical_flag: parsed.clinical_flag || state.clinical_flag,
       observation_miss_count: observationMissCount,
       next_prompt: parsed.next_prompt || "",
@@ -528,7 +564,17 @@ export function formatExtractionForPersona(
   const gate = state.checkpoint_gate;
   const isCrisis = cf && cf.active && cf.level === "crisis";
 
-  const gateReady = !isCrisis && (
+  // Distinct-contexts read with soft fallback: extraction states written
+  // before this field existed will not carry it. When the field is
+  // missing, treat the contexts check as a pass so we don't regress
+  // pre-existing behavior.
+  const distinctContextsValue =
+    typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
+  const minContexts = isFirstCheckpoint ? 1 : 2;
+  const contextsOk =
+    distinctContextsValue === null || distinctContextsValue >= minContexts;
+
+  const gateReady = !isCrisis && contextsOk && (
     isFirstCheckpoint
       ? gate.concrete_examples >= 1 &&
         gate.has_charged_language &&
@@ -547,6 +593,12 @@ export function formatExtractionForPersona(
     if (gate.concrete_examples < minExamples) {
       const need = minExamples - gate.concrete_examples;
       missing.push(`you need ${need} more concrete scene${need === 1 ? "" : "s"} the user has walked you through`);
+    }
+    if (distinctContextsValue !== null && distinctContextsValue < minContexts) {
+      const need = minContexts - distinctContextsValue;
+      missing.push(
+        `the pattern needs evidence from ${need} more distinct ${need === 1 ? "context" : "contexts"} — a different situation where this has shown up, not more moments inside the same one`
+      );
     }
     if (!gate.has_mechanism && !isFirstCheckpoint)
       missing.push("you haven't reached the mechanism underneath the behavior yet");
