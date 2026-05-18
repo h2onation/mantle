@@ -36,13 +36,14 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p style={{ color: "var(--session-ink-mid)", margin: "0 0 32px 0" }}>
-          Last updated: April 16, 2026
+          Last updated: May 18, 2026
         </p>
 
         <p>
-          mywalnut (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;)
-          operates the {PERSONA_NAME_FORMAL} conversational platform at mywalnut.app. This
-          policy describes how we collect, use, and protect your information.
+          mywalnut, Inc. (&ldquo;mywalnut,&rdquo; &ldquo;we,&rdquo;
+          &ldquo;us,&rdquo; &ldquo;our&rdquo;) operates the {PERSONA_NAME_FORMAL}{" "}
+          conversational platform at mywalnut.app. This policy describes how we
+          collect, use, and protect your information.
         </p>
 
         <h2
@@ -72,9 +73,8 @@ export default function PrivacyPolicy() {
           conversations.
         </p>
         <p>
-          <strong>Manual content:</strong> the components and patterns that make
-          up your User Manual, which you review and confirm during conversations
-          with {PERSONA_NAME_FORMAL}.
+          <strong>Manual content:</strong> the entries you confirm during
+          conversations with {PERSONA_NAME_FORMAL} that make up your Manual.
         </p>
         <p>
           <strong>Usage data:</strong> basic analytics such as session frequency
@@ -179,10 +179,18 @@ export default function PrivacyPolicy() {
         <p>
           Your conversation data and manual content are retained as long as your
           account is active. You can delete your account at any time through the
-          app&apos;s Settings, which removes all associated data including
-          conversations, manual entries, and linked phone numbers.
+          app&apos;s Settings, which removes your conversations, manual entries,
+          linked phone numbers, and group chats you owned.
         </p>
-        <p>You can export your manual at any time through the app.</p>
+        <p>
+          We retain limited administrative access logs (records of which admin
+          accessed which user account, when, and for what purpose) for security,
+          abuse investigation, and audit purposes. These logs reference your
+          user ID but contain no message content, manual content, or other
+          personal information. We retain them for as long as needed for these
+          purposes and then delete them.
+        </p>
+        <p>You can export your Manual as a PDF at any time through the app.</p>
 
         <h2
           style={{
@@ -195,10 +203,11 @@ export default function PrivacyPolicy() {
           Sharing
         </h2>
         <p>
-          When you share your manual, the recipient can view the sections you
-          chose to share. You control what is visible. You can revoke access at
-          any time. Revoking access removes the recipient&apos;s ability to view
-          your manual. Recipients cannot modify your manual.
+          You can share your Manual by exporting it as a PDF from the app. The
+          PDF reflects the entries you have confirmed at the time you export it.
+          You control what you include and who you send it to. Once a PDF leaves
+          your device, the recipient holds an independent copy that we cannot
+          recall.
         </p>
 
         <h2
@@ -247,12 +256,105 @@ export default function PrivacyPolicy() {
             margin: "32px 0 12px 0",
           }}
         >
+          Data Breach Notification
+        </h2>
+        <p>
+          If we become aware of a security breach that has compromised the
+          confidentiality, integrity, or availability of your personal
+          information, we will notify you and any applicable regulators in
+          accordance with the timeframes and procedures required by law. We
+          will tell you what happened, what information was involved, and what
+          you can do to protect yourself.
+        </p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
           Your Rights
         </h2>
         <p>
           You may request access to, correction of, or deletion of your personal
           data by contacting us at jeff@mywalnut.app. We will respond
           within 30 days.
+        </p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
+          Your California Privacy Rights
+        </h2>
+        <p>
+          If you are a California resident, the California Consumer Privacy Act
+          (CCPA), as amended by the California Privacy Rights Act (CPRA), gives
+          you specific rights regarding your personal information.
+        </p>
+        <p>
+          <strong>Categories of personal information we collect:</strong>{" "}
+          identifiers (email, user ID, phone number); internet or electronic
+          network activity (session activity, feature usage); content you
+          provide (conversation messages, manual entries); and inferences drawn
+          from the above (behavioral patterns you have confirmed during
+          conversations with {PERSONA_NAME_FORMAL}).
+        </p>
+        <p>
+          <strong>Sources of personal information:</strong> directly from you;
+          from your device when you use the service; from our service providers
+          (Supabase, Anthropic, Vercel, our SMS provider, PostHog) acting on
+          our behalf.
+        </p>
+        <p>
+          <strong>Business purposes for which we use it:</strong> to provide
+          and operate the service, build your Manual, send messages you
+          initiate, secure the service, prevent abuse, and improve product
+          quality.
+        </p>
+        <p>
+          <strong>We do not sell or share your personal information</strong>{" "}
+          (including for cross-context behavioral advertising) as those terms
+          are defined under the CCPA.
+        </p>
+        <p>
+          <strong>Your rights:</strong> the right to know what personal
+          information we collect, use, and disclose about you; the right to
+          delete personal information; the right to correct inaccurate personal
+          information; the right to opt out of sale or sharing (we do not sell
+          or share); and the right not to be discriminated against for
+          exercising these rights. To exercise any of these rights, contact us
+          at jeff@mywalnut.app. We will verify your request by matching
+          identifiers you provide (such as your account email) against the
+          information we have on file.
+        </p>
+
+        <h2
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: 20,
+            fontWeight: 400,
+            margin: "32px 0 12px 0",
+          }}
+        >
+          International Users
+        </h2>
+        <p>
+          mywalnut is operated from the United States. If you access the
+          service from outside the United States, your information will be
+          transferred to and processed in the United States, where data
+          protection laws may differ from those in your jurisdiction. By using
+          mywalnut, you consent to this transfer. If you are located in the
+          European Economic Area, the United Kingdom, or another jurisdiction
+          with comprehensive data protection laws, you may have additional
+          rights under local law; contact us at jeff@mywalnut.app to
+          exercise them.
         </p>
 
         <h2

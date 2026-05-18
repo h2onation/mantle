@@ -26,6 +26,11 @@ export async function POST() {
 
     await admin.from("manual_entries").delete().eq("user_id", user.id);
 
+    // Delete Linq group chats this user owned. The FK is SET NULL on profile
+    // delete (so the row would otherwise survive with owner_user_id=null),
+    // but the privacy policy promises full data removal — explicit delete.
+    await admin.from("linq_group_chats").delete().eq("owner_user_id", user.id);
+
     // Delete profile row (cascades from auth.users, but explicit for safety)
     await admin.from("profiles").delete().eq("id", user.id);
 
