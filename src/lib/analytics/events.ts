@@ -15,8 +15,7 @@ import type { GuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy
 export type Channel = "web" | "sms";
 
 // EntryPoint and ConversationMode are aliases of the canonical
-// ConversationMode in @/lib/persona/config until they diverge (e.g., when a
-// resonant-content entry point ships that is not a conversation mode).
+// ConversationMode in @/lib/persona/config until they diverge.
 import type { ConversationMode } from "@/lib/persona/config";
 export type { ConversationMode };
 export type EntryPoint = ConversationMode;

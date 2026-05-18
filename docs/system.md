@@ -54,7 +54,7 @@ Checkpoint detection runs on both channels via the same flow: Haiku classifier o
 |---------|-----|------|
 | Delivery | Streaming SSE (`anthropicStream`) | Blocking (`anthropicFetch`) |
 | Auth | Supabase session | Phone number lookup |
-| URL/transcript detection | Yes (`detectUrls`, `detectTranscript`) | No (SMS limitation) |
+| Transcript detection | Yes (`detectTranscript`) | No (SMS limitation) |
 | Exploration mode | Yes (`explorationContext`) | No |
 | Guest prompt auth | Yes (`promptAuth` flag) | No |
 | Checkpoint confirmation | UI buttons → POST `/api/checkpoint/confirm` | Keyword interception (YES/NO/NOT QUITE) |
