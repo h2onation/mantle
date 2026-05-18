@@ -814,15 +814,19 @@ describe("buildSystemPrompt", () => {
 
   // ─── Upload mode ─────────────────────────────────────────────────────────
   describe("upload mode", () => {
+    // Upload Tier 3 block renders during the entry phase (turnCount <= 2)
+    // per ADR-042 §3. Tests use turnCount: 0 (Jove opener) so the block
+    // fires; the post-entry-phase behavior is covered by the lifecycle
+    // tests below.
     it("includes UPLOAD MODE block with opener when mode is upload", () => {
-      const result = build({ mode: "upload" });
+      const result = build({ mode: "upload", turnCount: 0 });
       expect(result).toContain("UPLOAD MODE");
       expect(result).toContain("chose \"Upload\"");
       expect(result).toContain("Paste something here");
     });
 
     it("includes analysis instructions for upload mode", () => {
-      const result = build({ mode: "upload" });
+      const result = build({ mode: "upload", turnCount: 0 });
       // Shared pasted-content guidance (ADR-042, Phase 1.4) — same body
       // shared between Upload Tier 3 and transcript_detected dynamic block.
       expect(result).toContain("Cross-reference this content against the user's confirmed Manual entries");
@@ -830,7 +834,7 @@ describe("buildSystemPrompt", () => {
     });
 
     it("includes format-specific guidance", () => {
-      const result = build({ mode: "upload" });
+      const result = build({ mode: "upload", turnCount: 0 });
       expect(result).toContain("Speaker-alternating");
       expect(result).toContain("Email thread");
       expect(result).toContain("Journal entry");
@@ -844,6 +848,23 @@ describe("buildSystemPrompt", () => {
     it("does not include UPLOAD MODE in guided-intake mode", () => {
       const result = build({ mode: "guided-intake" });
       expect(result).not.toContain("UPLOAD MODE");
+    });
+
+    // ADR-042 §3: entry-phase block stops rendering after turnCount > 2.
+    // After the opener (turn 0) and the user's paste turn (turn 2), the
+    // conversation runs on standard reflective exploration.
+    it("UPLOAD MODE renders during entry phase (turnCount <= 2)", () => {
+      for (const turnCount of [0, 1, 2]) {
+        const result = build({ mode: "upload", turnCount });
+        expect(result).toContain("UPLOAD MODE");
+      }
+    });
+
+    it("UPLOAD MODE stops rendering after entry phase (turnCount > 2)", () => {
+      for (const turnCount of [3, 4, 8, 20]) {
+        const result = build({ mode: "upload", turnCount });
+        expect(result).not.toContain("UPLOAD MODE");
+      }
     });
   });
 
@@ -1278,6 +1299,20 @@ describe("buildSystemPrompt", () => {
       expect(build({ mode: "situation" })).not.toContain("GUIDED INTAKE");
     });
 
+    // ADR-042 §3: guided posture persists for the conversation's life and
+    // softens only on explicit user redirect (detection in Phase 2).
+    it("GUIDED INTAKE persists across the conversation's life when not softened", () => {
+      for (const turnCount of [1, 5, 20, 50]) {
+        const result = build({ mode: "guided-intake", turnCount });
+        expect(result).toContain("GUIDED INTAKE");
+      }
+    });
+
+    it("GUIDED INTAKE stops rendering when guidedPostureSoftened is true", () => {
+      const result = build({ mode: "guided-intake", guidedPostureSoftened: true });
+      expect(result).not.toContain("GUIDED INTAKE");
+    });
+
     it("TIER 1 content still renders alongside guided intake", () => {
       const result = build({ mode: "guided-intake" });
       expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
@@ -1338,6 +1373,7 @@ describe("buildSystemPrompt", () => {
     it("upload opener tells returning users not to introduce themselves", () => {
       const result = build({
         mode: "upload",
+        turnCount: 0,
         isReturningUser: true,
         manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
       });

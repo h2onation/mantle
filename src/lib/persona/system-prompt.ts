@@ -186,6 +186,11 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  needed — the trigger card already shows the title and layer, and
    *  the chat-history label already shows where it landed. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  /** Guided intake softening signal — when true, the guided Tier 3 block
+   *  stops rendering and the conversation runs on standard reflective
+   *  exploration. Defaults to false; explicit user-redirect detection is
+   *  wired up in Phase 2 guided polish. See ADR-042 §3. */
+  guidedPostureSoftened?: boolean;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -255,10 +260,19 @@ interface Tier3Flags {
   showCheckpointInstructions: boolean;
   isFirstCheckpoint: boolean;
   checkpointApproaching: boolean;
+  /** Total messages in the conversation (user + assistant). Used to gate
+   *  entry-phase Tier 3 blocks (situation first-message, upload entry phase).
+   *  See ADR-042 §3 — per-mode lifecycle encoded on this ladder. */
   turnCount: number;
   manualComponentCount: number;
   postConfirmMode: "first-message-2" | "subsequent-single" | null;
   mode: "situation" | "guided-intake" | "upload";
+  /** Guided intake posture softens when the user explicitly redirects
+   *  ("can we slow down", surfacing a live situation, etc.). Defaults to
+   *  false; detection wiring lands in Phase 2 guided polish. When true,
+   *  the guided Tier 3 block stops rendering and the conversation drops
+   *  back to standard reflective exploration. */
+  guidedPostureSoftened: boolean;
 }
 
 interface Tier3Block {
@@ -304,7 +318,7 @@ First 2-3 turns: concrete details. Depth starts at turn 3-4. Introduce yourself 
   },
   {
     id: "guided-intake",
-    shouldRender: (f) => f.mode === "guided-intake",
+    shouldRender: (f) => f.mode === "guided-intake" && !f.guidedPostureSoftened,
     render: (f) => `
 GUIDED INTAKE
 The user opted into a more directed path. Your job is to find the first piece of material the Manual can hold, grounded in a relationship they name.
@@ -375,14 +389,18 @@ If the user shifts from retrieving a past moment to working through something ac
 This does NOT fire when the past moment has live implications ("this happened Tuesday and we're meeting again Saturday"). That's still retrieval — the conversation is about understanding what already happened, not deciding what to do next. Stay in guided posture.
 
 EXIT
-Guided posture ends when the user accepts a checkpoint. After that, the post-confirm flow runs as normal and standard Jove behavior takes over for the rest of the session. A rejected checkpoint does not end guided posture — the existing post-rejection rule applies, then guided behavior continues until something commits.
+Guided posture persists for the conversation's life. Checkpoints accept or reject without ending it — the user opted into structured intake, so keep delivering it. Posture only softens when the user explicitly redirects (see USER PIVOTS above) or when they signal they're done.
 
 If the user signals they're stopping before a checkpoint has been accepted, name where you got to and set up the return: "We're not all the way there yet. The piece I'm missing usually shows up in a second conversation. Come back when you can." Do not lower the bar to force a commit.
 `,
   },
   {
     id: "upload",
-    shouldRender: (f) => f.mode === "upload",
+    // Entry phase only: Jove's opener turn (turnCount 0) + the user's
+    // paste turn (turnCount 2). After that, the conversation runs on
+    // standard reflective exploration with the artifact in message
+    // history. See ADR-042 §3.
+    shouldRender: (f) => f.mode === "upload" && f.turnCount <= 2,
     render: (f) => `
 UPLOAD MODE
 
@@ -409,9 +427,6 @@ The user's next message after the opener is the uploaded content. Do not treat i
    - "Which part has been sitting with you?"
 
 ${renderPastedContentGuidance()}
-
-SUBSEQUENT TURNS
-After the first exchange about the upload, this becomes a normal conversation. The user may want to go deeper on something the upload surfaced, shift to a different topic, or share more content. Follow their lead. Standard deepening rules apply.
 `,
   },
   {
@@ -788,6 +803,7 @@ export function buildSystemPromptBlocks(
     mode = "situation",
     personaModes = ["autistic"],
     postConfirmMode = null,
+    guidedPostureSoftened = false,
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
@@ -811,6 +827,7 @@ export function buildSystemPromptBlocks(
     manualComponentCount: manualComponents.length,
     postConfirmMode,
     mode,
+    guidedPostureSoftened,
   });
 
   const { older: olderManual, recent: recentManual } =
@@ -887,6 +904,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     mode = "situation",
     personaModes = ["autistic"],
     postConfirmMode = null,
+    guidedPostureSoftened = false,
   } = options;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
@@ -910,6 +928,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     manualComponentCount: manualComponents.length,
     postConfirmMode,
     mode,
+    guidedPostureSoftened,
   });
 
   const basePrompt = `${intro}
