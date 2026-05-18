@@ -40,7 +40,7 @@ The Jove system prompt is built in `src/lib/persona/system-prompt.ts` in three t
 - **Tier 2 — Voice and behavior.** Sourced from `src/lib/persona/voice-autistic.ts`: VOICE_RULES (15), BANNED_PHRASES, BANNED_PATTERNS, EXAMPLE_REGISTER, LANDING_EXAMPLES. Plus static sections for deepening rhythm, progress signals, repair, "what should I do" handling. Edit voice-autistic.ts, not the builder, when changing voice.
 - **Tier 3 — Conversation mechanics.** Assembled at call time from flags (turn count, first session, returning user, checkpoint approaching, checkpoint just returned, manual entry count, clinical level). Conditional blocks — first message, returning user, approaching/returning checkpoint, post-checkpoint acknowledgement, readiness gate (3+ entries), clinical material, professional referral, fabricated content, first-session wrapper.
 
-Dynamic context blocks (confirmed manual, session summary, extraction brief, transcript detected, shared URL content, exploration focus) are appended after Tier 3 and are not part of the tier structure.
+Dynamic context blocks (confirmed manual, session summary, extraction brief, transcript detected, exploration focus) are appended after Tier 3 and are not part of the tier structure.
 
 There is no post-checkpoint fork. Jove acknowledges briefly and returns to the conversation from whatever the user just surfaced. No "Work with it / Keep building" menu.
 

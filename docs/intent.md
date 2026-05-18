@@ -1,7 +1,7 @@
 # Intent — What We Are Building and Why
 
 Authority: Strategic. Changes when the phase changes.
-Updated: April 2026
+Updated: May 2026
 
 ---
 
@@ -89,13 +89,13 @@ Jove does this across time. Not one hour a week from memory. Every conversation,
 
 ### Layer 1: Input
 
-Three entry points. Each generates different signal. Together they build a picture no single source can.
+Three on-ramps, two interview styles. Users arrive at Jove in different states of readiness — sometimes carrying something live, sometimes needing to be led, sometimes with an artifact they want read. Each entry point meets that state with the right opening posture. After the entry phase, every conversation runs on one of two interview styles: reflective exploration (Jove follows the user and deepens) or structured intake (Jove leads with direct, systematic questions). All three feed the same Manual.
 
-**Situation.** The core loop. The user brings something specific — a conflict, a recurring dynamic, a reaction they don't understand, a win they can't explain. Jove explores it through conversation. The user gets clarity on that situation. Jove extracts patterns underneath. This is what brings people in.
+**Situation.** The core loop. The user brings something specific — a conflict, a recurring dynamic, a reaction they don't understand, a win they can't explain. Jove explores it through conversation, deepening into texture until patterns surface. This is reflective exploration in its purest form, and it's what brings people in.
 
-**Resonant content.** The user shares something that landed — a blog post, a TikTok, a book passage. Jove explores the reaction. Why this? What does it connect to in your experience? The content is the entry point. The user's response to it is the data.
+**Guided intake.** The user wants Jove to lead. Maybe nothing's live on their mind, maybe they don't know what to bring, maybe they prefer being asked direct questions to talking unprompted. Jove runs a structured intake — systematic questions across dimensions, more coverage than depth, with the explicit goal of finding the first piece of material the Manual can hold. The interview style is more direct than situation mode; the rhythm is question-driven, not user-driven.
 
-**Personal uploads.** Text threads, emails, journal entries. The outside view — how other people describe interactions with the user. Jove reads the gap between the external account and the user's own framing. This is the highest signal input because the user didn't author it for Jove and can't control the narrative.
+**Upload.** The user has an artifact — a text thread, email, journal entry, notes. They paste it; Jove reads it; the conversation explores what made them want to share it and what the artifact reveals. The entry experience is anchored to the content (locked opener inviting paste, format-aware reading, framing question). After the entry phase, the conversation runs on reflective exploration with the artifact as enriched context.
 
 ### Layer 2: Engine (Jove)
 
@@ -190,7 +190,7 @@ The core loop, polished.
 - Manual is viewable in app
 - Manual is exportable as PDF
 - Manual context informs current session
-- Resonant content input
+- Guided intake input
 - Personal uploads input
 - Feedback button live
 
@@ -236,6 +236,4 @@ Priority order. WS1 is highest leverage.
 
 **WS5: Beta Infrastructure.** Allowlist, feedback button, usage visibility, error handling. Test: you can onboard a user, they complete a session, you can see it happened.
 
-**WS6: Resonant Content Input.** User shares something, Jove explores why it landed. Test: Jove surfaces a connection the user hadn't made.
-
-**WS7: Personal Uploads Input.** Text threads, emails. Jove reads the gap. Test: Jove identifies something the user wouldn't have surfaced on their own.
+**WS6: Input Modes Polish.** Three entry experiences (Situation, Guided intake, Upload) with two interview styles (reflective exploration, structured intake). Polish each mode's entry phase, posture, and guardrails so the right user state meets the right opening. Test: each mode delivers its intended experience without ambiguity, and the user knows which one fits.

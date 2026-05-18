@@ -250,8 +250,8 @@ export async function loadConversationContext(
 //
 // Single source of truth for the context → BuildPromptOptions mapping.
 // Both web (call-persona.ts) and text (persona-bridge.ts) call this, then web
-// layers on its channel-specific fields (explorationContext, transcriptContext,
-// contentContext). Adding a new field to BuildPromptOptions? Add it here once.
+// layers on its channel-specific fields (explorationContext, transcriptContext).
+// Adding a new field to BuildPromptOptions? Add it here once.
 
 export function buildPromptOptionsFromContext(
   ctx: ConversationContext

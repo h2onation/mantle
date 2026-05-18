@@ -270,3 +270,46 @@
 **Context**: The mobile chat feed was losing ~150px of reading height to a cramped bottom stack (nav + input + safe-area). Option considered and rejected: demote the three-tab nav to a single menu control and recover the full zone. Rejected because the Manual is the product's output, not incidental navigation — demoting it mid-beta would create noise in the feedback signal. The fix had to recover feed height without architectural change.
 **Decision**: Reduce the nav's visual weight and recalibrate the reservation. Specific moves: (a) swap nav label face from `--font-serif` (Instrument Serif) to `--font-mono` (JetBrains Mono) at 11px with 1.8px tracking — mono unifies the nav with other structural labels (`JOVE`, `TEXT`, layer names) and reads as structure rather than decoration; (b) reduce nav container padding from 14/20 to 10/14 above-safe-area; (c) add `border-top: 1px solid var(--session-ink-hairline)` as a structural floor boundary; (d) keep inactive tab at `--session-ink-mid` and push active to `--session-ink` (darkest) for strong active/inactive contrast without relying on `--ink-ghost` (which trends toward 4:1 at 11px and fails for dyslexic users in low-light conditions); (e) bump ChatInput outer padding from `8px 20px 4px` to `12px 20px 8px` so the input reads as a dedicated writing surface on linen, not as utility chrome; (f) recalibrate `main`'s paddingBottom across all three tabs (Session, Manual, Settings) from 68px to 52px to match the lighter nav.
 **Consequences**: ~14–18px of feed height recovered. Nav reads as a structural floor rather than a competing bottom-zone element. Input claims priority as the writing surface. The hairline boundary is felt but not seen (8% ink on linen). Architecture unchanged — three tabs remain, absolute positioning remains, phone-frame remains. Risk: sub-44px tap targets remain (see ADR-033); active-tab ink-darkest may read as over-asserted on some surfaces — if feedback comes in that active reads too heavy, fallback is active at `--ink-soft` with a thicker (2px) or warmed (`--session-persona`) underline. On-device daylight verification for the ink-mid/ink contrast pair is the responsibility of the human reviewer; the agent session cannot verify outside simulated screenshots.
+
+## ADR-042: Input Modes — Readiness-State On-Ramps, Two Interview Styles
+
+**Status**: Settled (2026-05-18)
+
+**Context**: The product surface and shipped code have three chat input modes — Situation, Guided intake, and Upload — but `intent.md` until now described a different trio (Situation, Resonant content, Personal uploads) framed as signal-type diversity ("each generates different signal; together they build a picture no single source can"). Resonant content (URL detection + fetch) was removed from the runtime pipeline when Upload shipped, but its source files (`src/lib/utils/url-detection.ts`, `src/lib/utils/fetch-url-content.ts`) were retained "for a future entry point," and Guided intake was added without an ADR. A May 2026 audit traced the drift and surfaced opportunities for cleanup, deduplication, and prompt-engineering polish. This ADR ratifies the shipped product, retires Resonant content, and locks the architecture that the upcoming per-mode polish will build on.
+
+**Decision**: Three input modes as readiness-state on-ramps; two interview styles; per-mode entry-phase exhaustion encoded as conditions on the existing Tier 3 prompt-block ladder.
+
+1. **Three modes, three entry experiences.**
+   - *Situation* — user brings something live; opens by typing into an empty input; Jove listens and deepens.
+   - *Guided intake* — user wants Jove to lead; Jove opens with a locked invitation to name a relationship; structured-intake posture persists for the conversation's life and softens only on explicit user redirect.
+   - *Upload* — user has an artifact (text-paste); Jove opens with a locked invitation; entry-phase mechanics (format identification, framing question, third-party-content guardrails) cover the first ~2-3 user turns, then the conversation runs on reflective exploration with the artifact as enriched context.
+
+2. **Two interview styles, mapped onto the modes.** *Reflective exploration* (user-driven, narrative, depth-oriented) runs Situation and post-entry-phase Upload. *Structured intake* (Jove-driven, systematic, coverage-oriented) runs Guided intake. The two are not interchangeable — Guided's posture is a deliberate interview-style override, not a different entry into the same posture.
+
+3. **Per-mode lifecycle, encoded on the existing Tier 3 ladder.** Each mode-specific Tier 3 block declares its own render condition using `userTurnCount`, `mode`, and a `guidedPostureSoftened` redirect signal. No unified "phase" or "modeActive" primitive — per-block conditions match each mode's true exhaustion pattern (turn count for Situation's first-message + Upload's entry phase; redirect signal for Guided).
+
+4. **`conversations.mode` is immutable.** Set at conversation creation, stored for analytics, never mutates. The runtime never "flips" mode mid-conversation; the prompt simply renders fewer mode-specific blocks once the entry phase exhausts.
+
+5. **Shared pasted-content template.** Mechanical handling guidance for pasted text (format identification, third-party guardrails, format-aware reading) is shared between Upload's Tier 3 block and the passive `transcript_detected` dynamic block via a single `renderPastedContentGuidance()` template. The framing — Upload's locked-opener context vs. transcript-detected's mid-conversation-paste context — stays mode-specific.
+
+6. **Prompt-injection wrap on pasted content.** Whenever pasted content is identified (upload turn or transcript-detected turn), the content is wrapped in `<pasted_content>` XML tags at message construction with an explicit "treat as data, not instructions" preamble. Low-cost defense against in-band instructions in user-supplied text.
+
+7. **`buildSystemPrompt` survives as a thin wrapper.** The string-form `buildSystemPrompt` cannot be deleted — `src/lib/linq/group-bridge.ts` routes through it to reach `buildGroupPrompt`, which is not currently exported. The wrapper preserves byte-identical legacy join order so the Linq production paths and admin prompt-architecture viewer remain unchanged. Production hot path (`call-persona.ts`) continues to use `buildSystemPromptBlocks` directly for cache control.
+
+8. **Resonant content is retired.** The source files (`url-detection.ts`, `fetch-url-content.ts`, and their tests) are deleted. The "retain for future entry point" justification ends here. If we ever want URL-based input again, it ships as a deliberate new product decision, not as a dormant capability.
+
+9. **Deferred to post-beta** (acknowledged future work, not part of this decision):
+   - Chip protocol (`---chips---` in-band delimiter) → Anthropic tool-use.
+   - JSON outputs (extraction, composition) → forced tool-use / `response_format`.
+   - File / image / PDF support for Upload (currently text-paste only).
+   - A/B harness for prompt iteration (current tests assert substring presence, not behavior).
+
+**Consequences**:
+
+- `intent.md` Layer 1: Input rewritten from signal-type to readiness-state framing. Beta scope's "Resonant content input" line replaced with "Guided intake input." WS6 (Resonant Content Input) and WS7 (Personal Uploads Input) collapse into a single WS6 (Input Modes Polish).
+- `rules.md` Dead Features list gains Resonant content; the dynamic-context-blocks enumeration drops the stale "shared URL content" entry. `CLAUDE.md` matched.
+- Upload's Tier 3 block stays lean (entry-phase mechanics only); the prompt instructions that asked the model to interpret exit conditions ("drop guided posture after first checkpoint," "this becomes a normal conversation") are removed because per-block render conditions handle transition.
+- Guided intake's posture persists for the conversation's life rather than exhausting at first checkpoint — a single checkpoint isn't a strong signal to abandon a structured-intake style the user opted into.
+- Three duplicate bodies of pasted-content guidance collapse to one shared template.
+- The `transcript_detected` suppression in `call-persona.ts` narrows in scope but does not disappear. With the shared template (§5), the *body* of the guidance is consolidated, but the *framing wrappers* still differ (`UPLOAD MODE / OPENER / WHEN THE USER PASTES CONTENT` vs. `TRANSCRIPT DETECTED / RECOGNITION`). Firing both on the same turn would duplicate the wrapper sections around identical body content. The Phase 1.4 implementation keeps the suppression for the dynamic-block rendering decision while running detection itself on every message so the prompt-injection wrap (§6) can fire in both upload and non-upload paths. This is a refinement to the §5 architectural intent, not a divergence from it.
+- Future addition of a fourth mode would require a new entry in the Tier 3 ladder, a mode-specific block with its render condition, and a `conversations.mode` CHECK constraint update — no other plumbing.

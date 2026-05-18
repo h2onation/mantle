@@ -129,7 +129,7 @@ The system prompt is organized in three tiers. Lower-numbered tiers override hig
 - **Tier 2 — Voice and behavior:** The 15 voice rules, banned phrases and patterns, example register, landing examples, deepening rhythm, progress signals, repair mechanic, "what should I do" handling.
 - **Tier 3 — Conversation mechanics:** Context-conditional guidance — first message, returning user, checkpoints, post-checkpoint acknowledgement, short answers, readiness gate after 3+ entries, clinical material handling, professional referral, fabricated-content guardrail, first-session wrapper.
 
-Tier 1 is constant text. Tier 2 is built from canonical voice data. Tier 3 is assembled at call time from flags (turn count, checkpoint state, manual size, clinical flag). Dynamic context (confirmed manual, session summary, extraction brief, transcript detection, shared URL content, exploration focus) is appended after Tier 3.
+Tier 1 is constant text. Tier 2 is built from canonical voice data. Tier 3 is assembled at call time from flags (turn count, checkpoint state, manual size, clinical flag). Dynamic context (confirmed manual, session summary, extraction brief, transcript detection, exploration focus) is appended after Tier 3.
 
 ### Terminology
 
@@ -246,7 +246,7 @@ Full token list lives in `globals.css`. Agent reads the file for exact values. D
 
 Do not reintroduce any of the following. These were deliberately removed.
 
-Desktop layout · Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Theme toggle · Sound / audio · Ambient particles
+Desktop layout · Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Theme toggle · Sound / audio · Ambient particles · Resonant content (URL detection + fetch; replaced by Upload mode)
 
 ## Pre-Launch Legal Requirements
 

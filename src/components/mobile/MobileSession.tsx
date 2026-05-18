@@ -16,6 +16,7 @@ import TabPip from "@/components/mobile/manual/TabPip";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
+import EntryCard from "./EntryCard";
 
 const RETURNING_GREETINGS: ((name?: string | null) => string)[] = [
   (name) => name ? `Welcome back, ${name}.` : "Welcome back.",
@@ -247,85 +248,35 @@ export default function MobileSession({
           What&apos;s on your mind today?
         </p>
       </div>
-      <button
-        onClick={() => { setChipsVisible(false); sendMessage("I have a situation I want to work through"); }}
+      <EntryCard
+        title="Navigate a situation"
+        subtitle="Something on your mind right now"
         disabled={isLoading || isStreaming}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          padding: "16px 18px",
-          backgroundColor: "var(--session-walnut-surface)",
-          border: "1px solid var(--session-walnut-border)",
-          borderRadius: "14px",
-          cursor: "pointer",
-          textAlign: "left" as const,
-          width: "100%",
+        onClick={() => {
+          setChipsVisible(false);
+          sendMessage("I have a situation I want to work through");
         }}
-      >
-        <div style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "10px",
-          backgroundColor: "var(--session-persona-muted)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
+        icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M3 3.5h12a.5.5 0 01.5.5v8a.5.5 0 01-.5.5h-5l-3.5 3V12.5H3a.5.5 0 01-.5-.5V4a.5.5 0 01.5-.5z" stroke="var(--session-persona)" strokeWidth="1.2" fill="none" />
+            <path
+              d="M3 3.5h12a.5.5 0 01.5.5v8a.5.5 0 01-.5.5h-5l-3.5 3V12.5H3a.5.5 0 01-.5-.5V4a.5.5 0 01.5-.5z"
+              stroke="var(--session-persona)"
+              strokeWidth="1.2"
+              fill="none"
+            />
           </svg>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "14.5px",
-            color: "var(--session-ink)",
-            lineHeight: 1.3,
-          }}>Navigate a situation</div>
-          <div style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "11.5px",
-            color: "var(--session-ink-mid)",
-            marginTop: "2px",
-            lineHeight: 1.3,
-          }}>Something on your mind right now</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
-          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+        }
+      />
 
-      <button
+      <EntryCard
+        title="Guided intake"
+        subtitle={`Let ${PERSONA_NAME} lead with questions`}
+        disabled={isLoading || isStreaming}
         onClick={() => {
           setChipsVisible(false);
           startGuidedIntake();
         }}
-        disabled={isLoading || isStreaming}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          padding: "16px 18px",
-          backgroundColor: "var(--session-walnut-surface)",
-          border: "1px solid var(--session-walnut-border)",
-          borderRadius: "14px",
-          cursor: "pointer",
-          textAlign: "left" as const,
-          width: "100%",
-        }}
-      >
-        <div style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "10px",
-          backgroundColor: "var(--session-persona-muted)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
+        icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <circle cx="4" cy="4.5" r="1.5" fill="var(--session-persona)" />
             <line x1="8" y1="4.5" x2="15" y2="4.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
@@ -334,80 +285,37 @@ export default function MobileSession({
             <circle cx="4" cy="13.5" r="1.5" fill="var(--session-persona)" />
             <line x1="8" y1="13.5" x2="15" y2="13.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "14.5px",
-            color: "var(--session-ink)",
-            lineHeight: 1.3,
-          }}>Guided intake</div>
-          <div style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "11.5px",
-            color: "var(--session-ink-mid)",
-            marginTop: "2px",
-            lineHeight: 1.3,
-          }}>Let {PERSONA_NAME} lead with questions</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
-          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+        }
+      />
 
-      <button
+      <EntryCard
+        title="Upload"
+        subtitle="Share something that&apos;s been with you"
+        disabled={isLoading || isStreaming}
         onClick={() => {
           setChipsVisible(false);
           startUpload();
         }}
-        disabled={isLoading || isStreaming}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          padding: "16px 18px",
-          backgroundColor: "var(--session-walnut-surface)",
-          border: "1px solid var(--session-walnut-border)",
-          borderRadius: "14px",
-          cursor: "pointer",
-          textAlign: "left" as const,
-          width: "100%",
-        }}
-      >
-        <div style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "10px",
-          backgroundColor: "var(--session-persona-muted)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
+        icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <path d="M9 3v8M5.5 6.5L9 3l3.5 3.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3"
+              stroke="var(--session-persona)"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <path
+              d="M9 3v8M5.5 6.5L9 3l3.5 3.5"
+              stroke="var(--session-persona)"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "14.5px",
-            color: "var(--session-ink)",
-            lineHeight: 1.3,
-          }}>Upload</div>
-          <div style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "11.5px",
-            color: "var(--session-ink-mid)",
-            marginTop: "2px",
-            lineHeight: 1.3,
-          }}>Share something that&apos;s been with you</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
-          <path d="M6 4l4 4-4 4" stroke="var(--session-ink-ghost)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+        }
+      />
     </div>
   ) : null;
 

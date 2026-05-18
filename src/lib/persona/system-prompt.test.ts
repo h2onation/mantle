@@ -814,21 +814,27 @@ describe("buildSystemPrompt", () => {
 
   // ─── Upload mode ─────────────────────────────────────────────────────────
   describe("upload mode", () => {
+    // Upload Tier 3 block renders during the entry phase (turnCount <= 2)
+    // per ADR-042 §3. Tests use turnCount: 0 (Jove opener) so the block
+    // fires; the post-entry-phase behavior is covered by the lifecycle
+    // tests below.
     it("includes UPLOAD MODE block with opener when mode is upload", () => {
-      const result = build({ mode: "upload" });
+      const result = build({ mode: "upload", turnCount: 0 });
       expect(result).toContain("UPLOAD MODE");
       expect(result).toContain("chose \"Upload\"");
       expect(result).toContain("Paste something here");
     });
 
     it("includes analysis instructions for upload mode", () => {
-      const result = build({ mode: "upload" });
-      expect(result).toContain("Cross-reference against the user's confirmed Manual entries");
+      const result = build({ mode: "upload", turnCount: 0 });
+      // Shared pasted-content guidance (ADR-042, Phase 1.4) — same body
+      // shared between Upload Tier 3 and transcript_detected dynamic block.
+      expect(result).toContain("Cross-reference this content against the user's confirmed Manual entries");
       expect(result).toContain("Focus on the USER's behavior");
     });
 
     it("includes format-specific guidance", () => {
-      const result = build({ mode: "upload" });
+      const result = build({ mode: "upload", turnCount: 0 });
       expect(result).toContain("Speaker-alternating");
       expect(result).toContain("Email thread");
       expect(result).toContain("Journal entry");
@@ -842,6 +848,23 @@ describe("buildSystemPrompt", () => {
     it("does not include UPLOAD MODE in guided-intake mode", () => {
       const result = build({ mode: "guided-intake" });
       expect(result).not.toContain("UPLOAD MODE");
+    });
+
+    // ADR-042 §3: entry-phase block stops rendering after turnCount > 2.
+    // After the opener (turn 0) and the user's paste turn (turn 2), the
+    // conversation runs on standard reflective exploration.
+    it("UPLOAD MODE renders during entry phase (turnCount <= 2)", () => {
+      for (const turnCount of [0, 1, 2]) {
+        const result = build({ mode: "upload", turnCount });
+        expect(result).toContain("UPLOAD MODE");
+      }
+    });
+
+    it("UPLOAD MODE stops rendering after entry phase (turnCount > 2)", () => {
+      for (const turnCount of [3, 4, 8, 20]) {
+        const result = build({ mode: "upload", turnCount });
+        expect(result).not.toContain("UPLOAD MODE");
+      }
     });
   });
 
@@ -1276,6 +1299,20 @@ describe("buildSystemPrompt", () => {
       expect(build({ mode: "situation" })).not.toContain("GUIDED INTAKE");
     });
 
+    // ADR-042 §3: guided posture persists for the conversation's life and
+    // softens only on explicit user redirect (detection in Phase 2).
+    it("GUIDED INTAKE persists across the conversation's life when not softened", () => {
+      for (const turnCount of [1, 5, 20, 50]) {
+        const result = build({ mode: "guided-intake", turnCount });
+        expect(result).toContain("GUIDED INTAKE");
+      }
+    });
+
+    it("GUIDED INTAKE stops rendering when guidedPostureSoftened is true", () => {
+      const result = build({ mode: "guided-intake", guidedPostureSoftened: true });
+      expect(result).not.toContain("GUIDED INTAKE");
+    });
+
     it("TIER 1 content still renders alongside guided intake", () => {
       const result = build({ mode: "guided-intake" });
       expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
@@ -1336,6 +1373,7 @@ describe("buildSystemPrompt", () => {
     it("upload opener tells returning users not to introduce themselves", () => {
       const result = build({
         mode: "upload",
+        turnCount: 0,
         isReturningUser: true,
         manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
       });
@@ -1744,6 +1782,121 @@ describe("buildSystemPrompt", () => {
       const approaching = buildBlocks({ checkpointApproaching: true });
       const notApproaching = buildBlocks({ checkpointApproaching: false });
       expect(approaching.staticContext).toBe(notApproaching.staticContext);
+    });
+  });
+
+  describe("buildSystemPrompt ↔ buildSystemPromptBlocks shared helpers", () => {
+    // These tests pin the invariant that both prompt builders pull their
+    // dynamic-context bodies (SESSION CONTEXT, TRANSCRIPT DETECTED,
+    // EXPLORATION FOCUS) from the same private helpers. If a future change
+    // edits one body but not the other, these assertions fail.
+    const sharedDefaults: OneOnOnePromptOptions = {
+      kind: "oneOnOne",
+      manualComponents: [],
+      currentConversationId: "test-conversation-id",
+      isReturningUser: false,
+      sessionSummary: null,
+      extractionContext: "",
+      isFirstCheckpoint: false,
+      turnCount: 5,
+      checkpointApproaching: false,
+    };
+
+    function bothForms(overrides: Partial<OneOnOnePromptOptions> = {}) {
+      const opts = { ...sharedDefaults, ...overrides };
+      return {
+        legacy: buildSystemPrompt(opts),
+        blocks: buildSystemPromptBlocks(opts),
+      };
+    }
+
+    // Locate a header line + capture from it to the next blank-line boundary
+    // or to the next ALL-CAPS header. Good enough for these invariant checks.
+    function extractBlock(prompt: string, header: string): string {
+      const start = prompt.indexOf(header);
+      if (start === -1) return "";
+      const rest = prompt.slice(start);
+      // Stop before the next named block header we care about.
+      const nextHeader = rest
+        .split("\n")
+        .slice(1)
+        .findIndex((line) =>
+          /^(SESSION CONTEXT|TRANSCRIPT DETECTED|EXPLORATION FOCUS|CONFIRMED MANUAL|EARLIER ENTRIES|EXTRACTION)/.test(
+            line,
+          ),
+        );
+      if (nextHeader === -1) return rest;
+      // +1 because we sliced past the first line in the findIndex.
+      return rest.split("\n").slice(0, nextHeader + 1).join("\n");
+    }
+
+    it("SESSION CONTEXT body is byte-identical in legacy and blocks form", () => {
+      const { legacy, blocks } = bothForms({
+        isReturningUser: true,
+        sessionCount: 3,
+        sessionSummary: "Previously discussed the morning meeting pattern.",
+      });
+      const legacyBlock = extractBlock(legacy, "SESSION CONTEXT");
+      const blocksBlock = extractBlock(blocks.dynamic, "SESSION CONTEXT");
+      expect(legacyBlock).toBe(blocksBlock);
+      expect(legacyBlock).toContain("This is session 3");
+      expect(legacyBlock).toContain("Returning user");
+      expect(legacyBlock).toContain("Previously discussed the morning meeting pattern.");
+    });
+
+    it("TRANSCRIPT DETECTED body is byte-identical in legacy and blocks form", () => {
+      const { legacy, blocks } = bothForms({
+        transcriptContext: { isTranscript: true, confidence: "high" },
+      });
+      const legacyBlock = extractBlock(legacy, "TRANSCRIPT DETECTED");
+      const blocksBlock = extractBlock(blocks.dynamic, "TRANSCRIPT DETECTED");
+      expect(legacyBlock).toBe(blocksBlock);
+      expect(legacyBlock).toContain("RECOGNITION");
+      expect(legacyBlock).toContain("DO NOT");
+    });
+
+    it("EXPLORATION FOCUS body is byte-identical in legacy and blocks form", () => {
+      const explorationContext: ExplorationContext = {
+        type: "entry",
+        layerId: 2,
+        layerName: "How I Process Things",
+        name: "I freeze before deciding",
+        content: "When the choices stack up, the body locks before the head can sort.",
+      };
+      const { legacy, blocks } = bothForms({ explorationContext });
+      const legacyBlock = extractBlock(legacy, "EXPLORATION FOCUS");
+      const blocksBlock = extractBlock(blocks.dynamic, "EXPLORATION FOCUS");
+      expect(legacyBlock).toBe(blocksBlock);
+      expect(legacyBlock).toContain("I freeze before deciding");
+      expect(legacyBlock).toContain("How I Process Things");
+    });
+
+    it("legacy form places Manual entries (recent + older) together after Tier 3", () => {
+      // Eight entries spanning enough that prepareManualContext splits some
+      // into the older-compressed block. Verify legacy keeps them adjacent
+      // and after Tier 3.
+      const manualComponents = Array.from({ length: 8 }, (_, i) => ({
+        id: `id-${i}`,
+        user_id: "u",
+        source_conversation_id: i < 2 ? "test-conversation-id" : "older-conv",
+        layer: ((i % 5) + 1) as 1 | 2 | 3 | 4 | 5,
+        name: `Entry ${i}`,
+        content: `Content for entry ${i}.`,
+        summary: `Summary ${i}.`,
+        key_words: ["k1", "k2"],
+        status: "confirmed" as const,
+        created_at: new Date(2026, 0, i + 1).toISOString(),
+        updated_at: new Date(2026, 0, i + 1).toISOString(),
+      }));
+      const legacy = buildSystemPrompt({ ...sharedDefaults, manualComponents });
+      // Legacy places CONFIRMED MANUAL and EARLIER ENTRIES adjacent, both
+      // after the Tier 3 region.
+      const tier3Idx = legacy.indexOf("TIER 3");
+      const confirmedIdx = legacy.indexOf("CONFIRMED MANUAL");
+      const earlierIdx = legacy.indexOf("EARLIER ENTRIES");
+      expect(tier3Idx).toBeGreaterThan(-1);
+      expect(confirmedIdx).toBeGreaterThan(tier3Idx);
+      expect(earlierIdx).toBeGreaterThan(confirmedIdx);
     });
   });
 });
