@@ -172,7 +172,9 @@ describe("detectCrisisInUserMessage", () => {
     expect(detectCrisisInUserMessage("I want to disappear")).toBe(true);
     expect(detectCrisisInUserMessage("life is not worth living")).toBe(true);
     expect(detectCrisisInUserMessage("I'm tired of being alive")).toBe(true);
-    expect(detectCrisisInUserMessage("I don't want to exist")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to exist anymore")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to exist any longer")).toBe(true);
+    expect(detectCrisisInUserMessage("I don't want to exist in this world")).toBe(true);
     expect(detectCrisisInUserMessage("there's no point in living")).toBe(true);
   });
 
@@ -181,6 +183,23 @@ describe("detectCrisisInUserMessage", () => {
     expect(detectCrisisInUserMessage("I just want to make it stop hurting")).toBe(false);
     expect(detectCrisisInUserMessage("I can't do this anymore with him")).toBe(false);
     expect(detectCrisisInUserMessage("I don't want to be here in this relationship")).toBe(false);
+  });
+
+  // Regression pin: dev-simulator audit (2026-05-19) caught the bare phrase
+  // "don't want to exist" firing on metaphorical use — user said "I don't
+  // want to exist on the plan of small talk" referring to conversational
+  // register, and the 988 block injected twice in the same conversation.
+  // Tightened to require a life-level qualifier ("anymore," "any longer,"
+  // "in this world"). Bare phrase no longer fires.
+  it("does not false-positive on 'don't want to exist' used as register metaphor", () => {
+    expect(detectCrisisInUserMessage("I don't want to exist on the plan of small talk")).toBe(false);
+    expect(detectCrisisInUserMessage("many people don't want to exist on that layer")).toBe(false);
+    expect(detectCrisisInUserMessage("I don't want to exist in this kind of conversation")).toBe(false);
+    // Bare phrase is now ambiguous and does NOT fire; genuine crisis users
+    // typically include a qualifier ("anymore" etc.) or use a stronger
+    // co-occurring phrase from the list ("want to die," "no reason to keep
+    // going," etc.).
+    expect(detectCrisisInUserMessage("I don't want to exist")).toBe(false);
   });
 
   it("is case-insensitive", () => {
@@ -197,7 +216,7 @@ describe("detectCrisisInUserMessage", () => {
   it("detects phrases with contractions and without apostrophes", () => {
     expect(detectCrisisInUserMessage("I dont want to be here anymore")).toBe(true);
     expect(detectCrisisInUserMessage("I don't want to be here anymore")).toBe(true);
-    expect(detectCrisisInUserMessage("I dont want to exist")).toBe(true);
+    expect(detectCrisisInUserMessage("I dont want to exist anymore")).toBe(true);
     expect(detectCrisisInUserMessage("whats the point of living")).toBe(true);
   });
 });

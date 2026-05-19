@@ -228,6 +228,25 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
   }
   const layer: number = parsedLayer;
 
+  // Universal-tone validator. The composition prompt forbids "always /
+  // every / all / never / everyone / nobody" unless the user used the
+  // word first (see "AVOID UNIVERSAL TONE THROUGHOUT" in the prompt
+  // above). Dev-simulator audit (2026-05-19) caught "I'm always tracking
+  // how things land" landing in an entry when the user had never said
+  // "always" — the prompt is regularly skipped, so add a log-only check
+  // so we can see the rate. Doesn't block the entry (matches the soft-
+  // warning pattern around the headline retry above).
+  const universalViolations = findUniversalToneViolations(
+    parsed.content,
+    conversationHistory
+  );
+  if (universalViolations.length > 0) {
+    console.warn(
+      "[composeManualEntry] Entry contains universal-tone words not used by user: %s",
+      universalViolations.join(", ")
+    );
+  }
+
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim().length > 0
       ? parsed.summary.trim()
@@ -241,14 +260,19 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     : [];
 
   // Acknowledgment: trimmed string, empty if Opus declined or produced
-  // something unusable. Length-cap at ~40 words so a runaway response
-  // doesn't drop a paragraph in chat. Caller skips emission when empty.
+  // something unusable. Word cap matches the composer prompt's "12-22
+  // words. One sentence." spec (line 148 above). The previous gate at
+  // 40 was too lenient — dev-simulator audit (2026-05-19) caught a
+  // 32-word, three-sentence acknowledgment that read as a paragraph
+  // dump instead of a single softening beat. Tightening the gate makes
+  // overruns fall through to empty (chat then renders the card without
+  // an acknowledgment bubble — documented acceptable fallback).
   const rawAck =
     typeof parsed.acknowledgment === "string"
       ? parsed.acknowledgment.trim()
       : "";
   const acknowledgment =
-    rawAck.length > 0 && rawAck.split(/\s+/).length <= 40 ? rawAck : "";
+    rawAck.length > 0 && rawAck.split(/\s+/).length <= 22 ? rawAck : "";
 
   // Headline validation + retry-once. The main composer juggles layer
   // pick, prose polish, summary, key_words, acknowledgment, AND the
@@ -306,6 +330,45 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     key_words: keyWords,
     acknowledgment,
   };
+}
+
+// ─── Universal-tone validator ──────────────────────────────────────────────
+
+const UNIVERSAL_TONE_WORDS = [
+  "always",
+  "every",
+  "all",
+  "never",
+  "everyone",
+  "nobody",
+] as const;
+
+/**
+ * Find universal-tone words that appear in the composed entry content but
+ * NOT in the user's own messages. The composition prompt forbids these
+ * unless the user used the word first; this catches the violations the
+ * prompt fails to prevent (see the "AVOID UNIVERSAL TONE THROUGHOUT"
+ * block in the composition system prompt above).
+ *
+ * Returns the list of violating words. Empty list means clean.
+ * Caller logs; doesn't block — soft warning, same shape as headline retry.
+ */
+function findUniversalToneViolations(
+  content: string,
+  conversationHistory: { role: "user" | "assistant"; content: string }[]
+): string[] {
+  const userText = conversationHistory
+    .filter((m) => m.role === "user")
+    .map((m) => m.content)
+    .join(" ");
+  const violations: string[] = [];
+  for (const word of UNIVERSAL_TONE_WORDS) {
+    const wordRegex = new RegExp(`\\b${word}\\b`, "i");
+    if (wordRegex.test(content) && !wordRegex.test(userText)) {
+      violations.push(word);
+    }
+  }
+  return violations;
 }
 
 // ─── Headline validator + focused retry composer ───────────────────────────
