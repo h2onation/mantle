@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
-import { hashOtp, isExpired } from "@/lib/phone-otp";
+import { hashOtp, isExpired, OTP_MAX_ATTEMPTS } from "@/lib/phone-otp";
 import {
   phoneOtpVerifyTenMin,
   checkLimit,
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
   const phone = normalizePhone(rawPhone);
 
-  // Rate-limit verify attempts per phone. This is the sole abuse-protection
-  // layer after the attempts counter was removed (see ADR-038). Requires
+  // Rate-limit verify attempts per phone (Upstash). Burst protection
+  // layered on top of the per-row otp_attempts counter below. Requires
   // Upstash env vars; fails open if they are missing.
   const limit = await checkLimit(phoneOtpVerifyTenMin, phone);
   if (!limit.success) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
   const { data: row } = await admin
     .from("phone_numbers")
-    .select("id, otp_code, otp_expires_at, verified")
+    .select("id, otp_code, otp_expires_at, otp_attempts, verified")
     .eq("user_id", user.id)
     .eq("phone", phone)
     .maybeSingle();
@@ -72,15 +72,46 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Per-row attempts cap (restored 2026-05-19 reversing ADR-038's removal).
+  // Once a phone has burned OTP_MAX_ATTEMPTS wrong codes against the
+  // current OTP, refuse all further submissions until a fresh code is
+  // sent — the send route resets the counter to 0 as part of issuing a
+  // new code. Counter falls back to 0 for legacy rows that predate the
+  // 20260519000000 migration.
+  const currentAttempts = (row.otp_attempts as number | null) ?? 0;
+  if (currentAttempts >= OTP_MAX_ATTEMPTS) {
+    return Response.json(
+      {
+        error: "too_many_attempts",
+        message:
+          "Too many incorrect attempts on this code. Request a new code to try again.",
+      },
+      { status: 429 }
+    );
+  }
+
   const submittedHash = hashOtp(code);
   if (submittedHash !== row.otp_code) {
+    // Wrong code — increment attempts so the next failure path can
+    // enforce the cap. Best-effort; a failed increment shouldn't change
+    // the response (the user still typed the wrong code).
+    const { error: incError } = await admin
+      .from("phone_numbers")
+      .update({ otp_attempts: currentAttempts + 1 })
+      .eq("id", row.id);
+    if (incError) {
+      console.error("[user/phone/verify] otp_attempts increment failed", {
+        message: incError.message,
+      });
+    }
     return Response.json(
       { error: "Incorrect code. Please try again." },
       { status: 400 }
     );
   }
 
-  // Code matches. Promote the row to verified and clear OTP fields.
+  // Code matches. Promote the row to verified, clear OTP fields, and
+  // reset the attempts counter so a future re-link starts from zero.
   // verified=true is set ONLY here, after successful OTP confirmation.
   const { error: promoteError } = await admin
     .from("phone_numbers")
@@ -88,6 +119,7 @@ export async function POST(request: NextRequest) {
       verified: true,
       otp_code: null,
       otp_expires_at: null,
+      otp_attempts: 0,
       linked_at: new Date().toISOString(),
     })
     .eq("id", row.id);
