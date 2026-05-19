@@ -449,6 +449,32 @@ export function validateMaterialQuality(
   const gate = extractionState.checkpoint_gate;
   const reasons: string[] = [];
 
+  // Depth gate: the conversation must have descended past surface
+  // description before a checkpoint can fire. Without depth at
+  // "mechanism" or "origin," we are still at the layer of "what
+  // happened" / "what they did," not "why this happens to them."
+  // Structural backstop on top of has_mechanism — even if extraction's
+  // per-flag check is generous, the depth reading catches the case
+  // where the conversation as a whole hasn't gone deep. For first
+  // checkpoint the lighter bar is "feeling" — the user has named
+  // what their body or system was doing, which is enough for a
+  // teaching-moment entry.
+  const DEPTH_ORDER = [
+    "surface",
+    "behavior",
+    "feeling",
+    "mechanism",
+    "origin",
+  ] as const;
+  const requiredDepth = isFirstCheckpoint ? "feeling" : "mechanism";
+  const currentDepthIdx = DEPTH_ORDER.indexOf(extractionState.depth);
+  const requiredDepthIdx = DEPTH_ORDER.indexOf(requiredDepth);
+  if (currentDepthIdx < requiredDepthIdx) {
+    reasons.push(
+      `depth at ${extractionState.depth} (need ${requiredDepth} or deeper)`
+    );
+  }
+
   const minExamples = isFirstCheckpoint ? 1 : 2;
   if (gate.concrete_examples < minExamples) {
     reasons.push(

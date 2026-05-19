@@ -87,6 +87,7 @@ describe("validateMaterialQuality", () => {
   it("requires 1 scene for the first-checkpoint gate", () => {
     const state = makeExtractionState({
       pattern_engaged: true,
+      depth: "feeling",
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: true,
@@ -116,6 +117,7 @@ describe("validateMaterialQuality", () => {
   it("standard gate passes when all four criteria are met", () => {
     const state = makeExtractionState({
       pattern_engaged: true,
+      depth: "mechanism",
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,
@@ -126,6 +128,58 @@ describe("validateMaterialQuality", () => {
     });
     const result = validateMaterialQuality(state, false);
     expect(result.ok).toBe(true);
+  });
+
+  // Regression: the CP2-shape failure. Even with full checklist (2+
+  // examples, distinct contexts, mechanism flag, charged language, driver
+  // link), the gate must block when conversation depth has not reached
+  // the mechanism layer. The depth signal is a structural backstop in
+  // case extraction's per-flag has_mechanism check is generous about
+  // what counts as a user-articulated mechanism.
+  it("blocks the standard gate when depth has not reached mechanism", () => {
+    const state = makeExtractionState({
+      pattern_engaged: true,
+      depth: "feeling",
+      checkpoint_gate: {
+        concrete_examples: 5,
+        distinct_contexts: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 5,
+      },
+    });
+    const result = validateMaterialQuality(state, false);
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/depth at feeling/);
+    expect(result.reasons.join(" ")).toMatch(/need mechanism/);
+  });
+
+  // The first-checkpoint depth threshold is "feeling" — one level
+  // lighter than the standard gate. Surface and behavior block; feeling,
+  // mechanism, and origin pass. Teaching-moment design.
+  it("first-checkpoint depth gate blocks at behavior but passes at feeling", () => {
+    const baseGate = {
+      concrete_examples: 1,
+      has_mechanism: true,
+      has_charged_language: true,
+      has_behavior_driver_link: false,
+      strongest_layer: 1,
+    };
+
+    const atBehavior = makeExtractionState({
+      pattern_engaged: true,
+      depth: "behavior",
+      checkpoint_gate: baseGate,
+    });
+    expect(validateMaterialQuality(atBehavior, true).ok).toBe(false);
+
+    const atFeeling = makeExtractionState({
+      pattern_engaged: true,
+      depth: "feeling",
+      checkpoint_gate: baseGate,
+    });
+    expect(validateMaterialQuality(atFeeling, true).ok).toBe(true);
   });
 });
 
@@ -196,6 +250,7 @@ describe("applyCheckpointGates with material quality", () => {
   it("permits the checkpoint when extraction state confirms quality", () => {
     const state = makeExtractionState({
       pattern_engaged: true,
+      depth: "mechanism",
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,
@@ -211,6 +266,7 @@ describe("applyCheckpointGates with material quality", () => {
   it("still applies the turn-count gate after material quality passes", () => {
     const state = makeExtractionState({
       pattern_engaged: true,
+      depth: "mechanism",
       checkpoint_gate: {
         concrete_examples: 2,
         has_mechanism: true,
@@ -283,6 +339,7 @@ describe("deriveCheckpointApproaching", () => {
   it("returns true when checklist passes even if no layer signal beyond 'emerging'", () => {
     const state = makeExtractionState({
       pattern_engaged: true,
+      depth: "feeling",
       layers: {
         1: { signal: "emerging", material: [], examples: [] },
         2: { signal: "emerging", material: [], examples: [] },
@@ -348,6 +405,7 @@ describe("deriveCheckpointApproaching", () => {
   it("respects the pattern_engaged turn-12 override from validateMaterialQuality", () => {
     const richButNotEngaged = makeExtractionState({
       pattern_engaged: false,
+      depth: "feeling",
       layers: {
         1: { signal: "emerging", material: [], examples: [] },
         2: { signal: "none", material: [], examples: [] },

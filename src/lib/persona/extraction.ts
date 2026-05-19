@@ -198,8 +198,28 @@ Evaluate whether there is enough material for a meaningful checkpoint. This is p
 
 STANDARD GATE (all must be true):
 - concrete_examples >= 2: Count of specific, concrete moments the user has walked you through. A concrete example requires: a specific moment in time, what happened, and what the user's body or system did. References to recurring situations ("when she's loud," "at work") do NOT count — the user must have narrated the scene, not just named the topic. Moments WITHIN a single incident still count separately here (a phone call where the user described four distinct beats produces concrete_examples = 4). The pattern-recurrence question is handled by distinct_contexts below.
-- distinct_contexts >= 2: Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments inside one phone call is ONE distinct context, not four. Two friendships described in two scenes is two distinct contexts. The pattern claim "this is how you operate" requires evidence from at least two contexts. If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 — the gate will hold and the checkpoint should not fire as a recurring-pattern entry.
-- has_mechanism: The conversation has reached WHY, not just WHAT. There's a connection between an observed behavior or state and an underlying driver — a need, a sensory load, a system state, a bind.
+- distinct_contexts >= 2: Count of DIFFERENT lived situations the user has WALKED YOU THROUGH AS A SCENE. A scene means the user described what happened, when, with whom, and what they did or felt — narrated, not mentioned. Four moments inside one phone call is ONE distinct context. Two friendships described in two scenes is two distinct contexts.
+
+  DOES NOT count as a distinct context:
+  - A category named in passing without a scene ("at dinners," "with friends," "at work") where the user has not walked you through a specific instance.
+  - A wish-state or ideal ("what depth feels like," "what a good week looks like," "when I'm in flow") — these describe what the user wants, not a lived scene.
+  - A contrast to the pattern under examination. If the conversation is about social drain and the user mentions junkyard art as the opposite, the junkyard is a contrast — not a second distinct context for the drain.
+  - Repeated description of the same lived activity ("I love the smell of grease, I love placing things together, trial and error" — all one activity, one context).
+
+  The pattern claim "this is how you operate" requires evidence from at least two distinct narrated scenes. If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 — the gate will hold and the checkpoint should not fire as a recurring-pattern entry.
+- has_mechanism: The USER has articulated WHY the pattern fires for them — what it costs, what it protects, what triggers it, what the underlying need or load is. Not extraction's synthesis of "what looks like mechanism if I combine these ingredients." The user has named the causal link in their own words.
+
+  Counts as has_mechanism:
+  - "I shut down because the room got too loud and I couldn't filter."
+  - "I can't drop them because the network is real but I can't inhabit small talk without it costing me." (cost + bind named together)
+  - "I do it because I need to know I won't get blindsided."
+
+  Does NOT count as has_mechanism:
+  - The user named the contrast or wish ("what feeds me is flow state," "what I want is depth"). That's what they want, not the mechanism of the drain.
+  - The user gave rich sensory or process description without a causal link ("smell of grease, dirt, placing things together, trial and error"). Texture, no why.
+  - Extraction can synthesize a mechanism from the user's ingredients, but the user has not named it. Carry the ingredients in language_bank for the composer; leave has_mechanism false.
+
+  Test: would a reader of the user's words alone — without any extraction or composition synthesis — be able to say why this fires? If yes, true. If they would only be able to describe the experience, false.
 - has_charged_language: The language bank contains at least one high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor the checkpoint.
 - has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
 

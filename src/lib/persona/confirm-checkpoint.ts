@@ -133,12 +133,24 @@ HEADLINE (field: "name"):
 
 REQUIRED: name a SPECIFIC TRIGGER or CONDITION. Format: "I [verb] when [specific trigger]" or "I [verb] before [specific event]" or "I [verb] after [specific moment]." The trigger names a concrete situation — a person, a moment, a sensation. Not "before I can say it" (vague — what stops me?) but "when guilt hits" or "when someone waits for me to answer" (specific). Not "in real life" (too broad) but "outside the dungeon" or "when there's no contract" (specific). The title should answer "WHEN does this fire?" not just "WHAT happens?"
 
+DO NOT personify the trigger as an actor doing something to you. "When small talk drains," "when the room scans," "when the gap fires," "while the conversation pulls" — these are imagery, not literal situations. Use the event instead: "at low-stakes dinners," "in surface conversations," "when the talk stays small."
+
 REQUIRED: the verb must describe an OBSERVABLE BEHAVIOR — what a friend watching the scene would see you do. Abstract / internal / metaphorical verbs are not allowed because they describe a felt state, not an action. Forbidden verbs include: "disappear," "vanish," "lose myself," "fade," "go missing," "come undone," "fall apart," "shut down inside," "break open," "dissolve." If the user described feeling like they "disappear," translate that into the observable behavior — what do they actually DO in the moment? Steer the conversation? Get quiet? Scan for problems? Build a topic? Use that verb instead.
+
+SECONDARY VERB RULE: prefer the flattest literal verb over embodied / postural metaphors that LOOK observable but stand in for a semantic claim. "Stay seated," "tighten," "swallow," "brace," "lean in," "stiffen" — a friend could see these, but each one does metaphorical work where a plainer verb would carry the same meaning. Prefer "stay at," "keep going to," "sit through," "wait," "go quiet," "leave," "say," "agree," "ask." If swapping the embodied metaphor for the literal verb preserves the meaning, swap it. The headline reads like a field note, not a tagline.
 
 If the user gave only ONE example, soften the title with "can" or "sometimes" so it does not over-claim from one data point. "I can freeze when asked what I want" beats "I freeze when asked what I want" if only one freezing moment was described. With two or three convergent examples, drop the hedge.
 
-Good: "I Can Freeze When Asked What I Want," "I Swallow the Answer When Guilt Hits," "I Switch to Counter-Mode When Talked At," "I Go Quiet When Someone Waits," "I Tighten Before Answering Hard Questions," "I Keep Teaching Him How to Live," "I Steer Toward Problems When Friends Just Want to Chat," "I Get Restless When the Room Has No Job for Me," "I Build Heavy Topics When None Are There"
-Bad: abstract / metaphorical verbs ("I Disappear When Nobody Needs Carrying" — Disappear is internal, not observable; "I Vanish in Easy Rooms"; "I Lose Myself When the Room Is Quiet"); definitive without trigger ("I Swallow the Answer Before I Can Say It" — what triggers the swallowing?; "I Spit the Signal Back Before Anyone Hears It"); body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands," "Body Locks Before Being Asked"); clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern"); nominalizations ("Turned Away Before the Ask"); metaphors and poetic titles ("Gaps Open and the Reach Fires"). If the verb describes a felt state instead of an observable action, rewrite it with the actual behavior.
+Good: "I Can Freeze When Asked What I Want," "I Go Quiet When Someone Waits," "I Keep Teaching Him How to Live," "I Steer Toward Problems When Friends Just Want to Chat," "I Get Restless When the Room Has No Job for Me," "I Keep Going to Dinners That Drain Me," "I Stay at Conversations That Stay Surface," "I Say Yes to Plans I Want to Skip," "I Wait to Answer When Someone Watches"
+Bad:
+- Abstract / internal verbs ("I Disappear When Nobody Needs Carrying," "I Vanish in Easy Rooms," "I Lose Myself When the Room Is Quiet"). Disappear / vanish / lose myself are felt states, not actions.
+- Postural / embodied metaphors masquerading as observable ("I Stay Seated While Small Talk Drains" — "stay seated" stands in for "endure"; "small talk drains" personifies the trigger. Plain rewrite: "I Keep Going to Dinners That Drain Me"). Same pattern: "I Tighten Before Hard Questions" → "I Go Quiet Before Hard Questions." "I Swallow the Answer When Guilt Hits" → "I Hold Back When Guilt Hits."
+- Definitive without trigger ("I Swallow the Answer Before I Can Say It" — what triggers it?; "I Spit the Signal Back Before Anyone Hears It").
+- Body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands").
+- Clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern").
+- Nominalizations ("Turned Away Before the Ask").
+- Metaphors and poetic titles ("Gaps Open and the Reach Fires").
+If the verb is observable but doing metaphorical work, check whether a plainer verb carries the same meaning — if so, use that.
 
 LAYER (field: "layer", required):
 An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.
@@ -473,21 +485,26 @@ REQUIRED FORMAT: one of these shapes, exactly:
 HARD RULES (every one must pass):
 - 4-8 words. Hard cap.
 - First word: "I". The subject is always the user. Never a body part, never a system metaphor, never a nominalization.
-- Verb describes an OBSERVABLE BEHAVIOR — what a friend watching would see you do. BANNED verbs (internal/abstract): disappear, vanish, fade, fall apart, dissolve, come undone, lose myself, go missing, break open, shut down inside.
+- Verb is OBSERVABLE AND LITERAL. Two failure modes to avoid:
+  1. Abstract / internal verbs (felt states, not actions). BANNED: disappear, vanish, fade, fall apart, dissolve, come undone, lose myself, go missing, break open, shut down inside.
+  2. Postural / embodied metaphors that LOOK observable but stand in for a semantic claim. AVOID: stay seated, tighten, swallow, brace, lean in, stiffen. Prefer the plainer literal verb that carries the same meaning: stay at, keep going to, sit through, wait, go quiet, leave, say, agree, ask.
+- Trigger names a LITERAL situation, not a personified force. Don't write "when small talk drains" or "when the room scans" — use the event ("at low-stakes dinners," "in surface conversations").
 - Trigger word required: when, before, after, while.
 - BANNED subjects: Loop, Pattern, Response, Reaction, Processing, Stomach, Voice, Body, Mind, System, anything ending in -ing as agent.${softenerLine}
 
 PASSING EXAMPLES:
 - "I Freeze When Asked What I Want"
 - "I Go Quiet When Someone Waits"
-- "I Tighten Before Answering Hard Questions"
-- "I Can Lose the Wheel When Worst-Case Futures Fire"
-- "I Switch to Counter-Mode When Talked At"
+- "I Keep Going to Dinners That Drain Me"
+- "I Stay at Conversations That Stay Surface"
+- "I Wait to Answer When Someone Watches"
 
 FAILING EXAMPLES (and why):
-- "Worst-Case Loop Fills the Processing" — Loop is not the subject. "Fills" is abstract, not observable. No trigger.
+- "Worst-Case Loop Fills the Processing" — Loop is not the subject. "Fills" is abstract. No trigger.
 - "Stomach Pushes Me to Fix the Call" — body-part as agent.
-- "I Disappear When Nobody Needs Me" — "Disappear" is internal, not observable.
+- "I Disappear When Nobody Needs Me" — Disappear is internal, not observable.
+- "I Stay Seated While Small Talk Drains" — "stay seated" is postural metaphor, "small talk drains" personifies the trigger. Plain rewrite: "I Keep Going to Dinners That Drain Me."
+- "I Tighten Before Answering Hard Questions" — observable but metaphorical. Plain rewrite: "I Go Quiet Before Hard Questions."
 - "I Keep Following the Script" — no trigger; "Keep" is an intensifier, not a softener.
 
 OUTPUT: just the headline. No quotes, no JSON, no preamble. Just the words.`;
