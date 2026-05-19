@@ -25,6 +25,7 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
     href: "/admin/schema-map",
   },
   { id: "skills", label: "Skills", href: "/admin/skills" },
+  { id: "vendors", label: "Vendors", href: "/admin/vendors" },
 ];
 
 export default function AdminNavRail({
