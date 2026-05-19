@@ -551,7 +551,7 @@ function FlowDiagram() {
       style={{
         marginBottom: 28,
         padding: "20px 22px",
-        background: "rgba(255, 255, 255, 0.5)",
+        background: "var(--session-walnut-tint)",
         border: "1px solid var(--session-ink-hairline)",
         borderRadius: 10,
       }}
@@ -572,7 +572,7 @@ function FlowDiagram() {
             fontFamily: "var(--font-mono)",
             fontSize: "13px",
             color: "var(--session-ink)",
-            background: "rgba(80, 36, 24, 0.06)",
+            background: "var(--session-walnut-surface-soft)",
             padding: "1px 6px",
             borderRadius: 3,
           }}
@@ -689,10 +689,10 @@ function FilterChips({
               letterSpacing: "0.1px",
               color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
               background: active
-                ? "rgba(80, 36, 24, 0.10)"
-                : "rgba(255, 255, 255, 0.5)",
+                ? "var(--session-walnut-highlight)"
+                : "var(--session-walnut-tint)",
               border: active
-                ? "1px solid rgba(80, 36, 24, 0.18)"
+                ? "1px solid var(--session-walnut-border)"
                 : "1px solid var(--session-ink-hairline)",
               fontWeight: active ? 500 : 400,
               display: "inline-flex",
@@ -736,7 +736,7 @@ function FieldList({
       style={{
         border: "1px solid var(--session-ink-hairline)",
         borderRadius: 8,
-        background: "rgba(255, 255, 255, 0.5)",
+        background: "var(--session-walnut-tint)",
         overflow: "hidden",
       }}
     >
@@ -787,7 +787,7 @@ function FieldRow({
     <div
       style={{
         borderBottom: isLast ? "none" : "1px solid var(--session-ink-hairline)",
-        background: expanded ? "rgba(80, 36, 24, 0.025)" : "transparent",
+        background: expanded ? "var(--session-walnut-surface-soft)" : "transparent",
       }}
     >
       {/* Collapsed row — always rendered, full-width clickable */}
@@ -883,7 +883,7 @@ function FieldDetail({ field }: { field: Field }) {
         fontSize: "13px",
         lineHeight: 1.55,
         color: "var(--session-ink-soft)",
-        borderTop: "1px solid var(--session-ink-hairline-soft, rgba(80,36,24,0.06))",
+        borderTop: "1px solid var(--session-walnut-border-soft)",
         paddingTop: 14,
         marginTop: 0,
       }}

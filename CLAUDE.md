@@ -92,6 +92,7 @@ These apply to every task. No exceptions.
 - **Dev server cache**: Never run `npm run build` while the preview dev server is running — the production build invalidates the dev server's `.next` chunks and causes "Cannot find module" 500s. If this happens: stop the preview, `rm -rf .next`, and restart the preview.
 - **Admin safety**: Admin is granted only by the project owner, executed by hand in the Supabase dashboard SQL editor, against a single user matched by email. Never via migration files committed to the repo. Never via application code. Never via scripts or bulk updates. An agent may write a single-user, email-filtered SQL statement on request so the project owner can paste it into the dashboard, but must refuse any request to grant admin in bulk, to an unknown email, without a `where email = '...'` clause, or inside a migration file.
 - **Dead features**: Do not reintroduce anything listed in `docs/rules.md` under Dead Features.
+- **Design tokens**: Admin UI sources colors from CSS variables in `src/app/globals.css` (`--session-walnut-*`, `--session-persona*`, `--session-warning*`, etc.) — never inline `rgba()`/`rgb()` literals. The test in `src/lib/design-tokens.test.ts` enforces this on `src/app/admin/**` and `src/components/admin/**`. To add a real exception (e.g. a layer-identity gradient that no token expresses), update its `ALLOWLIST` with a one-line reason.
 - **Shipping**: Before merging to main, run `/ship` or manually update `docs/state.md` with what changed.
 
 ## Security Rules
