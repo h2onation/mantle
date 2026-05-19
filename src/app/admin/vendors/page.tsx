@@ -225,8 +225,8 @@ function SourceNote() {
       style={{
         marginBottom: 22,
         padding: "14px 18px",
-        background: "rgba(255, 255, 255, 0.5)",
-        border: "1px solid var(--session-ink-hairline)",
+        background: "var(--session-walnut-tint)",
+        border: "1px solid var(--session-walnut-border-soft)",
         borderRadius: 8,
         fontFamily: "var(--font-spectral, var(--font-serif))",
         fontSize: "14px",
@@ -240,7 +240,7 @@ function SourceNote() {
           fontFamily: "var(--font-mono)",
           fontSize: "12.5px",
           color: "var(--session-ink)",
-          background: "rgba(80, 36, 24, 0.06)",
+          background: "var(--session-walnut-surface-soft)",
           padding: "1px 6px",
           borderRadius: 3,
         }}
@@ -351,11 +351,11 @@ function ChipRow({
               letterSpacing: "0.1px",
               color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
               background: active
-                ? "rgba(80, 36, 24, 0.10)"
-                : "rgba(255, 255, 255, 0.5)",
+                ? "var(--session-walnut-highlight)"
+                : "var(--session-walnut-tint)",
               border: active
-                ? "1px solid rgba(80, 36, 24, 0.18)"
-                : "1px solid var(--session-ink-hairline)",
+                ? "1px solid var(--session-walnut-border)"
+                : "1px solid var(--session-walnut-border-soft)",
               fontWeight: active ? 500 : 400,
               display: "inline-flex",
               alignItems: "center",
@@ -413,7 +413,7 @@ function StatusGroup({
             fontSize: "11px",
             letterSpacing: "2px",
             textTransform: "uppercase",
-            color: "var(--session-walnut-meta, var(--session-ink-soft))",
+            color: "var(--session-walnut-meta)",
           }}
         >
           {STATUS_LABEL[status]}
@@ -434,9 +434,9 @@ function StatusGroup({
       ) : (
         <div
           style={{
-            border: "1px solid var(--session-ink-hairline)",
+            border: "1px solid var(--session-walnut-border-soft)",
             borderRadius: 8,
-            background: "rgba(255, 255, 255, 0.5)",
+            background: "var(--session-walnut-tint)",
             overflow: "hidden",
           }}
         >
@@ -474,9 +474,9 @@ function EmptyGroup({ status }: { status: VendorStatus }) {
         fontSize: "13.5px",
         color: "var(--session-ink-ghost)",
         fontStyle: "italic",
-        border: "1px dashed var(--session-ink-hairline)",
+        border: "1px dashed var(--session-walnut-border-soft)",
         borderRadius: 8,
-        background: "rgba(255, 255, 255, 0.3)",
+        background: "var(--session-walnut-tint)",
       }}
     >
       {copy[status]}
@@ -502,8 +502,8 @@ function VendorRow({
   return (
     <div
       style={{
-        borderBottom: isLast ? "none" : "1px solid var(--session-ink-hairline)",
-        background: expanded ? "rgba(80, 36, 24, 0.025)" : "transparent",
+        borderBottom: isLast ? "none" : "1px solid var(--session-walnut-border-soft)",
+        background: expanded ? "var(--session-walnut-surface-soft)" : "transparent",
       }}
     >
       <button
@@ -591,20 +591,20 @@ function StatusBadge({ status }: { status: VendorStatus }) {
     { bg: string; fg: string; border: string; label: string }
   > = {
     live: {
-      bg: "rgba(80, 130, 60, 0.12)",
-      fg: "rgb(56, 96, 42)",
-      border: "rgba(80, 130, 60, 0.28)",
+      bg: "var(--session-persona-muted)",
+      fg: "var(--session-persona)",
+      border: "var(--session-persona-border)",
       label: "LIVE",
     },
     deprecated: {
-      bg: "rgba(120, 120, 120, 0.10)",
-      fg: "var(--session-ink-ghost)",
-      border: "var(--session-ink-hairline)",
+      bg: "var(--session-warning-soft)",
+      fg: "var(--session-warning)",
+      border: "var(--session-warning-soft)",
       label: "DEPRECATED",
     },
     potential: {
-      bg: "rgba(255, 255, 255, 0.5)",
-      fg: "var(--session-ink-soft)",
+      bg: "transparent",
+      fg: "var(--session-ink-ghost)",
       border: "var(--session-ink-hairline)",
       label: "POTENTIAL",
     },
@@ -648,7 +648,7 @@ function VendorDetail({ vendor }: { vendor: Vendor }) {
         fontSize: "13px",
         lineHeight: 1.55,
         color: "var(--session-ink-soft)",
-        borderTop: "1px solid var(--session-ink-hairline-soft, rgba(80,36,24,0.06))",
+        borderTop: "1px solid var(--session-walnut-border-soft)",
         paddingTop: 14,
       }}
     >
@@ -677,7 +677,7 @@ function VendorDetail({ vendor }: { vendor: Vendor }) {
                   fontFamily: "var(--font-mono)",
                   fontSize: "12px",
                   color: "var(--session-ink)",
-                  background: "rgba(80, 36, 24, 0.06)",
+                  background: "var(--session-walnut-surface-soft)",
                   padding: "1px 6px",
                   borderRadius: 3,
                 }}
