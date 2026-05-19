@@ -72,27 +72,33 @@ describe("guided intake UI wiring", () => {
   const mainApp = read("src/components/MainApp.tsx");
   const useChat = read("src/lib/hooks/useChat.ts");
 
-  it("MobileSession accepts startGuidedIntake prop", () => {
-    expect(session).toContain("startGuidedIntake");
+  it("MobileSession accepts startConversation prop", () => {
+    expect(session).toContain("startConversation");
   });
 
   it("MobileSession renders the guided intake affordance", () => {
     expect(session).toContain("Guided intake");
   });
 
-  it("MainApp passes startGuidedIntake to MobileSession", () => {
-    expect(mainApp).toContain("startGuidedIntake={startGuidedIntake}");
+  it("MobileSession wires Guided to startConversation('guided-intake')", () => {
+    expect(session).toContain('startConversation("guided-intake")');
   });
 
-  it("useChat exports startGuidedIntake", () => {
-    expect(useChat).toContain("startGuidedIntake");
+  it("MainApp passes startConversation to MobileSession", () => {
+    expect(mainApp).toContain("startConversation={startConversation}");
   });
 
-  it("startGuidedIntake sends mode guided-intake to /api/chat", () => {
-    expect(useChat).toContain('mode: "guided-intake"');
+  it("useChat exports startConversation", () => {
+    expect(useChat).toContain("function startConversation");
+    expect(useChat).toContain("startConversation,");
   });
 
-  it("startGuidedIntake guards against double-call when messages exist", () => {
+  it("startConversation bootstrap sends message=null with the mode flag", () => {
+    expect(useChat).toContain("message: null");
+    expect(useChat).toContain("mode,");
+  });
+
+  it("startConversation guards against double-call when messages exist", () => {
     expect(useChat).toContain("if (messages.length > 0) return false");
   });
 
@@ -368,12 +374,14 @@ describe("guided intake instrumentation wiring", () => {
     expect(region).toContain("mode: conversationMode.current");
   });
 
-  it("startGuidedIntake fires conversation_started with entry_point=guided-intake", () => {
+  it("startConversation fires conversation_started with entry_point derived from mode", () => {
     const block = useChat.match(
-      /async function startGuidedIntake[\s\S]*?\n  \}\n/
+      /async function startConversation[\s\S]*?\n  \}\n/
     )?.[0];
     expect(block).toBeDefined();
-    expect(block).toContain('entry_point: "guided-intake"');
+    // entry_point is the mode the caller passed in. For guided-intake
+    // bootstrap, that resolves to "guided-intake" at runtime.
+    expect(block).toContain("entry_point: mode");
   });
 
   it("PII guard test covers the new opener event", () => {

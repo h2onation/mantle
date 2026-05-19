@@ -164,8 +164,7 @@ export default function MainApp() {
     loadConversation,
     startNewSession,
     startExploration,
-    startGuidedIntake,
-    startUpload,
+    startConversation,
     refreshConversations,
     loadManual,
     updateEntry,
@@ -390,8 +389,7 @@ export default function MainApp() {
             sendChipResponse={sendChipResponse}
             retryLastMessage={retryLastMessage}
             confirmCheckpoint={confirmCheckpoint}
-            startGuidedIntake={startGuidedIntake}
-            startUpload={startUpload}
+            startConversation={startConversation}
             isGuest={isGuest}
             onSignInPrompt={handleSignInPrompt}
             modalProgress={modalState?.modalProgress ?? null}

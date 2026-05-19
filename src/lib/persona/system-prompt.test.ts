@@ -14,6 +14,7 @@ import {
 import {
   BANNED_PHRASES,
   BANNED_PATTERNS,
+  VOICE_RULES_BASE,
 } from "@/lib/persona/voice-scaffold";
 import {
   VOICE_RULES as GENERAL_VOICE_RULES,
@@ -267,26 +268,29 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain("CONVERGENCE");
     });
 
-    it("describes unified free-form first-message handling", () => {
+    it("describes the bootstrap OPENER and two-posture structure", () => {
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      expect(result).toContain("free-form");
-      expect(result).toContain("progressive narrowing");
+      expect(result).toContain("OPENER");
+      // Two postures replace the five-branch ladder.
+      expect(result).toContain("Concrete");
+      expect(result).toContain("Abstract");
+      // Old branch language must be gone.
+      expect(result).not.toContain("progressive narrowing");
     });
 
-    it("contains framework-question guidance without letting Jove name them back", () => {
+    it("the OPENER section quotes SITUATION_OPENER for verbatim delivery", () => {
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      expect(result).toContain(
-        "published behavioral and psychological frameworks"
-      );
-      expect(result).toContain("I don't label them for you");
+      // The block instructs the model to deliver the opener verbatim — a
+      // distinctive substring of SITUATION_OPENER must be in the prompt.
+      expect(result).toContain("aren't always obvious");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {
@@ -307,17 +311,28 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain("FIRST MESSAGE");
     });
 
-    it("does NOT contain FIRST MESSAGE section header after turn 1", () => {
+    it("does NOT contain FIRST MESSAGE section header after the entry phase", () => {
+      // Gate is turnCount <= 3 to cover opener (1) + first user message
+      // + Jove's first reply (3). Turn 4 onward the block exhausts.
       const result = build({
         manualComponents: [],
         isReturningUser: false,
-        turnCount: 2,
+        turnCount: 4,
       });
       const lines = result.split("\n");
       const firstMessageSectionLine = lines.find(
-        (l) => l.trim() === "FIRST MESSAGE (new user)"
+        (l) => l.trim() === "FIRST MESSAGE (new user, situation mode)"
       );
       expect(firstMessageSectionLine).toBeUndefined();
+    });
+
+    it("FIRST MESSAGE still fires at turn 3 (first reply to user message)", () => {
+      const result = build({
+        manualComponents: [],
+        isReturningUser: false,
+        turnCount: 3,
+      });
+      expect(result).toContain("FIRST MESSAGE (new user, situation mode)");
     });
 
     it("FIRST MESSAGE appears before CHECKPOINTS when both present", () => {
@@ -332,15 +347,19 @@ describe("buildSystemPrompt", () => {
       expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
     });
 
-    it("instructs to introduce by name on first message, not explain layers", () => {
+    it("delivers the SITUATION_OPENER verbatim and does not explain Manual structure", () => {
+      // Bootstrap pattern: Jove no longer introduces itself separately; the
+      // opener IS the introduction. The block tells the model to deliver
+      // SITUATION_OPENER verbatim on turn 1 and to skip explanation of the
+      // checkpoint/Manual machinery.
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      expect(result).toContain("Introduce yourself by name on your very first message");
+      expect(result).toContain("Deliver the opener below verbatim");
       expect(result).toContain(
-        "Do not explain checkpoints, Manual structure, or the five layers on turn 1"
+        "Don't explain checkpoints, the Manual, or the five layers"
       );
     });
 
@@ -359,8 +378,10 @@ describe("buildSystemPrompt", () => {
         isReturningUser: false,
         turnCount: 1,
       });
+      // Wording lives in VOICE_INTRO_PARAGRAPHS_BASE (scaffold) now,
+      // framed second-person to match the rest of the intro paragraph.
       expect(result).toContain(
-        "Never claim to be objective, unbiased, or filter-free"
+        "claim to be objective, unbiased, or filter-free"
       );
     });
   });
@@ -955,13 +976,20 @@ describe("buildSystemPrompt", () => {
         expect(tier1Slice).toMatch(/no framework names/i);
       });
 
-      it("the framework-question response still instructs Jove not to label them", () => {
+      it("the framework-question case folds into the Abstract posture", () => {
+        // The standalone five-branch ladder is gone (the framework branch
+        // had its own scripted response). It now folds into the Abstract
+        // posture: "framework mention" is one of the abstract opener types,
+        // handled by the same "answer in one or two sentences, then invite"
+        // pattern. Tier 1 #3 ("NO CLINICAL LANGUAGE IN USER-FACING OUTPUT")
+        // still governs how Jove handles framework names in any turn.
         const result = build({
           manualComponents: [],
           isReturningUser: false,
           turnCount: 1,
         });
-        expect(result).toContain("I don't label them for you");
+        expect(result).toContain("framework mention");
+        expect(result).toContain("NO CLINICAL LANGUAGE IN USER-FACING OUTPUT");
       });
     });
 
@@ -979,11 +1007,18 @@ describe("buildSystemPrompt", () => {
         }
       });
 
-      it("renders voice rules as a numbered list", () => {
+      it("renders voice rules as a numbered list: base first, persona deltas after", () => {
         const result = build();
-        expect(result).toContain(`1. ${VOICE_RULES[0]}`);
+        // Base rules render first under the new base+delta architecture.
+        expect(result).toContain(`1. ${VOICE_RULES_BASE[0]}`);
+        // The autistic persona's delta rules render after base, so they
+        // appear with numbering offset by VOICE_RULES_BASE.length.
+        const firstAutisticRuleNumber = VOICE_RULES_BASE.length + 1;
+        expect(result).toContain(`${firstAutisticRuleNumber}. ${VOICE_RULES[0]}`);
+        // Last rule overall is the last persona delta.
+        const totalRules = VOICE_RULES_BASE.length + VOICE_RULES.length;
         expect(result).toContain(
-          `${VOICE_RULES.length}. ${VOICE_RULES[VOICE_RULES.length - 1]}`
+          `${totalRules}. ${VOICE_RULES[VOICE_RULES.length - 1]}`
         );
       });
 
@@ -1541,11 +1576,17 @@ describe("buildSystemPrompt", () => {
       }
     });
 
-    it("general mode deepening uses different examples than autistic mode", () => {
+    it("general mode does not pull in autistic-specific deepening examples", () => {
+      // Under the new base+delta architecture, voice-general.ts contributes
+      // no weak→strong pairs (the base voice carries the general voice).
+      // The autistic-specific examples still appear only when autistic is
+      // active. The point of this test is to verify persona isolation:
+      // an autistic-specific somatic prompt should not leak into general
+      // mode.
       const autistic = build({ personaModes: ["autistic"] });
       const general = build({ personaModes: ["general"] });
       expect(autistic).toContain("what your body was doing right then");
-      expect(general).toContain("what was happening for you right then");
+      expect(general).not.toContain("what your body was doing right then");
       expect(autistic).toContain("What happens when you realize you didn't know the code");
       expect(general).not.toContain("What happens when you realize you didn't know the code");
     });
