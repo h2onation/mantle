@@ -103,27 +103,6 @@ export const VENDORS: Vendor[] = [
       "Webhook auth is constant-time compare of the shared sb-signing-secret header — no HMAC (ADR-039). Inbound content is redacted before logging (ADR-037).",
   },
   {
-    id: "linq",
-    name: "Linq",
-    category: "Messaging",
-    status: "live",
-    purpose:
-      "Group iMessage facilitator (chat creation, participant lifecycle) and fallback 1:1 provider.",
-    envVars: ["LINQ_API_TOKEN", "LINQ_WEBHOOK_SECRET", "LINQ_PHONE_NUMBER"],
-    integrationPaths: [
-      "src/lib/linq/",
-      "src/lib/messaging/linq.ts",
-      "src/lib/messaging/send.ts",
-    ],
-    webhookPath: "/api/linq/webhook",
-    featureFlag:
-      "MESSAGING_PROVIDER (groups always Linq; 1:1 only if MESSAGING_PROVIDER=linq)",
-    adrRefs: [35],
-    url: "https://linq.app",
-    notes:
-      "Deprecating — no further investment. Sendblue is now primary for 1:1 (ADR-035, ADR-041). Groups still on Linq pending a replacement decision.",
-  },
-  {
     id: "deepgram",
     name: "Deepgram",
     category: "Speech",
@@ -196,7 +175,27 @@ export const VENDORS: Vendor[] = [
   },
 
   // ── DEPRECATED ──────────────────────────────────────────────────────────
-  // (none yet — Linq is deprecating but code is still live)
+  {
+    id: "linq",
+    name: "Linq",
+    category: "Messaging",
+    status: "deprecated",
+    purpose:
+      "Group iMessage facilitator (chat creation, participant lifecycle) and fallback 1:1 provider.",
+    envVars: ["LINQ_API_TOKEN", "LINQ_WEBHOOK_SECRET", "LINQ_PHONE_NUMBER"],
+    integrationPaths: [
+      "src/lib/linq/",
+      "src/lib/messaging/linq.ts",
+      "src/lib/messaging/send.ts",
+    ],
+    webhookPath: "/api/linq/webhook",
+    featureFlag:
+      "MESSAGING_PROVIDER (groups always Linq; 1:1 only if MESSAGING_PROVIDER=linq)",
+    adrRefs: [35],
+    url: "https://linq.app",
+    notes:
+      "Deprecated — no further investment. Sendblue is now primary for 1:1 (ADR-035, ADR-041). Code still ships and routes groups today; replacement decision pending.",
+  },
 
   // ── POTENTIAL ───────────────────────────────────────────────────────────
   // Add future-consideration vendors here. Minimum: id, name, category,
