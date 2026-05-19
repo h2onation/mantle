@@ -583,12 +583,19 @@ export function applyCheckpointGates(
  * because the composer prompt already requires a somatic anchor.
  */
 const SOMATIC_WORD_PATTERNS = [
+  // Shutdown / freeze register
   /\bbuzz/i, /\btight/i, /\bheav/i, /\bcrash/i, /\bshut(?:\s|-)?down/i,
   /\bwent\s+(?:still|offline|gone|blank|silent)/i, /\bfull\b/i,
   /\bfloody?\b/i, /\boverload/i, /\btoo\s+(?:loud|much|close|bright|fast)/i,
   /\bjaw\b/i, /\bchest\b/i, /\bbody\b/i, /\bsystem\b/i, /\bfrozen\b/i,
   /\bnumb/i, /\bblank/i, /\bquiet/i, /\bdark\s+room/i, /\bwave\b/i,
   /\bsharp/i, /\bslow/i, /\bgray\s*out/i, /\bwall\b/i,
+  // Activation / hyper-arousal register. Agent B catch: the list above
+  // skews freeze-only, so a user whose pattern is hyper-activation (heart
+  // racing, lit up, surging, prickle) had no somatic-anchor word the
+  // composer could recognize. These add the activation side.
+  /\brac(?:e|es|ed|ing)\b/i, /\bsurg/i, /\bhot\b/i, /\bprickl/i,
+  /\balert\b/i, /\blit\s*up\b/i, /\bpound/i, /\belectri/i, /\bjump(?:y|ing)\b/i,
 ];
 
 /**
@@ -612,11 +619,17 @@ export function validateComposedEntry(
   }
 
   // Clinical-label leak check: terms the composer is explicitly told to avoid.
+  // Includes both DSM-flavored labels and the next-wave wellness vocabulary
+  // (polyvagal, window of tolerance, fawn/freeze response, co-regulation)
+  // that creeps in as pseudo-clinical framing.
   const CLINICAL_LEAKS = [
     /\bdysregulation\b/i, /\bsensory processing disorder\b/i,
     /\bexecutive dysfunction\b/i, /\brejection sensitive dysphoria\b/i,
     /\battachment style\b/i, /\bschema\b/i, /\btrauma response\b/i,
     /\bdissociation\b/i, /\bavoidance\b/i,
+    /\bpolyvagal\b/i, /\bwindow of tolerance\b/i,
+    /\bfawn response\b/i, /\bfreeze response\b/i,
+    /\bco-?regulation\b/i, /\bnervous system response\b/i,
   ];
   for (const re of CLINICAL_LEAKS) {
     if (re.test(content)) {

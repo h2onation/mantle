@@ -170,7 +170,7 @@ YOUR ANALYSIS PRIORITIES
 
 1. LANGUAGE BANK (most important)
 Capture the user's exact phrases that carry weight. Not your paraphrase. Their words. For autistic users, the phrases that matter most are:
-- Sensory language: buzzing, loud, heavy, full, too close, crashed, tight, bright, sharp
+- Sensory language: buzzing, loud, heavy, full, too close, crashed, tight, bright, sharp, racing, hot, prickle, lit up, pounding, electric
 - Masking language: the version people see, the performance, being "on," translating myself, the script
 - Shutdown language: went offline, system full, crashed, hit a wall, gray out, blank, frozen
 - System language: my brain does this, recalculating, map got erased, runs differently, processing

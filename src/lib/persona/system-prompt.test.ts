@@ -638,33 +638,51 @@ describe("buildSystemPrompt", () => {
 
   // ─── Returning-user message (Track A Phase 7-Low / 7d) ───────────────────
   describe("returning-user opening structure", () => {
+    // The returning-user-first-turn-situation block fires for entry-phase
+    // turns only (turnCount <= 3 — opener + first user message + Jove's
+    // reply). Tests pass turnCount: 1 to land inside that window.
+    const earlyTurnReturning: Partial<OneOnOnePromptOptions> = {
+      isReturningUser: true,
+      turnCount: 1,
+    };
+
     it("tells Jove to respond to what the user said instead of using a canned opener", () => {
-      const result = build({ isReturningUser: true });
+      const result = build(earlyTurnReturning);
       expect(result).toContain("Respond directly to what the user said");
       expect(result).not.toContain('The opener: "Welcome back."');
     });
 
     it("permits referencing either a recent entry OR an open thread", () => {
-      const result = build({ isReturningUser: true });
+      const result = build(earlyTurnReturning);
       expect(result).toContain("entry name OR an open thread");
     });
 
     it("does NOT contain the old closing-question variants", () => {
-      const result = build({ isReturningUser: true });
+      const result = build(earlyTurnReturning);
       expect(result).not.toContain("What's bringing you in today?");
       expect(result).not.toContain('opens the door:');
       expect(result).not.toContain('The closing question, exactly');
     });
 
     it("preserves the activated-user carve-out", () => {
-      const result = build({ isReturningUser: true });
+      const result = build(earlyTurnReturning);
       expect(result).toContain("activated");
       expect(result).toContain("skip the Manual reference entirely");
     });
 
     it("preserves the no-session-recap rule", () => {
+      // 'No session recap' lives in the general RETURNING USER block,
+      // which fires for any returning user regardless of turnCount/mode.
       const result = build({ isReturningUser: true });
       expect(result).toContain("No session recap");
+    });
+
+    it("does NOT fire after the entry phase exhausts (turnCount > 3)", () => {
+      // Block is bootstrap-aware: opener + early reply only. From turn 4
+      // onward the general RETURNING USER block carries.
+      const result = build({ isReturningUser: true, turnCount: 4 });
+      expect(result).not.toContain("RETURNING USER — SITUATION OPENER");
+      expect(result).not.toContain("entry name OR an open thread");
     });
   });
 
@@ -1417,18 +1435,22 @@ describe("buildSystemPrompt", () => {
     });
 
     it("returning-user situation-specific first-turn block only renders in situation mode", () => {
+      // turnCount: 1 lands inside the bootstrap-aware entry-phase gate
+      // (turnCount <= 3). Without it, default turnCount: 5 is past the gate.
       const situation = build({
         mode: "situation",
         isReturningUser: true,
+        turnCount: 1,
         manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
       });
       const guided = build({
         mode: "guided-intake",
         isReturningUser: true,
+        turnCount: 1,
         manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
       });
-      expect(situation).toContain("RETURNING USER — FIRST TURN");
-      expect(guided).not.toContain("RETURNING USER — FIRST TURN");
+      expect(situation).toContain("RETURNING USER — SITUATION OPENER");
+      expect(guided).not.toContain("RETURNING USER — SITUATION OPENER");
     });
   });
 
