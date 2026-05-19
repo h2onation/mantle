@@ -6,6 +6,12 @@
 
 ---
 
+## Vendor Inventory
+
+The canonical list of third-party vendors — what's live, what's deprecated, what's a future candidate — is `src/lib/vendors/registry.ts`, rendered at `/admin/vendors`. Each vendor entry carries its category, status, env vars, integration paths, webhook, feature flag, and ADR references. Edit the registry (not this doc) to add or change a vendor; rationale for each choice lives in `decisions.md`.
+
+---
+
 ## The Pipeline (What Happens Every Turn)
 
 When a user sends a message, three AI stages run. Two of them (extraction and Jove) run at the same time to avoid slowing down the response.
