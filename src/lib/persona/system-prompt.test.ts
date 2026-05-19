@@ -380,16 +380,19 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("do not introduce yourself by name");
     });
 
-    it("instructs never to claim objectivity", () => {
+    it("instructs Jove to argue from evidence, not perform neutrality", () => {
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
-      // Wording lives in VOICE_INTRO_PARAGRAPHS_BASE (scaffold) now,
-      // framed second-person to match the rest of the intro paragraph.
+      // The old "claim to be objective, unbiased, or filter-free" line
+      // retired with the sparring-partner intro rewrite (2026-05-19). The
+      // anti-neutrality stance now lives as an active arguing posture in
+      // VOICE_INTRO_PARAGRAPHS_BASE: Jove names contradictions when it
+      // sees them, evidence-grounded.
       expect(result).toContain(
-        "claim to be objective, unbiased, or filter-free"
+        "You argue when you see them describing something one way and doing it another"
       );
     });
   });
@@ -1188,6 +1191,255 @@ describe("buildSystemPrompt", () => {
         expect(result).toContain("Direct and brief is a valid mode");
         expect(result).toContain("Never patronize");
         expect(result).not.toContain("You're being honest but concise");
+      });
+    });
+  });
+
+  // ─── Sparring partner with forensic backing (2026-05-19 voice update) ───
+  // The base voice shifted from "intelligent and direct" to a sparring
+  // partner with forensic backing: surface is witty and direct, spine is
+  // evidence (every observation traces to something the user said). Rules
+  // added for evidence-grounded wit, pattern distance for costly patterns,
+  // names of people in the user's life used freely, default-to-direct with
+  // earned imagery, sequence (evidence → pattern → image → hand back),
+  // no-pattern transparency, visible mechanism (sparingly), state-aware
+  // drop-the-wit. Banned-list expansion for therapy softeners, service
+  // hedges, identity-framed patterns, decorative analogies, irony on
+  // clever lines, feeling-first questions, and using the user's own name.
+  describe("sparring partner with forensic backing voice update", () => {
+    describe("VOICE_INTRO_PARAGRAPHS_BASE", () => {
+      it("contains the new sparring-partner intro paragraphs", () => {
+        const result = build();
+        expect(result).toContain("You quote the user back to themselves");
+        expect(result).toContain(
+          "You argue when you see them describing something one way and doing it another"
+        );
+        expect(result).toContain("The Manual is theirs. You edit. They write.");
+        expect(result).toContain("Your spine is evidence");
+        expect(result).toContain(
+          "wit targets the situation and the pattern"
+        );
+      });
+
+      it("does NOT contain the old intro paragraphs", () => {
+        const result = build();
+        expect(result).not.toContain(
+          "You help people see how they actually operate. The work is intelligent and direct."
+        );
+        expect(result).not.toContain(
+          "You notice what's implied but not said. The unnamed person, the avoided word, the missing piece."
+        );
+      });
+    });
+
+    describe("VOICE_RULES_BASE — new sparring-partner rules", () => {
+      it.each([
+        [
+          "Every clever or pointed line traces to something they actually said",
+          "evidence-grounded wit (Rule 2 reinforced)",
+        ],
+        [
+          "Sharp about behavior and the pattern. Never about the user. The pattern is the target.",
+          "wit targets pattern, never user (Rule 7)",
+        ],
+        ["Pattern distance for costly patterns", "pattern distance (Rule 9)"],
+        [
+          "Use the names of people in the user's life freely",
+          "names freely, user's name almost never (Rule 10)",
+        ],
+        [
+          "Default to direct. Surprise is a register, not a frequency.",
+          "imagery posture (Rule 11)",
+        ],
+        [
+          "Sequence is evidence, then pattern, then image, then hand back.",
+          "sequence (Rule 12)",
+        ],
+        [
+          "When no pattern surfaces, name it transparently.",
+          "no-pattern move (Rule 13)",
+        ],
+        [
+          "Visible mechanism is allowed, sparingly.",
+          "visible mechanism (Rule 14)",
+        ],
+        [
+          "State-aware. When the user is in genuine distress, drop the wit.",
+          "state-aware (Rule 15)",
+        ],
+      ])("renders rule phrase: %s", (phrase) => {
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+
+      it("merges 'no time pressure' into the Compress rule", () => {
+        // Rule consolidated: 'No time pressure' is now folded into Compress
+        // so the rule list stays at 16 instead of 17.
+        const result = build();
+        expect(result).toContain('Silence is processing');
+        expect(result).toContain('Compress.');
+      });
+    });
+
+    describe("BANNED_PHRASES — new sparring-partner entries", () => {
+      it.each([
+        ["I can imagine", "empathy cliché variant"],
+        ["That sounds hard", "empathy cliché variant"],
+        ["That sounds really difficult", "empathy cliché variant"],
+        ["Let's sit with that", "therapy-ism variant"],
+        ["Great question", "performed warmth"],
+        ["I'd love to help", "performed warmth"],
+        ["Thanks for sharing", "performed warmth variant"],
+        ["I'm happy to", "service-industry register"],
+        ["I appreciate you", "performed warmth"],
+        ["It makes sense that", "empathy cliché"],
+        ["You're doing the work", "therapy-ism"],
+        ["Be gentle with yourself", "therapy-ism"],
+        ["Take a breath", "therapy-ism"],
+        ["Reflect on", "therapy-ism"],
+        ["Hold space", "therapy-ism (no trailing 'for')"],
+        ["I want to honor", "performative gratitude"],
+        ["It's valid to feel", "validation cliché"],
+        ["Your feelings are valid", "validation cliché"],
+        ["There's no wrong way to", "therapy-ism"],
+      ])("BANNED_PHRASES pins '%s' (%s)", (phrase) => {
+        expect(BANNED_PHRASES as readonly string[]).toContain(phrase);
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+    });
+
+    describe("BANNED_PATTERNS — new sparring-partner patterns", () => {
+      it.each([
+        ["Therapeutic softeners before sharp observations", "therapy-softener-hedges"],
+        ["Service-industry hedges", "customer-support register"],
+        ["Pattern names framed as identity", "identity-framing"],
+        ["Decorative analogies.", "decorative-analogy"],
+        ["Irony or hedging attached to a clever line", "irony-hedge"],
+        [
+          "Asking how the user feels before establishing what happened",
+          "feeling-first",
+        ],
+        ["Open-ended invitations with no shape", "tell-me-more"],
+        ["Using the user's own name in a reply", "user-name"],
+      ])("BANNED_PATTERNS contains '%s' (%s)", (phrase) => {
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+
+      it("rewrote 'Announcing observations' entry to thread visible-mechanism", () => {
+        const result = build();
+        expect(result).toContain("Announcing-before-observation");
+        expect(result).toContain("see the visible-mechanism voice rule");
+        // Old wording without the visible-mechanism carve-out is gone:
+        expect(result).not.toContain(
+          "Announcing observations: 'here's what I'm noticing,' 'I want to name something.' Make the observation directly. Do not narrate that you are about to make it."
+        );
+      });
+    });
+
+    describe("EXAMPLE_REGISTER_BASE — new sparring-partner examples", () => {
+      it.each([
+        "Naming a strength",
+        "Visible mechanism",
+        "User in a hard state",
+        "Sequence with evidence",
+        "Pattern distance",
+      ])("contains register example labeled '%s'", (label) => {
+        const result = build();
+        expect(result).toContain(label);
+      });
+
+      it("Self-introduction line is the new sparring-partner version", () => {
+        const result = build();
+        expect(result).toContain(
+          "I read what you bring me, quote you back to yourself, and push back when something doesn't fit"
+        );
+        expect(result).toContain(
+          "Half the time the big one is just the loud version of a quieter thing"
+        );
+        // Old Self-introduction line is gone:
+        expect(result).not.toContain(
+          "I'm Jove. A conversational AI built to help you explore the parts that aren't always obvious."
+        );
+      });
+    });
+
+    describe("LANDING_EXAMPLES_BASE — new sparring-partner landings", () => {
+      it.each([
+        "Pattern with evidence trail",
+        "Naming recurrence by the person's name",
+        "Reframing morality to mechanism",
+        "Wit targeting the pattern, not the user",
+      ])("contains landing labeled '%s'", (label) => {
+        const result = build();
+        expect(result).toContain(label);
+      });
+
+      it("contains the three-drinks evidence-trail with match-in-gas image", () => {
+        const result = build();
+        expect(result).toContain("three drinks past patient");
+        expect(result).toContain(
+          "Like blaming the match for the fire when the room was already full of gas"
+        );
+      });
+
+      it("contains the circuit-breaker morality-to-mechanism reframe", () => {
+        const result = build();
+        expect(result).toContain(
+          "less like a wall going up and more like a circuit breaker"
+        );
+      });
+
+      it("contains the tax-filings analogy targeting the apology, not the person", () => {
+        const result = build();
+        expect(result).toContain("Your apologies sound like tax filings");
+        expect(result).toContain("She isn't auditing you");
+      });
+    });
+
+    describe("WEAK_STRONG_EXAMPLES_BASE — new sparring-partner pairs", () => {
+      it("includes the no-pattern-surfaces strong line", () => {
+        const result = build();
+        expect(result).toContain(
+          "Nothing's pulling into shape yet. Two options."
+        );
+      });
+
+      it("includes the pattern-distance strong line for costly patterns", () => {
+        const result = build();
+        expect(result).toContain(
+          "There's a version of you that goes quiet when the conversation gets sharp"
+        );
+      });
+
+      it("includes the state-aware strong line when user shares something hard", () => {
+        const result = build();
+        expect(result).toContain(
+          "Okay. You haven't said it out loud before. What made it sayable now."
+        );
+      });
+
+      it("includes the 'I'd rather argue' strong line for user pushback", () => {
+        const result = build();
+        expect(result).toContain(
+          "I'd rather argue about it than agree about the wrong thing"
+        );
+      });
+
+      it("includes the 'bouncing back' strong line for what-should-I-do", () => {
+        const result = build();
+        expect(result).toContain(
+          "You came in with most of the answer already in the way you described it"
+        );
+      });
+    });
+
+    describe("WHEN_USER_ASKS_WHAT_SHOULD_I_DO — extended with bounce-back move", () => {
+      it("contains both Manual-lens and bounce-back templates", () => {
+        const result = build();
+        expect(result).toContain("Through the Manual lens");
+        expect(result).toContain("Bouncing the question back");
       });
     });
   });
