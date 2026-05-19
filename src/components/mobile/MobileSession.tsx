@@ -8,7 +8,7 @@ import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
-import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
+import { PERSONA_NAME, type CheckpointAction, type ConversationMode } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
@@ -53,8 +53,7 @@ interface MobileSessionProps {
     action: CheckpointAction,
     edits?: { editedContent?: string | null; editedName?: string | null }
   ) => void;
-  startGuidedIntake: () => Promise<boolean>;
-  startUpload: () => Promise<boolean>;
+  startConversation: (mode: ConversationMode) => Promise<boolean>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
   // Onboarding modal state. modalProgress=null means MainApp hasn't
@@ -87,8 +86,7 @@ export default function MobileSession({
   sendChipResponse,
   retryLastMessage,
   confirmCheckpoint,
-  startGuidedIntake,
-  startUpload,
+  startConversation,
   isGuest,
   onSignInPrompt,
   modalProgress = null,
@@ -254,7 +252,7 @@ export default function MobileSession({
         disabled={isLoading || isStreaming}
         onClick={() => {
           setChipsVisible(false);
-          sendMessage("I have a situation I want to work through");
+          startConversation("situation");
         }}
         icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -274,7 +272,7 @@ export default function MobileSession({
         disabled={isLoading || isStreaming}
         onClick={() => {
           setChipsVisible(false);
-          startGuidedIntake();
+          startConversation("guided-intake");
         }}
         icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -294,7 +292,7 @@ export default function MobileSession({
         disabled={isLoading || isStreaming}
         onClick={() => {
           setChipsVisible(false);
-          startUpload();
+          startConversation("upload");
         }}
         icon={
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">

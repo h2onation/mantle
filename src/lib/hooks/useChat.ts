@@ -18,7 +18,6 @@ import {
   trackCheckpointRefined,
   trackGuidedIntakeOpenerFired,
   type ConversationMode,
-  type EntryPoint,
 } from "@/lib/analytics/events";
 import { detectGuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
@@ -1152,21 +1151,18 @@ export function useChat() {
   }
 
   /**
-   * Shared start-handler for the two "Jove speaks first" entry modes
-   * (guided-intake, upload). Both modes send `message: null` to the chat
-   * route — the server creates the conversation, sets the mode column,
-   * and streams Jove's locked opener back. The flow is identical apart
-   * from the mode flag and the entry_point label fired into analytics.
-   * See ADR-042 §1.
+   * Shared start-handler for "Jove speaks first" entry modes. Sends
+   * `message: null` to the chat route — the server creates the
+   * conversation, sets the mode column, and streams Jove's locked opener
+   * back. Entry point fires into analytics derived from the mode. See
+   * ADR-042 §1.
    *
-   * `startGuidedIntake` and `startUpload` below are kept as named thin
-   * wrappers so MobileSession's prop surface and existing source-grep
-   * tests stay intact.
+   * All three modes (situation, guided-intake, upload) bootstrap through
+   * this single path. Situation joined the bootstrap pattern after Phase 1;
+   * before that it routed through sendMessage with a canned user string,
+   * which forced the model to inverse-engineer intent on turn 1.
    */
-  async function startModeConversation(
-    mode: "guided-intake" | "upload",
-    entryPoint: EntryPoint,
-  ): Promise<boolean> {
+  async function startConversation(mode: ConversationMode): Promise<boolean> {
     if (isLoading || isStreaming) return false;
     if (messages.length > 0) return false;
 
@@ -1204,9 +1200,12 @@ export function useChat() {
       if (completeEvent?.conversationId) {
         setConversationId(completeEvent.conversationId);
         conversationStartedAt.current = Date.now();
+        // entry_point = mode for now. Diverge if a future entry point ever
+        // needs to distinguish "user tapped the welcome card for situation"
+        // from "deep link routed to situation" etc.
         trackConversationStarted({
           conversation_id: completeEvent.conversationId,
-          entry_point: entryPoint,
+          entry_point: mode,
           channel: "web",
         });
         trackMessageSent({
@@ -1225,16 +1224,6 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  async function startGuidedIntake(): Promise<boolean> {
-    // mode: "guided-intake" · entry_point: "guided-intake"
-    return startModeConversation("guided-intake", "guided-intake");
-  }
-
-  async function startUpload(): Promise<boolean> {
-    // mode: "upload" · entry_point: "upload"
-    return startModeConversation("upload", "upload");
   }
 
   return {
@@ -1268,8 +1257,7 @@ export function useChat() {
     loadConversation,
     startNewSession,
     startExploration,
-    startGuidedIntake,
-    startUpload,
+    startConversation,
     refreshConversations,
     loadManual,
     updateEntry,

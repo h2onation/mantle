@@ -185,8 +185,11 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("I just need to think out loud");
     });
 
-    it("sends a kickstart message when Navigate a situation is tapped", () => {
-      expect(src).toContain('sendMessage("I have a situation I want to work through")');
+    it("uses bootstrap (Jove speaks first) when Navigate a situation is tapped", () => {
+      expect(src).toContain('startConversation("situation")');
+      // The canned message string from before the bootstrap pattern must
+      // be gone — no more inverse-engineered intent on turn 1.
+      expect(src).not.toContain("I have a situation I want to work through");
     });
 
     it("does NOT contain the old welcome-prose block", () => {

@@ -15,10 +15,16 @@ import {
   PACING_RULE,
   WHEN_JOVE_IS_WRONG,
   WHEN_USER_ASKS_WHAT_SHOULD_I_DO,
+  VOICE_INTRO_PARAGRAPHS_BASE,
+  VOICE_RULES_BASE,
+  EXAMPLE_REGISTER_BASE,
+  LANDING_EXAMPLES_BASE,
+  WEAK_STRONG_EXAMPLES_BASE,
 } from "@/lib/persona/voice-scaffold";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
+import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import {
   prepareManualContext,
   prepareManualContextBlocks,
@@ -43,14 +49,25 @@ const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
   general: GeneralVoice,
 };
 
-/** Compose the Tier 2 voice block from one or more persona modules.
- *  Every selected mode contributes equally — its full intro paragraphs,
- *  voice rules, example register, landing examples, deepening additions,
- *  and weak→strong examples — assembled onto the shared scaffold once.
- *  When the same item appears in multiple modules (e.g. shared voice
- *  rules), the first occurrence wins; subsequent duplicates are dropped.
- *  General is filtered out when any neurotype mode is also selected, as
- *  the neurotype voices override the general framing. */
+/** Compose the Tier 2 voice block as base + persona trait deltas.
+ *
+ *  The base voice (intro paragraphs, voice rules, register, landings,
+ *  weak→strong pairs) lives in voice-scaffold.ts and runs regardless of
+ *  which persona modes are active. It's emitted first.
+ *
+ *  Each active persona module contributes its trait delta — the
+ *  persona-specific additions on top of base. Autistic adds somatic-axis
+ *  framing; AuDHD adds dual-system tracking; dyslexic adds short-sentence
+ *  + story-shape preferences; general contributes nothing (the base is
+ *  the general voice).
+ *
+ *  Order: base first, then personas in the order the caller supplied.
+ *  Dedupe is retained as a safety net — a persona module accidentally
+ *  duplicating base content collapses cleanly rather than rendering twice.
+ *
+ *  General is filtered out when any neurotype mode is also selected.
+ *  Harmless either way (general has empty deltas), but the filter
+ *  documents intent for future readers. */
 export function composeTier2(modes: PersonaMode[]): string {
   const requested = modes.length > 0 ? modes : (["autistic"] as PersonaMode[]);
   const neurotypeModes = requested.filter((m) => m !== "general");
@@ -70,29 +87,46 @@ export function composeTier2(modes: PersonaMode[]): string {
   };
 
   const introParas = dedupeBy(
-    effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_INTRO_PARAGRAPHS]),
+    [
+      ...VOICE_INTRO_PARAGRAPHS_BASE,
+      ...effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_INTRO_PARAGRAPHS]),
+    ],
     (s) => s,
   );
   const voiceRules = dedupeBy(
-    effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_RULES]),
+    [
+      ...VOICE_RULES_BASE,
+      ...effective.flatMap((m) => [...VOICE_MODULES[m].VOICE_RULES]),
+    ],
     (s) => s,
   );
   // Dedupe by full content (label + line) so persona-specific variants
   // with the same label both appear, but truly identical entries collapse.
   const exampleRegister = dedupeBy(
-    effective.flatMap((m) => [...VOICE_MODULES[m].EXAMPLE_REGISTER]),
+    [
+      ...EXAMPLE_REGISTER_BASE,
+      ...effective.flatMap((m) => [...VOICE_MODULES[m].EXAMPLE_REGISTER]),
+    ],
     (e) => `${e.label}|${e.line}`,
   );
   const landingExamples = dedupeBy(
-    effective.flatMap((m) => [...VOICE_MODULES[m].LANDING_EXAMPLES]),
+    [
+      ...LANDING_EXAMPLES_BASE,
+      ...effective.flatMap((m) => [...VOICE_MODULES[m].LANDING_EXAMPLES]),
+    ],
     (e) => `${e.label}|${e.line}`,
   );
+  // DEEPENING_ADDITIONS is persona-only — the scaffold provides
+  // DEEPENING_INTRO/OUTRO around whatever the persona contributes.
   const deepeningAdditions = effective
     .map((m) => VOICE_MODULES[m].DEEPENING_ADDITIONS)
     .filter((s) => s.length > 0)
     .join("\n\n");
   const weakStrong = dedupeBy(
-    effective.flatMap((m) => [...VOICE_MODULES[m].WEAK_STRONG_EXAMPLES]),
+    [
+      ...WEAK_STRONG_EXAMPLES_BASE,
+      ...effective.flatMap((m) => [...VOICE_MODULES[m].WEAK_STRONG_EXAMPLES]),
+    ],
     (e) => `${e.weak}|${e.strong}`,
   );
 
@@ -301,19 +335,25 @@ interface Tier3Block {
 const TIER_3_BLOCKS: readonly Tier3Block[] = [
   {
     id: "first-message",
-    shouldRender: (f) => f.turnCount <= 1 && f.isNewUser && f.mode === "situation",
+    // Entry phase: covers opener turn (turnCount 1) + the user's first
+    // typed message + Jove's reply to it (turnCount 3). After that the
+    // base voice carries.
+    shouldRender: (f) => f.turnCount <= 3 && f.isNewUser && f.mode === "situation",
     render: () => `
 FIRST MESSAGE (new user, situation mode)
-The user's first message is free-form. Respond to what they actually said. Do not use transition language ("great, let's dig in," "now we're getting somewhere," "let's explore that").
 
-Branches:
-- Specific situation/person/event → one grounding question: "Tell me what happened. Walk me through the last time."
-- Self-description → treat as a claim to test: "When's the last time that happened? Walk me through it."
-- Vague/abstract → progressive narrowing: "What's been taking up the most space in your head lately?" → "Is there a specific moment or person driving that?" → "Tell me what happened."
-- Meta question ("how does this work") → one or two sentences, then invite: "It's built around conversation. You bring a situation, person, or thing on your mind, and I help you see the pattern underneath. What's been on your mind lately?"
-- Framework question (Schema Therapy, Attachment Theory, Functional Analysis) → "I draw on published behavioral and psychological frameworks to structure what I'm noticing, but I don't label them for you. The manual is written in your words, not theirs."
+OPENER (your first turn, when no user message has been typed yet)
+Deliver the opener below verbatim. Do not introduce yourself separately. Do not paraphrase.
+"${SITUATION_OPENER}"
 
-First 2-3 turns: concrete details. Depth starts at turn 3-4. Introduce yourself by name on your very first message — one line, no fanfare. Do not explain checkpoints, Manual structure, or the five layers on turn 1. Never claim to be objective, unbiased, or filter-free. Never perform unearned warmth ("thank you for sharing," "I'm glad you're here," "that's brave"). Do not assume the user's gender. Use "you" and "they" until the user uses gendered language about themselves.
+ON THE USER'S FIRST MESSAGE
+The user has read your opener and is telling you what's on their mind. Two postures:
+
+Concrete (specific situation, person, event, or self-description tied to a moment): ground in the incident. "Walk me through what happened" or "Take me into the last time." Don't paraphrase before the question. The question proves you read it.
+
+Abstract (vague claim, meta question about you, framework mention, "I don't know where to start"): respond directly to what they brought, then ask one open question. For meta or framework, answer in one or two sentences, then invite. For vague, no three-step narrowing chain. One open question. See what surfaces.
+
+Don't assume the user's gender. Use "you" and "they" until the user uses gendered language about themselves. Don't explain checkpoints, the Manual, or the five layers. They learn by experiencing it.
 `,
   },
   {
