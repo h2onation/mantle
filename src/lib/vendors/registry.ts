@@ -137,26 +137,6 @@ export const VENDORS: Vendor[] = [
       "No ADR. Event tracking only — autocapture off, session replay off. Conversation content is sensitive; do not enable replay or autocapture without a privacy review.",
   },
   {
-    id: "upstash",
-    name: "Upstash Redis",
-    category: "RateLimit",
-    status: "live",
-    purpose:
-      "Sliding-window rate limiting for /api/chat, OTP send/verify, and waitlist.",
-    envVars: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
-    integrationPaths: [
-      "src/lib/rate-limit.ts",
-      "src/app/api/chat/route.ts",
-      "src/app/api/user/phone/route.ts",
-      "src/app/api/user/phone/verify/route.ts",
-      "src/app/api/waitlist/route.ts",
-    ],
-    adrRefs: [38],
-    url: "https://upstash.com",
-    notes:
-      "ADR-038 flagged that the env vars are missing in Vercel production, so rate limiters currently fail open. Verify before any public-launch traffic.",
-  },
-  {
     id: "vercel",
     name: "Vercel",
     category: "Infra",
@@ -200,6 +180,26 @@ export const VENDORS: Vendor[] = [
   // ── POTENTIAL ───────────────────────────────────────────────────────────
   // Add future-consideration vendors here. Minimum: id, name, category,
   // status: "potential", purpose. envVars / integrationPaths can be empty.
+  {
+    id: "upstash",
+    name: "Upstash Redis",
+    category: "RateLimit",
+    status: "potential",
+    purpose:
+      "Sliding-window rate limiting for /api/chat, OTP send/verify, and waitlist.",
+    envVars: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    integrationPaths: [
+      "src/lib/rate-limit.ts",
+      "src/app/api/chat/route.ts",
+      "src/app/api/user/phone/route.ts",
+      "src/app/api/user/phone/verify/route.ts",
+      "src/app/api/waitlist/route.ts",
+    ],
+    adrRefs: [38],
+    url: "https://upstash.com",
+    notes:
+      "Code paths are wired but env vars are not set in Vercel, so rate limiters currently fail open (ADR-038). Treat as scaffolded-but-inactive until the production credentials are provisioned.",
+  },
 ];
 
 export function getVendorsByStatus(status: VendorStatus): Vendor[] {
