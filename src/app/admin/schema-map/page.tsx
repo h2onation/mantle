@@ -667,7 +667,7 @@ function CoreFlow() {
       style={{
         marginBottom: 28,
         padding: "22px 24px",
-        background: "rgba(255, 255, 255, 0.5)",
+        background: "var(--session-walnut-tint)",
         border: "1px solid var(--session-ink-hairline)",
         borderRadius: 10,
       }}
@@ -749,7 +749,7 @@ function SpineBox({
         maxWidth: 280,
         padding: "12px 16px",
         background: "var(--session-linen)",
-        border: "1.5px solid rgba(80, 36, 24, 0.22)",
+        border: "1.5px solid var(--session-walnut-border)",
         borderRadius: 8,
         textAlign: "center",
       }}
@@ -795,8 +795,8 @@ function SpineConnector({ text, tone }: { text: string; tone?: "solid" | "dashed
           width: 0,
           height: 18,
           borderLeft: isDashed
-            ? "1.5px dashed rgba(80, 36, 24, 0.4)"
-            : "1.5px solid rgba(80, 36, 24, 0.4)",
+            ? "1.5px dashed var(--session-walnut-light)"
+            : "1.5px solid var(--session-walnut-light)",
         }}
       />
       <code
@@ -805,7 +805,7 @@ function SpineConnector({ text, tone }: { text: string; tone?: "solid" | "dashed
           fontSize: "10.5px",
           color: "var(--session-ink-ghost)",
           letterSpacing: "0.5px",
-          background: "rgba(80, 36, 24, 0.05)",
+          background: "var(--session-walnut-tint)",
           padding: "1px 6px",
           borderRadius: 3,
         }}
@@ -818,7 +818,7 @@ function SpineConnector({ text, tone }: { text: string; tone?: "solid" | "dashed
           height: 0,
           borderLeft: "5px solid transparent",
           borderRight: "5px solid transparent",
-          borderTop: "6px solid rgba(80, 36, 24, 0.4)",
+          borderTop: "6px solid var(--session-walnut-light)",
           marginTop: 2,
         }}
       />
@@ -927,7 +927,7 @@ function Glossary() {
       style={{
         marginBottom: 24,
         padding: "10px 14px",
-        background: "rgba(255, 255, 255, 0.4)",
+        background: "var(--session-walnut-tint)",
         border: "1px solid var(--session-ink-hairline)",
         borderRadius: 6,
       }}
@@ -1033,10 +1033,10 @@ function FilterChips({
               letterSpacing: "0.1px",
               color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
               background: active
-                ? "rgba(80, 36, 24, 0.10)"
-                : "rgba(255, 255, 255, 0.5)",
+                ? "var(--session-walnut-highlight)"
+                : "var(--session-walnut-tint)",
               border: active
-                ? "1px solid rgba(80, 36, 24, 0.18)"
+                ? "1px solid var(--session-walnut-border)"
                 : "1px solid var(--session-ink-hairline)",
               fontWeight: active ? 500 : 400,
               display: "inline-flex",
@@ -1088,7 +1088,7 @@ function TableList({
       style={{
         border: "1px solid var(--session-ink-hairline)",
         borderRadius: 8,
-        background: "rgba(255, 255, 255, 0.5)",
+        background: "var(--session-walnut-tint)",
         overflow: "hidden",
       }}
     >
@@ -1136,7 +1136,7 @@ function TableRow({
     <div
       style={{
         borderBottom: isLast ? "none" : "1px solid var(--session-ink-hairline)",
-        background: expanded ? "rgba(80, 36, 24, 0.025)" : "transparent",
+        background: expanded ? "var(--session-walnut-surface-soft)" : "transparent",
       }}
     >
       <button
@@ -1183,7 +1183,7 @@ function TableRow({
               overflow: "hidden",
               textOverflow: "ellipsis",
               textDecoration: table.deprecated ? "line-through" : "none",
-              textDecorationColor: "rgba(80, 36, 24, 0.4)",
+              textDecorationColor: "var(--session-walnut-light)",
             }}
           >
             {table.name}
@@ -1208,7 +1208,7 @@ function TableRow({
             fontSize: "10px",
             letterSpacing: "1.5px",
             color: "var(--session-ink-ghost)",
-            background: "rgba(80, 36, 24, 0.04)",
+            background: "var(--session-walnut-tint)",
             padding: "3px 7px",
             borderRadius: 4,
             flexShrink: 0,
@@ -1243,7 +1243,7 @@ function TableDetail({ table }: { table: Table }) {
     <div
       style={{
         padding: "0 16px 22px 38px",
-        borderTop: "1px solid rgba(80, 36, 24, 0.06)",
+        borderTop: "1px solid var(--session-walnut-border-soft)",
         paddingTop: 16,
         marginTop: 0,
         display: "flex",
@@ -1414,10 +1414,10 @@ function ColumnRow({ column }: { column: Column }) {
 
 function ConnectionCard({ conn }: { conn: Connection }) {
   const onDeleteBadge: Record<Connection["onDelete"], { label: string; tone: string }> = {
-    CASCADE: { label: "DELETES WITH PARENT", tone: "rgba(168, 80, 50, 0.10)" },
-    "SET NULL": { label: "POINTER CLEARED", tone: "rgba(80, 36, 24, 0.05)" },
-    RESTRICT: { label: "DELETE BLOCKED", tone: "rgba(180, 100, 50, 0.10)" },
-    "—": { label: "NO CASCADE RULE", tone: "rgba(80, 36, 24, 0.03)" },
+    CASCADE: { label: "DELETES WITH PARENT", tone: "var(--session-error-ghost)" },
+    "SET NULL": { label: "POINTER CLEARED", tone: "var(--session-walnut-surface-soft)" },
+    RESTRICT: { label: "DELETE BLOCKED", tone: "var(--session-warning-soft)" },
+    "—": { label: "NO CASCADE RULE", tone: "var(--session-walnut-tint)" },
   };
   const badge = onDeleteBadge[conn.onDelete];
   return (
