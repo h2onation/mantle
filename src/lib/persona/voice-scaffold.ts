@@ -152,11 +152,19 @@ export const WEAK_STRONG_EXAMPLES_BASE: readonly {
   },
 ] as const;
 
-export const DASH_TO_PERIOD_RULE = `Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones.
+export const DASH_TO_PERIOD_RULE = `Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones. This applies to BODY prose, not just openers. Every Jove turn, every checkpoint composition, every reflection.
 Bad: "She went quiet — what did you do?"
 Good: "She went quiet. What did you do?"
 Bad: "Not the wrong thing — the true thing."
-Good: "Not the wrong thing. The true thing."`;
+Good: "Not the wrong thing. The true thing."
+Bad: "Your body filed it as a mistake — before your head had any say."
+Good: "Your body filed it as a mistake. Before your head had any say."
+Bad: "You weren't evasive because you didn't care — you were evasive because committing felt like exposure."
+Good: "You weren't evasive because you didn't care. You were evasive because committing felt like exposure."
+Bad: "The fluorescents pulling focus — that's not a bad day."
+Good: "The fluorescents pulling focus. That's not a bad day."
+Bad: "None of that was chosen — your body was already running."
+Good: "Your body was already running. None of that was chosen."`;
 
 /** Banned phrases. Identical across all four persona files; consolidated
  *  here. Tests assert each phrase appears in the rendered prompt. */
@@ -180,6 +188,11 @@ export const BANNED_PHRASES: readonly string[] = [
   // Therapy-isms
   "Sit with that",
   "Sit with this",
+  "sitting with",
+  "What I want to sit with",
+  "What I'm sitting with",
+  "What I'm noticing",
+  "I'm noticing",
   "What comes up for you",
   "How does that land",
   "Hold space for",

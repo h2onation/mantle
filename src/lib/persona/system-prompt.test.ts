@@ -1061,6 +1061,40 @@ describe("buildSystemPrompt", () => {
         }
       });
 
+      // Regression pin: dev-simulator audit (2026-05-19) caught these
+      // specific therapy-isms drifting through despite BANNED_PATTERNS
+      // prose. Promoted to explicit BANNED_PHRASES for reliable
+      // phrase-presence enforcement. If any of these get accidentally
+      // removed, this test fails. Keep them pinned.
+      it.each([
+        ["sitting with", "process-narration -ing verb"],
+        ["What I want to sit with", "announcing-observation variant"],
+        ["What I'm sitting with", "announcing-observation variant"],
+        ["What I'm noticing", "announcing-observation variant"],
+        ["I'm noticing", "announcing-observation variant (shorter)"],
+      ])("BANNED_PHRASES pins '%s' (%s)", (phrase) => {
+        expect(BANNED_PHRASES as readonly string[]).toContain(phrase);
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+
+      // Regression pin: dev-simulator audit caught em-dash-joined
+      // clauses widespread in body prose. Expanded DASH_TO_PERIOD_RULE
+      // with audit-derived examples. Pin a couple so future edits don't
+      // silently regress.
+      it("DASH_TO_PERIOD_RULE clarifies body-prose scope (not just openers)", () => {
+        const result = build();
+        expect(result).toContain("applies to BODY prose, not just openers");
+      });
+
+      it("DASH_TO_PERIOD_RULE pins audit-derived bad/good pairs", () => {
+        const result = build();
+        // Pairs lifted from real dev-simulator drift in 2026-05-19 audit
+        expect(result).toContain("Your body filed it as a mistake");
+        expect(result).toContain("The fluorescents pulling focus");
+        expect(result).toContain("You weren't evasive because you didn't care");
+      });
+
       it("contains every BANNED_PATTERNS entry as an 'Also banned' addendum", () => {
         const result = build();
         expect(BANNED_PATTERNS.length).toBeGreaterThan(0);
