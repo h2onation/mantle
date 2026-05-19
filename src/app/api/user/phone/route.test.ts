@@ -326,5 +326,118 @@ describe("POST /api/user/phone/verify", () => {
     expect(patch.otp_code).toBeNull();
     expect(patch.otp_expires_at).toBeNull();
     expect(patch.linked_at).toBeTypeOf("string");
+    // Successful verify also resets the attempts counter so a future
+    // re-link cycle starts from zero (otp_attempts column restored
+    // 2026-05-19 via migration 20260519000000, reversing ADR-038).
+    expect(patch.otp_attempts).toBe(0);
+  });
+});
+
+// --- otp_attempts (per-row OTP brute-force cap) -------------------------
+//
+// Migration 20260519000000 restored the otp_attempts column on
+// phone_numbers. Verify route increments on wrong code, rejects once
+// attempts >= OTP_MAX_ATTEMPTS (5), and resets to 0 on success. Send
+// route resets to 0 on every fresh issuance (legitimate recovery path).
+// Reverses the open half of ADR-038.
+
+describe("POST /api/user/phone/verify — otp_attempts cap", () => {
+  it("increments otp_attempts on wrong code", async () => {
+    selectResponses["phone_numbers"] = {
+      data: {
+        id: "row-1",
+        otp_code: hashOtp("111111"),
+        otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        otp_attempts: 2,
+        verified: false,
+      },
+      error: null,
+    };
+    const res = await verifyPOST(
+      verifyRequest({ phone: "+15555551234", code: "999999" })
+    );
+    expect(res.status).toBe(400);
+    // Should have written otp_attempts: 3 (was 2 + 1)
+    const incPatch = updates.find(
+      (u) => (u.patch as { otp_attempts?: unknown }).otp_attempts === 3
+    );
+    expect(incPatch).toBeDefined();
+  });
+
+  it("returns 429 with too_many_attempts once otp_attempts >= 5", async () => {
+    selectResponses["phone_numbers"] = {
+      data: {
+        id: "row-1",
+        otp_code: hashOtp("111111"),
+        otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        otp_attempts: 5,
+        verified: false,
+      },
+      error: null,
+    };
+    const res = await verifyPOST(
+      verifyRequest({ phone: "+15555551234", code: "999999" })
+    );
+    expect(res.status).toBe(429);
+    const body = (await res.json()) as { error: string; message: string };
+    expect(body.error).toBe("too_many_attempts");
+    expect(body.message).toMatch(/too many.*request a new code/i);
+    // Must NOT increment past the cap (no update at all on this path).
+    const incPatch = updates.find(
+      (u) => "otp_attempts" in (u.patch as Record<string, unknown>)
+    );
+    expect(incPatch).toBeUndefined();
+  });
+
+  it("treats missing otp_attempts as 0 (legacy row safety)", async () => {
+    // Row from before the 20260519000000 migration — otp_attempts is null.
+    // Should be coerced to 0 and the request should proceed normally
+    // (here: 400 for wrong code, not 429 for too-many).
+    selectResponses["phone_numbers"] = {
+      data: {
+        id: "row-1",
+        otp_code: hashOtp("111111"),
+        otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        otp_attempts: null,
+        verified: false,
+      },
+      error: null,
+    };
+    const res = await verifyPOST(
+      verifyRequest({ phone: "+15555551234", code: "999999" })
+    );
+    expect(res.status).toBe(400);
+    // Increment should write otp_attempts: 1 (null + 1 coerced via the
+    // fallback in the route).
+    const incPatch = updates.find(
+      (u) => (u.patch as { otp_attempts?: unknown }).otp_attempts === 1
+    );
+    expect(incPatch).toBeDefined();
+  });
+});
+
+describe("POST /api/user/phone — otp_attempts reset on send", () => {
+  it("resets otp_attempts to 0 in the update branch (existing row)", async () => {
+    selectResponses["phone_numbers"] = {
+      data: { id: "row-1" },
+      error: null,
+    };
+    const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
+    expect(res.status).toBe(200);
+    const otpPatch = updates.find((u) => u.table === "phone_numbers");
+    expect(otpPatch).toBeDefined();
+    const patch = otpPatch!.patch as Record<string, unknown>;
+    expect(patch.otp_attempts).toBe(0);
+    expect(patch.verified).toBe(false);
+    expect(patch.otp_code).toBeTypeOf("string");
+  });
+
+  it("sets otp_attempts to 0 in the insert branch (new row)", async () => {
+    selectResponses["phone_numbers"] = { data: null, error: null };
+    const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
+    expect(res.status).toBe(200);
+    const phoneInsert = insertedRows.find((r) => r.table === "phone_numbers");
+    expect(phoneInsert).toBeDefined();
+    expect(phoneInsert!.row.otp_attempts).toBe(0);
   });
 });

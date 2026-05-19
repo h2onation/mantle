@@ -115,6 +115,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (userRow) {
+    // Reset otp_attempts to 0 on a fresh code issuance so a user who
+    // burned the cap on the previous code isn't locked out — requesting
+    // a new code is the legitimate recovery path. See ADR-038 follow-up
+    // and migration 20260519000000.
     const { error: updateError } = await admin
       .from("phone_numbers")
       .update({
@@ -122,6 +126,7 @@ export async function POST(request: NextRequest) {
         verified: false,
         otp_code: otpHash,
         otp_expires_at: expiresAt,
+        otp_attempts: 0,
       })
       .eq("user_id", user.id);
 
@@ -139,6 +144,7 @@ export async function POST(request: NextRequest) {
       verified: false,
       otp_code: otpHash,
       otp_expires_at: expiresAt,
+      otp_attempts: 0,
     });
 
     if (insertError) {
