@@ -118,8 +118,17 @@ const CRISIS_PHRASES = [
   "dont want to be here anymore",
   "what's the point of living",
   "whats the point of living",
-  "don't want to exist",
-  "dont want to exist",
+  // "don't want to exist" alone was too broad — fired on metaphorical use
+  // like "I don't want to exist on the plan of small talk" (referring to
+  // conversational register, not life). Require a life-level qualifier
+  // ("anymore," "any longer," "in this world") so the detector catches
+  // genuine crisis without injecting 988 into register metaphors.
+  "don't want to exist anymore",
+  "dont want to exist anymore",
+  "don't want to exist any longer",
+  "dont want to exist any longer",
+  "don't want to exist in this world",
+  "dont want to exist in this world",
   "no point in living",
   "end it all",
   "don't want to wake up",
