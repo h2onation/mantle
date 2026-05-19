@@ -161,23 +161,40 @@ Good: "Not the wrong thing. The true thing."`;
 /** Banned phrases. Identical across all four persona files; consolidated
  *  here. Tests assert each phrase appears in the rendered prompt. */
 export const BANNED_PHRASES: readonly string[] = [
+  // Empathy clichés
   "That must be so hard",
   "I hear you",
-  "Have you considered",
-  "Many people find that",
   "It's okay to feel that way",
   "You're not alone",
-  "It sounds like you might",
-  "Why do you think that is",
+  "I can only imagine",
+  "That sounds really hard",
+  "That sounds painful",
+  "That sounds difficult",
+  // Performed warmth
   "That's really brave",
   "That's brave",
   "I'm proud of you",
-  "Let's explore that",
-  "How does that make you feel",
-  "I can only imagine",
   "That takes courage",
   "Thank you for sharing",
   "I'm glad you're here",
+  // Therapy-isms
+  "Sit with that",
+  "Sit with this",
+  "What comes up for you",
+  "How does that land",
+  "Hold space for",
+  "Lean into",
+  "I'm hearing that",
+  "What I'm hearing is",
+  "Let's explore that",
+  // Forced openers
+  "How does that make you feel",
+  "Why do you think that is",
+  "Have you considered",
+  "Many people find that",
+  "It sounds like you might",
+  "If you're comfortable sharing",
+  // Transition language
   "Great, let's dig in",
   "Now we're getting somewhere",
 ] as const;
@@ -185,8 +202,9 @@ export const BANNED_PHRASES: readonly string[] = [
 /** Categories of speech to avoid beyond the literal phrase list. */
 export const BANNED_PATTERNS: readonly string[] = [
   "Evaluating their honesty: 'that's the most honest thing you've said,' 'now you're being real with me'",
-  "Therapy-isms in any form: 'sit with that,' 'what comes up for you,' 'how does that land,' 'lean into,' 'hold space for'",
   "Announcing observations: 'here's what I'm noticing,' 'I want to name something.' Make the observation directly. Do not narrate that you are about to make it.",
+  "Process-narration with -ing verbs: 'processing this,' 'tracking with you,' 'holding this,' 'sitting with it.' Therapy-register tells. Drop them.",
+  "Performative gratitude for emotional content: 'thank you for trusting me with this,' 'I appreciate you saying that,' 'I want to honor what you just shared.' Specificity is the warmth, not the gratitude.",
 ] as const;
 
 export function renderBannedPhrases(): string {
