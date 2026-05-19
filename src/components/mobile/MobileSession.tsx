@@ -461,17 +461,34 @@ export default function MobileSession({
                           setCheckpointOverlayOpen(true);
                         }}
                       >
-                        {cpLayer && cpLayerName && (
+                        {cpLayer && (
                           <span
                             style={{
                               position: "absolute",
-                              top: 0,
+                              top: 2,
                               left: 18,
-                              transform: "translateY(-50%)",
+                              transform: "translateY(-100%)",
                             }}
                           >
-                            <TabPip layerId={cpLayer} layerName={cpLayerName} />
+                            <TabPip layerId={cpLayer} />
                           </span>
+                        )}
+                        {cpLayerName && (
+                          <p
+                            style={{
+                              margin: "0 4px 6px",
+                              fontFamily:
+                                "var(--font-spectral), var(--font-serif), serif",
+                              fontStyle: "italic",
+                              fontWeight: 400,
+                              fontSize: 15,
+                              lineHeight: 1.2,
+                              letterSpacing: "-0.005em",
+                              color: "var(--session-ink-mid)",
+                            }}
+                          >
+                            {cpLayerName}
+                          </p>
                         )}
                         <p
                           style={{

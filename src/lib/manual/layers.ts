@@ -152,3 +152,26 @@ export function renderManualEntryFull(entry: {
   const headline = entry.name ? ` — "${entry.name}"` : "";
   return `Layer ${entry.layer} (${layerLabel})${headline}:\n${entry.content}\n`;
 }
+
+/**
+ * Per-layer empty-state copy for the Manual page. Two beats render
+ * inside the Plate when a layer has no confirmed entries:
+ *   • STATUS — one italic sentence that names the absence AND
+ *     what this layer is for, in one breath.
+ *   • INVITE — one italic line in Jove's voice. Opens a door.
+ */
+export const LAYER_EMPTY_STATUS: Record<number, string> = {
+  1: "No patterns named here yet.",
+  2: "Nothing about how you process the world yet.",
+  3: "Nothing about what you need to function yet.",
+  4: "Nothing about how you show up with people yet.",
+  5: "Nothing about where you're strong yet.",
+};
+
+export const LAYER_EMPTY_INVITE: Record<number, string> = {
+  1: "When something's been hard to put words to, we can start there.",
+  2: "Tell me about a recent moment your system was working harder than it looked.",
+  3: "Start anywhere — even something small that feels non-negotiable.",
+  4: "Pick someone you're close to. What does showing up there look like?",
+  5: "What activates the version of you most people don't get to see?",
+};

@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { type Layer } from "./layer-definitions";
 import LayerHeader from "./LayerHeader";
+import TabPip from "./TabPip";
+import { LAYER_EMPTY_STATUS, LAYER_EMPTY_INVITE } from "@/lib/manual/layers";
 import type { ExplorationContext } from "@/lib/types";
 
 interface EmptyLayerProps {
@@ -12,18 +14,22 @@ interface EmptyLayerProps {
 }
 
 /**
- * Empty Layer Plate — same vocabulary as PopulatedLayer (tab pip + info
- * chip + walnut-glass surface), but the box-shadow is suppressed and
- * the body is two short italic lines: a quiet status and the on-brand
- * CTA. The whole Plate is the tap target.
+ * Empty Layer Plate — one resting state. The plate is the doorway.
  *
- * Why no shadow: the Hearth three-layer drop says "this Plate has
- * weight on it"; an empty Plate hasn't accumulated anything yet, so it
- * reads as subordinate to a populated one. Same family, less lift.
+ * Composition (top to bottom):
+ *   1. Pip tucked into the top-left edge.
+ *   2. Per-layer accent hairline along the top (from LayerHeader).
+ *   3. Title band: italic layer name + info chip.
+ *   4. Status — italic sentence naming the absence AND what the
+ *      layer is for in one breath ("Nothing about X yet").
+ *   5. Invite — italic Jove-voiced sentence. The invitation in.
+ *   6. "Explore with Jove" text-link — same mono-caps walnut
+ *      affordance used inside populated entries.
  *
- * Why no descriptor in the body: it lives behind the info chip, same
- * place it lives on populated Plates. The eye doesn't reorient when
- * scanning across five Layers — only the body line(s) differ.
+ * Visual signals of emptiness:
+ *   • No entry rows under the title.
+ *   • Plate has border + transparent fill, no shadow.
+ *   • The prose itself names "Nothing… yet".
  */
 export default function EmptyLayer({
   layer,
@@ -45,71 +51,106 @@ export default function EmptyLayer({
     : undefined;
 
   return (
-    <section
-      onClick={handleTap}
-      role={canTap ? "button" : undefined}
-      aria-label={canTap ? `Explore ${layer.name} with Jove` : undefined}
-      tabIndex={canTap ? 0 : undefined}
-      onKeyDown={
-        canTap
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleTap!();
-              }
-            }
-          : undefined
-      }
+    <div
       style={{
         position: "relative",
         zIndex: popoverOpen ? 50 : "auto",
-        borderRadius: 18,
-        background: "var(--session-walnut-surface)",
-        border: "1px solid var(--session-walnut-border)",
-        backdropFilter: "blur(28px) saturate(140%)",
-        WebkitBackdropFilter: "blur(28px) saturate(140%)",
-        // Shadow suppressed — see comment above.
-        boxShadow: "none",
-        padding: "30px var(--sp-sm) var(--sp-md)",
         marginTop: 13,
-        cursor: canTap ? "pointer" : "default",
-        WebkitTapHighlightColor: "transparent",
-        transition: "background-color 0.18s ease",
       }}
     >
-      <LayerHeader layer={layer} onPopoverToggle={setPopoverOpen} />
+      <span
+        style={{
+          display: "inline-block",
+          marginLeft: 16,
+          marginBottom: -2,
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <TabPip layerId={layer.id} />
+      </span>
 
-      <div style={{ padding: "var(--sp-xs) 0 var(--sp-tight)" }}>
+      <section
+        onClick={handleTap}
+        role={canTap ? "button" : undefined}
+        aria-label={canTap ? `Explore ${layer.name} with Jove` : undefined}
+        tabIndex={canTap ? 0 : undefined}
+        onKeyDown={
+          canTap
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleTap!();
+                }
+              }
+            : undefined
+        }
+        style={{
+          position: "relative",
+          borderRadius: 16,
+          borderTopLeftRadius: 1,
+          background: "transparent",
+          border: "1px solid var(--session-walnut-border)",
+          boxShadow: "none",
+          padding: "20px var(--sp-sm) var(--sp-md)",
+          overflow: "visible",
+          cursor: canTap ? "pointer" : "default",
+          WebkitTapHighlightColor: "transparent",
+          transition: "background-color 0.18s ease",
+        }}
+      >
+        <LayerHeader layer={layer} onPopoverToggle={setPopoverOpen} />
+
         <p
           style={{
             margin: 0,
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontStyle: "italic",
             fontWeight: 400,
-            fontSize: 14,
-            lineHeight: 1.4,
-            letterSpacing: 0,
-            color: "var(--session-ink-mid)",
+            fontSize: 16,
+            lineHeight: 1.42,
+            letterSpacing: "-0.003em",
+            color: "var(--session-ink-soft)",
             textWrap: "balance" as React.CSSProperties["textWrap"],
           }}
         >
-          No patterns discovered yet.
+          {LAYER_EMPTY_STATUS[layer.id]}
         </p>
+
         <p
           style={{
-            margin: "4px 0 0",
+            margin: "10px 0 18px",
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontStyle: "italic",
+            fontWeight: 400,
+            fontSize: 13.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink-mid)",
+            textWrap: "pretty" as React.CSSProperties["textWrap"],
+          }}
+        >
+          {LAYER_EMPTY_INVITE[layer.id]}
+        </p>
+
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            paddingBottom: 2,
+            borderBottom: "1px solid var(--session-walnut)",
+            fontFamily: "var(--font-mono), monospace",
+            fontSize: 10,
+            letterSpacing: "0.20em",
+            textTransform: "uppercase",
+            color: "var(--session-walnut)",
             fontWeight: 500,
-            fontSize: 15,
-            lineHeight: 1.3,
-            letterSpacing: "0.005em",
-            color: "var(--session-walnut-meta-strong)",
           }}
         >
           Explore with Jove
-        </p>
-      </div>
-    </section>
+          <span aria-hidden="true" style={{ marginLeft: 5 }}>›</span>
+        </span>
+      </section>
+    </div>
   );
 }
