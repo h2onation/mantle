@@ -33,7 +33,14 @@ import {
 } from "@/lib/persona/voice-dyslexic";
 
 describe("buildSystemPrompt", () => {
-  // Default options — mid-session new user with no special flags
+  // Default options — mid-session new user with no special flags.
+  // personaModes pinned to ["autistic"] in test defaults because the
+  // majority of voice-content assertions in this file exercise the
+  // autistic persona (most-built voice surface, primary beta cohort).
+  // The PROD default flipped from ["autistic"] to ["general"] in
+  // migration 20260519100000 — see the dedicated "default persona
+  // mode" describe block below for tests that pin the new prod default
+  // behavior explicitly.
   const defaults: OneOnOnePromptOptions = {
     kind: "oneOnOne",
     manualComponents: [],
@@ -44,6 +51,7 @@ describe("buildSystemPrompt", () => {
     isFirstCheckpoint: false,
     turnCount: 5,
     checkpointApproaching: false,
+    personaModes: ["autistic"],
   };
 
   function build(overrides: Partial<OneOnOnePromptOptions> = {}) {
@@ -1672,15 +1680,37 @@ describe("buildSystemPrompt", () => {
   });
 
   // ─── Multi-select composition ────────────────────────────────────────────
+  // Pin the prod default flip from ["autistic"] to ["general"] across all
+  // four fallback paths (migration 20260519100000 / 2026-05-19). The
+  // `defaults` object at the top of this file pins personaModes to
+  // autistic for the bulk of the suite so existing autistic-content
+  // assertions still pass; these tests deliberately omit personaModes to
+  // exercise the new prod default.
+  describe("prod default persona mode (no personaModes specified)", () => {
+    it("buildSystemPrompt with no personaModes → general voice (not autistic)", () => {
+      // Spread defaults but explicitly drop personaModes to exercise the
+      // function's internal fallback.
+      const opts = { ...defaults };
+      delete (opts as Partial<OneOnOnePromptOptions>).personaModes;
+      const result = buildSystemPrompt(opts);
+      expect(result).toContain("has not named a neurotype");
+      expect(result).not.toContain("late-diagnosed autistic adults");
+    });
+  });
+
   describe("composeTier2 equal-stacking", () => {
     it("single mode returns that mode's full Tier 2", () => {
       const single = composeTier2(["autistic"]);
       expect(single).toContain("late-diagnosed autistic adults");
     });
 
-    it("empty array defaults to autistic", () => {
+    it("empty array defaults to general (flipped 2026-05-19 from autistic)", () => {
       const empty = composeTier2([]);
-      expect(empty).toContain("late-diagnosed autistic adults");
+      // General is the neutral neurotype-free voice. Should NOT contain
+      // autistic-specific framing.
+      expect(empty).not.toContain("late-diagnosed autistic adults");
+      // Should contain general's persona-specific intro paragraph.
+      expect(empty).toContain("has not named a neurotype");
     });
 
     it("autistic + dyslexic stacks both intros and both unique content", () => {

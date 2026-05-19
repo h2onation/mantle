@@ -42,7 +42,11 @@ export default function PersonaModeScreen({
   onContinue,
   onBack,
 }: PersonaModeScreenProps) {
-  const [selected, setSelected] = useState<PersonaMode[]>(["autistic"]);
+  // Default to "general" so a user who clicks Continue without changing the
+  // selection gets the neutral neurotype-free voice rather than autistic by
+  // default. Matches the new column default (migration 20260519100000) and
+  // the fallback in composeTier2 / loadConversationContext.
+  const [selected, setSelected] = useState<PersonaMode[]>(["general"]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 

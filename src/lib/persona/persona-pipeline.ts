@@ -125,10 +125,15 @@ export async function loadConversationContext(
       .maybeSingle(),
   ]);
 
+  // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
+  // match the new column default (migration 20260519100000). Hit when the
+  // profiles row has a null persona_modes — pre-onboarding signups, legacy
+  // rows that pre-date the array migration, or any path that creates a
+  // profile without setting persona_modes (e.g., the chat-route upsert).
   const personaModes: PersonaMode[] =
     personaModesOverride && personaModesOverride.length > 0
       ? personaModesOverride
-      : (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["autistic"];
+      : (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {

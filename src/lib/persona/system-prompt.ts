@@ -69,7 +69,12 @@ const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
  *  Harmless either way (general has empty deltas), but the filter
  *  documents intent for future readers. */
 export function composeTier2(modes: PersonaMode[]): string {
-  const requested = modes.length > 0 ? modes : (["autistic"] as PersonaMode[]);
+  // Empty-modes fallback flipped from ["autistic"] to ["general"] on
+  // 2026-05-19 to match the new column default (migration 20260519100000).
+  // Reaching this fallback means an upstream layer failed to pass a mode
+  // through; "general" is the neutral neurotype-free voice that's safe to
+  // render in that case.
+  const requested = modes.length > 0 ? modes : (["general"] as PersonaMode[]);
   const neurotypeModes = requested.filter((m) => m !== "general");
   const effective = neurotypeModes.length > 0 ? neurotypeModes : requested;
 
@@ -858,7 +863,7 @@ export function buildSystemPromptBlocks(
     turnCount,
     checkpointApproaching,
     mode = "situation",
-    personaModes = ["autistic"],
+    personaModes = ["general"],
     postConfirmMode = null,
     guidedPostureSoftened = false,
   } = options;
@@ -959,7 +964,7 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     checkpointApproaching,
     isFirstCheckpoint,
     mode = "situation",
-    personaModes = ["autistic"],
+    personaModes = ["general"],
     postConfirmMode = null,
     guidedPostureSoftened = false,
   } = options;

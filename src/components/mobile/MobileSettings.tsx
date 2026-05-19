@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
+import PersonaModePicker from "@/components/mobile/settings/PersonaModePicker";
 import TopBar from "@/components/shared/TopBar";
 import AppearanceToggle from "@/components/shared/AppearanceToggle";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
@@ -387,6 +388,12 @@ export default function MobileSettings({
           onClick={() => setShowDeleteAccountConfirm(true)}
           noBorder
         />
+      </div>
+
+      {/* ─── Voice ──────────────────────────────────────────────── */}
+      <SectionHeader label="HOW JOVE TALKS TO YOU" sectionId="settings-voice" />
+      <div id="settings-voice" style={{ padding: "12px 0 4px" }}>
+        <PersonaModePicker />
       </div>
 
       {/* ─── Appearance ──────────────────────────────────────────── */}
