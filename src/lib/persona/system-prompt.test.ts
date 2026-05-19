@@ -1255,41 +1255,71 @@ describe("buildSystemPrompt", () => {
           "Sequence is evidence, then pattern, then image, then hand back.",
           "sequence (Rule 12)",
         ],
-        [
-          "When no pattern surfaces, name it transparently.",
-          "no-pattern move (Rule 13)",
-        ],
-        [
-          "Visible mechanism is allowed, sparingly.",
-          "visible mechanism (Rule 14)",
-        ],
-        [
-          "State-aware. When the user is in genuine distress, drop the wit.",
-          "state-aware (Rule 15)",
-        ],
       ])("renders rule phrase: %s", (phrase) => {
         const result = build();
         expect(result).toContain(phrase);
       });
 
       it("merges 'no time pressure' into the Compress rule", () => {
-        // Rule consolidated: 'No time pressure' is now folded into Compress
-        // so the rule list stays at 16 instead of 17.
+        // 'No time pressure' (formerly its own rule) folded into Compress
+        // during the 16→12 trim. Rule list now ends at 12.
         const result = build();
         expect(result).toContain('Silence is processing');
         expect(result).toContain('Compress.');
       });
+
+      it("folds the state-aware drop-the-wit clause into the imagery rule", () => {
+        // State-aware (formerly its own rule) folded into Rule 11
+        // (imagery) during the 16→12 trim. Same theme: when to use
+        // imagery vs. when NOT to use it.
+        const result = build();
+        expect(result).toContain('When the user is in genuine distress, drop imagery entirely');
+        expect(result).toContain('Clean observation, one direct question');
+      });
+
+      it("no-pattern transparency is now taught by BANNED_PATTERNS, not as its own rule", () => {
+        // Rule 13 (no-pattern surfaces) cut during 16→12 trim. The behavior
+        // is taught by BANNED_PATTERNS "Open-ended invitations with no shape"
+        // plus the no-pattern weak→strong pair. The standalone rule was redundant.
+        const result = build();
+        expect(result).toContain('Open-ended invitations with no shape');
+        // The strong-side teaching example for the no-pattern move stays:
+        expect(result).toContain("Nothing's pulling into shape yet. Two options.");
+        // The standalone rule wording is gone:
+        expect(result).not.toContain('When no pattern surfaces, name it transparently.');
+      });
+
+      it("visible mechanism is now taught by BANNED_PATTERNS carve-out, not as its own rule", () => {
+        // Rule 14 (visible mechanism) cut during 16→12 trim. The carve-out
+        // folded into BANNED_PATTERNS "Announcing-before-observation" entry.
+        const result = build();
+        expect(result).toContain("Naming what you're doing IS allowed, sparingly");
+        expect(result).toContain('That one I want to mark');
+        // The standalone rule wording is gone:
+        expect(result).not.toContain('Visible mechanism is allowed, sparingly.');
+      });
+
+      it("repair guidance is carried by WHEN_JOVE_IS_WRONG, not as its own rule", () => {
+        // 'One repair, then sharper' (Rule 16) cut during 16→12 trim. The
+        // scaffolded WHEN_JOVE_IS_WRONG section carries repair in full.
+        const result = build();
+        expect(result).toContain('WHEN JOVE IS WRONG');
+        expect(result).toContain("That didn't land. Tell me where it broke.");
+        // The standalone rule's exact wording is gone:
+        expect(result).not.toContain("One repair, then sharper. Don't stack apologies.");
+      });
     });
 
     describe("BANNED_PHRASES — new sparring-partner entries", () => {
+      // The 5 near-duplicate variants ("I can imagine," "That sounds hard,"
+      // "Thanks for sharing," "Let's sit with that," "Hold space") were
+      // cut during the 16→12 trim — each had an existing canonical entry
+      // ("I can only imagine," "That sounds really hard," "Thank you for
+      // sharing," "Sit with that," "Hold space for") already doing the work.
       it.each([
-        ["I can imagine", "empathy cliché variant"],
-        ["That sounds hard", "empathy cliché variant"],
         ["That sounds really difficult", "empathy cliché variant"],
-        ["Let's sit with that", "therapy-ism variant"],
         ["Great question", "performed warmth"],
         ["I'd love to help", "performed warmth"],
-        ["Thanks for sharing", "performed warmth variant"],
         ["I'm happy to", "service-industry register"],
         ["I appreciate you", "performed warmth"],
         ["It makes sense that", "empathy cliché"],
@@ -1297,7 +1327,6 @@ describe("buildSystemPrompt", () => {
         ["Be gentle with yourself", "therapy-ism"],
         ["Take a breath", "therapy-ism"],
         ["Reflect on", "therapy-ism"],
-        ["Hold space", "therapy-ism (no trailing 'for')"],
         ["I want to honor", "performative gratitude"],
         ["It's valid to feel", "validation cliché"],
         ["Your feelings are valid", "validation cliché"],
@@ -1306,6 +1335,16 @@ describe("buildSystemPrompt", () => {
         expect(BANNED_PHRASES as readonly string[]).toContain(phrase);
         const result = build();
         expect(result).toContain(phrase);
+      });
+
+      it.each([
+        "I can imagine",
+        "That sounds hard",
+        "Thanks for sharing",
+        "Let's sit with that",
+        "Hold space",
+      ])("trimmed near-duplicate '%s' is gone from BANNED_PHRASES", (phrase) => {
+        expect(BANNED_PHRASES as readonly string[]).not.toContain(phrase);
       });
     });
 
@@ -1327,14 +1366,24 @@ describe("buildSystemPrompt", () => {
         expect(result).toContain(phrase);
       });
 
-      it("rewrote 'Announcing observations' entry to thread visible-mechanism", () => {
+      it("rewrote 'Announcing observations' entry with the visible-mechanism carve-out inline", () => {
+        // After the 16→12 trim, the visible-mechanism rule was cut as a
+        // standalone voice rule and folded into this BANNED_PATTERNS entry
+        // as the inline carve-out. The entry now teaches both the ban
+        // (announce-then-state) and the allowed move (mechanism-as-the-move)
+        // in one place.
         const result = build();
         expect(result).toContain("Announcing-before-observation");
-        expect(result).toContain("see the visible-mechanism voice rule");
-        // Old wording without the visible-mechanism carve-out is gone:
+        expect(result).toContain("Naming what you're doing IS allowed, sparingly");
+        expect(result).toContain('That one I want to mark');
+        expect(result).toContain('Holding this aside, something earlier might connect');
+        expect(result).toContain("I'm going to push on this. Tell me if I'm forcing it");
+        // Old wording (pre-trim) without the inline carve-out is gone:
         expect(result).not.toContain(
           "Announcing observations: 'here's what I'm noticing,' 'I want to name something.' Make the observation directly. Do not narrate that you are about to make it."
         );
+        // Cross-reference to a separate voice rule is gone (the rule was cut):
+        expect(result).not.toContain("see the visible-mechanism voice rule");
       });
     });
 
