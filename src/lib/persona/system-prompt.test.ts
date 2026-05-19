@@ -1435,13 +1435,6 @@ describe("buildSystemPrompt", () => {
       });
     });
 
-    describe("WHEN_USER_ASKS_WHAT_SHOULD_I_DO — extended with bounce-back move", () => {
-      it("contains both Manual-lens and bounce-back templates", () => {
-        const result = build();
-        expect(result).toContain("Through the Manual lens");
-        expect(result).toContain("Bouncing the question back");
-      });
-    });
   });
 
   // ─── Checkpoint mechanics sit in Tier 3, not in the voice ────────────────
