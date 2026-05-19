@@ -618,6 +618,27 @@ export function useChat() {
       }
 
       if (!res.ok) {
+        // Daily message cap (Postgres-backed, ADR-038 follow-up).
+        // 429 with JSON body { error: "daily_limit_reached", message }
+        // → drop the optimistic user bubble (server didn't process it)
+        // and show the limit message. Falls through to the generic
+        // failure message on any other 429 or non-ok status.
+        if (res.status === 429 && contentType.includes("application/json")) {
+          const body = await res.json().catch(() => null);
+          if (body?.error === "daily_limit_reached") {
+            setMessages((prev) => {
+              const updated = [...prev];
+              if (updated[updated.length - 1]?.role === "user") updated.pop();
+              return updated;
+            });
+            setErrorMessage(
+              typeof body.message === "string"
+                ? body.message
+                : "You've reached today's message limit. It resets at midnight UTC.",
+            );
+            return;
+          }
+        }
         setErrorMessage("Something went wrong. Try again.");
         return;
       }

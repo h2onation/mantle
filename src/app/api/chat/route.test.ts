@@ -46,6 +46,11 @@ vi.mock("@/lib/rate-limit", async () => {
   };
 });
 
+const mockCheckDailyMessageLimit = vi.fn();
+vi.mock("@/lib/usage", () => ({
+  checkDailyMessageLimit: (...args: unknown[]) => mockCheckDailyMessageLimit(...args),
+}));
+
 import { POST } from "@/app/api/chat/route";
 
 function makeRequest(body: unknown): Request {
@@ -64,6 +69,12 @@ beforeEach(() => {
     limit: 0,
     remaining: 0,
     reset: 0,
+  });
+  mockCheckDailyMessageLimit.mockReset();
+  mockCheckDailyMessageLimit.mockResolvedValue({
+    allowed: true,
+    count: 0,
+    limit: 200,
   });
   manualComponentCount = 0;
 });
@@ -240,6 +251,63 @@ describe("/api/chat — fail open when Upstash unavailable", () => {
       limit: 0,
       remaining: 0,
       reset: 0,
+    });
+    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("/api/chat — daily message limit (Postgres-backed)", () => {
+  it("returns 429 with error 'daily_limit_reached' when limit is hit", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+    mockCheckDailyMessageLimit.mockResolvedValueOnce({
+      allowed: false,
+      count: 200,
+      limit: 200,
+    });
+    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    expect(res.status).toBe(429);
+    const body = (await res.json()) as {
+      error: string;
+      message: string;
+      count: number;
+      limit: number;
+    };
+    expect(body.error).toBe("daily_limit_reached");
+    expect(body.limit).toBe(200);
+    expect(body.count).toBe(200);
+    expect(body.message).toMatch(/today's message limit/i);
+    expect(body.message).toMatch(/midnight utc/i);
+  });
+
+  it("skips the daily-limit check when message is null (server-triggered opener)", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+    // Even if the cap is hit, message:null bypasses the check
+    mockCheckDailyMessageLimit.mockResolvedValue({
+      allowed: false,
+      count: 999,
+      limit: 200,
+    });
+    const res = await POST(
+      makeRequest({ message: null, conversationId: null, mode: "guided-intake" })
+    );
+    expect(res.status).toBe(200);
+    // Confirm the helper wasn't consulted in the message:null path
+    expect(mockCheckDailyMessageLimit).not.toHaveBeenCalled();
+  });
+
+  it("allows the request when allowed=true", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+    mockCheckDailyMessageLimit.mockResolvedValueOnce({
+      allowed: true,
+      count: 50,
+      limit: 200,
     });
     const res = await POST(makeRequest({ message: "hi", conversationId: null }));
     expect(res.status).toBe(200);

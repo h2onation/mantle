@@ -13,6 +13,7 @@ import {
   checkLimits,
   rateLimitedResponse,
 } from "@/lib/rate-limit";
+import { checkDailyMessageLimit } from "@/lib/usage";
 import { PERSONA_NAME } from "@/lib/persona/config";
 
 const MAX_MESSAGE_LENGTH = 4000;
@@ -107,6 +108,28 @@ export async function POST(request: Request) {
     const limitResult = await checkLimits(limiters, user.id);
     if (!limitResult.success) {
       return rateLimitedResponse(limitResult);
+    }
+
+    // 1d. Per-user daily message cap (Postgres-backed). Counts authored
+    // user messages on the current UTC day so a single user can't
+    // runaway-spend Anthropic tokens. Skipped when `message === null` —
+    // those calls are server-triggered openers (guided / upload first
+    // turn) or post-confirm emissions, neither of which add to the
+    // user's typed volume. See src/lib/usage.ts for the layered
+    // relationship with Upstash.
+    if (message !== null) {
+      const dailyCheck = await checkDailyMessageLimit(admin, user.id);
+      if (!dailyCheck.allowed) {
+        return Response.json(
+          {
+            error: "daily_limit_reached",
+            message: `You've reached today's message limit (${dailyCheck.limit}). It resets at midnight UTC.`,
+            count: dailyCheck.count,
+            limit: dailyCheck.limit,
+          },
+          { status: 429 },
+        );
+      }
     }
 
     // 2. Create or use existing conversation
