@@ -789,6 +789,29 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("\nCHECKPOINTS\n");
     });
 
+    // Regression pin (2026-05-19 audit). Dyslexic-mode run drifted onto
+    // verb variants ("Let me write this up for your Manual") and drafted
+    // Manual-entry-shaped prose inline without ever firing the canonical
+    // checkpoint trigger. CHECKPOINTS block strengthened with explicit
+    // failure-mode warning on the transition phrase + a "never draft
+    // Manual-entry prose in regular chat" rule. These assertions pin both.
+    it("CHECKPOINTS block forbids drafting Manual entries in regular chat turns", () => {
+      const result = build({ checkpointApproaching: true });
+      expect(result).toContain("NEVER DRAFT MANUAL-ENTRY-SHAPED PROSE IN REGULAR CHAT TURNS");
+      expect(result).toContain("are NOT recognized as checkpoint proposals");
+      expect(result).toContain("Tier 1 Rule 1 violation");
+    });
+
+    it("CHECKPOINTS block warns about canonical-phrase contract with the system", () => {
+      const result = build({ checkpointApproaching: true });
+      // The "EXACT phrase" warning explains WHY the phrase matters — without
+      // this framing, the model treated it as stylistic and drifted.
+      expect(result).toContain("This EXACT phrase");
+      expect(result).toContain("contract with the system");
+      // The audit-observed drift phrasings are listed as explicit non-matches.
+      expect(result).toContain("Let me write this up for your Manual");
+    });
+
     it("includes CHECKPOINTS for returning users once checkpointApproaching is true", () => {
       const result = build({ isReturningUser: true, checkpointApproaching: true });
       expect(result).toContain("\nCHECKPOINTS\n");

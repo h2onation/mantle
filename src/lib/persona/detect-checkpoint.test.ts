@@ -97,4 +97,44 @@ describe("detectCheckpointInResponse", () => {
         .isCheckpoint
     ).toBe(true);
   });
+
+  // Verb-variant safety net (2026-05-19 audit). Dyslexic-mode run caught
+  // Jove using "Let me write this up for your Manual" and similar across
+  // every proposal in a 27-turn conversation — none fired the classifier
+  // under the original "put"-only regex. Broadened to catch the verb
+  // drift ("add", "write up") and prep drift ("to", "for"). The strict
+  // canonical phrase is still preferred via system-prompt's contract;
+  // this is the safety net, not the front line.
+  describe("verb-variant safety net (audit-driven)", () => {
+    it.each([
+      "Let me write this up for your Manual.",
+      "Let me write that up for your Manual.",
+      "I want to write this up in your Manual.",
+      "I'd like to write this up in your Manual.",
+      "Let me write it up for your Manual.",
+    ])('matches "write up" verb variant: %s', (text) => {
+      expect(detectCheckpointInResponse(text).isCheckpoint).toBe(true);
+    });
+
+    it.each([
+      "I want to add something to your Manual.",
+      "I'd like to add this to your Manual.",
+      "I'm going to add that to your Manual.",
+      "Let me add this to your Manual.",
+      "Let me add something into your Manual.",
+    ])('matches "add" verb variant: %s', (text) => {
+      expect(detectCheckpointInResponse(text).isCheckpoint).toBe(true);
+    });
+
+    // Negative cases — broadened verbs must NOT false-positive on
+    // adjacent prose.
+    it.each([
+      "Earlier you said you wanted to add more detail to your Manual eventually.",
+      "Your Manual has room to add more entries.",
+      "I noticed you wanted to write your own things into your Manual.",
+      "Let me read what you wrote about your Manual.",
+    ])("does NOT match adjacent prose: %s", (text) => {
+      expect(detectCheckpointInResponse(text).isCheckpoint).toBe(false);
+    });
+  });
 });
