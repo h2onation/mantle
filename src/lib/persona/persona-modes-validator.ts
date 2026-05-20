@@ -18,7 +18,7 @@ export interface ValidationErr {
  * Validate a persona_modes payload coming in over HTTP. Rules:
  *   - must be an array
  *   - non-empty
- *   - every element is a known PersonaMode (autistic | audhd | dyslexic | general)
+ *   - every element is a known PersonaMode (autistic | adhd | dyslexic | general)
  *   - "general" is exclusive — cannot combine with any neurotype mode
  *
  * Returns the normalized (deduped) array on success so the caller can

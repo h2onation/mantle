@@ -19,10 +19,10 @@ const OPTIONS: { value: PersonaMode; label: string; description: string }[] = [
       "Direct, body-aware, no therapy voice. Built for people who think in systems and are tired of being translated.",
   },
   {
-    value: "audhd",
-    label: "AuDHD",
+    value: "adhd",
+    label: "ADHD",
     description:
-      "For brains that need structure and resist it at the same time. Tracks the tension between both systems.",
+      "Reframes the gap between knowing and doing as circuit, not character. Interest as mechanism, no productivity prescriptions.",
   },
   {
     value: "dyslexic",

@@ -12,7 +12,7 @@ import {
 
 const PERSONA_LABELS: Record<PersonaMode, string> = {
   autistic: "Autistic",
-  audhd: "AuDHD",
+  adhd: "ADHD",
   dyslexic: "Dyslexic",
   general: "General",
 };

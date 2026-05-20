@@ -4,6 +4,7 @@ import "./globals.css";
 import dynamic from "next/dynamic";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import ThemeInit from "@/components/ThemeInit";
+import PersonaDyslexicFontInit from "@/components/PersonaDyslexicFontInit";
 
 // FOUC-safe theme bootstrap. Reads localStorage.mywalnut.theme; falls
 // back to prefers-color-scheme; falls back to "dark". Sets the
@@ -11,6 +12,14 @@ import ThemeInit from "@/components/ThemeInit";
 // theme-color tag (iOS PWA status bar) — both before the first paint.
 // Subsequent theme changes flow through useTheme / ThemeInit.
 const THEME_FOUC_SCRIPT = `(function(){try{var s=localStorage.getItem('mywalnut.theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);var c=t==='light'?'#E5D8BE':'#0A0B10';var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('content',c);}}catch(e){}})();`;
+
+// FOUC-safe persona-dyslexic bootstrap. Reads localStorage.mywalnut.persona-dyslexic
+// (set by the picker / reconciled by PersonaDyslexicFontInit against the
+// authoritative profile value). Sets <html data-persona-dyslexic="true">
+// before first paint so a returning dyslexic user never sees their Manual
+// flash in serif before the serif tokens rebind to sans. Absent value
+// → no attribute → base typography. See globals.css for the swap rule.
+const PERSONA_DYSLEXIC_FOUC_SCRIPT = `(function(){try{if(localStorage.getItem('mywalnut.persona-dyslexic')==='true'){document.documentElement.setAttribute('data-persona-dyslexic','true');}}catch(e){}})();`;
 
 const AgentationDev = dynamic(() => import("agentation").then((m) => ({ default: m.Agentation })), { ssr: false });
 
@@ -95,6 +104,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: THEME_FOUC_SCRIPT }}
         />
         <script
+          dangerouslySetInnerHTML={{ __html: PERSONA_DYSLEXIC_FOUC_SCRIPT }}
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`,
           }}
@@ -102,6 +114,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased" style={{ fontFamily: "var(--font-sans)" }}>
         <ThemeInit />
+        <PersonaDyslexicFontInit />
         <PostHogProvider>
           {children}
         </PostHogProvider>

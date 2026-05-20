@@ -1,6 +1,6 @@
 import type { PersonaMode } from "@/lib/persona/system-prompt";
 
-export const PERSONA_MODES = ["autistic", "audhd", "dyslexic", "general"] as const;
+export const PERSONA_MODES = ["autistic", "adhd", "dyslexic", "general"] as const;
 
 export function isPersonaMode(value: unknown): value is PersonaMode {
   return (
@@ -10,7 +10,7 @@ export function isPersonaMode(value: unknown): value is PersonaMode {
 }
 
 // "general" is exclusive — selecting it clears all neurotype modes and vice versa.
-// The three neurotype modes (autistic, audhd, dyslexic) can combine freely.
+// The three neurotype modes (autistic, adhd, dyslexic) can combine freely.
 export function togglePersonaMode(
   current: PersonaMode[],
   picked: PersonaMode

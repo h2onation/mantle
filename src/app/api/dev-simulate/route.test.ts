@@ -78,7 +78,7 @@ describe("/api/dev-simulate — input validation", () => {
     const res = await POST(
       makeRequest({
         simulatedUserDescription: "a user",
-        personaModes: ["autistic", "adhd"],
+        personaModes: ["autistic", "audhd"],
       })
     );
     expect(res.status).toBe(400);

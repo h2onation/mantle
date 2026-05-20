@@ -90,7 +90,7 @@ const TABLES: Table[] = [
     columns: [
       { name: "id", type: "uuid", plain: "Mirrors auth.users.id. The user's unique identifier across the whole app." },
       { name: "display_name", type: "text", plain: "Optional name shown in UI.", emphasized: false },
-      { name: "persona_modes", type: "text[]", plain: "Which Jove voice modes apply to this user (e.g. ['autistic', 'audhd']). Drives prompt assembly.", emphasized: true },
+      { name: "persona_modes", type: "text[]", plain: "Which Jove voice modes apply to this user (e.g. ['autistic', 'adhd']). Drives prompt assembly.", emphasized: true },
       { name: "modal_progress", type: "integer", plain: "Onboarding modal step (0-3). Gates which one-time modals fire. The Halfway-there modal fires when this is 1.", emphasized: true },
       { name: "onboarding_completed_at", type: "timestamptz", plain: "When the user finished initial onboarding. Null until completed." },
     ],

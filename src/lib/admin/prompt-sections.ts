@@ -74,7 +74,7 @@ interface SectionDef {
 
 const personaLabel = (modes: PersonaMode[]) => modes.map((m) => m[0].toUpperCase() + m.slice(1)).join(" + ");
 
-const PERSONA_ALL: PersonaMode[] = ["autistic", "audhd", "dyslexic", "general"];
+const PERSONA_ALL: PersonaMode[] = ["autistic", "adhd", "dyslexic", "general"];
 const CONV_MODES: ConvMode[] = ["situation", "guided-intake", "upload"];
 const CONV_MODE_LABELS: Record<ConvMode, string> = {
   situation: "Situation",
