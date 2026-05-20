@@ -1,294 +1,375 @@
 "use client";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 import type {
   PhaseData,
   PromptSection,
-  ConditionType,
-  Tier,
 } from "@/lib/admin/prompt-sections";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
 import type { ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
-// Jove's turn — four-column recipe view.
+// Under the hood — guided walkthrough of how Jove's prompt is assembled.
 //
-// Column A — Spine: always-conditioned sections (intro, Tier 1, voice base
-//   pieces, always-on Tier 3 mechanics). Same words, every turn.
-// Column B — Persona shape: persona-conditioned Tier 2 sections. Stacks
-//   when multiple persona tags are active.
-// Column C — Turn-by-turn: state / conv-mode / dynamic-conditioned blocks.
-//   These slide in and out based on where the user is in the conversation.
-// Column D — Alongside: what's sent with the prompt but isn't part of the
-//   assembly — conversation history, sliding window, current message, and
-//   the cache_control marker boundary.
-//
-// Cache zones are surfaced per-card via a small "cached" / "rebuilt" badge.
-// Sibling AI calls (extraction, classifier, composer) appear in a footer
-// strip — they run alongside Jove each turn but aren't part of Jove's prompt.
+// Data source: /api/admin/prompt-architecture. Sections, source paths, real
+// token counts, and actual rendered text all come from the live codebase
+// via parsePromptSections. Anything the page describes traces back to a
+// real export — no hand-curated metadata drift.
 // ---------------------------------------------------------------------------
 
-type ConvMode = ConversationMode;
+interface Stage {
+  id: number;
+  title: string;
+  caption: string;
+}
 
-const PERSONA_OPTIONS: { id: PersonaMode; label: string }[] = [
-  { id: "autistic", label: "Autistic" },
-  { id: "adhd", label: "ADHD" },
-  { id: "dyslexic", label: "Dyslexic" },
-  { id: "general", label: "General" },
+const STAGES: Stage[] = [
+  {
+    id: 1,
+    title: "Layer 0 — the whole prompt",
+    caption:
+      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~7,000 tokens on a normal turn.",
+  },
+  {
+    id: 2,
+    title: "Layer 1 — static prefix (always-on)",
+    caption:
+      "Identity, Tier 1 constitutional rules, and the base voice scaffold. Identical across every user, every turn. Cached forever.",
+  },
+  {
+    id: 3,
+    title: "Layer 2 — persona delta (one of four)",
+    caption:
+      "Trait-specific voice rules layered on top of the base. Selected at signup from autistic / AuDHD / dyslexic / general. Click a pill to switch the active persona — the rest of the diagram re-renders from the live prompt.",
+  },
+  {
+    id: 4,
+    title: "Layer 3 — mode opener (one of three)",
+    caption:
+      "Entry-phase block by input mode (Situation / Guided Intake / Upload). Selected at conversation start. Click a pill to switch the active mode.",
+  },
+  {
+    id: 5,
+    title: "Layer 4 — conditional Tier-3 blocks",
+    caption:
+      "Tier 3 blocks that fire based on conversation state (first turn, returning user, approaching checkpoint, clinical material, etc.). Rebuilt each turn.",
+  },
+  {
+    id: 6,
+    title: "Layer 5 — live context (parallel)",
+    caption:
+      "Dynamic blocks appended at runtime: confirmed Manual entries (compressed), session context, extraction brief from the parallel Sonnet call. Rebuilt each turn.",
+  },
+  {
+    id: 7,
+    title: "Alongside — what travels with the prompt",
+    caption:
+      "The system prompt isn't sent alone. The same Anthropic call carries the user's just-sent message, the full conversation history (with a sliding window once it gets long), any synthetic system messages from confirm/reject/refine actions, and a cache_control marker telling Anthropic where the cache boundary sits.",
+  },
+  {
+    id: 8,
+    title: "Sibling calls — the other AI calls this turn",
+    caption:
+      "Jove is one of four AI calls per turn. Extraction (Sonnet) runs in parallel, writing a brief for next turn. Classifier (Haiku) runs after Jove streams, deciding if the response is a checkpoint. Composer (Sonnet) runs on confirm, writing the polished Manual entry.",
+  },
+  {
+    id: 9,
+    title: "Cache view — what's reused vs rebuilt",
+    caption:
+      "Static prefix + persona-keyed parts are cached. The conditional and dynamic layers are rebuilt every turn. That's why a ~7,000-token prompt streams in 2–3 seconds.",
+  },
+  {
+    id: 10,
+    title: "Worked example — token budget by layer",
+    caption:
+      "Token totals from the live prompt for the current persona × mode. Cached vs rebuilt percentages are computed from the actual section sizes.",
+  },
 ];
 
-const CONV_MODE_OPTIONS: { id: ConvMode; label: string }[] = [
-  { id: "situation", label: "Situation" },
-  { id: "guided-intake", label: "Guided Intake" },
-  { id: "upload", label: "Upload" },
-];
-
-const PHASE_SHORT: Record<string, string> = {
-  "phase-1": "New account",
-  "phase-2": "First checkpoint",
-  "phase-3": "Returning",
-  "phase-4": "Returning + checkpoint",
+const PERSONA_LABELS: Record<PersonaMode, string> = {
+  autistic: "Autistic",
+  adhd: "AuDHD",
+  dyslexic: "Dyslexic",
+  general: "General",
 };
 
-// ---------------------------------------------------------------------------
-// Column themes — one per column, picking up the existing token palette.
-// ---------------------------------------------------------------------------
-
-interface ColumnTheme {
-  band: string;
-  border: string;
-  borderSoft: string;
-  surfaceTint: string;
-  surfaceCard: string;
-  accent: string;
-  numeral: string;
-  letter: string; // A/B/C/D
-}
-
-const COLUMN_THEMES: Record<"A" | "B" | "C" | "D", ColumnTheme> = {
-  A: {
-    // Foundation — deep walnut. Stable, identity, the spine.
-    band:
-      "linear-gradient(180deg, rgba(180,125,75,0.46) 0%, rgba(135,88,52,0.34) 100%)",
-    border: "var(--session-walnut-border)",
-    borderSoft: "var(--session-walnut-border-soft)",
-    surfaceTint: "var(--session-walnut-surface-soft)",
-    surfaceCard: "var(--session-walnut-surface)",
-    accent: "var(--session-walnut)",
-    numeral: "var(--session-walnut-meta)",
-    letter: "A",
-  },
-  B: {
-    // Persona — lighter caramel. Layered on top of A.
-    band:
-      "linear-gradient(180deg, rgba(220,170,120,0.40) 0%, rgba(180,135,90,0.28) 100%)",
-    border: "var(--session-walnut-border-soft)",
-    borderSoft: "var(--session-walnut-border-soft)",
-    surfaceTint: "var(--session-walnut-tint)",
-    surfaceCard: "var(--session-walnut-surface-soft)",
-    accent: "var(--session-walnut)",
-    numeral: "var(--session-walnut-meta-strong, var(--session-walnut-meta))",
-    letter: "B",
-  },
-  C: {
-    // Turn-by-turn — sage. Conditional, alive, changes each turn.
-    band:
-      "linear-gradient(180deg, rgba(156,177,138,0.44) 0%, rgba(94,122,79,0.32) 100%)",
-    border: "var(--session-persona-border)",
-    borderSoft: "var(--session-persona-border)",
-    surfaceTint: "var(--session-persona-tint)",
-    surfaceCard: "var(--session-persona-muted)",
-    accent: "var(--session-persona)",
-    numeral: "var(--session-persona)",
-    letter: "C",
-  },
-  D: {
-    // Alongside — neutral linen. Educational, not prompt content.
-    band:
-      "linear-gradient(180deg, rgba(180,170,150,0.32) 0%, rgba(150,140,120,0.20) 100%)",
-    border: "var(--session-ink-hairline)",
-    borderSoft: "var(--session-ink-hairline)",
-    surfaceTint: "var(--session-linen)",
-    surfaceCard: "var(--session-walnut-surface-soft)",
-    accent: "var(--session-ink-soft)",
-    numeral: "var(--session-ink-faded)",
-    letter: "D",
-  },
+const MODE_LABELS: Record<ConversationMode, string> = {
+  situation: "Situation",
+  "guided-intake": "Guided",
+  upload: "Upload",
 };
 
-// ---------------------------------------------------------------------------
-// Categorize sections into the four columns
-// ---------------------------------------------------------------------------
+const PERSONAS: PersonaMode[] = ["autistic", "adhd", "dyslexic", "general"];
+const MODES: ConversationMode[] = ["situation", "guided-intake", "upload"];
 
-interface TurnBlock {
-  section: PromptSection;
-  presentInPhases: string[];
-}
+// Section ids surfaced as Tier 3 mode-opener pills (vs the bigger conditional ladder).
+const MODE_OPENER_IDS = new Set<string>(["guided-intake", "upload-mode"]);
 
-interface CategorizedColumns {
-  spine: PromptSection[];
-  persona: PromptSection[];
-  turnByTurn: TurnBlock[];
-  spineTokens: number;
-  personaTokens: number;
-  turnByTurnTokens: number;
-}
-
-const TURN_CONDITION_TYPES = new Set<ConditionType>([
-  "state",
-  "conv-mode",
-  "dynamic",
+// Section ids that compose the always-on base voice (Tier 2, condition === "always").
+// Persona-conditioned Tier 2 sections (voice-rules, example-register, etc.) get
+// surfaced under "persona delta" since the user perceives them as varying.
+const BASE_VOICE_IDS = new Set<string>([
+  "tier2-voice",
+  "banned-phrases",
+  "pacing",
+  "when-wrong",
+  "advisory",
 ]);
 
-function categorize(phases: PhaseData[]): CategorizedColumns {
-  // Phase 1 is the baseline — it contains spine + persona regardless of state.
-  const base = phases[0];
+const COLOR = {
+  identityBg: "var(--session-walnut-surface)",
+  identityBorder: "var(--session-walnut-border)",
+  baseVoice: "var(--session-walnut-surface-soft)",
+  baseVoiceBorder: "var(--session-walnut-border-soft)",
+  personaBg: "var(--session-persona-muted)",
+  personaFg: "var(--session-persona)",
+  personaBorder: "var(--session-persona-border)",
+  modeBg: "var(--session-warning-soft)",
+  modeFg: "var(--session-warning)",
+  modeBorder: "var(--session-warning-soft)",
+  conditional: "var(--session-walnut-highlight)",
+  conditionalBorder: "var(--session-walnut-border)",
+  dynamic: "var(--session-walnut-tint)",
+  dynamicBorder: "var(--session-walnut-border-soft)",
+};
 
-  const spine = base.sections.filter(
-    (s) => s.condition.type === "always",
-  );
-  const persona = base.sections.filter(
-    (s) => s.condition.type === "persona",
-  );
+const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";
 
-  // Turn-by-turn: collect every state/conv-mode/dynamic section that appears
-  // in any phase, and track which phases each appears in.
-  const seen = new Map<string, TurnBlock>();
-  for (const phase of phases) {
-    for (const section of phase.sections) {
-      if (TURN_CONDITION_TYPES.has(section.condition.type)) {
-        if (!seen.has(section.id)) {
-          seen.set(section.id, { section, presentInPhases: [] });
-        }
-        seen.get(section.id)!.presentInPhases.push(
-          PHASE_SHORT[phase.id] ?? phase.id,
-        );
-      }
-    }
-  }
+// ---------------------------------------------------------------------------
+// Selection model — every clickable thing maps to a typed Selection.
+// ---------------------------------------------------------------------------
 
-  const turnByTurn = Array.from(seen.values());
+type Selection =
+  | { kind: "overview" }
+  | { kind: "section"; id: string }
+  | { kind: "persona"; mode: PersonaMode }
+  | { kind: "convmode"; mode: ConversationMode }
+  | { kind: "alongside"; id: string }
+  | { kind: "sibling"; id: string };
 
-  return {
-    spine,
-    persona,
-    turnByTurn,
-    spineTokens: spine.reduce((s, x) => s + x.tokens, 0),
-    personaTokens: persona.reduce((s, x) => s + x.tokens, 0),
-    turnByTurnTokens: turnByTurn.reduce((s, x) => s + x.section.tokens, 0),
-  };
+function selectionKey(s: Selection | null): string | null {
+  if (!s) return null;
+  if (s.kind === "overview") return "overview";
+  if (s.kind === "section") return `section:${s.id}`;
+  if (s.kind === "persona") return `persona:${s.mode}`;
+  if (s.kind === "convmode") return `convmode:${s.mode}`;
+  if (s.kind === "alongside") return `alongside:${s.id}`;
+  return `sibling:${s.id}`;
 }
 
 // ---------------------------------------------------------------------------
-// Cache zone derivation — surfaces what actually caches at runtime.
-// See buildSystemPromptBlocks() in system-prompt.ts:
-//   - tier1Block (intro + TIER_1)     → cached forever
-//   - staticContext (all of Tier 2)    → cached, invalidates on persona change
-//   - dynamic (Tier 3 + context)       → rebuilt every turn
+// Alongside + Sibling content — hand-curated since these aren't surfaced as
+// prompt sections by the API. Source paths are real and grep-able.
 // ---------------------------------------------------------------------------
 
-type CacheZone = "forever" | "persona-keyed" | "rebuilt";
-
-function tierToCacheZone(tier: Tier): CacheZone {
-  if (tier === "intro" || tier === "1") return "forever";
-  if (tier === "2") return "persona-keyed";
-  return "rebuilt";
+interface AdjacentItem {
+  id: string;
+  label: string;
+  oneLine: string;
+  description: string;
+  source: string;
 }
 
-function cacheZoneLabel(zone: CacheZone): string {
-  switch (zone) {
-    case "forever":
-      return "cached forever";
-    case "persona-keyed":
-      return "cached (persona-keyed)";
-    case "rebuilt":
-      return "rebuilt each turn";
-  }
-}
+const ALONGSIDE_ITEMS: AdjacentItem[] = [
+  {
+    id: "user-message",
+    label: "User message",
+    oneLine: "The message just sent",
+    description:
+      "The just-sent user message becomes the last entry in the messages array. Server-triggered openers (mode === 'guided-intake' or 'upload' first turn, post-confirm continuations) pass message: null so no user line is appended.",
+    source: "src/app/api/chat/route.ts → POST handler",
+  },
+  {
+    id: "conv-history",
+    label: "Conversation history",
+    oneLine: "All prior turns this session",
+    description:
+      "Every previous user + assistant turn for this conversation, fetched from the messages table ordered by created_at. Loaded by persona-pipeline before the prompt is assembled.",
+    source: "src/lib/persona/persona-pipeline.ts → loadConversationContext",
+  },
+  {
+    id: "sliding-window",
+    label: "Sliding window",
+    oneLine: "First 2 + last 48 once turns > 50",
+    description:
+      "Past 50 total messages, the window collapses to the first 2 (to preserve the bootstrap context) plus the last 48 (for recency). The middle is dropped. ADR-023.",
+    source: "src/lib/persona/call-persona.ts → applySlidingWindow",
+  },
+  {
+    id: "system-messages",
+    label: "Synthetic system messages",
+    oneLine: "Checkpoint action records",
+    description:
+      "When the user confirms / rejects / refines a checkpoint, a canonical system message is inserted into the messages array as a structured record. mapSystemMessages re-maps these to assistant turns at API-call time so Claude sees them as conversation events, not bare metadata.",
+    source: "src/lib/persona/persona-pipeline.ts → insertCheckpointActionMessage, mapSystemMessages",
+  },
+  {
+    id: "cache-control",
+    label: "cache_control marker",
+    oneLine: "Where the cache boundary sits",
+    description:
+      "A cache_control: { type: 'ephemeral' } marker placed at the end of the static + persona-keyed blocks tells Anthropic to cache everything up to that point. Everything after is rebuilt every turn.",
+    source: "src/lib/persona/system-prompt.ts → buildSystemPromptBlocks",
+  },
+];
 
-function cacheZoneColor(zone: CacheZone): string {
-  switch (zone) {
-    case "forever":
-      return "var(--session-persona)";
-    case "persona-keyed":
-      return "var(--session-walnut)";
-    case "rebuilt":
-      return "var(--session-ink-faded)";
-  }
-}
+const SIBLING_CALLS: {
+  id: string;
+  label: string;
+  model: string;
+  when: string;
+  reads: string;
+  writes: string;
+  description: string;
+  source: string;
+}[] = [
+  {
+    id: "extraction",
+    label: "Extraction",
+    model: "Sonnet",
+    when: "Parallel — fires the same instant as Jove",
+    reads: "The user's last message + previous extraction state",
+    writes: "conversations.extraction_state JSONB (used by next turn)",
+    description:
+      "Background analyzer. Fires as a non-awaited Promise the same turn the user sends a message — Jove and extraction race. The brief it writes feeds the prompt one turn later (the 'one-turn lag' you never feel). Includes the language bank, layer signals, checkpoint gate, sage brief.",
+    source: "src/lib/persona/extraction.ts → runExtraction",
+  },
+  {
+    id: "classifier",
+    label: "Checkpoint classifier",
+    model: "Haiku",
+    when: "Post-stream — after Jove finishes",
+    reads: "Jove's just-streamed response + extraction state",
+    writes: "Triggers composer if a checkpoint is detected",
+    description:
+      "Looks at what Jove just said and decides if it's a checkpoint proposal. Cheap and fast — Haiku, single-turn, no streaming. If yes, the composer fires next.",
+    source: "src/lib/persona/detect-checkpoint.ts → detectCheckpoint",
+  },
+  {
+    id: "composer",
+    label: "Manual entry composer",
+    model: "Sonnet",
+    when: "On confirm — only when user clicks 'confirm' on a checkpoint card",
+    reads: "Conversation turn(s), language bank, manual entry list",
+    writes: "manual_entries row (after user confirms) — name + content + summary + key_words",
+    description:
+      "Writes the polished Manual entry server-side once the user confirms a checkpoint. Includes headline validation + focused retry. Writes summary + key_words at the same time so the Manual context compressor has them next turn.",
+    source: "src/lib/persona/confirm-checkpoint.ts → composeManualEntry",
+  },
+];
 
 // ---------------------------------------------------------------------------
-// Page wrapper
+// Page
 // ---------------------------------------------------------------------------
 
-export default function PromptArchitecturePage() {
-  return (
-    <Suspense fallback={null}>
-      <PromptArchitectureInner />
-    </Suspense>
-  );
+interface ApiResponse {
+  phases: PhaseData[];
 }
 
-function PromptArchitectureInner() {
+export default function UnderTheHoodPage() {
   const isAdmin = useIsAdmin();
-  const [personaModes, setPersonaModes] = useState<PersonaMode[]>(["general"]);
-  const [convMode, setConvMode] = useState<ConvMode>("situation");
-  const [phases, setPhases] = useState<PhaseData[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async (modes: PersonaMode[], cm: ConvMode) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        personaModes: modes.join(","),
-        convMode: cm,
-      });
-      const res = await fetch(`/api/admin/prompt-architecture?${params}`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const json = await res.json();
-      setPhases(json.phases);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [personaMode, setPersonaMode] = useState<PersonaMode>("adhd");
+  const [convMode, setConvMode] = useState<ConversationMode>("situation");
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
-    if (isAdmin) fetchData(personaModes, convMode);
-  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    setLoadState("loading");
+    fetch(
+      `/api/admin/prompt-architecture?personaModes=${personaMode}&convMode=${convMode}`,
+    )
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`fetch failed: ${r.status}`);
+        return r.json();
+      })
+      .then((json: ApiResponse) => {
+        if (cancelled) return;
+        setData(json);
+        setLoadState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoadState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [personaMode, convMode]);
 
-  const data = useMemo(() => (phases ? categorize(phases) : null), [phases]);
-
-  function handlePersonaToggle(mode: PersonaMode) {
-    let next: PersonaMode[];
-    const neurotypes: PersonaMode[] = ["autistic", "adhd", "dyslexic"];
-    if (mode === "general") {
-      next = ["general"];
-    } else if (personaModes.includes(mode)) {
-      next = personaModes.filter((m) => m !== mode);
-      if (next.length === 0) next = ["general"];
-    } else {
-      next = [...personaModes.filter((m) => neurotypes.includes(m)), mode];
+  // Aggregate sections across all phases (deduped by id) so the diagram can
+  // show every block that could appear, not just whatever is active in one
+  // lifecycle phase.
+  const sectionById = useMemo(() => {
+    const map = new Map<string, PromptSection>();
+    if (!data) return map;
+    for (const phase of data.phases) {
+      for (const s of phase.sections) {
+        // Keep the last occurrence — later phases have more context.
+        map.set(s.id, s);
+      }
     }
-    setPersonaModes(next);
-    fetchData(next, convMode);
-  }
+    return map;
+  }, [data]);
 
-  function handleConvModeChange(cm: ConvMode) {
-    setConvMode(cm);
-    fetchData(personaModes, convMode === cm ? convMode : cm);
-  }
+  // Phase-presence: which lifecycle phases each section appears in.
+  // Surfaced as small dots on each conditional-ladder chip.
+  const phasesBySection = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    if (!data) return map;
+    for (const phase of data.phases) {
+      for (const s of phase.sections) {
+        if (!map.has(s.id)) map.set(s.id, new Set());
+        map.get(s.id)!.add(phase.id);
+      }
+    }
+    return map;
+  }, [data]);
+
+  const phaseList = useMemo(() => {
+    if (!data) return [] as { id: string; label: string }[];
+    return data.phases.map((p) => ({ id: p.id, label: p.label }));
+  }, [data]);
+
+  const stage = STAGES[stageIndex];
+  const visible = useMemo(
+    () => ({
+      atom: stage.id >= 1,
+      spine: stage.id >= 2,
+      persona: stage.id >= 3,
+      mode: stage.id >= 4,
+      conditional: stage.id >= 5,
+      dynamic: stage.id >= 6,
+      alongside: stage.id >= 7,
+      siblings: stage.id >= 8,
+      cache: stage.id >= 9,
+      example: stage.id >= 10,
+    }),
+    [stage.id],
+  );
+
+  const handleSelect = (next: Selection | null) => {
+    setSelection((cur) => {
+      const curKey = selectionKey(cur);
+      const nextKey = selectionKey(next);
+      if (curKey === nextKey) return null;
+      return next;
+    });
+  };
+
+  const handlePersonaPillClick = (mode: PersonaMode) => {
+    if (mode !== personaMode) setPersonaMode(mode);
+    handleSelect({ kind: "persona", mode });
+  };
+
+  const handleModePillClick = (mode: ConversationMode) => {
+    if (mode !== convMode) setConvMode(mode);
+    handleSelect({ kind: "convmode", mode });
+  };
 
   if (!isAdmin) {
     return (
@@ -307,10 +388,6 @@ function PromptArchitectureInner() {
     );
   }
 
-  const totalTokens = data
-    ? data.spineTokens + data.personaTokens + data.turnByTurnTokens
-    : 0;
-
   return (
     <div
       style={{
@@ -321,7 +398,6 @@ function PromptArchitectureInner() {
         flexDirection: "column",
       }}
     >
-      {/* Admin banner */}
       <div
         style={{
           fontFamily: "var(--font-mono)",
@@ -351,1260 +427,2378 @@ function PromptArchitectureInner() {
             overflow: "hidden",
           }}
         >
-          {/* Header / controls */}
-          <div
-            style={{
-              borderBottom: "1px solid var(--session-ink-hairline)",
-              padding: "18px 28px",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 18,
-              alignItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-spectral, var(--font-serif))",
-                  fontSize: "22px",
-                  fontWeight: 400,
-                  fontStyle: "italic",
-                  color: "var(--session-ink)",
-                  letterSpacing: "-0.005em",
-                  lineHeight: 1.1,
-                }}
-              >
-                Jove&apos;s turn
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
-                  letterSpacing: "0.5px",
-                  color: "var(--session-ink-ghost)",
-                  marginTop: 2,
-                }}
-              >
-                The recipe — what gets assembled and what runs alongside, every turn
-              </div>
-            </div>
-            <div style={{ width: 1, height: 30, background: "var(--session-ink-hairline)" }} />
-            <ControlGroup label="Persona">
-              {PERSONA_OPTIONS.map((p) => (
-                <Chip
-                  key={p.id}
-                  active={personaModes.includes(p.id)}
-                  onClick={() => handlePersonaToggle(p.id)}
-                >
-                  {p.label}
-                </Chip>
-              ))}
-            </ControlGroup>
-            <div style={{ width: 1, height: 22, background: "var(--session-ink-hairline)" }} />
-            <ControlGroup label="Mode">
-              {CONV_MODE_OPTIONS.map((cm) => (
-                <Chip
-                  key={cm.id}
-                  active={convMode === cm.id}
-                  onClick={() => handleConvModeChange(cm.id)}
-                >
-                  {cm.label}
-                </Chip>
-              ))}
-            </ControlGroup>
-            {data && (
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px",
-                  color: "var(--session-ink-ghost)",
-                  marginLeft: "auto",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                ~{totalTokens.toLocaleString()} prompt tokens
-              </span>
-            )}
-          </div>
+          <Header personaMode={personaMode} convMode={convMode} />
 
-          {/* Cache legend */}
-          <div
-            style={{
-              borderBottom: "1px solid var(--session-ink-hairline)",
-              padding: "10px 28px",
-              display: "flex",
-              alignItems: "center",
-              gap: 18,
-              flexWrap: "wrap",
-              flexShrink: 0,
-              background: "var(--session-walnut-surface-soft)",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "11px",
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: "var(--session-ink-ghost)",
-              }}
-            >
-              Cache
-            </span>
-            <CacheLegendItem zone="forever" />
-            <CacheLegendItem zone="persona-keyed" />
-            <CacheLegendItem zone="rebuilt" />
-          </div>
-
-          {/* Scrollable columns */}
           <div
             style={{
               flex: 1,
-              overflowY: "auto",
-              padding: "24px 28px 60px",
+              display: "grid",
+              gridTemplateColumns: "1.55fr 1fr",
+              gap: 32,
+              padding: "28px 32px",
+              minHeight: 0,
+              overflow: "hidden",
             }}
           >
-            {loading && !phases && <LoadingState />}
-            {error && <ErrorState message={error} />}
-            {data && (
-              <>
-                <ColumnsGrid>
-                  <ColumnA spine={data.spine} tokens={data.spineTokens} />
-                  <ColumnB
-                    persona={data.persona}
-                    tokens={data.personaTokens}
-                    personaModes={personaModes}
-                  />
-                  <ColumnC
-                    blocks={data.turnByTurn}
-                    tokens={data.turnByTurnTokens}
-                  />
-                  <ColumnD />
-                </ColumnsGrid>
-
-                {/* Assembly arrow */}
-                <AssemblyArrow />
-
-                {/* Sibling AI calls */}
-                <SiblingCallsFooter />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Layout pieces
-// ---------------------------------------------------------------------------
-
-function ColumnsGrid({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-        gap: 14,
-        alignItems: "start",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "var(--size-meta)",
-        color: "var(--session-ink-ghost)",
-        textAlign: "center",
-        marginTop: 60,
-      }}
-    >
-      Loading…
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string }) {
-  return (
-    <div
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "var(--size-meta)",
-        color: "var(--session-error)",
-        textAlign: "center",
-        marginTop: 60,
-      }}
-    >
-      Error: {message}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column header — the band that names each column
-// ---------------------------------------------------------------------------
-
-function ColumnHeader({
-  theme,
-  title,
-  blurb,
-  count,
-  tokens,
-}: {
-  theme: ColumnTheme;
-  title: string;
-  blurb: string;
-  count: number;
-  tokens?: number;
-}) {
-  return (
-    <div
-      style={{
-        background: theme.band,
-        border: `1px solid ${theme.border}`,
-        borderRadius: "10px 10px 0 0",
-        padding: "14px 16px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontStyle: "italic",
-            fontSize: "18px",
-            fontWeight: 500,
-            color: theme.numeral,
-            lineHeight: 1,
-          }}
-        >
-          {theme.letter}.
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontSize: "18px",
-            fontWeight: 500,
-            color: "var(--session-ink)",
-            letterSpacing: "-0.005em",
-            lineHeight: 1.2,
-          }}
-        >
-          {title}
-        </span>
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "12.5px",
-          color: "var(--session-ink-soft)",
-          lineHeight: 1.5,
-          marginTop: 6,
-        }}
-      >
-        {blurb}
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "10.5px",
-          color: "var(--session-ink-ghost)",
-          marginTop: 8,
-          letterSpacing: "0.5px",
-        }}
-      >
-        {count} {count === 1 ? "block" : "blocks"}
-        {tokens != null ? ` · ${tokens.toLocaleString()} tokens` : ""}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column body wrapper — connects to the header band, holds the cards.
-// ---------------------------------------------------------------------------
-
-function ColumnBody({
-  theme,
-  children,
-}: {
-  theme: ColumnTheme;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${theme.border}`,
-        borderTop: "none",
-        borderRadius: "0 0 10px 10px",
-        background: theme.surfaceTint,
-        padding: "10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column A — Spine
-// ---------------------------------------------------------------------------
-
-function ColumnA({ spine, tokens }: { spine: PromptSection[]; tokens: number }) {
-  const theme = COLUMN_THEMES.A;
-  return (
-    <div>
-      <ColumnHeader
-        theme={theme}
-        title="Spine"
-        blurb="Always present. Same words, every turn, every user. Jove's identity, constitutional rules, and the base voice scaffold."
-        count={spine.length}
-        tokens={tokens}
-      />
-      <ColumnBody theme={theme}>
-        {spine.map((s) => (
-          <SectionCard key={s.id} section={s} theme={theme} />
-        ))}
-      </ColumnBody>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column B — Persona shape
-// ---------------------------------------------------------------------------
-
-function ColumnB({
-  persona,
-  tokens,
-  personaModes,
-}: {
-  persona: PromptSection[];
-  tokens: number;
-  personaModes: PersonaMode[];
-}) {
-  const theme = COLUMN_THEMES.B;
-  const activeLabel = personaModes
-    .map((m) => m[0].toUpperCase() + m.slice(1))
-    .join(" + ");
-  return (
-    <div>
-      <ColumnHeader
-        theme={theme}
-        title="Persona shape"
-        blurb={`Chosen once per session, layered on top of the spine. Active: ${activeLabel}. Toggle personas above to see how each shifts.`}
-        count={persona.length}
-        tokens={tokens}
-      />
-      <ColumnBody theme={theme}>
-        {persona.map((s) => (
-          <SectionCard
-            key={s.id}
-            section={s}
-            theme={theme}
-            showAlternatives
-          />
-        ))}
-      </ColumnBody>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column C — Turn-by-turn
-// ---------------------------------------------------------------------------
-
-function ColumnC({
-  blocks,
-  tokens,
-}: {
-  blocks: TurnBlock[];
-  tokens: number;
-}) {
-  const theme = COLUMN_THEMES.C;
-  return (
-    <div>
-      <ColumnHeader
-        theme={theme}
-        title="Turn-by-turn"
-        blurb="Slide in and out each turn based on user state, mode, and live data. Sized for the maximum case — typical turns include only some of these."
-        count={blocks.length}
-        tokens={tokens}
-      />
-      <ColumnBody theme={theme}>
-        {blocks.map((b) => (
-          <SectionCard
-            key={b.section.id}
-            section={b.section}
-            theme={theme}
-            phases={b.presentInPhases}
-          />
-        ))}
-      </ColumnBody>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Column D — Alongside the prompt (static / educational)
-// ---------------------------------------------------------------------------
-
-interface AlongsideItem {
-  id: string;
-  label: string;
-  badge: string;
-  blurb: string;
-  detail: string;
-}
-
-const ALONGSIDE_ITEMS: AlongsideItem[] = [
-  {
-    id: "history",
-    label: "Conversation history",
-    badge: "messages array",
-    blurb:
-      "All prior messages, sent to Claude as the `messages` array alongside the system prompt.",
-    detail:
-      "Each turn sends the full conversation back. Roles alternate user / assistant. Jove's stream uses the system prompt + this array to produce the next response.",
-  },
-  {
-    id: "sliding-window",
-    label: "Sliding window",
-    badge: "ADR-023",
-    blurb:
-      "When the message history exceeds 50, only the first 2 + last 48 are sent. Long sessions stay bounded.",
-    detail:
-      "applySlidingWindow() in call-persona.ts. Keeping the first two messages preserves the session's opening so Jove doesn't 'forget' how the user arrived. The last 48 carry the working context.",
-  },
-  {
-    id: "synthetic",
-    label: "Synthetic user lines",
-    badge: "mapSystemMessages",
-    blurb:
-      "System events (checkpoint confirmed / rejected / refined) are remapped to user-voice lines so Jove sees them naturally in the history.",
-    detail:
-      "Example: a `[User confirmed the checkpoint]` system message is rewritten to 'I confirmed that checkpoint. That resonates.' before being sent. This keeps the role sequence valid and lets Jove react to the event in-character.",
-  },
-  {
-    id: "current-message",
-    label: "Current user message",
-    badge: "this turn",
-    blurb:
-      "The line that just arrived from the user. The last entry in the messages array.",
-    detail:
-      "Everything else in the prompt is set up to help Jove respond to this one sentence. Web channel streams the response back via SSE; text channel returns it as a single block.",
-  },
-  {
-    id: "cache-marker",
-    label: "Cache marker",
-    badge: "cache_control",
-    blurb:
-      "The boundary between cached and rebuilt content lands at the end of Column B's persona section (the `staticContext` block).",
-    detail:
-      "Anthropic's prompt-cache marker is placed on the static block. Columns A (intro + Tier 1) and B (Tier 2) sit before the marker and cache. Column C and the conversation history sit after and rebuild each turn.",
-  },
-];
-
-function ColumnD() {
-  const theme = COLUMN_THEMES.D;
-  return (
-    <div>
-      <ColumnHeader
-        theme={theme}
-        title="Alongside"
-        blurb="Sent with the prompt every turn but not part of the assembly. This is the rest of what Jove sees."
-        count={ALONGSIDE_ITEMS.length}
-      />
-      <ColumnBody theme={theme}>
-        {ALONGSIDE_ITEMS.map((item) => (
-          <AlongsideCard key={item.id} item={item} theme={theme} />
-        ))}
-      </ColumnBody>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Section card — collapsible. Shows label, tier, tokens, cache zone,
-// condition, source pointer; expands to show the rendered prompt text.
-// ---------------------------------------------------------------------------
-
-function SectionCard({
-  section,
-  theme,
-  showAlternatives,
-  phases,
-}: {
-  section: PromptSection;
-  theme: ColumnTheme;
-  showAlternatives?: boolean;
-  phases?: string[];
-}) {
-  const [open, setOpen] = useState(false);
-  const zone = tierToCacheZone(section.tier);
-  const tierLabel = section.tier === "intro" ? "Intro" : `Tier ${section.tier}`;
-
-  return (
-    <div
-      style={{
-        background: open ? theme.surfaceCard : "var(--session-linen)",
-        border: `1px solid ${theme.borderSoft}`,
-        borderRadius: 6,
-        overflow: "hidden",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        style={{
-          all: "unset",
-          cursor: "pointer",
-          display: "block",
-          width: "100%",
-          padding: "10px 12px",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 8,
-            justifyContent: "space-between",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "var(--session-ink)",
-              lineHeight: 1.3,
-              flex: 1,
-              minWidth: 0,
-              wordWrap: "break-word",
-            }}
-          >
-            {section.label}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: theme.accent,
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.15s ease",
-              lineHeight: "13px",
-              flexShrink: 0,
-            }}
-          >
-            ▾
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 4,
-            marginTop: 6,
-            alignItems: "center",
-          }}
-        >
-          <TierBadge tier={tierLabel} />
-          <CacheBadge zone={zone} />
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: "var(--session-ink-ghost)",
-              letterSpacing: "0.3px",
-            }}
-          >
-            ~{section.tokens.toLocaleString()}t
-          </span>
-        </div>
-        {phases && phases.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 3,
-              marginTop: 6,
-            }}
-          >
-            {phases.map((p) => (
-              <span
-                key={p}
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "10.5px",
-                  color: theme.accent,
-                  background: theme.surfaceCard,
-                  border: `1px solid ${theme.borderSoft}`,
-                  borderRadius: 3,
-                  padding: "1px 6px",
-                }}
-              >
-                {p}
-              </span>
-            ))}
-          </div>
-        )}
-      </button>
-
-      {open && (
-        <div
-          style={{
-            borderTop: `1px solid ${theme.borderSoft}`,
-            padding: "10px 12px 12px",
-            background: theme.surfaceTint,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginBottom: 8,
-              alignItems: "center",
-            }}
-          >
-            <ConditionPill condition={section.condition} />
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10.5px",
-                color: "var(--session-ink-soft)",
-                background: "var(--session-walnut-surface-soft)",
-                padding: "1px 5px",
-                borderRadius: 3,
-                wordBreak: "break-all",
-              }}
-            >
-              {section.source.file}
-            </code>
-          </div>
-          <pre
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "12px",
-              lineHeight: 1.55,
-              color: "var(--session-ink-soft)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              margin: 0,
-              maxHeight: 280,
-              overflowY: "auto",
-            }}
-          >
-            {section.text}
-          </pre>
-          {showAlternatives && section.alternatives.length > 0 && (
-            <div
-              style={{
-                marginTop: 10,
-                paddingTop: 10,
-                borderTop: `1px solid ${theme.borderSoft}`,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  letterSpacing: "1px",
-                  textTransform: "uppercase",
-                  color: "var(--session-ink-ghost)",
-                }}
-              >
-                Other voices
-              </span>
-              {section.alternatives.map((alt) => (
-                <span
-                  key={alt.label}
+            <div style={{ overflowY: "auto", paddingRight: 12 }}>
+              {loadState === "loading" && <DiagramSkeleton />}
+              {loadState === "error" && (
+                <div
                   style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "11px",
-                    color: "var(--session-ink-faded)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    color: "var(--session-error)",
+                    padding: 16,
                   }}
                 >
-                  {alt.label}{" "}
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px",
-                      color: "var(--session-ink-ghost)",
-                    }}
-                  >
-                    {alt.tokens.toLocaleString()}t
-                  </span>
-                </span>
-              ))}
+                  Failed to load prompt architecture. Check the API.
+                </div>
+              )}
+              {loadState === "ready" && (
+                <Diagram
+                  visible={visible}
+                  selection={selection}
+                  onSelect={handleSelect}
+                  onPersonaPill={handlePersonaPillClick}
+                  onModePill={handleModePillClick}
+                  personaMode={personaMode}
+                  convMode={convMode}
+                  sectionById={sectionById}
+                  phasesBySection={phasesBySection}
+                  phaseList={phaseList}
+                />
+              )}
             </div>
-          )}
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                minHeight: 0,
+              }}
+            >
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  background: "var(--session-linen)",
+                  paddingBottom: 16,
+                  marginBottom: 16,
+                  borderBottom: "1px solid var(--session-ink-hairline)",
+                  zIndex: 1,
+                }}
+              >
+                <Stepper
+                  stageIndex={stageIndex}
+                  setStageIndex={(i) => {
+                    setStageIndex(i);
+                    setSelection(null);
+                  }}
+                  stage={stage}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                {selection ? (
+                  <DetailPanel
+                    selection={selection}
+                    sectionById={sectionById}
+                    personaMode={personaMode}
+                    convMode={convMode}
+                    onClose={() => setSelection(null)}
+                  />
+                ) : (
+                  <StageCaption stage={stage} />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Alongside card — collapsible, static content explaining one item.
+// Header + stepper
 // ---------------------------------------------------------------------------
 
-function AlongsideCard({
-  item,
-  theme,
+function Header({
+  personaMode,
+  convMode,
 }: {
-  item: AlongsideItem;
-  theme: ColumnTheme;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
 }) {
-  const [open, setOpen] = useState(false);
   return (
     <div
       style={{
-        background: open ? theme.surfaceCard : "var(--session-linen)",
-        border: `1px solid ${theme.borderSoft}`,
-        borderRadius: 6,
-        overflow: "hidden",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        style={{
-          all: "unset",
-          cursor: "pointer",
-          display: "block",
-          width: "100%",
-          padding: "10px 12px",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 8,
-            justifyContent: "space-between",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "var(--session-ink)",
-              lineHeight: 1.3,
-              flex: 1,
-              minWidth: 0,
-              wordWrap: "break-word",
-            }}
-          >
-            {item.label}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: theme.accent,
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.15s ease",
-              lineHeight: "13px",
-              flexShrink: 0,
-            }}
-          >
-            ▾
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 4,
-            marginTop: 6,
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: "var(--session-ink-ghost)",
-              background: "var(--session-walnut-surface-soft)",
-              padding: "1px 6px",
-              borderRadius: 3,
-              letterSpacing: "0.3px",
-            }}
-          >
-            {item.badge}
-          </span>
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.5,
-            marginTop: 8,
-          }}
-        >
-          {item.blurb}
-        </div>
-      </button>
-      {open && (
-        <div
-          style={{
-            borderTop: `1px solid ${theme.borderSoft}`,
-            padding: "10px 12px 12px",
-            background: theme.surfaceTint,
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.6,
-          }}
-        >
-          {item.detail}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Assembly arrow — separates the columns from the sibling-calls strip.
-// ---------------------------------------------------------------------------
-
-function AssemblyArrow() {
-  return (
-    <div
-      style={{
-        textAlign: "center",
-        margin: "28px 0 22px",
-        fontFamily: "var(--font-mono)",
-        fontSize: "11px",
-        letterSpacing: "2px",
-        color: "var(--session-ink-ghost)",
-        textTransform: "uppercase",
-      }}
-    >
-      <div style={{ marginBottom: 4 }}>↓</div>
-      <div>A + B + C concatenated · D sent as messages · all to Claude</div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sibling AI calls — what runs alongside Jove each turn.
-// ---------------------------------------------------------------------------
-
-interface SiblingCall {
-  id: string;
-  name: string;
-  model: string;
-  timing: string;
-  purpose: string;
-  detail: string;
-}
-
-const SIBLING_CALLS: SiblingCall[] = [
-  {
-    id: "extraction",
-    name: "Extraction",
-    model: "Sonnet",
-    timing: "parallel · fire-and-forget",
-    purpose:
-      "Reads the message, updates the research brief Jove sees on the next turn.",
-    detail:
-      "Tracks language bank, per-layer signals, depth, mode, and the checkpoint gate. Writes to conversations.extraction_state as JSONB. Never awaited; never blocks Jove's stream.",
-  },
-  {
-    id: "classifier",
-    name: "Classifier",
-    model: "Haiku",
-    timing: "post-stream",
-    purpose:
-      "Decides whether Jove's response counts as a checkpoint proposal.",
-    detail:
-      "Runs after Jove finishes streaming. If it flags a checkpoint, the composer call fires next. Otherwise the turn ends.",
-  },
-  {
-    id: "composer",
-    name: "Composer",
-    model: "Sonnet",
-    timing: "after classifier (only when checkpoint detected)",
-    purpose:
-      "Writes the polished manual entry server-side before the confirmation card appears.",
-    detail:
-      "Composes from the conversational text plus the language bank. composed_content is always populated before the user sees the confirm card — confirmCheckpoint() then just inserts the row.",
-  },
-];
-
-function SiblingCallsFooter() {
-  return (
-    <div
-      style={{
-        marginTop: 8,
-        borderTop: "1px solid var(--session-ink-hairline)",
-        paddingTop: 20,
+        borderBottom: "1px solid var(--session-ink-hairline)",
+        padding: "18px 32px",
+        flexShrink: 0,
       }}
     >
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: "22px",
+            fontWeight: 400,
+            fontStyle: "italic",
+            color: "var(--session-ink)",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          Under the hood
+        </div>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          Active: {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
+        </span>
+      </div>
+      <p
+        style={{
+          margin: "8px 0 0",
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: "14.5px",
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+          maxWidth: 820,
+        }}
+      >
+        How Jove&rsquo;s system prompt is assembled, layer by layer. The
+        diagram reads the live codebase via{" "}
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          /api/admin/prompt-architecture
+        </code>{" "}
+        — every section is a real export. Click any band, pill, or block to
+        inspect its source path, token count, and rendered text.
+      </p>
+    </div>
+  );
+}
+
+function Stepper({
+  stageIndex,
+  setStageIndex,
+}: {
+  stageIndex: number;
+  setStageIndex: (i: number) => void;
+  stage: Stage;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
+        disabled={stageIndex === 0}
+        aria-label="Previous stage"
+        style={arrowBtnStyle(stageIndex === 0)}
+      >
+        ←
+      </button>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          flex: 1,
+          justifyContent: "space-between",
+        }}
+      >
+        {STAGES.map((s, i) => {
+          const active = i === stageIndex;
+          const visited = i <= stageIndex;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setStageIndex(i)}
+              aria-label={`Stage ${s.id}: ${s.title}`}
+              title={s.title}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                width: 24,
+                height: 24,
+                borderRadius: 999,
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: active
+                  ? "var(--session-walnut-highlight)"
+                  : visited
+                    ? "var(--session-walnut-tint)"
+                    : "transparent",
+                color: active
+                  ? "var(--session-ink)"
+                  : visited
+                    ? "var(--session-ink-soft)"
+                    : "var(--session-ink-ghost)",
+                border: `1px solid ${
+                  active
+                    ? "var(--session-walnut-border)"
+                    : "var(--session-walnut-border-soft)"
+                }`,
+                fontWeight: active ? 500 : 400,
+              }}
+            >
+              {s.id}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
+        disabled={stageIndex === STAGES.length - 1}
+        aria-label="Next stage"
+        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
+      >
+        →
+      </button>
+    </div>
+  );
+}
+
+function arrowBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    all: "unset",
+    cursor: disabled ? "default" : "pointer",
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    fontFamily: "var(--font-mono)",
+    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: disabled ? "var(--session-ink-ghost)" : "var(--session-ink-soft)",
+    background: disabled ? "transparent" : "var(--session-walnut-tint)",
+    border: `1px solid ${
+      disabled
+        ? "var(--session-walnut-border-soft)"
+        : "var(--session-walnut-border)"
+    }`,
+    opacity: disabled ? 0.5 : 1,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Right column — stage caption or detail panel
+// ---------------------------------------------------------------------------
+
+function StageCaption({ stage }: { stage: Stage }) {
+  return (
+    <>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+        }}
+      >
+        Stage {stage.id}
+      </div>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {stage.title}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 15.5,
+          lineHeight: 1.6,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {stage.caption}
+      </p>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink-ghost)",
+          fontStyle: "italic",
+        }}
+      >
+        Click any band, pill, or block to inspect its source.
+      </p>
+    </>
+  );
+}
+
+function DetailPanel({
+  selection,
+  sectionById,
+  personaMode,
+  convMode,
+  onClose,
+}: {
+  selection: Selection;
+  sectionById: Map<string, PromptSection>;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+  onClose: () => void;
+}) {
+  if (selection.kind === "overview") {
+    return <OverviewDetail onClose={onClose} sectionById={sectionById} />;
+  }
+  if (selection.kind === "persona") {
+    return (
+      <PersonaDetail
+        mode={selection.mode}
+        activeMode={personaMode}
+        sectionById={sectionById}
+        onClose={onClose}
+      />
+    );
+  }
+  if (selection.kind === "convmode") {
+    return (
+      <ConvModeDetail
+        mode={selection.mode}
+        activeMode={convMode}
+        sectionById={sectionById}
+        onClose={onClose}
+      />
+    );
+  }
+  if (selection.kind === "alongside") {
+    return <AlongsideDetail id={selection.id} onClose={onClose} />;
+  }
+  if (selection.kind === "sibling") {
+    return <SiblingDetail id={selection.id} onClose={onClose} />;
+  }
+  // section
+  const section = sectionById.get(selection.id);
+  if (!section) {
+    return (
+      <>
+        <DetailHeader label="Not in current phase" onClose={onClose} />
+        <p style={{ color: "var(--session-ink-soft)", fontSize: 14 }}>
+          This section isn&rsquo;t active for the current persona × mode × phase
+          combination. Switch persona or mode to surface it.
+        </p>
+      </>
+    );
+  }
+  return <SectionDetail section={section} onClose={onClose} />;
+}
+
+function DetailHeader({
+  label,
+  onClose,
+}: {
+  label: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink-soft)",
+          padding: "4px 10px",
+          borderRadius: 5,
+          border: "1px solid var(--session-walnut-border-soft)",
+          background: "var(--session-walnut-tint)",
+        }}
+        aria-label="Close detail"
+      >
+        ← Back to stage
+      </button>
+    </div>
+  );
+}
+
+function SectionDetail({
+  section,
+  onClose,
+}: {
+  section: PromptSection;
+  onClose: () => void;
+}) {
+  const [showSource, setShowSource] = useState(false);
+  return (
+    <>
+      <DetailHeader label={`Tier ${section.tier} · ${section.condition.label}`} onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {section.label}
+      </h2>
+
+      <div
+        style={{
+          marginTop: 6,
+          display: "grid",
+          gridTemplateColumns: "max-content 1fr",
+          columnGap: 14,
+          rowGap: 10,
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--session-ink-soft)",
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        <DetailLabel>Source</DetailLabel>
+        <div>
+          <code
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              color: "var(--session-ink)",
+              background: "var(--session-walnut-surface-soft)",
+              padding: "1px 6px",
+              borderRadius: 3,
+              wordBreak: "break-word",
+              display: "inline-block",
+            }}
+          >
+            {section.source.file}
+          </code>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              color: "var(--session-ink-soft)",
+              marginTop: 4,
+            }}
+          >
+            {section.source.symbol}
+          </div>
+        </div>
+
+        <DetailLabel>Tokens</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {section.tokens.toLocaleString()}
+        </span>
+
+        <DetailLabel>Condition</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {section.condition.label}
+          <span
+            style={{
+              marginLeft: 8,
+              fontFamily: "var(--font-mono)",
+              fontSize: 10.5,
+              color: "var(--session-ink-ghost)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            ({section.condition.type})
+          </span>
+        </span>
+
+        {section.alternatives.length > 0 && (
+          <>
+            <DetailLabel>Alternatives</DetailLabel>
+            <ul style={{ margin: 0, paddingLeft: 16, listStyle: "disc" }}>
+              {section.alternatives.map((a) => (
+                <li key={a.label} style={{ marginBottom: 3 }}>
+                  <span style={{ color: "var(--session-ink)" }}>{a.label}</span>{" "}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      color: "var(--session-ink-ghost)",
+                    }}
+                  >
+                    ({a.tokens.toLocaleString()} tok · {a.trigger})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: "1px solid var(--session-walnut-border)",
+          borderRadius: 5,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {section.text}
+        </pre>
+      )}
+    </>
+  );
+}
+
+function PersonaDetail({
+  mode,
+  activeMode,
+  sectionById,
+  onClose,
+}: {
+  mode: PersonaMode;
+  activeMode: PersonaMode;
+  sectionById: Map<string, PromptSection>;
+  onClose: () => void;
+}) {
+  const isActive = mode === activeMode;
+  const [showSource, setShowSource] = useState(false);
+  const personaSections = useMemo(
+    () =>
+      Array.from(sectionById.values()).filter(
+        (s) => s.condition.type === "persona",
+      ),
+    [sectionById],
+  );
+  const totalTokens = personaSections.reduce((s, x) => s + x.tokens, 0);
+  return (
+    <>
+      <DetailHeader label="Persona delta" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {PERSONA_LABELS[mode]}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Persona-specific rules merged into Tier 2 sections on top of the shared
+        base. Source:{" "}
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          src/lib/persona/voice-{mode}.ts
+        </code>
+      </p>
+
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.5,
+        }}
+      >
+        {personaSections.length} Tier 2 sections vary by persona —{" "}
+        {personaSections.map((s) => s.label).join(", ")} —{" "}
+        {totalTokens.toLocaleString()} tokens total for{" "}
+        {PERSONA_LABELS[isActive ? activeMode : mode]}.
+        {!isActive && (
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--session-ink-ghost)",
+              marginLeft: 6,
+            }}
+          >
+            (showing currently-loaded data; switching personas…)
+          </span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        disabled={personaSections.length === 0}
+        style={{
+          all: "unset",
+          cursor: personaSections.length === 0 ? "default" : "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color:
+            personaSections.length === 0
+              ? "var(--session-ink-ghost)"
+              : "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: `1px solid ${
+            personaSections.length === 0
+              ? "var(--session-walnut-border-soft)"
+              : "var(--session-walnut-border)"
+          }`,
+          borderRadius: 5,
+          opacity: personaSections.length === 0 ? 0.5 : 1,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && personaSections.length > 0 && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {personaSections
+            .map((s) => `── ${s.label} (${s.tokens.toLocaleString()} tok) ──\n${s.text}`)
+            .join("\n\n")}
+        </pre>
+      )}
+    </>
+  );
+}
+
+function ConvModeDetail({
+  mode,
+  activeMode,
+  sectionById,
+  onClose,
+}: {
+  mode: ConversationMode;
+  activeMode: ConversationMode;
+  sectionById: Map<string, PromptSection>;
+  onClose: () => void;
+}) {
+  const isActive = mode === activeMode;
+  const [showSource, setShowSource] = useState(false);
+  const sourceFile: Record<ConversationMode, string> = {
+    situation: "system-prompt.ts (default opener path)",
+    "guided-intake": "system-prompt.ts + guided-intake-copy.ts",
+    upload: "system-prompt.ts + upload-copy.ts",
+  };
+  const modeSections = useMemo(
+    () =>
+      Array.from(sectionById.values()).filter(
+        (s) => s.condition.type === "conv-mode",
+      ),
+    [sectionById],
+  );
+  const totalTokens = modeSections.reduce((s, x) => s + x.tokens, 0);
+  return (
+    <>
+      <DetailHeader label="Conversation mode" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {MODE_LABELS[mode]}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Entry-phase Tier 3 block selected at conversation start. Source:{" "}
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          {sourceFile[mode]}
+        </code>
+      </p>
+
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.5,
+        }}
+      >
+        {modeSections.length === 0 ? (
+          <>
+            No dedicated mode block — {MODE_LABELS[activeMode]} uses the
+            default opener path. The entry-phase posture lives in the
+            First Message block (state-conditioned).
+          </>
+        ) : (
+          <>
+            {modeSections.length} section{modeSections.length === 1 ? "" : "s"}{" "}
+            specific to {MODE_LABELS[activeMode]} — {modeSections.map((s) => s.label).join(", ")}{" "}
+            — {totalTokens.toLocaleString()} tokens total.
+            {!isActive && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  color: "var(--session-ink-ghost)",
+                  marginLeft: 6,
+                }}
+              >
+                (showing currently-loaded data; switching modes…)
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        disabled={modeSections.length === 0}
+        style={{
+          all: "unset",
+          cursor: modeSections.length === 0 ? "default" : "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color:
+            modeSections.length === 0
+              ? "var(--session-ink-ghost)"
+              : "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: `1px solid ${
+            modeSections.length === 0
+              ? "var(--session-walnut-border-soft)"
+              : "var(--session-walnut-border)"
+          }`,
+          borderRadius: 5,
+          opacity: modeSections.length === 0 ? 0.5 : 1,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && modeSections.length > 0 && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {modeSections
+            .map((s) => `── ${s.label} (${s.tokens.toLocaleString()} tok) ──\n${s.text}`)
+            .join("\n\n")}
+        </pre>
+      )}
+    </>
+  );
+}
+
+function OverviewDetail({
+  sectionById,
+  onClose,
+}: {
+  sectionById: Map<string, PromptSection>;
+  onClose: () => void;
+}) {
+  const total = Array.from(sectionById.values()).reduce(
+    (sum, s) => sum + s.tokens,
+    0,
+  );
+  return (
+    <>
+      <DetailHeader label="Per-turn payload" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        Jove&rsquo;s system prompt
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Single text block prepended to every Anthropic call. Assembled by{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>buildSystemPrompt</code>{" "}
+        and{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>buildSystemPromptBlocks</code>{" "}
+        in <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>src/lib/persona/system-prompt.ts</code>. Layers stack from static (cached forever) to dynamic (rebuilt each turn).
+      </p>
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Across all phases, {sectionById.size} distinct sections totaling{" "}
+        <strong style={{ color: "var(--session-ink)" }}>
+          {total.toLocaleString()}
+        </strong>{" "}
+        tokens for the current persona × mode.
+      </div>
+    </>
+  );
+}
+
+function DetailLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        letterSpacing: "1px",
+        textTransform: "uppercase",
+        color: "var(--session-ink-ghost)",
+        paddingTop: 2,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Diagram
+// ---------------------------------------------------------------------------
+
+function DiagramSkeleton() {
+  return (
+    <div
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 12,
+        color: "var(--session-ink-ghost)",
+        letterSpacing: 1,
+        padding: 24,
+      }}
+    >
+      Loading prompt sections…
+    </div>
+  );
+}
+
+interface DiagramProps {
+  visible: Record<string, boolean>;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  onPersonaPill: (mode: PersonaMode) => void;
+  onModePill: (mode: ConversationMode) => void;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+  sectionById: Map<string, PromptSection>;
+  phasesBySection: Map<string, Set<string>>;
+  phaseList: { id: string; label: string }[];
+}
+
+function Diagram({
+  visible,
+  selection,
+  onSelect,
+  onPersonaPill,
+  onModePill,
+  personaMode,
+  convMode,
+  sectionById,
+  phasesBySection,
+  phaseList,
+}: DiagramProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 18,
+        alignItems: "flex-start",
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          flex: "0 0 220px",
+          opacity: visible.dynamic ? 1 : 0.1,
+          transition: "opacity 220ms ease",
+        }}
+      >
+        <DynamicSidecar
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+        />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <CacheWrap active={visible.cache}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <PromptHeader
+              visible={visible.atom}
+              selected={selection?.kind === "overview"}
+              onSelect={() => onSelect({ kind: "overview" })}
+            />
+            {visible.spine && (
+              <SpineBands
+                selection={selection}
+                onSelect={onSelect}
+                sectionById={sectionById}
+              />
+            )}
+            {visible.persona && (
+              <PersonaFan
+                selection={selection}
+                onPersonaPill={onPersonaPill}
+                personaMode={personaMode}
+              />
+            )}
+            {visible.mode && (
+              <ModeFan
+                selection={selection}
+                onModePill={onModePill}
+                convMode={convMode}
+              />
+            )}
+            {visible.conditional && (
+              <ConditionalLadder
+                selection={selection}
+                onSelect={onSelect}
+                sectionById={sectionById}
+                phasesBySection={phasesBySection}
+                phaseList={phaseList}
+              />
+            )}
+          </div>
+        </CacheWrap>
+        {visible.alongside && (
+          <AlongsideStrip selection={selection} onSelect={onSelect} />
+        )}
+        {visible.siblings && (
+          <SiblingCallsStrip selection={selection} onSelect={onSelect} />
+        )}
+        {visible.example && (
+          <ExampleAssemblyFooter
+            sectionById={sectionById}
+            personaMode={personaMode}
+            convMode={convMode}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PromptHeader({
+  visible,
+  selected,
+  onSelect,
+}: {
+  visible: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 12px",
+        background: COLOR.identityBg,
+        border: `1px solid ${COLOR.identityBorder}`,
+        borderRadius: 8,
+        opacity: visible ? 1 : 0.2,
+        transition: "opacity 220ms ease, box-shadow 120ms ease",
+        boxShadow: selected ? SELECTED_RING : "none",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta-strong)",
+          textTransform: "uppercase",
+        }}
+      >
+        Jove&rsquo;s system prompt — assembled per turn
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          color: "var(--session-ink-ghost)",
+        }}
+      >
+        click for overview
+      </span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Clickable bands
+// ---------------------------------------------------------------------------
+
+function SectionBand({
+  sectionId,
+  selection,
+  onSelect,
+  sectionById,
+  bg,
+  border,
+  fg,
+}: {
+  sectionId: string;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
+  bg: string;
+  border: string;
+  fg?: string;
+}) {
+  const section = sectionById.get(sectionId);
+  if (!section) return null;
+  const selected =
+    selection?.kind === "section" && selection.id === sectionId;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect({ kind: "section", id: sectionId })}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "block",
+        padding: "10px 12px",
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 8,
+        boxShadow: selected ? SELECTED_RING : "none",
+        transition: "box-shadow 120ms ease",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
           gap: 12,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13.5,
+            fontWeight: 500,
+            color: fg ?? "var(--session-ink)",
+          }}
+        >
+          {section.label}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          {section.tokens.toLocaleString()} tok · {section.condition.label}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function SpineBands({
+  selection,
+  onSelect,
+  sectionById,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
+}) {
+  // Tier 1 + every Tier 2 section that's truly base (always-on).
+  const t1Ids = ["intro", "tier1"];
+  const t2BaseIds = Array.from(BASE_VOICE_IDS);
+  return (
+    <>
+      {t1Ids.map((id) => (
+        <SectionBand
+          key={id}
+          sectionId={id}
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+          bg={COLOR.identityBg}
+          border={COLOR.identityBorder}
+        />
+      ))}
+      {t2BaseIds.map((id) => (
+        <SectionBand
+          key={id}
+          sectionId={id}
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+          bg={COLOR.baseVoice}
+          border={COLOR.baseVoiceBorder}
+        />
+      ))}
+    </>
+  );
+}
+
+function PersonaFan({
+  selection,
+  onPersonaPill,
+  personaMode,
+}: {
+  selection: Selection | null;
+  onPersonaPill: (mode: PersonaMode) => void;
+  personaMode: PersonaMode;
+}) {
+  return (
+    <div
+      style={{
+        padding: "10px 12px",
+        background: COLOR.personaBg,
+        border: `1px solid ${COLOR.personaBorder}`,
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13.5,
+            fontWeight: 500,
+            color: COLOR.personaFg,
+          }}
+        >
+          Persona delta — affects voice rules, register, landing, deepening
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          1 of 4 · click to switch
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          marginTop: 8,
+        }}
+      >
+        {PERSONAS.map((p) => {
+          const isActive = p === personaMode;
+          const isSelected =
+            selection?.kind === "persona" && selection.mode === p;
+          return (
+            <VariantPill
+              key={p}
+              label={PERSONA_LABELS[p]}
+              active={isActive}
+              selected={isSelected}
+              onClick={() => onPersonaPill(p)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ModeFan({
+  selection,
+  onModePill,
+  convMode,
+}: {
+  selection: Selection | null;
+  onModePill: (mode: ConversationMode) => void;
+  convMode: ConversationMode;
+}) {
+  return (
+    <div
+      style={{
+        padding: "10px 12px",
+        background: COLOR.modeBg,
+        border: `1px solid ${COLOR.modeBorder}`,
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13.5,
+            fontWeight: 500,
+            color: COLOR.modeFg,
+          }}
+        >
+          Mode opener — entry-phase Tier 3 block
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          1 of 3 · click to switch
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          marginTop: 8,
+        }}
+      >
+        {MODES.map((m) => {
+          const isActive = m === convMode;
+          const isSelected =
+            selection?.kind === "convmode" && selection.mode === m;
+          return (
+            <VariantPill
+              key={m}
+              label={MODE_LABELS[m]}
+              active={isActive}
+              selected={isSelected}
+              onClick={() => onModePill(m)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function VariantPill({
+  label,
+  active,
+  selected,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        fontFamily: "var(--font-mono)",
+        fontSize: 10.5,
+        letterSpacing: "0.5px",
+        padding: "2px 8px",
+        borderRadius: 3,
+        background: active
+          ? "var(--session-walnut-highlight)"
+          : "transparent",
+        color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
+        border: `1px solid ${
+          active
+            ? "var(--session-walnut-border)"
+            : "var(--session-walnut-border-soft)"
+        }`,
+        textTransform: "uppercase",
+        boxShadow: selected ? SELECTED_RING : "none",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ConditionalLadder({
+  selection,
+  onSelect,
+  sectionById,
+  phasesBySection,
+  phaseList,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
+  phasesBySection: Map<string, Set<string>>;
+  phaseList: { id: string; label: string }[];
+}) {
+  // Tier 3 sections that aren't mode-openers and aren't always-on
+  // adapting/pacing/etc. Render every Tier 3 section in the aggregated map.
+  const tier3 = Array.from(sectionById.values()).filter(
+    (s) => s.tier === "3" && !MODE_OPENER_IDS.has(s.id) && s.id !== "tier3",
+  );
+  // Sort: state/dynamic conditions first (the interesting ones), then always-on.
+  tier3.sort((a, b) => {
+    const score = (s: PromptSection) =>
+      s.condition.type === "state" ? 0 : s.condition.type === "dynamic" ? 1 : 2;
+    return score(a) - score(b);
+  });
+  return (
+    <div
+      style={{
+        padding: "10px 12px",
+        background: "var(--session-walnut-tint)",
+        border: `1px solid ${COLOR.conditionalBorder}`,
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginBottom: 8,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13.5,
+            fontWeight: 500,
+            color: "var(--session-ink)",
+          }}
+        >
+          Tier 3 — Conversation mechanics ({tier3.length} blocks)
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          conditional · rebuilt each turn
+        </span>
+      </div>
+
+      {/* Legend for phase dots */}
+      {phaseList.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 8,
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "var(--session-ink-ghost)",
+            letterSpacing: "0.5px",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>fires in:</span>
+          {phaseList.map((p) => (
+            <span
+              key={p.id}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 999,
+                  background: "var(--session-walnut-meta)",
+                  display: "inline-block",
+                }}
+              />
+              {p.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 6,
+        }}
+      >
+        {tier3.map((s) => {
+          const selected =
+            selection?.kind === "section" && selection.id === s.id;
+          const phases = phasesBySection.get(s.id) ?? new Set<string>();
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onSelect({ kind: "section", id: s.id })}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                padding: "6px 10px",
+                borderRadius: 5,
+                background: COLOR.conditional,
+                border: `1px solid ${COLOR.conditionalBorder}`,
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                boxShadow: selected ? SELECTED_RING : "none",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  width: "100%",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 12.5,
+                    color: "var(--session-ink)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {s.label}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    color: "var(--session-ink-ghost)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.tokens.toLocaleString()} tok
+                </span>
+              </div>
+              {phaseList.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                  aria-label={`Fires in: ${phaseList
+                    .filter((p) => phases.has(p.id))
+                    .map((p) => p.label)
+                    .join(", ")}`}
+                >
+                  {phaseList.map((p) => {
+                    const present = phases.has(p.id);
+                    return (
+                      <span
+                        key={p.id}
+                        title={p.label}
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: 999,
+                          background: present
+                            ? "var(--session-walnut-meta)"
+                            : "var(--session-walnut-border-soft)",
+                          display: "inline-block",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DynamicSidecar({
+  selection,
+  onSelect,
+  sectionById,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
+}) {
+  const items = Array.from(sectionById.values()).filter((s) => s.tier === "dynamic");
+  return (
+    <div
+      style={{
+        padding: 12,
+        background: COLOR.dynamic,
+        border: `1px dashed ${COLOR.dynamicBorder}`,
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        Live context (parallel)
+      </div>
+      {items.length === 0 && (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          (no dynamic sections in current phase)
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.map((s) => {
+          const selected =
+            selection?.kind === "section" && selection.id === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onSelect({ kind: "section", id: s.id })}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                padding: "6px 8px",
+                background: "var(--session-walnut-tint)",
+                border: `1px solid ${COLOR.dynamicBorder}`,
+                borderRadius: 5,
+                boxShadow: selected ? SELECTED_RING : "none",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--session-ink)",
+                }}
+              >
+                {s.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  color: "var(--session-ink-ghost)",
+                  marginTop: 1,
+                }}
+              >
+                {s.tokens.toLocaleString()} tok · {s.condition.label}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          marginTop: 10,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 11.5,
+          lineHeight: 1.4,
+          fontStyle: "italic",
+          color: "var(--session-ink-ghost)",
+        }}
+      >
+        Extraction runs concurrently each turn. The brief from turn N feeds
+        the prompt at turn N+1 — a one-turn lag.
+      </div>
+    </div>
+  );
+}
+
+function CacheWrap({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        padding: active ? "12px 16px 16px" : 0,
+        borderRadius: active ? 12 : 0,
+        border: active
+          ? `2px solid ${COLOR.identityBorder}`
+          : "2px solid transparent",
+        background: active ? "var(--session-walnut-tint)" : "transparent",
+        transition: "padding 220ms ease, background 220ms ease",
+      }}
+    >
+      {active && (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "1.5px",
+            color: "var(--session-walnut-meta-strong)",
+            textTransform: "uppercase",
+            marginBottom: 10,
+            paddingBottom: 8,
+            borderBottom: "1px solid var(--session-walnut-border-soft)",
+          }}
+        >
+          Cache hierarchy
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function ExampleAssemblyFooter({
+  sectionById,
+  personaMode,
+  convMode,
+}: {
+  sectionById: Map<string, PromptSection>;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+}) {
+  // Group sections by cache tier (derived from tier + condition).
+  type Bucket = { label: string; tokens: number; tier: "static" | "persona" | "dynamic" };
+  const buckets: Record<string, Bucket> = {
+    "tier1-static": { label: "Tier 1 + Introduction", tokens: 0, tier: "static" },
+    "tier2-base": { label: "Tier 2 base voice (always-on)", tokens: 0, tier: "static" },
+    "tier2-persona": { label: `Tier 2 persona delta (${PERSONA_LABELS[personaMode]})`, tokens: 0, tier: "persona" },
+    "tier3-mode": { label: `Tier 3 mode opener (${MODE_LABELS[convMode]})`, tokens: 0, tier: "persona" },
+    "tier3-conditional": { label: "Tier 3 conditional blocks", tokens: 0, tier: "dynamic" },
+    "dynamic": { label: "Live context (Manual, session, extraction)", tokens: 0, tier: "dynamic" },
+  };
+  for (const s of Array.from(sectionById.values())) {
+    if (s.tier === "intro" || s.tier === "1") {
+      buckets["tier1-static"].tokens += s.tokens;
+    } else if (s.tier === "2" && BASE_VOICE_IDS.has(s.id)) {
+      buckets["tier2-base"].tokens += s.tokens;
+    } else if (s.tier === "2") {
+      buckets["tier2-persona"].tokens += s.tokens;
+    } else if (s.tier === "3" && MODE_OPENER_IDS.has(s.id)) {
+      buckets["tier3-mode"].tokens += s.tokens;
+    } else if (s.tier === "3") {
+      buckets["tier3-conditional"].tokens += s.tokens;
+    } else if (s.tier === "dynamic") {
+      buckets["dynamic"].tokens += s.tokens;
+    }
+  }
+  const entries = Object.values(buckets).filter((b) => b.tokens > 0);
+  const total = entries.reduce((s, x) => s + x.tokens, 0);
+  const cached = entries
+    .filter((s) => s.tier !== "dynamic")
+    .reduce((s, x) => s + x.tokens, 0);
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: 16,
+        border: `1px solid ${COLOR.identityBorder}`,
+        borderRadius: 10,
+        background: "var(--session-walnut-tint)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
           marginBottom: 10,
         }}
       >
         <span
           style={{
-            fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontSize: "16px",
-            fontStyle: "italic",
-            color: "var(--session-ink)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.5px",
+            color: "var(--session-walnut-meta-strong)",
+            textTransform: "uppercase",
           }}
         >
-          Sibling calls
+          Token budget — {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
         </span>
         <span
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "11px",
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "0.5px",
+            fontSize: 11,
+            color: "var(--session-ink-soft)",
           }}
         >
-          Other AI work that happens around Jove each turn — not part of Jove&apos;s prompt
+          {total.toLocaleString()} tokens · {total === 0 ? 0 : ((cached / total) * 100).toFixed(0)}% cached
         </span>
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {SIBLING_CALLS.map((c) => (
-          <SiblingCallCard key={c.id} call={c} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {entries.map((s) => (
+          <div
+            key={s.label}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto auto",
+              gap: 10,
+              alignItems: "center",
+              padding: "5px 8px",
+              borderRadius: 4,
+              background:
+                s.tier === "static"
+                  ? "var(--session-walnut-surface-soft)"
+                  : s.tier === "persona"
+                    ? "var(--session-persona-muted)"
+                    : "var(--session-walnut-highlight)",
+              border: `1px solid ${
+                s.tier === "static"
+                  ? COLOR.baseVoiceBorder
+                  : s.tier === "persona"
+                    ? COLOR.personaBorder
+                    : COLOR.conditionalBorder
+              }`,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 12.5,
+                color: "var(--session-ink)",
+              }}
+            >
+              {s.label}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--session-ink-soft)",
+              }}
+            >
+              {s.tokens.toLocaleString()} tok
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "0.5px",
+                color: "var(--session-ink-ghost)",
+                textTransform: "uppercase",
+              }}
+            >
+              {s.tier === "dynamic" ? "rebuilt" : "cached"}
+            </span>
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-function SiblingCallCard({ call }: { call: SiblingCall }) {
-  const [open, setOpen] = useState(false);
+// ---------------------------------------------------------------------------
+// Alongside — what travels with the prompt in the same API call
+// ---------------------------------------------------------------------------
+
+function AlongsideStrip({
+  selection,
+  onSelect,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+}) {
   return (
     <div
       style={{
-        background: "var(--session-walnut-tint)",
+        marginTop: 18,
+        padding: 16,
+        borderRadius: 10,
         border: "1px solid var(--session-walnut-border-soft)",
-        borderRadius: 8,
-        overflow: "hidden",
+        background: "var(--session-walnut-tint)",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
+      <div
         style={{
-          all: "unset",
-          cursor: "pointer",
-          display: "block",
-          width: "100%",
-          padding: "12px 14px",
-          boxSizing: "border-box",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta-strong)",
+          textTransform: "uppercase",
+          marginBottom: 4,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 10,
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span
+        Alongside the prompt
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12.5,
+          fontStyle: "italic",
+          color: "var(--session-ink-soft)",
+          marginBottom: 10,
+        }}
+      >
+        Travels in the same Anthropic call but isn’t the system prompt itself.
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 6,
+        }}
+      >
+        {ALONGSIDE_ITEMS.map((i) => {
+          const selected =
+            selection?.kind === "alongside" && selection.id === i.id;
+          return (
+            <button
+              key={i.id}
+              type="button"
+              onClick={() => onSelect({ kind: "alongside", id: i.id })}
               style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "var(--session-ink)",
-              }}
-            >
-              {call.name}
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10.5px",
-                color: "var(--session-walnut)",
+                all: "unset",
+                cursor: "pointer",
+                padding: "8px 10px",
                 background: "var(--session-walnut-surface-soft)",
-                padding: "1px 6px",
-                borderRadius: 3,
-                letterSpacing: "0.3px",
+                border: "1px solid var(--session-walnut-border-soft)",
+                borderRadius: 5,
+                boxShadow: selected ? SELECTED_RING : "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
               }}
             >
-              {call.model}
-            </span>
-          </div>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              color: "var(--session-ink-ghost)",
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.15s ease",
-              lineHeight: "13px",
-            }}
-          >
-            ▾
-          </span>
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "10.5px",
-            color: "var(--session-ink-ghost)",
-            marginTop: 4,
-            letterSpacing: "0.3px",
-          }}
-        >
-          {call.timing}
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "12.5px",
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.5,
-            marginTop: 8,
-          }}
-        >
-          {call.purpose}
-        </div>
-      </button>
-      {open && (
-        <div
-          style={{
-            borderTop: "1px solid var(--session-walnut-border-soft)",
-            padding: "10px 14px 12px",
-            background: "var(--session-walnut-surface-soft)",
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            color: "var(--session-ink-soft)",
-            lineHeight: 1.6,
-          }}
-        >
-          {call.detail}
-        </div>
-      )}
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: "var(--session-ink)",
+                }}
+              >
+                {i.label}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  color: "var(--session-ink-ghost)",
+                  letterSpacing: "0.3px",
+                }}
+              >
+                {i.oneLine}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Cache legend & badges
+// Sibling calls — the other AI calls per turn
 // ---------------------------------------------------------------------------
 
-function CacheLegendItem({ zone }: { zone: CacheZone }) {
+function SiblingCallsStrip({
+  selection,
+  onSelect,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+}) {
   return (
     <div
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
+        marginTop: 14,
+        padding: 16,
+        borderRadius: 10,
+        border: "1px solid var(--session-persona-border)",
+        background: "var(--session-persona-muted)",
       }}
     >
-      <span
+      <div
         style={{
-          width: 9,
-          height: 9,
-          borderRadius: 2,
-          background: cacheZoneColor(zone),
-          flexShrink: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-persona)",
+          textTransform: "uppercase",
+          marginBottom: 4,
         }}
-      />
-      <span
+      >
+        Sibling calls — the other three this turn
+      </div>
+      <div
         style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "11.5px",
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12.5,
+          fontStyle: "italic",
+          color: "var(--session-ink-soft)",
+          marginBottom: 10,
+        }}
+      >
+        Separate Anthropic calls that run before, during, or after Jove.
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {SIBLING_CALLS.map((c) => {
+          const selected =
+            selection?.kind === "sibling" && selection.id === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onSelect({ kind: "sibling", id: c.id })}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                padding: "10px 12px",
+                background: "var(--session-walnut-tint)",
+                border: "1px solid var(--session-persona-border)",
+                borderRadius: 6,
+                boxShadow: selected ? SELECTED_RING : "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13.5,
+                    fontWeight: 500,
+                    color: "var(--session-ink)",
+                  }}
+                >
+                  {c.label}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    color: "var(--session-persona)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  {c.model}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-spectral, var(--font-serif))",
+                  fontSize: 12,
+                  fontStyle: "italic",
+                  color: "var(--session-ink-soft)",
+                  lineHeight: 1.4,
+                }}
+              >
+                {c.when}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Detail panels for the alongside / sibling cards
+// ---------------------------------------------------------------------------
+
+function AlongsideDetail({
+  id,
+  onClose,
+}: {
+  id: string;
+  onClose: () => void;
+}) {
+  const item = ALONGSIDE_ITEMS.find((i) => i.id === id);
+  if (!item) {
+    return (
+      <>
+        <DetailHeader label="Not found" onClose={onClose} />
+        <p style={{ color: "var(--session-ink-soft)", fontSize: 14 }}>
+          Unknown alongside item.
+        </p>
+      </>
+    );
+  }
+  return (
+    <>
+      <DetailHeader label="Alongside the prompt" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {item.label}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 15,
+          lineHeight: 1.6,
           color: "var(--session-ink-soft)",
         }}
       >
-        {cacheZoneLabel(zone)}
-      </span>
-    </div>
-  );
-}
-
-function CacheBadge({ zone }: { zone: CacheZone }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontFamily: "var(--font-mono)",
-        fontSize: "9.5px",
-        color: cacheZoneColor(zone),
-        letterSpacing: "0.3px",
-      }}
-    >
-      <span
+        {item.description}
+      </p>
+      <div
         style={{
-          width: 7,
-          height: 7,
-          borderRadius: 1.5,
-          background: cacheZoneColor(zone),
-        }}
-      />
-      {cacheZoneLabel(zone)}
-    </span>
-  );
-}
-
-function TierBadge({ tier }: { tier: string }) {
-  return (
-    <span
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "9.5px",
-        color: "var(--session-ink-ghost)",
-        border: "1px solid var(--session-ink-hairline)",
-        borderRadius: 3,
-        padding: "1px 5px",
-        letterSpacing: "0.5px",
-      }}
-    >
-      {tier}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Shared controls
-// ---------------------------------------------------------------------------
-
-function ControlGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "11px",
-          letterSpacing: "2px",
-          textTransform: "uppercase",
-          color: "var(--session-ink-ghost)",
-          marginRight: 4,
+          marginTop: 6,
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: "var(--session-ink-soft)",
         }}
       >
-        {label}
-      </span>
-      {children}
-    </div>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+            marginRight: 10,
+          }}
+        >
+          Source
+        </span>
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          {item.source}
+        </code>
+      </div>
+    </>
   );
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
+function SiblingDetail({
+  id,
+  onClose,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  id: string;
+  onClose: () => void;
 }) {
+  const call = SIBLING_CALLS.find((c) => c.id === id);
+  if (!call) {
+    return (
+      <>
+        <DetailHeader label="Not found" onClose={onClose} />
+        <p style={{ color: "var(--session-ink-soft)", fontSize: 14 }}>
+          Unknown sibling call.
+        </p>
+      </>
+    );
+  }
   return (
-    <button
-      onClick={onClick}
-      style={{
-        fontFamily: "var(--font-sans)",
-        fontSize: "13px",
-        fontWeight: active ? 500 : 400,
-        color: active ? "var(--session-ink)" : "var(--session-ink-ghost)",
-        background: active ? "var(--session-walnut-surface)" : "transparent",
-        border: `1px solid ${active ? "var(--session-walnut-border)" : "var(--session-ink-hairline)"}`,
-        borderRadius: 4,
-        padding: "4px 12px",
-        cursor: "pointer",
-        transition: "all 0.15s ease",
-      }}
-    >
-      {children}
-    </button>
+    <>
+      <DetailHeader label={`Sibling call · ${call.model}`} onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {call.label}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 15,
+          lineHeight: 1.6,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {call.description}
+      </p>
+      <div
+        style={{
+          marginTop: 6,
+          display: "grid",
+          gridTemplateColumns: "max-content 1fr",
+          columnGap: 14,
+          rowGap: 10,
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--session-ink-soft)",
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        <DetailLabel>Model</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>{call.model}</span>
+
+        <DetailLabel>When</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>{call.when}</span>
+
+        <DetailLabel>Reads</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>{call.reads}</span>
+
+        <DetailLabel>Writes</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>{call.writes}</span>
+
+        <DetailLabel>Source</DetailLabel>
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+            wordBreak: "break-word",
+          }}
+        >
+          {call.source}
+        </code>
+      </div>
+    </>
   );
 }
 
-function ConditionPill({
-  condition,
-}: {
-  condition: { type: ConditionType; label: string };
-}) {
-  return (
-    <span
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "10px",
-        letterSpacing: "0.5px",
-        color: conditionColor(condition.type),
-        border: `1px solid ${conditionBorder(condition.type)}`,
-        borderRadius: 3,
-        padding: "1px 6px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {condition.label}
-    </span>
-  );
-}
-
-function conditionColor(type: ConditionType): string {
-  switch (type) {
-    case "always":
-      return "var(--session-ink-ghost)";
-    case "persona":
-      return "var(--session-walnut)";
-    case "state":
-      return "var(--session-persona)";
-    case "conv-mode":
-      return "var(--session-ink-faded)";
-    case "dynamic":
-      return "var(--session-error-text)";
-  }
-}
-
-function conditionBorder(type: ConditionType): string {
-  switch (type) {
-    case "always":
-      return "var(--session-ink-hairline)";
-    case "persona":
-      return "var(--session-walnut-border)";
-    case "state":
-      return "var(--session-persona-border)";
-    case "conv-mode":
-      return "var(--session-ink-hairline)";
-    case "dynamic":
-      return "var(--session-error-border-soft)";
-  }
-}
