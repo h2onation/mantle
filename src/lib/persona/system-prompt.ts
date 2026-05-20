@@ -2,7 +2,7 @@ import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { renderManualEntryFull } from "@/lib/manual/layers";
 import * as AutisticVoice from "@/lib/persona/voice-autistic";
-import * as AudhdVoice from "@/lib/persona/voice-audhd";
+import * as AdhdVoice from "@/lib/persona/voice-adhd";
 import * as DyslexicVoice from "@/lib/persona/voice-dyslexic";
 import * as GeneralVoice from "@/lib/persona/voice-general";
 import {
@@ -31,7 +31,7 @@ import {
   type ManualEntryForContext,
 } from "@/lib/persona/manual-context";
 
-export type PersonaMode = "autistic" | "audhd" | "dyslexic" | "general";
+export type PersonaMode = "autistic" | "adhd" | "dyslexic" | "general";
 
 type VoiceModule = {
   VOICE_INTRO_PARAGRAPHS: readonly string[];
@@ -44,7 +44,7 @@ type VoiceModule = {
 
 const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
   autistic: AutisticVoice,
-  audhd: AudhdVoice,
+  adhd: AdhdVoice,
   dyslexic: DyslexicVoice,
   general: GeneralVoice,
 };
@@ -56,9 +56,11 @@ const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
  *  which persona modes are active. It's emitted first.
  *
  *  Each active persona module contributes its trait delta — the
- *  persona-specific additions on top of base. Autistic adds somatic-axis
- *  framing; AuDHD adds dual-system tracking; dyslexic adds short-sentence
- *  + story-shape preferences; general contributes nothing (the base is
+ *  persona-specific additions on top of base. Autistic adds body-substitute
+ *  for emotional questions + masking discipline + monotropism respect;
+ *  ADHD adds knowing-doing-gap framing + interest-as-mechanism + RSD
+ *  calibration; dyslexic adds short-sentence cadence + visual register
+ *  + the no-write-tools rule; general contributes nothing (the base is
  *  the general voice).
  *
  *  Order: base first, then personas in the order the caller supplied.

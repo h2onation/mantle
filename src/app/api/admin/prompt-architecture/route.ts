@@ -6,7 +6,7 @@ import { CONVERSATION_MODES, type ConversationMode } from "@/lib/persona/config"
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID_PERSONAS: PersonaMode[] = ["autistic", "audhd", "dyslexic", "general"];
+const VALID_PERSONAS: PersonaMode[] = ["autistic", "adhd", "dyslexic", "general"];
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();

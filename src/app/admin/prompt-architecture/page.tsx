@@ -25,7 +25,7 @@ type ConvMode = ConversationMode;
 
 const PERSONA_OPTIONS: { id: PersonaMode; label: string }[] = [
   { id: "autistic", label: "Autistic" },
-  { id: "audhd", label: "AuDHD" },
+  { id: "adhd", label: "ADHD" },
   { id: "dyslexic", label: "Dyslexic" },
   { id: "general", label: "General" },
 ];
@@ -229,7 +229,7 @@ function PromptArchitectureInner() {
 
   function handlePersonaToggle(mode: PersonaMode) {
     let next: PersonaMode[];
-    const neurotypes: PersonaMode[] = ["autistic", "audhd", "dyslexic"];
+    const neurotypes: PersonaMode[] = ["autistic", "adhd", "dyslexic"];
     if (mode === "general") {
       next = ["general"];
     } else if (personaModes.includes(mode)) {

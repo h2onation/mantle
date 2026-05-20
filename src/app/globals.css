@@ -381,6 +381,21 @@
   }
 }
 
+/* ─── Sans-serif swap for dyslexic persona ───
+   Activated when the user's persona_modes includes "dyslexic". The
+   accommodation is "no serifs" — every serif face token rebinds to the
+   existing sans (DM Sans). --font-sans is already DM Sans so it doesn't
+   need a rebind; --font-mono is intentionally left alone so structural
+   mono labels (nav, timestamps, status lines) keep their character.
+   The data attribute is set by the FOUC inline script and reconciled
+   by PersonaDyslexicFontInit. */
+[data-persona-dyslexic="true"] {
+  --font-serif:    var(--font-sans);
+  --font-persona:  var(--font-sans);
+  --font-display:  var(--font-sans);
+  --font-spectral: var(--font-sans);
+}
+
 html {
   height: 100%;
   overflow: hidden;

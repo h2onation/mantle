@@ -63,9 +63,9 @@ describe("validatePersonaModes", () => {
   });
 
   it("accepts multiple neurotype modes combined", () => {
-    expect(validatePersonaModes(["autistic", "audhd"])).toEqual({
+    expect(validatePersonaModes(["autistic", "adhd"])).toEqual({
       ok: true,
-      value: ["autistic", "audhd"],
+      value: ["autistic", "adhd"],
     });
   });
 
@@ -162,12 +162,12 @@ describe("PATCH /api/user/persona-modes", () => {
 
   it("happy path: writes deduped persona_modes scoped by user id and returns the saved array", async () => {
     const res = await PATCH(
-      makeRequest({ persona_modes: ["autistic", "audhd", "autistic"] }),
+      makeRequest({ persona_modes: ["autistic", "adhd", "autistic"] }),
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { persona_modes: string[] };
-    expect(body.persona_modes).toEqual(["autistic", "audhd"]);
-    expect(lastUpdatePatch).toEqual({ persona_modes: ["autistic", "audhd"] });
+    expect(body.persona_modes).toEqual(["autistic", "adhd"]);
+    expect(lastUpdatePatch).toEqual({ persona_modes: ["autistic", "adhd"] });
     expect(lastUpdateEqColumn).toBe("id");
     expect(lastUpdateEqValue).toBe("user-A");
   });

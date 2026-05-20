@@ -4,7 +4,7 @@
 // The structural pieces of Tier 2 that are identical across every persona:
 // banned phrases, banned patterns, the dash-to-period rule, section
 // intros and outros, pacing, repair, advisory. Each persona module
-// (voice-autistic.ts, voice-audhd.ts, voice-dyslexic.ts, voice-general.ts)
+// (voice-autistic.ts, voice-adhd.ts, voice-dyslexic.ts, voice-general.ts)
 // contributes only its unique content. composeTier2() in system-prompt.ts
 // assembles scaffold + every selected persona's module into one Tier 2
 // block — equally weighted, no primary/secondary.

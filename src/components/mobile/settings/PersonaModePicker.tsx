@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
 import { togglePersonaMode } from "@/lib/persona/persona-mode-toggle";
+import { applyDyslexicFont } from "@/lib/hooks/usePersonaDyslexicFont";
 
 /**
  * Settings-page persona-mode picker. Reads the authed user's current
@@ -35,10 +36,10 @@ const OPTIONS: { value: PersonaMode; label: string; description: string }[] = [
       "Direct, body-aware, no therapy voice. Built for people who think in systems and are tired of being translated.",
   },
   {
-    value: "audhd",
-    label: "AuDHD",
+    value: "adhd",
+    label: "ADHD",
     description:
-      "For brains that need structure and resist it at the same time. Tracks the tension between both systems.",
+      "Reframes the gap between knowing and doing as circuit, not character. Interest as mechanism, no productivity prescriptions.",
   },
   {
     value: "dyslexic",
@@ -110,9 +111,12 @@ export default function PersonaModePicker() {
       return;
     }
 
-    // Optimistic update.
+    // Optimistic update — flip both the picker state AND the dyslexic
+    // font swap so toggling "Dyslexic" feels instant. If the PATCH fails
+    // below, we revert both together.
     setSaveError(null);
     setState({ status: "ready", selected: next });
+    applyDyslexicFont(next.includes("dyslexic"));
 
     try {
       const res = await fetch("/api/user/persona-modes", {
@@ -126,12 +130,14 @@ export default function PersonaModePicker() {
           body?.error || "Couldn't save your change. Try again.";
         setSaveError(message);
         setState({ status: "ready", selected: prev });
+        applyDyslexicFont(prev.includes("dyslexic"));
         return;
       }
     } catch (err) {
       console.error("[PersonaModePicker] save failed:", err);
       setSaveError("Lost the connection. Try again.");
       setState({ status: "ready", selected: prev });
+      applyDyslexicFont(prev.includes("dyslexic"));
     }
   }
 

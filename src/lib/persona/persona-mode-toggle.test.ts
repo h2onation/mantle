@@ -7,20 +7,20 @@ import {
 
 describe("togglePersonaMode", () => {
   it("adds a neurotype mode when not present", () => {
-    expect(togglePersonaMode(["autistic"], "audhd")).toEqual([
+    expect(togglePersonaMode(["autistic"], "adhd")).toEqual([
       "autistic",
-      "audhd",
+      "adhd",
     ]);
   });
 
   it("removes a neurotype mode when already present", () => {
-    expect(togglePersonaMode(["autistic", "audhd"], "audhd")).toEqual([
+    expect(togglePersonaMode(["autistic", "adhd"], "adhd")).toEqual([
       "autistic",
     ]);
   });
 
   it("clears all neurotype modes when general is picked", () => {
-    expect(togglePersonaMode(["autistic", "audhd"], "general")).toEqual([
+    expect(togglePersonaMode(["autistic", "adhd"], "general")).toEqual([
       "general",
     ]);
   });
@@ -36,9 +36,9 @@ describe("togglePersonaMode", () => {
   it("supports combining all three neurotype modes", () => {
     let result: ReturnType<typeof togglePersonaMode> = [];
     result = togglePersonaMode(result, "autistic");
-    result = togglePersonaMode(result, "audhd");
+    result = togglePersonaMode(result, "adhd");
     result = togglePersonaMode(result, "dyslexic");
-    expect(result.sort()).toEqual(["audhd", "autistic", "dyslexic"]);
+    expect(result.sort()).toEqual(["adhd", "autistic", "dyslexic"]);
   });
 });
 
@@ -50,7 +50,7 @@ describe("isPersonaMode", () => {
   });
 
   it("rejects unknown strings and non-strings", () => {
-    expect(isPersonaMode("adhd")).toBe(false);
+    expect(isPersonaMode("audhd")).toBe(false);
     expect(isPersonaMode("")).toBe(false);
     expect(isPersonaMode(null)).toBe(false);
     expect(isPersonaMode(42)).toBe(false);
