@@ -271,20 +271,13 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
         .filter((w: string) => w.length > 0)
     : [];
 
-  // Acknowledgment: trimmed string, empty if Opus declined or produced
-  // something unusable. Word cap matches the composer prompt's "12-22
-  // words. One sentence." spec (line 148 above). The previous gate at
-  // 40 was too lenient — dev-simulator audit (2026-05-19) caught a
-  // 32-word, three-sentence acknowledgment that read as a paragraph
-  // dump instead of a single softening beat. Tightening the gate makes
-  // overruns fall through to empty (chat then renders the card without
-  // an acknowledgment bubble — documented acceptable fallback).
-  const rawAck =
+  // Acknowledgment: trimmed string. Length and shape are governed by the
+  // composer prompt ("12-22 words. One sentence."). Empty string flows
+  // through naturally — the caller skips emission when falsy.
+  const acknowledgment =
     typeof parsed.acknowledgment === "string"
       ? parsed.acknowledgment.trim()
       : "";
-  const acknowledgment =
-    rawAck.length > 0 && rawAck.split(/\s+/).length <= 22 ? rawAck : "";
 
   // Headline validation + retry-once. The main composer juggles layer
   // pick, prose polish, summary, key_words, acknowledgment, AND the
