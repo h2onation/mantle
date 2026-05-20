@@ -31,8 +31,6 @@ const ALLOWLIST = new Set<string>([
   // Layer-identity gradients and shadow accents — color is part of the visual
   // semantic of the prompt-tier diagram, not a tinted surface.
   "src/app/admin/prompt-architecture/page.tsx",
-  // Markdown renderer surface tinting tied to the doc viewer.
-  "src/app/admin/docs/page.tsx",
   // Pre-existing admin components carrying isolated literals from before the
   // token system landed. Eligible for token cleanup as a follow-up; not in
   // scope of the May 2026 admin-map cleanup pass.
