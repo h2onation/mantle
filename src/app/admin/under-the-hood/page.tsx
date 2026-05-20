@@ -290,20 +290,12 @@ export default function UnderTheHoodPage() {
           }}
         >
           <Header personaMode={personaMode} convMode={convMode} />
-          <Stepper
-            stageIndex={stageIndex}
-            setStageIndex={(i) => {
-              setStageIndex(i);
-              setSelection(null);
-            }}
-            stage={stage}
-          />
 
           <div
             style={{
               flex: 1,
               display: "grid",
-              gridTemplateColumns: "1.4fr 1fr",
+              gridTemplateColumns: "1.55fr 1fr",
               gap: 32,
               padding: "28px 32px",
               minHeight: 0,
@@ -342,21 +334,49 @@ export default function UnderTheHoodPage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 14,
                 overflowY: "auto",
+                minHeight: 0,
               }}
             >
-              {selection ? (
-                <DetailPanel
-                  selection={selection}
-                  sectionById={sectionById}
-                  personaMode={personaMode}
-                  convMode={convMode}
-                  onClose={() => setSelection(null)}
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  background: "var(--session-linen)",
+                  paddingBottom: 16,
+                  marginBottom: 16,
+                  borderBottom: "1px solid var(--session-ink-hairline)",
+                  zIndex: 1,
+                }}
+              >
+                <Stepper
+                  stageIndex={stageIndex}
+                  setStageIndex={(i) => {
+                    setStageIndex(i);
+                    setSelection(null);
+                  }}
+                  stage={stage}
                 />
-              ) : (
-                <StageCaption stage={stage} />
-              )}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                {selection ? (
+                  <DetailPanel
+                    selection={selection}
+                    sectionById={sectionById}
+                    personaMode={personaMode}
+                    convMode={convMode}
+                    onClose={() => setSelection(null)}
+                  />
+                ) : (
+                  <StageCaption stage={stage} />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -449,7 +469,6 @@ function Header({
 function Stepper({
   stageIndex,
   setStageIndex,
-  stage,
 }: {
   stageIndex: number;
   setStageIndex: (i: number) => void;
@@ -460,9 +479,7 @@ function Stepper({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
-        padding: "14px 32px",
-        borderBottom: "1px solid var(--session-ink-hairline)",
+        gap: 10,
         flexShrink: 0,
       }}
     >
@@ -470,11 +487,19 @@ function Stepper({
         type="button"
         onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
         disabled={stageIndex === 0}
-        style={stepBtnStyle(stageIndex === 0)}
+        aria-label="Previous stage"
+        style={arrowBtnStyle(stageIndex === 0)}
       >
-        ← Prev
+        ←
       </button>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          flex: 1,
+          justifyContent: "space-between",
+        }}
+      >
         {STAGES.map((s, i) => {
           const active = i === stageIndex;
           const visited = i <= stageIndex;
@@ -484,14 +509,15 @@ function Stepper({
               type="button"
               onClick={() => setStageIndex(i)}
               aria-label={`Stage ${s.id}: ${s.title}`}
+              title={s.title}
               style={{
                 all: "unset",
                 cursor: "pointer",
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
                 borderRadius: 999,
                 fontFamily: "var(--font-mono)",
-                fontSize: 12,
+                fontSize: 11,
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -522,34 +548,27 @@ function Stepper({
         type="button"
         onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
         disabled={stageIndex === STAGES.length - 1}
-        style={stepBtnStyle(stageIndex === STAGES.length - 1)}
+        aria-label="Next stage"
+        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
       >
-        Next →
+        →
       </button>
-      <div
-        style={{
-          marginLeft: "auto",
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          color: "var(--session-ink-ghost)",
-          letterSpacing: 1,
-        }}
-      >
-        STAGE {stage.id} / {STAGES.length}
-      </div>
     </div>
   );
 }
 
-function stepBtnStyle(disabled: boolean): React.CSSProperties {
+function arrowBtnStyle(disabled: boolean): React.CSSProperties {
   return {
     all: "unset",
     cursor: disabled ? "default" : "pointer",
-    padding: "6px 12px",
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 5,
     fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    letterSpacing: "0.5px",
+    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
     color: disabled ? "var(--session-ink-ghost)" : "var(--session-ink-soft)",
     background: disabled ? "transparent" : "var(--session-walnut-tint)",
     border: `1px solid ${
@@ -1972,8 +1991,7 @@ function CacheWrap({
   return (
     <div
       style={{
-        position: "relative",
-        padding: active ? 16 : 0,
+        padding: active ? "12px 16px 16px" : 0,
         borderRadius: active ? 12 : 0,
         border: active
           ? `2px solid ${COLOR.identityBorder}`
@@ -1985,16 +2003,14 @@ function CacheWrap({
       {active && (
         <div
           style={{
-            position: "absolute",
-            top: -10,
-            left: 14,
-            background: "var(--session-linen)",
-            padding: "0 8px",
             fontFamily: "var(--font-mono)",
             fontSize: 10.5,
             letterSpacing: "1.5px",
             color: "var(--session-walnut-meta-strong)",
             textTransform: "uppercase",
+            marginBottom: 10,
+            paddingBottom: 8,
+            borderBottom: "1px solid var(--session-walnut-border-soft)",
           }}
         >
           Cache hierarchy
