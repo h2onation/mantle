@@ -28,9 +28,17 @@ interface DocMeta {
   audience: string;
 }
 
-const DOC_ORDER = ["intent", "system", "rules", "state", "decisions"] as const;
+const DOC_ORDER = ["claude", "intent", "system", "rules", "state", "decisions"] as const;
 
 const DOC_META: Record<string, DocMeta> = {
+  claude: {
+    name: "claude",
+    filename: "CLAUDE.md",
+    title: "Working agreements",
+    oneLine:
+      "How to collaborate in this repo — hard rules, security rules, terminology, command shortcuts. Read first.",
+    audience: "You + Claude Code agents",
+  },
   intent: {
     name: "intent",
     filename: "intent.md",
@@ -498,7 +506,11 @@ function Header({
           maxWidth: 820,
         }}
       >
-        The canonical reference. Five docs in <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--session-ink)", background: "var(--session-walnut-surface-soft)", padding: "1px 6px", borderRadius: 3 }}>docs/</code> on the repo, surfaced here for browsing. For an orientation tour, start at <em>How Jove works</em>. Pick a doc on the left to read it on the right.
+        Surfaced from the repo — five files in{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--session-ink)", background: "var(--session-walnut-surface-soft)", padding: "1px 6px", borderRadius: 3 }}>docs/</code>{" "}
+        plus{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--session-ink)", background: "var(--session-walnut-surface-soft)", padding: "1px 6px", borderRadius: 3 }}>CLAUDE.md</code>{" "}
+        at the root. Editing those files (via PR or directly) is how this page changes. For an orientation tour, start at <em>How Jove works</em>.
       </p>
     </div>
   );
@@ -693,7 +705,7 @@ function AdrNavigator({
             textTransform: "uppercase",
           }}
         >
-          ADR navigator
+          Decisions
         </div>
         <span
           style={{
@@ -705,6 +717,19 @@ function AdrNavigator({
           {adrs.length} of {total}
         </span>
       </div>
+      <p
+        style={{
+          margin: "0 0 10px",
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12.5,
+          fontStyle: "italic",
+          lineHeight: 1.45,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Architectural decision records — short writeups of why we did
+        things. Parsed live from <code style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--session-ink)", background: "var(--session-walnut-surface-soft)", padding: "1px 5px", borderRadius: 3 }}>decisions.md</code>.
+      </p>
       <div
         style={{
           display: "flex",

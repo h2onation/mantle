@@ -20,9 +20,8 @@ const NAV_GROUPS: NavItem[][] = [
     { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
     { id: "health", label: "Health", href: "/admin?section=health" },
   ],
-  // Reference + system tour
+  // System tour + reference
   [
-    { id: "docs", label: "Docs", href: "/admin/docs" },
     { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
     {
       id: "prompt-architecture",
@@ -42,6 +41,7 @@ const NAV_GROUPS: NavItem[][] = [
       href: "/admin/schema-map",
       indent: true,
     },
+    { id: "docs", label: "Source docs", href: "/admin/docs" },
   ],
   // Utility lookups
   [

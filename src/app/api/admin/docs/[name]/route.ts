@@ -5,7 +5,15 @@ import { requireAdmin } from "@/lib/admin/verify-admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED = new Set(["intent", "system", "rules", "state", "decisions"]);
+// Same set as the list endpoint — keep these in sync.
+const DOC_PATHS: Record<string, { filename: string; relative: string }> = {
+  claude: { filename: "CLAUDE.md", relative: "CLAUDE.md" },
+  intent: { filename: "intent.md", relative: "docs/intent.md" },
+  system: { filename: "system.md", relative: "docs/system.md" },
+  rules: { filename: "rules.md", relative: "docs/rules.md" },
+  state: { filename: "state.md", relative: "docs/state.md" },
+  decisions: { filename: "decisions.md", relative: "docs/decisions.md" },
+};
 
 export async function GET(
   _req: Request,
@@ -14,22 +22,20 @@ export async function GET(
   const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
-  const name = params.name;
-  if (!ALLOWED.has(name)) {
+  const entry = DOC_PATHS[params.name];
+  if (!entry) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const filename = `${name}.md`;
-  const filePath = path.join(process.cwd(), "docs", filename);
-
+  const filePath = path.join(process.cwd(), entry.relative);
   try {
     const [content, stat] = await Promise.all([
       fs.readFile(filePath, "utf8"),
       fs.stat(filePath),
     ]);
     return Response.json({
-      name,
-      filename,
+      name: params.name,
+      filename: entry.filename,
       lastModified: stat.mtime.toISOString(),
       content,
     });
