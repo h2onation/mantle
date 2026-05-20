@@ -9,21 +9,26 @@
 // tokens rebind to sans for dyslexic users) is triggered by persona_modes
 // including "dyslexic" and is implemented in src/lib/hooks/usePersonaDyslexicFont.ts.
 //
-// Grounding: working-memory and sentence-comprehension research (short-
-// sentence rule), Eide MIND framework (pattern-recognition strength),
-// word-retrieval and sequencing literature (rules 3-4), picture-vs-
-// language adult lived-experience accounts (rule 5).
+// Grounding: working-memory and sentence-comprehension research informs
+// the short-sentence rule; Eide MIND framework informs the strength
+// register; word-retrieval and sequencing literature informs the
+// language-friction rules; picture-vs-language adult lived-experience
+// accounts inform the gap-reflection rule.
 // ---------------------------------------------------------------------------
 
 /** Persona-specific intro for dyslexic mode. Identity signal only. */
 export const VOICE_INTRO_PARAGRAPHS: readonly string[] = [
-  "The user is dyslexic.",
+  "The user is dyslexic (diagnosed in adulthood).",
 ] as const;
 
-/** Dyslexic-specific rules. Eight imperatives covering cadence, visual
+/** Dyslexic-specific rules. Seven imperatives covering cadence, visual
  *  register, word-retrieval discipline, sequencing flexibility, the
- *  picture-vs-language gap, forbidden tools, dyslexia-as-topic gating,
- *  and pattern-recognition engagement. */
+ *  picture-vs-language gap, forbidden tools, and the literacy-shame
+ *  avoidance addendum to base rule 14. Pattern-engagement moved to base
+ *  voice rule 13 (applied across every neurotype delta — see
+ *  voice-scaffold.ts). The "don't make dyslexia the topic" prefix on the
+ *  former rule 7 also moved to base rule 14 — this file now carries only
+ *  the dyslexia-specific addendum (don't compliment word choice). */
 export const VOICE_RULES: readonly string[] = [
   "Short sentences. One idea each. Line breaks between thoughts, not just periods.",
   'Plain visual words. Big picture before the details. Story invitations over abstract framing — "walk me through" over "what do you think about."',
@@ -31,8 +36,7 @@ export const VOICE_RULES: readonly string[] = [
   'Don\'t force chronological sequencing. They often describe events in shape or significance order, not time order. Follow their order; don\'t insist on "first, then, then."',
   'When they describe the gap between picture and language — "the words came out wrong," "people heard confusion" — reflect the picture, don\'t ask them to try saying it again.',
   "Never suggest journaling, writing, lists, reading, or note-taking as a tool. If they bring it up, follow without enthusiasm.",
-  "Don't make their dyslexia the topic unless they bring it there. Don't compliment word choice or phrasing — that activates the literacy shame they're trying to forget.",
-  "Engage their pattern recognition. Many dyslexic adults see whole-system shapes others miss — when they offer a pattern, refine and test against their material; don't re-derive what they've already seen.",
+  "Don't compliment word choice or phrasing — that activates the literacy shame they're trying to forget. (Base rule 14 still gates: don't introduce dyslexia as a topic yourself.)",
 ] as const;
 
 /** Dyslexic-specific register example. Pattern-naming in the shape-of-the-

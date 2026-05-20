@@ -1898,12 +1898,12 @@ describe("buildSystemPrompt", () => {
   describe("personaMode voice branching", () => {
     it("defaults to autistic mode when personaMode is omitted", () => {
       const result = build();
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
     });
 
     it("autistic mode renders autistic-specific Tier 2 content", () => {
       const result = build({ personaModes: ["autistic"] });
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
       for (const rule of VOICE_RULES) {
         expect(result).toContain(rule);
       }
@@ -1911,7 +1911,7 @@ describe("buildSystemPrompt", () => {
 
     it("general mode renders general-specific Tier 2 content", () => {
       const result = build({ personaModes: ["general"] });
-      expect(result).not.toContain("late-diagnosed autistic adults");
+      expect(result).not.toContain("autistic (diagnosed in adulthood)");
       expect(result).toContain("reflective, curious, and looking for language");
       for (const rule of GENERAL_VOICE_RULES) {
         expect(result).toContain(rule);
@@ -2064,21 +2064,21 @@ describe("buildSystemPrompt", () => {
       delete (opts as Partial<OneOnOnePromptOptions>).personaModes;
       const result = buildSystemPrompt(opts);
       expect(result).toContain("has not named a neurotype");
-      expect(result).not.toContain("late-diagnosed autistic adult");
+      expect(result).not.toContain("autistic (diagnosed in adulthood)");
     });
   });
 
   describe("composeTier2 equal-stacking", () => {
     it("single mode returns that mode's full Tier 2", () => {
       const single = composeTier2(["autistic"]);
-      expect(single).toContain("late-diagnosed autistic adult");
+      expect(single).toContain("autistic (diagnosed in adulthood)");
     });
 
     it("empty array defaults to general (flipped 2026-05-19 from autistic)", () => {
       const empty = composeTier2([]);
       // General is the neutral neurotype-free voice. Should NOT contain
       // autistic-specific framing.
-      expect(empty).not.toContain("late-diagnosed autistic adult");
+      expect(empty).not.toContain("autistic (diagnosed in adulthood)");
       // Should contain general's persona-specific intro paragraph.
       expect(empty).toContain("has not named a neurotype");
     });
@@ -2086,7 +2086,7 @@ describe("buildSystemPrompt", () => {
     it("autistic + dyslexic stacks both intros and both unique content", () => {
       const result = composeTier2(["autistic", "dyslexic"]);
       // Both VOICE intros appear
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
       expect(result).toContain("The user is dyslexic");
       // Dyslexic-unique behavioral guidance comes through
       expect(result).toContain("Never suggest journaling");
@@ -2098,7 +2098,7 @@ describe("buildSystemPrompt", () => {
 
     it("autistic + adhd stacks both intros and both unique content", () => {
       const result = composeTier2(["autistic", "adhd"]);
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
       expect(result).toContain("The user is ADHD");
       // ADHD-unique behavioral guidance
       expect(result).toContain("circuit-level, not willpower");
@@ -2117,7 +2117,7 @@ describe("buildSystemPrompt", () => {
 
     it("general is filtered out when combined with neurotype-specific modes", () => {
       const result = composeTier2(["autistic", "general"]);
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
       expect(result).not.toContain("reflective, curious");
     });
 
@@ -2139,7 +2139,7 @@ describe("buildSystemPrompt", () => {
     it("multi-select prompt builds correctly end-to-end", () => {
       const result = build({ personaModes: ["autistic", "dyslexic"] });
       expect(result).toContain("TIER 1: CONSTITUTIONAL RULES");
-      expect(result).toContain("late-diagnosed autistic adult");
+      expect(result).toContain("autistic (diagnosed in adulthood)");
       expect(result).toContain("The user is dyslexic");
       expect(result).toContain("Never suggest journaling");
       expect(result).toContain("TIER 3: CONVERSATION MECHANICS");

@@ -1,6 +1,10 @@
-import type { PersonaMode } from "@/lib/persona/system-prompt";
-
 export const PERSONA_MODES = ["autistic", "adhd", "dyslexic", "general"] as const;
+
+/** PersonaMode is derived from PERSONA_MODES so the type and the runtime
+ *  array can't drift. Adding a fifth mode requires updating one literal —
+ *  the type follows automatically. Re-exported from system-prompt.ts to
+ *  preserve historical import sites. */
+export type PersonaMode = (typeof PERSONA_MODES)[number];
 
 export function isPersonaMode(value: unknown): value is PersonaMode {
   return (

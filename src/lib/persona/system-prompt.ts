@@ -31,7 +31,11 @@ import {
   type ManualEntryForContext,
 } from "@/lib/persona/manual-context";
 
-export type PersonaMode = "autistic" | "adhd" | "dyslexic" | "general";
+// PersonaMode is declared in persona-mode-toggle.ts (derived from the
+// PERSONA_MODES const so type and runtime can't drift). Re-exported here
+// to preserve historical import sites (admin pages, picker, hooks, tests).
+import type { PersonaMode } from "@/lib/persona/persona-mode-toggle";
+export type { PersonaMode };
 
 type VoiceModule = {
   VOICE_INTRO_PARAGRAPHS: readonly string[];
