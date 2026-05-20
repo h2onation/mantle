@@ -640,6 +640,7 @@ function DetailPanel({
       <PersonaDetail
         mode={selection.mode}
         activeMode={personaMode}
+        sectionById={sectionById}
         onClose={onClose}
       />
     );
@@ -649,6 +650,7 @@ function DetailPanel({
       <ConvModeDetail
         mode={selection.mode}
         activeMode={convMode}
+        sectionById={sectionById}
         onClose={onClose}
       />
     );
@@ -881,13 +883,24 @@ function SectionDetail({
 function PersonaDetail({
   mode,
   activeMode,
+  sectionById,
   onClose,
 }: {
   mode: PersonaMode;
   activeMode: PersonaMode;
+  sectionById: Map<string, PromptSection>;
   onClose: () => void;
 }) {
   const isActive = mode === activeMode;
+  const [showSource, setShowSource] = useState(false);
+  const personaSections = useMemo(
+    () =>
+      Array.from(sectionById.values()).filter(
+        (s) => s.condition.type === "persona",
+      ),
+    [sectionById],
+  );
+  const totalTokens = personaSections.reduce((s, x) => s + x.tokens, 0);
   return (
     <>
       <DetailHeader label="Persona delta" onClose={onClose} />
@@ -913,33 +926,103 @@ function PersonaDetail({
           color: "var(--session-ink-soft)",
         }}
       >
-        Trait-specific voice rules merged into Tier 2 sections (Voice Rules,
-        Example Register, Landing, Deepening) on top of the shared base. Source
-        files: <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>src/lib/persona/voice-{mode}.ts</code>.
+        Persona-specific rules merged into Tier 2 sections on top of the shared
+        base. Source:{" "}
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          src/lib/persona/voice-{mode}.ts
+        </code>
       </p>
+
       <div
         style={{
           paddingTop: 12,
           borderTop: "1px solid var(--session-walnut-border-soft)",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11.5,
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
           color: "var(--session-ink-soft)",
           lineHeight: 1.5,
         }}
       >
-        {isActive ? (
-          <>
-            Currently active. Click an affected Tier 2 band in the diagram
-            (Voice Rules, Example Register, Landing, Deepening) to see this
-            persona&rsquo;s rendered text.
-          </>
-        ) : (
-          <>
-            Not currently active. Clicking this pill switched the active
-            persona — the diagram and section text are re-rendering.
-          </>
+        {personaSections.length} Tier 2 sections vary by persona —{" "}
+        {personaSections.map((s) => s.label).join(", ")} —{" "}
+        {totalTokens.toLocaleString()} tokens total for{" "}
+        {PERSONA_LABELS[isActive ? activeMode : mode]}.
+        {!isActive && (
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--session-ink-ghost)",
+              marginLeft: 6,
+            }}
+          >
+            (showing currently-loaded data; switching personas…)
+          </span>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        disabled={personaSections.length === 0}
+        style={{
+          all: "unset",
+          cursor: personaSections.length === 0 ? "default" : "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color:
+            personaSections.length === 0
+              ? "var(--session-ink-ghost)"
+              : "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: `1px solid ${
+            personaSections.length === 0
+              ? "var(--session-walnut-border-soft)"
+              : "var(--session-walnut-border)"
+          }`,
+          borderRadius: 5,
+          opacity: personaSections.length === 0 ? 0.5 : 1,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && personaSections.length > 0 && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {personaSections
+            .map((s) => `── ${s.label} (${s.tokens.toLocaleString()} tok) ──\n${s.text}`)
+            .join("\n\n")}
+        </pre>
+      )}
     </>
   );
 }
@@ -947,18 +1030,29 @@ function PersonaDetail({
 function ConvModeDetail({
   mode,
   activeMode,
+  sectionById,
   onClose,
 }: {
   mode: ConversationMode;
   activeMode: ConversationMode;
+  sectionById: Map<string, PromptSection>;
   onClose: () => void;
 }) {
   const isActive = mode === activeMode;
+  const [showSource, setShowSource] = useState(false);
   const sourceFile: Record<ConversationMode, string> = {
     situation: "system-prompt.ts (default opener path)",
     "guided-intake": "system-prompt.ts + guided-intake-copy.ts",
     upload: "system-prompt.ts + upload-copy.ts",
   };
+  const modeSections = useMemo(
+    () =>
+      Array.from(sectionById.values()).filter(
+        (s) => s.condition.type === "conv-mode",
+      ),
+    [sectionById],
+  );
+  const totalTokens = modeSections.reduce((s, x) => s + x.tokens, 0);
   return (
     <>
       <DetailHeader label="Conversation mode" onClose={onClose} />
@@ -985,35 +1079,110 @@ function ConvModeDetail({
         }}
       >
         Entry-phase Tier 3 block selected at conversation start. Source:{" "}
-        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>{sourceFile[mode]}</code>.
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          {sourceFile[mode]}
+        </code>
       </p>
+
       <div
         style={{
           paddingTop: 12,
           borderTop: "1px solid var(--session-walnut-border-soft)",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11.5,
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
           color: "var(--session-ink-soft)",
           lineHeight: 1.5,
         }}
       >
-        {isActive ? (
+        {modeSections.length === 0 ? (
           <>
-            Currently active. Click the Tier 3 band labeled
-            {mode === "situation"
-              ? " for the situation flow"
-              : mode === "guided-intake"
-                ? " “Guided Intake”"
-                : " “Upload Mode”"}{" "}
-            in the diagram below to see the rendered text.
+            No dedicated mode block — {MODE_LABELS[activeMode]} uses the
+            default opener path. The entry-phase posture lives in the
+            First Message block (state-conditioned).
           </>
         ) : (
           <>
-            Not currently active. Clicking this pill switched the active mode —
-            the diagram and section text are re-rendering.
+            {modeSections.length} section{modeSections.length === 1 ? "" : "s"}{" "}
+            specific to {MODE_LABELS[activeMode]} — {modeSections.map((s) => s.label).join(", ")}{" "}
+            — {totalTokens.toLocaleString()} tokens total.
+            {!isActive && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  color: "var(--session-ink-ghost)",
+                  marginLeft: 6,
+                }}
+              >
+                (showing currently-loaded data; switching modes…)
+              </span>
+            )}
           </>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        disabled={modeSections.length === 0}
+        style={{
+          all: "unset",
+          cursor: modeSections.length === 0 ? "default" : "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color:
+            modeSections.length === 0
+              ? "var(--session-ink-ghost)"
+              : "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: `1px solid ${
+            modeSections.length === 0
+              ? "var(--session-walnut-border-soft)"
+              : "var(--session-walnut-border)"
+          }`,
+          borderRadius: 5,
+          opacity: modeSections.length === 0 ? 0.5 : 1,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && modeSections.length > 0 && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {modeSections
+            .map((s) => `── ${s.label} (${s.tokens.toLocaleString()} tok) ──\n${s.text}`)
+            .join("\n\n")}
+        </pre>
+      )}
     </>
   );
 }
