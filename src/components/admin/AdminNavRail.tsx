@@ -3,30 +3,51 @@
 import Link from "next/link";
 import { PERSONA_NAME } from "@/lib/persona/config";
 
-const NAV_ITEMS: { id: string; label: string; href: string }[] = [
-  { id: "users", label: "Users", href: "/admin?section=users" },
-  { id: "beta", label: "Beta", href: "/admin?section=beta" },
-  { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
-  { id: "health", label: "Health", href: "/admin?section=health" },
-  { id: "docs", label: "Docs", href: "/admin/docs" },
-  { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
-  {
-    id: "prompt-architecture",
-    label: `${PERSONA_NAME}'s prompt architecture`,
-    href: "/admin/prompt-architecture",
-  },
-  {
-    id: "extraction-map",
-    label: "Jove's extraction of user messages",
-    href: "/admin/extraction-map",
-  },
-  {
-    id: "schema-map",
-    label: "Database schema",
-    href: "/admin/schema-map",
-  },
-  { id: "skills", label: "Skills", href: "/admin/skills" },
-  { id: "vendors", label: "Vendors", href: "/admin/vendors" },
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  indent?: boolean;
+}
+
+// Grouped by visual hierarchy. Hairlines render between groups; indented
+// items render as children of the parent above them ("How Jove works").
+const NAV_GROUPS: NavItem[][] = [
+  // Operational
+  [
+    { id: "users", label: "Users", href: "/admin?section=users" },
+    { id: "beta", label: "Beta", href: "/admin?section=beta" },
+    { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
+    { id: "health", label: "Health", href: "/admin?section=health" },
+  ],
+  // Reference + system tour
+  [
+    { id: "docs", label: "Docs", href: "/admin/docs" },
+    { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
+    {
+      id: "prompt-architecture",
+      label: `${PERSONA_NAME}'s prompt architecture`,
+      href: "/admin/prompt-architecture",
+      indent: true,
+    },
+    {
+      id: "extraction-map",
+      label: "Jove's extraction of user messages",
+      href: "/admin/extraction-map",
+      indent: true,
+    },
+    {
+      id: "schema-map",
+      label: "Database schema",
+      href: "/admin/schema-map",
+      indent: true,
+    },
+  ],
+  // Utility lookups
+  [
+    { id: "skills", label: "Skills", href: "/admin/skills" },
+    { id: "vendors", label: "Vendors", href: "/admin/vendors" },
+  ],
 ];
 
 export default function AdminNavRail({
@@ -60,47 +81,61 @@ export default function AdminNavRail({
       >
         ADMIN
       </div>
-      {NAV_ITEMS.map((item) => {
-        const active = item.id === activeId;
-        const badge = badges?.[item.id];
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              fontFamily: "var(--font-sans)",
-              fontSize: "13px",
-              color: active
-                ? "var(--session-ink)"
-                : "var(--session-ink-ghost)",
-              background: active ? "rgba(255,255,255,0.6)" : "none",
-              borderRadius: 6,
-              padding: "8px 12px",
-              textDecoration: "none",
-              fontWeight: active ? 500 : 400,
-            }}
-          >
-            <span>{item.label}</span>
-            {badge != null && badge > 0 && (
-              <span
+      {NAV_GROUPS.map((group, gi) => (
+        <div key={gi} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {gi > 0 && (
+            <div
+              style={{
+                height: 1,
+                background: "var(--session-ink-hairline)",
+                margin: "8px 8px",
+              }}
+              aria-hidden="true"
+            />
+          )}
+          {group.map((item) => {
+            const active = item.id === activeId;
+            const badge = badges?.[item.id];
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "var(--size-meta)",
-                  color: "var(--session-cream)",
-                  background: "var(--session-error)",
-                  borderRadius: 10,
-                  padding: "1px 6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
+                  color: active
+                    ? "var(--session-ink)"
+                    : "var(--session-ink-ghost)",
+                  background: active ? "rgba(255,255,255,0.6)" : "none",
+                  borderRadius: 6,
+                  padding: item.indent ? "6px 12px 6px 24px" : "8px 12px",
+                  textDecoration: "none",
+                  fontWeight: active ? 500 : 400,
                 }}
               >
-                {badge}
-              </span>
-            )}
-          </Link>
-        );
-      })}
+                <span>{item.label}</span>
+                {badge != null && badge > 0 && (
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "var(--size-meta)",
+                      color: "var(--session-cream)",
+                      background: "var(--session-error)",
+                      borderRadius: 10,
+                      padding: "1px 6px",
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
       <div style={{ flex: 1 }} />
       <a
         href="/"
