@@ -241,23 +241,36 @@ export default function AdminDocsPage() {
   const [loading, setLoading] = useState(true);
   const [adrStatusFilter, setAdrStatusFilter] = useState<"all" | AdrStatus>("all");
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isAdmin) return;
+    let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/admin/docs");
-        if (!res.ok) return;
+        if (!res.ok) {
+          throw new Error(`fetch failed: ${res.status}`);
+        }
         const json = await res.json();
         const sorted: DocFile[] = (json.docs || []).sort(
           (a: DocFile, b: DocFile) =>
             DOC_ORDER.indexOf(a.name as (typeof DOC_ORDER)[number]) -
             DOC_ORDER.indexOf(b.name as (typeof DOC_ORDER)[number]),
         );
-        setDocs(sorted);
+        if (!cancelled) setDocs(sorted);
+      } catch (err) {
+        console.error("[admin/docs] load failed", err);
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Unknown error");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAdmin]);
 
   const docByName = useMemo(() => {
@@ -384,6 +397,49 @@ export default function AdminDocsPage() {
                   }}
                 >
                   Loading…
+                </div>
+              ) : loadError ? (
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 8,
+                    background: "var(--session-error-banner)",
+                    border: "1px solid var(--session-error-ghost)",
+                    fontFamily: "var(--font-spectral, var(--font-serif))",
+                    fontSize: 14,
+                    color: "var(--session-error-text)",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      letterSpacing: "1.5px",
+                      textTransform: "uppercase",
+                      color: "var(--session-error)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Failed to load docs
+                  </div>
+                  <div style={{ color: "var(--session-ink-soft)" }}>
+                    {loadError}. The API endpoint at{" "}
+                    <code
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 12,
+                        color: "var(--session-ink)",
+                        background: "var(--session-walnut-surface-soft)",
+                        padding: "1px 6px",
+                        borderRadius: 3,
+                      }}
+                    >
+                      /api/admin/docs
+                    </code>{" "}
+                    didn&rsquo;t respond cleanly. Try refreshing; if it
+                    persists, check the deployment logs.
+                  </div>
                 </div>
               ) : (
                 <>
