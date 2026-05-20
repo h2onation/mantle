@@ -1,19 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 // ---------------------------------------------------------------------------
-// Extraction consumer map.
+// Extraction consumer map — staged walkthrough of the 21 fields the
+// background Sonnet extraction call writes every turn. Modeled on
+// /admin/prompt-architecture and /admin/schema-map: stepper-driven layers,
+// sticky right-column detail, click-through inspection, reading guide.
 //
-// Static documentation page. The extraction Sonnet call (src/lib/persona/
-// extraction.ts) produces a single JSON blob every turn. This page traces
-// each field to its downstream consumers, with progressive disclosure so the
-// page is scannable on first glance and drillable on demand.
-//
-// Edit the FIELDS array below if the underlying code shifts (new readers,
-// removed readers, field renames). Line numbers are best-effort hints.
+// FIELDS data is hand-curated — when extraction.ts changes the JSON shape,
+// this file needs to follow.
 // ---------------------------------------------------------------------------
 
 type LoadBearing = "load-bearing" | "auxiliary";
@@ -24,27 +22,83 @@ interface Field {
   type: string;
   category: CategoryId;
   loadBearing: LoadBearing;
-  summary: string;        // one-line, shown collapsed
-  represents: string;     // longer paragraph, shown expanded
+  summary: string;
+  represents: string;
   storage: string;
   readers: { where: string; what: string }[];
   gates: string;
   notes?: string;
 }
 
-interface Category {
-  id: CategoryId;
+interface Stage {
+  id: number;
   title: string;
-  oneLine: string;        // one-line description used as filter-chip subtitle
+  caption: string;
 }
 
-const CATEGORIES: Category[] = [
-  { id: "gate",      title: "Gate",      oneLine: "Five fields that decide whether a checkpoint can fire." },
-  { id: "phase",     title: "Phase",     oneLine: "Where the conversation is + safety override." },
-  { id: "composer",  title: "Composer",  oneLine: "Inputs to the manual-entry composer and Jove's brief." },
-  { id: "layers",    title: "Layers",    oneLine: "Per-layer state across the five-layer model." },
-  { id: "auxiliary", title: "Auxiliary", oneLine: "Telemetry, brief framing copy, UI hints. Prune candidates." },
+const STAGES: Stage[] = [
+  {
+    id: 1,
+    title: "Layer 0 — the extraction call",
+    caption:
+      "Every turn, a background Sonnet call analyzes the conversation and writes a single JSON blob to conversations.extraction_state. 21 fields total. The next turn's prompt reads it; the current turn's response doesn't depend on it (one-turn lag). Click any field for its source, readers, and gating role.",
+  },
+  {
+    id: 2,
+    title: "Layer 1 — the brief",
+    caption:
+      "sage_brief is the headline output. A 3-5 sentence cheat sheet that names what's underneath the surface topic, which exact words are load-bearing, what to push on vs leave alone. Rendered verbatim at the top of Jove's brief block every turn. Empty = Jove flies blind.",
+  },
+  {
+    id: 3,
+    title: "Layer 2 — the checkpoint gate",
+    caption:
+      "Six fields that decide whether a checkpoint can fire. First checkpoint needs ≥1 concrete example; subsequent ones need ≥2 distinct contexts plus a charged-language anchor and a behavior-driver link. distinct_contexts enforces the two-instance rule.",
+  },
+  {
+    id: 4,
+    title: "Layer 3 — phase + safety",
+    caption:
+      "Two signals that override everything downstream. pattern_engaged blocks premature checkpoints (no Manual entry until Jove named a pattern AND the user engaged with it). clinical_flag carries the safety override — crisis fires the 988 protocol; caution keeps Jove behavioral.",
+  },
+  {
+    id: 5,
+    title: "Layer 4 — composer + voice",
+    caption:
+      "Three fields that shape what Jove says and how the Manual entry composer writes. language_bank holds the user's exact charged phrases (top 15 cumulative). sage_brief is rendered verbatim. emerging_pattern_snippet is a regenerated <15-word phrase describing the forming pattern; drives Modal 2.",
+  },
+  {
+    id: 6,
+    title: "Layer 5 — per-layer state",
+    caption:
+      "Each of the 5 Manual layers tracks its own state. signal (none / emerging / explored / checkpoint_ready) advances monotonically. material accumulates Jove-side observations. examples track user-narrated moments.",
+  },
+  {
+    id: 7,
+    title: "Auxiliary signals",
+    caption:
+      "Seven fields that don't gate anything but shape Jove's framing — depth of conversation, extractor's stance recommendation, the current thread, observation-miss count, what the user has named (cost, stance), and a UI placeholder hint. Prune candidates if the extraction prompt gets cramped.",
+  },
+  {
+    id: 8,
+    title: "By the numbers",
+    caption:
+      "21 fields total, fanning out to 5 downstream surfaces — checkpoint gate, Jove's brief, composer, modals, chat input. 14 are load-bearing (at least one reader); 7 are auxiliary (could be pruned without changing behavior).",
+  },
 ];
+
+const CATEGORY_LABEL: Record<CategoryId, string> = {
+  gate: "Checkpoint gate",
+  phase: "Phase + safety",
+  composer: "Composer + voice",
+  layers: "Per-layer state",
+  auxiliary: "Auxiliary",
+};
+
+// ---------------------------------------------------------------------------
+// FIELDS — every field the extraction Sonnet call writes. Preserved verbatim
+// from the previous page; if extraction.ts changes the JSON shape, update here.
+// ---------------------------------------------------------------------------
 
 const FIELDS: Field[] = [
   // ── Gate ───────────────────────────────────────────────────────────────
@@ -53,7 +107,8 @@ const FIELDS: Field[] = [
     type: "number",
     category: "gate",
     loadBearing: "load-bearing",
-    summary: "Count of scenes the user has walked through (moments within one incident count separately).",
+    summary:
+      "Count of scenes the user has walked through (moments within one incident count separately).",
     represents:
       "Count of specific moments the user has walked Jove through. Moments within one incident still count separately here — the pattern-recurrence question is handled by distinct_contexts.",
     storage: "conversations.extraction_state.checkpoint_gate.concrete_examples",
@@ -70,7 +125,8 @@ const FIELDS: Field[] = [
     type: "number (optional, recent)",
     category: "gate",
     loadBearing: "load-bearing",
-    summary: "Count of *different* situations narrated (not moments inside one situation).",
+    summary:
+      "Count of *different* situations narrated (not moments inside one situation).",
     represents:
       "Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments in one phone call = 1 distinct context, not 4. Promoted from prose to gate logic recently.",
     storage: "conversations.extraction_state.checkpoint_gate.distinct_contexts",
@@ -148,7 +204,8 @@ const FIELDS: Field[] = [
     type: "boolean (sticky)",
     category: "phase",
     loadBearing: "load-bearing",
-    summary: "Jove named a pattern AND user engaged with it (not deflected). Sticky once true.",
+    summary:
+      "Jove named a pattern AND user engaged with it (not deflected). Sticky once true.",
     represents:
       "Whether Jove has named a pattern in conversation AND the user has engaged with it (elaborated, added an example, sat with it). Sticky once true unless the user explicitly rejects the pattern.",
     storage: "conversations.extraction_state.pattern_engaged",
@@ -270,6 +327,7 @@ const FIELDS: Field[] = [
     gates: "None directly. Count feeds concrete_examples, which is what surfaces.",
     notes: "Prune candidate — extractor-internal bookkeeping, no downstream reader.",
   },
+
   // ── Auxiliary signals ────────────────────────────────────────────────────
   {
     path: "depth",
@@ -301,7 +359,8 @@ const FIELDS: Field[] = [
       { where: "call-persona.ts:363", what: "Dev-only debug log" },
     ],
     gates: "None.",
-    notes: "Derivable from manualComponents.length. Distinct from conversations.mode (unrelated).",
+    notes:
+      "Derivable from manualComponents.length. Distinct from conversations.mode (unrelated).",
   },
   {
     path: "current_thread",
@@ -331,7 +390,8 @@ const FIELDS: Field[] = [
       { where: "extraction.ts:493 (formatExtractionForPersona)", what: "Drives 'full reset' / 'pure grounding' instructions in brief when ≥2" },
     ],
     gates: "Soft control — at 3, Jove is told to drop observations.",
-    notes: "Could be deterministic (count post-rejection system messages + short-answer streaks).",
+    notes:
+      "Could be deterministic (count post-rejection system messages + short-answer streaks).",
   },
   {
     path: "user_named_cost",
@@ -378,34 +438,59 @@ const FIELDS: Field[] = [
   },
 ];
 
+const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";
+
+// ---------------------------------------------------------------------------
+// Selection
+// ---------------------------------------------------------------------------
+
+type Selection = { kind: "field"; path: string };
+
+function selectionKey(s: Selection | null): string | null {
+  if (!s) return null;
+  return `field:${s.path}`;
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
-type FilterKey = "all" | "load-bearing" | CategoryId;
-
 export default function ExtractionMapPage() {
   const isAdmin = useIsAdmin();
-  const [filter, setFilter] = useState<FilterKey>("all");
-  const [expandedPath, setExpandedPath] = useState<string | null>(null);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [selection, setSelection] = useState<Selection | null>(null);
 
-  const filteredFields = useMemo(() => {
-    if (filter === "all") return FIELDS;
-    if (filter === "load-bearing")
-      return FIELDS.filter((f) => f.loadBearing === "load-bearing");
-    return FIELDS.filter((f) => f.category === filter);
-  }, [filter]);
+  const stage = STAGES[stageIndex];
 
-  const counts = useMemo(() => {
-    const byCat = new Map<CategoryId, number>();
-    for (const f of FIELDS) byCat.set(f.category, (byCat.get(f.category) ?? 0) + 1);
-    return {
-      total: FIELDS.length,
-      loadBearing: FIELDS.filter((f) => f.loadBearing === "load-bearing").length,
-      auxiliary: FIELDS.filter((f) => f.loadBearing === "auxiliary").length,
-      byCat,
-    };
-  }, []);
+  // Which categories the current stage highlights. null = overview/worked-example
+  // → no dimming (everything visible).
+  const highlightedCategories: Set<CategoryId> | null = useMemo(() => {
+    switch (stage.id) {
+      case 2:
+        return new Set<CategoryId>(["composer"]); // sage_brief is shown alone
+      case 3:
+        return new Set<CategoryId>(["gate"]);
+      case 4:
+        return new Set<CategoryId>(["phase"]);
+      case 5:
+        return new Set<CategoryId>(["composer"]);
+      case 6:
+        return new Set<CategoryId>(["layers"]);
+      case 7:
+        return new Set<CategoryId>(["auxiliary"]);
+      default:
+        return null;
+    }
+  }, [stage.id]);
+
+  const handleSelect = (next: Selection | null) => {
+    setSelection((cur) => {
+      const curKey = selectionKey(cur);
+      const nextKey = selectionKey(next);
+      if (curKey === nextKey) return null;
+      return next;
+    });
+  };
 
   if (!isAdmin) {
     return (
@@ -463,70 +548,72 @@ export default function ExtractionMapPage() {
             overflow: "hidden",
           }}
         >
-          {/* Header strip */}
-          <div
-            style={{
-              borderBottom: "1px solid var(--session-ink-hairline)",
-              padding: "18px 32px",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 18,
-              alignItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "22px",
-                fontWeight: 400,
-                fontStyle: "italic",
-                color: "var(--session-ink)",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              Extraction consumer map
-            </div>
-            <div
-              style={{
-                width: 1,
-                height: 22,
-                background: "var(--session-ink-hairline)",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "12px",
-                color: "var(--session-ink-ghost)",
-                letterSpacing: "0.5px",
-              }}
-            >
-              {counts.total} fields · {counts.loadBearing} load-bearing · {counts.auxiliary} auxiliary
-            </span>
-          </div>
+          <Header />
 
-          {/* Scrollable content */}
           <div
             style={{
               flex: 1,
-              overflowY: "auto",
-              padding: "28px 32px 80px",
+              display: "grid",
+              gridTemplateColumns: "1.55fr 1fr",
+              gap: 32,
+              padding: "28px 32px",
+              minHeight: 0,
+              overflow: "hidden",
             }}
           >
-            <FlowDiagram />
+            <div style={{ overflowY: "auto", paddingRight: 12 }}>
+              <Diagram
+                stageId={stage.id}
+                highlightedCategories={highlightedCategories}
+                selection={selection}
+                onSelect={handleSelect}
+              />
+            </div>
 
-            <FilterChips
-              filter={filter}
-              setFilter={setFilter}
-              counts={counts}
-            />
-
-            <FieldList
-              fields={filteredFields}
-              expandedPath={expandedPath}
-              setExpandedPath={setExpandedPath}
-            />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                minHeight: 0,
+              }}
+            >
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  background: "var(--session-linen)",
+                  paddingBottom: 16,
+                  marginBottom: 16,
+                  borderBottom: "1px solid var(--session-ink-hairline)",
+                  zIndex: 1,
+                }}
+              >
+                <Stepper
+                  stageIndex={stageIndex}
+                  setStageIndex={(i) => {
+                    setStageIndex(i);
+                    setSelection(null);
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                {selection ? (
+                  <FieldDetail
+                    field={FIELDS.find((f) => f.path === selection.path)!}
+                    onClose={() => setSelection(null)}
+                  />
+                ) : (
+                  <StageCaption stage={stage} />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -535,93 +622,530 @@ export default function ExtractionMapPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Top: flow diagram (text-based, no SVG)
+// Header + Stepper
 // ---------------------------------------------------------------------------
 
-function FlowDiagram() {
-  const destinations: { label: string; sub: string }[] = [
-    { label: "Checkpoint gate",       sub: "Can a checkpoint fire?" },
-    { label: "Jove's brief",          sub: "3-5 sentence per-turn orientation" },
-    { label: "Composer",              sub: "How the Manual entry reads" },
-    { label: "Modals",                sub: "Halfway-there + others" },
-    { label: "Chat input",            sub: "Placeholder text" },
-  ];
+function Header() {
   return (
     <div
       style={{
-        marginBottom: 28,
-        padding: "20px 22px",
-        background: "var(--session-walnut-tint)",
-        border: "1px solid var(--session-ink-hairline)",
-        borderRadius: 10,
+        borderBottom: "1px solid var(--session-ink-hairline)",
+        padding: "18px 32px",
+        flexShrink: 0,
       }}
     >
+      <div
+        style={{
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: "22px",
+          fontWeight: 400,
+          fontStyle: "italic",
+          color: "var(--session-ink)",
+          letterSpacing: "-0.005em",
+        }}
+      >
+        Extraction consumer map
+      </div>
       <p
         style={{
-          margin: "0 0 14px",
+          margin: "8px 0 0",
           fontFamily: "var(--font-spectral, var(--font-serif))",
-          fontSize: "15px",
+          fontSize: "14.5px",
           lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+          maxWidth: 820,
+        }}
+      >
+        What Jove&rsquo;s background extraction call produces every turn — {FIELDS.length} fields written into one JSON blob — and which parts of the system read each one. Step through the layers, then click any field to see its source, every place it&rsquo;s read, and what it gates.
+      </p>
+    </div>
+  );
+}
+
+function Stepper({
+  stageIndex,
+  setStageIndex,
+}: {
+  stageIndex: number;
+  setStageIndex: (i: number) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
+        disabled={stageIndex === 0}
+        aria-label="Previous stage"
+        style={arrowBtnStyle(stageIndex === 0)}
+      >
+        ←
+      </button>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          flex: 1,
+          justifyContent: "space-between",
+        }}
+      >
+        {STAGES.map((s, i) => {
+          const active = i === stageIndex;
+          const visited = i <= stageIndex;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setStageIndex(i)}
+              aria-label={`Stage ${s.id}: ${s.title}`}
+              title={s.title}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                width: 24,
+                height: 24,
+                borderRadius: 999,
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: active
+                  ? "var(--session-walnut-highlight)"
+                  : visited
+                    ? "var(--session-walnut-tint)"
+                    : "transparent",
+                color: active
+                  ? "var(--session-ink)"
+                  : visited
+                    ? "var(--session-ink-soft)"
+                    : "var(--session-ink-ghost)",
+                border: `1px solid ${
+                  active
+                    ? "var(--session-walnut-border)"
+                    : "var(--session-walnut-border-soft)"
+                }`,
+                fontWeight: active ? 500 : 400,
+              }}
+            >
+              {s.id}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
+        disabled={stageIndex === STAGES.length - 1}
+        aria-label="Next stage"
+        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
+      >
+        →
+      </button>
+    </div>
+  );
+}
+
+function arrowBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    all: "unset",
+    cursor: disabled ? "default" : "pointer",
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    fontFamily: "var(--font-mono)",
+    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: disabled ? "var(--session-ink-ghost)" : "var(--session-ink-soft)",
+    background: disabled ? "transparent" : "var(--session-walnut-tint)",
+    border: `1px solid ${
+      disabled
+        ? "var(--session-walnut-border-soft)"
+        : "var(--session-walnut-border)"
+    }`,
+    opacity: disabled ? 0.5 : 1,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Right column — stage caption or field detail
+// ---------------------------------------------------------------------------
+
+function StageCaption({ stage }: { stage: Stage }) {
+  return (
+    <>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+        }}
+      >
+        Stage {stage.id}
+      </div>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
           color: "var(--session-ink)",
         }}
       >
-        Every turn, a background Sonnet call reads the conversation and writes
-        one JSON blob to{" "}
+        {stage.title}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 15.5,
+          lineHeight: 1.6,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {stage.caption}
+      </p>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink-ghost)",
+          fontStyle: "italic",
+        }}
+      >
+        Click any field card to inspect its storage, readers, and gating role.
+      </p>
+    </>
+  );
+}
+
+function FieldDetail({
+  field,
+  onClose,
+}: {
+  field: Field;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.5px",
+            color: "var(--session-walnut-meta)",
+            textTransform: "uppercase",
+          }}
+        >
+          {CATEGORY_LABEL[field.category]}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9.5,
+              letterSpacing: "1.2px",
+              fontWeight: 500,
+              padding: "2px 6px",
+              borderRadius: 3,
+              background:
+                field.loadBearing === "load-bearing"
+                  ? "var(--session-persona-muted)"
+                  : "var(--session-walnut-tint)",
+              color:
+                field.loadBearing === "load-bearing"
+                  ? "var(--session-persona)"
+                  : "var(--session-ink-ghost)",
+              border: `1px solid ${
+                field.loadBearing === "load-bearing"
+                  ? "var(--session-persona-border)"
+                  : "var(--session-walnut-border-soft)"
+              }`,
+            }}
+          >
+            {field.loadBearing === "load-bearing" ? "LOAD-BEARING" : "AUXILIARY"}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-soft)",
+            padding: "4px 10px",
+            borderRadius: 5,
+            border: "1px solid var(--session-walnut-border-soft)",
+            background: "var(--session-walnut-tint)",
+          }}
+          aria-label="Close detail"
+        >
+          ← Back to stage
+        </button>
+      </div>
+
+      <code
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 16,
+          color: "var(--session-ink)",
+          fontWeight: 500,
+          wordBreak: "break-word",
+        }}
+      >
+        {field.path}
+      </code>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {field.type}
+      </div>
+
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.6,
+          color: "var(--session-ink)",
+        }}
+      >
+        {field.represents}
+      </p>
+
+      <DetailSection title="Stored at">
         <code
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "13px",
+            fontSize: 12,
             color: "var(--session-ink)",
             background: "var(--session-walnut-surface-soft)",
-            padding: "1px 6px",
-            borderRadius: 3,
+            padding: "4px 8px",
+            borderRadius: 4,
+            display: "inline-block",
+            wordBreak: "break-word",
           }}
         >
-          conversations.extraction_state
+          {field.storage}
         </code>
-        . That blob feeds five downstream surfaces:
-      </p>
+      </DetailSection>
 
+      <DetailSection title={`Readers (${field.readers.length})`}>
+        {field.readers.length === 0 ? (
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-spectral, var(--font-serif))",
+              fontSize: 13,
+              fontStyle: "italic",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            None. No downstream code reads this — pure prune candidate.
+          </p>
+        ) : (
+          field.readers.map((r) => (
+            <div
+              key={r.where}
+              style={{
+                padding: "6px 10px",
+                background: "var(--session-walnut-tint)",
+                border: "1px solid var(--session-walnut-border-soft)",
+                borderRadius: 5,
+              }}
+            >
+              <code
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11.5,
+                  color: "var(--session-ink)",
+                  fontWeight: 500,
+                  display: "block",
+                  marginBottom: 3,
+                }}
+              >
+                {r.where}
+              </code>
+              <div
+                style={{
+                  fontFamily: "var(--font-spectral, var(--font-serif))",
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                  color: "var(--session-ink-soft)",
+                }}
+              >
+                {r.what}
+              </div>
+            </div>
+          ))
+        )}
+      </DetailSection>
+
+      <DetailSection title="What it gates">
+        <p
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: 13.5,
+            lineHeight: 1.5,
+            color: "var(--session-ink)",
+          }}
+        >
+          {field.gates}
+        </p>
+      </DetailSection>
+
+      {field.notes && (
+        <DetailSection title="Notes">
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-spectral, var(--font-serif))",
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              color: "var(--session-ink-soft)",
+              fontStyle: "italic",
+            }}
+          >
+            {field.notes}
+          </p>
+        </DetailSection>
+      )}
+    </>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        paddingTop: 12,
+        borderTop: "1px solid var(--session-walnut-border-soft)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1px",
+          textTransform: "uppercase",
+          color: "var(--session-ink-ghost)",
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reading guide — vocabulary primer
+// ---------------------------------------------------------------------------
+
+const READING_GUIDE: { term: string; def: string }[] = [
+  { term: "extraction_state", def: "JSONB column on conversations. Where the extractor writes; where the next turn's prompt reads." },
+  { term: "JSONB", def: "A flexible JSON column. Schema lives inside the value, not the table." },
+  { term: "sage_brief", def: "Jove's per-turn cheat sheet — 3-5 sentences. Empty = Jove flies blind." },
+  { term: "checkpoint", def: "Moment when Jove proposes a Manual entry. The gate decides if it can fire." },
+  { term: "pattern_engaged", def: "Sticky flag — Jove named a pattern AND the user engaged with it. Hard gate on checkpoints." },
+  { term: "load-bearing", def: "Has at least one downstream reader (vs auxiliary, which exists but no consumer reads it)." },
+];
+
+function ReadingGuide() {
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        borderRadius: 8,
+        background: "var(--session-walnut-tint)",
+        border: "1px dashed var(--session-walnut-border-soft)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        Reading guide
+      </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: 10,
+          gridTemplateColumns: "max-content 1fr",
+          columnGap: 14,
+          rowGap: 4,
         }}
       >
-        {destinations.map((d) => (
-          <div
-            key={d.label}
-            style={{
-              padding: "10px 12px",
-              background: "var(--session-linen)",
-              border: "1px solid var(--session-ink-hairline)",
-              borderRadius: 6,
-            }}
-          >
-            <div
+        {READING_GUIDE.map((g) => (
+          <Fragment key={g.term}>
+            <code
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "11px",
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: "var(--session-walnut-meta)",
-                marginBottom: 4,
+                fontSize: 11.5,
+                color: "var(--session-ink)",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
               }}
             >
-              {d.label}
-            </div>
-            <div
+              {g.term}
+            </code>
+            <span
               style={{
                 fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: "13.5px",
-                lineHeight: 1.4,
+                fontSize: 12.5,
                 color: "var(--session-ink-soft)",
+                lineHeight: 1.4,
               }}
             >
-              {d.sub}
-            </div>
-          </div>
+              {g.def}
+            </span>
+          </Fragment>
         ))}
       </div>
     </div>
@@ -629,89 +1153,171 @@ function FlowDiagram() {
 }
 
 // ---------------------------------------------------------------------------
-// Filter chips
+// Diagram
 // ---------------------------------------------------------------------------
 
-function FilterChips({
-  filter,
-  setFilter,
-  counts,
+function Diagram({
+  stageId,
+  highlightedCategories,
+  selection,
+  onSelect,
 }: {
-  filter: FilterKey;
-  setFilter: (k: FilterKey) => void;
-  counts: { total: number; loadBearing: number; byCat: Map<CategoryId, number> };
+  stageId: number;
+  highlightedCategories: Set<CategoryId> | null;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
 }) {
-  const chips: { key: FilterKey; label: string; count: number }[] = [
-    { key: "all",          label: "All",          count: counts.total },
-    { key: "load-bearing", label: "Load-bearing", count: counts.loadBearing },
-    ...CATEGORIES.map((c) => ({
-      key: c.id as FilterKey,
-      label: c.title,
-      count: counts.byCat.get(c.id) ?? 0,
-    })),
-  ];
+  if (stageId === 8) {
+    return (
+      <>
+        <ReadingGuide />
+        <WorkedExampleFooter />
+      </>
+    );
+  }
+
+  // Stage 2 is the brief deep-dive — show sage_brief as a hero card on its own
+  // with the rest dimmed.
+  if (stageId === 2) {
+    const sageBrief = FIELDS.find((f) => f.path === "sage_brief")!;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <ReadingGuide />
+        <HeroFieldCard
+          field={sageBrief}
+          selected={
+            selection?.kind === "field" && selection.path === sageBrief.path
+          }
+          onClick={() => onSelect({ kind: "field", path: sageBrief.path })}
+        />
+        <CategoryGroups
+          highlightedCategories={null}
+          dimmed
+          selection={selection}
+          onSelect={onSelect}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 8,
-        marginBottom: 18,
-        alignItems: "center",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "11px",
-          letterSpacing: "1.5px",
-          color: "var(--session-ink-ghost)",
-          marginRight: 4,
-        }}
-      >
-        FILTER
-      </span>
-      {chips.map((c) => {
-        const active = filter === c.key;
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <ReadingGuide />
+      <CategoryGroups
+        highlightedCategories={highlightedCategories}
+        dimmed={false}
+        selection={selection}
+        onSelect={onSelect}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CategoryGroups — five groups stacked vertically. Each group is a panel
+// of field cards; opacity drops when category isn't in the highlighted set.
+// ---------------------------------------------------------------------------
+
+function CategoryGroups({
+  highlightedCategories,
+  dimmed,
+  selection,
+  onSelect,
+}: {
+  highlightedCategories: Set<CategoryId> | null;
+  dimmed: boolean;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+}) {
+  const groups: { category: CategoryId; fields: Field[] }[] = [
+    { category: "gate", fields: FIELDS.filter((f) => f.category === "gate") },
+    { category: "phase", fields: FIELDS.filter((f) => f.category === "phase") },
+    { category: "composer", fields: FIELDS.filter((f) => f.category === "composer") },
+    { category: "layers", fields: FIELDS.filter((f) => f.category === "layers") },
+    { category: "auxiliary", fields: FIELDS.filter((f) => f.category === "auxiliary") },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {groups.map((g) => {
+        const isHighlighted =
+          !dimmed && (!highlightedCategories || highlightedCategories.has(g.category));
         return (
-          <button
-            key={c.key}
-            type="button"
-            onClick={() => setFilter(c.key)}
+          <div
+            key={g.category}
             style={{
-              all: "unset",
-              cursor: "pointer",
-              padding: "5px 11px",
-              borderRadius: 999,
-              fontFamily: "var(--font-sans)",
-              fontSize: "12.5px",
-              letterSpacing: "0.1px",
-              color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
-              background: active
-                ? "var(--session-walnut-highlight)"
-                : "var(--session-walnut-tint)",
-              border: active
-                ? "1px solid var(--session-walnut-border)"
-                : "1px solid var(--session-ink-hairline)",
-              fontWeight: active ? 500 : 400,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
+              opacity: isHighlighted ? 1 : 0.3,
+              transition: "opacity 220ms ease",
+              padding: 12,
+              borderRadius: 8,
+              background: isHighlighted
+                ? "var(--session-walnut-tint)"
+                : "transparent",
+              border: `1px solid ${
+                isHighlighted
+                  ? "var(--session-walnut-border-soft)"
+                  : "var(--session-walnut-border-soft)"
+              }`,
             }}
           >
-            <span>{c.label}</span>
-            <span
+            <div
               style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10.5px",
-                color: "var(--session-ink-ghost)",
-                fontWeight: 400,
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: 8,
+                marginBottom: 8,
               }}
             >
-              {c.count}
-            </span>
-          </button>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10.5,
+                  letterSpacing: "1.5px",
+                  color: "var(--session-walnut-meta)",
+                  textTransform: "uppercase",
+                }}
+              >
+                {CATEGORY_LABEL[g.category]}
+                <span
+                  style={{
+                    marginLeft: 6,
+                    color: "var(--session-ink-ghost)",
+                    fontWeight: 400,
+                  }}
+                >
+                  {g.fields.length}
+                </span>
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 9.5,
+                  color: "var(--session-ink-ghost)",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                {g.fields.filter((f) => f.loadBearing === "load-bearing").length} load-bearing
+              </span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 6,
+              }}
+            >
+              {g.fields.map((f) => (
+                <FieldCard
+                  key={f.path}
+                  field={f}
+                  selected={
+                    selection?.kind === "field" && selection.path === f.path
+                  }
+                  onClick={() => onSelect({ kind: "field", path: f.path })}
+                />
+              ))}
+            </div>
+          </div>
         );
       })}
     </div>
@@ -719,223 +1325,464 @@ function FilterChips({
 }
 
 // ---------------------------------------------------------------------------
-// Field list — compact rows, expandable
+// Field card — small clickable cell
 // ---------------------------------------------------------------------------
 
-function FieldList({
-  fields,
-  expandedPath,
-  setExpandedPath,
-}: {
-  fields: Field[];
-  expandedPath: string | null;
-  setExpandedPath: (p: string | null) => void;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid var(--session-ink-hairline)",
-        borderRadius: 8,
-        background: "var(--session-walnut-tint)",
-        overflow: "hidden",
-      }}
-    >
-      {fields.map((f, i) => (
-        <FieldRow
-          key={f.path}
-          field={f}
-          expanded={expandedPath === f.path}
-          onToggle={() =>
-            setExpandedPath(expandedPath === f.path ? null : f.path)
-          }
-          isLast={i === fields.length - 1}
-        />
-      ))}
-      {fields.length === 0 && (
-        <div
-          style={{
-            padding: 28,
-            textAlign: "center",
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            color: "var(--session-ink-ghost)",
-            letterSpacing: "0.5px",
-          }}
-        >
-          No fields match this filter.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FieldRow({
+function FieldCard({
   field,
-  expanded,
-  onToggle,
-  isLast,
+  selected,
+  onClick,
 }: {
   field: Field;
-  expanded: boolean;
-  onToggle: () => void;
-  isLast: boolean;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const lb = field.loadBearing === "load-bearing";
-  const dotColor = lb ? "var(--session-walnut, #6e3a1e)" : "var(--session-ink-ghost)";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "block",
+        padding: "8px 10px",
+        background: "var(--session-walnut-surface-soft)",
+        border: `1px solid ${
+          field.loadBearing === "load-bearing"
+            ? "var(--session-walnut-border)"
+            : "var(--session-walnut-border-soft)"
+        }`,
+        borderRadius: 6,
+        boxShadow: selected ? SELECTED_RING : "none",
+        textAlign: "left",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 6,
+          marginBottom: 3,
+        }}
+      >
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12.5,
+            fontWeight: 500,
+            color: "var(--session-ink)",
+            wordBreak: "break-word",
+          }}
+        >
+          {field.path}
+        </code>
+        {field.loadBearing === "auxiliary" && (
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9,
+              letterSpacing: "0.5px",
+              color: "var(--session-ink-ghost)",
+              textTransform: "uppercase",
+              flexShrink: 0,
+            }}
+          >
+            aux
+          </span>
+        )}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12,
+          fontStyle: "italic",
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.35,
+        }}
+      >
+        {field.summary}
+      </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2 hero card — sage_brief gets its own moment
+// ---------------------------------------------------------------------------
+
+function HeroFieldCard({
+  field,
+  selected,
+  onClick,
+}: {
+  field: Field;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "block",
+        padding: 18,
+        background: "var(--session-walnut-surface)",
+        border: "1px solid var(--session-walnut-border)",
+        borderRadius: 10,
+        boxShadow: selected ? SELECTED_RING : "none",
+        textAlign: "left",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta-strong)",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        The brief · {field.type}
+      </div>
+      <code
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 24,
+          fontWeight: 500,
+          color: "var(--session-ink)",
+          display: "block",
+          marginBottom: 10,
+        }}
+      >
+        {field.path}
+      </code>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 15,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {field.represents}
+      </p>
+      <div
+        style={{
+          marginTop: 12,
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          color: "var(--session-ink-ghost)",
+          letterSpacing: "0.5px",
+        }}
+      >
+        {field.readers.length} readers · {field.gates}
+      </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Worked example footer
+// ---------------------------------------------------------------------------
+
+function WorkedExampleFooter() {
+  const total = FIELDS.length;
+  const loadBearing = FIELDS.filter((f) => f.loadBearing === "load-bearing").length;
+  const auxiliary = FIELDS.filter((f) => f.loadBearing === "auxiliary").length;
+  const totalReaders = FIELDS.reduce((s, f) => s + f.readers.length, 0);
+  const pruneCandidates = FIELDS.filter(
+    (f) => f.notes?.toLowerCase().includes("prune candidate") || f.readers.length === 0,
+  ).length;
+  const categoryCounts: { category: CategoryId; count: number }[] = (
+    ["gate", "phase", "composer", "layers", "auxiliary"] as CategoryId[]
+  ).map((c) => ({
+    category: c,
+    count: FIELDS.filter((f) => f.category === c).length,
+  }));
+
+  const categoryColors: Record<CategoryId, string> = {
+    gate: "var(--session-walnut-surface)",
+    phase: "var(--session-warning-soft)",
+    composer: "var(--session-walnut-surface-soft)",
+    layers: "var(--session-persona-muted)",
+    auxiliary: "var(--session-walnut-tint)",
+  };
+
+  // Destinations matrix — count fields per downstream surface.
+  const destinations: { label: string; count: number; oneLine: string }[] = [
+    {
+      label: "Jove's brief",
+      count: FIELDS.filter((f) =>
+        f.readers.some((r) => r.where.includes("formatExtractionForPersona")),
+      ).length,
+      oneLine: "Rendered into the per-turn brief block that Jove reads first.",
+    },
+    {
+      label: "Checkpoint gate",
+      count: FIELDS.filter((f) =>
+        f.readers.some((r) => r.where.includes("validateMaterialQuality")),
+      ).length,
+      oneLine: "Inputs to the validateMaterialQuality check before composing.",
+    },
+    {
+      label: "Composer",
+      count: FIELDS.filter((f) =>
+        f.readers.some(
+          (r) => r.where.includes("composeManualEntry") || r.where.includes("confirm-checkpoint"),
+        ),
+      ).length,
+      oneLine: "Passed into the Manual entry composer prompt verbatim.",
+    },
+    {
+      label: "Modals",
+      count: FIELDS.filter((f) =>
+        f.readers.some(
+          (r) => r.where.includes("MobileSession") || r.where.includes("Modal"),
+        ),
+      ).length,
+      oneLine: "Drives the in-conversation modals (Modal 2 / halfway-there).",
+    },
+    {
+      label: "SSE payload",
+      count: FIELDS.filter((f) =>
+        f.readers.some((r) => r.where.includes("SSE payload")),
+      ).length,
+      oneLine: "Streamed to the client for chat-input hints and UI state.",
+    },
+  ];
 
   return (
     <div
       style={{
-        borderBottom: isLast ? "none" : "1px solid var(--session-ink-hairline)",
-        background: expanded ? "var(--session-walnut-surface-soft)" : "transparent",
+        padding: 18,
+        borderRadius: 12,
+        border: "1px solid var(--session-walnut-border)",
+        background: "var(--session-walnut-tint)",
+        marginTop: 18,
       }}
     >
-      {/* Collapsed row — always rendered, full-width clickable */}
-      <button
-        type="button"
-        onClick={onToggle}
+      <div
         style={{
-          all: "unset",
-          cursor: "pointer",
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
-          gap: 14,
-          alignItems: "center",
-          padding: "12px 16px",
-          width: "100%",
-          boxSizing: "border-box",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta-strong)",
+          textTransform: "uppercase",
+          marginBottom: 12,
         }}
       >
-        {/* Load-bearing dot */}
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 99,
-            background: dotColor,
-            opacity: lb ? 1 : 0.45,
-            flexShrink: 0,
-          }}
-          aria-label={lb ? "load-bearing" : "auxiliary"}
-        />
+        Extraction by the numbers
+      </div>
 
-        {/* Name + summary */}
-        <div style={{ minWidth: 0 }}>
-          <code
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "13.5px",
-              color: "var(--session-ink)",
-              fontWeight: 500,
-              display: "block",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {field.path}
-          </code>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          gap: 14,
+          marginBottom: 18,
+        }}
+      >
+        <HeroStat value={total} label="Fields" />
+        <HeroStat value={loadBearing} label="Load-bearing" />
+        <HeroStat value={auxiliary} label="Auxiliary" />
+        <HeroStat value={totalReaders} label="Reader sites" />
+        <HeroStat value={pruneCandidates} label="Prune candidates" />
+      </div>
+
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+          marginBottom: 6,
+        }}
+      >
+        Fields by category
+      </div>
+      <div
+        style={{
+          display: "flex",
+          height: 12,
+          borderRadius: 4,
+          overflow: "hidden",
+          border: "1px solid var(--session-walnut-border-soft)",
+          marginBottom: 8,
+        }}
+      >
+        {categoryCounts.map((c) => (
           <div
+            key={c.category}
             style={{
-              fontFamily: "var(--font-spectral, var(--font-serif))",
-              fontSize: "13.5px",
-              lineHeight: 1.4,
+              flexGrow: c.count,
+              background: categoryColors[c.category],
+              minWidth: 0,
+            }}
+            title={`${CATEGORY_LABEL[c.category]}: ${c.count}`}
+          />
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+        {categoryCounts.map((c) => (
+          <div
+            key={c.category}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
               color: "var(--session-ink-soft)",
-              marginTop: 2,
+              letterSpacing: "0.5px",
             }}
           >
-            {field.summary}
+            <span
+              style={{
+                width: 9,
+                height: 9,
+                borderRadius: 2,
+                background: categoryColors[c.category],
+                border: "1px solid var(--session-walnut-border-soft)",
+                display: "inline-block",
+              }}
+            />
+            {CATEGORY_LABEL[c.category]}
+            <span style={{ color: "var(--session-ink-ghost)" }}>{c.count}</span>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Chevron */}
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "12px",
-            color: "var(--session-ink-ghost)",
-            transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-            transition: "transform 120ms ease",
-            flexShrink: 0,
-          }}
-          aria-hidden="true"
-        >
-          ›
-        </span>
-      </button>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        Where the fields land
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {destinations.map((d) => (
+          <div
+            key={d.label}
+            style={{
+              padding: "10px 12px",
+              background: "var(--session-walnut-surface-soft)",
+              border: "1px solid var(--session-walnut-border-soft)",
+              borderRadius: 6,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: 8,
+                marginBottom: 4,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--session-ink)",
+                }}
+              >
+                {d.label}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-spectral, var(--font-serif))",
+                  fontSize: 18,
+                  fontStyle: "italic",
+                  color: "var(--session-ink)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {d.count}
+              </span>
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-spectral, var(--font-serif))",
+                fontSize: 12,
+                fontStyle: "italic",
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.4,
+              }}
+            >
+              {d.oneLine}
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Expanded detail */}
-      {expanded && <FieldDetail field={field} />}
+      <div
+        style={{
+          marginTop: 16,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12.5,
+          fontStyle: "italic",
+          color: "var(--session-ink-ghost)",
+          lineHeight: 1.5,
+        }}
+      >
+        Counts derived from the readers array on each field — when a field is
+        wired into a new consumer, update its readers in this file and the
+        destination totals recompute automatically.
+      </div>
     </div>
   );
 }
 
-function FieldDetail({ field }: { field: Field }) {
+function HeroStat({ value, label }: { value: number; label: string }) {
   return (
-    <div
-      style={{
-        padding: "0 16px 18px 38px", // align with summary text under the dot
-        display: "grid",
-        gridTemplateColumns: "max-content 1fr",
-        columnGap: 14,
-        rowGap: 10,
-        fontFamily: "var(--font-sans)",
-        fontSize: "13px",
-        lineHeight: 1.55,
-        color: "var(--session-ink-soft)",
-        borderTop: "1px solid var(--session-walnut-border-soft)",
-        paddingTop: 14,
-        marginTop: 0,
-      }}
-    >
-      <span style={{ color: "var(--session-ink-ghost)" }}>Type</span>
-      <code style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-        {field.type}
-      </code>
-
-      <span style={{ color: "var(--session-ink-ghost)" }}>What it is</span>
-      <span style={{ color: "var(--session-ink)" }}>{field.represents}</span>
-
-      <span style={{ color: "var(--session-ink-ghost)" }}>Storage</span>
-      <code style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-        {field.storage}
-      </code>
-
-      <span style={{ color: "var(--session-ink-ghost)" }}>Readers</span>
-      <ul
+    <div>
+      <div
         style={{
-          margin: 0,
-          paddingLeft: 16,
-          listStyle: "disc",
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 36,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1,
+          color: "var(--session-ink)",
+          fontVariantNumeric: "tabular-nums",
         }}
       >
-        {field.readers.map((r, i) => (
-          <li key={i} style={{ marginBottom: 3 }}>
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "12px",
-                color: "var(--session-ink)",
-              }}
-            >
-              {r.where}
-            </code>{" "}
-            <span style={{ color: "var(--session-ink-soft)" }}>— {r.what}</span>
-          </li>
-        ))}
-      </ul>
-
-      <span style={{ color: "var(--session-ink-ghost)" }}>Gates</span>
-      <span>{field.gates}</span>
-
-      {field.notes && (
-        <>
-          <span style={{ color: "var(--session-ink-ghost)" }}>Note</span>
-          <span style={{ fontStyle: "italic", color: "var(--session-ink-soft)" }}>
-            {field.notes}
-          </span>
-        </>
-      )}
+        {value}
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: "1px",
+          color: "var(--session-ink-ghost)",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
     </div>
   );
 }
