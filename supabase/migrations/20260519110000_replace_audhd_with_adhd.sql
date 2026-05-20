@@ -6,10 +6,12 @@
 -- model composes them. See docs/decisions.md for the design rationale.
 --
 -- Migration steps:
---   1. Replace 'audhd' element with 'autistic' + 'adhd' in every row
+--   1. Drop the old CHECK constraint (which allowed 'audhd' but not
+--      'adhd'). Must come before the data update — writing 'adhd' under
+--      the old constraint would violate it and roll the migration back.
+--   2. Replace 'audhd' element with 'autistic' + 'adhd' in every row
 --      that has it. Preserves the user's stated dual identity rather
 --      than dropping a piece. Deduplicates via array_agg(distinct).
---   2. Drop the old CHECK constraint (which allowed 'audhd' as a value).
 --   3. Add a new CHECK constraint with 'adhd' replacing 'audhd'.
 --   4. Update the column comment.
 --
@@ -17,7 +19,11 @@
 -- are test accounts plus the owner; no production user data depends on
 -- this. Safe to run.
 
--- Step 1: Migrate row-level data.
+-- Step 1: Drop the old constraint.
+alter table public.profiles
+  drop constraint if exists profiles_persona_modes_check;
+
+-- Step 2: Migrate row-level data.
 -- For each row where persona_modes contains 'audhd', rebuild the array
 -- as (existing - 'audhd') + ['autistic', 'adhd'], then dedupe.
 update public.profiles
@@ -28,10 +34,6 @@ set persona_modes = (
   ) as elem
 )
 where 'audhd' = any(persona_modes);
-
--- Step 2: Drop the old constraint.
-alter table public.profiles
-  drop constraint if exists profiles_persona_modes_check;
 
 -- Step 3: Add the new constraint with 'adhd' in place of 'audhd'.
 alter table public.profiles
