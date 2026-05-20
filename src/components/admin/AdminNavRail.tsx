@@ -16,12 +16,12 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
   },
   {
     id: "extraction-map",
-    label: "Extraction consumer map",
+    label: "Jove's extraction of user messages",
     href: "/admin/extraction-map",
   },
   {
     id: "schema-map",
-    label: "Schema map",
+    label: "Database schema",
     href: "/admin/schema-map",
   },
   { id: "skills", label: "Skills", href: "/admin/skills" },

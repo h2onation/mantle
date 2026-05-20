@@ -769,7 +769,7 @@ function Header() {
           letterSpacing: "-0.005em",
         }}
       >
-        Schema map
+        Database schema
       </div>
       <p
         style={{

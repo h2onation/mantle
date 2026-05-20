@@ -644,7 +644,7 @@ function Header() {
           letterSpacing: "-0.005em",
         }}
       >
-        Extraction consumer map
+        Jove&rsquo;s extraction of user messages
       </div>
       <p
         style={{
