@@ -429,14 +429,12 @@ export function parsePromptSections(
     const nextLineIndex = m + 1 < matches.length ? matches[m + 1].lineIndex : lines.length;
     const text = lines.slice(lineIndex, nextLineIndex).join("\n").trimEnd();
 
-    const label =
-      def.id === "tier2-voice"
-        ? `Tier 2 · Voice (${personaLabel(modes)})`
-        : def.label;
-
+    // Label is the static section name. The active persona is already carried
+    // by section.condition.label ("Persona: ADHD") — appending it to the title
+    // duplicated that and read as a qualifier on the section name itself.
     sections.push({
       id: def.id,
-      label,
+      label: def.label,
       tier: def.tier,
       text,
       tokens: estimateTokens(text),
