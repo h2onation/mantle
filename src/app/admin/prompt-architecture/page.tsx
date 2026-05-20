@@ -494,24 +494,6 @@ function PromptArchitectureInner() {
         </div>
       </div>
 
-      <style jsx>{`
-        .col-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
-          align-items: start;
-        }
-        @media (max-width: 1180px) {
-          .col-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-        @media (max-width: 720px) {
-          .col-grid {
-            grid-template-columns: minmax(0, 1fr);
-          }
-        }
-      `}</style>
     </div>
   );
 }
@@ -521,7 +503,18 @@ function PromptArchitectureInner() {
 // ---------------------------------------------------------------------------
 
 function ColumnsGrid({ children }: { children: React.ReactNode }) {
-  return <div className="col-grid">{children}</div>;
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+        gap: 14,
+        alignItems: "start",
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 function LoadingState() {

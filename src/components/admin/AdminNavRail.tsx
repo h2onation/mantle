@@ -26,6 +26,7 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
   },
   { id: "skills", label: "Skills", href: "/admin/skills" },
   { id: "vendors", label: "Vendors", href: "/admin/vendors" },
+  { id: "under-the-hood", label: "Under the hood", href: "/admin/under-the-hood" },
 ];
 
 export default function AdminNavRail({
