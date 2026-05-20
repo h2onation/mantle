@@ -961,11 +961,92 @@ describe("buildSystemPrompt", () => {
 
   // ─── Always-on Tier 3 blocks ─────────────────────────────────────────────
   describe("always-on Tier 3 blocks", () => {
-    it("SHORT ANSWERS walkthrough invitation is present", () => {
+    it("SHORT ANSWERS level-1 walkthrough invitation is present (direct phrasing)", () => {
+      // Sparring-partner direction: dropped the "Can you" prefix and the
+      // question mark on level 1. Walkthrough invitation is now a direct
+      // imperative — "Walk me through what happened" — matching the
+      // take-positions voice rule.
       const result = build();
       expect(result).toContain(
+        "Walk me through what happened, step by step. Start from right before it started."
+      );
+      // Old interrogative phrasing is gone:
+      expect(result).not.toContain(
         "Can you walk me through what happened, step by step?"
       );
+    });
+
+    describe("SHORT ANSWERS escalation ladder (push-for-material expansion)", () => {
+      it("contains the level-2 scene invitation", () => {
+        const result = build();
+        expect(result).toContain(
+          "Give me one specific moment. Where you were, what the room was like, what your body did. One scene is worth ten general answers."
+        );
+      });
+
+      it("contains the level-3 Manual-stakes ask", () => {
+        const result = build();
+        expect(result).toContain("I want more to work with");
+        expect(result).toContain("To put something in your Manual that's actually yours");
+        expect(result).toContain("A few paragraphs, not a sentence");
+      });
+
+      it("contains the take-your-time and dictation light suggestions in level 3", () => {
+        const result = build();
+        expect(result).toContain("Take your time");
+        expect(result).toContain(
+          "Type longer if you can — dictation works too if typing is the bottleneck"
+        );
+      });
+
+      it("authorizes light nudges and forward-looking practical suggestions", () => {
+        const result = build();
+        expect(result).toContain("Light nudges are fine");
+        expect(result).toContain(
+          "Forward-looking practical suggestions are sanctioned"
+        );
+      });
+
+      it("pins the across-the-line examples (brevity-as-complaint)", () => {
+        const result = build();
+        expect(result).toContain("you're being short");
+        expect(result).toContain("your answers are too short");
+        expect(result).toContain(
+          "frames the user as failing rather than the conversation as needing more rope"
+        );
+      });
+
+      it("caps the level-3 stakes move at ONCE per conversation", () => {
+        const result = build();
+        expect(result).toContain("Level-3 fires ONCE per conversation");
+        expect(result).toContain("Never repeat the dictation/take-your-time tip");
+      });
+
+      it("keeps the cumulative-thinness threshold (two turns + no scene)", () => {
+        const result = build();
+        expect(result).toContain(
+          "TWO consecutive responses are under 15 words AND no concrete scene has surfaced"
+        );
+      });
+
+      it("keeps the brief-is-valid posture (didn't flip to push-everyone)", () => {
+        // The new escalation adds a level-3 ask but doesn't retract the
+        // baseline tolerance for brief answers per turn. Autistic users
+        // giving direct factual answers still don't get pushed on every
+        // exchange.
+        const result = build();
+        expect(result).toContain(
+          "Brief per turn is valid. Direct and brief is a valid mode"
+        );
+        expect(result).toContain("Raise your tolerance on isolated short answers");
+      });
+
+      it("does NOT contain the old level-3 fallback ('try a different angle')", () => {
+        // Old level 3 was a generic 'try a different angle' move that didn't
+        // push for more material. New level 3 names the Manual stakes.
+        const result = build();
+        expect(result).not.toContain('Okay. Let me try a different angle.');
+      });
     });
 
     it("DEEPENING asks for scenes over labels", () => {
