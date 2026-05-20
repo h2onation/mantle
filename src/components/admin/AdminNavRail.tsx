@@ -9,6 +9,7 @@ const NAV_ITEMS: { id: string; label: string; href: string }[] = [
   { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
   { id: "health", label: "Health", href: "/admin?section=health" },
   { id: "docs", label: "Docs", href: "/admin/docs" },
+  { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
   {
     id: "prompt-architecture",
     label: `${PERSONA_NAME}'s prompt architecture`,
