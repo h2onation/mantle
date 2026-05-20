@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { requireAdmin } from "@/lib/admin/verify-admin";
+import docMtimes from "@/lib/admin/docs-mtime.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ const DOC_SOURCES: DocSource[] = [
   { name: "decisions", filename: "decisions.md", relative: "docs/decisions.md" },
 ];
 
+const MTIMES = docMtimes as Record<string, string>;
+
 export async function GET() {
   const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
@@ -35,10 +38,16 @@ export async function GET() {
           fs.readFile(filePath, "utf8"),
           fs.stat(filePath),
         ]);
+        // Prefer the git-captured last-commit time (written by
+        // scripts/capture-docs-mtime.mjs at build) — fs.stat().mtime
+        // lies in production because Vercel doesn't preserve file
+        // mtimes in the deployment bundle.
+        const lastModified =
+          MTIMES[src.relative] ?? stat.mtime.toISOString();
         return {
           name: src.name,
           filename: src.filename,
-          lastModified: stat.mtime.toISOString(),
+          lastModified,
           content,
         };
       } catch {

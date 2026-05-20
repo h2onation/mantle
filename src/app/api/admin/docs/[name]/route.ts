@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { requireAdmin } from "@/lib/admin/verify-admin";
+import docMtimes from "@/lib/admin/docs-mtime.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ const DOC_PATHS: Record<string, { filename: string; relative: string }> = {
   state: { filename: "state.md", relative: "docs/state.md" },
   decisions: { filename: "decisions.md", relative: "docs/decisions.md" },
 };
+
+const MTIMES = docMtimes as Record<string, string>;
 
 export async function GET(
   _req: Request,
@@ -33,10 +36,12 @@ export async function GET(
       fs.readFile(filePath, "utf8"),
       fs.stat(filePath),
     ]);
+    // Prefer git-captured mtime (see scripts/capture-docs-mtime.mjs).
+    const lastModified = MTIMES[entry.relative] ?? stat.mtime.toISOString();
     return Response.json({
       name: params.name,
       filename: entry.filename,
-      lastModified: stat.mtime.toISOString(),
+      lastModified,
       content,
     });
   } catch {
