@@ -60,7 +60,7 @@ const STAGES: Stage[] = [
     id: 1,
     title: "Layer 0 — the whole schema",
     caption:
-      "15 tables across public and auth schemas. Four make up the user-data spine; the rest are identity, operational telemetry, and signup-flow tables. Click any card for its columns, foreign keys, and notes.",
+      "Every table the app touches, grouped by role. Four make up the user-data spine; the rest handle identity, audit, telemetry, and signup. Click any card for its columns, foreign keys, and notes.",
   },
   {
     id: 2,
@@ -195,6 +195,7 @@ const TABLES: Table[] = [
       { name: "checkpoint_meta", type: "jsonb", plain: "When is_checkpoint is true: holds composed_content, composed_name, layer, refinement_count, status (pending/confirmed/rejected/refined).", emphasized: true },
       { name: "extraction_snapshot", type: "jsonb", plain: "Frozen copy of the conversation's extraction state at this turn. Lets you replay history.", emphasized: true },
       { name: "channel", type: "text", plain: "'web' or 'sms'. Tracks the message's origin surface." },
+      { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. First use: { chip_response: true } for guided-intake quick-reply taps." },
     ],
     connections: [
       {
@@ -298,6 +299,7 @@ const TABLES: Table[] = [
       { name: "verification_code", type: "text", plain: "Hashed OTP. Cleared after verification." },
       { name: "code_expires_at", type: "timestamptz", plain: "When the OTP expires." },
       { name: "service_type", type: "text", plain: "Which messaging provider routes for this number." },
+      { name: "otp_attempts", type: "integer", plain: "Brute-force-protection counter. Capped at OTP_MAX_ATTEMPTS (5). Verify route returns 429 once at cap. Resets on successful verify or fresh OTP send.", emphasized: true },
     ],
     connections: [
       {
@@ -308,6 +310,42 @@ const TABLES: Table[] = [
         explanation: "Phone links go away when the user is deleted.",
       },
     ],
+  },
+  {
+    name: "messaging_events",
+    layers: ["telemetry"],
+    oneLine: "Audit trail of every outbound send and inbound webhook.",
+    rowMeans:
+      "One SMS/iMessage event — either an outbound message Jove sent or an inbound webhook event from a provider (Sendblue or Linq).",
+    description:
+      "Telemetry for debugging send/receive issues across both messaging providers. Inbound rows back the idempotency check (partial unique index on provider + provider_message_id catches Sendblue's retry storms without an in-memory map). Outbound rows track status, error codes, and downgrade events. Designed to outlive user deletion — the FK to profiles is SET NULL so deleted users don't take their event history with them.",
+    columns: [
+      { name: "id", type: "uuid", plain: "Unique event identifier." },
+      { name: "direction", type: "text", plain: "'outbound' (Jove sent) or 'inbound' (provider webhook).", emphasized: true },
+      { name: "provider", type: "text", plain: "'linq' or 'sendblue'. Used for cutover monitoring during the Linq → Sendblue migration.", emphasized: true },
+      { name: "provider_message_id", type: "text", plain: "Provider-side ID. Backs inbound idempotency via a partial unique index.", emphasized: true },
+      { name: "from_number", type: "text", plain: "Sender phone number (E.164)." },
+      { name: "to_number", type: "text", plain: "Recipient phone number (E.164)." },
+      { name: "content", type: "text", plain: "Message text. Redacted after a retention window per ADR-037." },
+      { name: "status", type: "text", plain: "Provider-reported delivery status." },
+      { name: "error_code", type: "text", plain: "Provider-reported error code if delivery failed." },
+      { name: "error_message", type: "text", plain: "Human-readable error description." },
+      { name: "was_downgraded", type: "boolean", plain: "True when iMessage was downgraded to SMS at delivery time." },
+      { name: "raw_payload", type: "jsonb", plain: "Full provider payload for forensic debugging." },
+      { name: "owner_user_id", type: "uuid", plain: "The mywalnut user this event was for. SET NULL on user delete so the event survives.", emphasized: true },
+    ],
+    connections: [
+      {
+        to: "profiles",
+        via: "owner_user_id",
+        cardinality: "N:1",
+        onDelete: "SET NULL",
+        explanation:
+          "If the user is deleted, the event survives with owner_user_id null. The audit trail outlives the user.",
+      },
+    ],
+    notes:
+      "RLS enabled with no public policies — service role writes via the admin client. Same security pattern as safety_events.",
   },
   {
     name: "safety_events",
@@ -1330,8 +1368,9 @@ function SpineRow({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr auto 1fr auto 1fr auto 1fr",
-          alignItems: "center",
+          gridTemplateColumns:
+            "minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr)",
+          alignItems: "stretch",
           gap: 8,
         }}
       >
