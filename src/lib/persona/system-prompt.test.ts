@@ -89,10 +89,37 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("THE USER IS THE AUTHOR");
       expect(result).toContain("PRESERVE THE USER'S EXACT LANGUAGE");
       expect(result).toContain("NO CLINICAL LANGUAGE IN USER-FACING OUTPUT");
-      expect(result).toContain("ONE QUESTION PER TURN");
+      expect(result).toContain("EVERY TURN ENDS WITH A HANDOFF");
       expect(result).toContain("JOVE ASKS. JOVE DOES NOT DECLARE");
       expect(result).toContain("CRISIS PROTOCOL");
       expect(result).toContain("JOVE IS NOT A THERAPIST");
+    });
+
+    it("Tier 1 #4 is the handoff rule — imperatives sanctioned, two question marks still over, no post-confirm exception", () => {
+      // Worldview v2 voice update (2026-05-20) reframed Tier 1 #4 from
+      // "ONE QUESTION PER TURN" to "EVERY TURN ENDS WITH A HANDOFF" — a
+      // question OR a directive that hands the user a clear next move.
+      // Imperatives like "walk me through what happened" are sanctioned
+      // handoffs. Two question marks is still over (pick one). The
+      // post-confirmation continuation-offer is reframed as a
+      // directive-shaped handoff, not an exception — so Tier 1 #4 reads
+      // as truly no-exceptions, matching the worldview.
+      const result = build();
+      expect(result).toContain("question OR a directive that hands the user a clear next move");
+      expect(result).toContain("walk me through what happened");
+      expect(result).toContain("Two question marks in one turn is still over the line");
+      expect(result).toContain(
+        "The post-confirmation continuation-offer"
+      );
+      expect(result).toContain("directive-shaped handoff, not an exception");
+      // The old headline wording is gone:
+      expect(result).not.toContain("ONE QUESTION PER TURN");
+      // The narrower "reflection + one question" framing is also gone:
+      expect(result).not.toContain("Every Jove turn is a reflection + one question");
+      // The pre-v2 post-confirmation exception language is gone:
+      expect(result).not.toContain(
+        "is the only exception — that is a transition, not a conversational turn"
+      );
     });
 
     it("contains the tier-override statement so lower tiers know Tier 1 wins", () => {
@@ -1289,7 +1316,7 @@ describe("buildSystemPrompt", () => {
   // clever lines, feeling-first questions, and using the user's own name.
   describe("sparring partner with forensic backing voice update", () => {
     describe("VOICE_INTRO_PARAGRAPHS_BASE", () => {
-      it("contains the new sparring-partner intro paragraphs", () => {
+      it("contains the sparring-partner intro paragraphs (first paragraph unchanged in Worldview v2)", () => {
         const result = build();
         expect(result).toContain("You quote the user back to themselves");
         expect(result).toContain(
@@ -1297,9 +1324,12 @@ describe("buildSystemPrompt", () => {
         );
         expect(result).toContain("The Manual is theirs. You edit. They write.");
         expect(result).toContain("Your spine is evidence");
-        expect(result).toContain(
-          "wit targets the situation and the pattern"
-        );
+        // The "wit targets the situation and the pattern" closing line of
+        // the second paragraph was replaced in the Worldview v2 voice
+        // update — the new closing is "edge comes from close attention,
+        // never from standing above the user." Pinned in the
+        // VOICE_INTRO_PARAGRAPHS_BASE block under "Worldview v2 voice
+        // update" below.
       });
 
       it("does NOT contain the old intro paragraphs", () => {
@@ -1565,6 +1595,579 @@ describe("buildSystemPrompt", () => {
       });
     });
 
+  });
+
+  // ─── Worldview v2 voice update (2026-05-20) ──────────────────────────────
+  // Seven new base voice rules (R-15..R-21), four new BANNED_PATTERNS, three
+  // new register entries, seven new base landings, three new weak→strong
+  // pairs, tightened WHEN_USER_ASKS_WHAT_SHOULD_I_DO (never-prescribe with
+  // safety carve-out), and one new landing per persona delta plus one new
+  // phantom-baseline rule per neurotype delta (autistic / adhd / dyslexic).
+  //
+  // R-17 and R-18 each ship as a/b splits — coupling each pair into a
+  // single rule taught the wrong default move (auto-attach a strength to
+  // every refusal — the superpower trope this audience rejects).
+  describe("Worldview v2 voice update", () => {
+    describe("VOICE_INTRO_PARAGRAPHS_BASE — truth-not-should framing", () => {
+      it("threads truth/should distinction into the second paragraph", () => {
+        const result = build();
+        expect(result).toContain("You take positions on what is true");
+        expect(result).toContain(
+          "You never take a position on what they should do"
+        );
+        expect(result).toContain("That's theirs to reach");
+      });
+
+      it("adopts dry-observational framing in place of witty-and-direct", () => {
+        const result = build();
+        expect(result).toContain("Your surface is dry, observational");
+        expect(result).toContain("You don't perform comfort or warmth");
+        expect(result).toContain(
+          "edge comes from close attention, never from standing above the user"
+        );
+      });
+
+      it("does NOT contain the old 'witty and direct' surface description", () => {
+        const result = build();
+        expect(result).not.toContain("Your surface is witty, direct");
+        expect(result).not.toContain(
+          "wit targets the situation and the pattern. Never the user"
+        );
+      });
+    });
+
+    describe("VOICE_RULES_BASE — Worldview v2 rules (R-15 through R-21)", () => {
+      it("VOICE_RULES_BASE has exactly 21 entries (14 pre-existing + 7 new)", () => {
+        // Verification gate A from the v2 re-lock: pin the exact count
+        // so a future regression that drops or adds a rule trips this
+        // assertion before any phrase-pin tests give a noisier failure.
+        expect(VOICE_RULES_BASE.length).toBe(21);
+      });
+
+      it.each([
+        [
+          "Take positions on truth, never on what the user should do",
+          "R-15 truth/should",
+        ],
+        [
+          "Engage the material, not the framing",
+          "R-16 engage material",
+        ],
+        [
+          "Restraint is a move",
+          "R-17a restraint (split from former combined R-17)",
+        ],
+        [
+          "Understanding is not always a prelude to change",
+          "R-17b understanding-not-change (split from former combined R-17)",
+        ],
+        [
+          "Refuse the phantom baseline",
+          "R-18a phantom refusal (split from former combined R-18; base no longer carries persona specifics)",
+        ],
+        [
+          "Sometimes name the strength in the same mechanism as the friction",
+          "R-18b strength-in-mechanism (split from former combined R-18, anti-superpower-trope guardrail)",
+        ],
+        [
+          "Variance comes from responsiveness, not rotation",
+          "R-19 variance",
+        ],
+      ])("renders rule headline: %s (%s)", (phrase) => {
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+
+      it("R-15 guards the smuggled should with the Maya example", () => {
+        const result = build();
+        expect(result).toContain("Guard the smuggled should");
+        expect(result).toContain(
+          "is the replay measuring you against a clock that isn't yours"
+        );
+        expect(result).toContain("don't you think you owe Maya a text");
+        expect(result).toContain(
+          "A position on what the user should do is the user's to reach"
+        );
+      });
+
+      it("R-15 carries the explicit safety carve-out for crisis signals", () => {
+        // BLOCKER 1 from the v2 re-lock: never-prescribe needs an
+        // explicit exception for the crisis protocol. Without it the
+        // audit framework would flag the crisis directive as a
+        // smuggled-should violation, and the model might generalize and
+        // soften crisis handoffs into reflections.
+        const result = build();
+        expect(result).toContain("Safety is the one exception");
+        expect(result).toContain(
+          "Jove DOES prescribe one thing: contact the crisis resources"
+        );
+        expect(result).toContain("Tier 1 override on this rule");
+        expect(result).toContain("not a smuggled should");
+      });
+
+      it("R-16 names the three by-input tactics with concrete trigger words", () => {
+        const result = build();
+        expect(result).toContain("flattening word");
+        expect(result).toContain("'avoiding,' 'fine,' 'just,' 'disaster'");
+        expect(result).toContain("cover story");
+        expect(result).toContain("over-dismissal");
+      });
+
+      it("R-17a (restraint) and R-17b (understanding-not-change) are separate rules", () => {
+        // BLOCKER 2 from the v2 re-lock: R-17 was a coupled rule with
+        // "Separate point:" inside it — the tell that it was two rules.
+        // Split so each fires independently. The "alive move is
+        // deliberately not reflecting" (R-17a) is distinct from "some
+        // patterns get understood and left alone" (R-17b).
+        const result = build();
+        expect(result).toContain(
+          "Sometimes the alive move is deliberately not reflecting"
+        );
+        expect(result).toContain("Don't default to fixing a named pattern");
+        expect(result).toContain(
+          "friction they want to reduce, or texture they want to understand"
+        );
+        // The pre-split combined wording is gone:
+        expect(result).not.toContain(
+          "Restraint is a move. Understanding is not always a prelude to change."
+        );
+        // The "Separate point:" tell from the combined rule is gone:
+        expect(result).not.toContain(
+          "Separate point: don't default to fixing a named pattern"
+        );
+      });
+
+      it("R-18a (phantom refusal) and R-18b (strength-in-mechanism) are separate rules", () => {
+        // BLOCKER 2 from the v2 re-lock: R-18 was a coupled rule that
+        // taught the model to auto-attach a strength to every refusal —
+        // the superpower trope this audience rejects. Split so each
+        // fires alone.
+        const result = build();
+        expect(result).toContain("Refuse the phantom baseline.");
+        expect(result).toContain(
+          "Sometimes name the strength in the same mechanism as the friction."
+        );
+        expect(result).toContain("Not on every refusal. Not as a default.");
+        expect(result).toContain(
+          "forcing a strength produces the superpower trope"
+        );
+        expect(result).toContain("each fire alone");
+      });
+
+      it("R-18a base does NOT carry persona-specific phantom forms (they live in deltas)", () => {
+        // REQUIRED 3 from the v2 re-lock: the v1 implementation put
+        // autism / ADHD / dyslexia phantoms inside the base R-18 body.
+        // That violates the architecture (base = cross-persona;
+        // persona-deltas carry persona-specifics). Base R-18a now reads
+        // as the cross-persona principle only; persona-specific forms
+        // live in voice-{autistic,adhd,dyslexic}.ts.
+        const generalResult = build({ personaModes: ["general"] });
+        // Base R-18a still names "Persona-specific phantom forms… live
+        // in the persona deltas" as a pointer, so the literal phrase
+        // "Persona-specific phantom forms" should appear. But the
+        // specific autism/ADHD/dyslexia phantom forms should NOT appear
+        // when general is the only active persona.
+        expect(generalResult).toContain("Persona-specific phantom forms");
+        // The autism-specific form quoted ('normal' / 'a normal person' /
+        // 'just a phone call') should not appear in general mode:
+        expect(generalResult).not.toContain("'a normal person'");
+        // The ADHD-specific form quoted should not appear in general mode:
+        expect(generalResult).not.toContain("'a reliable partner'");
+        // The dyslexia-specific form quoted should not appear in general
+        // mode:
+        expect(generalResult).not.toContain(
+          "'a version of the task that ignores how my brain takes in information'"
+        );
+      });
+
+      it("R-19 keeps only the principle — no turn-shape menu, no handoff-shape menu inside the rule", () => {
+        // REQUIRED 4 from the v2 re-lock: the v1 R-19 listed six turn
+        // shapes and four handoff shapes as a menu inside the rule. The
+        // rule said "don't run a play" then handed the model a play.
+        // Self-defeating. Shapes are demonstrated in landings only.
+        const result = build();
+        expect(result).toContain(
+          "Variance comes from responsiveness, not rotation"
+        );
+        expect(result).toContain(
+          "The mechanism is following the user instead of running a play"
+        );
+        // The R-19 rule body still references the shape catalogue as
+        // available demonstrations in the landings, but does NOT itself
+        // teach the menu. The pre-v2 menu structure inside the rule is
+        // gone — specifically the labeled-shape definitions:
+        expect(result).not.toContain("Four handoff shapes:");
+        expect(result).not.toContain(
+          "choice (concrete options, user picks), body-locating"
+        );
+        expect(result).not.toContain(
+          "competing reads (two or three side by side, no ranking"
+        );
+      });
+    });
+
+    describe("Tier 1 #4 — handoff rule (replaces ONE QUESTION PER TURN)", () => {
+      it("contains EVERY TURN ENDS WITH A HANDOFF headline", () => {
+        expect(build()).toContain("EVERY TURN ENDS WITH A HANDOFF");
+      });
+
+      it("sanctions imperatives as handoffs", () => {
+        const result = build();
+        expect(result).toContain(
+          "An imperative that hands the user a next move"
+        );
+        expect(result).toContain("walk me through what happened");
+        expect(result).toContain("take me into the last time");
+      });
+
+      it("forbids the unresolved-statement closing beat", () => {
+        const result = build();
+        expect(result).toContain(
+          "A strong statement can sit second to last; it cannot be the closing beat"
+        );
+      });
+
+      it("preserves the two-question-marks-still-over-the-line rule", () => {
+        const result = build();
+        expect(result).toContain(
+          "Two question marks in one turn is still over the line"
+        );
+        expect(result).toContain('"What was it like? What happened first?"');
+      });
+
+      it("frames the post-confirmation continuation-offer as a handoff, not an exception", () => {
+        // Verification gate C from the v2 re-lock: doc-code sync. The
+        // worldview source says "every turn ends with a handoff. No
+        // exceptions." The v1 implementation had a post-confirmation
+        // carve-out in Tier 1 #4. Resolved by reframing the
+        // continuation-offer as a directive-shaped handoff (which it
+        // already IS under the new rule) rather than as an exception.
+        const result = build();
+        expect(result).toContain(
+          "The post-confirmation continuation-offer"
+        );
+        expect(result).toContain("directive-shaped handoff, not an exception");
+      });
+
+      it("does NOT contain the retired ONE QUESTION PER TURN headline or framing", () => {
+        const result = build();
+        expect(result).not.toContain("ONE QUESTION PER TURN");
+        expect(result).not.toContain(
+          "Every Jove turn is a reflection + one question"
+        );
+      });
+    });
+
+    describe("BANNED_PATTERNS — Worldview v2 dead moves", () => {
+      it.each([
+        ["Labeled-refusal opener", "labeled-refusal-opener"],
+        ["Three handoffs of the same shape in a row", "three-same-shape"],
+        [
+          "Unresolved forward statement as the closing beat",
+          "unresolved-closing",
+        ],
+        ["Strength named, then no handoff", "strength-no-handoff"],
+      ])("BANNED_PATTERNS contains '%s' (%s)", (phrase) => {
+        const result = build();
+        expect(result).toContain(phrase);
+      });
+
+      it("labeled-refusal entry pins the canonical bad shape and the corrective move", () => {
+        const result = build();
+        expect(result).toContain(
+          "[Word]. That's your word. I want to hold it."
+        );
+        expect(result).toContain("That's the headline.");
+        expect(result).toContain(
+          "Bad partner is the headline. It's not where the answer lives"
+        );
+        expect(result).toContain(
+          "Don't perform the holding. Do the work."
+        );
+      });
+    });
+
+    describe("EXAMPLE_REGISTER_BASE — Worldview v2 examples", () => {
+      it.each(["Three reads", "The reframe", "Shared puzzlement"])(
+        "contains register example labeled '%s'",
+        (label) => {
+          const result = build();
+          expect(result).toContain(label);
+        }
+      );
+
+      it("Three reads line carries the three-read shape with 'which one fits' close", () => {
+        const result = build();
+        expect(result).toContain(
+          "the care that's locked is the care she'd recognize"
+        );
+        expect(result).toContain("Which one fits?");
+      });
+
+      it("The reframe carries the 'replay vs. clock that isn't yours' question", () => {
+        const result = build();
+        expect(result).toContain(
+          "Is the replay trying to solve something, or measuring you against a clock that isn't yours?"
+        );
+      });
+    });
+
+    describe("LANDING_EXAMPLES_BASE — Worldview v2 landings", () => {
+      it.each([
+        "Refusing the phantom baseline with a body handoff",
+        "System doing a job + the reframe",
+        "The gap is mutual with a sideways off-ramp",
+        "Engaging the framing on opening",
+        "Cover story — ask for the concrete material it can't survive",
+        "Over-dismissal — refuse to adjudicate, hand the choice back",
+        "Refusing the flattening word with evidence",
+      ])("contains landing labeled '%s'", (label) => {
+        const result = build();
+        expect(result).toContain(label);
+      });
+
+      it("Mom's-call landing demonstrates phantom refusal + body handoff", () => {
+        const result = build();
+        expect(result).toContain(
+          "Forty-seven minutes on the phone, then twelve hours asleep"
+        );
+        expect(result).toContain(
+          "That's not the arithmetic of a phone call"
+        );
+        expect(result).toContain(
+          "What did the cost feel like in the body, after you hung up?"
+        );
+      });
+
+      it("Sam/Priya landing demonstrates 'gap is mutual' with sideways off-ramp", () => {
+        const result = build();
+        expect(result).toContain(
+          "There's a part that solves things for people you love"
+        );
+        expect(result).toContain(
+          "Sam was speaking a different language, not a wrong one"
+        );
+        expect(result).toContain(
+          "and if you can't place it, another time you did the same?"
+        );
+      });
+
+      it("Thursday 1:1 landing demonstrates engage-the-framing on opening", () => {
+        const result = build();
+        expect(result).toContain(
+          "You said it's a bad meeting like that's settled"
+        );
+        expect(result).toContain("Walk me through how you got there");
+      });
+
+      it("Late nonprofit landing demonstrates cover-story tactic with choice handoff", () => {
+        const result = build();
+        expect(result).toContain(
+          "Before the message, two things I need to see"
+        );
+        expect(result).toContain(
+          "from the file as it sits, how long does the edit actually take"
+        );
+        expect(result).toContain("Which do you want to start with?");
+      });
+
+      it("Dismissive-of-diagnosis landing demonstrates over-dismissal tactic with declinable choice", () => {
+        const result = build();
+        expect(result).toContain(
+          "I won't have a view on whether it fits, but how it's sitting is worth a look since you led with it"
+        );
+        expect(result).toContain("Which do you want?");
+      });
+
+      it("Nina review T1 demonstrates refusing the flattening word with evidence", () => {
+        const result = build();
+        expect(result).toContain("Not scrolling, not walking away. Reorganizing.");
+      });
+
+      it("Anniversary/Carlos lives ONLY in voice-adhd.ts, not in base general voice", () => {
+        // Per Worldview v2 ship: the ADHD phantom (care as execution)
+        // lives in the ADHD persona delta, not in base. Base ships only
+        // the autistic case (Mom's call) and cross-persona examples;
+        // persona-specific demonstrations live in their deltas.
+        const generalResult = build({ personaModes: ["general"] });
+        expect(generalResult).not.toContain("You meant to answer Sunday");
+        expect(generalResult).not.toContain(
+          "grading the love by whether the task hit on time"
+        );
+
+        const adhdResult = build({ personaModes: ["adhd"] });
+        expect(adhdResult).toContain("You meant to answer Sunday");
+        expect(adhdResult).toContain(
+          "That's care doing what care does, reaching for him"
+        );
+        expect(adhdResult).toContain(
+          "Refusing the ADHD phantom (care as execution) with specific-moment"
+        );
+      });
+    });
+
+    describe("WEAK_STRONG_EXAMPLES_BASE — Worldview v2 pairs", () => {
+      it("includes the smuggled-should boundary pair (Maya text, v2 cleaner version)", () => {
+        // REQUIRED 5 from the v2 re-lock: the v1 strong line ("Is the
+        // part of you that's blocked on sending this the one you'd want
+        // her to see?") sat on the line — implied show-a-different-part
+        // = send the text. Replaced with a version that points at a
+        // truth about the dynamic with no directional pull.
+        const result = build();
+        expect(result).toContain("Don't you think you owe Maya a text?");
+        expect(result).toContain(
+          "Three weeks of drafts and both gone quiet. Which one of you started the silence?"
+        );
+        // The v1 on-the-line version is gone:
+        expect(result).not.toContain(
+          "Is the part of you that's blocked on sending this the one you'd want her to see?"
+        );
+      });
+
+      it("includes the engage-the-framing pair (Thursday 1:1)", () => {
+        const result = build();
+        expect(result).toContain('"Tell me more about that meeting."');
+        expect(result).toContain(
+          "You said it's a bad meeting like that's settled. Walk me through how you got there."
+        );
+      });
+
+      it("includes the labeled-refusal-opener weak / evidence-laying strong pair (Wedding)", () => {
+        const result = build();
+        expect(result).toContain('"Disaster. That\'s your word. I want to hold it."');
+        expect(result).toContain(
+          "From outside, that looks like a person who knew their limits"
+        );
+      });
+    });
+
+    describe("WHEN_USER_ASKS_WHAT_SHOULD_I_DO — never-prescribe + safety exception", () => {
+      it("contains the never-prescribe stance and the make-the-material-visible alternative", () => {
+        const result = build();
+        expect(result).toContain("does not prescribe. Ever");
+        expect(result).toContain("Not even when the user asks directly");
+        expect(result).toContain("makes the material visible");
+        expect(result).toContain(
+          "asks what the user already knows about their own next move"
+        );
+        expect(result).toContain(
+          "a position on what is true is Jove's to take"
+        );
+        expect(result).toContain(
+          "A position on what the user should do is the user's to reach"
+        );
+      });
+
+      it("contains the explicit ONE EXCEPTION — SAFETY paragraph for crisis handoffs", () => {
+        // BLOCKER 1 from the v2 re-lock: the WHEN_USER_ASKS_WHAT_SHOULD_I_DO
+        // block needs to name the safety carve-out, otherwise the model
+        // might generalize never-prescribe and soften a crisis handoff
+        // into a reflection.
+        const result = build();
+        expect(result).toContain("ONE EXCEPTION — SAFETY");
+        expect(result).toContain(
+          "988 Suicide and Crisis Lifeline (call or text 988)"
+        );
+        expect(result).toContain("Crisis Text Line (text HOME to 741741)");
+        expect(result).toContain("the only directive Jove ever issues");
+        expect(result).toContain(
+          'Do not soften the crisis handoff into a reflection'
+        );
+      });
+
+      it("does NOT contain the retired light-advisory framing", () => {
+        const result = build();
+        expect(result).not.toContain("light advisory through the Manual lens");
+        expect(result).not.toContain(
+          "Given what your Manual says about X, what happens if you try Y?"
+        );
+        expect(result).not.toContain(
+          "We haven't built enough of your map yet for me to be useful on that"
+        );
+      });
+    });
+
+    describe("Persona-delta phantom rules (R-18a complement)", () => {
+      it("voice-autistic.ts VOICE_RULES carries the autism-phantom social form", () => {
+        const result = build({ personaModes: ["autistic"] });
+        expect(result).toContain(
+          "Phantom baseline for autistic users is usually 'normal' / 'a normal person' / 'just a phone call'"
+        );
+        expect(result).toContain("social baseline");
+        expect(result).toContain("Pairs with base rule R-18a");
+      });
+
+      it("voice-adhd.ts VOICE_RULES carries the ADHD-phantom care-as-execution form", () => {
+        const result = build({ personaModes: ["adhd"] });
+        expect(result).toContain(
+          "Phantom baseline for ADHD users is usually 'a reliable partner' / 'care as execution'"
+        );
+        expect(result).toContain(
+          "grading the love by whether the task hit on time"
+        );
+        expect(result).toContain("Pairs with base rule R-18a");
+      });
+
+      it("voice-dyslexic.ts VOICE_RULES carries the dyslexic-phantom medium form, marked as HYPOTHESIS", () => {
+        // The dyslexic phantom is structurally different (medium/format
+        // baseline, not social) — pinning all three uniformly assumes
+        // refuse-the-phantom generalizes from social → medium, which is
+        // an open question. Ships with HYPOTHESIS marker for validation
+        // in beta.
+        const result = build({ personaModes: ["dyslexic"] });
+        expect(result).toContain(
+          "Phantom baseline for dyslexic users is usually 'a version of the task that ignores how my brain takes in information'"
+        );
+        expect(result).toContain("HYPOTHESIS");
+      });
+
+      it("autism phantom does NOT appear in adhd-only mode", () => {
+        const result = build({ personaModes: ["adhd"] });
+        expect(result).not.toContain("'a normal person'");
+      });
+
+      it("ADHD phantom does NOT appear in autistic-only mode", () => {
+        const result = build({ personaModes: ["autistic"] });
+        expect(result).not.toContain("'a reliable partner'");
+      });
+
+      it("stacking autistic + adhd surfaces both phantom rules", () => {
+        const result = build({ personaModes: ["autistic", "adhd"] });
+        expect(result).toContain("Phantom baseline for autistic users");
+        expect(result).toContain("Phantom baseline for ADHD users");
+      });
+    });
+
+    describe("voice-adhd.ts — Anniversary/Carlos landing (care-as-execution phantom)", () => {
+      it("ADHD_LANDING_EXAMPLES contains the new phantom-refusal landing", () => {
+        const labels = ADHD_LANDING_EXAMPLES.map((l) => l.label);
+        expect(labels).toContain(
+          "Refusing the ADHD phantom (care as execution) with specific-moment"
+        );
+      });
+
+      it("ADHD delta renders Anniversary/Carlos when adhd mode is active", () => {
+        const result = build({ personaModes: ["adhd"] });
+        expect(result).toContain(
+          "Refusing the ADHD phantom (care as execution) with specific-moment"
+        );
+        expect(result).toContain("You meant to answer Sunday. You tried twice.");
+        expect(result).toContain(
+          "grading the love by whether the task hit on time"
+        );
+        expect(result).toContain("Both times the slot got pulled, what pulled it?");
+      });
+
+      it("stacking autistic + adhd surfaces both Mom's-call (base) and Anniversary/Carlos (adhd delta)", () => {
+        const result = build({ personaModes: ["autistic", "adhd"] });
+        // Base phantom landing (autism case, cross-persona)
+        expect(result).toContain(
+          "Forty-seven minutes on the phone, then twelve hours asleep"
+        );
+        // ADHD delta phantom landing (care-as-execution case)
+        expect(result).toContain("You meant to answer Sunday. You tried twice.");
+      });
+    });
   });
 
   // ─── Checkpoint mechanics sit in Tier 3, not in the voice ────────────────
