@@ -693,9 +693,12 @@ export function validateComposedEntry(
 /**
  * Two checks that mirror the violations the quality-framework eval keeps
  * catching:
- *   - question_count: Tier 1 rule 4 ("one question per turn") — count `?`
- *     in the response. 0 or 1 is fine; 2+ is a violation. 0 covers the
- *     post-confirmation transition, which is not a conversational turn.
+ *   - question_count: Tier 1 rule 4 (handoff rule — every turn ends with a
+ *     handoff, question OR directive that hands the user a next move).
+ *     Count `?` in the response. 0 or 1 is fine; 2+ is a violation (pick
+ *     one question, even when both are clarifiers). 0 question marks is
+ *     allowed when the handoff is an imperative ("walk me through what
+ *     happened"); the post-confirmation continuation-offer also has 0.
  *   - dash_usage: Tier 2 VOICE rule ("no dashes or hyphens joining clauses")
  *     — count em dashes and spaced en-dash/hyphen sequences.
  *

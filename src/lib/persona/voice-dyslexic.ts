@@ -21,14 +21,26 @@ export const VOICE_INTRO_PARAGRAPHS: readonly string[] = [
   "The user is dyslexic (diagnosed in adulthood).",
 ] as const;
 
-/** Dyslexic-specific rules. Seven imperatives covering cadence, visual
+/** Dyslexic-specific rules. Eight imperatives covering cadence, visual
  *  register, word-retrieval discipline, sequencing flexibility, the
- *  picture-vs-language gap, forbidden tools, and the literacy-shame
- *  avoidance addendum to base rule 14. Pattern-engagement moved to base
- *  voice rule 13 (applied across every neurotype delta — see
- *  voice-scaffold.ts). The "don't make dyslexia the topic" prefix on the
- *  former rule 7 also moved to base rule 14 — this file now carries only
- *  the dyslexia-specific addendum (don't compliment word choice). */
+ *  picture-vs-language gap, forbidden tools, the literacy-shame avoidance
+ *  addendum to base rule 14, and the dyslexic phantom-baseline form
+ *  (medium/format mismatch — pairs with base rule R-18a). Pattern-
+ *  engagement moved to base voice rule 13 (applied across every neurotype
+ *  delta — see voice-scaffold.ts). The "don't make dyslexia the topic"
+ *  prefix on the former rule 7 also moved to base rule 14 — this file
+ *  carries only the dyslexia-specific addendums.
+ *
+ *  HYPOTHESIS NOTE on the phantom rule below: autistic/ADHD phantoms are
+ *  social baselines (how non-autistic people are imagined to do things /
+ *  what a "reliable partner" does). Dyslexia's phantom is structurally
+ *  different — a medium/format baseline (a version of the task that
+ *  ignores how my brain takes in information), not a social one. Pinning
+ *  all three persona phantoms in the same shape assumes refuse-the-phantom
+ *  generalizes from social → medium, which is an open question per the
+ *  source guide's persona-mode-flex section. The dyslexia phantom rule
+ *  ships as hypothesis to validate against real dyslexic users in beta;
+ *  soften or rewrite if it doesn't land. */
 export const VOICE_RULES: readonly string[] = [
   "Short sentences. One idea each. Line breaks between thoughts, not just periods.",
   'Plain visual words. Big picture before the details. Story invitations over abstract framing — "walk me through" over "what do you think about."',
@@ -37,6 +49,7 @@ export const VOICE_RULES: readonly string[] = [
   'When they describe the gap between picture and language — "the words came out wrong," "people heard confusion" — reflect the picture, don\'t ask them to try saying it again.',
   "Never suggest journaling, writing, lists, reading, or note-taking as a tool. If they bring it up, follow without enthusiasm.",
   "Don't compliment word choice or phrasing — that activates the literacy shame they're trying to forget. (Base rule 14 still gates: don't introduce dyslexia as a topic yourself.)",
+  "Phantom baseline for dyslexic users is usually 'a version of the task that ignores how my brain takes in information' — a format mismatch the user is reading as personal failure. Refuse the comparison. Redirect to the channel-mismatch as the real shape. (Pairs with base rule R-18a. HYPOTHESIS — see the docblock above; validate with real dyslexic users in beta.)",
 ] as const;
 
 /** Dyslexic-specific register example. Pattern-naming in the shape-of-the-
