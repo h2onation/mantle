@@ -1,16 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
+import type {
+  PhaseData,
+  PromptSection,
+} from "@/lib/admin/prompt-sections";
+import type { PersonaMode } from "@/lib/persona/system-prompt";
+import type { ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
 // Under the hood — guided walkthrough of how Jove's prompt is assembled.
 //
-// Eight stages, each adding one moving part to a central diagram. Click any
-// band, chip, or context item to inspect its details in the right column.
-// The audit-style 4-column view at /admin/prompt-architecture still exists
-// when you need to inspect the recipe for a specific config.
+// Data source: /api/admin/prompt-architecture. Sections, source paths, real
+// token counts, and actual rendered text all come from the live codebase
+// via parsePromptSections. Anything the page describes traces back to a
+// real export — no hand-curated metadata drift.
 // ---------------------------------------------------------------------------
 
 interface Stage {
@@ -22,327 +28,83 @@ interface Stage {
 const STAGES: Stage[] = [
   {
     id: 1,
-    title: "The atom — one turn, one prompt",
+    title: "Layer 0 — the whole prompt",
     caption:
-      "Every time a user sends a message, Jove sees a single block of text — instructions plus context — and streams a response back. The whole architecture exists to assemble that block, fresh, on every single turn.",
+      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~7,000 tokens on a normal turn.",
   },
   {
     id: 2,
-    title: "The spine — what never changes",
+    title: "Layer 1 — static prefix (always-on)",
     caption:
-      "Some of it is always the same. Jove's identity, seven constitutional rules (not a therapist, user is the author, mirror exact language, nothing enters the Manual without confirmation), and a base voice scaffold that defines how Jove talks before we adapt to anyone. Everyone gets these, every turn.",
+      "Identity, Tier 1 constitutional rules, and the base voice scaffold. Identical across every user, every turn. Cached forever.",
   },
   {
     id: 3,
-    title: "The persona delta — who the user is",
+    title: "Layer 2 — persona delta (one of four)",
     caption:
-      "Then we adapt to who's on the other side. Four personas — autistic, AuDHD, dyslexic, general. Each one swaps in trait-specific voice rules on top of the base: somatic-first for autistic, dual-system tracking for AuDHD, short sentences for dyslexic. The base is shared; the delta is what differs.",
+      "Trait-specific voice rules layered on top of the base. Selected at signup from autistic / AuDHD / dyslexic / general. Click a pill to switch the active persona — the rest of the diagram re-renders from the live prompt.",
   },
   {
     id: 4,
-    title: "The mode opener — how they entered",
+    title: "Layer 3 — mode opener (one of three)",
     caption:
-      "The user picks how they want to start. Three input modes — Situation (free conversation), Guided Intake (structured questions), Upload (paste content). Each swaps in a different entry-phase block. Situation has Jove speak first with a defined opener. Guided Intake holds a structured posture. Upload teaches Jove to treat pasted content as data, not instructions.",
+      "Entry-phase block by input mode (Situation / Guided Intake / Upload). Selected at conversation start. Click a pill to switch the active mode.",
   },
   {
     id: 5,
-    title: "The conditional ladder — where the conversation is",
+    title: "Layer 4 — conditional Tier-3 blocks",
     caption:
-      "As the conversation progresses, blocks fire and retire based on state. First-turn block (turns 1–3 only). Returning-user block (only if there's already a Manual). Checkpoint-approaching (when the background extractor signals readiness). Post-checkpoint (the single turn after a confirm). Clinical material (if Jove detected distress). About eight of these, each gated by its own signal.",
+      "Tier 3 blocks that fire based on conversation state (first turn, returning user, approaching checkpoint, clinical material, etc.). Rebuilt each turn.",
   },
   {
     id: 6,
-    title: "The live context — what came in from the side",
+    title: "Layer 5 — live context (parallel)",
     caption:
-      "Meanwhile, in parallel: a background Sonnet call analyzes every turn and writes an extraction brief — the user's exact charged phrases, which Manual layer is strongest right now, whether a pattern has been engaged. That brief, plus the user's confirmed Manual entries (compressed for older ones), a session summary if returning from days ago, detected transcript content, current exploration focus — all get stitched into the prompt for the next turn.",
+      "Dynamic blocks appended at runtime: confirmed Manual entries (compressed), session context, extraction brief from the parallel Sonnet call. Rebuilt each turn.",
   },
   {
     id: 7,
-    title: "The cache wrap — what's stable, what's rebuilt",
+    title: "Cache view — what's reused vs rebuilt",
     caption:
-      "All this gets classified into cache tiers. Constitutional and base voice are cached forever. Persona-keyed parts are cached per persona (one cache per persona × mode combo). The dynamic stuff — extraction brief, recent messages, Manual entries — is rebuilt every turn. That's how a ~7,000-token prompt still streams responses in 2–3 seconds.",
+      "Static prefix + persona-keyed parts are cached. The conditional and dynamic layers are rebuilt every turn. That's why a ~7,000-token prompt streams in 2–3 seconds.",
   },
   {
     id: 8,
-    title: "The assembly — one real example",
+    title: "Worked example — token budget by layer",
     caption:
-      "Putting it all together. Here's the shape of a real prompt at turn 12 of an AuDHD Situation session — user has two confirmed Manual entries, just rejected the last checkpoint proposal. About 7,900 tokens. The first ~6,500 are cached and identical to the previous turn; only the last ~1,400 actually changed and had to be processed fresh.",
+      "Token totals from the live prompt for the current persona × mode. Cached vs rebuilt percentages are computed from the actual section sizes.",
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Section registry — metadata for every clickable item.
-// ---------------------------------------------------------------------------
-
-interface Section {
-  id: string;
-  name: string;
-  tier: string;
-  purpose: string;
-  source?: string;
-  tokens?: string;
-  cache?: string;
-  trigger?: string;
-  adr?: number[];
-  notes?: string;
-}
-
-const SECTIONS: Record<string, Section> = {
-  "tier1-identity": {
-    id: "tier1-identity",
-    name: "Identity + Constitutional",
-    tier: "Tier 1 — Constitutional",
-    purpose:
-      "Jove's identity and the seven rules that never change. The constitutional layer the rest of the architecture is built on.",
-    source: "src/lib/persona/system-prompt.ts → composeTier1()",
-    tokens: "~1,400",
-    cache: "cached forever",
-    notes:
-      "Seven rules: not a therapist · user is the author · mirror exact language · one question per turn · nothing enters the Manual without confirmation · no clinical framework names · direct when asked what Jove is.",
-  },
-  "tier2-base": {
-    id: "tier2-base",
-    name: "Voice scaffold (base)",
-    tier: "Tier 2 — Base voice",
-    purpose:
-      "The shared voice scaffold — VOICE_INTRO_PARAGRAPHS_BASE, VOICE_RULES_BASE (12 rules), EXAMPLE_REGISTER_BASE, LANDING_EXAMPLES_BASE, WEAK_STRONG_EXAMPLES_BASE, BANNED_PHRASES, BANNED_PATTERNS, plus scaffolded sections. How Jove talks before any persona delta applies.",
-    source: "src/lib/persona/voice-scaffold.ts (consumed by composeTier2)",
-    tokens: "~2,200",
-    cache: "cached forever",
-    notes:
-      "Edit voice-scaffold.ts for cross-persona voice changes; edit a specific persona module only for that persona's signature.",
-  },
-  "persona-autistic": {
-    id: "persona-autistic",
-    name: "Persona delta — Autistic",
-    tier: "Tier 2 — Persona delta",
-    purpose:
-      "Trait-specific voice layered on top of the base: somatic-first observations, mirror-exact-language hard, masking gap-naming, body-anchored landings.",
-    source: "src/lib/persona/voice-autistic.ts",
-    tokens: "~950",
-    cache: "cached per persona",
-  },
-  "persona-audhd": {
-    id: "persona-audhd",
-    name: "Persona delta — AuDHD",
-    tier: "Tier 2 — Persona delta",
-    purpose:
-      "Dual-system tracking (autistic-side and ADHD-side both in play), executive-function awareness, interest-based motivation, structure-novelty-burnout landings.",
-    source: "src/lib/persona/voice-audhd.ts",
-    tokens: "~950",
-    cache: "cached per persona",
-  },
-  "persona-dyslexic": {
-    id: "persona-dyslexic",
-    name: "Persona delta — Dyslexic",
-    tier: "Tier 2 — Persona delta",
-    purpose:
-      "Short sentences, story-shape invitations rather than open-ended prompts, no journaling, visual landings.",
-    source: "src/lib/persona/voice-dyslexic.ts",
-    tokens: "~900",
-    cache: "cached per persona",
-  },
-  "persona-general": {
-    id: "persona-general",
-    name: "Persona delta — General",
-    tier: "Tier 2 — Persona delta",
-    purpose:
-      "Minimal delta — a single neurotype-neutral framing paragraph. The base voice does most of the work.",
-    source: "src/lib/persona/voice-general.ts",
-    tokens: "~400",
-    cache: "cached per persona",
-  },
-  "mode-situation": {
-    id: "mode-situation",
-    name: "Mode opener — Situation",
-    tier: "Tier 3 — Mode opener",
-    purpose:
-      "Free-conversation entry. Jove speaks first via bootstrap with SITUATION_OPENER. Two postures (Concrete / Abstract) shape the user's first reply.",
-    source:
-      "src/lib/persona/situation-copy.ts + first-message block in system-prompt.ts",
-    tokens: "~380",
-    cache: "cached per persona × mode",
-    trigger: "mode === 'situation' && turnCount <= 3",
-    adr: [42],
-  },
-  "mode-guided": {
-    id: "mode-guided",
-    name: "Mode opener — Guided Intake",
-    tier: "Tier 3 — Mode opener",
-    purpose:
-      "Structured-intake posture. Jove asks scaffolded questions about a chosen layer or situation type. Posture persists for the conversation's life unless softened by detected user redirect.",
-    source: "src/lib/persona/system-prompt.ts (guided block)",
-    tokens: "~520",
-    cache: "cached per persona × mode",
-    trigger: "mode === 'guided-intake' && !guidedPostureSoftened",
-    adr: [42],
-  },
-  "mode-upload": {
-    id: "mode-upload",
-    name: "Mode opener — Upload",
-    tier: "Tier 3 — Mode opener",
-    purpose:
-      "User pastes external content (transcript, journal). The block teaches Jove to treat the paste as data to analyze, not instructions to follow. Content is XML-wrapped at message-construction time.",
-    source:
-      "src/lib/persona/system-prompt.ts (upload block) + call-persona wrapPastedContent()",
-    tokens: "~420",
-    cache: "cached per persona × mode",
-    trigger: "mode === 'upload' && turnCount <= 2",
-    adr: [42],
-  },
-  "cond-first-turn": {
-    id: "cond-first-turn",
-    name: "First-turn block",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Coaches Jove for the very first user message. Branches by mode (Situation vs Guided vs Upload) and whether the user is new or returning.",
-    source: "src/lib/persona/system-prompt.ts (first-message block)",
-    tokens: "~350",
-    cache: "rebuilt each turn",
-    trigger: "turnCount <= 3",
-  },
-  "cond-returning": {
-    id: "cond-returning",
-    name: "Returning user block",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Guidance for users who already have Manual entries — reference open threads, lightly anchor on a specific entry, never re-introduce Jove.",
-    source: "src/lib/persona/system-prompt.ts (returning-user blocks)",
-    tokens: "~280",
-    cache: "rebuilt each turn",
-    trigger: "manualEntryCount > 0 && turnCount <= 3",
-  },
-  "cond-approaching-cp": {
-    id: "cond-approaching-cp",
-    name: "Approaching checkpoint",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Loaded when the extractor signals readiness on any layer (signal >= 'explored'). Coaches Jove to set up a checkpoint without forcing one.",
-    source: "src/lib/persona/system-prompt.ts (CHECKPOINTS block)",
-    tokens: "~440",
-    cache: "rebuilt each turn",
-    trigger: "any layer signal >= 'explored'",
-  },
-  "cond-post-cp": {
-    id: "cond-post-cp",
-    name: "Post-checkpoint",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Fires the single turn after a confirm. Tells Jove to acknowledge briefly and return to whatever the user just surfaced — no menu, no fork.",
-    source: "src/lib/persona/system-prompt.ts (post-checkpoint block)",
-    tokens: "~180",
-    cache: "rebuilt each turn",
-    trigger: "checkpoint_just_returned",
-  },
-  "cond-readiness": {
-    id: "cond-readiness",
-    name: "Readiness gate (≥3 entries)",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Shifts Jove's stance once the user has built enough structure (≥3 confirmed entries) — synthesis tone over situation-led.",
-    source: "src/lib/persona/system-prompt.ts (readiness-gate block)",
-    tokens: "~200",
-    cache: "rebuilt each turn",
-    trigger: "manualEntryCount >= 3",
-  },
-  "cond-clinical": {
-    id: "cond-clinical",
-    name: "Clinical material",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Active when the extractor flagged clinical content (caution or crisis). Reframes Jove to stay behavioral, never therapist-y. Crisis-level fires the 988 protocol upstream of the prompt.",
-    source: "src/lib/persona/system-prompt.ts (clinical block)",
-    tokens: "~310",
-    cache: "rebuilt each turn",
-    trigger: "clinical_flag.level !== 'none'",
-  },
-  "cond-professional-referral": {
-    id: "cond-professional-referral",
-    name: "Professional referral",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Adds explicit language pointing the user at a clinician when material exceeds the Manual's scope.",
-    source: "src/lib/persona/system-prompt.ts (referral block)",
-    tokens: "~180",
-    cache: "rebuilt each turn",
-    trigger: "clinical_flag.level === 'caution'",
-  },
-  "cond-fabricated": {
-    id: "cond-fabricated",
-    name: "Fabricated content",
-    tier: "Tier 3 — Conditional",
-    purpose:
-      "Activates a 'full reset' / 'pure grounding' instruction when Jove's observations have been rejected too many turns in a row.",
-    source: "src/lib/persona/system-prompt.ts (fabricated-content block)",
-    tokens: "~150",
-    cache: "rebuilt each turn",
-    trigger: "observation_miss_count >= 2",
-  },
-  "dyn-manual": {
-    id: "dyn-manual",
-    name: "Confirmed Manual entries",
-    tier: "Dynamic context",
-    purpose:
-      "The user's accumulated Manual. Recent entries render in full; older entries collapse to one-line summaries (Headline + key words) to keep context lean.",
-    source: "src/lib/persona/manual-context.ts → prepareManualContext()",
-    tokens: "varies (40–1,500)",
-    cache: "rebuilt each turn",
-    trigger: "user has any confirmed entries",
-    notes:
-      "Compressed summary + key words are generated at checkpoint-confirm time and stored on manual_entries.summary / .key_words.",
-  },
-  "dyn-summary": {
-    id: "dyn-summary",
-    name: "Session summary",
-    tier: "Dynamic context",
-    purpose:
-      "1–2 sentence summary of past sessions, written by Haiku fire-and-forget when a session goes stale (> 30 min).",
-    source:
-      "src/lib/persona/generate-summary.ts (writer) → loaded into prompt block",
-    tokens: "varies (50–200)",
-    cache: "rebuilt each turn",
-    trigger: "returning user with prior sessions",
-  },
-  "dyn-extraction-brief": {
-    id: "dyn-extraction-brief",
-    name: "Extraction brief",
-    tier: "Dynamic context",
-    purpose:
-      "3–5 sentences from the parallel extraction call. Names what's underneath the surface topic, which exact phrases are load-bearing, what to push on vs leave alone.",
-    source:
-      "src/lib/persona/extraction.ts (writer) → formatExtractionForPersona()",
-    tokens: "varies (300–700)",
-    cache: "rebuilt each turn",
-    trigger: "always after turn 1",
-    notes:
-      "Built on the PREVIOUS turn's extraction — one-turn lag the user never feels. Includes top-15 charged phrases from the language bank verbatim.",
-  },
-  "dyn-transcript": {
-    id: "dyn-transcript",
-    name: "Transcript detected",
-    tier: "Dynamic context",
-    purpose:
-      "Renders when the user pasted text that looks like a transcript or journal entry. Tells Jove to treat it as data, look for charged language, cross-reference with the Manual.",
-    source:
-      "src/lib/persona/system-prompt.ts → renderPastedContentGuidance()",
-    tokens: "varies (300–1,000)",
-    cache: "rebuilt each turn",
-    trigger:
-      "transcript detector matched recent user message AND mode !== 'upload' (suppressed in upload mode to avoid double-framing)",
-    adr: [42],
-  },
-  "dyn-exploration": {
-    id: "dyn-exploration",
-    name: "Exploration focus",
-    tier: "Dynamic context",
-    purpose:
-      "When the user clicked 'Explore with Jove' from a specific Manual entry — anchors Jove to that entry as the through-line for the session.",
-    source: "src/lib/persona/system-prompt.ts (exploration block)",
-    tokens: "varies (150–400)",
-    cache: "rebuilt each turn",
-    trigger: "conversations.exploration_entry_id is set",
-  },
+const PERSONA_LABELS: Record<PersonaMode, string> = {
+  autistic: "Autistic",
+  adhd: "AuDHD",
+  dyslexic: "Dyslexic",
+  general: "General",
 };
+
+const MODE_LABELS: Record<ConversationMode, string> = {
+  situation: "Situation",
+  "guided-intake": "Guided",
+  upload: "Upload",
+};
+
+const PERSONAS: PersonaMode[] = ["autistic", "adhd", "dyslexic", "general"];
+const MODES: ConversationMode[] = ["situation", "guided-intake", "upload"];
+
+// Section ids surfaced as Tier 3 mode-opener pills (vs the bigger conditional ladder).
+const MODE_OPENER_IDS = new Set<string>(["guided-intake", "upload-mode"]);
+
+// Section ids that compose the always-on base voice (Tier 2, condition === "always").
+// Persona-conditioned Tier 2 sections (voice-rules, example-register, etc.) get
+// surfaced under "persona delta" since the user perceives them as varying.
+const BASE_VOICE_IDS = new Set<string>([
+  "tier2-voice",
+  "banned-phrases",
+  "pacing",
+  "when-wrong",
+  "advisory",
+]);
 
 const COLOR = {
   identityBg: "var(--session-walnut-surface)",
@@ -363,10 +125,79 @@ const COLOR = {
 
 const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";
 
+// ---------------------------------------------------------------------------
+// Selection model — every clickable thing maps to a typed Selection.
+// ---------------------------------------------------------------------------
+
+type Selection =
+  | { kind: "overview" }
+  | { kind: "section"; id: string }
+  | { kind: "persona"; mode: PersonaMode }
+  | { kind: "convmode"; mode: ConversationMode };
+
+function selectionKey(s: Selection | null): string | null {
+  if (!s) return null;
+  if (s.kind === "overview") return "overview";
+  if (s.kind === "section") return `section:${s.id}`;
+  if (s.kind === "persona") return `persona:${s.mode}`;
+  return `convmode:${s.mode}`;
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+interface ApiResponse {
+  phases: PhaseData[];
+}
+
 export default function UnderTheHoodPage() {
   const isAdmin = useIsAdmin();
   const [stageIndex, setStageIndex] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [personaMode, setPersonaMode] = useState<PersonaMode>("adhd");
+  const [convMode, setConvMode] = useState<ConversationMode>("situation");
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState("loading");
+    fetch(
+      `/api/admin/prompt-architecture?personaModes=${personaMode}&convMode=${convMode}`,
+    )
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`fetch failed: ${r.status}`);
+        return r.json();
+      })
+      .then((json: ApiResponse) => {
+        if (cancelled) return;
+        setData(json);
+        setLoadState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoadState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [personaMode, convMode]);
+
+  // Aggregate sections across all phases (deduped by id) so the diagram can
+  // show every block that could appear, not just whatever is active in one
+  // lifecycle phase.
+  const sectionById = useMemo(() => {
+    const map = new Map<string, PromptSection>();
+    if (!data) return map;
+    for (const phase of data.phases) {
+      for (const s of phase.sections) {
+        // Keep the last occurrence — later phases have more context.
+        map.set(s.id, s);
+      }
+    }
+    return map;
+  }, [data]);
 
   const stage = STAGES[stageIndex];
   const visible = useMemo(
@@ -383,8 +214,23 @@ export default function UnderTheHoodPage() {
     [stage.id],
   );
 
-  const handleSelect = (id: string | null) => {
-    setSelectedId((cur) => (cur === id ? null : id));
+  const handleSelect = (next: Selection | null) => {
+    setSelection((cur) => {
+      const curKey = selectionKey(cur);
+      const nextKey = selectionKey(next);
+      if (curKey === nextKey) return null;
+      return next;
+    });
+  };
+
+  const handlePersonaPillClick = (mode: PersonaMode) => {
+    if (mode !== personaMode) setPersonaMode(mode);
+    handleSelect({ kind: "persona", mode });
+  };
+
+  const handleModePillClick = (mode: ConversationMode) => {
+    if (mode !== convMode) setConvMode(mode);
+    handleSelect({ kind: "convmode", mode });
   };
 
   if (!isAdmin) {
@@ -443,12 +289,12 @@ export default function UnderTheHoodPage() {
             overflow: "hidden",
           }}
         >
-          <Header />
+          <Header personaMode={personaMode} convMode={convMode} />
           <Stepper
             stageIndex={stageIndex}
             setStageIndex={(i) => {
               setStageIndex(i);
-              setSelectedId(null);
+              setSelection(null);
             }}
             stage={stage}
           />
@@ -465,11 +311,31 @@ export default function UnderTheHoodPage() {
             }}
           >
             <div style={{ overflowY: "auto", paddingRight: 12 }}>
-              <Diagram
-                visible={visible}
-                selectedId={selectedId}
-                onSelect={handleSelect}
-              />
+              {loadState === "loading" && <DiagramSkeleton />}
+              {loadState === "error" && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    color: "var(--session-error)",
+                    padding: 16,
+                  }}
+                >
+                  Failed to load prompt architecture. Check the API.
+                </div>
+              )}
+              {loadState === "ready" && (
+                <Diagram
+                  visible={visible}
+                  selection={selection}
+                  onSelect={handleSelect}
+                  onPersonaPill={handlePersonaPillClick}
+                  onModePill={handleModePillClick}
+                  personaMode={personaMode}
+                  convMode={convMode}
+                  sectionById={sectionById}
+                />
+              )}
             </div>
 
             <div
@@ -480,10 +346,13 @@ export default function UnderTheHoodPage() {
                 overflowY: "auto",
               }}
             >
-              {selectedId && SECTIONS[selectedId] ? (
-                <SectionDetail
-                  section={SECTIONS[selectedId]}
-                  onClose={() => setSelectedId(null)}
+              {selection ? (
+                <DetailPanel
+                  selection={selection}
+                  sectionById={sectionById}
+                  personaMode={personaMode}
+                  convMode={convMode}
+                  onClose={() => setSelection(null)}
                 />
               ) : (
                 <StageCaption stage={stage} />
@@ -500,7 +369,13 @@ export default function UnderTheHoodPage() {
 // Header + stepper
 // ---------------------------------------------------------------------------
 
-function Header() {
+function Header({
+  personaMode,
+  convMode,
+}: {
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+}) {
   return (
     <div
       style={{
@@ -511,15 +386,34 @@ function Header() {
     >
       <div
         style={{
-          fontFamily: "var(--font-spectral, var(--font-serif))",
-          fontSize: "22px",
-          fontWeight: 400,
-          fontStyle: "italic",
-          color: "var(--session-ink)",
-          letterSpacing: "-0.005em",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 14,
         }}
       >
-        Under the hood
+        <div
+          style={{
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: "22px",
+            fontWeight: 400,
+            fontStyle: "italic",
+            color: "var(--session-ink)",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          Under the hood
+        </div>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          Active: {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
+        </span>
       </div>
       <p
         style={{
@@ -528,15 +422,25 @@ function Header() {
           fontSize: "14.5px",
           lineHeight: 1.55,
           color: "var(--session-ink-soft)",
-          maxWidth: 760,
+          maxWidth: 820,
         }}
       >
-        Jove’s system prompt isn’t one fixed thing — it’s a recipe assembled
-        fresh on every turn. A constant spine, four persona-specific voices,
-        three mode-specific openings, about eight conditional blocks that fire
-        on conversation state, and a live-context layer fed from a parallel
-        extraction call. Walk through the eight stages with Next; click any
-        band or chip for details.
+        How Jove&rsquo;s system prompt is assembled, layer by layer. The
+        diagram reads the live codebase via{" "}
+        <code
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--session-ink)",
+            background: "var(--session-walnut-surface-soft)",
+            padding: "1px 6px",
+            borderRadius: 3,
+          }}
+        >
+          /api/admin/prompt-architecture
+        </code>{" "}
+        — every section is a real export. Click any band, pill, or block to
+        inspect its source path, token count, and rendered text.
       </p>
     </div>
   );
@@ -658,7 +562,7 @@ function stepBtnStyle(disabled: boolean): React.CSSProperties {
 }
 
 // ---------------------------------------------------------------------------
-// Right-column content — stage caption or section detail
+// Right column — stage caption or detail panel
 // ---------------------------------------------------------------------------
 
 function StageCaption({ stage }: { stage: Stage }) {
@@ -709,9 +613,109 @@ function StageCaption({ stage }: { stage: Stage }) {
           fontStyle: "italic",
         }}
       >
-        Click any band, chip, or context item to inspect its details.
+        Click any band, pill, or block to inspect its source.
       </p>
     </>
+  );
+}
+
+function DetailPanel({
+  selection,
+  sectionById,
+  personaMode,
+  convMode,
+  onClose,
+}: {
+  selection: Selection;
+  sectionById: Map<string, PromptSection>;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+  onClose: () => void;
+}) {
+  if (selection.kind === "overview") {
+    return <OverviewDetail onClose={onClose} sectionById={sectionById} />;
+  }
+  if (selection.kind === "persona") {
+    return (
+      <PersonaDetail
+        mode={selection.mode}
+        activeMode={personaMode}
+        onClose={onClose}
+      />
+    );
+  }
+  if (selection.kind === "convmode") {
+    return (
+      <ConvModeDetail
+        mode={selection.mode}
+        activeMode={convMode}
+        onClose={onClose}
+      />
+    );
+  }
+  // section
+  const section = sectionById.get(selection.id);
+  if (!section) {
+    return (
+      <>
+        <DetailHeader label="Not in current phase" onClose={onClose} />
+        <p style={{ color: "var(--session-ink-soft)", fontSize: 14 }}>
+          This section isn&rsquo;t active for the current persona × mode × phase
+          combination. Switch persona or mode to surface it.
+        </p>
+      </>
+    );
+  }
+  return <SectionDetail section={section} onClose={onClose} />;
+}
+
+function DetailHeader({
+  label,
+  onClose,
+}: {
+  label: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink-soft)",
+          padding: "4px 10px",
+          borderRadius: 5,
+          border: "1px solid var(--session-walnut-border-soft)",
+          background: "var(--session-walnut-tint)",
+        }}
+        aria-label="Close detail"
+      >
+        ← Back to stage
+      </button>
+    </div>
   );
 }
 
@@ -719,50 +723,13 @@ function SectionDetail({
   section,
   onClose,
 }: {
-  section: Section;
+  section: PromptSection;
   onClose: () => void;
 }) {
+  const [showSource, setShowSource] = useState(false);
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "1.5px",
-            color: "var(--session-walnut-meta)",
-            textTransform: "uppercase",
-          }}
-        >
-          {section.tier}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            all: "unset",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "0.5px",
-            color: "var(--session-ink-soft)",
-            padding: "4px 10px",
-            borderRadius: 5,
-            border: "1px solid var(--session-walnut-border-soft)",
-            background: "var(--session-walnut-tint)",
-          }}
-          aria-label="Close detail"
-        >
-          ← Back to stage
-        </button>
-      </div>
+      <DetailHeader label={`Tier ${section.tier} · ${section.condition.label}`} onClose={onClose} />
       <h2
         style={{
           margin: 0,
@@ -774,19 +741,8 @@ function SectionDetail({
           color: "var(--session-ink)",
         }}
       >
-        {section.name}
+        {section.label}
       </h2>
-      <p
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-spectral, var(--font-serif))",
-          fontSize: 15,
-          lineHeight: 1.55,
-          color: "var(--session-ink-soft)",
-        }}
-      >
-        {section.purpose}
-      </p>
 
       <div
         style={{
@@ -803,82 +759,321 @@ function SectionDetail({
           borderTop: "1px solid var(--session-walnut-border-soft)",
         }}
       >
-        {section.source && (
+        <DetailLabel>Source</DetailLabel>
+        <div>
+          <code
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              color: "var(--session-ink)",
+              background: "var(--session-walnut-surface-soft)",
+              padding: "1px 6px",
+              borderRadius: 3,
+              wordBreak: "break-word",
+              display: "inline-block",
+            }}
+          >
+            {section.source.file}
+          </code>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              color: "var(--session-ink-soft)",
+              marginTop: 4,
+            }}
+          >
+            {section.source.symbol}
+          </div>
+        </div>
+
+        <DetailLabel>Tokens</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {section.tokens.toLocaleString()}
+        </span>
+
+        <DetailLabel>Condition</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {section.condition.label}
+          <span
+            style={{
+              marginLeft: 8,
+              fontFamily: "var(--font-mono)",
+              fontSize: 10.5,
+              color: "var(--session-ink-ghost)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            ({section.condition.type})
+          </span>
+        </span>
+
+        {section.alternatives.length > 0 && (
           <>
-            <DetailLabel>Source</DetailLabel>
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                color: "var(--session-ink)",
-                background: "var(--session-walnut-surface-soft)",
-                padding: "1px 6px",
-                borderRadius: 3,
-                wordBreak: "break-word",
-              }}
-            >
-              {section.source}
-            </code>
-          </>
-        )}
-        {section.tokens && (
-          <>
-            <DetailLabel>Tokens</DetailLabel>
-            <span style={{ color: "var(--session-ink)" }}>{section.tokens}</span>
-          </>
-        )}
-        {section.cache && (
-          <>
-            <DetailLabel>Cache tier</DetailLabel>
-            <span style={{ color: "var(--session-ink)" }}>{section.cache}</span>
-          </>
-        )}
-        {section.trigger && (
-          <>
-            <DetailLabel>Trigger</DetailLabel>
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                color: "var(--session-ink)",
-                background: "var(--session-walnut-surface-soft)",
-                padding: "1px 6px",
-                borderRadius: 3,
-              }}
-            >
-              {section.trigger}
-            </code>
-          </>
-        )}
-        {section.adr && section.adr.length > 0 && (
-          <>
-            <DetailLabel>ADRs</DetailLabel>
-            <span>
-              {section.adr.map((n, i) => (
-                <span key={n}>
-                  <a
-                    href="/admin/docs"
+            <DetailLabel>Alternatives</DetailLabel>
+            <ul style={{ margin: 0, paddingLeft: 16, listStyle: "disc" }}>
+              {section.alternatives.map((a) => (
+                <li key={a.label} style={{ marginBottom: 3 }}>
+                  <span style={{ color: "var(--session-ink)" }}>{a.label}</span>{" "}
+                  <span
                     style={{
-                      color: "var(--session-ink)",
-                      textDecoration: "underline",
                       fontFamily: "var(--font-mono)",
-                      fontSize: 12.5,
+                      fontSize: 11,
+                      color: "var(--session-ink-ghost)",
                     }}
                   >
-                    ADR-{String(n).padStart(3, "0")}
-                  </a>
-                  {i < section.adr!.length - 1 ? ", " : ""}
-                </span>
+                    ({a.tokens.toLocaleString()} tok · {a.trigger})
+                  </span>
+                </li>
               ))}
-            </span>
+            </ul>
           </>
         )}
-        {section.notes && (
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: "1px solid var(--session-walnut-border)",
+          borderRadius: 5,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+
+      {showSource && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {section.text}
+        </pre>
+      )}
+    </>
+  );
+}
+
+function PersonaDetail({
+  mode,
+  activeMode,
+  onClose,
+}: {
+  mode: PersonaMode;
+  activeMode: PersonaMode;
+  onClose: () => void;
+}) {
+  const isActive = mode === activeMode;
+  return (
+    <>
+      <DetailHeader label="Persona delta" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {PERSONA_LABELS[mode]}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Trait-specific voice rules merged into Tier 2 sections (Voice Rules,
+        Example Register, Landing, Deepening) on top of the shared base. Source
+        files: <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>src/lib/persona/voice-{mode}.ts</code>.
+      </p>
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.5,
+        }}
+      >
+        {isActive ? (
           <>
-            <DetailLabel>Notes</DetailLabel>
-            <span style={{ color: "var(--session-ink)" }}>{section.notes}</span>
+            Currently active. Click an affected Tier 2 band in the diagram
+            (Voice Rules, Example Register, Landing, Deepening) to see this
+            persona&rsquo;s rendered text.
+          </>
+        ) : (
+          <>
+            Not currently active. Clicking this pill switched the active
+            persona — the diagram and section text are re-rendering.
           </>
         )}
+      </div>
+    </>
+  );
+}
+
+function ConvModeDetail({
+  mode,
+  activeMode,
+  onClose,
+}: {
+  mode: ConversationMode;
+  activeMode: ConversationMode;
+  onClose: () => void;
+}) {
+  const isActive = mode === activeMode;
+  const sourceFile: Record<ConversationMode, string> = {
+    situation: "system-prompt.ts (default opener path)",
+    "guided-intake": "system-prompt.ts + guided-intake-copy.ts",
+    upload: "system-prompt.ts + upload-copy.ts",
+  };
+  return (
+    <>
+      <DetailHeader label="Conversation mode" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {MODE_LABELS[mode]}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Entry-phase Tier 3 block selected at conversation start. Source:{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>{sourceFile[mode]}</code>.
+      </p>
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.5,
+        }}
+      >
+        {isActive ? (
+          <>
+            Currently active. Click the Tier 3 band labeled
+            {mode === "situation"
+              ? " for the situation flow"
+              : mode === "guided-intake"
+                ? " “Guided Intake”"
+                : " “Upload Mode”"}{" "}
+            in the diagram below to see the rendered text.
+          </>
+        ) : (
+          <>
+            Not currently active. Clicking this pill switched the active mode —
+            the diagram and section text are re-rendering.
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+function OverviewDetail({
+  sectionById,
+  onClose,
+}: {
+  sectionById: Map<string, PromptSection>;
+  onClose: () => void;
+}) {
+  const total = Array.from(sectionById.values()).reduce(
+    (sum, s) => sum + s.tokens,
+    0,
+  );
+  return (
+    <>
+      <DetailHeader label="Per-turn payload" onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        Jove&rsquo;s system prompt
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Single text block prepended to every Anthropic call. Assembled by{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>buildSystemPrompt</code>{" "}
+        and{" "}
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>buildSystemPromptBlocks</code>{" "}
+        in <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink)" }}>src/lib/persona/system-prompt.ts</code>. Layers stack from static (cached forever) to dynamic (rebuilt each turn).
+      </p>
+      <div
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        Across all phases, {sectionById.size} distinct sections totaling{" "}
+        <strong style={{ color: "var(--session-ink)" }}>
+          {total.toLocaleString()}
+        </strong>{" "}
+        tokens for the current persona × mode.
       </div>
     </>
   );
@@ -905,13 +1100,43 @@ function DetailLabel({ children }: { children: React.ReactNode }) {
 // Diagram
 // ---------------------------------------------------------------------------
 
-interface DiagramProps {
-  visible: Record<string, boolean>;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+function DiagramSkeleton() {
+  return (
+    <div
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 12,
+        color: "var(--session-ink-ghost)",
+        letterSpacing: 1,
+        padding: 24,
+      }}
+    >
+      Loading prompt sections…
+    </div>
+  );
 }
 
-function Diagram({ visible, selectedId, onSelect }: DiagramProps) {
+interface DiagramProps {
+  visible: Record<string, boolean>;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  onPersonaPill: (mode: PersonaMode) => void;
+  onModePill: (mode: ConversationMode) => void;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+  sectionById: Map<string, PromptSection>;
+}
+
+function Diagram({
+  visible,
+  selection,
+  onSelect,
+  onPersonaPill,
+  onModePill,
+  personaMode,
+  convMode,
+  sectionById,
+}: DiagramProps) {
   return (
     <div
       style={{
@@ -928,37 +1153,79 @@ function Diagram({ visible, selectedId, onSelect }: DiagramProps) {
           transition: "opacity 220ms ease",
         }}
       >
-        <DynamicSidecar selectedId={selectedId} onSelect={onSelect} />
+        <DynamicSidecar
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+        />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <CacheWrap active={visible.cache}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <PromptHeader visible={visible.atom} />
+            <PromptHeader
+              visible={visible.atom}
+              selected={selection?.kind === "overview"}
+              onSelect={() => onSelect({ kind: "overview" })}
+            />
             {visible.spine && (
-              <SpineBands selectedId={selectedId} onSelect={onSelect} />
+              <SpineBands
+                selection={selection}
+                onSelect={onSelect}
+                sectionById={sectionById}
+              />
             )}
             {visible.persona && (
-              <PersonaFan selectedId={selectedId} onSelect={onSelect} />
+              <PersonaFan
+                selection={selection}
+                onPersonaPill={onPersonaPill}
+                personaMode={personaMode}
+              />
             )}
             {visible.mode && (
-              <ModeFan selectedId={selectedId} onSelect={onSelect} />
+              <ModeFan
+                selection={selection}
+                onModePill={onModePill}
+                convMode={convMode}
+              />
             )}
             {visible.conditional && (
-              <ConditionalLadder selectedId={selectedId} onSelect={onSelect} />
+              <ConditionalLadder
+                selection={selection}
+                onSelect={onSelect}
+                sectionById={sectionById}
+              />
             )}
           </div>
         </CacheWrap>
-        {visible.example && <ExampleAssemblyFooter />}
+        {visible.example && (
+          <ExampleAssemblyFooter
+            sectionById={sectionById}
+            personaMode={personaMode}
+            convMode={convMode}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function PromptHeader({ visible }: { visible: boolean }) {
+function PromptHeader({
+  visible,
+  selected,
+  onSelect,
+}: {
+  visible: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onSelect}
       style={{
+        all: "unset",
+        cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -967,7 +1234,10 @@ function PromptHeader({ visible }: { visible: boolean }) {
         border: `1px solid ${COLOR.identityBorder}`,
         borderRadius: 8,
         opacity: visible ? 1 : 0.2,
-        transition: "opacity 220ms ease",
+        transition: "opacity 220ms ease, box-shadow 120ms ease",
+        boxShadow: selected ? SELECTED_RING : "none",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       <span
@@ -979,7 +1249,7 @@ function PromptHeader({ visible }: { visible: boolean }) {
           textTransform: "uppercase",
         }}
       >
-        Jove’s system prompt — assembled per turn
+        Jove&rsquo;s system prompt — assembled per turn
       </span>
       <span
         style={{
@@ -988,42 +1258,41 @@ function PromptHeader({ visible }: { visible: boolean }) {
           color: "var(--session-ink-ghost)",
         }}
       >
-        ~7,000 tokens
+        click for overview
       </span>
-    </div>
+    </button>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Clickable bands and chips
+// Clickable bands
 // ---------------------------------------------------------------------------
 
-function ClickableBand({
+function SectionBand({
   sectionId,
-  selectedId,
+  selection,
   onSelect,
-  label,
-  hint,
+  sectionById,
   bg,
   border,
   fg,
-  children,
 }: {
   sectionId: string;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  label: string;
-  hint?: string;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
   bg: string;
   border: string;
   fg?: string;
-  children?: React.ReactNode;
 }) {
-  const selected = selectedId === sectionId;
+  const section = sectionById.get(sectionId);
+  if (!section) return null;
+  const selected =
+    selection?.kind === "section" && selection.id === sectionId;
   return (
     <button
       type="button"
-      onClick={() => onSelect(sectionId)}
+      onClick={() => onSelect({ kind: "section", id: sectionId })}
       style={{
         all: "unset",
         cursor: "pointer",
@@ -1054,114 +1323,72 @@ function ClickableBand({
             color: fg ?? "var(--session-ink)",
           }}
         >
-          {label}
+          {section.label}
         </span>
-        {hint && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              letterSpacing: "0.5px",
-              color: "var(--session-ink-ghost)",
-              textTransform: "uppercase",
-            }}
-          >
-            {hint}
-          </span>
-        )}
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.5px",
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+          }}
+        >
+          {section.tokens.toLocaleString()} tok · {section.condition.label}
+        </span>
       </div>
-      {children}
-    </button>
-  );
-}
-
-function VariantPill({
-  sectionId,
-  selectedId,
-  onSelect,
-  label,
-  defaultActive,
-}: {
-  sectionId: string;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  label: string;
-  defaultActive?: boolean;
-}) {
-  const selected = selectedId === sectionId;
-  // If something else is selected, dim. If nothing selected, defaultActive
-  // gets a soft highlight to signal the example AuDHD/Situation state.
-  const showActive = selected || (!selectedId && defaultActive);
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(sectionId);
-      }}
-      style={{
-        all: "unset",
-        cursor: "pointer",
-        fontFamily: "var(--font-mono)",
-        fontSize: 10.5,
-        letterSpacing: "0.5px",
-        padding: "2px 8px",
-        borderRadius: 3,
-        background: showActive
-          ? "var(--session-walnut-highlight)"
-          : "transparent",
-        color: showActive ? "var(--session-ink)" : "var(--session-ink-soft)",
-        border: `1px solid ${
-          showActive
-            ? "var(--session-walnut-border)"
-            : "var(--session-walnut-border-soft)"
-        }`,
-        textTransform: "uppercase",
-        boxShadow: selected ? SELECTED_RING : "none",
-      }}
-    >
-      {label}
     </button>
   );
 }
 
 function SpineBands({
-  selectedId,
+  selection,
   onSelect,
+  sectionById,
 }: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
 }) {
+  // Tier 1 + every Tier 2 section that's truly base (always-on).
+  const t1Ids = ["intro", "tier1"];
+  const t2BaseIds = Array.from(BASE_VOICE_IDS);
   return (
     <>
-      <ClickableBand
-        sectionId="tier1-identity"
-        selectedId={selectedId}
-        onSelect={onSelect}
-        label="Tier 1 — Identity + Constitutional"
-        hint="always · cached forever"
-        bg={COLOR.identityBg}
-        border={COLOR.identityBorder}
-      />
-      <ClickableBand
-        sectionId="tier2-base"
-        selectedId={selectedId}
-        onSelect={onSelect}
-        label="Tier 2 base — Voice scaffold"
-        hint="always · cached forever"
-        bg={COLOR.baseVoice}
-        border={COLOR.baseVoiceBorder}
-      />
+      {t1Ids.map((id) => (
+        <SectionBand
+          key={id}
+          sectionId={id}
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+          bg={COLOR.identityBg}
+          border={COLOR.identityBorder}
+        />
+      ))}
+      {t2BaseIds.map((id) => (
+        <SectionBand
+          key={id}
+          sectionId={id}
+          selection={selection}
+          onSelect={onSelect}
+          sectionById={sectionById}
+          bg={COLOR.baseVoice}
+          border={COLOR.baseVoiceBorder}
+        />
+      ))}
     </>
   );
 }
 
 function PersonaFan({
-  selectedId,
-  onSelect,
+  selection,
+  onPersonaPill,
+  personaMode,
 }: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selection: Selection | null;
+  onPersonaPill: (mode: PersonaMode) => void;
+  personaMode: PersonaMode;
 }) {
   return (
     <div
@@ -1188,7 +1415,7 @@ function PersonaFan({
             color: COLOR.personaFg,
           }}
         >
-          Tier 2 delta — Persona voice
+          Persona delta — affects voice rules, register, landing, deepening
         </span>
         <span
           style={{
@@ -1199,7 +1426,7 @@ function PersonaFan({
             textTransform: "uppercase",
           }}
         >
-          1 of 4 · cached per persona
+          1 of 4 · click to switch
         </span>
       </div>
       <div
@@ -1210,42 +1437,33 @@ function PersonaFan({
           marginTop: 8,
         }}
       >
-        <VariantPill
-          sectionId="persona-autistic"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="Autistic"
-        />
-        <VariantPill
-          sectionId="persona-audhd"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="AuDHD"
-          defaultActive
-        />
-        <VariantPill
-          sectionId="persona-dyslexic"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="Dyslexic"
-        />
-        <VariantPill
-          sectionId="persona-general"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="General"
-        />
+        {PERSONAS.map((p) => {
+          const isActive = p === personaMode;
+          const isSelected =
+            selection?.kind === "persona" && selection.mode === p;
+          return (
+            <VariantPill
+              key={p}
+              label={PERSONA_LABELS[p]}
+              active={isActive}
+              selected={isSelected}
+              onClick={() => onPersonaPill(p)}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function ModeFan({
-  selectedId,
-  onSelect,
+  selection,
+  onModePill,
+  convMode,
 }: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selection: Selection | null;
+  onModePill: (mode: ConversationMode) => void;
+  convMode: ConversationMode;
 }) {
   return (
     <div
@@ -1272,7 +1490,7 @@ function ModeFan({
             color: COLOR.modeFg,
           }}
         >
-          Tier 3 — Mode opener
+          Mode opener — entry-phase Tier 3 block
         </span>
         <span
           style={{
@@ -1283,7 +1501,7 @@ function ModeFan({
             textTransform: "uppercase",
           }}
         >
-          1 of 3 · entry-phase only
+          1 of 3 · click to switch
         </span>
       </div>
       <div
@@ -1294,47 +1512,89 @@ function ModeFan({
           marginTop: 8,
         }}
       >
-        <VariantPill
-          sectionId="mode-situation"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="Situation"
-          defaultActive
-        />
-        <VariantPill
-          sectionId="mode-guided"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="Guided"
-        />
-        <VariantPill
-          sectionId="mode-upload"
-          selectedId={selectedId}
-          onSelect={onSelect}
-          label="Upload"
-        />
+        {MODES.map((m) => {
+          const isActive = m === convMode;
+          const isSelected =
+            selection?.kind === "convmode" && selection.mode === m;
+          return (
+            <VariantPill
+              key={m}
+              label={MODE_LABELS[m]}
+              active={isActive}
+              selected={isSelected}
+              onClick={() => onModePill(m)}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function ConditionalLadder({
-  selectedId,
-  onSelect,
+function VariantPill({
+  label,
+  active,
+  selected,
+  onClick,
 }: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  label: string;
+  active: boolean;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const blocks: { id: string; label: string; fires: string; defaultActive: boolean }[] = [
-    { id: "cond-first-turn", label: "First turn", fires: "turn ≤ 3", defaultActive: false },
-    { id: "cond-returning", label: "Returning user", fires: "has Manual", defaultActive: true },
-    { id: "cond-approaching-cp", label: "Approaching CP", fires: "gate ready", defaultActive: true },
-    { id: "cond-post-cp", label: "Post-checkpoint", fires: "just confirmed", defaultActive: false },
-    { id: "cond-readiness", label: "Readiness gate", fires: "≥3 entries", defaultActive: false },
-    { id: "cond-clinical", label: "Clinical material", fires: "level > none", defaultActive: false },
-    { id: "cond-professional-referral", label: "Professional referral", fires: "level = caution", defaultActive: false },
-    { id: "cond-fabricated", label: "Fabricated content", fires: "miss count ≥ 2", defaultActive: false },
-  ];
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        fontFamily: "var(--font-mono)",
+        fontSize: 10.5,
+        letterSpacing: "0.5px",
+        padding: "2px 8px",
+        borderRadius: 3,
+        background: active
+          ? "var(--session-walnut-highlight)"
+          : "transparent",
+        color: active ? "var(--session-ink)" : "var(--session-ink-soft)",
+        border: `1px solid ${
+          active
+            ? "var(--session-walnut-border)"
+            : "var(--session-walnut-border-soft)"
+        }`,
+        textTransform: "uppercase",
+        boxShadow: selected ? SELECTED_RING : "none",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ConditionalLadder({
+  selection,
+  onSelect,
+  sectionById,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
+}) {
+  // Tier 3 sections that aren't mode-openers and aren't always-on
+  // adapting/pacing/etc. Render every Tier 3 section in the aggregated map.
+  const tier3 = Array.from(sectionById.values()).filter(
+    (s) => s.tier === "3" && !MODE_OPENER_IDS.has(s.id) && s.id !== "tier3",
+  );
+  // Sort: state/dynamic conditions first (the interesting ones), then always-on.
+  tier3.sort((a, b) => {
+    const score = (s: PromptSection) =>
+      s.condition.type === "state" ? 0 : s.condition.type === "dynamic" ? 1 : 2;
+    return score(a) - score(b);
+  });
   return (
     <div
       style={{
@@ -1360,7 +1620,7 @@ function ConditionalLadder({
             color: "var(--session-ink)",
           }}
         >
-          Tier 3 — Conversation mechanics
+          Tier 3 — Conversation mechanics ({tier3.length} blocks)
         </span>
         <span
           style={{
@@ -1381,25 +1641,21 @@ function ConditionalLadder({
           gap: 6,
         }}
       >
-        {blocks.map((b) => {
-          const selected = selectedId === b.id;
-          const showActive = selected || (!selectedId && b.defaultActive);
+        {tier3.map((s) => {
+          const selected =
+            selection?.kind === "section" && selection.id === s.id;
           return (
             <button
-              key={b.id}
+              key={s.id}
               type="button"
-              onClick={() => onSelect(b.id)}
+              onClick={() => onSelect({ kind: "section", id: s.id })}
               style={{
                 all: "unset",
                 cursor: "pointer",
                 padding: "6px 10px",
                 borderRadius: 5,
-                background: showActive ? COLOR.conditional : "transparent",
-                border: `1px solid ${
-                  showActive
-                    ? COLOR.conditionalBorder
-                    : "var(--session-walnut-border-soft)"
-                }`,
+                background: COLOR.conditional,
+                border: `1px solid ${COLOR.conditionalBorder}`,
                 display: "flex",
                 alignItems: "baseline",
                 justifyContent: "space-between",
@@ -1411,13 +1667,11 @@ function ConditionalLadder({
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontSize: 12.5,
-                  color: showActive
-                    ? "var(--session-ink)"
-                    : "var(--session-ink-soft)",
-                  fontWeight: showActive ? 500 : 400,
+                  color: "var(--session-ink)",
+                  fontWeight: 500,
                 }}
               >
-                {b.label}
+                {s.label}
               </span>
               <span
                 style={{
@@ -1427,7 +1681,7 @@ function ConditionalLadder({
                   whiteSpace: "nowrap",
                 }}
               >
-                {b.fires}
+                {s.tokens.toLocaleString()} tok
               </span>
             </button>
           );
@@ -1438,19 +1692,15 @@ function ConditionalLadder({
 }
 
 function DynamicSidecar({
-  selectedId,
+  selection,
   onSelect,
+  sectionById,
 }: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+  sectionById: Map<string, PromptSection>;
 }) {
-  const items: { id: string; label: string; hint: string }[] = [
-    { id: "dyn-manual", label: "Confirmed Manual", hint: "5 entries · compressed" },
-    { id: "dyn-summary", label: "Session summary", hint: "if returning" },
-    { id: "dyn-extraction-brief", label: "Extraction brief", hint: "from parallel Sonnet" },
-    { id: "dyn-transcript", label: "Transcript detected", hint: "if pasted" },
-    { id: "dyn-exploration", label: "Exploration focus", hint: "if drilling into entry" },
-  ];
+  const items = Array.from(sectionById.values()).filter((s) => s.tier === "dynamic");
   return (
     <div
       style={{
@@ -1472,14 +1722,26 @@ function DynamicSidecar({
       >
         Live context (parallel)
       </div>
+      {items.length === 0 && (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          (no dynamic sections in current phase)
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {items.map((i) => {
-          const selected = selectedId === i.id;
+        {items.map((s) => {
+          const selected =
+            selection?.kind === "section" && selection.id === s.id;
           return (
             <button
-              key={i.id}
+              key={s.id}
               type="button"
-              onClick={() => onSelect(i.id)}
+              onClick={() => onSelect({ kind: "section", id: s.id })}
               style={{
                 all: "unset",
                 cursor: "pointer",
@@ -1498,7 +1760,7 @@ function DynamicSidecar({
                   color: "var(--session-ink)",
                 }}
               >
-                {i.label}
+                {s.label}
               </div>
               <div
                 style={{
@@ -1508,7 +1770,7 @@ function DynamicSidecar({
                   marginTop: 1,
                 }}
               >
-                {i.hint}
+                {s.tokens.toLocaleString()} tok · {s.condition.label}
               </div>
             </button>
           );
@@ -1525,7 +1787,7 @@ function DynamicSidecar({
         }}
       >
         Extraction runs concurrently each turn. The brief from turn N feeds
-        the prompt at turn N+1 — a one-turn lag the user never feels.
+        the prompt at turn N+1 — a one-turn lag.
       </div>
     </div>
   );
@@ -1574,18 +1836,43 @@ function CacheWrap({
   );
 }
 
-function ExampleAssemblyFooter() {
-  const segments: { label: string; tokens: number; tier: "static" | "persona" | "dynamic" }[] = [
-    { label: "Tier 1 — Identity + Constitutional", tokens: 1400, tier: "static" },
-    { label: "Tier 2 base — Voice scaffold", tokens: 2200, tier: "static" },
-    { label: "Tier 2 delta — AuDHD persona", tokens: 950, tier: "persona" },
-    { label: "Tier 3 — Situation mode opener", tokens: 380, tier: "persona" },
-    { label: "Tier 3 — Conditional ladder (2 active)", tokens: 720, tier: "dynamic" },
-    { label: "Live context — Manual + extraction + summary", tokens: 1850, tier: "dynamic" },
-    { label: "Recent messages (sliding window)", tokens: 400, tier: "dynamic" },
-  ];
-  const total = segments.reduce((s, x) => s + x.tokens, 0);
-  const cached = segments
+function ExampleAssemblyFooter({
+  sectionById,
+  personaMode,
+  convMode,
+}: {
+  sectionById: Map<string, PromptSection>;
+  personaMode: PersonaMode;
+  convMode: ConversationMode;
+}) {
+  // Group sections by cache tier (derived from tier + condition).
+  type Bucket = { label: string; tokens: number; tier: "static" | "persona" | "dynamic" };
+  const buckets: Record<string, Bucket> = {
+    "tier1-static": { label: "Tier 1 + Introduction", tokens: 0, tier: "static" },
+    "tier2-base": { label: "Tier 2 base voice (always-on)", tokens: 0, tier: "static" },
+    "tier2-persona": { label: `Tier 2 persona delta (${PERSONA_LABELS[personaMode]})`, tokens: 0, tier: "persona" },
+    "tier3-mode": { label: `Tier 3 mode opener (${MODE_LABELS[convMode]})`, tokens: 0, tier: "persona" },
+    "tier3-conditional": { label: "Tier 3 conditional blocks", tokens: 0, tier: "dynamic" },
+    "dynamic": { label: "Live context (Manual, session, extraction)", tokens: 0, tier: "dynamic" },
+  };
+  for (const s of Array.from(sectionById.values())) {
+    if (s.tier === "intro" || s.tier === "1") {
+      buckets["tier1-static"].tokens += s.tokens;
+    } else if (s.tier === "2" && BASE_VOICE_IDS.has(s.id)) {
+      buckets["tier2-base"].tokens += s.tokens;
+    } else if (s.tier === "2") {
+      buckets["tier2-persona"].tokens += s.tokens;
+    } else if (s.tier === "3" && MODE_OPENER_IDS.has(s.id)) {
+      buckets["tier3-mode"].tokens += s.tokens;
+    } else if (s.tier === "3") {
+      buckets["tier3-conditional"].tokens += s.tokens;
+    } else if (s.tier === "dynamic") {
+      buckets["dynamic"].tokens += s.tokens;
+    }
+  }
+  const entries = Object.values(buckets).filter((b) => b.tokens > 0);
+  const total = entries.reduce((s, x) => s + x.tokens, 0);
+  const cached = entries
     .filter((s) => s.tier !== "dynamic")
     .reduce((s, x) => s + x.tokens, 0);
   return (
@@ -1615,7 +1902,7 @@ function ExampleAssemblyFooter() {
             textTransform: "uppercase",
           }}
         >
-          Example assembly — AuDHD · Situation · turn 12 · 2 entries
+          Token budget — {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
         </span>
         <span
           style={{
@@ -1624,11 +1911,11 @@ function ExampleAssemblyFooter() {
             color: "var(--session-ink-soft)",
           }}
         >
-          {total.toLocaleString()} tokens · {((cached / total) * 100).toFixed(0)}% cached
+          {total.toLocaleString()} tokens · {total === 0 ? 0 : ((cached / total) * 100).toFixed(0)}% cached
         </span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {segments.map((s) => (
+        {entries.map((s) => (
           <div
             key={s.label}
             style={{
@@ -1688,3 +1975,4 @@ function ExampleAssemblyFooter() {
     </div>
   );
 }
+
