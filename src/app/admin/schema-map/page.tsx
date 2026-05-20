@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
@@ -72,7 +72,7 @@ const STAGES: Stage[] = [
     id: 3,
     title: "Layer 2 — extraction state",
     caption:
-      "The conversations.extraction_state JSONB column is where Jove's working memory lives. The parallel Sonnet call writes it every turn; the next turn's prompt reads it. messages.extraction_snapshot keeps a frozen per-turn copy for replay and debugging.",
+      "The conversations.extraction_state JSONB column (a flexible JSON field — schema lives inside the value, not the table) is where Jove's working memory lives. The parallel Sonnet call writes it every turn; the next turn's prompt reads it. messages.extraction_snapshot keeps a frozen per-turn copy for replay and debugging.",
   },
   {
     id: 4,
@@ -1256,6 +1256,82 @@ function ConnectionRow({ conn }: { conn: Connection }) {
 }
 
 // ---------------------------------------------------------------------------
+// Reading guide — vocabulary primer for non-tech readers. Visible on every
+// stage so the technical names below (CASCADE, FK, JSONB…) have a glossary
+// the reader can glance at without leaving the page.
+// ---------------------------------------------------------------------------
+
+const READING_GUIDE: { term: string; def: string }[] = [
+  { term: "Table", def: "Structured rows. Think spreadsheet." },
+  { term: "Column", def: "A field in a table, with a type (text, integer, jsonb…)." },
+  { term: "Foreign key (FK)", def: "A link from one table to another." },
+  { term: "CASCADE", def: "When the parent is deleted, this row goes with it." },
+  { term: "SET NULL", def: "Parent deleted, link becomes empty but row survives." },
+  { term: "JSONB", def: "A flexible JSON column. Schema lives inside the value, not the table." },
+  { term: "RLS", def: "Row-level security. The database enforces who can read which rows." },
+];
+
+function ReadingGuide() {
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        borderRadius: 8,
+        background: "var(--session-walnut-tint)",
+        border: "1px dashed var(--session-walnut-border-soft)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          color: "var(--session-walnut-meta)",
+          textTransform: "uppercase",
+          marginBottom: 8,
+        }}
+      >
+        Reading guide
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "max-content 1fr",
+          columnGap: 14,
+          rowGap: 4,
+        }}
+      >
+        {READING_GUIDE.map((g) => (
+          <Fragment key={g.term}>
+            <code
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11.5,
+                color: "var(--session-ink)",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {g.term}
+            </code>
+            <span
+              style={{
+                fontFamily: "var(--font-spectral, var(--font-serif))",
+                fontSize: 12.5,
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.4,
+              }}
+            >
+              {g.def}
+            </span>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Diagram
 // ---------------------------------------------------------------------------
 
@@ -1271,10 +1347,20 @@ function Diagram({
   onSelect: (s: Selection | null) => void;
 }) {
   if (stageId === 6) {
-    return <CascadeDiagram selection={selection} onSelect={onSelect} />;
+    return (
+      <>
+        <ReadingGuide />
+        <CascadeDiagram selection={selection} onSelect={onSelect} />
+      </>
+    );
   }
   if (stageId === 7) {
-    return <WorkedExampleFooter />;
+    return (
+      <>
+        <ReadingGuide />
+        <WorkedExampleFooter />
+      </>
+    );
   }
 
   // Filter tables: for stage 3, only spine tables + extraction-tagged ones
@@ -1284,6 +1370,7 @@ function Diagram({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <ReadingGuide />
       {focusedView && (
         <ExtractionFocusPanel selection={selection} onSelect={onSelect} />
       )}
