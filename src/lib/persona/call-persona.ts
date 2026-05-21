@@ -18,6 +18,7 @@ import {
   loadConversationContext,
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
+  fireBackgroundMonitor,
   handleCrisisDetection,
   applyCheckpointGates,
   buildCheckpointMeta,
@@ -358,21 +359,27 @@ export function callPersona({
           }
         }
 
-        // 1. Save user message
+        // 1. Save user message. Capture the returned id so the Phase 0
+        //    shadow monitor (step 3) can record it as triggering_message_id
+        //    on the monitor_reads row. No other consumer needs the id.
+        let userMessageId: string | null = null;
         if (message !== null) {
-          const { error: msgError } = await admin
+          const { data: userMsgRow, error: msgError } = await admin
             .from("messages")
             .insert({
               conversation_id: convId,
               role: "user",
               content: message,
               metadata: isChipResponse ? { chip_response: true } : {},
-            });
+            })
+            .select("id")
+            .single();
 
           if (msgError) {
             emitError(controller, "Failed to save message. Try again.");
             return;
           }
+          userMessageId = userMsgRow?.id ?? null;
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
@@ -442,6 +449,12 @@ export function callPersona({
           message !== null && message !== "[Session started]";
         if (hasUserContent) {
           fireBackgroundExtraction(ctx, admin);
+          // 3b. Phase 0 shadow monitor — fire alongside extraction. Log-only,
+          //     never gates anything on this turn. Web only for now (we're
+          //     in callPersona which is the web entry point; the SMS
+          //     persona-bridge intentionally does NOT call this — Q-5 in
+          //     docs/reference/two-layer-engine-evaluation.md).
+          fireBackgroundMonitor(ctx, admin, userId, userMessageId);
         }
 
         // 7b. Transcript detection — runs on every user message so the
