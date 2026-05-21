@@ -39,6 +39,10 @@ export const EXTRACTION_MODEL = "claude-sonnet-4-6";
 export const COMPOSITION_MODEL = "claude-opus-4-6";
 export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";
 export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
+// Phase 0 — shadow monitor. Reads alliance state (bond / task / scope /
+// rupture / direction) per turn. Currently log-only — no behavior gates on
+// this. See docs/reference/two-layer-engine-evaluation.md § 3 Phase 0.
+export const MONITOR_MODEL = "claude-haiku-4-5-20251001";
 
 // Single source of truth for both the system-message text persisted after a
 // checkpoint action and the natural-language reply mapSystemMessages() in
