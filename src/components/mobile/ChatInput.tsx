@@ -7,6 +7,13 @@ import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
+  // When set, rehydrates the textarea with the given text and clears the
+  // signal via `onDraftRestored`. Used to recover a paste that the server
+  // rejected (e.g. an upload over MAX_UPLOAD_LENGTH) so the user can edit
+  // it down rather than losing it. Null/undefined when there is nothing
+  // to restore.
+  draftToRestore?: string | null;
+  onDraftRestored?: () => void;
 }
 
 type ButtonMode = "mic" | "mic-denied" | "stop" | "send";
@@ -14,12 +21,29 @@ type ButtonMode = "mic" | "mic-denied" | "stop" | "send";
 export default function ChatInput({
   onSend,
   disabled,
+  draftToRestore,
+  onDraftRestored,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const voice = useVoiceInput();
+
+  // Server-rejected message recovery. When useChat surfaces a draftToRestore
+  // (e.g. after a 400 oversize), refill the textarea, focus it, and clear
+  // the signal so the same draft isn't re-applied on subsequent renders.
+  useEffect(() => {
+    if (draftToRestore == null) return;
+    setInput(draftToRestore);
+    onDraftRestored?.();
+    // Defer focus to next tick so the auto-resize layout effect has run.
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      const el = textareaRef.current;
+      if (el) el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }, [draftToRestore, onDraftRestored]);
 
   const isRecording = voice.recordingState !== "idle";
 

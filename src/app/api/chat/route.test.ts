@@ -10,13 +10,20 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 let manualComponentCount = 0;
+// When set, the conversations.select("mode").eq("id", X).single() chain
+// returns { data: { mode: <this value> } } — simulating a follow-up call
+// reading mode back from an existing conversation row. Null returns
+// { data: null }, which the route treats as "mode unknown, default cap."
+let mockConvModeFromDb: string | null = null;
 const insertedConv = { id: "conv-123" };
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => {
     const chain: Record<string, unknown> = {};
     let currentTable = "";
+    let didInsert = false;
     chain.from = (t: string) => {
       currentTable = t;
+      didInsert = false;
       return chain;
     };
     chain.select = () => chain;
@@ -27,8 +34,22 @@ vi.mock("@/lib/supabase/admin", () => ({
       return chain;
     };
     chain.upsert = () => Promise.resolve({ data: null, error: null });
-    chain.insert = () => chain;
-    chain.single = () => Promise.resolve({ data: insertedConv, error: null });
+    chain.insert = () => {
+      didInsert = true;
+      return chain;
+    };
+    chain.single = () => {
+      // Differentiate the insert.select("id").single() path (returns the
+      // inserted conv row) from the select("mode").eq().single() path
+      // (returns mode lookup).
+      if (currentTable === "conversations" && !didInsert) {
+        return Promise.resolve({
+          data: mockConvModeFromDb ? { mode: mockConvModeFromDb } : null,
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: insertedConv, error: null });
+    };
     return chain;
   },
 }));
@@ -77,6 +98,7 @@ beforeEach(() => {
     limit: 200,
   });
   manualComponentCount = 0;
+  mockConvModeFromDb = null;
 });
 
 // --- Tests ---------------------------------------------------------------
@@ -108,6 +130,67 @@ describe("/api/chat — message length", () => {
     const ok = "a".repeat(4000);
     const res = await POST(makeRequest({ message: ok, conversationId: null }));
     expect(res.status).toBe(200);
+  });
+
+  // Upload mode bumps the cap to MAX_UPLOAD_LENGTH (16000) so users can
+  // paste an email thread or chat history. The audit S3 finding was that
+  // none of this was tested — bumping/lowering either cap would have been
+  // a silent regression. See pre-beta audit S3.
+  it("allows upload-mode messages up to 16000 characters", async () => {
+    const ok = "a".repeat(16000);
+    const res = await POST(
+      makeRequest({ message: ok, conversationId: null, mode: "upload" })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects upload-mode messages over 16000 characters with 400", async () => {
+    const long = "a".repeat(16001);
+    const res = await POST(
+      makeRequest({ message: long, conversationId: null, mode: "upload" })
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/upload is too long/i);
+  });
+
+  it("allows upload-mode messages over the 4000 normal cap (e.g. 8000 chars)", async () => {
+    const longish = "a".repeat(8000);
+    const res = await POST(
+      makeRequest({ message: longish, conversationId: null, mode: "upload" })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("non-upload modes still reject at 4001 (no leak of upload cap into other modes)", async () => {
+    const long = "a".repeat(4001);
+    const res = await POST(
+      makeRequest({ message: long, conversationId: null, mode: "situation" })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  // Follow-up messages don't carry `mode` in the request body — the
+  // server reads it back from the DB so upload conversations get the
+  // larger cap on subsequent turns too. This was uncovered before the
+  // audit and is the path that breaks if someone "simplifies" the
+  // route by trusting the request-body mode only.
+  it("applies upload cap on a follow-up turn by reading mode from DB", async () => {
+    mockConvModeFromDb = "upload";
+    const longish = "a".repeat(8000);
+    const res = await POST(
+      makeRequest({ message: longish, conversationId: "conv-123" })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("applies the normal 4k cap on a follow-up turn when DB mode is not upload", async () => {
+    mockConvModeFromDb = "situation";
+    const long = "a".repeat(4001);
+    const res = await POST(
+      makeRequest({ message: long, conversationId: "conv-123" })
+    );
+    expect(res.status).toBe(400);
   });
 });
 

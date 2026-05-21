@@ -104,46 +104,57 @@ export function detectTranscript(message: string): TranscriptDetection {
   const lines = message.split("\n").filter((l) => l.trim().length > 0);
   const wordCount = message.split(/\s+/).length;
 
-  let signals = 0;
+  // Strong signals: format-specific detectors. Each one alone is enough
+  // evidence to call the message a transcript.
+  let strongSignals = 0;
   let format: TranscriptDetection["format"] = undefined;
 
   // Check each format — email first since speaker pattern can false-positive on headers
   const isEmail = detectEmailThread(message, lines);
   if (isEmail) {
-    signals++;
+    strongSignals++;
     format = "email_thread";
   }
 
   if (!isEmail && detectSpeakerAlternating(lines)) {
-    signals++;
+    strongSignals++;
     format = "speaker_alternating";
   }
 
   if (detectTimestampedChat(lines)) {
-    signals++;
+    strongSignals++;
     format = format || "timestamped_chat";
   }
 
   if (detectJournal(message, wordCount)) {
-    signals++;
+    strongSignals++;
     format = format || "journal";
   }
 
-  // Fallback: many short lines (chat-like structure)
+  // Corroborating signal: many short lines (chat-like structure). NOT
+  // strong enough on its own — a long emotional message with line-broken
+  // narration ("He came home.\nI didn't say anything.\nHe made a comment.")
+  // hits this fallback even though it's narrative, not a transcript. So
+  // we only let it ESCALATE confidence on an already-strong detection,
+  // and never count it toward isTranscript by itself. See pre-beta audit S2.
+  let corroboratingShortLines = false;
   if (lines.length >= 10) {
     const avgLineLength =
       lines.reduce((sum, l) => sum + l.length, 0) / lines.length;
     if (avgLineLength < 80) {
-      signals++;
-      format = format || "unknown";
+      corroboratingShortLines = true;
     }
   }
 
-  if (signals >= 2) {
+  if (strongSignals >= 2) {
     return { isTranscript: true, confidence: "high", format };
   }
-  if (signals === 1) {
-    return { isTranscript: true, confidence: "medium", format };
+  if (strongSignals === 1) {
+    return {
+      isTranscript: true,
+      confidence: corroboratingShortLines ? "high" : "medium",
+      format,
+    };
   }
 
   return NO_TRANSCRIPT;

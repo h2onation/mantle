@@ -198,4 +198,52 @@ Me: I know. I'm sorry.`;
       expect(result.confidence).toBe("high");
     });
   });
+
+  describe("false-positive resistance (pre-beta audit S2)", () => {
+    it("does not flag long narrative with many short newline-broken lines as a transcript", () => {
+      // The pre-fix detector counted "≥10 lines, avg < 80 chars" as a
+      // standalone signal sufficient to mark isTranscript=true. A heavily
+      // line-broken emotional monologue tripped it. Real transcripts have
+      // a format signal (speakers, timestamps, email headers, date+paragraphs);
+      // narrative does not. After the fix, the short-lines pattern only
+      // ESCALATES an existing strong signal — it never triggers on its own.
+      const msg = [
+        "I keep replaying it.",
+        "Like, every single beat.",
+        "What I said.",
+        "What he said back.",
+        "The pause before he answered.",
+        "The look he gave me.",
+        "The way the room went quiet.",
+        "I should have said something else.",
+        "I don't know what.",
+        "Something different.",
+        "Anything different.",
+        "But I just stood there.",
+      ].join("\n");
+      const result = detectTranscript(msg);
+      expect(result.isTranscript).toBe(false);
+    });
+
+    it("still flags iMessage paste even though it would also trip the short-lines fallback", () => {
+      // Belt-and-suspenders: confirm the refactor didn't break the common
+      // case where a real chat paste also has many short lines. The
+      // speaker-alternating signal is the strong one; short-lines just
+      // escalates the confidence to high.
+      const msg = `Sam: hey
+Me: hi
+Sam: are you free
+Me: kind of
+Sam: kind of?
+Me: working but I can take a sec
+Sam: ok
+Me: what's up
+Sam: nothing nm
+Me: sam
+Sam: forget it`;
+      const result = detectTranscript(msg);
+      expect(result.isTranscript).toBe(true);
+      expect(result.format).toBe("speaker_alternating");
+    });
+  });
 });

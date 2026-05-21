@@ -5,6 +5,8 @@ import {
   applySlidingWindow,
   mapSystemMessages,
   detectCrisisInUserMessage,
+  selectTranscriptContextForPrompt,
+  shouldEmitUploadOpener,
   stripCheckpointFromText,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
@@ -314,6 +316,93 @@ describe("wrapPastedContent", () => {
     const wrapped = wrapPastedContent("");
     expect(wrapped).toContain("<pasted_content>");
     expect(wrapped).toContain("</pasted_content>");
+  });
+});
+
+// ── shouldEmitUploadOpener ──
+// Predicate gating the upload-mode bootstrap short-circuit: server emits
+// UPLOAD_OPENER verbatim instead of asking the model to produce it. Fires
+// only on the bootstrap call (no prior messages, no user input, mode is
+// upload). See ADR-042 §3 and call-persona.ts step 2a.
+
+describe("shouldEmitUploadOpener", () => {
+  it("fires on fresh upload bootstrap (mode=upload, turnCount=0, message=null)", () => {
+    // turnCount=0 happens if loadConversationContext ever stops injecting
+    // the synthetic [Session started] placeholder. Belt-and-suspenders
+    // coverage: the predicate accepts it.
+    expect(shouldEmitUploadOpener("upload", 0, null)).toBe(true);
+  });
+
+  it("fires on upload bootstrap when only the [Session started] placeholder is in history (turnCount=1)", () => {
+    // Real-runtime path: persona-pipeline.ts injects a synthetic user
+    // message when the DB has zero rows, bumping turnCount from 0 to 1.
+    // The predicate must accept this — the live audit caught a previous
+    // version that only matched turnCount === 0 and missed every bootstrap.
+    expect(shouldEmitUploadOpener("upload", 1, null)).toBe(true);
+  });
+
+  it("does NOT fire when mode is situation", () => {
+    expect(shouldEmitUploadOpener("situation", 0, null)).toBe(false);
+    expect(shouldEmitUploadOpener("situation", 1, null)).toBe(false);
+  });
+
+  it("does NOT fire when mode is guided-intake", () => {
+    expect(shouldEmitUploadOpener("guided-intake", 0, null)).toBe(false);
+    expect(shouldEmitUploadOpener("guided-intake", 1, null)).toBe(false);
+  });
+
+  it("does NOT fire on the user's paste turn (turnCount >= 2)", () => {
+    expect(shouldEmitUploadOpener("upload", 2, "paste content here")).toBe(false);
+    expect(shouldEmitUploadOpener("upload", 2, null)).toBe(false);
+  });
+
+  it("does NOT fire when the user supplied input on the bootstrap call", () => {
+    // Belt-and-suspenders: if some future caller sends mode=upload with a
+    // user message on the bootstrap, we run through the normal LLM path
+    // rather than dropping the user's intent on the floor.
+    expect(shouldEmitUploadOpener("upload", 0, "hello")).toBe(false);
+    expect(shouldEmitUploadOpener("upload", 1, "hello")).toBe(false);
+  });
+
+  it("does NOT fire when mode is missing or unknown", () => {
+    expect(shouldEmitUploadOpener(null, 0, null)).toBe(false);
+    expect(shouldEmitUploadOpener(undefined, 0, null)).toBe(false);
+    expect(shouldEmitUploadOpener("unknown-mode", 0, null)).toBe(false);
+  });
+});
+
+// ── selectTranscriptContextForPrompt ──
+// Upload mode renders its own Tier 3 paste-handling block. If we ALSO
+// pass the regex-detected transcript context to the prompt builder, the
+// generic TRANSCRIPT DETECTED dynamic block fires alongside UPLOAD MODE
+// and the two duplicate guidance with different wrapper sections. The
+// suppression at call-persona.ts step 7b prevents that. See ADR-042 §5–§6
+// and pre-beta audit S4.
+
+describe("selectTranscriptContextForPrompt", () => {
+  const detection = { isTranscript: true, confidence: "high" as const };
+
+  it("suppresses transcript context in upload mode even when detection fires", () => {
+    expect(selectTranscriptContextForPrompt("upload", detection)).toBeNull();
+  });
+
+  it("passes transcript context through in situation mode", () => {
+    expect(selectTranscriptContextForPrompt("situation", detection)).toBe(detection);
+  });
+
+  it("passes transcript context through in guided-intake mode", () => {
+    expect(selectTranscriptContextForPrompt("guided-intake", detection)).toBe(detection);
+  });
+
+  it("passes through null detection unchanged in non-upload modes", () => {
+    expect(selectTranscriptContextForPrompt("situation", null)).toBeNull();
+  });
+
+  it("passes null when mode is missing", () => {
+    // Defensive: a missing/unknown mode should NOT trigger upload-mode
+    // suppression — that's a stricter rule than the live route enforces.
+    expect(selectTranscriptContextForPrompt(null, detection)).toBe(detection);
+    expect(selectTranscriptContextForPrompt(undefined, detection)).toBe(detection);
   });
 });
 

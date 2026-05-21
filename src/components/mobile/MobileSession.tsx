@@ -71,6 +71,12 @@ interface MobileSessionProps {
   concreteExamples?: number;
   firstName?: string | null;
   onOpenDrawer: () => void;
+  // Server-rejected paste recovery: when /api/chat returns a 400 with an
+  // `error` message (e.g. MAX_UPLOAD_LENGTH), useChat surfaces the
+  // rejected text here so ChatInput can rehydrate the textarea. Cleared
+  // via onDraftRestored once consumed.
+  draftToRestore?: string | null;
+  onDraftRestored?: () => void;
 }
 
 export default function MobileSession({
@@ -97,6 +103,8 @@ export default function MobileSession({
   concreteExamples = 0,
   firstName = null,
   onOpenDrawer,
+  draftToRestore = null,
+  onDraftRestored,
 }: MobileSessionProps) {
   const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
@@ -768,6 +776,8 @@ export default function MobileSession({
       <ChatInput
         onSend={sendMessage}
         disabled={isLoading || isStreaming || conversationId === "text-channel"}
+        draftToRestore={draftToRestore}
+        onDraftRestored={onDraftRestored}
       />
 
       <ChatWindowModal

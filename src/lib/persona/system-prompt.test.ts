@@ -918,11 +918,19 @@ describe("buildSystemPrompt", () => {
     // per ADR-042 §3. Tests use turnCount: 0 (Jove opener) so the block
     // fires; the post-entry-phase behavior is covered by the lifecycle
     // tests below.
-    it("includes UPLOAD MODE block with opener when mode is upload", () => {
+    it("includes UPLOAD MODE block when mode is upload", () => {
       const result = build({ mode: "upload", turnCount: 0 });
       expect(result).toContain("UPLOAD MODE");
       expect(result).toContain("chose \"Upload\"");
-      expect(result).toContain("Paste something here");
+    });
+
+    it("does not embed UPLOAD_OPENER text in the prompt", () => {
+      // The opener is server-emitted from call-persona.ts to keep the
+      // "locked invitation" actually locked. The model should never be
+      // asked to reproduce it. If "Paste something here" reappears,
+      // someone re-introduced the prompt-driven opener.
+      const result = build({ mode: "upload", turnCount: 0 });
+      expect(result).not.toContain("Paste something here");
     });
 
     it("includes analysis instructions for upload mode", () => {
@@ -2466,15 +2474,21 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("briefly introduce yourself");
     });
 
-    it("upload opener tells returning users not to introduce themselves", () => {
+    it("upload prompt does not contain opener-introduction guidance (opener is server-emitted, not prompt-driven)", () => {
+      // Pre-fix, this test asserted the prompt told returning users not
+      // to introduce themselves. With UPLOAD_OPENER now server-emitted
+      // (call-persona.ts upload-bootstrap short-circuit), the prompt no
+      // longer carries opener-shape directives. This test guards the
+      // regression: re-adding "introduce yourself" guidance would mean
+      // someone re-introduced the prompt-driven opener.
       const result = build({
         mode: "upload",
         turnCount: 0,
         isReturningUser: true,
         manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
       });
-      expect(result).toContain("returning user");
-      expect(result).toContain("without introducing yourself");
+      expect(result).not.toContain("without introducing yourself");
+      expect(result).not.toContain("briefly introduce yourself before the opener");
     });
 
     it("returning-user situation-specific first-turn block only renders in situation mode", () => {

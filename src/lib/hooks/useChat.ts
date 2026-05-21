@@ -126,6 +126,13 @@ export function useChat() {
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // When the server rejects a message with a 400 (e.g. an upload over
+  // MAX_UPLOAD_LENGTH), we surface the server's error string AND echo the
+  // rejected text back so ChatInput can rehydrate the textarea. Without
+  // this the user types/pastes a long message, sees "Something went
+  // wrong," and the content evaporates. Consumers should consume this
+  // via the exposed `draftToRestore` + `clearDraftToRestore` pair.
+  const [draftToRestore, setDraftToRestore] = useState<string | null>(null);
   const [checkpointError, setCheckpointError] = useState<string | null>(null);
   const [processingText, setProcessingText] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummaryItem[]>([]);
@@ -635,6 +642,24 @@ export function useChat() {
                 ? body.message
                 : "You've reached today's message limit. It resets at midnight UTC.",
             );
+            return;
+          }
+        }
+        // 400 with a server-provided `error` string (e.g. message-length
+        // caps from /api/chat) — surface the actual message and restore
+        // the paste to the input so the user can edit it down. Without
+        // this, a 16k+ upload paste returned "Something went wrong" with
+        // no way to recover the typed content.
+        if (res.status === 400 && contentType.includes("application/json")) {
+          const body = await res.json().catch(() => null);
+          if (body?.error && typeof body.error === "string") {
+            setMessages((prev) => {
+              const updated = [...prev];
+              if (updated[updated.length - 1]?.role === "user") updated.pop();
+              return updated;
+            });
+            setErrorMessage(body.error);
+            setDraftToRestore(text);
             return;
           }
         }
@@ -1263,6 +1288,8 @@ export function useChat() {
     sessionSummary,
     lastSessionDate,
     errorMessage,
+    draftToRestore,
+    clearDraftToRestore: () => setDraftToRestore(null),
     checkpointError,
     processingText,
     conversations,

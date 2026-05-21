@@ -151,6 +151,8 @@ export default function MainApp() {
     initialized,
     userEmail,
     errorMessage,
+    draftToRestore,
+    clearDraftToRestore,
     checkpointError,
     conversations,
     isGuest,
@@ -400,6 +402,8 @@ export default function MainApp() {
             concreteExamples={concreteExamples}
             firstName={firstName}
             onOpenDrawer={handleOpenDrawer}
+            draftToRestore={draftToRestore}
+            onDraftRestored={clearDraftToRestore}
           />
         }
         manualContent={
