@@ -40,9 +40,16 @@ export const COMPOSITION_MODEL = "claude-opus-4-6";
 export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";
 export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
 // Phase 0 — shadow monitor. Reads alliance state (bond / task / scope /
-// rupture / direction) per turn. Currently log-only — no behavior gates on
-// this. See docs/reference/two-layer-engine-evaluation.md § 3 Phase 0.
-export const MONITOR_MODEL = "claude-haiku-4-5-20251001";
+// rupture / direction) per turn. Currently log-only — no behavior gates
+// on this. See docs/reference/two-layer-engine-evaluation.md § 3 Phase 0.
+//
+// Set to Opus deliberately. Phase 0 is a ceiling test: we want to know
+// whether rupture / withdrawal / sinking detection is POSSIBLE at the
+// best model we can throw at the problem, not whether it works on a
+// budget. Cost optimization (e.g., flipping back to Haiku) is for after
+// Opus proves the signal is detectable. If Opus misses, Haiku won't
+// catch it; if Opus catches it, we know how far Haiku has to climb.
+export const MONITOR_MODEL = "claude-opus-4-7";
 
 // Single source of truth for both the system-message text persisted after a
 // checkpoint action and the natural-language reply mapSystemMessages() in

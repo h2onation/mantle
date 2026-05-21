@@ -96,6 +96,17 @@ Return ONLY the JSON object. No code fences, no preamble.`;
 
 interface RunMonitorOptions {
   conversationHistory: { role: "user" | "assistant"; content: string }[];
+  /** Opt-in: skip the MONITOR_MESSAGE_WINDOW trim and send the full
+   *  conversationHistory to the model. Used by the replay harness
+   *  (scripts/replay-monitor.ts) to compare windowed vs. full-history
+   *  classification — slope detection over long arcs may differ from
+   *  the 8-message recent-shape read.
+   *
+   *  Production callers MUST NOT set this. The window is calibrated for
+   *  the recent-shape read; full history changes the cost profile and
+   *  the read's character. Live wiring (call-persona.ts → fireBackground
+   *  Monitor → runMonitor) does not pass this flag. Defaults to false. */
+  fullHistory?: boolean;
 }
 
 export interface MonitorResult {
@@ -116,8 +127,10 @@ export interface MonitorResult {
 export async function runMonitor(
   options: RunMonitorOptions
 ): Promise<MonitorResult> {
-  const { conversationHistory } = options;
-  const window = conversationHistory.slice(-MONITOR_MESSAGE_WINDOW);
+  const { conversationHistory, fullHistory = false } = options;
+  const window = fullHistory
+    ? conversationHistory
+    : conversationHistory.slice(-MONITOR_MESSAGE_WINDOW);
 
   // Render the window as a compact transcript. Plain "role: content"
   // lines — matches the extraction call's idiom so the model recognizes

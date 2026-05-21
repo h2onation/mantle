@@ -166,14 +166,60 @@ describe("runMonitor", () => {
     expect(userContent).not.toContain("turn 1\n");
   });
 
-  it("uses the Haiku monitor model and a cached system prompt", async () => {
+  it("uses the configured monitor model and a cached system prompt", async () => {
     mockLLMReturns(makeRead());
     await runMonitor({ conversationHistory: dummyHistory });
     const call = vi.mocked(anthropicFetch).mock.calls[0]?.[0];
-    expect(call?.model).toBe("claude-haiku-4-5-20251001");
+    // The exact model id ships in src/lib/persona/config.ts. The point of
+    // this assertion is that the call uses the constant, not that the
+    // constant has a specific value (Phase 0 deliberately flips between
+    // ceiling-test Opus and cost-optimized Haiku as the experiment
+    // progresses). Pin "claude-" prefix so the test still catches a
+    // misconfiguration where MONITOR_MODEL ends up unset.
+    expect(call?.model).toMatch(/^claude-/);
     expect(Array.isArray(call?.system)).toBe(true);
     const systemBlock = (call?.system as Array<Record<string, unknown>>)[0];
     expect(systemBlock.type).toBe("text");
     expect(systemBlock.cache_control).toEqual({ type: "ephemeral" });
+  });
+
+  it("fullHistory: true bypasses the 8-message window trim", async () => {
+    mockLLMReturns(makeRead());
+    const longHistory = Array.from({ length: 20 }, (_, i) => ({
+      role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
+      content: `turn ${i + 1}`,
+    }));
+    await runMonitor({
+      conversationHistory: longHistory,
+      fullHistory: true,
+    });
+    const call = vi.mocked(anthropicFetch).mock.calls[0]?.[0];
+    expect(call).toBeDefined();
+    const userContent = call!.messages[0].content;
+    // Every turn appears when the window is bypassed — including the
+    // earliest ones that the default trim would have discarded.
+    expect(userContent).toContain("turn 1\n");
+    expect(userContent).toContain("turn 12");
+    expect(userContent).toContain("turn 20");
+    // And the header reflects the full count, not the trim.
+    expect(userContent).toContain("last 20 of 20 messages");
+  });
+
+  it("fullHistory: false (default) preserves the window trim", async () => {
+    mockLLMReturns(makeRead());
+    const longHistory = Array.from({ length: 20 }, (_, i) => ({
+      role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
+      content: `turn ${i + 1}`,
+    }));
+    await runMonitor({
+      conversationHistory: longHistory,
+      fullHistory: false,
+    });
+    const call = vi.mocked(anthropicFetch).mock.calls[0]?.[0];
+    const userContent = call!.messages[0].content;
+    // Same as the default no-flag case — only the last 8 appear.
+    expect(userContent).not.toContain("turn 1\n");
+    expect(userContent).toContain("turn 13");
+    expect(userContent).toContain("turn 20");
   });
 });
