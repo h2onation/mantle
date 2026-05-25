@@ -9,7 +9,12 @@ type Skill = {
   name: string;
   description: string;
   invocation: string | null;
-  scope: "project-skill" | "project-command" | "user-skill";
+  scope:
+    | "project-command"
+    | "project-agent"
+    | "project-skill"
+    | "user-agent"
+    | "user-skill";
   origin: "built" | "installed";
   source: string;
   body: string;
@@ -17,15 +22,21 @@ type Skill = {
 
 const SCOPE_LABEL: Record<Skill["scope"], string> = {
   "project-command": "Slash command",
+  "project-agent": "Project agent",
   "project-skill": "Project skill",
+  "user-agent": "User agent",
   "user-skill": "User skill",
 };
 
 const SCOPE_BLURB: Record<Skill["scope"], string> = {
   "project-command":
     "Lives in `.claude/commands/`. Invoked by typing the slash command in Claude Code.",
+  "project-agent":
+    "Lives in `.claude/agents/`. A specialist subagent the main agent can delegate to — invoke via natural language (e.g. \"have the senior-engineer review this\") or the `/agents` menu.",
   "project-skill":
     "Lives in `.claude/skills/`. Loaded into the project when its name is invoked.",
+  "user-agent":
+    "Lives in `~/.claude/agents/`. A subagent available across every Claude Code session you run.",
   "user-skill":
     "Lives in `~/.claude/skills/`. Available across every Claude Code session you run.",
 };
@@ -79,7 +90,9 @@ export default function AdminSkillsPage() {
   );
   const order: Skill["scope"][] = [
     "project-command",
+    "project-agent",
     "project-skill",
+    "user-agent",
     "user-skill",
   ];
 
@@ -141,7 +154,7 @@ export default function AdminSkillsPage() {
                 letterSpacing: "-0.3px",
               }}
             >
-              Skills
+              Agents &amp; Skills
             </h1>
             <p
               style={{
@@ -153,10 +166,11 @@ export default function AdminSkillsPage() {
                 maxWidth: 620,
               }}
             >
-              Slash commands and agent skills loaded into this workspace. Built
-              ones live in the repo and ship with the project; installed ones
-              come from elsewhere — the agent skills marketplace, another
-              project, or your global Claude Code config.
+              Subagents, slash commands, and skills loaded into this workspace.
+              Subagents are specialist Claude instances the main agent can
+              delegate to. Built ones live in the repo and ship with the
+              project; installed ones come from elsewhere — the agent skills
+              marketplace, another project, or your global Claude Code config.
             </p>
 
             {error && (

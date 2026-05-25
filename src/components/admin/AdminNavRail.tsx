@@ -45,7 +45,7 @@ const NAV_GROUPS: NavItem[][] = [
   ],
   // Utility lookups
   [
-    { id: "skills", label: "Skills", href: "/admin/skills" },
+    { id: "skills", label: "Agents & Skills", href: "/admin/skills" },
     { id: "vendors", label: "Vendors", href: "/admin/vendors" },
   ],
 ];

@@ -11,7 +11,12 @@ type Skill = {
   name: string;
   description: string;
   invocation: string | null;
-  scope: "project-skill" | "project-command" | "user-skill";
+  scope:
+    | "project-command"
+    | "project-agent"
+    | "project-skill"
+    | "user-agent"
+    | "user-skill";
   origin: "built" | "installed";
   source: string;
   body: string;
@@ -55,9 +60,12 @@ async function readSkillFile(
   try {
     const raw = await fs.readFile(filePath, "utf8");
     const { meta, body } = parseFrontmatter(raw);
-    const id = path.basename(path.dirname(filePath)) === "skills"
-      ? path.basename(filePath, path.extname(filePath))
-      : path.basename(path.dirname(filePath));
+    // Skills are <dir>/SKILL.md → id is the parent directory name.
+    // Commands and agents are <dir>/<name>.md → id is the file basename.
+    const id =
+      path.basename(filePath) === "SKILL.md"
+        ? path.basename(path.dirname(filePath))
+        : path.basename(filePath, path.extname(filePath));
     const name = meta.name || id;
     let description = meta.description || "";
     if (!description) {
@@ -129,6 +137,34 @@ export async function GET() {
       "project-skill",
       isSymlink ? "installed" : "built",
       `/${entry}`,
+    );
+    if (skill) skills.push(skill);
+  }
+
+  // Project agents at .claude/agents/<name>.md — subagents the main agent
+  // can delegate to. Invoked via natural language or the /agents menu,
+  // not a slash command, so invocation is null.
+  const projectAgentsDir = path.join(process.cwd(), ".claude", "agents");
+  for (const file of await readDir(projectAgentsDir)) {
+    if (!file.endsWith(".md")) continue;
+    const skill = await readSkillFile(
+      path.join(projectAgentsDir, file),
+      "project-agent",
+      "built",
+      null,
+    );
+    if (skill) skills.push(skill);
+  }
+
+  // User agents at ~/.claude/agents/<name>.md
+  const userAgentsDir = path.join(os.homedir(), ".claude", "agents");
+  for (const file of await readDir(userAgentsDir)) {
+    if (!file.endsWith(".md")) continue;
+    const skill = await readSkillFile(
+      path.join(userAgentsDir, file),
+      "user-agent",
+      "installed",
+      null,
     );
     if (skill) skills.push(skill);
   }

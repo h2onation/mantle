@@ -1,3 +1,8 @@
+---
+name: replay-monitor
+description: Replay the Phase 0 shadow monitor over a pasted transcript and report what it reads at each user turn. Use it to sanity-check monitor behavior before prompt changes or scoring-threshold shifts. Invoke with `/replay-monitor` followed by a transcript in USER:/JOVE: format. Flags — `--full-history` bypasses the 8-message window; `--compare` runs both windowed and full-history side-by-side with a divergence table. Read-only against the runtime — never writes to `monitor_reads`, never edits engine code, never commits the saved transcript.
+---
+
 # Replay Monitor
 
 Run the Phase 0 shadow monitor (`runMonitor` in `src/lib/persona/monitor.ts`) over a transcript Jeff pastes inline, and report what the monitor reads at each user turn.
