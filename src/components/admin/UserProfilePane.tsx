@@ -318,7 +318,7 @@ function MessageThread({
               key={msg.id}
               style={{
                 background:
-                  "linear-gradient(170deg, var(--session-cream) 0%, #EFEADF 100%)",
+                  "linear-gradient(170deg, var(--session-cream) 0%, var(--session-cream-bright) 100%)",
                 border: "1px solid var(--session-persona-border)",
                 borderRadius: 8,
                 padding: "16px 16px 14px",

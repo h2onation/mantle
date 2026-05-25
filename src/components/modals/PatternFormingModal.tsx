@@ -23,7 +23,6 @@ export default function PatternFormingModal({
   signupAtMs,
 }: PatternFormingModalProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   // Snippet snapshot — captured on the first open transition, displayed
   // for the lifetime of this modal even if patternSnippet prop changes.
   const [snapshotSnippet, setSnapshotSnippet] = useState<string | null>(null);
@@ -37,26 +36,11 @@ export default function PatternFormingModal({
     }
   }, [open, patternSnippet, snapshotSnippet]);
 
-  // Save previously focused element, focus the dismiss button on open,
-  // restore focus on close. Same pattern as ChatWindowModal.
+  // Focus the dismiss button on open. Modal handles focus save/restore on
+  // close — we override its default plate-focus with the actionable button.
   useEffect(() => {
     if (!open) return;
-    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     buttonRef.current?.focus();
-    return () => {
-      previouslyFocusedRef.current?.focus?.();
-    };
-  }, [open]);
-
-  // Lock body scroll while the modal is open. Save the previous
-  // value so nested or sibling overlays compose correctly.
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
   }, [open]);
 
   // Analytics: fire once per open transition.
@@ -66,16 +50,11 @@ export default function PatternFormingModal({
     trackModal2Shown({ time_since_signup_ms: timeSinceSignupMs });
   }, [open, signupAtMs]);
 
-  // Escape dismisses; Tab traps inside the modal (single button = focus
-  // stays on it).
+  // Tab trap — single-button modal keeps focus on the button. Modal
+  // handles Escape dismissal and body-scroll lock.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        void handleDismiss();
-        return;
-      }
       if (e.key === "Tab") {
         e.preventDefault();
         buttonRef.current?.focus();
@@ -83,7 +62,6 @@ export default function PatternFormingModal({
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   async function handleDismiss() {

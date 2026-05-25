@@ -15,6 +15,7 @@
   /* Surface — cool graphite ground */
   --session-linen:       #0A0B10;
   --session-cream:       #12141B;
+  --session-cream-bright: #1A1C24;
   --session-parchment:   #0E1017;
 
   /* Ink hierarchy — warm cream text on cool ground.
@@ -22,7 +23,6 @@
   --session-ink:            rgba(245, 243, 238, 0.97);
   --session-ink-soft:       rgba(245, 243, 238, 0.85);
   --session-ink-persona:    rgba(228, 224, 214, 0.72);
-  --session-ink-user:       rgba(228, 224, 214, 0.70);
   --session-ink-mid:        rgba(228, 224, 214, 0.62);
   --session-ink-faded:      rgba(228, 224, 214, 0.45);
   --session-ink-ghost:      rgba(228, 224, 214, 0.38);
@@ -64,7 +64,6 @@
   --session-backdrop-heavy: rgba(0, 0, 0, 0.92);
 
   /* Glow */
-  --session-glow-cp:     rgba(156, 177, 138, 0.15);
   --session-glow-scroll: rgba(156, 177, 138, 0.04);
 
   /* Vignette — darkens edges */
@@ -142,30 +141,17 @@
      Used on chat bubbles, checkpoint plate, ChatInput, modals. */
   --session-bubble-border:      rgba(170, 120, 82, 0.20);
 
-  /* User bubble fill — slate wash that distinguishes user from Jove.
-     Light mode flips to a walnut wash since slate doesn't read on linen. */
-  --session-bubble-user:        rgba(72, 80, 98, 0.30);
-  --session-bubble-user-border: rgba(170, 180, 200, 0.12);
-
   /* Bubble fills, semantic by speaker — bound per theme so each speaker
      reads with consistent character across modes. In dark: Jove is slate
      (cool), user is walnut (warm). In light: Jove is cream (paper),
-     user is walnut wash (warm). Walnut stays the user-bubble character
-     in both modes; the navy↔walnut coupling that the legacy
-     `--session-bubble-user` token carried is no longer used by Bubble.tsx. */
+     user is walnut wash (warm). */
   --session-jove-bg:            rgba(72, 80, 98, 0.30);
   --session-jove-border:        rgba(170, 180, 200, 0.12);
   --session-user-bg:            rgba(115, 72, 42, 0.20);
   --session-user-border:        rgba(170, 120, 82, 0.20);
 
-  /* Slate-tinted soft surface — guided-intake card on the welcome state. */
-  --session-slate-soft:         rgba(72, 80, 98, 0.26);
-
-  /* Circular button inset — TopBar circle, drag handle, mic icon
-     background. The -strong variant is for ChatInput's mic/stop circles
-     which need slightly more contrast against the walnut pill. */
+  /* Circular button inset — TopBar circle, drag handle, mic icon background. */
   --session-button-inset:        rgba(0, 0, 0, 0.30);
-  --session-button-inset-strong: rgba(0, 0, 0, 0.40);
 
   /* Drawer panel background — slate on dark, linen on light. */
   --session-drawer-bg:           rgba(20, 22, 28, 0.92);
@@ -178,6 +164,11 @@
 
   /* Sheet shadow — same shape inverted upward for bottom-up sheets. */
   --session-sheet-shadow:        0 -12px 40px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(220, 170, 120, 0.10);
+
+  /* Card shadow — gentle lift for card-tier surfaces (Crisis card, Settings
+     appearance toggle, drawer active row). Dark mode is border-only by
+     design; light mode gets the soft drop. */
+  --session-card-shadow:         none;
 
   /* Walnut highlight tones — bright meta caps, plate inset sheen. */
   --session-walnut-meta-strong:  rgba(220, 170, 120, 0.85);
@@ -197,11 +188,9 @@
   --session-oauth-surface:       rgba(245, 243, 238, 0.08);
   --session-oauth-border:        rgba(245, 243, 238, 0.14);
 
-  /* Manual page — empty Layer body wash, dotted hairline, popover lift.
-     Walnut tint is fainter than walnut-surface-soft; hair-faint sits one
-     step below hair-soft for sub-divisions inside a single card. */
+  /* Manual page — empty Layer body wash and popover lift.
+     Walnut tint is fainter than walnut-surface-soft. */
   --session-walnut-tint:         rgba(220, 170, 120, 0.05);
-  --session-hair-faint:          rgba(245, 237, 222, 0.05);
   --session-popover-shadow:      0 12px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
 }
 
@@ -214,9 +203,11 @@
    Source: src/app/demo/linen/page.tsx (Version 03 — Embossed linen). */
 [data-theme="light"] {
   /* Surface — medium linen, with cream and parchment variants for
-     slightly-warmer / slightly-cooler paper. */
+     slightly-warmer / slightly-cooler paper. cream-bright lifts the bottom
+     of card gradients that start at cream. */
   --session-linen:       #E5D8BE;
   --session-cream:       #ECE0C8;
+  --session-cream-bright: #EFEADF;
   --session-parchment:   #DFD3B5;
 
   /* Ink hierarchy — espresso on linen. The primary ink hits AAA on
@@ -225,7 +216,6 @@
   --session-ink:            #1F140A;
   --session-ink-soft:       #4A3220;
   --session-ink-persona:    rgba(31, 20, 10, 0.78);
-  --session-ink-user:       rgba(31, 20, 10, 0.72);
   --session-ink-mid:        rgba(31, 20, 10, 0.64);
   --session-ink-faded:      #7A5E40;
   --session-ink-ghost:      rgba(31, 20, 10, 0.42);
@@ -270,7 +260,6 @@
   --session-backdrop-heavy: rgba(31, 20, 10, 0.85);
 
   /* Glow */
-  --session-glow-cp:     rgba(94, 122, 79, 0.18);
   --session-glow-scroll: rgba(92, 58, 30, 0.04);
 
   /* Vignette — gentle ink wash on linen edges. */
@@ -315,12 +304,6 @@
   /* Bubble + plate primary border — V3 paper-border 0.32 walnut. */
   --session-bubble-border:      rgba(92, 58, 30, 0.32);
 
-  /* User bubble — walnut wash. Whisper-walnut pass dialed the alpha
-     down from 0.16 → 0.10 so the bubble reads as a warm tint rather
-     than a chocolate panel. The walnut border keeps the ink spine. */
-  --session-bubble-user:        rgba(92, 58, 30, 0.10);
-  --session-bubble-user-border: rgba(92, 58, 30, 0.32);
-
   /* Bubble fills, semantic by speaker — light values. Jove sits on the
      cream paper surface; user sits on the warm walnut wash. Both surfaces
      are warm-leaning in light mode (slate doesn't read on linen). The
@@ -331,12 +314,8 @@
   --session-user-bg:            rgba(92, 58, 30, 0.10);
   --session-user-border:        rgba(92, 58, 30, 0.32);
 
-  /* Slate-tinted soft surface re-maps to a lighter walnut wash on linen. */
-  --session-slate-soft:         rgba(92, 58, 30, 0.10);
-
   /* Circular button inset — warm ink at low alpha. */
   --session-button-inset:        rgba(31, 20, 10, 0.08);
-  --session-button-inset-strong: rgba(31, 20, 10, 0.12);
 
   /* Drawer panel — warm linen with a touch of opacity for the
      backdrop-filter to lift the surface above the page gradient. */
@@ -346,6 +325,9 @@
   --session-bubble-shadow:       0 8px 24px rgba(31, 20, 10, 0.12), 0 2px 5px rgba(31, 20, 10, 0.10);
   --session-plate-shadow:        0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
   --session-sheet-shadow:        0 -22px 56px rgba(31, 20, 10, 0.16), 0 -6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
+
+  /* Card shadow — soft paper lift on linen for card-tier surfaces. */
+  --session-card-shadow:         0 5px 14px rgba(31, 20, 10, 0.08), 0 1px 3px rgba(31, 20, 10, 0.06);
 
   /* Walnut meta highlights — V3 espresso mono-caps tone for headings
      and eyebrows. The "soft" variant fades it for low-emphasis labels. */
@@ -367,7 +349,6 @@
 
   /* Manual page — same names as dark, retuned for linen. */
   --session-walnut-tint:         rgba(92, 58, 30, 0.07);
-  --session-hair-faint:          rgba(92, 58, 30, 0.10);
   --session-popover-shadow:      0 10px 32px rgba(31, 20, 10, 0.18), 0 2px 6px rgba(31, 20, 10, 0.10);
 }
 

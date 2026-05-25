@@ -48,9 +48,12 @@ describe("PatternFormingModal — Track A Modal 2", () => {
     expect(src).toContain("time_since_signup_ms");
   });
 
-  it("handles Escape and Tab keys", () => {
-    expect(src).toContain('"Escape"');
+  it("handles Escape (delegated to Modal primitive) and Tab keys", () => {
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('"Escape"');
+    // Consumer keeps the Tab trap; Escape delegated to Modal.
     expect(src).toContain('"Tab"');
+    expect(src).not.toContain('"Escape"');
   });
 
   it("snapshots the snippet on first open and renders the snapshot, not the live prop", () => {
@@ -61,8 +64,10 @@ describe("PatternFormingModal — Track A Modal 2", () => {
     expect(src).toContain("displayedSnippet");
   });
 
-  it("locks body scroll while open and restores on close", () => {
-    expect(src).toContain('document.body.style.overflow = "hidden"');
-    expect(src).toContain("prevOverflow");
+  it("locks body scroll while open and restores on close (delegated to Modal primitive)", () => {
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('document.body.style.overflow = "hidden"');
+    // Consumer must not re-implement scroll lock (Modal owns it).
+    expect(src).not.toContain("document.body.style.overflow");
   });
 });

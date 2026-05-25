@@ -28,9 +28,6 @@ const ENFORCED_DIRS = [
 
 // Files exempted from the no-literal rule. Each entry should have a reason.
 const ALLOWLIST = new Set<string>([
-  // Layer-identity gradients and shadow accents — color is part of the visual
-  // semantic of the prompt-tier diagram, not a tinted surface.
-  "src/app/admin/prompt-architecture/page.tsx",
   // Pre-existing admin components carrying isolated literals from before the
   // token system landed. Eligible for token cleanup as a follow-up; not in
   // scope of the May 2026 admin-map cleanup pass.
@@ -38,7 +35,6 @@ const ALLOWLIST = new Set<string>([
   "src/components/admin/UsersTab.tsx",
   "src/components/admin/WaitlistTab.tsx",
   "src/components/admin/BetaAllowlistTab.tsx",
-  "src/components/admin/FeedbackPanel.tsx",
   "src/components/admin/SchemaHealthTab.tsx",
   "src/components/admin/ConfirmHealthPanel.tsx",
   "src/components/admin/ActiveUsersPanel.tsx",

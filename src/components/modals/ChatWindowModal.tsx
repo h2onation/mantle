@@ -20,32 +20,12 @@ export default function ChatWindowModal({
   signupAtMs,
 }: ChatWindowModalProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
-  // Save previously focused element, focus the dismiss button on open,
-  // restore focus on close. Spec: "Focus returns to the chat input on
-  // close" — relies on the chat input being the focused element when
-  // the modal triggers, which is the typical mount order in MobileSession.
+  // Focus the dismiss button on open. Modal handles focus save/restore on
+  // close — we override its default plate-focus with the actionable button.
   useEffect(() => {
     if (!open) return;
-    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     buttonRef.current?.focus();
-    return () => {
-      previouslyFocusedRef.current?.focus?.();
-    };
-  }, [open]);
-
-  // Lock body scroll while the modal is open so the user cannot
-  // scroll the chat behind the backdrop. Save the previous value so
-  // nested or sibling overlays compose correctly (each restores to
-  // whatever the state was when IT opened, not unconditionally to "").
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
   }, [open]);
 
   // Analytics: fire once per open transition.
@@ -55,16 +35,11 @@ export default function ChatWindowModal({
     trackModal1Shown({ time_since_signup_ms: timeSinceSignupMs });
   }, [open, signupAtMs]);
 
-  // Escape dismisses; Tab traps inside the modal (single button = focus
-  // stays on it).
+  // Tab trap — single-button modal keeps focus on the button. Modal
+  // handles Escape dismissal and body-scroll lock.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        void handleDismiss();
-        return;
-      }
       if (e.key === "Tab") {
         e.preventDefault();
         buttonRef.current?.focus();
@@ -72,9 +47,6 @@ export default function ChatWindowModal({
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-    // handleDismiss is stable in this component (defined inline); no need
-    // to include it in deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   async function handleDismiss() {

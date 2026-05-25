@@ -60,16 +60,21 @@ describe("ChatWindowModal — Track A Modal 1", () => {
     expect(src).toContain("time_since_signup_ms");
   });
 
-  it("handles Escape key for dismissal", () => {
-    expect(src).toContain('"Escape"');
+  it("handles Escape key for dismissal (delegated to Modal primitive)", () => {
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('"Escape"');
+    // Consumer must not re-implement Escape handling (Modal owns it).
+    expect(src).not.toContain('"Escape"');
   });
 
   it("traps Tab focus inside the modal (single-button)", () => {
     expect(src).toContain('"Tab"');
   });
 
-  it("locks body scroll while open and restores on close", () => {
-    expect(src).toContain('document.body.style.overflow = "hidden"');
-    expect(src).toContain("prevOverflow");
+  it("locks body scroll while open and restores on close (delegated to Modal primitive)", () => {
+    const modalSrc = read("src/components/shared/Modal.tsx");
+    expect(modalSrc).toContain('document.body.style.overflow = "hidden"');
+    // Consumer must not re-implement scroll lock (Modal owns it).
+    expect(src).not.toContain("document.body.style.overflow");
   });
 });
