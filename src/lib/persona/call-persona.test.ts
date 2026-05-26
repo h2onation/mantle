@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import {
   applySlidingWindow,
+  findRetryStormDuplicate,
   mapSystemMessages,
   detectCrisisInUserMessage,
   selectTranscriptContextForPrompt,
@@ -10,6 +11,7 @@ import {
   stripCheckpointFromText,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
+import type { createAdminClient } from "@/lib/supabase/admin";
 
 // ── applySlidingWindow ──
 
@@ -280,6 +282,99 @@ describe("stripCheckpointFromText", () => {
 // ── wrapPastedContent ──
 // Prompt-injection defense per ADR-042 §6. Pasted content gets wrapped in
 // XML data tags and an explicit preamble before being sent to Anthropic.
+
+// ── findRetryStormDuplicate (Fix B) ──
+// Server-side dedup: when the same user content was inserted in the same
+// conversation within the dedup window AND no assistant message followed
+// it, treat the new attempt as a retry and reuse the existing row.
+// Motivating incident: 2026-05-25 credit exhaustion produced 8 duplicate
+// user rows in c9972767 because retryLastMessage only pops from client
+// state, never from the DB.
+
+type MockAdmin = ReturnType<typeof createAdminClient>;
+function makeMockAdmin(
+  responses: {
+    /** Row returned by the "find recent dup" query (role=user). */
+    user?: { id: string; created_at: string } | null;
+    /** Row returned by the "find subsequent assistant" query (role=assistant). */
+    assistant?: { id: string } | null;
+  } = {}
+): MockAdmin {
+  let lastRoleFilter: "user" | "assistant" | null = null;
+  const chain = {
+    from: () => chain,
+    select: () => chain,
+    eq: (col: string, val: unknown) => {
+      if (col === "role") lastRoleFilter = val as "user" | "assistant";
+      return chain;
+    },
+    gte: () => chain,
+    gt: () => chain,
+    order: () => chain,
+    limit: () => chain,
+    maybeSingle: async () => {
+      const data =
+        lastRoleFilter === "user"
+          ? responses.user ?? null
+          : lastRoleFilter === "assistant"
+            ? responses.assistant ?? null
+            : null;
+      lastRoleFilter = null;
+      return { data, error: null };
+    },
+  };
+  // The findRetryStormDuplicate function uses only the methods above;
+  // the cast lets the mock satisfy the full createAdminClient type
+  // signature without re-implementing every method.
+  return chain as unknown as MockAdmin;
+}
+
+describe("findRetryStormDuplicate", () => {
+  it("returns null when no recent duplicate exists", async () => {
+    const admin = makeMockAdmin({ user: null });
+    const result = await findRetryStormDuplicate(admin, "conv-1", "hello");
+    expect(result).toBeNull();
+  });
+
+  it("returns the existing id when a recent dup has no subsequent assistant message", async () => {
+    // The retry-storm signature: a user row exists within the window,
+    // nothing has answered it. New attempt should reuse the existing id.
+    const admin = makeMockAdmin({
+      user: { id: "msg-existing", created_at: "2026-05-25T12:00:00.000Z" },
+      assistant: null,
+    });
+    const result = await findRetryStormDuplicate(admin, "conv-1", "hello");
+    expect(result).toBe("msg-existing");
+  });
+
+  it("returns null when a recent dup is followed by an assistant message", async () => {
+    // The "user repeated themselves intentionally" case. An assistant
+    // response landed between the prior identical user message and the
+    // new attempt — the new attempt is NOT a retry, so both rows belong.
+    const admin = makeMockAdmin({
+      user: { id: "msg-existing", created_at: "2026-05-25T12:00:00.000Z" },
+      assistant: { id: "asst-after" },
+    });
+    const result = await findRetryStormDuplicate(admin, "conv-1", "hello");
+    expect(result).toBeNull();
+  });
+
+  it("accepts a custom dedup window via the windowMs parameter", async () => {
+    // The function signature exposes windowMs as a parameter for testing
+    // and future tuning. We don't simulate the window's effect on the
+    // mock filter (the mock ignores .gte / .gt — that's the Supabase
+    // client's job), but the call must accept the override without
+    // type errors.
+    const admin = makeMockAdmin({ user: null });
+    const result = await findRetryStormDuplicate(
+      admin,
+      "conv-1",
+      "hello",
+      5000
+    );
+    expect(result).toBeNull();
+  });
+});
 
 describe("wrapPastedContent", () => {
   it("wraps content in <pasted_content> XML tags", () => {

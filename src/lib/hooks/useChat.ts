@@ -600,6 +600,19 @@ export function useChat() {
         }),
       });
 
+      // Fix A: capture conversationId from response header before any
+      // failure-mode branching. The server sets X-Conversation-Id when
+      // it creates or uses a conversation, BEFORE the Anthropic call.
+      // This ensures the client knows the conversation_id even if the
+      // upstream API errors after the conversation row was already
+      // created — without this, retries on a first-time failure would
+      // post conversationId: null and create new ghost conversations.
+      // See the 2026-05-25 retry-storm incident for context.
+      const headerConvId = res.headers.get("X-Conversation-Id");
+      if (headerConvId && headerConvId !== conversationId) {
+        setConversationId(headerConvId);
+      }
+
       if (res.status === 401) {
         router.push("/login");
         return;

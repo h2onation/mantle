@@ -175,11 +175,19 @@ export async function POST(request: Request) {
       isChipResponse: isChipResponse === true,
     });
 
+    // X-Conversation-Id is set so the client can capture the conversation
+    // id immediately when the response arrives — BEFORE any stream events.
+    // Without this, the client only learns the id from `message_complete`;
+    // if the Anthropic call fails before that event fires, the client
+    // retries with no conversation_id and the server creates a brand-new
+    // conversation row. That was the root cause of the 8 ghost
+    // conversations observed on 2026-05-25 during credit exhaustion.
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "X-Conversation-Id": convId,
       },
     });
   } catch (err) {

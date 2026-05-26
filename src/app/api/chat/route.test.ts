@@ -194,6 +194,35 @@ describe("/api/chat — message length", () => {
   });
 });
 
+describe("/api/chat — X-Conversation-Id header (Fix A)", () => {
+  // The server returns the conversation id in a response header BEFORE
+  // the SSE stream starts so the client can capture it even when the
+  // upstream Anthropic call fails. Without this header, a first-time
+  // failure prevented the client from learning the conversation id, and
+  // retries created new ghost conversations. See the 2026-05-25
+  // retry-storm incident.
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+  });
+
+  it("sets X-Conversation-Id on the response when a new conversation is created", async () => {
+    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Conversation-Id")).toBe("conv-123");
+  });
+
+  it("sets X-Conversation-Id to the existing id when conversationId is provided", async () => {
+    mockConvModeFromDb = "situation";
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: "conv-existing-xyz" })
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Conversation-Id")).toBe("conv-existing-xyz");
+  });
+});
+
 describe("/api/chat — authenticated rate limits", () => {
   beforeEach(() => {
     mockGetUser.mockResolvedValue({
