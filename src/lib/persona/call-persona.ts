@@ -236,6 +236,56 @@ interface CallPersonaOptions {
   personaModesOverride?: PersonaMode[];
 }
 
+/** Retry-storm dedup window. If the same user content was inserted in
+ *  the same conversation within this many ms AND no assistant message
+ *  followed it, we treat the new attempt as a retry and reuse the
+ *  existing row instead of inserting a duplicate. */
+export const RETRY_DEDUP_WINDOW_MS = 30_000;
+
+/**
+ * Detect a retry-storm duplicate: an identical user message inserted in
+ * the same conversation within the dedup window that did NOT receive an
+ * assistant response. Returns the existing row's id (so the caller can
+ * reuse it), or null when the new attempt should be inserted normally.
+ *
+ * The "no subsequent assistant" check is critical. A user who genuinely
+ * sends the same message twice after getting a reply is not retrying —
+ * they're emphasizing or repeating. Both rows belong in the DB. Only
+ * when there's no assistant message between the existing row and now do
+ * we collapse the new attempt into the existing row.
+ *
+ * Exported for unit testing. Production caller is callPersona's step 1.
+ */
+export async function findRetryStormDuplicate(
+  admin: ReturnType<typeof createAdminClient>,
+  conversationId: string,
+  message: string,
+  windowMs: number = RETRY_DEDUP_WINDOW_MS
+): Promise<string | null> {
+  const cutoff = new Date(Date.now() - windowMs).toISOString();
+  const { data: recentDup } = await admin
+    .from("messages")
+    .select("id, created_at")
+    .eq("conversation_id", conversationId)
+    .eq("role", "user")
+    .eq("content", message)
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!recentDup) return null;
+
+  const { data: subsequentAssistant } = await admin
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("role", "assistant")
+    .gt("created_at", recentDup.created_at)
+    .limit(1)
+    .maybeSingle();
+  return subsequentAssistant ? null : recentDup.id;
+}
+
 // Broader than the detection regex so we catch paraphrases the strict
 // detector doesn't. Used only for suppression rewrites — never for
 // firing a checkpoint. (Firing still goes through detect-checkpoint.ts.)
@@ -361,25 +411,49 @@ export function callPersona({
 
         // 1. Save user message. Capture the returned id so the Phase 0
         //    shadow monitor (step 3) can record it as triggering_message_id
-        //    on the monitor_reads row. No other consumer needs the id.
+        //    on the monitor_reads row.
+        //
+        // Fix B (retry-storm dedup): before inserting, look back 30
+        // seconds for an identical user message in this conversation
+        // that did NOT receive an assistant response. If one exists,
+        // this is a retry — reuse the existing row instead of inserting
+        // a duplicate. The "no subsequent assistant" check is critical:
+        // it distinguishes a retry storm (no assistant ever responded
+        // → dedup) from a user who genuinely sent the same message
+        // twice (assistant DID respond → keep both rows).
+        //
+        // Incident motivating this: 2026-05-25 credit exhaustion left 8
+        // duplicate "i don't know..." user rows in conversation
+        // c9972767 because retryLastMessage pops from client state but
+        // never deletes the prior user row from the DB. Each manual
+        // retry inserted a fresh duplicate.
         let userMessageId: string | null = null;
         if (message !== null) {
-          const { data: userMsgRow, error: msgError } = await admin
-            .from("messages")
-            .insert({
+          const dupId = await findRetryStormDuplicate(admin, convId, message);
+          if (dupId) {
+            userMessageId = dupId;
+            console.log("[callPersona] dedup_retry_storm", {
               conversation_id: convId,
-              role: "user",
-              content: message,
-              metadata: isChipResponse ? { chip_response: true } : {},
-            })
-            .select("id")
-            .single();
+              reused_message_id: userMessageId,
+            });
+          } else {
+            const { data: userMsgRow, error: msgError } = await admin
+              .from("messages")
+              .insert({
+                conversation_id: convId,
+                role: "user",
+                content: message,
+                metadata: isChipResponse ? { chip_response: true } : {},
+              })
+              .select("id")
+              .single();
 
-          if (msgError) {
-            emitError(controller, "Failed to save message. Try again.");
-            return;
+            if (msgError) {
+              emitError(controller, "Failed to save message. Try again.");
+              return;
+            }
+            userMessageId = userMsgRow?.id ?? null;
           }
-          userMessageId = userMsgRow?.id ?? null;
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
