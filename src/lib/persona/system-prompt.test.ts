@@ -994,6 +994,37 @@ describe("buildSystemPrompt", () => {
     });
   });
 
+  // ─── App and platform questions guard ───────────────────────────────────
+  // Added 2026-05-25 after the credit-exhaustion incident: a user asked
+  // "what happened to our chat, the history is gone" and Jove
+  // confabulated "I can't push the history back to your screen. That's a
+  // platform limitation." The history wasn't actually lost — Jove just
+  // didn't have visibility into the app and made up a plausible reason.
+  // Same posture as the URL fabrication guard: you can't see it, say so.
+  describe("app and platform questions guard", () => {
+    it("base prompt contains the APP AND PLATFORM QUESTIONS section in Tier 3", () => {
+      const result = build();
+      expect(result).toContain("APP AND PLATFORM QUESTIONS");
+    });
+
+    it("explicitly forbids speculating about platform limitations", () => {
+      const result = build();
+      expect(result).toContain(
+        "Do not fabricate platform limitations or technical reasons to fill the gap"
+      );
+    });
+
+    it("includes the worked example from the actual incident", () => {
+      const result = build();
+      // Pins the 'do NOT' example so a future edit that softens this rule
+      // has to confront the literal confabulated line that motivated it.
+      expect(result).toContain(
+        '"I can\'t push the history back to your screen, that\'s a platform limitation"'
+      );
+      expect(result).toContain('"I can\'t see into the app — that\'s a question for the team');
+    });
+  });
+
   // ─── Always-on Tier 3 blocks ─────────────────────────────────────────────
   describe("always-on Tier 3 blocks", () => {
     it("SHORT ANSWERS level-1 walkthrough invitation is present (direct phrasing)", () => {
