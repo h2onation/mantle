@@ -510,8 +510,17 @@ export function validateMaterialQuality(
   isFirstCheckpoint: boolean,
   turnCount?: number
 ): { ok: boolean; reasons: string[] } {
+  // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
+  // state means no ripeness condition can be verified, charged material
+  // included. The old two-gate design backstopped this with a post-composition
+  // check; this one-gate build removed that backstop, so "no data" must read as
+  // "not ripe," never as ripe. Empty / low-only banks on a non-null state are
+  // already caught downstream by the charged-material check.
   if (!extractionState) {
-    return { ok: true, reasons: [] };
+    return {
+      ok: false,
+      reasons: ["no extraction state — material cannot be verified"],
+    };
   }
 
   const cf = extractionState.clinical_flag;
@@ -585,8 +594,38 @@ export function validateMaterialQuality(
     );
   }
 
-  if (!gate.has_charged_language) {
-    reasons.push("no charged language captured");
+  // Charged-material gate (Lock 1 — ADR-043). Deterministic check over the
+  // real language_bank, replacing the model-reported has_charged_language
+  // boolean (which can read true while the bank is empty or weak). A pattern
+  // is not ripe unless the bank actually carries a high/medium charged phrase
+  // the candidate pattern is built on.
+  //
+  // - high|medium aligns the gate with the rest of the system: the composer
+  //   (confirm-checkpoint.ts) and formatExtractionForPersona both treat
+  //   "charged" as high-or-medium. The has_charged_language field is still
+  //   produced by extraction and read by those callers — we just stop gating
+  //   on it here.
+  // - "Built on" approximation: prefer phrases tagged to the candidate layer
+  //   (gate.strongest_layer). When strongest_layer is null (the gate hasn't
+  //   resolved a layer), fall back to any high/medium phrase in the bank.
+  //   A non-null strongest_layer with no charged phrase tagged to it reads as
+  //   not ripe — the charge has to attach to the pattern being proposed.
+  const chargedPhrases = (extractionState.language_bank || []).filter(
+    (e) => e.charge === "high" || e.charge === "medium"
+  );
+  const candidateLayer = gate.strongest_layer;
+  const builtOnCharged =
+    candidateLayer !== null
+      ? chargedPhrases.filter(
+          (e) => Array.isArray(e.layers) && e.layers.includes(candidateLayer)
+        )
+      : chargedPhrases;
+  if (builtOnCharged.length === 0) {
+    reasons.push(
+      candidateLayer !== null
+        ? `no high/medium charged phrase on candidate layer ${candidateLayer}`
+        : "no high/medium charged phrase in language bank"
+    );
   }
   if (isFirstCheckpoint) {
     if (!gate.has_mechanism && !gate.has_behavior_driver_link) {

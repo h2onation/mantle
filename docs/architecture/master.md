@@ -1651,6 +1651,17 @@ left alone.
   fidelity/alliance checks. No other master.md content changed — the
   three blocks' reasoning detail is preserved as the decision record.
 
+- **2026-05-27 — Lock 1 shipped (input gate, fail-closed null path).**
+  The charged-material gate now reads the real `language_bank`
+  deterministically (≥1 high/medium phrase linked to `strongest_layer`)
+  inside `validateMaterialQuality`, replacing the `has_charged_language`
+  boolean; the null/empty-state path was flipped fail-closed. ADR-043
+  amended with an implementation note distinguishing the input-vs-output
+  guarantee (Lock 1 guarantees charged material *exists* in the bank,
+  not that it is *used* in the saved entry; verbatim-in-saved-entry
+  backstop deferred) and recording the `layers[]`-tagging dependency the
+  test pair surfaced.
+
 ---
 
 _End of master architecture document. Authored against the code as
