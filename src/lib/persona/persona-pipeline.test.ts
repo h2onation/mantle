@@ -447,8 +447,12 @@ describe("deriveCheckpointApproaching", () => {
     expect(deriveCheckpointApproaching(undefined, true, 0)).toBe(false);
   });
 
-  it("returns true when any layer signal is 'explored'", () => {
+  // Signal-ready path fires only when charged material is tagged to the
+  // signal-ready layer (ADR-043 amendment — signal alone no longer fires).
+  // chargedBank(1) backs layer 1, the explored layer here.
+  it("returns true when a layer signal is 'explored' and charged material backs it", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       layers: {
         1: { signal: "explored", material: [], examples: [] },
         2: { signal: "none", material: [], examples: [] },
@@ -460,8 +464,12 @@ describe("deriveCheckpointApproaching", () => {
     expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
   });
 
-  it("returns true when any layer signal is 'checkpoint_ready'", () => {
+  // Signal-ready path fires only when charged material is tagged to the
+  // signal-ready layer (ADR-043 amendment). chargedBank(2) backs layer 2,
+  // the checkpoint_ready layer here.
+  it("returns true when a layer signal is 'checkpoint_ready' and charged material backs it", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(2),
       layers: {
         1: { signal: "none", material: [], examples: [] },
         2: {
@@ -570,6 +578,107 @@ describe("deriveCheckpointApproaching", () => {
     expect(deriveCheckpointApproaching(richButNotEngaged, true, 10)).toBe(false);
     // At/after turn 12: override allows it through
     expect(deriveCheckpointApproaching(richButNotEngaged, true, 12)).toBe(true);
+  });
+
+  // Regression guard for the charged-material fix (ADR-043 amendment). A
+  // signal-ready layer with no high/medium charge backing it must NOT fire the
+  // signal-ready short-circuit — the exact scenario that returned true under
+  // the old bypass (e.g. a returning user's bootstrapped "explored" layer with
+  // an empty current-session bank).
+  it("returns false when a layer is signal-ready but no high/medium charge backs it", () => {
+    const emptyBank = makeExtractionState({
+      language_bank: [],
+      layers: {
+        1: { signal: "explored", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(emptyBank, true, 5)).toBe(false);
+
+    // Low-charge-only bank tagged to the signal-ready layer: present on the
+    // right layer, but the high|medium filter excludes "low", so it still fails.
+    const lowOnlyBank = makeExtractionState({
+      language_bank: [
+        { phrase: "it was fine", context: "in passing", charge: "low", layers: [1] },
+      ],
+      layers: {
+        1: { signal: "explored", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(lowOnlyBank, true, 5)).toBe(false);
+  });
+
+  // Layer-specificity proof. The charge must be tagged to the SAME layer whose
+  // signal is ready; a high-charge phrase on a different layer does not back
+  // the signal-ready layer.
+  it("returns false when charge is high but tagged to a different layer than the signal-ready one", () => {
+    // Signal-ready layer is 1; charge tagged to layer 2 → no backing → false.
+    const chargeElsewhere = makeExtractionState({
+      language_bank: chargedBank(2),
+      layers: {
+        1: { signal: "explored", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(chargeElsewhere, true, 5)).toBe(false);
+
+    // Same fixture with the charge moved onto the signal-ready layer (1) →
+    // fires. The ONLY change is the layer tag, so the flip to true is
+    // attributable to layer-specificity alone.
+    const chargeOnSignalLayer = makeExtractionState({
+      language_bank: chargedBank(1),
+      layers: {
+        1: { signal: "explored", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(chargeOnSignalLayer, true, 5)).toBe(true);
+  });
+
+  // Crisis-guard proof — the first test to exercise signal-ready-during-crisis.
+  // A signal-ready layer with charge correctly on it must STILL not fire while
+  // a crisis is active: the !crisisActive condition blocks the short-circuit,
+  // and the fall-through validateMaterialQuality blocks on crisis too.
+  it("returns false when signal-ready and charged but a crisis is active", () => {
+    const inCrisis = makeExtractionState({
+      language_bank: chargedBank(1),
+      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
+      layers: {
+        1: { signal: "checkpoint_ready", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(inCrisis, true, 5)).toBe(false);
+
+    // Same fixture without the crisis flag → fires. The ONLY change is the
+    // clinical_flag, so the flip to true is attributable to the crisis guard.
+    const noCrisis = makeExtractionState({
+      language_bank: chargedBank(1),
+      layers: {
+        1: { signal: "checkpoint_ready", material: [], examples: [] },
+        2: { signal: "none", material: [], examples: [] },
+        3: { signal: "none", material: [], examples: [] },
+        4: { signal: "none", material: [], examples: [] },
+        5: { signal: "none", material: [], examples: [] },
+      },
+    });
+    expect(deriveCheckpointApproaching(noCrisis, true, 5)).toBe(true);
   });
 });
 
