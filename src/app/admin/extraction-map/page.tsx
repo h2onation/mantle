@@ -291,7 +291,7 @@ const FIELDS: Field[] = [
       "Where each layer is in its development. Monotonic — only advances. When a layer already has a confirmed entry, its signal starts at 'explored' minimum.",
     storage: "conversations.extraction_state.layers[N].signal",
     readers: [
-      { where: "persona-pipeline.ts:500 (deriveCheckpointApproaching)", what: "Any layer ≥ 'explored' loads CHECKPOINTS instructions into Jove's prompt" },
+      { where: "persona-pipeline.ts:686 (deriveCheckpointApproaching)", what: "A layer ≥ 'explored' loads CHECKPOINTS instructions only when charged material backs that layer and no crisis is active; otherwise it falls through to the full ripeness gate" },
       { where: "call-persona.ts:763 (SSE payload)", what: "Computes hasLayerEmergingOrBeyond (any signal !== 'none') for client" },
       { where: "extraction.ts:506 (formatExtractionForPersona)", what: "Per-layer status line in the brief" },
       { where: "MobileSession.tsx:866", what: "hasLayerEmergingOrBeyond gates Modal 2 firing" },

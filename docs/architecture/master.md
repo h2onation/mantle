@@ -1662,6 +1662,13 @@ left alone.
   backstop deferred) and recording the `layers[]`-tagging dependency the
   test pair surfaced.
 
+- **2026-05-28 — merged-gate principle extended to the upstream caller.**
+  Closed the upstream half of the merged-gate principle —
+  `deriveCheckpointApproaching`'s signal-ready short-circuit now requires
+  charged material backing the signal-ready layer and no active crisis before
+  it returns true; otherwise it falls through to the full ripeness gate. See
+  ADR-043's second implementation note.
+
 ---
 
 _End of master architecture document. Authored against the code as

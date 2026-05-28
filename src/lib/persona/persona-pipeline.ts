@@ -644,8 +644,10 @@ export function validateMaterialQuality(
  * system prompt for this turn. Two paths to "true":
  *
  * (1) Extraction's per-layer signal has promoted at least one layer
- *     to "explored" or "checkpoint_ready" — its holistic "feels
- *     developed" read.
+ *     to "explored" or "checkpoint_ready", backed by charged material
+ *     on one of those layers and not during a crisis — its holistic
+ *     "feels developed" read (signal alone is not enough; see body and
+ *     ADR-043).
  *
  * (2) Extraction's mechanical checklist (concrete scenes + charged
  *     language + mechanism/driver, plus the turn-12 pattern_engaged
@@ -671,10 +673,32 @@ export function deriveCheckpointApproaching(
   turnCount: number
 ): boolean {
   if (!previousExtraction) return false;
-  const signalReady = Object.values(previousExtraction.layers).some(
-    (l) => l.signal === "explored" || l.signal === "checkpoint_ready"
-  );
-  if (signalReady) return true;
+
+  // Signal-ready is a candidate, not a verdict. A layer extraction promoted
+  // to "explored"/"checkpoint_ready" loads checkpoint instructions only if
+  // (a) charged material backs one of those layers (Lock 1 principle,
+  // ADR-043) and (b) no crisis is active. Otherwise fall through to the full
+  // gate, which applies every check — crisis, pattern_engaged, depth, charged
+  // — uniformly. Returning true on signal alone used to bypass
+  // validateMaterialQuality entirely, so a returning user's bootstrapped
+  // "explored" layer could load instructions with no charged material, even
+  // during an active crisis.
+  const signalReadyLayers = Object.entries(previousExtraction.layers)
+    .filter(([, l]) => l.signal === "explored" || l.signal === "checkpoint_ready")
+    .map(([k]) => Number(k));
+
+  if (signalReadyLayers.length > 0) {
+    const cf = previousExtraction.clinical_flag;
+    const crisisActive = cf?.active && cf.level === "crisis";
+    const chargedOnSignalLayer = (previousExtraction.language_bank || []).some(
+      (e) =>
+        (e.charge === "high" || e.charge === "medium") &&
+        Array.isArray(e.layers) &&
+        e.layers.some((ln) => signalReadyLayers.includes(ln))
+    );
+    if (chargedOnSignalLayer && !crisisActive) return true;
+  }
+
   return validateMaterialQuality(
     previousExtraction,
     isFirstCheckpoint,
