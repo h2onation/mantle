@@ -315,3 +315,45 @@
 - Three duplicate bodies of pasted-content guidance collapse to one shared template.
 - The `transcript_detected` suppression in `call-persona.ts` narrows in scope but does not disappear. With the shared template (§5), the *body* of the guidance is consolidated, but the *framing wrappers* still differ (`UPLOAD MODE / OPENER / WHEN THE USER PASTES CONTENT` vs. `TRANSCRIPT DETECTED / RECOGNITION`). Firing both on the same turn would duplicate the wrapper sections around identical body content. The Phase 1.4 implementation keeps the suppression for the dynamic-block rendering decision while running detection itself on every message so the prompt-injection wrap (§6) can fire in both upload and non-upload paths. This is a refinement to the §5 architectural intent, not a divergence from it.
 - Future addition of a fourth mode would require a new entry in the Tier 3 ladder, a mode-specific block with its render condition, and a `conversations.mode` CHECK constraint update — no other plumbing.
+
+## ADR-043: The Three Lock 1 Blockers — Pre-Prompt Selector, Surface Threshold, Drop Cross-Context Gate
+
+**Status**: Settled (2026-05-27)
+
+**Context**: Lock 1 — the composer's fail-closed verbatim-language check (one of the seven locked decisions in `docs/architecture/master.md`, "Decision 6") — could not be spec'd until three architectural questions were resolved. They were documented as "Blockers on Lock 1" in master.md section A. The three are interdependent: where the selector sits determines where the ripeness gates live; the Surface threshold determines what the selector routes on; the cross-context requirement determines what the Save gate (which Lock 1 sits on top of) enforces. This ADR resolves all three. ("Decision 4" / "Decision 6" below refer to the master.md seven-decision set, not to ADR numbers. The parent plan is the proposed two-layer-engine ADR, drafted in `docs/reference/two-layer-engine-adr-draft.md` as ADR-044.)
+
+### Decision 1 — Selector location
+
+**Decided**: A **pre-prompt selector**. It runs after `loadConversationContext` and before `buildSystemPromptBlocks`. Its output is a row name that determines which Tier 3 block(s) render. It reads the **previous** turn's monitor output, not the current turn's — so the monitor stays parallel/background via `waitUntil` and adds no latency to the critical path, consistent with how extraction already runs on a one-turn lag (ADR-001, ADR-002).
+
+**Why**: Decision 4 calls the selector "structural, not stylistic." Shaping the prompt before generation is structural; rewriting output after generation is not. Reflect-as-default only works if the selector shapes the prompt — you cannot make reflection the *default action* by filtering output post-hoc. Safety gating is also cleaner this way: the model is never prompted to recognize during rupture, rather than generating a recognition that a downstream gate then has to suppress.
+
+**Consequence**: `TIER_3_BLOCKS` becomes the selector's output handlers. Blocks that don't map 1:1 to rows (`post-rejection`, the `post-confirm-*` pair, `returning-user`) must be folded into a row, kept always-on, or re-conditioned — that mapping is a design pass that precedes the build. `applyCheckpointGates` becomes specifically the SAVE row's gate. Runtime gets simpler — one ordered ladder replaces combinatorial flag-firing — at the cost of a one-time refactor at build time.
+
+**Rejected**: a **pre-detector selector** (a post-generation filter). It is structurally incompatible with reflect-as-default and turns the selector into a corrective filter rather than the structural centerpiece the architecture rests on.
+
+### Decision 2 — Surface ripeness threshold, separate from Save
+
+**Decided**: The Surface row fires on `concrete_examples >= 1 && has_charged_language`, plus alliance clear from the monitor. `pattern_engaged` stays on the Save side only.
+
+**Why**: `pattern_engaged` only becomes true *after* Jove names a pattern, so it cannot be the trigger for the naming move itself — that is circular. The Surface row *is* the naming move; it produces the evidence the user then engages with; that engagement is what `pattern_engaged` captures for the *next* turn's Save consideration. Separating "what triggers naming" from "what gates writing" breaks the circularity.
+
+**Consequence**: Voice rule R-12 (sequence: evidence → pattern → image → hand back) becomes the Surface row's quality contract — load-bearing now, not one rule among 21. Future R-12 edits get evaluated against the selector, not against voice alone.
+
+**Rejected**: splitting `pattern_engaged` in extraction into pre-naming and post-naming variants. Cleaner conceptually, but it changes the `ExtractionState` shape and the extraction prompt — more invasive. The chosen path breaks the circularity without touching extraction's schema.
+
+### Decision 3 — Cross-context requirement for non-first checkpoints
+
+**Decided**: Drop the hard `distinct_contexts >= 2` requirement from the non-first-checkpoint gate in `validateMaterialQuality`. Keep `distinct_contexts` as a *strengthening* signal — it already feeds `validateHeadline`'s "can"/"sometimes" hedging for single-example entries — not as a blocking gate.
+
+**Why**: Decision 6 says cross-context repetition strengthens but is not required, especially first session. The code was stricter than the decision. A genuine recognition from a single vivid concrete scene in the user's own charged language is saveable; requiring two contexts blocks exactly the single-powerful-moment case the recognition mechanism exists for.
+
+**Consequence**: More single-context Save events, each softened by the headline validator's hedging. Over-claim protection shifts from frequency-of-occurrence to fidelity-to-the-user's-words — Lock 1's verbatim check becomes the primary guardrail, with user confirmation as the backstop against over-crystallization.
+
+**Rejected**: keeping the requirement and updating Decision 6's text to distinguish first-session (one context) from later (two contexts). The chosen path keeps the recognition mechanism's intent intact rather than carving an exception into it.
+
+**Consequences (the through-line)**: All three decisions move the engine's safety basis from frequency/quantity checks toward fidelity/alliance checks. The engine saves when the pattern is in the user's own words (Lock 1), the user engaged with the naming (`pattern_engaged`), and the alliance is intact (monitor clear) — not when material has accumulated by count. With these three resolved, Lock 1's build prompt can be written. The selector itself (Decision 4 / Reflect-as-default, fourth in the master.md build order) is a separate, larger build; this ADR settles the questions that gate it and Lock 1 both. Cross-references in master.md section A ("Blockers on Lock 1") and §3 Selector point here.
+
+**Implementation note (2026-05-27 — Lock 1 shipped)**: Lock 1 shipped as an INPUT gate, not the output check originally scoped (Decision 6 framed it as "a verbatim phrase from the language bank must appear in the saved entry, or the save fails"). Charged material — at least one high- or medium-charge phrase in the `language_bank`, linked to the candidate pattern's `strongest_layer` where one has resolved — must exist before a checkpoint fires. The check folds into the existing ripeness logic (`validateMaterialQuality` in `persona-pipeline.ts`), replacing the model-reported `has_charged_language` boolean with a deterministic read of the real bank; the field is kept (it is still read by `formatExtractionForPersona` and the Stage A narrative) but no longer gated on. The high|medium set aligns the gate with the composer and `formatExtractionForPersona`, correcting a prior high-only mismatch. The fail-open null/empty-state path in `validateMaterialQuality` was flipped to fail closed, so a missing extraction state or an empty/low-only bank now reads as not ripe rather than ripe. The build does **NOT** verify that the composed entry contains the phrase verbatim — output-fidelity is trusted to the composer prompt for now. The verbatim-in-saved-entry backstop is deferred; add it only if the composer is observed paraphrasing charged language away in beta. **So Lock 1 guarantees charged material EXISTS in the bank, not that it is USED in the saved entry.**
+
+One dependency surfaced while writing the test pair: the linked reading filters bank phrases by their `layers[]` tag. A high/medium phrase with an empty or missing `layers` array is invisible to the linked filter — rejected when `strongest_layer` is non-null, accepted under the unlinked fallback (used when `strongest_layer` is null). In practice `LanguageEntry.layers` is a required `number[]` and extraction reliably emits layer tags, so this should not occur, but the linked guarantee depends on that reliability; the unlinked fallback is the looser safety net. Shipped on branch `jove-prompt-architecture-3.1`; `persona-pipeline.test.ts` carries the coverage (the charged-material-gate describe block plus the flipped null-state fail-closed proof).

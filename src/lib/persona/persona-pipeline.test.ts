@@ -10,7 +10,7 @@ import {
   type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
-import type { ExtractionState } from "@/lib/persona/extraction";
+import type { ExtractionState, LanguageEntry } from "@/lib/persona/extraction";
 
 function makeExtractionState(
   overrides?: Partial<ExtractionState>
@@ -46,10 +46,30 @@ function makeExtractionState(
   };
 }
 
+// Lock 1 (ADR-043): the charged-material gate reads the real language_bank
+// (>=1 high/medium phrase tagged to the candidate layer), not the
+// has_charged_language boolean. Tests that need to pass that gate populate a
+// real charged phrase tagged to the layer they set as strongest_layer.
+function chargedBank(layer: number): LanguageEntry[] {
+  return [
+    {
+      phrase: "my chest goes tight",
+      context: "the moment it fires",
+      charge: "high",
+      layers: [layer],
+    },
+  ];
+}
+
 describe("validateMaterialQuality", () => {
-  it("returns ok when state is null (no signal yet)", () => {
+  it("returns not ok when state is null (fail closed on missing material)", () => {
+    // Lock 1 (ADR-043): missing extraction state can verify nothing, charged
+    // material included, so it must read as not ripe. This assertion passes on
+    // the fail-closed code and would fail against the old fail-open return —
+    // the durable regression guard.
     const result = validateMaterialQuality(null, false);
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/no extraction state/);
   });
 
   it("blocks during crisis regardless of other criteria", () => {
@@ -69,8 +89,12 @@ describe("validateMaterialQuality", () => {
   });
 
   it("requires 2 scenes for the standard gate", () => {
+    // Isolated to scene count: depth, engagement, and charged material all
+    // satisfied so concrete_examples is the only failing variable.
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
+      depth: "mechanism",
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: true,
@@ -86,6 +110,7 @@ describe("validateMaterialQuality", () => {
 
   it("requires 1 scene for the first-checkpoint gate", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "feeling",
       checkpoint_gate: {
@@ -101,7 +126,15 @@ describe("validateMaterialQuality", () => {
   });
 
   it("first-checkpoint gate fails when neither mechanism nor link is present", () => {
+    // Isolated to mechanism/link: engagement, depth, scene count, and charged
+    // material all satisfied so the mechanism-or-link clause is the only
+    // failing variable. The reason assertion makes a regression of that clause
+    // detectable — without it, a gate that stopped checking mechanism/link
+    // would silently let this pass.
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
+      pattern_engaged: true,
+      depth: "feeling",
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: false,
@@ -112,10 +145,12 @@ describe("validateMaterialQuality", () => {
     });
     const result = validateMaterialQuality(state, true);
     expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/mechanism or behavior-driver link/);
   });
 
   it("standard gate passes when all four criteria are met", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "mechanism",
       checkpoint_gate: {
@@ -137,7 +172,11 @@ describe("validateMaterialQuality", () => {
   // case extraction's per-flag has_mechanism check is generous about
   // what counts as a user-articulated mechanism.
   it("blocks the standard gate when depth has not reached mechanism", () => {
+    // Isolated to depth: scene count, contexts, mechanism, link, and charged
+    // material all satisfied so depth is the only failing variable. Note the
+    // charged phrase is tagged to layer 5 to match strongest_layer here.
     const state = makeExtractionState({
+      language_bank: chargedBank(5),
       pattern_engaged: true,
       depth: "feeling",
       checkpoint_gate: {
@@ -168,6 +207,7 @@ describe("validateMaterialQuality", () => {
     };
 
     const atBehavior = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "behavior",
       checkpoint_gate: baseGate,
@@ -175,11 +215,112 @@ describe("validateMaterialQuality", () => {
     expect(validateMaterialQuality(atBehavior, true).ok).toBe(false);
 
     const atFeeling = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "feeling",
       checkpoint_gate: baseGate,
     });
     expect(validateMaterialQuality(atFeeling, true).ok).toBe(true);
+  });
+});
+
+// ─── Lock 1: the charged-material gate (ADR-043) ───────────────────────────
+//
+// Deterministic check over the real language_bank, replacing the
+// has_charged_language boolean. A pattern is not ripe unless the bank carries
+// a high/medium charged phrase the candidate pattern is built on — linked to
+// strongest_layer, with an unlinked fallback when strongest_layer is null.
+describe("validateMaterialQuality — charged-material gate (Lock 1)", () => {
+  // Passes every standard-gate condition EXCEPT charged material, so each test
+  // varies only the language_bank. distinct_contexts: 2 satisfies today's
+  // cross-context gate (its removal is a separate ADR-043 Decision 3 build).
+  function richExceptBank(
+    strongestLayer: number | null,
+    bank: LanguageEntry[]
+  ): ExtractionState {
+    return makeExtractionState({
+      pattern_engaged: true,
+      depth: "mechanism",
+      language_bank: bank,
+      checkpoint_gate: {
+        concrete_examples: 2,
+        distinct_contexts: 2,
+        has_mechanism: true,
+        has_charged_language: true, // field kept; no longer gated on
+        has_behavior_driver_link: true,
+        strongest_layer: strongestLayer,
+      },
+    });
+  }
+
+  const phrase = (
+    charge: "low" | "medium" | "high",
+    layers: number[]
+  ): LanguageEntry => ({
+    phrase: "my chest goes tight",
+    context: "the moment it fires",
+    charge,
+    layers,
+  });
+
+  it("ripe when the bank has a high phrase on the candidate layer", () => {
+    const result = validateMaterialQuality(
+      richExceptBank(1, [phrase("high", [1])]),
+      false
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("ripe when the only charged phrase is medium (high|medium, not high-only)", () => {
+    const result = validateMaterialQuality(
+      richExceptBank(1, [phrase("medium", [1])]),
+      false
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("not ripe when the bank holds only low-charge phrases", () => {
+    const result = validateMaterialQuality(
+      richExceptBank(1, [phrase("low", [1])]),
+      false
+    );
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/charged phrase/);
+  });
+
+  it("not ripe when the bank is empty", () => {
+    const result = validateMaterialQuality(richExceptBank(1, []), false);
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/charged phrase/);
+  });
+
+  it("not ripe when the only charged phrase is on a different layer (linked reading)", () => {
+    // strongest_layer = 1, but the high phrase is tagged to layer 2.
+    const result = validateMaterialQuality(
+      richExceptBank(1, [phrase("high", [2])]),
+      false
+    );
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/candidate layer 1/);
+  });
+
+  it("ripe for that same off-layer phrase under the unlinked fallback (strongest_layer null)", () => {
+    // Paired with the test above: the unlinked fallback accepts any high/medium
+    // phrase when no candidate layer has been resolved. Locks the chosen
+    // linked-vs-unlinked behavior.
+    const result = validateMaterialQuality(
+      richExceptBank(null, [phrase("high", [2])]),
+      false
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("ripe under the unlinked fallback with any high/medium phrase (strongest_layer null)", () => {
+    const result = validateMaterialQuality(
+      richExceptBank(null, [phrase("high", [3])]),
+      false
+    );
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -249,6 +390,7 @@ describe("applyCheckpointGates with material quality", () => {
 
   it("permits the checkpoint when extraction state confirms quality", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "mechanism",
       checkpoint_gate: {
@@ -265,6 +407,7 @@ describe("applyCheckpointGates with material quality", () => {
 
   it("still applies the turn-count gate after material quality passes", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "mechanism",
       checkpoint_gate: {
@@ -338,6 +481,7 @@ describe("deriveCheckpointApproaching", () => {
   // is full — old code returned false here. New code consults the gate.
   it("returns true when checklist passes even if no layer signal beyond 'emerging'", () => {
     const state = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: true,
       depth: "feeling",
       layers: {
@@ -404,6 +548,7 @@ describe("deriveCheckpointApproaching", () => {
   // validateMaterialQuality kicks in if the rest of the checklist is full.
   it("respects the pattern_engaged turn-12 override from validateMaterialQuality", () => {
     const richButNotEngaged = makeExtractionState({
+      language_bank: chargedBank(1),
       pattern_engaged: false,
       depth: "feeling",
       layers: {

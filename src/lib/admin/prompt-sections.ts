@@ -228,7 +228,11 @@ const SECTION_DEFS: SectionDef[] = [
     id: "first-message",
     label: "First Message",
     tier: "3",
-    pattern: /^FIRST MESSAGE \(new user\)$/m,
+    // Match both today's actual emit `FIRST MESSAGE (new user, situation mode)`
+    // and any future mode variants. The prior pattern required the line to end
+    // with `(new user)`, which never matched the situation-mode header — so
+    // the block silently dropped from the page.
+    pattern: /^FIRST MESSAGE \(new user/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST MESSAGE" },
     conditionFn: () => ({ type: "state", label: "State: new user" }),
     alternativesFn: () => [],
@@ -261,6 +265,17 @@ const SECTION_DEFS: SectionDef[] = [
     alternativesFn: () => [],
   },
   {
+    id: "returning-user-first-turn-situation",
+    label: "Returning User · Situation Opener",
+    tier: "3",
+    // Header: "RETURNING USER — SITUATION OPENER AND EARLY TURNS (situation mode)"
+    // (em dash U+2014). Fires when isReturningUser && mode === "situation" && turnCount <= 3.
+    pattern: /^RETURNING USER — SITUATION OPENER/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → RETURNING USER (situation early turns)" },
+    conditionFn: () => ({ type: "state", label: "State: returning user, situation, early turns" }),
+    alternativesFn: () => [],
+  },
+  {
     id: "checkpoints",
     label: "Checkpoints",
     tier: "3",
@@ -285,6 +300,30 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^POST-REJECTION/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → POST-REJECTION" },
     conditionFn: () => ({ type: "state", label: "State: checkpoint approaching" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "post-confirm-first-message-2",
+    label: "Post-Confirm · First Lifetime Entry",
+    tier: "3",
+    // Header: "POST-CONFIRM — FIRST LIFETIME ENTRY" (em dash U+2014).
+    // Fires when postConfirmMode === "first-message-2" — only on the very
+    // first lifetime checkpoint confirmation (Track A Phase 7-High).
+    pattern: /^POST-CONFIRM — FIRST LIFETIME ENTRY/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → POST-CONFIRM (first lifetime)" },
+    conditionFn: () => ({ type: "state", label: "State: first lifetime confirm" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "post-confirm-subsequent-single",
+    label: "Post-Confirm · Subsequent Entry",
+    tier: "3",
+    // Header: "POST-CONFIRM — SUBSEQUENT ENTRY" (em dash U+2014).
+    // Fires when postConfirmMode === "subsequent-single" — every confirm
+    // after the first lifetime one (Track A Phase 7-High).
+    pattern: /^POST-CONFIRM — SUBSEQUENT ENTRY/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → POST-CONFIRM (subsequent)" },
+    conditionFn: () => ({ type: "state", label: "State: subsequent confirm" }),
     alternativesFn: () => [],
   },
   {
@@ -370,6 +409,20 @@ const SECTION_DEFS: SectionDef[] = [
     alternativesFn: () => [],
   },
   {
+    id: "earlier-entries",
+    label: "Earlier Entries (compressed)",
+    tier: "dynamic",
+    // Header: "EARLIER ENTRIES (compressed — full content lives in the Manual):"
+    // (em dash U+2014). Rendered by prepareManualContextBlocks.older when
+    // entries from older conversations exist alongside recent ones — those
+    // older entries collapse to one line each (headline + summary + key words)
+    // so the prompt stays cheap.
+    pattern: /^EARLIER ENTRIES \(compressed/m,
+    source: { file: "manual-context.ts", symbol: "prepareManualContextBlocks.older / compressManualEntry" },
+    conditionFn: () => ({ type: "dynamic", label: "Dynamic: older entries beyond recent backfill" }),
+    alternativesFn: () => [],
+  },
+  {
     id: "session-context",
     label: "Session Context",
     tier: "dynamic",
@@ -382,8 +435,11 @@ const SECTION_DEFS: SectionDef[] = [
     id: "extraction-brief",
     label: "Extraction Brief",
     tier: "dynamic",
-    pattern: /^EXTRACTION BRIEF/m,
-    source: { file: "system-prompt.ts", symbol: "buildSystemPrompt → extractionContext" },
+    // Matches the actual runtime header emitted by formatExtractionForPersona
+    // (extraction.ts:535): "── BRIEF FOR YOUR NEXT RESPONSE ──". The leading
+    // characters are U+2500 BOX DRAWINGS LIGHT HORIZONTAL (×2), not em dashes.
+    pattern: /^── BRIEF FOR YOUR NEXT RESPONSE ──/m,
+    source: { file: "extraction.ts", symbol: "formatExtractionForPersona" },
     conditionFn: () => ({ type: "dynamic", label: "Dynamic: appended at runtime" }),
     alternativesFn: () => [],
   },
@@ -532,7 +588,7 @@ function buildPhaseConfigs(): PhaseConfig[] {
         isReturningUser: false,
         sessionSummary: null,
         extractionContext:
-          "\nEXTRACTION BRIEF\nThere is enough material to reflect a piece back. The user has walked through a concrete scene, named a mechanism, and used charged language. A checkpoint is approaching.\n",
+          "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\nThere is enough material to reflect a piece back. The user has walked through a concrete scene, named a mechanism, and used charged language. A checkpoint is approaching.\n",
         isFirstCheckpoint: true,
         turnCount: 8,
         checkpointApproaching: true,
@@ -566,7 +622,7 @@ function buildPhaseConfigs(): PhaseConfig[] {
         sessionSummary:
           "Explored the pressure-to-perform pattern at work. Named the voice-goes-flat moment. Confirmed one entry on Layer 1.",
         extractionContext:
-          "\nEXTRACTION BRIEF\nThe user has walked through a new scene involving a family dynamic. Body language surfaced: jaw tightening, chest pressure. The bind is visible: protecting the relationship by absorbing, but the cost is losing their own position. Checkpoint approaching.\n",
+          "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\nThe user has walked through a new scene involving a family dynamic. Body language surfaced: jaw tightening, chest pressure. The bind is visible: protecting the relationship by absorbing, but the cost is losing their own position. Checkpoint approaching.\n",
         isFirstCheckpoint: false,
         sessionCount: 3,
         turnCount: 10,

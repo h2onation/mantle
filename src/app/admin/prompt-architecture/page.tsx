@@ -72,7 +72,7 @@ const STAGES: Stage[] = [
     id: 8,
     title: "Sibling calls — the other AI calls this turn",
     caption:
-      "Jove is one of four AI calls per turn. Extraction (Sonnet) runs in parallel, writing a brief for next turn. Classifier (Haiku) runs after Jove streams, deciding if the response is a checkpoint. Composer (Sonnet) runs on confirm, writing the polished Manual entry.",
+      "Jove is one of three Anthropic calls per turn. Extraction (Sonnet) runs in parallel, writing a brief for next turn. Composer (Opus) runs after the user confirms a checkpoint, writing the polished Manual entry. The fourth sibling — the checkpoint detector that fires after Jove streams — is a deterministic regex, not a model call.",
   },
   {
     id: 9,
@@ -238,19 +238,19 @@ const SIBLING_CALLS: {
   },
   {
     id: "classifier",
-    label: "Checkpoint classifier",
-    model: "Haiku",
+    label: "Checkpoint detector",
+    model: "Regex",
     when: "Post-stream — after Jove finishes",
-    reads: "Jove's just-streamed response + extraction state",
+    reads: "Jove's just-streamed response",
     writes: "Triggers composer if a checkpoint is detected",
     description:
-      "Looks at what Jove just said and decides if it's a checkpoint proposal. Cheap and fast — Haiku, single-turn, no streaming. If yes, the composer fires next.",
-    source: "src/lib/persona/detect-checkpoint.ts → detectCheckpoint",
+      "Looks at what Jove just said and decides if it's a checkpoint proposal. Deterministic phrase match for the canonical transition line — no model call, no streaming. If matched, the composer fires next.",
+    source: "src/lib/persona/detect-checkpoint.ts → detectCheckpointInResponse",
   },
   {
     id: "composer",
     label: "Manual entry composer",
-    model: "Sonnet",
+    model: "Opus",
     when: "On confirm — only when user clicks 'confirm' on a checkpoint card",
     reads: "Conversation turn(s), language bank, manual entry list",
     writes: "manual_entries row (after user confirms) — name + content + summary + key_words",

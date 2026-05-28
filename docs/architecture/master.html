@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jove — Master Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --linen: #F4F0EA;
+    --linen-light: #FAF7F1;
+    --linen-deep: #ECE6DC;
+    --ink: #1A1614;
+    --ink-soft: #4A4540;
+    --ink-mid: #7A7470;
+    --ink-faded: #A09A92;
+    --ink-hairline: #D8D2C8;
+
+    --solid: #3D6B47;
+    --partial: #8C6F2F;
+    --unproven: #5B6F87;
+    --deferred: #8A857C;
+    --not-built: #8C5040;
+
+    --solid-bg: #EBF1ED;
+    --partial-bg: #F2EBD7;
+    --unproven-bg: #E8ECF2;
+    --deferred-bg: #EDEAE4;
+    --not-built-bg: #F1E5DF;
+
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: 16px; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--linen);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 36px 28px 96px;
+  }
+
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--ink-hairline);
+    flex-wrap: wrap;
+  }
+  .page-header h1 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(32px, 5vw, 44px);
+    line-height: 1.05;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .positioning {
+    color: var(--ink-soft);
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+    max-width: 60ch;
+  }
+  .positioning code { color: var(--ink); }
+  .commit-stamp {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-mid);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+    min-width: 180px;
+  }
+  .commit-stamp .label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faded);
+  }
+
+  /* ── Section ──────────────────────────────────────────────────────── */
+  section {
+    margin: 64px 0;
+  }
+  section > h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(24px, 3.5vw, 30px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  section > .section-lede {
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 70ch;
+  }
+  .section-lede .pill { margin-right: 4px; }
+
+  /* ── Claim ────────────────────────────────────────────────────────── */
+  .claim {
+    padding: 26px 30px;
+    background: var(--linen-light);
+    border: 1px solid var(--ink-hairline);
+    border-left: 3px solid var(--ink);
+    font-family: var(--font-serif);
+    font-size: 21px;
+    line-height: 1.45;
+    color: var(--ink);
+    max-width: 76ch;
+  }
+
+  /* ── Status pills ─────────────────────────────────────────────────── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .pill.solid { color: var(--solid); background: var(--solid-bg); }
+  .pill.partial { color: var(--partial); background: var(--partial-bg); }
+  .pill.unproven { color: var(--unproven); background: var(--unproven-bg); }
+  .pill.deferred { color: var(--deferred); background: var(--deferred-bg); }
+  .pill.not-built { color: var(--not-built); background: var(--not-built-bg); }
+
+  /* ── Flow diagram ─────────────────────────────────────────────────── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-arrow {
+    align-self: center;
+    width: 1px;
+    height: 28px;
+    background: var(--ink-hairline);
+    position: relative;
+  }
+  .flow-arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--ink-hairline);
+  }
+  .flow-arrow.dashed {
+    background: transparent;
+    border-left: 1px dashed var(--ink-faded);
+    width: 0;
+    margin-left: 0;
+  }
+  .flow-arrow.dashed::after {
+    border-top-color: var(--ink-faded);
+  }
+  .flow-arrow-label {
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-mid);
+    margin: 4px 0 -4px;
+  }
+
+  /* Bands (ceiling, floor) */
+  .band {
+    border: 1px solid var(--ink-soft);
+    border-radius: 4px;
+    padding: 14px 18px;
+    background: var(--linen-deep);
+  }
+  .band-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .band-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    margin: 0;
+  }
+  .band-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-mid);
+  }
+
+  /* Generic boxes */
+  .box {
+    padding: 14px 16px;
+    border: 1px solid var(--ink-hairline);
+    border-radius: 4px;
+    background: var(--linen-light);
+  }
+  .box.planned {
+    border-style: dashed;
+    border-color: var(--not-built);
+    background: var(--linen-light);
+  }
+  .box.deferred-box {
+    border-style: dashed;
+    border-color: var(--deferred);
+  }
+
+  .box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .box-name {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .box-name.serif {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 17px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .box-meta {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-mid);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .box-body {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .box-readby {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dotted var(--ink-hairline);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-mid);
+    line-height: 1.5;
+  }
+  .box-readby .warn {
+    color: var(--not-built);
+    font-weight: 500;
+  }
+
+  /* Ceiling sub-grid */
+  .ceiling-grid, .observers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  @media (max-width: 720px) {
+    .ceiling-grid, .observers {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Selector */
+  .selector {
+    padding: 20px 22px;
+    border: 2px dashed var(--not-built);
+    background: var(--linen-light);
+    border-radius: 5px;
+  }
+  .selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .selector-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0;
+  }
+  .selector-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-mid);
+  }
+  .selector-lede {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 0 0 14px;
+  }
+  .selector-rowgroup-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faded);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 12px 0 6px;
+  }
+  .selector-rowgroup-label:first-of-type { margin-top: 0; }
+  .selector-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .selector-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--linen);
+    border: 1px solid var(--ink-hairline);
+    border-radius: 3px;
+    font-size: 12.5px;
+  }
+  .selector-row .num {
+    font-family: var(--font-mono);
+    color: var(--ink-faded);
+    font-size: 11px;
+  }
+  .selector-row .cond { color: var(--ink); }
+  .selector-row .to {
+    font-family: var(--font-mono);
+    color: var(--ink-mid);
+    font-size: 10.5px;
+    text-align: center;
+  }
+  .selector-row .target {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .selector-row.default {
+    background: var(--not-built-bg);
+    border-color: var(--not-built);
+  }
+  .selector-row.default .target {
+    color: var(--not-built);
+    font-weight: 500;
+  }
+  @media (max-width: 680px) {
+    .selector-row {
+      grid-template-columns: 24px 1fr;
+      gap: 6px 10px;
+    }
+    .selector-row .to { display: none; }
+    .selector-row .target {
+      grid-column: 2;
+      font-size: 11px;
+      color: var(--ink-mid);
+    }
+    .selector-row .target::before { content: '→ '; }
+  }
+
+  /* Postures grid */
+  .postures-wrap {
+    margin-top: 0;
+  }
+  .postures-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faded);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin: 0 0 10px;
+  }
+  .postures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .posture {
+    padding: 12px 14px;
+    border: 1px solid var(--ink-hairline);
+    background: var(--linen-light);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .posture.planned { border-style: dashed; border-color: var(--not-built); }
+  .posture-name {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink);
+    line-height: 1.2;
+    font-weight: 500;
+  }
+  .posture-desc {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+  .posture-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Save chain */
+  .save-chain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin-top: 0;
+  }
+  .composer-box, .manual-box, .crosssession-box {
+    width: 100%;
+    max-width: 560px;
+  }
+  .composer-box {
+    padding: 16px 18px;
+    border: 1px solid var(--ink-hairline);
+    background: var(--linen-light);
+    border-radius: 4px;
+  }
+  .composer-locks {
+    margin-top: 12px;
+    display: grid;
+    gap: 6px;
+  }
+  .composer-lock {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 11.5px;
+    padding: 7px 10px;
+    border-radius: 3px;
+    background: var(--linen);
+    border: 1px solid var(--ink-hairline);
+  }
+  .composer-lock.planned {
+    border-style: dashed;
+    border-color: var(--not-built);
+    background: var(--not-built-bg);
+  }
+  .composer-lock.deferred-lock {
+    border-style: dashed;
+    border-color: var(--deferred);
+    background: var(--deferred-bg);
+  }
+  .composer-lock .name {
+    font-family: var(--font-mono);
+    color: var(--ink);
+  }
+  .composer-soft {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dotted var(--ink-hairline);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-mid);
+    line-height: 1.5;
+  }
+  .crosssession-box {
+    padding: 12px 16px;
+    border: 1px dashed var(--deferred);
+    background: var(--deferred-bg);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .crosssession-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--deferred);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  /* Crisis callout */
+  .crisis {
+    margin: 24px 0 0;
+    padding: 18px 22px;
+    border: 1px solid var(--solid);
+    border-left-width: 4px;
+    background: var(--solid-bg);
+    border-radius: 4px;
+  }
+  .crisis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .crisis-title {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    margin: 0;
+  }
+  .crisis-body {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .crisis-locations {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-mid);
+    line-height: 1.6;
+  }
+
+  /* ── Nine elements grid ───────────────────────────────────────────── */
+  .elements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .element-card {
+    padding: 16px 18px;
+    border: 1px solid var(--ink-hairline);
+    background: var(--linen-light);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .element-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .element-card-name {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .element-card-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faded);
+  }
+  .element-card-pills {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .element-card-body {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .element-card-loc {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-mid);
+    padding-top: 8px;
+    border-top: 1px dotted var(--ink-hairline);
+    line-height: 1.5;
+  }
+
+  /* ── Not yet built list ───────────────────────────────────────────── */
+  .nyb {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .nyb-item {
+    padding: 12px 16px;
+    border: 1px dashed var(--not-built);
+    background: var(--not-built-bg);
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .nyb-item .label {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    color: var(--ink);
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  .nyb-item .reason {
+    color: var(--ink-soft);
+  }
+  .nyb-item code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: rgba(0,0,0,0.04);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  @media (max-width: 600px) {
+    .nyb-item { flex-direction: column; gap: 4px; }
+  }
+
+  /* ── Blockers ─────────────────────────────────────────────────────── */
+  .blockers {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .blocker {
+    padding: 18px 20px;
+    border: 1px solid var(--ink-hairline);
+    border-left: 3px solid var(--partial);
+    border-radius: 4px;
+    background: var(--linen-light);
+  }
+  .blocker-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--partial);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .blocker-q {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    margin: 0 0 10px;
+    line-height: 1.3;
+  }
+  .blocker-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .blocker-row:last-child { margin-bottom: 0; }
+  .blocker-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mid);
+    padding-top: 2px;
+  }
+  .blocker-text strong { color: var(--ink); font-weight: 600; }
+  .blocker-text code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink);
+    background: rgba(0,0,0,0.04);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  @media (max-width: 600px) {
+    .blocker-row { grid-template-columns: 1fr; gap: 2px; }
+    .blocker-label { padding-top: 4px; }
+  }
+
+  /* ── Commitments ──────────────────────────────────────────────────── */
+  .commitments {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .commitment {
+    padding: 14px 16px;
+    border: 1px solid var(--ink-hairline);
+    background: var(--linen-light);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .commitment-title {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.25;
+    margin: 0;
+  }
+  .commitment-body {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────────────── */
+  .page-footer {
+    margin-top: 96px;
+    padding-top: 24px;
+    border-top: 1px solid var(--ink-hairline);
+    font-size: 11.5px;
+    color: var(--ink-mid);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .page-footer code {
+    font-family: var(--font-mono);
+    color: var(--ink-soft);
+  }
+
+  /* General inline */
+  code, .mono {
+    font-family: var(--font-mono);
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+  }
+
+  @media print {
+    body { background: white; }
+    .container { max-width: 100%; padding: 16px; }
+    section { page-break-inside: avoid; }
+    .selector, .composer-box, .blocker, .element-card,
+    .nyb-item, .commitment, .crisis, .band, .box, .posture {
+      page-break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="container">
+
+  <!-- ─── 1. HEADER ─────────────────────────────────────────────────── -->
+  <header class="page-header">
+    <div>
+      <h1>Jove — Master Architecture</h1>
+      <p class="positioning">
+        At-a-glance companion to <code>docs/architecture/master.md</code>.
+        The document is the source of truth; this visual is its
+        navigable read-once view. Every claim here traces to a section
+        of the master document.
+      </p>
+    </div>
+    <div class="commit-stamp">
+      <span class="label">authored against</span>
+      <span>main @ 51b4e78</span>
+      <span>2026-05-27</span>
+    </div>
+  </header>
+
+  <!-- ─── 2. THE CLAIM ──────────────────────────────────────────────── -->
+  <section aria-label="The claim">
+    <h2>The claim</h2>
+    <p class="section-lede">
+      The constant. The rest of the visual shows the engine that serves it.
+    </p>
+    <div class="claim">
+      mywalnut is a conversational tool that helps neurodivergent adults
+      build a Manual of how they actually operate. Jove listens, reflects,
+      and — when something real has accumulated — shows a pattern in the
+      user's own words they couldn't see from inside. The user confirms
+      or refines. The Manual grows.
+    </div>
+  </section>
+
+  <!-- ─── 3. THE ENGINE / FLOW DIAGRAM ──────────────────────────────── -->
+  <section aria-label="The engine">
+    <h2>The engine</h2>
+    <p class="section-lede">
+      Flow runs top to bottom. Built components have solid borders.
+      Planned and not-yet-built components have dashed borders and a
+      status pill. Status pills:
+      <span class="pill solid">solid</span>
+      <span class="pill partial">partial</span>
+      <span class="pill unproven">unproven</span>
+      <span class="pill deferred">deferred</span>
+      <span class="pill not-built">not yet built</span>
+    </p>
+
+    <div class="flow">
+
+      <!-- CEILING -->
+      <div class="band">
+        <div class="band-header">
+          <h3 class="band-title">Ceiling · structural boundary</h3>
+          <span class="band-subtitle">§1 in master document</span>
+        </div>
+        <div class="ceiling-grid">
+          <div class="box">
+            <div class="box-header">
+              <span class="box-name">§1a · refer-out boundary</span>
+              <span class="pill solid">solid</span>
+            </div>
+            <div class="box-meta">rules.md · system-prompt.ts:282</div>
+            <div class="box-body">
+              Tier 1 Rule 7 plus an always-rendering PROFESSIONAL
+              REFERRAL block. Jove builds a self-understanding Manual;
+              it is not therapy. The constitutional ceiling.
+            </div>
+          </div>
+          <div class="box planned">
+            <div class="box-header">
+              <span class="box-name">§1b · scope-exit gate</span>
+              <span class="pill not-built">not yet built</span>
+            </div>
+            <div class="box-meta">no consumer for monitor.scope</div>
+            <div class="box-body">
+              Code-level suppression when the conversation drifts out of
+              self-understanding scope. Signal source exists in
+              <code>monitor_reads.scope</code>; no code reads it.
+              The original failure mode's exposure remains until
+              safety-spine integration.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <!-- TWO OBSERVERS -->
+      <div class="observers">
+        <div class="box">
+          <div class="box-header">
+            <span class="box-name">Watcher 1 · monitor</span>
+            <span class="pill unproven">unproven</span>
+          </div>
+          <div class="box-meta">src/lib/persona/monitor.ts · Opus 4.7</div>
+          <div class="box-body">
+            Per-turn alliance read. Five axes:
+            <code>bond_holding</code>, <code>task_agreed</code>,
+            <code>scope</code>, <code>rupture</code>,
+            <code>direction</code>. Window: last 8 messages.
+            Fires alongside generation via
+            <code>fireBackgroundMonitor</code>; writes to
+            <code>public.monitor_reads</code>.
+          </div>
+          <div class="box-readby">
+            output reads:<br>
+            <span class="warn">▸ nothing yet — shadow-only (Phase 0)</span>
+          </div>
+        </div>
+        <div class="box">
+          <div class="box-header">
+            <span class="box-name">Watcher 2 · extraction</span>
+            <span class="pill partial">partial</span>
+          </div>
+          <div class="box-meta">src/lib/persona/extraction.ts · Sonnet 4.6</div>
+          <div class="box-body">
+            Per-turn pattern read. Cumulative <code>ExtractionState</code>:
+            language bank, per-layer signals, depth, checkpoint gate,
+            <code>pattern_engaged</code>, clinical flag. Window: last 12
+            messages. Fire-and-forget via
+            <code>fireBackgroundExtraction</code>.
+          </div>
+          <div class="box-readby">
+            output reads:<br>
+            ▸ <code>applyCheckpointGates</code> (the Save row's gate)<br>
+            ▸ Jove's system prompt (one-turn lag)
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow-label">proposed inputs to selector</div>
+      <div class="flow-arrow dashed"></div>
+
+      <!-- SELECTOR -->
+      <div class="selector">
+        <div class="selector-header">
+          <h3 class="selector-title">Selector</h3>
+          <div class="selector-tag">Decision 4 · no selector.ts file in repo</div>
+          <span class="pill not-built">not yet built</span>
+        </div>
+        <p class="selector-lede">
+          Deterministic precedence ladder. Reads context plus latest
+          monitor read plus extraction state; picks one row per turn,
+          top to bottom, stops at first match. Today's substitute is
+          a flags-keyed multi-block prompt renderer
+          (<code>TIER_3_BLOCKS</code> in system-prompt.ts:345) that can
+          render several blocks per turn — not a precedence ladder.
+        </p>
+
+        <div class="selector-rowgroup-label">Alliance rows · precedence above task rows</div>
+        <div class="selector-rows">
+          <div class="selector-row">
+            <span class="num">1</span>
+            <span class="cond">scope = out_of_scope?</span>
+            <span class="to">→</span>
+            <span class="target">scope_exit (save-suppression ON)</span>
+          </div>
+          <div class="selector-row">
+            <span class="num">2</span>
+            <span class="cond">rupture = withdrawal?</span>
+            <span class="to">→</span>
+            <span class="target">withdrawal_yield</span>
+          </div>
+          <div class="selector-row">
+            <span class="num">3</span>
+            <span class="cond">rupture = confrontation?</span>
+            <span class="to">→</span>
+            <span class="target">confrontation_hold</span>
+          </div>
+        </div>
+
+        <div class="selector-rowgroup-label">Task rows</div>
+        <div class="selector-rows">
+          <div class="selector-row">
+            <span class="num">4</span>
+            <span class="cond">needs contract? (rare — task drift)</span>
+            <span class="to">→</span>
+            <span class="target">contract</span>
+          </div>
+          <div class="selector-row">
+            <span class="num">5</span>
+            <span class="cond">thread recognized + alliance clear?</span>
+            <span class="to">→</span>
+            <span class="target">formalize (composer)</span>
+          </div>
+          <div class="selector-row">
+            <span class="num">6</span>
+            <span class="cond">thread ripe + alliance clear?</span>
+            <span class="to">→</span>
+            <span class="target">surface</span>
+          </div>
+          <div class="selector-row">
+            <span class="num">7</span>
+            <span class="cond">user abstract about live thing?</span>
+            <span class="to">→</span>
+            <span class="target">get_concrete</span>
+          </div>
+          <div class="selector-row default">
+            <span class="num">8</span>
+            <span class="cond">else (fall-through)</span>
+            <span class="to">→</span>
+            <span class="target">reflect · default</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <!-- POSTURES -->
+      <div class="postures-wrap">
+        <p class="postures-title">selector routes to one posture per turn</p>
+        <div class="postures">
+          <div class="posture planned">
+            <div class="posture-header">
+              <span class="posture-name">scope_exit</span>
+              <span class="pill not-built">not built</span>
+            </div>
+            <div class="posture-desc">
+              Out-of-scope detected. Save suppressed; conversation
+              returned to behavior-and-body territory.
+            </div>
+          </div>
+          <div class="posture planned">
+            <div class="posture-header">
+              <span class="posture-name">withdrawal_yield</span>
+              <span class="pill not-built">not built</span>
+            </div>
+            <div class="posture-desc">
+              User flat, signal reducing. Give room; stop the move that
+              produced the withdrawal. Detect-and-stop, not therapeutic
+              repair.
+            </div>
+          </div>
+          <div class="posture planned">
+            <div class="posture-header">
+              <span class="posture-name">confrontation_hold</span>
+              <span class="pill not-built">not built</span>
+            </div>
+            <div class="posture-desc">
+              User pushing back with content. Stay present, don't go
+              soft. The opposite move from withdrawal_yield.
+            </div>
+          </div>
+          <div class="posture planned">
+            <div class="posture-header">
+              <span class="posture-name">contract</span>
+              <span class="pill not-built">not built</span>
+            </div>
+            <div class="posture-desc">
+              Two-sentence opening posture: names what Jove does, names
+              what it doesn't. Plumbing exists in three mode openers;
+              the content does not.
+            </div>
+          </div>
+          <div class="posture">
+            <div class="posture-header">
+              <span class="posture-name">reflect · default</span>
+              <span class="pill partial">partial</span>
+            </div>
+            <div class="posture-desc">
+              The wide family: mirror, complex reflection, one-notch-
+              beneath, flat acknowledgment, sharp question, silence as a
+              turn. Lives in voice rules today, not as a selector
+              default.
+            </div>
+          </div>
+          <div class="posture">
+            <div class="posture-header">
+              <span class="posture-name">get_concrete</span>
+              <span class="pill partial">partial</span>
+            </div>
+            <div class="posture-desc">
+              Move user from label to scene, claim to moment. Distributed
+              across DEEPENING_INTRO and guided-intake directed moves;
+              not separately gated.
+            </div>
+          </div>
+          <div class="posture">
+            <div class="posture-header">
+              <span class="posture-name">surface</span>
+              <span class="pill partial">partial</span>
+            </div>
+            <div class="posture-desc">
+              Jove names the pattern back to the user in their own
+              words. The recognition moment. Lives in the CHECKPOINTS
+              block's NAMING THE PATTERN subsection; not a separately
+              gated row.
+            </div>
+          </div>
+          <div class="posture">
+            <div class="posture-header">
+              <span class="posture-name">formalize → save</span>
+              <span class="pill partial">partial</span>
+            </div>
+            <div class="posture-desc">
+              The save path. Detection ("I want to put something in your
+              Manual") + gates + composer (below). Lock 1 not yet built.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow-label">formalize/surface route into the save chain</div>
+      <div class="flow-arrow"></div>
+
+      <!-- SAVE CHAIN -->
+      <div class="save-chain">
+        <div class="composer-box">
+          <div class="box-header">
+            <span class="box-name">Composer</span>
+            <span class="pill partial">partial</span>
+          </div>
+          <div class="box-meta">
+            src/lib/persona/confirm-checkpoint.ts:39 ·
+            <code>composeManualEntry</code> · Opus 4.6
+          </div>
+          <div class="box-body">
+            Separate Anthropic call. Polishes the conversational
+            checkpoint into a Manual entry; picks the layer; emits
+            <code>name</code>, <code>content</code>,
+            <code>summary</code>, <code>key_words</code>,
+            <code>acknowledgment</code>.
+          </div>
+          <div class="composer-locks">
+            <div class="composer-lock planned">
+              <span class="name">Lock 1 · verbatim language check</span>
+              <span class="pill not-built">not yet built</span>
+            </div>
+            <div class="composer-lock deferred-lock">
+              <span class="name">Lock 2 · real-yes detection</span>
+              <span class="pill deferred">deferred · v1.5</span>
+            </div>
+          </div>
+          <div class="composer-soft">
+            soft post-validators (log only, never block):<br>
+            ▸ <code>validateHeadline</code> + retry-once<br>
+            ▸ <code>findUniversalToneViolations</code><br>
+            ▸ <code>validateComposedEntry</code> (somatic, clinical, time leaks)
+          </div>
+        </div>
+
+        <div class="flow-arrow"></div>
+
+        <div class="manual-box">
+          <div class="box">
+            <div class="box-header">
+              <span class="box-name">The Manual · artifact</span>
+              <span class="pill solid">solid</span>
+            </div>
+            <div class="box-meta">manual_entries table · confirm_checkpoint_write RPC</div>
+            <div class="box-body">
+              Atomic write via Postgres function. Five layers; many
+              entries per layer; no per-layer cap. The artifact the
+              user is the author of.
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow-label">cross-session feedback</div>
+        <div class="flow-arrow dashed"></div>
+
+        <div class="crosssession-box">
+          <div class="crosssession-label">deferred · v1.5 · Watch</div>
+          <div>
+            Cross-session read of confirmed entries into next session's
+            extraction and composer context. Manual-context compression
+            already prepares this (<code>prepareManualContext</code>);
+            the active recall and near-duplicate dedup are not built.
+            Within-session Watch (the seed in extraction's pattern
+            fields) is <span class="pill partial">partial</span> today.
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow"></div>
+
+      <!-- FLOOR -->
+      <div class="band">
+        <div class="band-header">
+          <h3 class="band-title">Floor · voice discipline</h3>
+          <span class="band-subtitle">§9 in master document</span>
+        </div>
+        <div class="box" style="background:transparent;border:none;padding:6px 0 0;">
+          <div class="box-header" style="margin-bottom:6px;">
+            <span class="box-name">Tier 1 + Tier 2 + persona deltas + banned phrases + banned patterns</span>
+            <span class="pill solid">solid</span>
+          </div>
+          <div class="box-meta">
+            voice-scaffold.ts (21 base rules, pinned) ·
+            voice-{autistic,adhd,dyslexic,general}.ts ·
+            system-prompt.ts:261–283
+          </div>
+          <div class="box-body">
+            Prevents Jove from drifting into therapy-bot, chatbot, or
+            coach registers. R-17 and R-18 split into a/b. Handoff law
+            (Tier 1 Rule 4) is prompt-text + soft post-gen counter
+            (<code>validateResponseStructure</code>) — logs, does not
+            block.
+          </div>
+        </div>
+      </div>
+
+      <!-- CRISIS CARVE-OUT -->
+      <div class="crisis">
+        <div class="crisis-header">
+          <h4 class="crisis-title">Crisis carve-out · the one exception to never-prescribe</h4>
+          <span class="pill solid">solid</span>
+        </div>
+        <p class="crisis-body">
+          When the user produces crisis signals, Jove DOES prescribe
+          one thing: 988 Suicide and Crisis Lifeline (call or text 988)
+          and Crisis Text Line (text HOME to 741741). This is the only
+          directive Jove ever issues. It is a Tier 1 override on
+          never-prescribe.
+        </p>
+        <div class="crisis-locations">
+          visible in code in four places:<br>
+          ▸ system-prompt.ts:279 — Tier 1 Rule 6 (the protocol)<br>
+          ▸ voice-scaffold.ts:61 — VOICE_RULES_BASE rule 15 (the carve-out on never-prescribe)<br>
+          ▸ voice-scaffold.ts:434 — WHEN_USER_ASKS_WHAT_SHOULD_I_DO (the carve-out in the "what should I do" handler)<br>
+          ▸ persona-pipeline.ts:452 — <code>handleCrisisDetection</code> (server-side detection + 988 append)
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── 4. NINE ELEMENTS GRID ─────────────────────────────────────── -->
+  <section aria-label="The nine elements">
+    <h2>The nine elements</h2>
+    <p class="section-lede">
+      The master document's spine. Reference card — pointing at a part
+      of the flow diagram, find the corresponding element here and read
+      its file location. <code>CEILING</code> splits into 1a and 1b.
+    </p>
+    <div class="elements-grid">
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§1a</span>
+          <span class="pill solid">solid</span>
+        </div>
+        <span class="element-card-name">Ceiling · refer-out</span>
+        <div class="element-card-body">
+          The product's stated identity ceiling — Jove builds a
+          self-understanding Manual, does not provide mental-health
+          services, and refers out when material exceeds scope.
+        </div>
+        <div class="element-card-loc">
+          rules.md · system-prompt.ts:282 (Tier 1 R7) ·
+          system-prompt.ts:711 (referral block)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§1b</span>
+          <span class="pill not-built">not yet built</span>
+        </div>
+        <span class="element-card-name">Ceiling · scope-exit gate</span>
+        <div class="element-card-body">
+          A deterministic check that fires when the conversation has
+          drifted from "understanding how you operate" into "what
+          should I do tonight." Signal exists; no consumer.
+        </div>
+        <div class="element-card-loc">
+          monitor.ts:29 (scope field) · no reader of monitor_reads
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§2</span>
+          <span class="pill unproven">unproven</span>
+        </div>
+        <span class="element-card-name">Safety overlay · monitor</span>
+        <div class="element-card-body">
+          A separate Anthropic call run alongside the generator on every
+          web turn, producing a structured read of the alliance between
+          Jove and the user. Two-watcher separation preserved.
+        </div>
+        <div class="element-card-loc">
+          src/lib/persona/monitor.ts ·
+          persona-pipeline.ts:398 (fireBackgroundMonitor) ·
+          public.monitor_reads
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§3</span>
+          <span class="pill not-built">not yet built</span>
+        </div>
+        <span class="element-card-name">Contract</span>
+        <div class="element-card-body">
+          A two-sentence contracting move that fires once on the first
+          turn — names what Jove does, what it doesn't, asks if that's
+          the work. Plumbing exists in three openers; content does not.
+        </div>
+        <div class="element-card-loc">
+          system-prompt.ts:347 (situation) · 370 (guided-intake) ·
+          448 (upload)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§4</span>
+          <span class="pill partial">partial</span>
+        </div>
+        <span class="element-card-name">Reflect</span>
+        <div class="element-card-body">
+          The engine's default action when no other condition fires.
+          A wide family: mirror, complex reflection, one-notch-beneath,
+          flat acknowledgment, sharp question, silence. As voice
+          instruction it lives in Tier 2; as selector default it does
+          not exist.
+        </div>
+        <div class="element-card-loc">
+          voice-scaffold.ts:46 (rules 2, 4, 17) ·
+          system-prompt.ts:345 (TIER_3_BLOCKS, not a selector)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§5</span>
+          <span class="pill partial">partial</span>
+        </div>
+        <span class="element-card-name">Get concrete</span>
+        <div class="element-card-body">
+          The posture Jove takes when the user is being abstract about
+          a live thing. Move from label to scene. Distributed across
+          deepening instructions and the guided-intake block; not
+          separately gated.
+        </div>
+        <div class="element-card-loc">
+          voice-scaffold.ts:417 (DEEPENING_INTRO) ·
+          system-prompt.ts:425 (guided directed moves)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§6</span>
+          <span class="pill partial">partial</span>
+        </div>
+        <span class="element-card-name">Surface</span>
+        <div class="element-card-body">
+          The posture where Jove names the pattern back to the user in
+          their own words — the recognition moment. Precedes Save. As
+          a generator behavior it exists; as a separately gated row
+          (Decision 4) it does not.
+        </div>
+        <div class="element-card-loc">
+          system-prompt.ts:512–574 (CHECKPOINTS · NAMING THE PATTERN) ·
+          extraction.ts (<code>pattern_engaged</code>)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§7</span>
+          <span class="element-card-pills">
+            <span class="pill partial">partial</span>
+            <span class="pill not-built">lock 1</span>
+          </span>
+        </div>
+        <span class="element-card-name">Save</span>
+        <div class="element-card-body">
+          The path producing a polished Manual entry: detection, gates,
+          composer, atomic write. Soft validators log; Lock 1 (verbatim
+          language check) is not yet built; Lock 2 deferred to v1.5.
+        </div>
+        <div class="element-card-loc">
+          confirm-checkpoint.ts:39 (composeManualEntry) ·
+          persona-pipeline.ts:659 (applyCheckpointGates) ·
+          detect-checkpoint.ts (detection)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§8</span>
+          <span class="element-card-pills">
+            <span class="pill partial">within-session</span>
+            <span class="pill deferred">cross-session</span>
+          </span>
+        </div>
+        <span class="element-card-name">Watch</span>
+        <div class="element-card-body">
+          Watcher 2's pattern-tracking. Within-session seed exists in
+          the extraction state's checkpoint gate and pattern fields.
+          Cross-session Watch — semantic retrieval / active recall — is
+          deferred to v1.5.
+        </div>
+        <div class="element-card-loc">
+          src/lib/persona/extraction.ts ·
+          manual-context.ts (compression infrastructure)
+        </div>
+      </div>
+
+      <div class="element-card">
+        <div class="element-card-head">
+          <span class="element-card-num">§9</span>
+          <span class="pill solid">solid</span>
+        </div>
+        <span class="element-card-name">Floor · voice discipline</span>
+        <div class="element-card-body">
+          Tier 1 + Tier 2 base + persona deltas + banned phrases +
+          banned patterns + crisis carve-out. Prevents drift into
+          therapy-bot or chatbot registers. Handoff law is soft
+          (logs, does not block).
+        </div>
+        <div class="element-card-loc">
+          voice-scaffold.ts (21 base rules) ·
+          voice-{autistic,adhd,dyslexic,general}.ts ·
+          system-prompt.ts:261
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── 5. WHAT'S NOT YET BUILT ───────────────────────────────────── -->
+  <section aria-label="What is not yet built">
+    <h2>What's not yet built</h2>
+    <p class="section-lede">
+      The architecture described above includes elements that do not
+      currently fire. Don't infer behavior from the prose alone — these
+      items are decisions or partial wirings, not running code.
+    </p>
+    <div class="nyb">
+      <div class="nyb-item">
+        <span class="label">The selector ·</span>
+        <span class="reason">
+          Decision 4's precedence ladder. The structural centerpiece. Not
+          in code; today's substitute is <code>TIER_3_BLOCKS</code>, a
+          flags-keyed multi-block prompt renderer.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">The scope-exit gate ·</span>
+        <span class="reason">
+          The signal source exists in <code>monitor_reads.scope</code>
+          but no code reads it back.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">Monitor read-back ·</span>
+        <span class="reason">
+          Phase 0 is shadow-only by design — the monitor writes to
+          <code>monitor_reads</code> and nothing reads it.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">The Contract content ·</span>
+        <span class="reason">
+          Plumbing in place across three openers; the two sentences
+          naming what Jove does and doesn't do are missing.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">The two rupture postures ·</span>
+        <span class="reason">
+          <code>withdrawal_yield</code> and <code>confrontation_hold</code>.
+          Signal exists in the monitor; postures do not.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">Lock 1 · composer fail-closed on thin material ·</span>
+        <span class="reason">
+          The composer prompts for verbatim user language; no
+          deterministic check enforces it. Soft validators log only.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">Per-turn state plumbing for the monitor ·</span>
+        <span class="reason">
+          Each turn recomputes <code>direction</code> from the 8-message
+          window without the prior turn's read as input. Trajectory
+          isn't anchored.
+        </span>
+      </div>
+      <div class="nyb-item">
+        <span class="label">Recognition decay ·</span>
+        <span class="reason">
+          Nothing prevents re-surfacing the same pattern across turns
+          or sessions, except a single POST-REJECTION prompt
+          instruction.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 6. BLOCKERS ON LOCK 1 ─────────────────────────────────────── -->
+  <section aria-label="Blockers on Lock 1">
+    <h2>Blockers on Lock 1</h2>
+    <p class="section-lede">
+      Three architectural questions to resolve before Lock 1's build
+      prompt can be written. Each is question, recommendation,
+      downstream consequence. From master document section A.
+    </p>
+    <div class="blockers">
+
+      <div class="blocker">
+        <div class="blocker-num">Blocker 1</div>
+        <h3 class="blocker-q">Where does the selector sit in the pipeline?</h3>
+        <div class="blocker-row">
+          <span class="blocker-label">question</span>
+          <span class="blocker-text">
+            Pre-prompt (output picks which blocks render) or pre-detector
+            (output is a posture name the post-generation pipeline
+            routes on)?
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">recommended</span>
+          <span class="blocker-text">
+            <strong>Pre-prompt selector.</strong> Shaping the prompt is
+            structural; rewriting the model's output after the fact is
+            stylistic. Decision 4 calls the selector structural.
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">downstream</span>
+          <span class="blocker-text">
+            <code>TIER_3_BLOCKS</code> becomes the selector's output
+            handlers; many flags-keyed blocks collapse into row-specific
+            blocks; <code>applyCheckpointGates</code> becomes the SAVE
+            row's gate.
+          </span>
+        </div>
+      </div>
+
+      <div class="blocker">
+        <div class="blocker-num">Blocker 2</div>
+        <h3 class="blocker-q">What is Surface's ripeness threshold, separate from Save's?</h3>
+        <div class="blocker-row">
+          <span class="blocker-label">question</span>
+          <span class="blocker-text">
+            Today the code has one ripeness check, used both for
+            <code>checkpointApproaching</code> (Save) and any Surface
+            the generator performs. <code>pattern_engaged</code> requires
+            Jove to have already named a pattern — circular if Surface
+            is what produces the naming.
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">recommended</span>
+          <span class="blocker-text">
+            <strong>Surface trigger = <code>concrete_examples ≥ 1</code>
+            and <code>has_charged_language</code></strong>, plus alliance
+            clear from the monitor. <code>pattern_engaged</code> stays
+            on the Save side only. Breaks the circularity by separating
+            "what triggers the naming" from "what gates the writing."
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">downstream</span>
+          <span class="blocker-text">
+            Voice rule R-12 (sequence is evidence → pattern → image →
+            hand back) becomes the Surface row's quality contract — no
+            longer one rule among 21. Future R-12 edits get evaluated
+            against the selector, not against voice alone.
+          </span>
+        </div>
+      </div>
+
+      <div class="blocker">
+        <div class="blocker-num">Blocker 3</div>
+        <h3 class="blocker-q">Does the cross-context requirement hold for non-first checkpoints?</h3>
+        <div class="blocker-row">
+          <span class="blocker-label">question</span>
+          <span class="blocker-text">
+            The standard gate at persona-pipeline.ts:579 requires
+            <code>distinct_contexts ≥ 2</code> for a non-first checkpoint.
+            Decision 6 says cross-context repetition strengthens but is
+            <strong>not required</strong>, especially first session.
+            Mismatch.
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">recommended</span>
+          <span class="blocker-text">
+            <strong>Drop the hard requirement.</strong> Keep
+            <code>distinct_contexts</code> as a strengthening signal —
+            <code>validateHeadline</code> already softens single-example
+            titles with "can" / "sometimes." Aligns with the decision.
+          </span>
+        </div>
+        <div class="blocker-row">
+          <span class="blocker-label">downstream</span>
+          <span class="blocker-text">
+            Lock 1's verbatim check becomes the primary guardrail
+            against over-claim, matching Decision 6's intent. More
+            single-context Save events, each softened by the headline
+            validator's hedging.
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── 7. PRE-DECISION COMMITMENTS ───────────────────────────────── -->
+  <section aria-label="Pre-decision commitments">
+    <h2>Pre-decision commitments</h2>
+    <p class="section-lede">
+      The constraints inside which the seven decisions get made. They
+      pre-date the decisions and shape the architecture alongside them.
+    </p>
+    <div class="commitments">
+
+      <div class="commitment">
+        <h4 class="commitment-title">Two-watcher separation</h4>
+        <p class="commitment-body">
+          Watcher 1 (alliance monitor) and Watcher 2 (pattern tracker)
+          are separate Anthropic calls; bundling them would starve
+          alliance-watching in favor of pattern-hunting. Non-negotiable.
+        </p>
+      </div>
+
+      <div class="commitment">
+        <h4 class="commitment-title">Monitor gates the tracker</h4>
+        <p class="commitment-body">
+          Recognition cannot fire while alliance is in rupture. A "yes"
+          from a sinking user is not a yes. In the selector, alliance
+          rows sit above task rows.
+        </p>
+      </div>
+
+      <div class="commitment">
+        <h4 class="commitment-title">Crisis carve-out</h4>
+        <p class="commitment-body">
+          Never-prescribe has exactly one exception: when the user
+          produces crisis signals, Jove DOES prescribe 988 and Crisis
+          Text Line. Tier 1 Rule 6 overrides everything else.
+        </p>
+      </div>
+
+      <div class="commitment">
+        <h4 class="commitment-title">Recognition arc runs once</h4>
+        <p class="commitment-body">
+          Re-surfacing the same pattern produces weaker signal (decay).
+          The architecture should not loop the same pattern through
+          Surface across many turns. No code enforces this today.
+        </p>
+      </div>
+
+      <div class="commitment">
+        <h4 class="commitment-title">"Repair" means detect-and-stop</h4>
+        <p class="commitment-body">
+          Therapeutic repair gets its force from a real relationship
+          surviving strain. A tool has none. The rupture postures
+          perform the achievable half: detect the rupture, stop the
+          move that produced it. Selector rows will be named
+          <code>withdrawal_yield</code> and <code>confrontation_hold</code>.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ────────────────────────────────────────────────────── -->
+  <footer class="page-footer">
+    <div>
+      <strong>Source of truth:</strong>
+      <a href="./master.md"><code>docs/architecture/master.md</code></a>
+    </div>
+    <div>
+      Stage 1 visual · companion to first edit pass · 2026-05-27
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>
