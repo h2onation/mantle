@@ -40,7 +40,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
         password,
       });
       if (error) throw error;
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -84,7 +84,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
         throw new Error(data?.error || "An error occurred");
       }
 
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");

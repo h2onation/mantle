@@ -2,7 +2,7 @@
   "name": "mywalnut",
   "short_name": "mywalnut",
   "description": "Understand how you operate.",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0C0B0A",
   "theme_color": "#0C0B0A",

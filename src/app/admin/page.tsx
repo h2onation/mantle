@@ -44,6 +44,23 @@ function AdminPageInner() {
     : "users";
 
   const [betaSubTab, setBetaSubTab] = useState<BetaSubTab>("waitlist");
+  const [waitingCount, setWaitingCount] = useState(0);
+
+  // Pending-waitlist count for the Beta nav badge — loaded regardless of the
+  // active section so the count is always visible while in admin.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let active = true;
+    fetch("/api/admin/waitlist/count")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (active && j) setWaitingCount(j.waiting || 0);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -117,6 +134,7 @@ function AdminPageInner() {
         <AdminNavRail
           activeId={section}
           badges={{
+            ...(waitingCount > 0 ? { beta: waitingCount } : {}),
             ...(data.betaFeedbackUnreadCount > 0
               ? { feedback: data.betaFeedbackUnreadCount }
               : {}),

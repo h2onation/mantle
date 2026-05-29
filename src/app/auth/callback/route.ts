@@ -20,8 +20,10 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next");
 
+  // Returning users land in the app. Password-reset and other flows pass an
+  // explicit `next` (e.g. /reset-password) which we honor.
   const redirectTo =
-    next && next.startsWith("/") ? `${origin}${next}` : origin;
+    next && next.startsWith("/") ? `${origin}${next}` : `${origin}/app`;
 
   // Build the redirect up front so the Supabase setAll callback can write
   // Set-Cookie headers onto it. Reuse the same response across all setAll

@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
       if (updateError) throw updateError;
       setSuccess(true);
       setTimeout(() => {
-        router.push("/");
+        router.push("/app");
         router.refresh();
       }, 2000);
     } catch (err: unknown) {

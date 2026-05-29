@@ -67,6 +67,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mywalnut.app"),
   title: "mywalnut",
   description: "Understand how you operate.",
   manifest: "/manifest.webmanifest",

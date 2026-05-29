@@ -57,22 +57,26 @@ export async function middleware(request: NextRequest) {
   }
 
   const isPublicRoute =
+    pathname === "/" ||
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname === "/privacy" ||
     pathname === "/terms" ||
+    pathname === "/waitlist" ||
     pathname === "/sillygoose" ||
     pathname === "/sillygoose.html";
+
+  // Logged-in users skip the public marketing root and the login page — send
+  // them straight to the app at /app.
+  if (user && (pathname === "/" || pathname === "/login")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app";
+    return NextResponse.redirect(url);
+  }
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
@@ -81,8 +85,15 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // /auth/callback is excluded so middleware's getUser() can't race with
-    // the route handler's exchangeCodeForSession.
-    "/((?!_next/static|_next/image|favicon\\.ico|auth/callback|api(?!/admin)).*)",
+    // Run on app/page routes only. Exclusions:
+    //   _next            — framework assets
+    //   auth/callback    — its getUser() must not race exchangeCodeForSession
+    //   opengraph-image  — generated metadata route (no file extension)
+    //   api(?!/admin)    — API routes self-gate; only /api/admin is checked here
+    //   .*\..*           — anything with a file extension: robots.txt,
+    //                      sitemap.xml, manifest.webmanifest, sw.js, icons,
+    //                      favicon.ico, *.png, *.vcf, etc. (public assets +
+    //                      metadata files must stay reachable when logged out)
+    "/((?!_next|auth/callback|opengraph-image|api(?!/admin)|.*\\..*).*)",
   ],
 };

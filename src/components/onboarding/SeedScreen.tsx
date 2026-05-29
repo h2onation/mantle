@@ -45,7 +45,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
       if (onComplete) {
         onComplete();
       } else {
-        router.push("/");
+        router.push("/app");
       }
       return;
     }
@@ -61,7 +61,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
       return;
     }
 
-    router.push("/");
+    router.push("/app");
   }
 
   return (

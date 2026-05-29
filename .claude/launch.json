@@ -7,6 +7,13 @@
       "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && npm run dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "python3 -m http.server 4555"],
+      "port": 4555,
+      "autoPort": true
     }
   ]
 }

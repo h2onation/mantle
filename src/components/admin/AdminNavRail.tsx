@@ -138,7 +138,7 @@ export default function AdminNavRail({
       ))}
       <div style={{ flex: 1 }} />
       <a
-        href="/"
+        href="/app"
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: "var(--size-meta)",
