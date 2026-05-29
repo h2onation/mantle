@@ -32,11 +32,11 @@ const STAGES: Stage[] = [
   },
   {
     id: 2,
-    title: "The prompt gets assembled — and a parallel call writes working memory",
+    title: "The prompt gets assembled — and two parallel calls fire alongside it",
     caption:
-      "Jove doesn't see one fixed prompt. Every turn, a recipe gets built fresh: identity rules, voice scaffold, the user's persona delta, the conversation mode, plus eight conditional blocks that only fire when relevant (returning user, approaching a checkpoint, clinical material, and so on). At the exact same instant, a separate AI call reads the user's message and writes working memory — what's underneath the surface topic, which phrases are load-bearing, where the conversation is. That working memory feeds the next turn's prompt (a one-turn lag you never feel).",
+      "Jove doesn't see one fixed prompt. Every turn, a recipe gets built fresh: identity rules, voice scaffold, the user's persona delta, the conversation mode, plus conditional blocks that only fire when relevant (returning user, approaching a checkpoint, clinical material, and so on). At the exact same instant, two separate AI calls fire in parallel. The first — extraction — reads the user's message and writes working memory (what's underneath the surface topic, which phrases are load-bearing, where the conversation is); that working memory feeds the next turn's prompt (a one-turn lag you never feel). The second — the shadow monitor — reads the alliance (is the bond holding, is the conversation drifting or sinking) and writes a structured read to a dedicated table (monitor_reads). Crucially, nothing downstream reads it back: the monitor is a shadow observer — validated, but not yet wired to anything that changes Jove's behavior. It's the sensor for a feedback loop that isn't built yet.",
     specifics:
-      "~7,000 tokens assembled. Extraction runs in parallel as a fire-and-forget Sonnet call.",
+      "~7,000 tokens assembled. Two parallel fire-and-forget calls: extraction (Sonnet — feeds next turn) and the shadow monitor (Opus — writes monitor_reads, consumed by nothing).",
     actor: "system",
     deepDives: [
       { label: "Jove's prompt architecture", href: "/admin/prompt-architecture" },
@@ -54,11 +54,11 @@ const STAGES: Stage[] = [
   },
   {
     id: 4,
-    title: "Two more AI calls run in the background",
+    title: "After Jove streams, the checkpoint path runs",
     caption:
-      "After Jove finishes streaming, a smaller, faster model (Haiku) reads the response and decides whether this turn was a checkpoint — a moment where Jove proposed a Manual entry. If yes, the user sees a card to confirm. If they tap accept, a third Sonnet call writes the polished entry. Most turns aren't checkpoints, but the classifier still runs every time.",
+      "After Jove finishes streaming, a deterministic check — a regex, not a model — reads the response and decides whether this turn was a checkpoint, a moment where Jove proposed a Manual entry. If it is, an Opus call composes the proposed entry right then, at proposal time, and the user sees a card showing it. Confirming the card writes the entry to their Manual — a plain database step, no model. Most turns aren't checkpoints, but the detector runs every time.",
     specifics:
-      "Classifier: Haiku, ~200 ms. Composer: Sonnet, ~3–4 seconds, only on user-confirm.",
+      "Detector: a deterministic regex (no model call). Composer: Opus, ~3–4 seconds, at proposal time — checkpoint turns only. The on-confirm write is a non-model database step (Stage 5).",
     actor: "anthropic",
     deepDives: [
       { label: "Jove's prompt architecture — sibling calls", href: "/admin/prompt-architecture" },
