@@ -21,6 +21,10 @@ export default function OpengraphImage() {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#E5D8BE",
+          // Warm diagonal wash so the card reads as a lit surface, not flat
+          // fill. Satori supports linear-gradient; radial is unreliable.
+          backgroundImage:
+            "linear-gradient(135deg, #EFE6CF 0%, #E5D8BE 46%, #D8C4A0 100%)",
           padding: "80px",
         }}
       >
@@ -46,11 +50,12 @@ export default function OpengraphImage() {
             textAlign: "center",
           }}
         >
-          A clearer, more honest picture of how you actually operate.
+          A different path to understanding yourself, and being understood.
         </div>
         <div
           style={{
             display: "flex",
+            alignItems: "center",
             marginTop: 48,
             fontSize: 22,
             letterSpacing: "0.18em",
@@ -58,6 +63,16 @@ export default function OpengraphImage() {
             color: "#5C3F23",
           }}
         >
+          <div
+            style={{
+              display: "flex",
+              width: 34,
+              height: 2,
+              backgroundColor: "#5C3A1E",
+              marginRight: 16,
+              opacity: 0.7,
+            }}
+          />
           for neurodivergent adults
         </div>
       </div>

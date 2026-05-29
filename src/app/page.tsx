@@ -5,7 +5,7 @@ import RevealInit from "@/components/landing/RevealInit";
 import ContactForm from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = {
-  title: "mywalnut — a clearer picture of how you actually operate",
+  title: "mywalnut — understanding yourself, and being understood",
   description:
     "Mywalnut helps neurodivergent adults put words to how they actually work, strengths as clearly as friction. Through conversation, what you've felt but never named becomes a working manual.",
   alternates: { canonical: "/" },
@@ -13,13 +13,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://mywalnut.app/",
     siteName: "mywalnut",
-    title: "mywalnut — a clearer picture of how you actually operate",
+    title: "mywalnut — understanding yourself, and being understood",
     description:
       "Put words to how you actually work, strengths as clearly as friction. Built for late diagnosed autistic adults.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "mywalnut — a clearer picture of how you actually operate",
+    title: "mywalnut — understanding yourself, and being understood",
     description:
       "Put words to how you actually work, strengths as clearly as friction. Built for late diagnosed autistic adults.",
   },
@@ -39,9 +39,14 @@ export default function Landing() {
           <span className="wordmark">
             mywalnut<span className="dot">.</span>
           </span>
-          <a className="signin" href="/login">
-            Sign in
-          </a>
+          <nav className="nav">
+            <a className="signin" href="/login">
+              Sign in
+            </a>
+            <a className="nav-cta" href="#contact">
+              Request beta access
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -57,7 +62,8 @@ export default function Landing() {
               </h1>
               <div className="hero-copy">
                 <p className="hero-thesis reveal">
-                  A clearer, more honest picture of how you actually operate.
+                  A different path to understanding yourself, and being
+                  understood.
                 </p>
                 <p className="hero-lead reveal">
                   Mywalnut helps neurodivergent adults put words to how they
