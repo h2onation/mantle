@@ -42,7 +42,7 @@ const STAGES: Stage[] = [
     id: 3,
     title: "Layer 2 — persona delta (one of four)",
     caption:
-      "Trait-specific voice rules layered on top of the base. Selected at signup from autistic / AuDHD / dyslexic / general. Click a pill to switch the active persona — the rest of the diagram re-renders from the live prompt.",
+      "Trait-specific voice rules layered on top of the base. Selected at signup from autistic / ADHD / dyslexic / general. Click a pill to switch the active persona — the rest of the diagram re-renders from the live prompt.",
   },
   {
     id: 4,
@@ -72,7 +72,7 @@ const STAGES: Stage[] = [
     id: 8,
     title: "Sibling calls — the other AI calls this turn",
     caption:
-      "Jove is one of three Anthropic calls per turn. Extraction (Sonnet) runs in parallel, writing a brief for next turn. Composer (Opus) runs after the user confirms a checkpoint, writing the polished Manual entry. The fourth sibling — the checkpoint detector that fires after Jove streams — is a deterministic regex, not a model call.",
+      "Jove is one of three model calls that fire on every turn — Jove (Sonnet), Extraction (Sonnet), and the shadow Monitor (Opus, whose output nothing reads). The Composer (Opus) is a fourth model call, but it fires only on checkpoint turns, composing at proposal time. The detector that flags a checkpoint is a deterministic regex, not a model call.",
   },
   {
     id: 9,
@@ -90,7 +90,7 @@ const STAGES: Stage[] = [
 
 const PERSONA_LABELS: Record<PersonaMode, string> = {
   autistic: "Autistic",
-  adhd: "AuDHD",
+  adhd: "ADHD",
   dyslexic: "Dyslexic",
   general: "General",
 };
@@ -237,6 +237,17 @@ const SIBLING_CALLS: {
     source: "src/lib/persona/extraction.ts → runExtraction",
   },
   {
+    id: "monitor",
+    label: "Shadow monitor",
+    model: "Opus",
+    when: "Parallel — fires the same instant as Jove, every turn",
+    reads: "The last 8 messages of the conversation",
+    writes: "A structured alliance read to the monitor_reads table",
+    description:
+      "Reads the alliance, not the topic — is the bond holding, is the conversation drifting or sinking. Phase 0 shadow mode: it runs on every web turn and writes to its own table, but NOTHING downstream reads it back. A validated sensor wired to no actuator — the input to a feedback loop (the deterministic selector) that isn't built yet. Until that exists, the monitor changes nothing about Jove's behavior.",
+    source: "src/lib/persona/monitor.ts → runMonitor",
+  },
+  {
     id: "classifier",
     label: "Checkpoint detector",
     model: "Regex",
@@ -251,11 +262,11 @@ const SIBLING_CALLS: {
     id: "composer",
     label: "Manual entry composer",
     model: "Opus",
-    when: "On confirm — only when user clicks 'confirm' on a checkpoint card",
+    when: "Post-stream — at proposal time, on checkpoint turns only",
     reads: "Conversation turn(s), language bank, manual entry list",
-    writes: "manual_entries row (after user confirms) — name + content + summary + key_words",
+    writes: "Returns the proposed entry (name + content + summary + key_words) for the checkpoint card — NOT a DB write",
     description:
-      "Writes the polished Manual entry server-side once the user confirms a checkpoint. Includes headline validation + focused retry. Writes summary + key_words at the same time so the Manual context compressor has them next turn.",
+      "Composes the proposed Manual entry server-side at proposal time — right after the detector flags a checkpoint, before the user sees the card. Includes headline validation + focused retry. Produces summary + key_words too, so the Manual-context compressor has them next turn. The actual manual_entries write happens later, only if the user confirms the card — a non-model database step (confirmCheckpoint), not part of this call.",
     source: "src/lib/persona/confirm-checkpoint.ts → composeManualEntry",
   },
 ];

@@ -113,7 +113,7 @@ const FIELDS: Field[] = [
       "Count of specific moments the user has walked Jove through. Moments within one incident still count separately here — the pattern-recurrence question is handled by distinct_contexts.",
     storage: "conversations.extraction_state.checkpoint_gate.concrete_examples",
     readers: [
-      { where: "persona-pipeline.ts:447 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent" },
+      { where: "persona-pipeline.ts:576 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent" },
       { where: "extraction.ts:540 (formatExtractionForPersona)", what: "gateReady computation + brief copy" },
       { where: "call-persona.ts:789 (SSE payload)", what: "Surfaced to client as concreteExamples" },
       { where: "MobileSession.tsx:867", what: "Current Modal 2 firing condition" },
@@ -131,7 +131,7 @@ const FIELDS: Field[] = [
       "Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments in one phone call = 1 distinct context, not 4. Promoted from prose to gate logic recently.",
     storage: "conversations.extraction_state.checkpoint_gate.distinct_contexts",
     readers: [
-      { where: "persona-pipeline.ts:454 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent (soft fallback when missing)" },
+      { where: "persona-pipeline.ts:591 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent (soft fallback when missing)" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'evidence from N more contexts' brief copy" },
       { where: "call-persona.ts:617, persona-bridge.ts:203", what: "Plumbed into composeManualEntry — gates headline-softener validator" },
     ],
@@ -148,7 +148,7 @@ const FIELDS: Field[] = [
       "Whether the conversation has reached WHY (not just WHAT). Specifically: a connection between an observed behavior and an underlying driver — a need, sensory load, system state, or bind.",
     storage: "conversations.extraction_state.checkpoint_gate.has_mechanism",
     readers: [
-      { where: "persona-pipeline.ts:461 (validateMaterialQuality)", what: "Required subsequent; OR-with-driver_link for first" },
+      { where: "persona-pipeline.ts:635 (validateMaterialQuality)", what: "Required subsequent; OR-with-driver_link for first" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'no mechanism' missing-piece copy" },
     ],
     gates: "Checkpoint quality gate (depth check).",
@@ -163,10 +163,10 @@ const FIELDS: Field[] = [
       "Whether the language bank holds ≥1 high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor a checkpoint.",
     storage: "conversations.extraction_state.checkpoint_gate.has_charged_language",
     readers: [
-      { where: "persona-pipeline.ts:464 (validateMaterialQuality)", what: "Always required" },
+      { where: "persona-pipeline.ts:613–627 (validateMaterialQuality — Lock 1)", what: "No longer a gate on this field. Lock 1 replaced the boolean with a deterministic language_bank read (≥1 high/medium phrase on the candidate layer); has_charged_language is informational now — still produced by extraction, not gated on." },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'no phrase carries weight' missing copy" },
     ],
-    gates: "Checkpoint quality gate (vocabulary check).",
+    gates: "No longer a gate. Lock 1 moved the vocabulary check to a deterministic language_bank read; this field is informational now.",
   },
   {
     path: "checkpoint_gate.has_behavior_driver_link",
@@ -178,7 +178,7 @@ const FIELDS: Field[] = [
       "Whether a clear line has been drawn between an observable behavior and what's fueling it.",
     storage: "conversations.extraction_state.checkpoint_gate.has_behavior_driver_link",
     readers: [
-      { where: "persona-pipeline.ts:462 (validateMaterialQuality)", what: "Required subsequent; OR-with-mechanism for first" },
+      { where: "persona-pipeline.ts:636 (validateMaterialQuality)", what: "Required subsequent; OR-with-mechanism for first" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'not connected to driver' missing copy" },
     ],
     gates: "Checkpoint quality gate (behavior↔driver linkage).",
@@ -210,7 +210,7 @@ const FIELDS: Field[] = [
       "Whether Jove has named a pattern in conversation AND the user has engaged with it (elaborated, added an example, sat with it). Sticky once true unless the user explicitly rejects the pattern.",
     storage: "conversations.extraction_state.pattern_engaged",
     readers: [
-      { where: "persona-pipeline.ts:432 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked unless engaged (overridable at turn ≥12)" },
+      { where: "persona-pipeline.ts:534 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked unless engaged (overridable at turn ≥12)" },
       { where: "extraction.ts:616 (formatExtractionForPersona)", what: "Drives the 'phase hint' paragraph at the end of the brief" },
     ],
     gates: "Premature-checkpoint suppression. Without engagement, the conversation hasn't reached the 'we both see something' beat.",
@@ -226,7 +226,7 @@ const FIELDS: Field[] = [
       "Safety signal. level ∈ {none, caution, crisis}. crisis = suicidal/harm intent (988 protocol fires). caution = diagnostic ask or distress exceeding manual scope.",
     storage: "conversations.extraction_state.clinical_flag",
     readers: [
-      { where: "persona-pipeline.ts:424 (validateMaterialQuality)", what: "Crisis hard-blocks the checkpoint" },
+      { where: "persona-pipeline.ts:527 (validateMaterialQuality)", what: "Crisis hard-blocks the checkpoint" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "Surfaces 'Safety note:' / 'Care note:' in Jove's brief ahead of any reflection" },
     ],
     gates: "Crisis override on every downstream surface — checkpoint, modals, prompt context.",

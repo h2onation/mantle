@@ -380,6 +380,58 @@ const TABLES: Table[] = [
     ],
   },
   {
+    name: "monitor_reads",
+    layers: ["telemetry"],
+    oneLine:
+      "Per-turn shadow-monitor alliance reads. Written every turn, read by nothing in the live pipeline.",
+    rowMeans:
+      "One alliance read from the Phase 0 shadow monitor — produced on a single web turn, capturing how the relationship looked at that moment (bond, task, scope, rupture, direction).",
+    description:
+      "The persistence side of the shadow monitor — the Opus pre-call that runs alongside extraction on every web turn and reads the alliance, not the topic. The defining fact: this table is written every turn but NOTHING in the live pipeline reads it back. The only readers are out-of-band — admin SQL and the /replay-monitor harness. It's the write target of 'a sensor wired to no actuator': Phase 0 validated that the signal is detectable, but the component that would consume it (the deterministic selector) isn't built. Until it is, these rows change nothing about Jove's behavior. Admin-read-only via RLS; writes flow through the service-role admin client; end users never see it.",
+    columns: [
+      { name: "id", type: "uuid", plain: "Unique read identifier." },
+      { name: "conversation_id", type: "uuid", plain: "Which conversation this read is from. CASCADE on delete.", emphasized: true },
+      { name: "user_id", type: "uuid", plain: "Which user. FK to auth.users, CASCADE on delete." },
+      { name: "triggering_message_id", type: "uuid", plain: "The user message that triggered the read — nullable, because the monitor fires before Jove's response row exists. SET NULL if that message is deleted." },
+      { name: "bond_holding", type: "boolean", plain: "Is the working bond intact this turn.", emphasized: true },
+      { name: "task_agreed", type: "boolean", plain: "Are user and Jove aligned on what they're doing." },
+      { name: "scope", type: "text", plain: "'in_scope' / 'drifting' / 'out_of_scope'. CHECK-enforced to mirror the TS enum in monitor.ts.", emphasized: true },
+      { name: "rupture", type: "text", plain: "'none' / 'withdrawal' / 'confrontation'. The kind of rupture this turn, if any.", emphasized: true },
+      { name: "direction", type: "text", plain: "'steadying' / 'drifting' / 'sinking'. The sliding-window slope — the load-bearing signal validated in Phase 0.", emphasized: true },
+      { name: "reason", type: "text", plain: "One-sentence justification for the read. Nullable." },
+      { name: "model", type: "text", plain: "Which model produced the read (currently Opus — a Phase-0 ceiling test)." },
+      { name: "input_tokens", type: "integer", plain: "Read-call input token count." },
+      { name: "output_tokens", type: "integer", plain: "Read-call output token count." },
+      { name: "latency_ms", type: "integer", plain: "Read-call latency." },
+      { name: "turn_index", type: "integer", plain: "Which turn in the conversation this read is for." },
+    ],
+    connections: [
+      {
+        to: "conversations",
+        via: "conversation_id",
+        cardinality: "N:1",
+        onDelete: "CASCADE",
+        explanation: "Delete a conversation, and its monitor reads go with it.",
+      },
+      {
+        to: "auth.users",
+        via: "user_id",
+        cardinality: "N:1",
+        onDelete: "CASCADE",
+        explanation: "Delete the user, delete their monitor reads.",
+      },
+      {
+        to: "messages",
+        via: "triggering_message_id",
+        cardinality: "N:1",
+        onDelete: "SET NULL",
+        explanation: "If the triggering message is deleted, the read survives with a null link.",
+      },
+    ],
+    notes:
+      "Phase 0 shadow dataset, written from persona-pipeline.ts:411–426 (fireBackgroundMonitor). RLS admin-read-only, no INSERT/UPDATE policy (service-role writes). Indexed for the two real queries: per-conversation timeline and global direction filter. Droppable when Phase 0 concludes — nothing in the pipeline depends on it.",
+  },
+  {
     name: "linq_group_chats",
     layers: ["deprecated"],
     oneLine: "Group facilitator chat state. Deprecated.",
