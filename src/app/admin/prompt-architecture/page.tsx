@@ -1518,11 +1518,33 @@ function Diagram({
               onSelect={() => onSelect({ kind: "overview" })}
             />
             {visible.spine && (
-              <SpineBands
-                selection={selection}
-                onSelect={onSelect}
-                sectionById={sectionById}
-              />
+              <div
+                style={{
+                  border: `1px solid ${COLOR.identityBorder}`,
+                  borderRadius: 8,
+                  padding: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10.5,
+                    letterSpacing: "1.5px",
+                    color: "var(--session-walnut-meta)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  The foundation · in every packet
+                </span>
+                <SpineBands
+                  selection={selection}
+                  onSelect={onSelect}
+                  sectionById={sectionById}
+                />
+              </div>
             )}
             {visible.persona && (
               <PersonaFan
@@ -1625,6 +1647,27 @@ function PromptHeader({
 // Clickable bands
 // ---------------------------------------------------------------------------
 
+// Prefix a card header with its tier/live origin, e.g. "Tier 2 · Voice".
+// Defensive: skips labels that already carry a "Tier …"/"Live …" prefix so
+// the three baked-in labels (Constitutional Rules, Voice, Conversation
+// Mechanics) don't double up.
+function displayLabel(section: { tier: string; label: string }): string {
+  if (/^(Tier |Live )/.test(section.label)) return section.label;
+  switch (section.tier) {
+    case "intro":
+    case "1":
+      return `Tier 1 · ${section.label}`;
+    case "2":
+      return `Tier 2 · ${section.label}`;
+    case "3":
+      return `Tier 3 · ${section.label}`;
+    case "dynamic":
+      return `Live · ${section.label}`;
+    default:
+      return section.label;
+  }
+}
+
 function SectionBand({
   sectionId,
   selection,
@@ -1680,7 +1723,7 @@ function SectionBand({
             color: fg ?? "var(--session-ink)",
           }}
         >
-          {section.label}
+          {displayLabel(section)}
         </span>
         <span
           style={{
@@ -2078,7 +2121,7 @@ function ConditionalLadder({
                     fontWeight: 500,
                   }}
                 >
-                  {s.label}
+                  {displayLabel(s)}
                 </span>
                 <span
                   style={{
@@ -2200,7 +2243,7 @@ function DynamicSidecar({
                   color: "var(--session-ink)",
                 }}
               >
-                {s.label}
+                {displayLabel(s)}
               </div>
               <div
                 style={{
