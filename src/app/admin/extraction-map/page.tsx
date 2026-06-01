@@ -1088,7 +1088,7 @@ const READING_GUIDE: { term: string; def: string }[] = [
   { term: "JSONB", def: "A flexible JSON column. Schema lives inside the value, not the table." },
   { term: "sage_brief", def: "Jove's per-turn cheat sheet — 3-5 sentences. Empty = Jove flies blind." },
   { term: "checkpoint", def: "Moment when Jove proposes a Manual entry. The gate decides if it can fire." },
-  { term: "pattern_engaged", def: "Sticky flag — Jove named a pattern AND the user engaged with it. Hard gate on checkpoints." },
+  { term: "pattern_engaged", def: "Set once Jove named a pattern AND the user engaged with it; resets only if the user explicitly reverses it. Hard gate on checkpoints." },
   { term: "load-bearing", def: "Has at least one downstream reader (vs auxiliary, which exists but no consumer reads it)." },
 ];
 

@@ -266,7 +266,7 @@ Everything that flows into `OneOnOnePromptOptions` and feeds
 | `personaModes` | `profiles.persona_modes` (or override) | Default `["general"]`; multi-select array |
 | `mode` | `conversations.mode` | Default `"situation"`; immutable per conversation |
 | `postConfirmMode` | passed from caller | Track A Phase 7 — `"first-message-2"` / `"subsequent-single"` / `null` |
-| `guidedPostureSoftened` | default `false` (detection not wired) | ADR-042 |
+| `postRejection` | passed from caller (confirm route, `action === "rejected"`) | Gates the POST-REJECTION block |
 | `explorationContext` | passed from caller (web only, "Explore with Jove") | |
 | `transcriptContext` | `selectTranscriptContextForPrompt(mode, transcriptDetection)` | Suppressed in upload mode |
 
@@ -336,13 +336,13 @@ line 411.
   | id | Firing condition | Render |
   |---|------------------|--------|
   | `first-message` | `turnCount <= 3 && isNewUser && mode === "situation"` | Header: `FIRST MESSAGE (new user, situation mode)` |
-  | `guided-intake` | `mode === "guided-intake" && !guidedPostureSoftened` | Header: `GUIDED INTAKE` |
+  | `guided-intake` | `mode === "guided-intake"` | Header: `GUIDED INTAKE` |
   | `upload` | `mode === "upload" && turnCount <= 2` | Header: `UPLOAD MODE` |
   | `returning-user` | `isReturningUser` | Header: `RETURNING USER` |
   | `returning-user-first-turn-situation` | `isReturningUser && mode === "situation" && turnCount <= 3` | Header: `RETURNING USER — SITUATION OPENER AND EARLY TURNS (situation mode)` |
-  | `checkpoints` | `showCheckpointInstructions` (= `checkpointApproaching`) | Header: `CHECKPOINTS` |
-  | `first-checkpoint` | `isFirstCheckpoint && checkpointApproaching` | Header: `FIRST CHECKPOINT (one-time, exact order)` |
-  | `post-rejection` | `showCheckpointInstructions` | Header: `POST-REJECTION (after user rejects)` |
+  | `checkpoints` | `showCheckpointInstructions` (= `checkpointApproaching && postConfirmMode === null && !postRejection`) | Header: `CHECKPOINTS` |
+  | `first-checkpoint` | `isFirstCheckpoint && showCheckpointInstructions` | Header: `FIRST CHECKPOINT (one-time, exact order)` |
+  | `post-rejection` | `postRejection` | Header: `POST-REJECTION (after user rejects)` |
   | `post-confirm-first-message-2` | `postConfirmMode === "first-message-2"` | Header: `POST-CONFIRM — FIRST LIFETIME ENTRY` |
   | `post-confirm-subsequent-single` | `postConfirmMode === "subsequent-single"` | Header: `POST-CONFIRM — SUBSEQUENT ENTRY` |
   | `adapting-short-answers` | always (`shouldRender: () => true`) | Headers: `ADAPTING` and `SHORT ANSWERS` |
@@ -614,7 +614,7 @@ panels even when they fire:
 - The page presents this as "exactly one mode block loads per
   conversation." The actual condition for `upload` is
   `mode === "upload" && turnCount <= 2`, for `guided-intake` is
-  `mode === "guided-intake" && !guidedPostureSoftened`. After the
+  `mode === "guided-intake"`. After the
   Upload entry phase exhausts (turn 2+), the upload block stops
   rendering — there's no "mode opener" at all for the rest of the
   conversation. Situation mode has its own entry-phase block

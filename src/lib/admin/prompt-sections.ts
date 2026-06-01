@@ -299,7 +299,7 @@ const SECTION_DEFS: SectionDef[] = [
     tier: "3",
     pattern: /^POST-REJECTION/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → POST-REJECTION" },
-    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching" }),
+    conditionFn: () => ({ type: "state", label: "State: after a checkpoint rejection" }),
     alternativesFn: () => [],
   },
   {
