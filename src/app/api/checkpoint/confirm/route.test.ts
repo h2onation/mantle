@@ -22,6 +22,13 @@ let adminConvResponse: { data: unknown; error: unknown } = {
   error: null,
 };
 let adminSelectCallCount = 0;
+// Result of the non-confirmed reject/refine UPDATE
+// (…update().eq("id").eq("checkpoint_meta->>status","pending").select("id")).
+// An empty data array simulates losing the race to a concurrent confirm.
+let adminUpdateResponse: { data: unknown; error: unknown } = {
+  data: [{ id: "m1" }],
+  error: null,
+};
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => {
@@ -42,6 +49,10 @@ vi.mock("@/lib/supabase/admin", () => ({
       }
       return Promise.resolve(adminConvResponse);
     };
+    // Awaiting the chain directly (the non-confirmed update's
+    // …update().eq().eq().select("id")) resolves to the configured result.
+    chain.then = (resolve: (v: unknown) => void) =>
+      Promise.resolve(adminUpdateResponse).then(resolve);
     return chain;
   },
 }));
@@ -55,8 +66,10 @@ vi.mock("@/lib/persona/confirm-checkpoint", () => ({
   confirmCheckpoint: (...args: unknown[]) => mockConfirmCheckpoint(...args),
 }));
 
+const mockInsertActionMessage = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/lib/persona/persona-pipeline", () => ({
-  insertCheckpointActionMessage: vi.fn().mockResolvedValue(undefined),
+  insertCheckpointActionMessage: (...a: unknown[]) =>
+    mockInsertActionMessage(...a),
   // Phase 7-High: route calls buildEntriesSummary for subsequent-single
   // post-confirm context. Return a deterministic string — the route
   // pass-through doesn't depend on its shape in these tests.
@@ -92,7 +105,9 @@ beforeEach(() => {
   mockGetUser.mockReset();
   mockCheckLimit.mockReset();
   mockConfirmCheckpoint.mockReset();
+  mockInsertActionMessage.mockClear();
   adminSelectCallCount = 0;
+  adminUpdateResponse = { data: [{ id: "m1" }], error: null };
   adminMessageResponse = {
     data: {
       id: "m1",
@@ -291,5 +306,41 @@ describe("/api/checkpoint/confirm reject/refine/defer idempotency", () => {
     const body = await res.json();
     expect(body.alreadyHandled).toBe(true);
     expect(body.currentStatus).toBe("confirmed");
+  });
+});
+
+describe("/api/checkpoint/confirm reject/refine pending precondition (race guard)", () => {
+  function refineRequest(): Request {
+    return new Request("http://localhost/api/checkpoint/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageId: "m1",
+        action: "refined",
+        conversationId: "c1",
+      }),
+    });
+  }
+
+  it("on a fresh refine (still pending), writes and streams the follow-up", async () => {
+    // Default status is pending; the precondition-filtered update affects 1 row.
+    adminUpdateResponse = { data: [{ id: "m1" }], error: null };
+    const res = await POST(refineRequest());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("text/event-stream");
+    expect(mockInsertActionMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("loses the confirm-vs-refine race (update matches 0 rows) → alreadyHandled, no action message", async () => {
+    // The app-level check passes (the fetched status is still pending), but a
+    // concurrent confirm changed the DB row first, so the precondition-filtered
+    // update affects 0 rows — the refine must NOT clobber the confirmed status.
+    adminUpdateResponse = { data: [], error: null };
+    const res = await POST(refineRequest());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/json");
+    const body = await res.json();
+    expect(body.alreadyHandled).toBe(true);
+    expect(mockInsertActionMessage).not.toHaveBeenCalled();
   });
 });

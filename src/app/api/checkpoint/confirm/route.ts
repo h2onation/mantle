@@ -226,10 +226,44 @@ export async function POST(request: Request) {
           ? currentRefinementCount + 1
           : currentRefinementCount,
     };
-    await admin
+    // DB-level precondition: only write if the row is STILL pending. The
+    // currentStatus check above reads the `msg` fetched earlier, which can be
+    // stale — a concurrent "confirmed" (a FOR UPDATE transactional write) can
+    // land between that read and this write. Without the precondition this
+    // reject/refine UPDATE would clobber the confirmed status, orphaning the
+    // just-written manual_entries row (the message would read "refined" while
+    // the entry exists). Filtering on checkpoint_meta->>status makes the write
+    // a no-op when a concurrent action already moved it out of pending.
+    const { data: updatedRows, error: updateErr } = await admin
       .from("messages")
       .update({ checkpoint_meta: updatedMeta })
-      .eq("id", messageId);
+      .eq("id", messageId)
+      .eq("checkpoint_meta->>status", "pending")
+      .select("id");
+
+    if (updateErr) {
+      return failWith(500, "rpc_fail", "Failed to update checkpoint status");
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      // Lost the race — a concurrent action already moved this out of pending.
+      // Don't insert an action message or run the follow-up; treat as handled.
+      logEvent({
+        event: "confirm_outcome",
+        req_id: reqId,
+        user_id_hash: userIdHash,
+        conversation_id: conversationId,
+        message_id: messageId,
+        outcome: "idempotent",
+        status_code: 200,
+        duration_ms: Date.now() - startedAt,
+      });
+      return Response.json({
+        alreadyHandled: true,
+        conversationId,
+        messageId,
+      });
+    }
 
     await insertCheckpointActionMessage(admin, conversationId, action);
   }
