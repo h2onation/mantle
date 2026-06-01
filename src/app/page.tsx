@@ -288,6 +288,12 @@ export default function Landing() {
           </p>
         </div>
       </footer>
+
+      {/* Sticky mobile CTA — primary action for social arrivals. Rendered
+          always; CSS shows it only at the mobile breakpoint. */}
+      <a className="mobile-cta" href="#contact">
+        Request beta access
+      </a>
     </div>
   );
 }
