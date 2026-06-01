@@ -40,5 +40,24 @@ export default function RevealInit() {
     return () => io.disconnect();
   }, []);
 
+  // Sticky mobile CTA: hide it once the contact form scrolls into view, so the
+  // pill isn't floating redundantly on top of the form it just pointed at.
+  // Toggles both ways (re-shows if the user scrolls back up). Desktop is
+  // unaffected — the pill is display:none there, so the class is a no-op.
+  useEffect(() => {
+    const cta = document.querySelector<HTMLElement>(".mw-landing .mobile-cta");
+    const contact = document.getElementById("contact");
+    if (!cta || !contact || !("IntersectionObserver" in window)) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => cta.classList.toggle("is-hidden", e.isIntersecting));
+      },
+      { threshold: 0.18 }
+    );
+    io.observe(contact);
+    return () => io.disconnect();
+  }, []);
+
   return null;
 }
