@@ -13,6 +13,19 @@
 -- Assumes no existing duplicates (true in beta). If this fails with a
 -- unique_violation, dedup phone_numbers by user_id first — keep the verified row
 -- if any, else the most recently updated — then re-run.
+--
+-- Idempotent: only adds the constraint if it isn't already present (the live DB
+-- already had phone_numbers_user_id_key, so a plain ADD CONSTRAINT errors with
+-- 42P07). Postgres has no ADD CONSTRAINT IF NOT EXISTS, hence the DO block.
 
-ALTER TABLE public.phone_numbers
-  ADD CONSTRAINT phone_numbers_user_id_key UNIQUE (user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'phone_numbers_user_id_key'
+      AND conrelid = 'public.phone_numbers'::regclass
+  ) THEN
+    ALTER TABLE public.phone_numbers
+      ADD CONSTRAINT phone_numbers_user_id_key UNIQUE (user_id);
+  END IF;
+END $$;
