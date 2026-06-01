@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { parseStreamUsage } from "@/lib/anthropic";
+import { describe, it, expect, vi } from "vitest";
+import { parseStreamUsage, withIdleTimeout } from "@/lib/anthropic";
 
 // parseStreamUsage extracts cache+token counts from individual SSE events
 // during a streaming response. Callers (call-persona.ts) accumulate the
@@ -80,5 +80,58 @@ describe("parseStreamUsage", () => {
   it("handles message_start with no usage field gracefully", () => {
     const event = { type: "message_start", message: { id: "msg_1" } };
     expect(parseStreamUsage(event)).toBeNull();
+  });
+});
+
+// withIdleTimeout is the fix for the mid-stream Anthropic stall (flow-review F):
+// the previous anthropicStream cleared its only timeout the moment headers
+// arrived, so a 200-then-stall (a truncated SSE stream that never sends
+// message_stop) hung the downstream reader.read() loop until Vercel's
+// wall-clock kill. This wrapper re-arms a per-chunk idle timer so a stall
+// errors the stream instead of hanging.
+describe("withIdleTimeout", () => {
+  it("passes chunks through and closes when the source completes (no false idle)", async () => {
+    const enc = new TextEncoder();
+    const source = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(enc.encode("a"));
+        c.enqueue(enc.encode("b"));
+        c.close();
+      },
+    });
+    const reader = withIdleTimeout(source, 10_000).getReader();
+    const dec = new TextDecoder();
+    const r1 = await reader.read();
+    const r2 = await reader.read();
+    const r3 = await reader.read();
+    expect(dec.decode(r1.value)).toBe("a");
+    expect(dec.decode(r2.value)).toBe("b");
+    expect(r3.done).toBe(true);
+  });
+
+  it("errors the stream and fires onIdle when the source stalls past the idle window", async () => {
+    vi.useFakeTimers();
+    try {
+      const onIdle = vi.fn();
+      // A source that never enqueues and never closes → read() hangs forever.
+      const stalling = new ReadableStream<Uint8Array>({ start() {} });
+      const reader = withIdleTimeout(stalling, 1000, onIdle).getReader();
+      // Attach the rejection handler immediately (convert it to a value) so the
+      // read promise is never momentarily unhandled while we advance the timer
+      // — vitest treats a transient unhandled rejection as an error.
+      const settled = reader.read().then(
+        () => null,
+        (e: unknown) => e
+      );
+      await vi.advanceTimersByTimeAsync(1000);
+      const err = await settled;
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toMatch(/idle/i);
+      // Named AbortError so the consumer treats a stall like its connect timeout.
+      expect((err as Error).name).toBe("AbortError");
+      expect(onIdle).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

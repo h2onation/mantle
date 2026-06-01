@@ -100,15 +100,73 @@ export async function anthropicFetch(
   }
 }
 
+/** Wrap a byte stream with a per-chunk idle timeout. Each `read()` races a
+ *  timer that's re-armed on every chunk, so normal token flow never trips it,
+ *  but a stalled upstream (no bytes for `idleTimeoutMs`) errors the stream
+ *  instead of hanging the reader forever. `onIdle` runs on a stall or a
+ *  downstream cancel (used to abort the upstream fetch). Exported for testing. */
+export function withIdleTimeout(
+  source: ReadableStream<Uint8Array>,
+  idleTimeoutMs: number,
+  onIdle?: () => void
+): ReadableStream<Uint8Array> {
+  const reader = source.getReader();
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      // Idle is signalled by RESOLVING with a sentinel (not rejecting) so a
+      // normal chunk-wins race never leaves a dangling rejected promise that
+      // surfaces as an unhandled rejection.
+      const idle = new Promise<{ idle: true }>((resolve) => {
+        idleTimer = setTimeout(() => resolve({ idle: true }), idleTimeoutMs);
+      });
+      try {
+        const result = await Promise.race([reader.read(), idle]);
+        clearTimeout(idleTimer);
+        if ("idle" in result) {
+          onIdle?.();
+          await reader.cancel().catch(() => {});
+          // Name it AbortError so the consumer's timeout handling — which
+          // already surfaces a "took too long, try again" message for the
+          // pre-header connect timeout — treats a mid-stream stall the same way.
+          const idleErr = new Error(
+            `Anthropic stream idle for ${idleTimeoutMs}ms`
+          );
+          idleErr.name = "AbortError";
+          controller.error(idleErr);
+          return;
+        }
+        if (result.done) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(result.value);
+      } catch (err) {
+        clearTimeout(idleTimer);
+        onIdle?.();
+        await reader.cancel().catch(() => {});
+        controller.error(err);
+      }
+    },
+    async cancel(reason) {
+      clearTimeout(idleTimer);
+      onIdle?.();
+      await reader.cancel(reason).catch(() => {});
+    },
+  });
+}
+
 export async function anthropicStream(
   body: Omit<AnthropicRequest, "stream">,
-  timeoutMs = 60000
+  timeoutMs = 60000,
+  idleTimeoutMs = 30000
 ): Promise<ReadableStream<Uint8Array>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const connectTimer = setTimeout(() => controller.abort(), timeoutMs);
 
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -122,15 +180,21 @@ export async function anthropicStream(
   });
 
   if (!res.ok) {
-    clearTimeout(timer);
+    clearTimeout(connectTimer);
     const errBody = await res.text().catch(() => "");
     throw new Error(`Anthropic API ${res.status}: ${errBody}`);
   }
 
-  // Clear timeout once streaming starts — the connection is alive
-  clearTimeout(timer);
+  // Connection is alive — swap the connect timeout for a per-chunk IDLE timeout
+  // on the body. The previous version cleared the timer here and returned the
+  // raw body, leaving the downstream reader.read() loop unbounded: a
+  // 200-then-stall (a truncated stream that never sends message_stop, or a
+  // mid-stream network partition) hung the function until Vercel's wall-clock
+  // kill with a frozen UI. The idle timeout aborts the upstream fetch and
+  // errors the stream so callers fail fast instead of hanging.
+  clearTimeout(connectTimer);
 
-  return res.body!;
+  return withIdleTimeout(res.body!, idleTimeoutMs, () => controller.abort());
 }
 
 /** Extract usage tokens from a parsed SSE event during a streaming response.

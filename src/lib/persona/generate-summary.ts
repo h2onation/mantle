@@ -48,6 +48,15 @@ export async function generateSessionSummary(
 
     const summary = extractResponseText(response);
 
+    // Don't overwrite a good stored summary with a blank or malformed
+    // completion. A 200-but-empty Anthropic response (empty text, or a
+    // non-text content block) would otherwise blank the conversation's summary
+    // and title for the next session. Require the TITLE-prefixed shape the rest
+    // of the pipeline expects before persisting.
+    if (!/^\s*TITLE:/i.test(summary)) {
+      return null;
+    }
+
     await admin
       .from("conversations")
       .update({ summary })

@@ -967,24 +967,25 @@ export function useChat() {
         return;
       }
 
-      // First-time confirm — stream Jove's follow-up and finalize.
-      // If the stream fails mid-flight, the server-side write has
-      // already succeeded (atomic RPC, Track 2), so we reconcile via
-      // loadManual() instead of surfacing an error to the user.
+      // First-time confirm. Reconcile the Manual from the server BEFORE
+      // streaming Jove's follow-up: the optimistic entry above carries the
+      // checkpoint message id, not the real manual_entries.id, so editing it
+      // during the multi-second follow-up stream would PATCH a non-existent
+      // row (404). loadManual swaps in the server rows (with real ids) first,
+      // and runs regardless of the stream outcome below.
+      await loadManual();
+
+      // Stream Jove's follow-up. If the stream fails mid-flight, the
+      // server-side write already succeeded (atomic RPC, Track 2) and the
+      // Manual is already reconciled above, so we just log.
       try {
-        // Phase 7-High: per-event finalize happens inside
-        // streamFromResponse. Return value is unused here — the
-        // follow-up stream's side effects (appending messages,
-        // activating checkpoint state) are what matter.
+        // Phase 7-High: per-event finalize happens inside streamFromResponse.
+        // Return value is unused here — the follow-up stream's side effects
+        // (appending messages, activating checkpoint state) are what matter.
         await streamFromResponse(res);
       } catch (err) {
-        // Server wrote the entry; the follow-up stream just didn't land
-        // cleanly. Next message from the user will re-load context.
         console.warn("[useChat] Confirm follow-up stream interrupted:", err);
       }
-
-      // Refresh manual from server (runs regardless of stream outcome).
-      await loadManual();
     } finally {
       setIsLoading(false);
     }
