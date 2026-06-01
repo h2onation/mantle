@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { formatExtractionForPersona, type ExtractionState } from "@/lib/persona/extraction";
+import { formatExtractionForPersona, mergeExtractionState, type ExtractionState } from "@/lib/persona/extraction";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
@@ -39,6 +39,56 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
     ...overrides,
   };
 }
+
+describe("mergeExtractionState — state merge", () => {
+  it("resets pattern_engaged true → false when the model reports an explicit reversal", () => {
+    const prev = makeState({ pattern_engaged: true });
+    const merged = mergeExtractionState({ pattern_engaged: false }, prev);
+    expect(merged.pattern_engaged).toBe(false);
+  });
+
+  it("keeps pattern_engaged true when the model omits it (no boolean reported)", () => {
+    const prev = makeState({ pattern_engaged: true });
+    const merged = mergeExtractionState({}, prev);
+    expect(merged.pattern_engaged).toBe(true);
+  });
+
+  it("sets pattern_engaged false → true when the model reports engagement", () => {
+    const prev = makeState({ pattern_engaged: false });
+    const merged = mergeExtractionState({ pattern_engaged: true }, prev);
+    expect(merged.pattern_engaged).toBe(true);
+  });
+
+  it("never lets the gate counts regress below the prior high-water mark", () => {
+    const prev = makeState({
+      checkpoint_gate: {
+        concrete_examples: 3,
+        distinct_contexts: 2,
+        has_mechanism: false,
+        has_charged_language: false,
+        has_behavior_driver_link: false,
+        strongest_layer: null,
+      },
+    });
+    const merged = mergeExtractionState(
+      { checkpoint_gate: { concrete_examples: 1, distinct_contexts: 0, strongest_layer: 2 } },
+      prev
+    );
+    expect(merged.checkpoint_gate.concrete_examples).toBe(3);
+    expect(merged.checkpoint_gate.distinct_contexts).toBe(2);
+    // non-count fields take the incoming value
+    expect(merged.checkpoint_gate.strongest_layer).toBe(2);
+  });
+
+  it("clamps observation_miss_count into [0, 3]", () => {
+    expect(
+      mergeExtractionState({ observation_miss_count: 5 }, makeState()).observation_miss_count
+    ).toBe(3);
+    expect(
+      mergeExtractionState({ observation_miss_count: -2 }, makeState()).observation_miss_count
+    ).toBe(0);
+  });
+});
 
 describe("formatExtractionForPersona", () => {
   describe("schema names do not leak", () => {

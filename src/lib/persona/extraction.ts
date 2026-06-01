@@ -359,6 +359,81 @@ CRITICAL RULES:
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
+/**
+ * Merge a freshly-parsed extraction payload with the prior state. Pure and
+ * exported so the merge rules — monotonic gate counts, the pattern_engaged
+ * reset, the observation-miss clamp — are unit-testable without an Anthropic
+ * call. `parsed` is the raw JSON.parse() of the model's output.
+ */
+export function mergeExtractionState(
+  // Raw JSON.parse() output from the model — genuinely untyped; the body runs
+  // its own runtime type checks (typeof guards) before trusting any field.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  parsed: any,
+  state: ExtractionState
+): ExtractionState {
+  const rawMiss =
+    typeof parsed.observation_miss_count === "number"
+      ? parsed.observation_miss_count
+      : state.observation_miss_count;
+  const observationMissCount = Math.max(0, Math.min(3, rawMiss));
+
+  // Monotonic enforcement on accumulating gate counts. Sonnet sometimes
+  // re-evaluates the conversation from a smaller window and returns a
+  // lower concrete_examples / distinct_contexts than the prior turn —
+  // even when no real evidence was removed. previousState is the
+  // authoritative high-water mark for counts: take max() so the gate
+  // doesn't silently regress from "ready" to "not ready" without the
+  // user actually walking back evidence. Booleans are intentionally
+  // NOT enforced monotonically; they're state assessments tied to the
+  // current strongest_layer and can legitimately oscillate if the
+  // conversation shifts focus to a different layer.
+  const mergedGate = (() => {
+    const incoming = parsed.checkpoint_gate;
+    if (!incoming || typeof incoming !== "object") {
+      return state.checkpoint_gate;
+    }
+    const prevExamples = state.checkpoint_gate.concrete_examples ?? 0;
+    const prevContexts = state.checkpoint_gate.distinct_contexts ?? 0;
+    const incomingExamples =
+      typeof incoming.concrete_examples === "number"
+        ? incoming.concrete_examples
+        : prevExamples;
+    const incomingContexts =
+      typeof incoming.distinct_contexts === "number"
+        ? incoming.distinct_contexts
+        : prevContexts;
+    return {
+      ...incoming,
+      concrete_examples: Math.max(incomingExamples, prevExamples),
+      distinct_contexts: Math.max(incomingContexts, prevContexts),
+    };
+  })();
+
+  return {
+    layers: parsed.layers || state.layers,
+    language_bank: parsed.language_bank || state.language_bank,
+    depth: parsed.depth || state.depth,
+    current_thread: parsed.current_thread || state.current_thread,
+    mode: parsed.mode || state.mode,
+    checkpoint_gate: mergedGate,
+    clinical_flag: parsed.clinical_flag || state.clinical_flag,
+    observation_miss_count: observationMissCount,
+    next_prompt: parsed.next_prompt || "",
+    sage_brief: parsed.sage_brief || "",
+    emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
+    // Honor the documented reset (prose ~L302): the model is fed the prior
+    // value and told to keep it true unless the user explicitly reverses the
+    // pattern, so trust its boolean rather than latching true forever.
+    pattern_engaged:
+      typeof parsed.pattern_engaged === "boolean"
+        ? parsed.pattern_engaged
+        : state.pattern_engaged,
+    user_named_cost: Boolean(parsed.user_named_cost) || state.user_named_cost,
+    user_named_stance: Boolean(parsed.user_named_stance) || state.user_named_stance,
+  };
+}
+
 export async function runExtraction(
   conversationHistory: { role: "user" | "assistant"; content: string }[],
   previousState: ExtractionState | null,
@@ -450,66 +525,7 @@ export async function runExtraction(
 
     const parsed = JSON.parse(cleaned);
 
-    const rawMiss =
-      typeof parsed.observation_miss_count === "number"
-        ? parsed.observation_miss_count
-        : state.observation_miss_count;
-    const observationMissCount = Math.max(0, Math.min(3, rawMiss));
-
-    // Monotonic enforcement on accumulating gate counts. Sonnet sometimes
-    // re-evaluates the conversation from a smaller window and returns a
-    // lower concrete_examples / distinct_contexts than the prior turn —
-    // even when no real evidence was removed. previousState is the
-    // authoritative high-water mark for counts: take max() so the gate
-    // doesn't silently regress from "ready" to "not ready" without the
-    // user actually walking back evidence. Booleans are intentionally
-    // NOT enforced monotonically; they're state assessments tied to the
-    // current strongest_layer and can legitimately oscillate if the
-    // conversation shifts focus to a different layer.
-    const mergedGate = (() => {
-      const incoming = parsed.checkpoint_gate;
-      if (!incoming || typeof incoming !== "object") {
-        return state.checkpoint_gate;
-      }
-      const prevExamples = state.checkpoint_gate.concrete_examples ?? 0;
-      const prevContexts = state.checkpoint_gate.distinct_contexts ?? 0;
-      const incomingExamples =
-        typeof incoming.concrete_examples === "number"
-          ? incoming.concrete_examples
-          : prevExamples;
-      const incomingContexts =
-        typeof incoming.distinct_contexts === "number"
-          ? incoming.distinct_contexts
-          : prevContexts;
-      return {
-        ...incoming,
-        concrete_examples: Math.max(incomingExamples, prevExamples),
-        distinct_contexts: Math.max(incomingContexts, prevContexts),
-      };
-    })();
-
-    return {
-      layers: parsed.layers || state.layers,
-      language_bank: parsed.language_bank || state.language_bank,
-      depth: parsed.depth || state.depth,
-      current_thread: parsed.current_thread || state.current_thread,
-      mode: parsed.mode || state.mode,
-      checkpoint_gate: mergedGate,
-      clinical_flag: parsed.clinical_flag || state.clinical_flag,
-      observation_miss_count: observationMissCount,
-      next_prompt: parsed.next_prompt || "",
-      sage_brief: parsed.sage_brief || "",
-      emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
-      // Honor the documented reset (prose ~L302): the model is fed the prior
-      // value and told to keep it true unless the user explicitly reverses the
-      // pattern, so trust its boolean rather than latching true forever.
-      pattern_engaged:
-        typeof parsed.pattern_engaged === "boolean"
-          ? parsed.pattern_engaged
-          : state.pattern_engaged,
-      user_named_cost: Boolean(parsed.user_named_cost) || state.user_named_cost,
-      user_named_stance: Boolean(parsed.user_named_stance) || state.user_named_stance,
-    };
+    return mergeExtractionState(parsed, state);
   } catch (err) {
     // Re-throw so fireBackgroundExtraction's .catch handles the failure
     // without writing a degraded state over the prior good one. Previous
