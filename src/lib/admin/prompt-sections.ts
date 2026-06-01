@@ -350,7 +350,7 @@ const SECTION_DEFS: SectionDef[] = [
     tier: "3",
     pattern: /^READINESS GATE/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → READINESS GATE" },
-    conditionFn: () => ({ type: "state", label: "State: 5+ entries" }),
+    conditionFn: () => ({ type: "state", label: "State: 3+ entries" }),
     alternativesFn: () => [],
   },
   {

@@ -228,6 +228,10 @@ interface CallPersonaOptions {
    *  opens with "Saved." and hands the user a continue-or-pivot
    *  choice — no substitutions, no entries summary, no title repeat. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  /** When true, this is the immediate turn after a checkpoint rejection.
+   *  Drives the POST-REJECTION block (the pinned "That entry didn't land..."
+   *  line). Set by the confirm route only for action === "rejected". */
+  postRejection?: boolean;
   /** Dev-only override: force a specific persona-mode set for this turn
    *  instead of reading the caller's profiles.persona_modes. Used by
    *  /api/dev-simulate so admins can test Jove against different user
@@ -354,6 +358,7 @@ export function callPersona({
   isChipResponse,
   prependedMessages,
   postConfirmMode = null,
+  postRejection = false,
   personaModesOverride,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
@@ -557,6 +562,7 @@ export function callPersona({
           explorationContext,
           transcriptContext: transcriptContextForPrompt,
           postConfirmMode,
+          postRejection,
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
         const systemBlocks: SystemBlock[] = [

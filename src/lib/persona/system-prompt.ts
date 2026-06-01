@@ -230,11 +230,10 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  needed — the trigger card already shows the title and layer, and
    *  the chat-history label already shows where it landed. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
-  /** Guided intake softening signal — when true, the guided Tier 3 block
-   *  stops rendering and the conversation runs on standard reflective
-   *  exploration. Defaults to false; explicit user-redirect detection is
-   *  wired up in Phase 2 guided polish. See ADR-042 §3. */
-  guidedPostureSoftened?: boolean;
+  /** When true, this turn is the immediate response to a checkpoint
+   *  rejection (set by the confirm route for action === "rejected"). Gates the
+   *  POST-REJECTION block. Mutually exclusive with postConfirmMode. */
+  postRejection?: boolean;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -298,7 +297,7 @@ No treatment plans, no clinical interventions (CBT, EMDR, DBT), no medication co
 // every turn.
 // ---------------------------------------------------------------------------
 
-interface Tier3Flags {
+export interface Tier3Flags {
   isNewUser: boolean;
   isReturningUser: boolean;
   showCheckpointInstructions: boolean;
@@ -311,12 +310,9 @@ interface Tier3Flags {
   manualComponentCount: number;
   postConfirmMode: "first-message-2" | "subsequent-single" | null;
   mode: "situation" | "guided-intake" | "upload";
-  /** Guided intake posture softens when the user explicitly redirects
-   *  ("can we slow down", surfacing a live situation, etc.). Defaults to
-   *  false; detection wiring lands in Phase 2 guided polish. When true,
-   *  the guided Tier 3 block stops rendering and the conversation drops
-   *  back to standard reflective exploration. */
-  guidedPostureSoftened: boolean;
+  /** True only on the turn that immediately follows a checkpoint rejection.
+   *  Gates the POST-REJECTION block. Mutually exclusive with postConfirmMode. */
+  postRejection: boolean;
 }
 
 interface Tier3Block {
@@ -342,7 +338,7 @@ interface Tier3Block {
 // are now delivered as modals (see ChatWindowModal, PatternFormingModal)
 // plus the inline checkpoint trigger card. Keeping the inline prompt
 // instructions alongside the modals caused duplicate delivery.
-const TIER_3_BLOCKS: readonly Tier3Block[] = [
+export const TIER_3_BLOCKS: readonly Tier3Block[] = [
   {
     id: "first-message",
     // Entry phase: covers opener turn (turnCount 1) + the user's first
@@ -368,7 +364,7 @@ Don't assume the user's gender. Use "you" and "they" until the user uses gendere
   },
   {
     id: "guided-intake",
-    shouldRender: (f) => f.mode === "guided-intake" && !f.guidedPostureSoftened,
+    shouldRender: (f) => f.mode === "guided-intake",
     render: (f) => `
 GUIDED INTAKE
 The user opted into a more directed path. Your job is to find the first piece of material the Manual can hold, grounded in a relationship they name.
@@ -575,10 +571,10 @@ The actual Manual entry is composed afterward by a separate step. Your job in th
   },
   {
     id: "first-checkpoint",
-    shouldRender: (f) => f.isFirstCheckpoint && f.checkpointApproaching,
+    shouldRender: (f) => f.isFirstCheckpoint && f.showCheckpointInstructions,
     render: () => `
 FIRST CHECKPOINT (one-time, exact order)
-This is the user's FIRST checkpoint. The approaching-signal wrapper was delivered 1-2 turns earlier (see PROGRESS SIGNALS) so the user already knows the mechanic. Deliver the checkpoint itself without any internal wrapper:
+This is the user's FIRST checkpoint. Deliver the checkpoint itself without any internal wrapper:
 
 1. Transition: "I want to put something in your Manual."
 2. The pattern (80+ words, body-anchored, in their words, names the bind).
@@ -591,7 +587,7 @@ Every checkpoint after the first follows the same sequence. No wrapper inside an
   },
   {
     id: "post-rejection",
-    shouldRender: (f) => f.showCheckpointInstructions,
+    shouldRender: (f) => f.postRejection,
     render: () => `
 POST-REJECTION (after user rejects)
 When you see "[User rejected the checkpoint]" as the most recent system message in history, your immediate next response must be exactly this single line, with no preamble and no follow-up question:
@@ -692,10 +688,10 @@ Rules:
     id: "readiness-gate",
     shouldRender: (f) => f.manualComponentCount >= 3,
     render: () => `
-READINESS GATE (when all 5 layers have confirmed entries)
-Deliver synthesis showing how the pieces connect across layers. Then:
+READINESS GATE (when 3+ entries have been confirmed)
+The user has confirmed at least three entries — a working first version worth stepping back to look at. Reflect how the entries so far connect, across the layers that actually hold entries. Do not imply layers they haven't built yet are complete. Then:
 
-"Your manual has a working first version. Five layers, each with a core picture of how you operate. It's not finished. There's more depth to add, patterns to name. But it's enough to be useful. Want to see your manual or keep building?"
+"Your manual has a working first version — a few core pictures of how you operate. It's not finished: there's more depth to add, more patterns to name, and layers still to fill in. But it's enough to be useful. Want to see your manual or keep building?"
 `,
   },
   {
@@ -723,6 +719,63 @@ FIRST SESSION
 ${f.isNewUser ? `This user has no confirmed entries. First session. Do not explain the five layers, checkpoints, or the Manual structure on turn 1. The user learns by experiencing the conversation, not by being told how it works.\n` : `Not a first session.\n`}`,
   },
 ];
+
+/** The subset of 1:1 prompt inputs that determines Tier-3 block gating. Kept
+ *  narrow — and a structural subset of OneOnOnePromptOptions — so
+ *  deriveTier3Flags is the single, independently-testable source of truth for
+ *  which Tier-3 blocks render. */
+export interface Tier3FlagInput {
+  manualComponents: ManualComponent[];
+  isReturningUser: boolean;
+  isFirstCheckpoint: boolean;
+  checkpointApproaching: boolean;
+  turnCount: number;
+  mode?: ConversationMode;
+  postConfirmMode?: "first-message-2" | "subsequent-single" | null;
+  postRejection?: boolean;
+}
+
+/** Single source of truth for Tier-3 block gating. BOTH 1:1 builders
+ *  (buildSystemPromptBlocks and the legacy buildSystemPrompt) route through
+ *  this, so the in-app and SMS paths can never diverge on which blocks render.
+ *  The explicit, no-spread `Tier3Flags` return is deliberate: TypeScript
+ *  requires every Tier3Flags field be assigned here, so adding a flag without
+ *  producing it is a compile error at this site rather than a silently missing
+ *  block at render time. */
+export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
+  const {
+    manualComponents,
+    isReturningUser,
+    isFirstCheckpoint,
+    checkpointApproaching,
+    turnCount,
+    mode = "situation",
+    postConfirmMode = null,
+    postRejection = false,
+  } = input;
+
+  const isNewUser = manualComponents.length === 0 && !isReturningUser;
+  // Checkpoint-proposal instructions load only on a normal approaching turn —
+  // never on a post-action turn (a post-confirm follow-up or a post-rejection),
+  // which each have a pinned response the proposal machinery would contradict.
+  // Returning-user status flows through the RETURNING USER block.
+  const showCheckpointInstructions =
+    checkpointApproaching && postConfirmMode === null && !postRejection;
+
+  const flags: Tier3Flags = {
+    isNewUser,
+    isReturningUser,
+    showCheckpointInstructions,
+    isFirstCheckpoint,
+    checkpointApproaching,
+    turnCount,
+    manualComponentCount: manualComponents.length,
+    postConfirmMode,
+    postRejection,
+    mode,
+  };
+  return flags;
+}
 
 function buildTier3(flags: Tier3Flags): string {
   const blocks = TIER_3_BLOCKS.filter((b) => b.shouldRender(flags))
@@ -804,7 +857,7 @@ function renderSessionContextBlock(opts: {
   }
   block += "Returning user. Do NOT run the first-session entry.\n";
   if (opts.sessionSummary) {
-    block += `Previous session: ${opts.sessionSummary}\n`;
+    block += `Earlier in this conversation: ${opts.sessionSummary}\n`;
   }
   return block;
 }
@@ -878,41 +931,18 @@ export function buildSystemPromptBlocks(
     isReturningUser,
     sessionSummary,
     extractionContext,
-    isFirstCheckpoint,
     sessionCount,
     explorationContext,
     transcriptContext,
-    turnCount,
-    checkpointApproaching,
-    mode = "situation",
     personaModes = ["general"],
-    postConfirmMode = null,
-    guidedPostureSoftened = false,
   } = options;
-
-  const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  // Checkpoint instructions used to auto-load for every returning-user
-  // turn, including turn 1 of a new session before any material had
-  // surfaced. That primed Jove to write the transition line too early.
-  // Gate on checkpointApproaching alone — returning-user status flows
-  // through the RETURNING USER block, which is enough context.
-  const showCheckpointInstructions = checkpointApproaching;
 
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
   const tier2 = composeTier2(personaModes);
-  const tier3 = buildTier3({
-    isNewUser,
-    isReturningUser,
-    showCheckpointInstructions,
-    isFirstCheckpoint,
-    checkpointApproaching,
-    turnCount,
-    manualComponentCount: manualComponents.length,
-    postConfirmMode,
-    mode,
-    guidedPostureSoftened,
-  });
+  // Single source of truth for which Tier-3 blocks render (shared with the
+  // legacy buildSystemPrompt so the app and SMS paths can't diverge).
+  const tier3 = buildTier3(deriveTier3Flags(options));
 
   const { older: olderManual, recent: recentManual } =
     prepareManualContextBlocks(manualComponents, currentConversationId);
@@ -982,38 +1012,14 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     sessionCount,
     explorationContext,
     transcriptContext,
-    turnCount,
-    checkpointApproaching,
-    isFirstCheckpoint,
-    mode = "situation",
     personaModes = ["general"],
-    postConfirmMode = null,
-    guidedPostureSoftened = false,
   } = options;
-
-  const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  // Checkpoint instructions used to auto-load for every returning-user
-  // turn, including turn 1 of a new session before any material had
-  // surfaced. That primed Jove to write the transition line too early.
-  // Gate on checkpointApproaching alone — returning-user status flows
-  // through the RETURNING USER block, which is enough context.
-  const showCheckpointInstructions = checkpointApproaching;
 
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
   const tier2 = composeTier2(personaModes);
-  const tier3 = buildTier3({
-    isNewUser,
-    isReturningUser,
-    showCheckpointInstructions,
-    isFirstCheckpoint,
-    checkpointApproaching,
-    turnCount,
-    manualComponentCount: manualComponents.length,
-    postConfirmMode,
-    mode,
-    guidedPostureSoftened,
-  });
+  // Same single source of truth as buildSystemPromptBlocks — see deriveTier3Flags.
+  const tier3 = buildTier3(deriveTier3Flags(options));
 
   const basePrompt = `${intro}
 

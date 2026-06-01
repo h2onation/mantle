@@ -330,6 +330,13 @@ export async function POST(request: Request) {
     }
   }
 
+  if (action === "rejected") {
+    // Drives the POST-REJECTION block so Jove delivers the pinned
+    // "That entry didn't land..." line on this turn. Deferred and refined use
+    // distinct system messages and intentionally do not fire it.
+    personaOptions.postRejection = true;
+  }
+
   const stream = callPersona(personaOptions);
 
   // Wrap the stream so the outcome log fires when the stream actually

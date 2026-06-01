@@ -5,6 +5,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { detectTranscript } from "@/lib/utils/transcript-detection";
+import { selectTranscriptContextForPrompt } from "@/lib/persona/call-persona";
 import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
@@ -75,8 +77,19 @@ export async function processTextMessage(
     fireBackgroundExtraction(ctx, admin);
   }
 
-  // 5. Build system prompt (shared options from context, no channel-specific fields)
-  const systemPrompt = buildSystemPrompt(buildPromptOptionsFromContext(ctx));
+  // 5. Build system prompt. Mirror the web path's transcript handling so a
+  //    pasted thread over text gets the same TRANSCRIPT DETECTED guardrails
+  //    (analytical stance + do-not-profile-others) the in-app prompt carries —
+  //    otherwise a pasted conversation is treated as an ordinary message over
+  //    SMS. See ADR-042 and docs/audits/prompt-injector-2026-06-01.md.
+  const transcriptContext = selectTranscriptContextForPrompt(
+    ctx.mode,
+    messageText !== null ? detectTranscript(messageText) : null,
+  );
+  const systemPrompt = buildSystemPrompt({
+    ...buildPromptOptionsFromContext(ctx),
+    transcriptContext,
+  });
 
   // 6. Call Jove non-streaming (text doesn't need SSE)
   markLatency(timings, "anthropic_start");

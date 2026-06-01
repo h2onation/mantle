@@ -254,12 +254,12 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("This is session 4");
     });
 
-    it("contains 'Previous session:' when sessionSummary is provided", () => {
+    it("contains 'Earlier in this conversation:' when sessionSummary is provided", () => {
       const result = build({
         isReturningUser: true,
         sessionSummary: "Explored conflict avoidance patterns.",
       });
-      expect(result).toContain("Previous session:");
+      expect(result).toContain("Earlier in this conversation:");
       expect(result).toContain("Explored conflict avoidance patterns.");
     });
   });
@@ -636,41 +636,40 @@ describe("buildSystemPrompt", () => {
 
   // ─── Post-rejection (Track A Phase 7-Low / 7b) ───────────────────────────
   describe("post-rejection fixed-line behavior", () => {
-    it("renders the POST-REJECTION section when checkpoint instructions are loaded", () => {
-      const result = build({ checkpointApproaching: true });
+    it("renders the POST-REJECTION section on the post-rejection turn", () => {
+      const result = build({ postRejection: true });
       expect(result).toContain("POST-REJECTION");
     });
 
     it("pins the exact fixed-string response after rejection", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({ postRejection: true });
       expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
     });
 
     it("scopes the fixed line to the immediate post-rejection turn only", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({ postRejection: true });
       expect(result).toContain("immediate post-rejection turn");
       expect(result).toContain("return to natural exploration");
     });
 
     it("preserves the existing 'do not re-propose the same pattern' rule", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({ postRejection: true });
       expect(result).toContain("Do not re-propose the same pattern in this session");
     });
 
-    it("does NOT auto-load for returning users without checkpointApproaching", () => {
-      // showCheckpointInstructions no longer derives from isReturningUser.
-      // Previously this auto-loaded the POST-REJECTION block on turn 1
-      // of every returning-user session, which primed Jove to write the
-      // transition line before any material had surfaced.
-      const result = build({ isReturningUser: true, checkpointApproaching: false });
+    it("does NOT load on a normal checkpoint-approaching turn (gated on the rejection signal, not approaching)", () => {
+      // The bug this fixes: POST-REJECTION used to gate on checkpointApproaching,
+      // so the fixed line could fail to fire right after a rejection (when
+      // extraction no longer reported approaching) and was primed on every
+      // approaching turn. It now gates on the rejection signal alone.
+      const result = build({ checkpointApproaching: true, postRejection: false });
       expect(result).not.toContain("POST-REJECTION");
       expect(result).not.toContain("That entry didn't land. Was it off, or just not ready?");
     });
 
-    it("appears for returning users once checkpointApproaching is true", () => {
-      const result = build({ isReturningUser: true, checkpointApproaching: true });
-      expect(result).toContain("POST-REJECTION");
-      expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
+    it("does NOT load for returning users absent a rejection", () => {
+      const result = build({ isReturningUser: true, checkpointApproaching: false });
+      expect(result).not.toContain("POST-REJECTION");
     });
   });
 
@@ -855,20 +854,20 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("\nCHECKPOINTS\n");
     });
 
-    it("excludes POST-REJECTION when not approaching (regardless of returning status)", () => {
-      // POST-CHECKPOINT was deleted in Phase 7-High. POST-REJECTION now
-      // gates on checkpointApproaching alone — returning-user status no
-      // longer auto-loads the block.
+    it("excludes POST-REJECTION absent a rejection (regardless of returning status)", () => {
+      // POST-CHECKPOINT was deleted in Phase 7-High. POST-REJECTION gates on
+      // the rejection signal (postRejection) — neither returning-user status
+      // nor an approaching checkpoint loads the block.
       expect(
         build({ checkpointApproaching: false, isReturningUser: false })
       ).not.toContain("POST-REJECTION");
       expect(
-        build({ checkpointApproaching: false, isReturningUser: true })
+        build({ checkpointApproaching: true, isReturningUser: true })
       ).not.toContain("POST-REJECTION");
     });
 
-    it("includes POST-REJECTION once checkpointApproaching is true", () => {
-      const result = build({ checkpointApproaching: true });
+    it("includes POST-REJECTION on the post-rejection turn", () => {
+      const result = build({ postRejection: true });
       expect(result).toContain("POST-REJECTION");
     });
 
@@ -2399,13 +2398,12 @@ describe("buildSystemPrompt", () => {
         turnCount: 5,
       });
       // Phase 7-High removed POST-CHECKPOINT (replaced by mode-specific
-      // blocks loaded only on post-confirm calls); POST-REJECTION
-      // (Phase 7-Low) sits in that slot under the same gate. Gate 8
-      // removed PROGRESS SIGNALS entirely — those are modals now.
+      // blocks loaded only on post-confirm calls). POST-REJECTION gates on
+      // the rejection signal, not on checkpointApproaching, so it is absent on
+      // a normal approaching turn. Gate 8 removed PROGRESS SIGNALS — modals now.
       const EXPECTED_CHECKPOINT_SECTIONS = [
         "TIER 3: CONVERSATION MECHANICS",
         "CHECKPOINTS",
-        "POST-REJECTION",
         "ADAPTING",
       ];
       let cursor = 0;
@@ -2434,18 +2432,12 @@ describe("buildSystemPrompt", () => {
       expect(build({ mode: "situation" })).not.toContain("GUIDED INTAKE");
     });
 
-    // ADR-042 §3: guided posture persists for the conversation's life and
-    // softens only on explicit user redirect (detection in Phase 2).
-    it("GUIDED INTAKE persists across the conversation's life when not softened", () => {
+    // ADR-042 §3: guided posture persists for the conversation's life.
+    it("GUIDED INTAKE persists across the conversation's life", () => {
       for (const turnCount of [1, 5, 20, 50]) {
         const result = build({ mode: "guided-intake", turnCount });
         expect(result).toContain("GUIDED INTAKE");
       }
-    });
-
-    it("GUIDED INTAKE stops rendering when guidedPostureSoftened is true", () => {
-      const result = build({ mode: "guided-intake", guidedPostureSoftened: true });
-      expect(result).not.toContain("GUIDED INTAKE");
     });
 
     it("TIER 1 content still renders alongside guided intake", () => {

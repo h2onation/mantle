@@ -500,7 +500,13 @@ export async function runExtraction(
       next_prompt: parsed.next_prompt || "",
       sage_brief: parsed.sage_brief || "",
       emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
-      pattern_engaged: Boolean(parsed.pattern_engaged) || state.pattern_engaged,
+      // Honor the documented reset (prose ~L302): the model is fed the prior
+      // value and told to keep it true unless the user explicitly reverses the
+      // pattern, so trust its boolean rather than latching true forever.
+      pattern_engaged:
+        typeof parsed.pattern_engaged === "boolean"
+          ? parsed.pattern_engaged
+          : state.pattern_engaged,
       user_named_cost: Boolean(parsed.user_named_cost) || state.user_named_cost,
       user_named_stance: Boolean(parsed.user_named_stance) || state.user_named_stance,
     };

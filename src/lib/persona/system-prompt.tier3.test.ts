@@ -107,11 +107,11 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("checkpoints + post-rejection fire for returning users only when checkpointApproaching=true", () => {
-    // Regression guard for the gating-on-checkpointApproaching change:
-    // a returning user WITH checkpointApproaching set should load the
-    // checkpoint instruction blocks (combination of returning-user
-    // first-turn-situation + checkpoints + post-rejection).
+  it("checkpoints fire for returning users when checkpointApproaching=true", () => {
+    // A returning user WITH checkpointApproaching set loads the checkpoint
+    // instruction blocks (returning-user first-turn-situation + checkpoints).
+    // POST-REJECTION is NOT here — it gates on the rejection signal, not on
+    // checkpointApproaching.
     expect(
       buildTier3Region({
         isReturningUser: true,
@@ -121,8 +121,14 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("checkpoints + post-rejection fire when checkpointApproaching=true (new user)", () => {
+  it("checkpoints fire when checkpointApproaching=true (new user)", () => {
     expect(buildTier3Region({ checkpointApproaching: true })).toMatchSnapshot();
+  });
+
+  it("post-rejection fires on the post-rejection turn (postRejection=true)", () => {
+    // The corrected gate: POST-REJECTION loads on the rejection signal alone,
+    // and the checkpoint-proposal blocks are suppressed on this turn.
+    expect(buildTier3Region({ postRejection: true })).toMatchSnapshot();
   });
 
   it("first-checkpoint fires when isFirstCheckpoint=true AND checkpointApproaching=true", () => {
@@ -173,8 +179,10 @@ describe("buildTier3 — block-firing snapshots", () => {
 
   it("all conditional blocks together: returning + checkpoint approaching + first checkpoint + readiness + situation mode", () => {
     // Fires the maximum set of blocks: returning-user main + returning-user
-    // first-turn-situation + checkpoints + first-checkpoint + post-rejection
-    // + readiness-gate + always-on + 'Not a first session' branch.
+    // first-turn-situation + checkpoints + first-checkpoint + readiness-gate +
+    // always-on + 'Not a first session' branch. POST-REJECTION is mutually
+    // exclusive with the checkpoint-proposal blocks (it gates on the rejection
+    // signal), so it is not part of this max set.
     expect(
       buildTier3Region({
         isReturningUser: true,
