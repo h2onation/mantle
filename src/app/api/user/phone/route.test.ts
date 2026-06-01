@@ -227,6 +227,41 @@ describe("POST /api/user/phone (send OTP)", () => {
     expect(row.otp_code).not.toBe(rawCode);
     expect(row.otp_code).toBe(hashOtp(rawCode));
   });
+
+  // D2: the row must not be written until the send succeeds — otherwise
+  // switching to a new number and hitting a send failure would downgrade a
+  // prior verified link to verified=false with a code that never arrived.
+  it("does NOT touch the row when the send fails (preserves a prior verified link)", async () => {
+    mockSendMessage.mockResolvedValue({
+      providerMessageId: null,
+      provider: "sendblue",
+      status: "FAILED",
+      errorMessage: "carrier rejected",
+    });
+    const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
+    expect(res.status).toBe(502);
+    // Nothing persisted, so an existing verified link is left intact.
+    expect(
+      insertedRows.filter((r) => r.table === "phone_numbers")
+    ).toHaveLength(0);
+    expect(updates.filter((u) => u.table === "phone_numbers")).toHaveLength(0);
+  });
+
+  // D1: with UNIQUE(user_id), a concurrent send loses the insert race with a
+  // 23505; the route must fall back to an update rather than 500 or duplicate.
+  it("falls back to update when the insert races a concurrent send (23505)", async () => {
+    selectResponses["phone_numbers"] = { data: null, error: null };
+    insertError = { code: "23505", message: "duplicate key value" };
+    const res = await phonePOST(phoneRequest({ phone_number: "+15555551234" }));
+    expect(res.status).toBe(200);
+    // Insert was attempted, then it fell back to an update (no 500, no dup).
+    expect(
+      insertedRows.filter((r) => r.table === "phone_numbers")
+    ).toHaveLength(1);
+    const fallback = updates.find((u) => u.table === "phone_numbers");
+    expect(fallback).toBeDefined();
+    expect((fallback!.patch as { verified?: unknown }).verified).toBe(false);
+  });
 });
 
 // --- POST /api/user/phone/verify ----------------------------------------

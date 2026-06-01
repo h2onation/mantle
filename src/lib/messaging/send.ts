@@ -76,6 +76,30 @@ export interface UnifiedSendResult {
   errorMessage: string | null;
 }
 
+/**
+ * Insert a messaging_events audit row without ever throwing. The audit write
+ * is bookkeeping: a delivered message reported as FAILED because its audit row
+ * failed to insert is strictly worse than a missing audit row. Both the
+ * Supabase `{ error }` result and a thrown exception are swallowed (logged),
+ * so an audit failure can never flip a real send result.
+ */
+async function safeAudit(
+  admin: ReturnType<typeof createAdminClient>,
+  row: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { error } = await admin.from("messaging_events").insert(row);
+    if (error) {
+      console.error("[send] audit insert failed:", error.message);
+    }
+  } catch (err) {
+    console.error(
+      "[send] audit insert threw:",
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+}
+
 export async function sendMessage(
   params: UnifiedSendParams
 ): Promise<UnifiedSendResult> {
@@ -91,7 +115,7 @@ export async function sendMessage(
         content: params.content,
       });
 
-      await admin.from("messaging_events").insert({
+      await safeAudit(admin, {
         direction: "outbound",
         provider: "sendblue",
         provider_message_id: result.message_handle,
@@ -125,7 +149,7 @@ export async function sendMessage(
 
     const status = linqResult.ok ? "SENT" : "FAILED";
 
-    await admin.from("messaging_events").insert({
+    await safeAudit(admin, {
       direction: "outbound",
       provider: "linq",
       provider_message_id: linqResult.messageId,
@@ -147,7 +171,7 @@ export async function sendMessage(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
-    await admin.from("messaging_events").insert({
+    await safeAudit(admin, {
       direction: "outbound",
       provider,
       from_number: null,

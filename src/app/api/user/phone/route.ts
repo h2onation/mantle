@@ -100,64 +100,16 @@ export async function POST(request: NextRequest) {
     return rateLimitedResponse(limit);
   }
 
-  // 4. Generate OTP, hash it, store on the user's phone row.
+  // 4. Generate OTP, hash it.
   const otp = generateOtp();
   const otpHash = hashOtp(otp);
   const expiresAt = otpExpiryFromNow();
 
-  // The user's phone_numbers row is keyed by user_id (one row per user).
-  // If a row exists for this user we update; otherwise insert. We do NOT
-  // touch the verified flag — it stays false until /verify confirms.
-  const { data: userRow } = await admin
-    .from("phone_numbers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (userRow) {
-    // Reset otp_attempts to 0 on a fresh code issuance so a user who
-    // burned the cap on the previous code isn't locked out — requesting
-    // a new code is the legitimate recovery path. See ADR-038 follow-up
-    // and migration 20260519000000.
-    const { error: updateError } = await admin
-      .from("phone_numbers")
-      .update({
-        phone,
-        verified: false,
-        otp_code: otpHash,
-        otp_expires_at: expiresAt,
-        otp_attempts: 0,
-      })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      console.error("[user/phone] OTP update failed", {
-        message: updateError.message,
-        details: updateError,
-      });
-      return Response.json({ error: "Failed to send code" }, { status: 500 });
-    }
-  } else {
-    const { error: insertError } = await admin.from("phone_numbers").insert({
-      user_id: user.id,
-      phone,
-      verified: false,
-      otp_code: otpHash,
-      otp_expires_at: expiresAt,
-      otp_attempts: 0,
-    });
-
-    if (insertError) {
-      console.error("[user/phone] OTP insert failed", {
-        message: insertError.message,
-        details: insertError,
-      });
-      return Response.json({ error: "Failed to send code" }, { status: 500 });
-    }
-  }
-
-  // 5. Send the OTP via the active messaging provider. Keep the message
-  //    text terse — no other content.
+  // 5. Send the OTP FIRST — before writing anything to the row. If the send
+  //    fails we must NOT have already overwritten the user's row, or switching
+  //    to a new number and hitting a transient send failure would downgrade
+  //    their existing verified link to verified=false with a code that never
+  //    arrived. So: send, bail on failure, persist only on success.
   const sendResult = await sendMessage({
     to: phone,
     content: `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`,
@@ -174,6 +126,54 @@ export async function POST(request: NextRequest) {
       { error: "Failed to send code. Please try again." },
       { status: 502 }
     );
+  }
+
+  // 6. Persist the code on the user's row. phone_numbers is one row per user
+  //    (enforced by phone_numbers_user_id_key UNIQUE). otp_attempts resets to 0
+  //    so a user who burned the cap on a previous code can recover with a new
+  //    one. verified stays false — promotion happens in /verify.
+  const otpPatch = {
+    phone,
+    verified: false,
+    otp_code: otpHash,
+    otp_expires_at: expiresAt,
+    otp_attempts: 0,
+  };
+
+  const { data: userRow } = await admin
+    .from("phone_numbers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  let persistError: { code?: string; message?: string } | null = null;
+  if (userRow) {
+    persistError = (
+      await admin.from("phone_numbers").update(otpPatch).eq("user_id", user.id)
+    ).error;
+  } else {
+    const insertResult = await admin
+      .from("phone_numbers")
+      .insert({ user_id: user.id, ...otpPatch });
+    if (insertResult.error?.code === "23505") {
+      // A concurrent send already created this user's row (user_id is UNIQUE).
+      // Fall back to update so we neither 500 nor leave a duplicate row.
+      persistError = (
+        await admin.from("phone_numbers").update(otpPatch).eq("user_id", user.id)
+      ).error;
+    } else {
+      persistError = insertResult.error;
+    }
+  }
+
+  if (persistError) {
+    // Never log the full error — its `details` can carry the raw phone on a
+    // unique-constraint violation (e.g. "Key (phone)=(+1...) already exists").
+    console.error("[user/phone] OTP persist failed", {
+      code: persistError.code,
+      message: persistError.message,
+    });
+    return Response.json({ error: "Failed to send code" }, { status: 500 });
   }
 
   return Response.json({

@@ -55,19 +55,30 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
-    // 1a. Message length check. Upload-mode conversations allow longer
-    // messages (pasted transcripts, email threads). When continuing an
-    // existing conversation, read its mode from the DB so the limit
-    // applies to follow-up messages too (the paste typically arrives as
-    // the second message, after Jove's opener).
+    // 1a. Ownership + mode. When continuing an existing conversation, verify
+    // it belongs to the authenticated user BEFORE anything reads from or
+    // writes to it. The admin client bypasses RLS, so this route-level check
+    // is the only boundary — without it an authenticated user could pass
+    // another user's conversationId and read their transcript into Jove's
+    // context or write into their conversation. Sibling routes
+    // (checkpoint/confirm, session/summary) already scope by user_id; this
+    // route did not. The same query also reads `mode` so upload conversations
+    // keep the larger message cap on follow-up turns. Returns 404 (not 403)
+    // so a probing user can't distinguish a foreign id from a missing one.
     let effectiveMode = requestedMode;
-    if (!effectiveMode && conversationId) {
-      const { data: convRow } = await admin
+    if (conversationId) {
+      const { data: convRow, error: convReadError } = await admin
         .from("conversations")
-        .select("mode")
+        .select("user_id, mode")
         .eq("id", conversationId)
         .single();
-      if (convRow?.mode === "upload") effectiveMode = "upload";
+      if (convReadError || !convRow || convRow.user_id !== user.id) {
+        return Response.json(
+          { error: "Conversation not found" },
+          { status: 404 }
+        );
+      }
+      if (!effectiveMode && convRow.mode === "upload") effectiveMode = "upload";
     }
     const isUpload = effectiveMode === "upload";
     const maxLen = isUpload ? MAX_UPLOAD_LENGTH : MAX_MESSAGE_LENGTH;

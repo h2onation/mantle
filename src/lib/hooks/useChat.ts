@@ -105,6 +105,42 @@ export function buildChatMessageFromEvent(
   };
 }
 
+/**
+ * Derive an active checkpoint from a freshly-loaded message list. Returns the
+ * checkpoint to re-activate when the last message is a still-pending proposal,
+ * else null — so a user who closed the app mid-proposal can still act on it.
+ * Shared by every conversation-load path (resume + reload). Exported for testing.
+ */
+export function pendingCheckpointFromMessages(
+  dbMessages: Array<{
+    id: string;
+    content: string;
+    is_checkpoint?: boolean | null;
+    checkpoint_meta?: {
+      layer: number;
+      name?: string | null;
+      composed_name?: string | null;
+      composed_content?: string | null;
+      status?: string | null;
+    } | null;
+  }>
+): ActiveCheckpoint | null {
+  const lastMsg = dbMessages[dbMessages.length - 1];
+  if (lastMsg?.is_checkpoint && lastMsg.checkpoint_meta?.status === "pending") {
+    return {
+      messageId: lastMsg.id,
+      layer: lastMsg.checkpoint_meta.layer,
+      name:
+        lastMsg.checkpoint_meta.composed_name ||
+        lastMsg.checkpoint_meta.name ||
+        null,
+      content: lastMsg.content,
+      composedContent: lastMsg.checkpoint_meta.composed_content ?? null,
+    };
+  }
+  return null;
+}
+
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -487,9 +523,15 @@ export function useChat() {
       }
     } catch {}
 
-    if (allConversations.length > 0 && !pendingNewSession) {
+    // Don't treat the synthetic "text-channel" pseudo-conversation as a
+    // restorable session — its id isn't a uuid, so loading messages by it
+    // fails and lands the user on a broken/empty screen. switchConversation
+    // already excludes it; the resume path must too.
+    const restorable = allConversations.filter((c) => !c.is_text_channel);
+
+    if (restorable.length > 0 && !pendingNewSession) {
       setSessionOrigin("existing");
-      const latest = allConversations[0];
+      const latest = restorable[0];
       setConversationId(latest.id);
       setSessionSummary(latest.summary || null);
       setLastSessionDate(latest.updated_at || null);
@@ -514,6 +556,12 @@ export function useChat() {
             checkpointMeta: m.checkpoint_meta || null,
           }));
         setMessages(chatMessages);
+
+        // Re-activate a pending checkpoint so a user who closed the app
+        // mid-proposal can still act on it (confirm/reject/refine).
+        // loadConversation already does this; the resume path didn't.
+        const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
+        if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
       }
 
       // Load manual components (determines returning user status)
@@ -541,8 +589,9 @@ export function useChat() {
         }
         setInitialized(true);
       }
-    } else if (pendingNewSession) {
-      // Returning user who clicked "New session" before this refresh.
+    } else if (pendingNewSession || allConversations.length > 0) {
+      // Either the user clicked "New session" before this refresh, OR their
+      // only history is the text channel (no restorable in-app conversation).
       // Load manual so the greeting knows they're returning, but don't
       // restore any conversation.
       setSessionOrigin("new");
@@ -1068,20 +1117,9 @@ export function useChat() {
         }));
       setMessages(chatMessages);
 
-      // Detect pending checkpoint in the last message
-      const lastMsg = dbMessages[dbMessages.length - 1];
-      if (
-        lastMsg?.is_checkpoint &&
-        lastMsg.checkpoint_meta?.status === "pending"
-      ) {
-        setActiveCheckpoint({
-          messageId: lastMsg.id,
-          layer: lastMsg.checkpoint_meta.layer,
-          name: lastMsg.checkpoint_meta.composed_name || lastMsg.checkpoint_meta.name,
-          content: lastMsg.content,
-          composedContent: lastMsg.checkpoint_meta.composed_content ?? null,
-        });
-      }
+      // Detect + re-activate a pending checkpoint in the last message.
+      const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
+      if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
     }
   }
 

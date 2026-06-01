@@ -62,6 +62,9 @@ interface MobileSessionProps {
   // users are excluded (they convert at first checkpoint and the modal
   // flow starts then).
   modalProgress?: number | null;
+  /** Lifts a modal-progress advance back into MainApp so the next modal's gate
+   *  sees the new value in the same session (not just after a page reload). */
+  onModalProgressAdvance?: (target: number) => void;
   signupAtMs?: number | null;
   isAnonymous?: boolean;
   // Modal 2 (Pattern-Forming) trigger inputs from the latest
@@ -96,6 +99,7 @@ export default function MobileSession({
   isGuest,
   onSignInPrompt,
   modalProgress = null,
+  onModalProgressAdvance,
   signupAtMs = null,
   isAnonymous = false,
   emergingPatternSnippet = null,
@@ -121,13 +125,14 @@ export default function MobileSession({
       !modal3AdvancedRef.current
     ) {
       modal3AdvancedRef.current = true;
+      onModalProgressAdvance?.(3);
       fetch("/api/modal-progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target: 3 }),
       }).catch(() => {});
     }
-  }, [modalProgress, isAnonymous, activeCheckpoint]);
+  }, [modalProgress, isAnonymous, activeCheckpoint, onModalProgressAdvance]);
   const [chipsVisible, setChipsVisible] = useState(true);
   useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
@@ -787,7 +792,10 @@ export default function MobileSession({
           !isAnonymous &&
           !modal1Dismissed
         }
-        onDismiss={() => setModal1Dismissed(true)}
+        onDismiss={() => {
+          setModal1Dismissed(true);
+          onModalProgressAdvance?.(1);
+        }}
         signupAtMs={signupAtMs}
       />
 
@@ -802,7 +810,10 @@ export default function MobileSession({
           emergingPatternSnippet.length > 0 &&
           !modal2Dismissed
         }
-        onDismiss={() => setModal2Dismissed(true)}
+        onDismiss={() => {
+          setModal2Dismissed(true);
+          onModalProgressAdvance?.(2);
+        }}
         patternSnippet={emergingPatternSnippet ?? ""}
         signupAtMs={signupAtMs}
       />

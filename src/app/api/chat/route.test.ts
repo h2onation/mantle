@@ -15,6 +15,10 @@ let manualComponentCount = 0;
 // reading mode back from an existing conversation row. Null returns
 // { data: null }, which the route treats as "mode unknown, default cap."
 let mockConvModeFromDb: string | null = null;
+// The user_id returned for an existing-conversation read. Defaults to "u1"
+// (the dominant test user) so the ownership guard passes; the IDOR test sets
+// it to a different id to exercise the 404 path.
+let mockConvOwnerId = "u1";
 const insertedConv = { id: "conv-123" };
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => {
@@ -43,8 +47,10 @@ vi.mock("@/lib/supabase/admin", () => ({
       // inserted conv row) from the select("mode").eq().single() path
       // (returns mode lookup).
       if (currentTable === "conversations" && !didInsert) {
+        // Existing-conversation read: the route selects user_id (ownership)
+        // and mode (length cap). Return both so the ownership guard runs.
         return Promise.resolve({
-          data: mockConvModeFromDb ? { mode: mockConvModeFromDb } : null,
+          data: { user_id: mockConvOwnerId, mode: mockConvModeFromDb },
           error: null,
         });
       }
@@ -54,8 +60,9 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
+const mockCallPersona = vi.fn(() => new ReadableStream({ start(c) { c.close(); } }));
 vi.mock("@/lib/persona/call-persona", () => ({
-  callPersona: () => new ReadableStream({ start(c) { c.close(); } }),
+  callPersona: () => mockCallPersona(),
 }));
 
 const mockCheckLimits = vi.fn();
@@ -99,6 +106,8 @@ beforeEach(() => {
   });
   manualComponentCount = 0;
   mockConvModeFromDb = null;
+  mockConvOwnerId = "u1";
+  mockCallPersona.mockClear();
 });
 
 // --- Tests ---------------------------------------------------------------
@@ -220,6 +229,42 @@ describe("/api/chat — X-Conversation-Id header (Fix A)", () => {
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("X-Conversation-Id")).toBe("conv-existing-xyz");
+  });
+});
+
+describe("/api/chat — conversation ownership (IDOR guard)", () => {
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
+    });
+  });
+
+  // The route used to trust the client-supplied conversationId without
+  // checking ownership. An authenticated user could pass another user's
+  // conversation id and read their transcript into Jove's context or write
+  // into their conversation (admin client bypasses RLS). Guard: reject with
+  // 404 before callPersona runs. See flow-review-2026-05-29 finding #1.
+  it("returns 404 and never calls callPersona when the conversation belongs to another user", async () => {
+    mockConvOwnerId = "someone-else";
+    mockConvModeFromDb = "situation";
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: "victim-conv-id" })
+    );
+    expect(res.status).toBe(404);
+    expect(mockCallPersona).not.toHaveBeenCalled();
+    // No stream started → no conversation-id header leaked.
+    expect(res.headers.get("X-Conversation-Id")).toBeNull();
+  });
+
+  it("lets the owner through to the stream", async () => {
+    mockConvOwnerId = "u1";
+    mockConvModeFromDb = "situation";
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: "my-conv-id" })
+    );
+    expect(res.status).toBe(200);
+    expect(mockCallPersona).toHaveBeenCalledTimes(1);
+    expect(res.headers.get("X-Conversation-Id")).toBe("my-conv-id");
   });
 });
 
