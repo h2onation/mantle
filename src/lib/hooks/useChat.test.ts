@@ -17,7 +17,6 @@ import type { MessageCompleteEvent } from "@/lib/utils/sse-parser";
 
 function baseEvent(): MessageCompleteEvent {
   return {
-    type: "message_complete",
     messageId: "msg-1",
     conversationId: "conv-1",
     checkpoint: null,

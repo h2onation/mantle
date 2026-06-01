@@ -5,6 +5,7 @@ import {
   composeTier2,
 } from "@/lib/persona/system-prompt";
 import type { OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
+import type { ExplorationContext } from "@/lib/types";
 import { LAYER_NAMES } from "@/lib/manual/layers";
 import {
   VOICE_RULES,
@@ -400,7 +401,7 @@ describe("buildSystemPrompt", () => {
 
     it("instructs returning users not to introduce by name", () => {
       const result = build({
-        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test" }],
         isReturningUser: true,
         turnCount: 1,
       });
@@ -2482,7 +2483,7 @@ describe("buildSystemPrompt", () => {
       const result = build({
         mode: "guided-intake",
         isReturningUser: true,
-        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test" }],
       });
       expect(result).toContain("returning user");
       expect(result).toContain("without introducing yourself");
@@ -2508,7 +2509,7 @@ describe("buildSystemPrompt", () => {
         mode: "upload",
         turnCount: 0,
         isReturningUser: true,
-        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test" }],
       });
       expect(result).not.toContain("without introducing yourself");
       expect(result).not.toContain("briefly introduce yourself before the opener");
@@ -2521,13 +2522,13 @@ describe("buildSystemPrompt", () => {
         mode: "situation",
         isReturningUser: true,
         turnCount: 1,
-        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test" }],
       });
       const guided = build({
         mode: "guided-intake",
         isReturningUser: true,
         turnCount: 1,
-        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test", conversation_id: "c1" }],
+        manualComponents: [{ id: "1", layer: 1, name: "test", content: "test" }],
       });
       expect(situation).toContain("RETURNING USER — SITUATION OPENER");
       expect(guided).not.toContain("RETURNING USER — SITUATION OPENER");
