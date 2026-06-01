@@ -150,12 +150,6 @@ const CASES: Case[] = [
     expectedKeys: ["format", "entry_count"],
   },
   {
-    event: "entry_edited",
-    call: () =>
-      events.trackEntryEdited({ entry_id: "e1", layer: 2, edit_type: "content" }),
-    expectedKeys: ["entry_id", "layer", "edit_type"],
-  },
-  {
     event: "session_started",
     call: () =>
       events.trackSessionStarted({
@@ -173,22 +167,6 @@ const CASES: Case[] = [
     event: "modal_2_shown",
     call: () => events.trackModal2Shown({ time_since_signup_ms: 1234 }),
     expectedKeys: ["time_since_signup_ms"],
-  },
-  {
-    event: "first_checkpoint_completed",
-    call: () =>
-      events.trackFirstCheckpointCompleted({
-        conversation_id: "c1",
-        checkpoint_id: "m1",
-        layer: 3,
-        time_since_signup_ms: 1234,
-      }),
-    expectedKeys: [
-      "conversation_id",
-      "checkpoint_id",
-      "layer",
-      "time_since_signup_ms",
-    ],
   },
 ];
 

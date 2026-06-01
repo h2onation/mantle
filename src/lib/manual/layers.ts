@@ -135,9 +135,6 @@ export function formatLayerEyebrow(layer: number | null | undefined): string {
   return `Layer ${LAYER_ORDINAL[layer] ?? layer} — ${LAYER_NAMES[layer]}`;
 }
 
-/** Total layer count. Avoid hardcoding `5` in loops. */
-export const LAYER_COUNT = LAYERS.length;
-
 /**
  * Canonical "Manual entry inside a prompt" rendering. Used wherever the
  * full content of an entry needs to be inlined into an LLM prompt.

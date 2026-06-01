@@ -178,7 +178,7 @@
 
 **Status**: Settled (2026-04-06)
 **Context**: Layer names were duplicated across 5+ files (`extraction.ts`, `system-prompt.ts`, `classifier.ts`, `confirm-checkpoint.ts`, `layer-definitions.ts`, plus tests and docs). The Feb 2026 layer rename and the Apr 2026 ND pivot both required touching these strings file by file. `.claude/DRIFT_LOG.md` exists in part because of this drift.
-**Decision**: Single source of truth at `src/lib/manual/layers.ts`. Exports `LAYERS` (full definitions including names, descriptions, dimensions, examples), `LAYER_NAMES` (id → name lookup), `LAYER_COUNT`, and `getLayer(id)`. Every consumer (extraction prompt builder, system prompt, classifier, confirm-checkpoint, mobile UI) imports from this file. Prompts interpolate the canonical block instead of hardcoding strings.
+**Decision**: Single source of truth at `src/lib/manual/layers.ts`. Exports `LAYERS` (full definitions including names, descriptions, dimensions, examples), `LAYER_NAMES` (id → name lookup), and `getLayer(id)`. Every consumer (extraction prompt builder, system prompt, classifier, confirm-checkpoint, mobile UI) imports from this file. Prompts interpolate the canonical block instead of hardcoding strings.
 **Consequences**: Renaming a layer is a one-line change in `layers.ts`. Drift between UI and Jove code is structurally impossible — they both read the same constant. Tests assert against `LAYER_NAMES[N]` rather than literal strings, so a future rename never silently breaks assertions. Cost: one new file, minor refactor of five existing files. Offset: every future layer change touches one file instead of twelve.
 
 ## ADR-030: ND Pivot — sage_mode Column With Single Value, Forward-Compatible Seam

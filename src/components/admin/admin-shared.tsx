@@ -18,12 +18,6 @@ export function formatAdminDate(dateStr: string | null | undefined): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${h12}:${mm} ${ampm}`;
 }
 
-export function formatAdminDateShort(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-}
-
 // ── Shared styles ────────────────────────────────────────────────────
 //
 // The admin overlay is dense and needs to fit on a phone, so the table

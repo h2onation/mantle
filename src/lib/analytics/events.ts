@@ -143,14 +143,6 @@ export function trackManualExported(props: {
   posthog.capture("manual_exported", props);
 }
 
-export function trackEntryEdited(props: {
-  entry_id: string;
-  layer: number;
-  edit_type: "content" | "delete";
-}) {
-  posthog.capture("entry_edited", props);
-}
-
 // ──────────────────────────────────────────────
 // Session lifecycle
 // ──────────────────────────────────────────────
@@ -182,13 +174,4 @@ export function trackModal1Shown(props: ModalProgressEventProps) {
 
 export function trackModal2Shown(props: ModalProgressEventProps) {
   posthog.capture("modal_2_shown", props);
-}
-
-export function trackFirstCheckpointCompleted(props: {
-  conversation_id: string;
-  checkpoint_id: string;
-  layer: number;
-  time_since_signup_ms: number;
-}) {
-  posthog.capture("first_checkpoint_completed", props);
 }

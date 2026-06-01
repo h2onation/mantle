@@ -201,11 +201,3 @@ export const VENDORS: Vendor[] = [
       "Code paths are wired but env vars are not set in Vercel, so rate limiters currently fail open (ADR-038). Treat as scaffolded-but-inactive until the production credentials are provisioned.",
   },
 ];
-
-export function getVendorsByStatus(status: VendorStatus): Vendor[] {
-  return VENDORS.filter((v) => v.status === status);
-}
-
-export function getVendorById(id: string): Vendor | undefined {
-  return VENDORS.find((v) => v.id === id);
-}
