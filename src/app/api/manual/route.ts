@@ -14,7 +14,10 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    const [{ data: components }, { data: profile }] = await Promise.all([
+    const [
+      { data: components, error: componentsError },
+      { data: profile },
+    ] = await Promise.all([
       admin
         .from("manual_entries")
         .select("id, layer, name, content, created_at, updated_at")
@@ -27,6 +30,17 @@ export async function GET() {
         .eq("id", user.id)
         .single(),
     ]);
+
+    // The Supabase client returns { data, error } instead of throwing, so a
+    // transient read failure on manual_entries would otherwise fall through to
+    // `components || []` and return 200 with an EMPTY manual — which the client
+    // stores and renders as "your manual is gone" (a data-loss scare). Fail
+    // loudly so the client's `if (res.ok)` guard keeps the existing entries.
+    // profile is intentionally left soft: display_name is cosmetic with
+    // email/"User" fallbacks, so a profile read error shouldn't blank a manual.
+    if (componentsError) {
+      throw componentsError;
+    }
 
     const displayName =
       profile?.display_name || user.email?.split("@")[0] || "User";

@@ -131,9 +131,12 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id);
 
     if (updateError) {
+      // Log only the Postgres code + generic message. NOT the full error —
+      // its `details` field embeds the raw phone on a unique-constraint
+      // violation (e.g. "Key (phone)=(+1...) already exists"). Never log phones.
       console.error("[user/phone] OTP update failed", {
+        code: updateError.code,
         message: updateError.message,
-        details: updateError,
       });
       return Response.json({ error: "Failed to send code" }, { status: 500 });
     }
@@ -148,9 +151,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (insertError) {
+      // See note above: never log the full error — its `details` carries the
+      // raw phone on a unique-constraint violation.
       console.error("[user/phone] OTP insert failed", {
+        code: insertError.code,
         message: insertError.message,
-        details: insertError,
       });
       return Response.json({ error: "Failed to send code" }, { status: 500 });
     }

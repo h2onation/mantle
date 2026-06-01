@@ -13,6 +13,7 @@ import { sendTypingIndicator, markAsRead } from "./sender";
 import { sendMessage } from "@/lib/messaging/send";
 import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import { processTextMessage } from "./persona-bridge";
+import { checkDailyMessageLimit } from "@/lib/usage";
 import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
 import { insertCheckpointActionMessage } from "@/lib/persona/persona-pipeline";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
@@ -223,6 +224,30 @@ export async function routeInboundMessage(
     });
     console.warn("[router] rate_limited user=%s", userId);
     return;
+  }
+
+  // 5a. Durable daily cap (Postgres-backed, spans Vercel instances). The
+  // in-memory limiter above resets per instance and never enforces the daily
+  // Anthropic budget, so SMS could outspend the cap the in-app chat enforces.
+  // Reuse the same cap here. Fail OPEN: a cap-check error must never block a
+  // user from texting Jove.
+  try {
+    const daily = await checkDailyMessageLimit(admin, userId);
+    if (!daily.allowed) {
+      await sendMessage({
+        to: senderPhone,
+        content: RATE_LIMIT_MSG,
+        ownerUserId: userId,
+        contentKind: "system",
+      });
+      console.warn("[router] daily_limit user=%s count=%d", userId, daily.count);
+      return;
+    }
+  } catch (err) {
+    console.error(
+      "[router] daily cap check failed (allowing):",
+      err instanceof Error ? err.message : "unknown"
+    );
   }
 
   console.log(

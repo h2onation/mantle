@@ -101,7 +101,8 @@ export async function POST(request: Request) {
       return Response.json({ error: "Failed to add" }, { status: 500 });
     }
 
-    console.log("[admin/beta-allowlist] inserted email=%s", email);
+    // Don't log the raw email (PII). The insert itself is the audit trail.
+    console.log("[admin/beta-allowlist] inserted allowlist entry");
 
     // Remove the matching row from the waitlist — once on the allowlist,
     // they should no longer appear as pending. Match by id when supplied,

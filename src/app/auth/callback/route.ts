@@ -67,21 +67,28 @@ export async function GET(request: Request) {
       return errorRedirect;
     }
 
-    // Beta access gate: if this exchange just created a brand-new user
-    // (Google OAuth signup) and that user is not on the allowlist, delete
-    // them and bounce to the early-access page. Returning users skip this
-    // entirely so login is never affected.
+    // Beta access gate. Re-check the allowlist on EVERY OAuth callback, not
+    // just within a 60s "new user" window. The window used to gate the whole
+    // check, so a non-allowlisted user whose auth row survived a failed delete
+    // could log in cleanly on a later retry once their account aged past 60s —
+    // there is no other allowlist enforcement downstream. Checking every time
+    // closes that hole. (isEmailAllowlisted itself fails closed on a lookup
+    // error, so a DB hiccup blocks rather than admits.)
     const user = exchangeData?.user;
-    if (user?.email && user.created_at) {
-      const ageMs = Date.now() - new Date(user.created_at).getTime();
-      const isNewUser = ageMs >= 0 && ageMs < NEW_USER_WINDOW_MS;
-
-      if (isNewUser) {
-        const allowed = await isEmailAllowlisted(user.email);
-        if (!allowed) {
+    if (user?.email) {
+      const allowed = await isEmailAllowlisted(user.email);
+      if (!allowed) {
+        // Only delete a row we just created (within the window). An older,
+        // established account that somehow isn't allowlisted gets blocked but
+        // NOT deleted — we never destroy a real user's data here.
+        const ageMs = user.created_at
+          ? Date.now() - new Date(user.created_at).getTime()
+          : Infinity;
+        const isFreshlyCreated = ageMs >= 0 && ageMs < NEW_USER_WINDOW_MS;
+        if (isFreshlyCreated) {
           // Remove the just-created auth row so the email is free to join
-          // later via the waitlist, and so we don't accumulate orphaned
-          // users from blocked OAuth attempts.
+          // later via the waitlist, and so we don't accumulate orphaned users
+          // from blocked OAuth attempts.
           try {
             const admin = createAdminClient();
             await admin.auth.admin.deleteUser(user.id);
@@ -90,27 +97,29 @@ export async function GET(request: Request) {
               "[auth/callback] failed to delete blocked user:",
               deleteErr instanceof Error ? deleteErr.message : "unknown"
             );
+            // Fall through and still block: the allowlist re-check above runs
+            // on every callback, so a surviving row can never be admitted.
           }
-
-          const blockedRedirect = NextResponse.redirect(
-            `${origin}/waitlist?reason=not_allowlisted`
-          );
-          blockedRedirect.headers.set(
-            "Cache-Control",
-            "no-store, no-cache, must-revalidate"
-          );
-          // Clear any session cookies that exchangeCodeForSession just set,
-          // so the bounced user is fully signed out.
-          response.cookies.getAll().forEach((c) => {
-            blockedRedirect.cookies.set({
-              name: c.name,
-              value: "",
-              maxAge: 0,
-              path: "/",
-            });
-          });
-          return blockedRedirect;
         }
+
+        const blockedRedirect = NextResponse.redirect(
+          `${origin}/waitlist?reason=not_allowlisted`
+        );
+        blockedRedirect.headers.set(
+          "Cache-Control",
+          "no-store, no-cache, must-revalidate"
+        );
+        // Clear any session cookies that exchangeCodeForSession just set,
+        // so the bounced user is fully signed out.
+        response.cookies.getAll().forEach((c) => {
+          blockedRedirect.cookies.set({
+            name: c.name,
+            value: "",
+            maxAge: 0,
+            path: "/",
+          });
+        });
+        return blockedRedirect;
       }
     }
   }
