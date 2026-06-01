@@ -140,6 +140,18 @@ export default function MainApp() {
     };
   }, []);
 
+  // Lift a modal-progress advance (from a dismissed onboarding modal) back into
+  // modalState so the NEXT modal's gate sees the new value in the SAME session.
+  // Without this the in-memory value stays at its mount reading and the modal
+  // ladder (modal 2 following modal 1) only advances across a page reload.
+  const handleModalProgressAdvance = useCallback((target: number) => {
+    setModalState((prev) =>
+      prev
+        ? { ...prev, modalProgress: Math.max(prev.modalProgress, target) }
+        : prev
+    );
+  }, []);
+
   const {
     messages,
     conversationId,
@@ -397,6 +409,7 @@ export default function MainApp() {
             modalProgress={modalState?.modalProgress ?? null}
             signupAtMs={modalState?.signupAtMs ?? null}
             isAnonymous={modalState?.isAnonymous ?? false}
+            onModalProgressAdvance={handleModalProgressAdvance}
             emergingPatternSnippet={emergingPatternSnippet}
             hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
             concreteExamples={concreteExamples}
