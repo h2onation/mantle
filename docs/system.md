@@ -23,8 +23,8 @@ User message
       → EXTRACTION (Sonnet): analyzes the message, updates research brief, saves for NEXT turn
       → JOVE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
   → After Jove finishes:
-      → CLASSIFIER (Haiku) decides if the response is a checkpoint
-      → If checkpoint: composeManualEntry (Sonnet) writes the polished entry server-side
+      → DETECTOR (regex) decides if the response is a checkpoint
+      → If checkpoint: composeManualEntry (Opus) writes the polished entry server-side
   → message_complete event sent to frontend
 ```
 
@@ -52,7 +52,7 @@ All Jove decision logic lives here and is imported by both paths:
 
 Pure functions shared from `call-persona.ts`: `mapSystemMessages()`, `applySlidingWindow()`, `detectCrisisInUserMessage()`.
 
-Checkpoint detection runs on both channels via the same flow: Haiku classifier on every Jove response, then `composeManualEntry()` (Sonnet) when a checkpoint is detected.
+Checkpoint detection runs on both channels via the same flow: a deterministic regex match on every Jove response, then `composeManualEntry()` (Opus) when a checkpoint is detected.
 
 ### What differs by channel (intentional)
 
@@ -127,7 +127,7 @@ Do not add fields without checking this structure first. The extraction prompt m
 
 ## Checkpoint Lifecycle
 
-Checkpoints are the core mechanic: Jove reflects something the user has shown, the user confirms, and it writes to the manual. The Haiku classifier runs post-stream on every Jove response. If it flags the response as a checkpoint, `composeManualEntry()` (a separate Sonnet call) composes a polished manual entry from the conversational text plus the language bank. `composed_content` is always populated before confirmation.
+Checkpoints are the core mechanic: Jove reflects something the user has shown, the user confirms, and it writes to the manual. A deterministic regex (not a model call) runs post-stream on every Jove response. If it flags the response as a checkpoint, `composeManualEntry()` (a separate Opus call) composes a polished manual entry from the conversational text plus the language bank. `composed_content` is always populated before confirmation.
 
 **On confirmation:**
 1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta`

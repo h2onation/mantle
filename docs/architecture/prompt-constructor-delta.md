@@ -343,8 +343,7 @@ line 411.
   | `checkpoints` | `showCheckpointInstructions` (= `checkpointApproaching && postConfirmMode === null && !postRejection`) | Header: `CHECKPOINTS` |
   | `first-checkpoint` | `isFirstCheckpoint && showCheckpointInstructions` | Header: `FIRST CHECKPOINT (one-time, exact order)` |
   | `post-rejection` | `postRejection` | Header: `POST-REJECTION (after user rejects)` |
-  | `post-confirm-first-message-2` | `postConfirmMode === "first-message-2"` | Header: `POST-CONFIRM — FIRST LIFETIME ENTRY` |
-  | `post-confirm-subsequent-single` | `postConfirmMode === "subsequent-single"` | Header: `POST-CONFIRM — SUBSEQUENT ENTRY` |
+  | `post-confirm` | `postConfirmMode !== null` | Header: `POST-CONFIRM — FIRST LIFETIME ENTRY` (first-message-2 branch) or `POST-CONFIRM — SUBSEQUENT ENTRY` (subsequent-single branch) |
   | `adapting-short-answers` | always (`shouldRender: () => true`) | Headers: `ADAPTING` and `SHORT ANSWERS` |
   | `readiness-gate` | `manualComponentCount >= 3` | Header: `READINESS GATE (when all 5 layers have confirmed entries)` |
   | `clinical-and-tail` | always | Headers: `CLINICAL MATERIAL IN CONVERSATION`, `PROFESSIONAL REFERRAL`, `FABRICATED CONTENT`, `CHECKPOINT LANGUAGE (guidance for composition)`, `FIRST SESSION` |
@@ -468,8 +467,7 @@ panels even when they fire:
 |-------|-------------------|----------------------|
 | `first-message` (situation mode) | `FIRST MESSAGE (new user, situation mode)` | Parser pattern `/^FIRST MESSAGE \(new user\)$/m` requires the line to *end* with `(new user)`. Actual line continues with `, situation mode)`. **Bug**: this block never parses in situation mode. |
 | `returning-user-first-turn-situation` | `RETURNING USER — SITUATION OPENER AND EARLY TURNS (situation mode)` | No regex registered for this id. |
-| `post-confirm-first-message-2` | `POST-CONFIRM — FIRST LIFETIME ENTRY` | No regex registered. |
-| `post-confirm-subsequent-single` | `POST-CONFIRM — SUBSEQUENT ENTRY` | No regex registered. |
+| `post-confirm` | `POST-CONFIRM — FIRST LIFETIME ENTRY` / `POST-CONFIRM — SUBSEQUENT ENTRY` | No regex registered. |
 | `EARLIER ENTRIES (compressed ...)` (from `prepareManualContextBlocks.older`) | `EARLIER ENTRIES (compressed — full content lives in the Manual):` | No regex registered. The page recognises `CONFIRMED MANUAL` only. The compressed older block, when present, gets concatenated into whatever section came before it in the parser's split. |
 
 - **Type**: missing rendering (the constructor already emits them).
