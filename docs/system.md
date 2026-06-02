@@ -247,7 +247,9 @@ Rules:
 
 ## Versioning
 
-Two version constants in `src/lib/version.ts`: `APP_VERSION` (all `src/` except persona prompts) and `PERSONA_VERSION` (`system-prompt.ts` + `extraction.ts` only). Bump minor for features, patch for fixes. Once per branch, first commit that touches relevant files. On merge conflicts, take the higher value for each version independently. Do not bump unless asked.
+One version constant in `src/lib/version.ts`: `APP_VERSION`, surfaced in the desktop footer badge. Bump minor for features, patch for fixes — once per branch, on the first commit that touches `src/`. On merge conflicts, take the higher value. Do not bump unless asked.
+
+There is no persona-prompt version constant. Anthropic prompt caching is content-addressed (`cache_control: { type: "ephemeral" }`): any edit to the system-prompt text invalidates the cache on the next call automatically — no version string is involved. A former `PERSONA_VERSION` was imported nowhere and drove nothing; removed 2026-06-02.
 
 ## Onboarding Flow
 
