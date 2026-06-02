@@ -184,7 +184,7 @@ export const VENDORS: Vendor[] = [
     id: "upstash",
     name: "Upstash Redis",
     category: "RateLimit",
-    status: "potential",
+    status: "live",
     purpose:
       "Sliding-window rate limiting for /api/chat, OTP send/verify, and waitlist.",
     envVars: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
@@ -198,6 +198,6 @@ export const VENDORS: Vendor[] = [
     adrRefs: [38],
     url: "https://upstash.com",
     notes:
-      "Code paths are wired but env vars are not set in Vercel, so rate limiters currently fail open (ADR-038). Treat as scaffolded-but-inactive until the production credentials are provisioned.",
+      "Provisioned 2026-06-02 (helpful-gelding-101035.upstash.io). Env vars set in .env.local and Vercel. Rate limiters now active in production. Hard-fail at module load (VERCEL_ENV=production) ensures a lapsed credential surfaces immediately rather than silently failing open.",
   },
 ];
