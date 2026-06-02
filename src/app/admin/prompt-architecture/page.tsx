@@ -149,11 +149,28 @@ const DYNAMIC_DESCRIPTIONS: Record<string, string> = {
   "earlier-entries":
     "Older Manual entries compressed to one line each (headline + summary + key words) so Jove recognizes them without re-reading the full prose.",
   "session-context":
-    "For a returning user: how many sessions, and a short summary of last time. Read from the database.",
+    "A session-history summary for a returning user — how many sessions they've had, and a short recap of the previous one. Read from the database.",
   "transcript-detected":
     "Fires only when the user pastes a transcript — tells Jove to read it as material, not as a message.",
   "exploration-focus":
     "Fires only when the user taps 'Explore with Jove' on a Manual entry or an empty layer.",
+};
+
+// How each live-context block operates — shown in the expandable detail so the
+// box explains the mechanism first, then labels the illustrative sample beneath.
+const DYNAMIC_OPERATION: Record<string, string> = {
+  "extraction-brief":
+    "Every turn, the extraction call — a separate Sonnet request running in parallel with Jove — reads the user's latest message and writes a short brief. It is injected under the header \"── BRIEF FOR YOUR NEXT RESPONSE ──\", refreshed each turn, and overwritten the next. Because it runs in parallel, the brief reaches Jove one turn later (the one-turn lag).\n\nIn scope: the concrete scene the user described, their body and sensory words, the bind taking shape (what a pattern protects and what it costs), charged language, which Manual layer the material points to, and whether there is enough to propose a checkpoint.\n\nOut of scope: it does not decide Jove's reply or wording (advisory only — a research note, not a script); it never writes to the Manual (the checkpoint composer does that, and only after the user confirms); it is not shown to the user; and it lags one turn, so Jove trusts the live conversation over a stale brief.",
+  "confirmed-manual":
+    "Each turn, the prompt builder reads the user's confirmed Manual entries from the database. The recent ones (everything from the current conversation, plus a backfill up to 4 of the most recent overall) are pasted in full, under the header \"CONFIRMED MANUAL\", so Jove can quote them precisely. Rebuilt every turn from current data.",
+  "earlier-entries":
+    "Older entries beyond the recent four collapse to one line each — [Layer N — Name] \"Headline\" — summary; key words — under the header \"EARLIER ENTRIES (compressed)\". Enough for Jove to recognize an entry exists without re-reading its full prose. The summary and key words were written once, when the entry was confirmed.",
+  "session-context":
+    "For a returning user, the prompt builder reads the session count and a summary of the previous session from the database and pastes them under \"SESSION CONTEXT\", so Jove can pick up where things left off without a recap.",
+  "transcript-detected":
+    "When the user pastes a transcript, a detector flags it and this block is injected to tell Jove to treat the paste as material to analyze, not a message addressed to it.",
+  "exploration-focus":
+    "When the user taps \"Explore with Jove\" on a Manual entry or an empty layer, this block is injected to point Jove at that specific entry or layer for the turn.",
 };
 
 const COLOR = {
@@ -1102,6 +1119,8 @@ function SectionDetail({
   onClose: () => void;
 }) {
   const [showSource, setShowSource] = useState(false);
+  const showsOperation =
+    section.tier === "dynamic" && Boolean(DYNAMIC_OPERATION[section.id]);
   return (
     <>
       <DetailHeader label={`Tier ${section.tier} · ${section.condition.label}`} onClose={onClose} />
@@ -1120,31 +1139,17 @@ function SectionDetail({
       </h2>
 
       {DYNAMIC_DESCRIPTIONS[section.id] && (
-        <div style={{ marginTop: 4 }}>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-spectral, var(--font-serif))",
-              fontSize: 14.5,
-              lineHeight: 1.55,
-              color: "var(--session-ink-soft)",
-            }}
-          >
-            {DYNAMIC_DESCRIPTIONS[section.id]}
-          </p>
-          <p
-            style={{
-              margin: "6px 0 0",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              fontStyle: "italic",
-              color: "var(--session-ink-ghost)",
-            }}
-          >
-            The rendered text below is a placeholder example — on a real turn
-            it&rsquo;s generated per user and never shared.
-          </p>
-        </div>
+        <p
+          style={{
+            margin: "4px 0 0",
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: 14.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink-soft)",
+          }}
+        >
+          {DYNAMIC_DESCRIPTIONS[section.id]}
+        </p>
       )}
 
       <div
@@ -1274,7 +1279,9 @@ function SectionDetail({
             overflowY: "auto",
           }}
         >
-          {section.text}
+          {showsOperation
+            ? `HOW IT OPERATES\n${DYNAMIC_OPERATION[section.id]}\n\n── EXAMPLE (illustrative — not a real user) ──\n${section.text}`
+            : section.text}
         </pre>
       )}
     </>
@@ -1878,7 +1885,7 @@ function displayLabel(section: { tier: string; label: string }): string {
     case "3":
       return `Tier 3 · ${section.label}`;
     case "dynamic":
-      return `Live · ${section.label}`;
+      return section.label;
     default:
       return section.label;
   }

@@ -414,7 +414,7 @@ const SECTION_DEFS: SectionDef[] = [
   // Dynamic context blocks
   {
     id: "confirmed-manual",
-    label: "Confirmed Manual",
+    label: "Recent confirmed Manual entries",
     tier: "dynamic",
     pattern: /^(?:CONFIRMED MANUAL|NO CONFIRMED ENTRIES)/m,
     source: { file: "manual-context.ts", symbol: "prepareManualContext" },
@@ -423,7 +423,7 @@ const SECTION_DEFS: SectionDef[] = [
   },
   {
     id: "earlier-entries",
-    label: "Earlier Entries (compressed)",
+    label: "Earlier confirmed Manual entries (compressed)",
     tier: "dynamic",
     // Header: "EARLIER ENTRIES (compressed — full content lives in the Manual):"
     // (em dash U+2014). Rendered by prepareManualContextBlocks.older when
@@ -437,7 +437,7 @@ const SECTION_DEFS: SectionDef[] = [
   },
   {
     id: "session-context",
-    label: "Session Context",
+    label: "Last session recap",
     tier: "dynamic",
     pattern: /^SESSION CONTEXT$/m,
     source: { file: "system-prompt.ts", symbol: "buildSystemPrompt → session context" },
