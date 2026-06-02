@@ -603,8 +603,12 @@ describe("call-persona — post-confirm error handling", () => {
     // ("what we just touched") because it has no LLM to identify a
     // specific thread.
     expect(src).toContain('"Saved."');
-    expect(src).toContain("A Manual takes time to build");
-    expect(src).toContain("showing up daily over the next two weeks");
+    // The scaffolding paragraph now lives in one shared constant
+    // (POST_CONFIRM_FIRST_ENTRY_SCAFFOLD) imported from system-prompt and used
+    // by both the prompt block and this fallback, so the copies can't drift.
+    // The literal text is verified by the post-confirm snapshot in
+    // system-prompt.tier3.test.ts.
+    expect(src).toContain("POST_CONFIRM_FIRST_ENTRY_SCAFFOLD");
     expect(src).toContain("keep going with what we just touched, or pivot");
   });
 

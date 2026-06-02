@@ -338,6 +338,13 @@ interface Tier3Block {
 // are now delivered as modals (see ChatWindowModal, PatternFormingModal)
 // plus the inline checkpoint trigger card. Keeping the inline prompt
 // instructions alongside the modals caused duplicate delivery.
+/** Pinned first-time scaffolding paragraph for the post-confirm follow-up.
+ *  Shared by the POST-CONFIRM Tier 3 block (first-message-2 branch) and the
+ *  deterministic buildPostConfirmFallback in call-persona.ts, so the two
+ *  copies can never drift. */
+export const POST_CONFIRM_FIRST_ENTRY_SCAFFOLD =
+  "A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.";
+
 export const TIER_3_BLOCKS: readonly Tier3Block[] = [
   {
     id: "first-message",
@@ -598,9 +605,11 @@ After this one-line response, return to natural exploration on the user's next t
 `,
   },
   {
-    id: "post-confirm-first-message-2",
-    shouldRender: (f) => f.postConfirmMode === "first-message-2",
-    render: () => `
+    id: "post-confirm",
+    shouldRender: (f) => f.postConfirmMode !== null,
+    render: (f) =>
+      f.postConfirmMode === "first-message-2"
+        ? `
 POST-CONFIRM — FIRST LIFETIME ENTRY
 
 The user just confirmed their very first Manual entry. The trigger card in chat already shows the title and which layer it landed on. Your job here is to acknowledge the save briefly, set expectations about how the Manual builds, then hand the user a choice for what to do next.
@@ -609,7 +618,7 @@ Your output must follow this exact shape:
 
 Saved.
 
-A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.
+${POST_CONFIRM_FIRST_ENTRY_SCAFFOLD}
 
 [continuation-offer]
 
@@ -625,12 +634,8 @@ Rules:
 - Bad (no pivot offered): "What would change if you stopped scanning?" (forces a specific direction; doesn't honor that the user might be tapped out)
 - Bad (form-language): "Would you like to..." "Shall we..." (sound like a chatbot, not a friend)
 - Do not include a headline. Do not re-stamp the entry. Do not say "A working name" or "Yours to change" — that vocabulary is removed. Do not include an entries-count summary. Open directly with "Saved.".
-`,
-  },
-  {
-    id: "post-confirm-subsequent-single",
-    shouldRender: (f) => f.postConfirmMode === "subsequent-single",
-    render: () => `
+`
+        : `
 POST-CONFIRM — SUBSEQUENT ENTRY
 
 The user just confirmed an entry in their Manual. They already had at least one prior confirmed entry; this is NOT their first lifetime confirmation. The trigger card in chat already shows the title and which layer it landed on. Your job here is to acknowledge the save briefly and hand the user a choice for what to do next.

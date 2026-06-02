@@ -6,7 +6,7 @@ import {
 import { parseAnthropicStream } from "@/lib/anthropic-sse";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
-import { buildSystemPromptBlocks, type PersonaMode } from "@/lib/persona/system-prompt";
+import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD, type PersonaMode } from "@/lib/persona/system-prompt";
 import { logEvent } from "@/lib/observability/log";
 import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
@@ -337,7 +337,7 @@ function buildPostConfirmFallback(
   if (mode === "first-message-2") {
     return [
       "Saved.",
-      "A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.",
+      POST_CONFIRM_FIRST_ENTRY_SCAFFOLD,
       "We could keep going with what we just touched, or pivot to something else if this is enough for now.",
     ].join("\n\n");
   }

@@ -162,8 +162,7 @@ describe("G4 — post-action and checkpoint-proposal blocks never co-render (co-
   // A post-action turn (post-confirm follow-up or post-rejection) has a pinned
   // response; the checkpoint-proposal machinery would contradict it.
   const POST_ACTION = [
-    "post-confirm-first-message-2",
-    "post-confirm-subsequent-single",
+    "post-confirm",
     "post-rejection",
   ];
   const PROPOSAL = ["checkpoints", "first-checkpoint"];
