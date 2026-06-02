@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { isEmailAllowlisted, normalizeEmail } from "@/lib/beta-allowlist";
 
-// Email/password signup gated by beta_allowlist. The actual auth.users row
-// is only created if the email passes the allowlist check, so non-allowlisted
-// emails never receive a confirmation email and never appear in auth.users.
+// Email/password signup gated by beta access (a waitlist row with
+// status='invited', via isEmailAllowlisted). The actual auth.users row is only
+// created if the email passes the check, so non-invited emails never receive a
+// confirmation email and never appear in auth.users.
 //
 // Google OAuth signup is gated separately in /auth/callback (it cannot be
 // pre-checked because the user is created during exchangeCodeForSession).

@@ -19,7 +19,9 @@ vi.mock("@/lib/supabase/admin", () => ({
     chain.from = () => chain;
     chain.select = () => chain;
     chain.eq = (col: string, val: string) => {
-      lastSelectEqArgs = { col, val };
+      // The gate chains .eq("email", …).eq("status", "invited"); record the
+      // email lookup specifically so the assertion stays meaningful.
+      if (col === "email") lastSelectEqArgs = { col, val };
       return chain;
     };
     chain.maybeSingle = () => Promise.resolve(allowlistResponse);

@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin/verify-admin";
+import { isValidEmail, normalizeEmail } from "@/lib/beta-allowlist";
 
 const ALLOWED_STATUSES = ["waiting", "invited", "declined"] as const;
 type WaitlistStatus = (typeof ALLOWED_STATUSES)[number];
@@ -17,7 +18,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from("waitlist")
-      .select("id, email, source, status, seen, created_at")
+      .select("id, email, source, status, seen, notes, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -72,6 +73,79 @@ export async function PATCH(request: Request) {
     }
 
     return Response.json({ ok: true });
+  } catch (err) {
+    console.error("[admin/waitlist] unexpected error:", err);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// Manually grant beta access to an email (the admin "Add invited email" box).
+// Inserts an invited row, or promotes an existing waiting/declined row to
+// invited. seen=true so a manual grant never shows up as a "new signup".
+export async function POST(request: Request) {
+  try {
+    const auth = await requireAdmin();
+    if (auth instanceof Response) return auth;
+    const { admin } = auth;
+
+    let body: { email?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ error: "invalid_body" }, { status: 400 });
+    }
+
+    const rawEmail = body.email;
+    if (typeof rawEmail !== "string" || !rawEmail.trim()) {
+      return Response.json({ error: "invalid_email" }, { status: 400 });
+    }
+    const email = normalizeEmail(rawEmail);
+    if (!isValidEmail(email)) {
+      return Response.json({ error: "invalid_email" }, { status: 400 });
+    }
+
+    const { data: existing, error: lookupError } = await admin
+      .from("waitlist")
+      .select("id, status")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[admin/waitlist] POST lookup error:", lookupError.message);
+      return Response.json({ error: "Failed to add" }, { status: 500 });
+    }
+
+    if (existing) {
+      if (existing.status === "invited") {
+        return Response.json({ result: "already_exists" });
+      }
+      // Promote a waiting/declined row to invited.
+      const { error: updateError } = await admin
+        .from("waitlist")
+        .update({ status: "invited" })
+        .eq("id", existing.id);
+      if (updateError) {
+        console.error("[admin/waitlist] POST promote error:", updateError.message);
+        return Response.json({ error: "Failed to add" }, { status: 500 });
+      }
+      return Response.json({ result: "added" });
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const { error: insertError } = await admin.from("waitlist").insert({
+      email,
+      status: "invited",
+      seen: true,
+      notes: `Invited via admin on ${today}`,
+    });
+    if (insertError) {
+      console.error("[admin/waitlist] POST insert error:", insertError.message);
+      return Response.json({ error: "Failed to add" }, { status: 500 });
+    }
+    // Don't log the raw email (PII). The row itself is the audit trail.
+    console.log("[admin/waitlist] manually invited an email");
+
+    return Response.json({ result: "added" });
   } catch (err) {
     console.error("[admin/waitlist] unexpected error:", err);
     return Response.json({ error: "Internal server error" }, { status: 500 });

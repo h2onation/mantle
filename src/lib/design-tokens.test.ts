@@ -34,7 +34,6 @@ const ALLOWLIST = new Set<string>([
   "src/components/admin/AdminNavRail.tsx",
   "src/components/admin/UsersTab.tsx",
   "src/components/admin/WaitlistTab.tsx",
-  "src/components/admin/BetaAllowlistTab.tsx",
   "src/components/admin/SchemaHealthTab.tsx",
   "src/components/admin/ConfirmHealthPanel.tsx",
   "src/components/admin/ActiveUsersPanel.tsx",

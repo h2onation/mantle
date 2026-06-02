@@ -1,5 +1,6 @@
-// Beta access gate. Reads beta_allowlist via the service-role admin client
-// because the table has no user-facing RLS policies.
+// Beta access gate. Access is derived from the waitlist row's status: an email
+// is allowed when it has a waitlist row with status = 'invited'. Reads via the
+// service-role admin client because the table has no user-facing RLS policy.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -16,10 +17,10 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Returns true if the given email (after lowercase + trim) appears in
- * beta_allowlist. Errors fail CLOSED — if we cannot confirm allowlist
- * membership, we deny access. The beta gate is more important than
- * uptime here.
+ * Returns true if the given email (after lowercase + trim) has a waitlist row
+ * with status = 'invited'. Errors fail CLOSED — if we cannot confirm an
+ * invited row, we deny access. The beta gate is more important than uptime
+ * here.
  */
 export async function isEmailAllowlisted(email: string): Promise<boolean> {
   const normalized = normalizeEmail(email);
@@ -27,9 +28,10 @@ export async function isEmailAllowlisted(email: string): Promise<boolean> {
 
   const admin = createAdminClient();
   const { data, error } = await admin
-    .from("beta_allowlist")
+    .from("waitlist")
     .select("id")
     .eq("email", normalized)
+    .eq("status", "invited")
     .maybeSingle();
 
   if (error) {

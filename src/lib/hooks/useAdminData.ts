@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import type { ManualEntry } from "@/lib/types";
 import type { WaitlistRow, WaitlistStatus } from "@/components/admin/WaitlistTab";
 import type { BetaFeedbackRow } from "@/components/admin/BetaFeedbackTab";
-import type { BetaAllowlistRow } from "@/components/admin/BetaAllowlistTab";
 
 export interface AdminUser {
   id: string;
@@ -60,11 +59,9 @@ export function useAdminData() {
   const [extractionState, setExtractionState] = useState<Record<string, unknown> | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Beta
+  // Beta — one list. A row's status is its access: 'invited' === allowed in.
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [waitlistLoaded, setWaitlistLoaded] = useState(false);
-  const [allowlist, setAllowlist] = useState<BetaAllowlistRow[]>([]);
-  const [allowlistLoaded, setAllowlistLoaded] = useState(false);
 
   // Feedback
   const [betaFeedback, setBetaFeedback] = useState<BetaFeedbackRow[]>([]);
@@ -89,8 +86,8 @@ export function useAdminData() {
     }
   }, [usersLoaded]);
 
-  const loadWaitlist = useCallback(async () => {
-    if (waitlistLoaded) return;
+  const loadWaitlist = useCallback(async (force = false) => {
+    if (waitlistLoaded && !force) return;
     try {
       const res = await fetch("/api/admin/waitlist");
       if (!res.ok) return;
@@ -101,19 +98,6 @@ export function useAdminData() {
       console.error("[admin] load waitlist failed:", err);
     }
   }, [waitlistLoaded]);
-
-  const loadAllowlist = useCallback(async (force = false) => {
-    if (allowlistLoaded && !force) return;
-    try {
-      const res = await fetch("/api/admin/beta-allowlist");
-      if (!res.ok) return;
-      const data = await res.json();
-      setAllowlist(data.items || []);
-      setAllowlistLoaded(true);
-    } catch (err) {
-      console.error("[admin] load allowlist failed:", err);
-    }
-  }, [allowlistLoaded]);
 
   const loadBetaFeedback = useCallback(async () => {
     try {
@@ -248,40 +232,25 @@ export function useAdminData() {
     );
   }, []);
 
-  const addToBeta = useCallback(
-    async (email: string, waitlistId?: string): Promise<"added" | "already_exists"> => {
-      const res = await fetch("/api/admin/beta-allowlist", {
+  // Manually grant access to an email (the "Add invited email" box). Inserts
+  // an invited row or promotes an existing one; reloads the list on success so
+  // the new/updated row appears with its server-assigned id.
+  const addInvitedEmail = useCallback(
+    async (email: string): Promise<"added" | "already_exists"> => {
+      const res = await fetch("/api/admin/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, waitlist_id: waitlistId }),
+        body: JSON.stringify({ email }),
       });
-      if (!res.ok) throw new Error("Failed to add to beta");
+      if (!res.ok) throw new Error("Failed to invite email");
       const data = await res.json();
       if (data.result === "added") {
-        // The API removes the matching waitlist row (by id when provided,
-        // otherwise by email). Mirror that in local state.
-        const normalized = email.trim().toLowerCase();
-        setWaitlist((prev) =>
-          prev.filter((row) =>
-            waitlistId
-              ? row.id !== waitlistId
-              : row.email.toLowerCase() !== normalized
-          )
-        );
-        await loadAllowlist(true);
+        await loadWaitlist(true);
       }
       return data.result;
     },
-    [loadAllowlist]
+    [loadWaitlist]
   );
-
-  const removeFromAllowlist = useCallback(async (id: string) => {
-    const res = await fetch(`/api/admin/beta-allowlist?id=${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to remove from allowlist");
-    setAllowlist((prev) => prev.filter((row) => row.id !== id));
-  }, []);
 
   const markBetaFeedbackRead = useCallback(async (id: string) => {
     const res = await fetch("/api/admin/beta-feedback", {
@@ -333,8 +302,6 @@ export function useAdminData() {
     profileLoading,
     waitlist,
     waitlistLoaded,
-    allowlist,
-    allowlistLoaded,
     betaFeedback,
     betaFeedbackUnreadCount,
     betaFeedbackLoaded,
@@ -344,7 +311,6 @@ export function useAdminData() {
     // actions
     loadUsers,
     loadWaitlist,
-    loadAllowlist,
     loadBetaFeedback,
     loadUserFeedback,
     loadApiErrorsSummary,
@@ -354,8 +320,7 @@ export function useAdminData() {
     closeConversation,
     changeWaitlistStatus,
     markWaitlistSeen,
-    addToBeta,
-    removeFromAllowlist,
+    addInvitedEmail,
     markBetaFeedbackRead,
     deleteBetaFeedback,
     deleteUserFeedback,

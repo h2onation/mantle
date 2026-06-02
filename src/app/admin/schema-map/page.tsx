@@ -462,21 +462,6 @@ const TABLES: Table[] = [
       "Slated for removal. Per project memory: 'Moving away from Linq; no further investment in Linq code.'",
   },
   {
-    name: "beta_allowlist",
-    layers: ["beta"],
-    oneLine: "Email gate for beta signups.",
-    rowMeans:
-      "An email approved for beta access. The signup flow checks against this list.",
-    description:
-      "Pure allowlist with no foreign keys. Just emails + creation timestamps + optional notes. Emails must be lowercase + trimmed (CHECK constraint).",
-    columns: [
-      { name: "id", type: "uuid", plain: "Unique allowlist-entry identifier." },
-      { name: "email", type: "text (unique, lowercased)", plain: "The approved email address.", emphasized: true },
-      { name: "notes", type: "text", plain: "Optional admin notes (e.g. 'invited by Jeff, ND advocate')." },
-    ],
-    connections: [],
-  },
-  {
     name: "beta_feedback",
     layers: ["beta"],
     oneLine: "User-submitted feedback during beta.",
@@ -530,16 +515,18 @@ const TABLES: Table[] = [
   {
     name: "waitlist",
     layers: ["beta"],
-    oneLine: "Pre-allowlist email capture.",
+    oneLine: "Beta access list — status is the access gate.",
     rowMeans:
-      "An email captured from the marketing site or signup flow before they're approved for beta.",
+      "One person in the beta funnel. Their status IS their access: 'invited' means allowed to sign up / log in.",
     description:
-      "Pre-allowlist staging. status moves through 'waiting' → 'invited' → 'declined'. When an email is approved, it's copied to beta_allowlist and the waitlist row's status is updated.",
+      "Single source of truth for beta access (retired the separate beta_allowlist table). status moves 'waiting' → 'invited' → 'declined'. The signup + OAuth gates (isEmailAllowlisted) read this table WHERE status='invited'. Inviting is a single atomic status flip — no copy/delete between tables. Emails are unique + lowercase (CHECK constraint).",
     columns: [
-      { name: "id", type: "uuid", plain: "Unique waitlist identifier." },
-      { name: "email", type: "text (unique, lowercased)", plain: "The email captured." },
-      { name: "source", type: "text", plain: "Where the email came from ('landing', 'referral', etc.)." },
-      { name: "status", type: "text", plain: "'waiting', 'invited', or 'declined'.", emphasized: true },
+      { name: "id", type: "uuid", plain: "Unique row identifier." },
+      { name: "email", type: "text (unique, lowercased)", plain: "The email." },
+      { name: "source", type: "text", plain: "Freeform 'what brought you here' from the public form (null for manual invites)." },
+      { name: "status", type: "text", plain: "'waiting', 'invited', or 'declined'. 'invited' === beta access.", emphasized: true },
+      { name: "seen", type: "boolean", plain: "Admin has acknowledged this signup (clears the 'new signups' badge). Manual invites land seen=true." },
+      { name: "notes", type: "text", plain: "Optional admin note (e.g. on a manual invite)." },
     ],
     connections: [],
   },

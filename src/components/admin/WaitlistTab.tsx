@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   adminMetaStyle,
   adminEmptyStyle,
+  adminLabelStyle,
   formatAdminDate,
   paginate,
 } from "./admin-shared";
@@ -17,59 +18,100 @@ export interface WaitlistRow {
   source: string | null;
   status: WaitlistStatus;
   seen: boolean;
+  notes: string | null;
   created_at: string;
 }
 
 interface Props {
   items: WaitlistRow[];
+  // Invite = set 'invited' (grants access); Decline = set 'declined' (revokes).
   onChangeStatus: (id: string, status: WaitlistStatus) => Promise<void>;
   onMarkSeen: (id: string) => Promise<void>;
-  onAddToBeta: (email: string, waitlistId?: string) => Promise<"added" | "already_exists">;
+  onAddInvited: (email: string) => Promise<"added" | "already_exists">;
 }
 
-const PER_PAGE = 10;
-const STATUSES: WaitlistStatus[] = ["waiting", "invited", "declined"];
+const PER_PAGE = 12;
 
-// Inline two-step status change. The dropdown sets a *pending* selection on
-// the row; the row then renders a confirm/cancel pair right next to it. No
-// modal — matches the rest of the app's terse style and avoids stealing
-// focus from the table.
-type Pending = { id: string; nextStatus: WaitlistStatus } | null;
+// Default sort puts the queue that needs action first: waiting → invited →
+// declined, newest within each group.
+const STATUS_RANK: Record<WaitlistStatus, number> = {
+  waiting: 0,
+  invited: 1,
+  declined: 2,
+};
 
-export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddToBeta }: Props) {
+type StatusFilter = "all" | WaitlistStatus;
+type SortMode = "status" | "newest" | "oldest";
+
+const FILTERS: StatusFilter[] = ["all", "waiting", "invited", "declined"];
+
+export default function WaitlistTab({
+  items,
+  onChangeStatus,
+  onMarkSeen,
+  onAddInvited,
+}: Props) {
   const [page, setPage] = useState(0);
-  const [pending, setPending] = useState<Pending>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("status");
+
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pendingDecline, setPendingDecline] = useState<string | null>(null);
   const [seenSavingId, setSeenSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Per-row "Add to beta" state
-  const [betaRowSaving, setBetaRowSaving] = useState<string | null>(null);
-  const [betaRowResult, setBetaRowResult] = useState<
-    Record<string, "added" | "already_exists">
-  >({});
+  // Add-invited-email form.
+  const [email, setEmail] = useState("");
+  const [formStatus, setFormStatus] = useState<
+    "idle" | "saving" | "added" | "already_exists" | "error"
+  >("idle");
 
-  const visible = paginate(items, page, PER_PAGE);
+  // Per-status counts for the filter chips (computed off the full set).
+  const counts = items.reduce(
+    (acc, r) => {
+      acc[r.status] += 1;
+      return acc;
+    },
+    { waiting: 0, invited: 0, declined: 0 } as Record<WaitlistStatus, number>
+  );
 
-  async function handleConfirm() {
-    if (!pending) return;
+  const query = search.trim().toLowerCase();
+  const filtered = items
+    .filter((r) => statusFilter === "all" || r.status === statusFilter)
+    .filter((r) => !query || r.email.toLowerCase().includes(query));
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === "newest") return b.created_at.localeCompare(a.created_at);
+    if (sortMode === "oldest") return a.created_at.localeCompare(b.created_at);
+    const rank = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+    return rank !== 0 ? rank : b.created_at.localeCompare(a.created_at);
+  });
+
+  const visible = paginate(sorted, page, PER_PAGE);
+
+  function resetPage() {
+    setPage(0);
+  }
+
+  async function handleStatus(id: string, status: WaitlistStatus) {
     setError(null);
-    setSavingId(pending.id);
+    setSavingId(id);
     try {
-      await onChangeStatus(pending.id, pending.nextStatus);
-      setPending(null);
+      await onChangeStatus(id, status);
+      setPendingDecline(null);
     } catch {
-      setError("Failed to update status. Try again.");
+      setError("Failed to update. Try again.");
     } finally {
       setSavingId(null);
     }
   }
 
-  async function handleMarkSeen(row: WaitlistRow) {
+  async function handleMarkSeen(id: string) {
     setError(null);
-    setSeenSavingId(row.id);
+    setSeenSavingId(id);
     try {
-      await onMarkSeen(row.id);
+      await onMarkSeen(id);
     } catch {
       setError("Failed to mark seen. Try again.");
     } finally {
@@ -77,21 +119,185 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
     }
   }
 
-  async function handleRowAddToBeta(row: WaitlistRow) {
-    setBetaRowSaving(row.id);
+  async function handleAddInvited(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+    setFormStatus("saving");
     try {
-      const result = await onAddToBeta(row.email, row.id);
-      setBetaRowResult((prev) => ({ ...prev, [row.id]: result }));
+      const result = await onAddInvited(trimmed);
+      setFormStatus(result);
+      if (result === "added") setEmail("");
+      setTimeout(() => setFormStatus("idle"), 3000);
     } catch {
-      setError("Failed to add to beta. Try again.");
-    } finally {
-      setBetaRowSaving(null);
+      setFormStatus("error");
+      setTimeout(() => setFormStatus("idle"), 3000);
     }
   }
 
   return (
     <div>
-      {/* ── Error banner ──────────────────────────────────────── */}
+      {/* ── Add invited email ─────────────────────────────────── */}
+      <div
+        style={{
+          padding: "4px 0 16px",
+          borderBottom: "1px solid var(--session-ink-hairline)",
+          marginBottom: 12,
+        }}
+      >
+        <div style={{ ...adminLabelStyle, marginBottom: 10 }}>
+          Invite an email directly
+        </div>
+        <form
+          onSubmit={handleAddInvited}
+          style={{ display: "flex", gap: 8, alignItems: "center" }}
+        >
+          <input
+            type="email"
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={formStatus === "saving"}
+            style={{
+              flex: 1,
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              color: "var(--session-ink)",
+              background: "rgba(255,255,255,0.6)",
+              border: "1px solid var(--session-ink-hairline)",
+              borderRadius: 6,
+              padding: "8px 10px",
+              outline: "none",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={formStatus === "saving" || !email.trim()}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--size-meta)",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "var(--session-cream)",
+              background: "var(--session-persona)",
+              border: "none",
+              borderRadius: 6,
+              padding: "9px 14px",
+              cursor:
+                formStatus === "saving" || !email.trim() ? "default" : "pointer",
+              opacity: formStatus === "saving" || !email.trim() ? 0.5 : 1,
+              WebkitTapHighlightColor: "transparent",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formStatus === "saving" ? "Inviting…" : "Invite"}
+          </button>
+        </form>
+        {formStatus === "added" && (
+          <div style={{ ...formMsgStyle, color: "var(--session-persona)" }}>
+            Invited. They can sign in now.
+          </div>
+        )}
+        {formStatus === "already_exists" && (
+          <div style={{ ...formMsgStyle, color: "var(--session-ink-ghost)" }}>
+            Already invited.
+          </div>
+        )}
+        {formStatus === "error" && (
+          <div style={{ ...formMsgStyle, color: "var(--session-error)" }}>
+            Failed to invite. Try again.
+          </div>
+        )}
+      </div>
+
+      {/* ── Filters / search / sort ───────────────────────────── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginBottom: 8,
+        }}
+      >
+        {FILTERS.map((f) => {
+          const active = f === statusFilter;
+          const label =
+            f === "all"
+              ? `All (${items.length})`
+              : `${f} (${counts[f]})`;
+          return (
+            <button
+              key={f}
+              onClick={() => {
+                setStatusFilter(f);
+                resetPage();
+              }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--size-meta)",
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                color: active ? "var(--session-cream)" : "var(--session-ink-mid)",
+                background: active ? "var(--session-walnut)" : "none",
+                border: "1px solid var(--session-ink-hairline)",
+                borderRadius: "var(--radius-pill)",
+                padding: "4px 10px",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+
+        <input
+          type="text"
+          placeholder="Search email…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            resetPage();
+          }}
+          style={{
+            flex: 1,
+            minWidth: 140,
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            color: "var(--session-ink)",
+            background: "rgba(255,255,255,0.6)",
+            border: "1px solid var(--session-ink-hairline)",
+            borderRadius: 6,
+            padding: "6px 10px",
+            outline: "none",
+          }}
+        />
+
+        <select
+          value={sortMode}
+          onChange={(e) => {
+            setSortMode(e.target.value as SortMode);
+            resetPage();
+          }}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            background: "rgba(255,255,255,0.6)",
+            border: "1px solid var(--session-ink-hairline)",
+            borderRadius: 4,
+            padding: "5px 6px",
+          }}
+        >
+          <option value="status">Sort: status</option>
+          <option value="newest">Sort: newest</option>
+          <option value="oldest">Sort: oldest</option>
+        </select>
+      </div>
+
       {error && (
         <div
           style={{
@@ -106,16 +312,17 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
         </div>
       )}
 
-      {/* ── Waitlist rows ─────────────────────────────────────── */}
+      {/* ── Rows ──────────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <div style={adminEmptyStyle}>No waitlist submissions yet</div>
+        <div style={adminEmptyStyle}>No signups yet</div>
+      ) : sorted.length === 0 ? (
+        <div style={adminEmptyStyle}>No matches</div>
       ) : (
         <>
           {visible.map((row) => {
-            const isPending = pending?.id === row.id;
             const isSaving = savingId === row.id;
-            const isBetaSaving = betaRowSaving === row.id;
-            const betaResult = betaRowResult[row.id];
+            const isPendingDecline = pendingDecline === row.id;
+            const isSeenSaving = seenSavingId === row.id;
             return (
               <div
                 key={row.id}
@@ -124,30 +331,12 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
                   borderBottom: "1px solid var(--session-ink-hairline)",
                 }}
               >
+                {/* email + badges */}
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
                 >
-                  {!row.seen && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        letterSpacing: "1px",
-                        textTransform: "uppercase",
-                        color: "var(--session-cream)",
-                        background: "var(--session-persona)",
-                        borderRadius: 4,
-                        padding: "1px 6px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      New
-                    </span>
-                  )}
+                  {!row.seen && <span style={newPillStyle}>New</span>}
+                  <StatusBadge status={row.status} />
                   <span
                     style={{
                       fontFamily: "var(--font-sans)",
@@ -157,14 +346,18 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      minWidth: 0,
                     }}
                   >
                     {row.email}
                   </span>
                 </div>
+
                 <div style={adminMetaStyle}>
                   {formatAdminDate(row.created_at)}
+                  {row.notes ? ` · ${row.notes}` : ""}
                 </div>
+
                 {row.source && (
                   <div
                     style={{
@@ -180,7 +373,7 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
                   </div>
                 )}
 
-                {/* Status row + Add to beta */}
+                {/* actions */}
                 <div
                   style={{
                     display: "flex",
@@ -190,172 +383,61 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
                     flexWrap: "wrap",
                   }}
                 >
-                  <select
-                    value={isPending ? pending!.nextStatus : row.status}
-                    disabled={isSaving}
-                    onChange={(e) => {
-                      const next = e.target.value as WaitlistStatus;
-                      if (next === row.status) {
-                        setPending(null);
-                      } else {
-                        setPending({ id: row.id, nextStatus: next });
-                      }
-                    }}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "var(--size-meta)",
-                      letterSpacing: "1px",
-                      textTransform: "uppercase",
-                      color: "var(--session-ink)",
-                      background: "rgba(255,255,255,0.6)",
-                      border: "1px solid var(--session-ink-hairline)",
-                      borderRadius: 4,
-                      padding: "4px 6px",
-                    }}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  {isSaving && (
+                    <span style={ghostNote}>Saving…</span>
+                  )}
 
-                  {isPending && !isSaving && (
+                  {!isSaving && row.status !== "invited" && (
+                    <button
+                      onClick={() => handleStatus(row.id, "invited")}
+                      style={solidBtn}
+                    >
+                      Invite
+                    </button>
+                  )}
+
+                  {!isSaving && row.status !== "declined" && !isPendingDecline && (
+                    <button
+                      onClick={() => setPendingDecline(row.id)}
+                      style={outlineBtn}
+                    >
+                      Decline
+                    </button>
+                  )}
+
+                  {!isSaving && isPendingDecline && (
                     <>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          color: "var(--session-ink-ghost)",
-                          letterSpacing: "1px",
-                        }}
-                      >
-                        Change to {pending!.nextStatus}?
+                      <span style={ghostNote}>
+                        {row.status === "invited" ? "Revoke access?" : "Decline?"}
                       </span>
                       <button
-                        onClick={handleConfirm}
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          letterSpacing: "1px",
-                          textTransform: "uppercase",
-                          color: "var(--session-cream)",
-                          background: "var(--session-persona)",
-                          border: "none",
-                          borderRadius: 4,
-                          padding: "5px 9px",
-                          cursor: "pointer",
-                          WebkitTapHighlightColor: "transparent",
-                        }}
+                        onClick={() => handleStatus(row.id, "declined")}
+                        style={dangerBtn}
                       >
                         Confirm
                       </button>
                       <button
-                        onClick={() => setPending(null)}
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "var(--size-meta)",
-                          letterSpacing: "1px",
-                          textTransform: "uppercase",
-                          color: "var(--session-ink-ghost)",
-                          background: "none",
-                          border: "1px solid var(--session-ink-hairline)",
-                          borderRadius: 4,
-                          padding: "5px 9px",
-                          cursor: "pointer",
-                          WebkitTapHighlightColor: "transparent",
-                        }}
+                        onClick={() => setPendingDecline(null)}
+                        style={outlineBtn}
                       >
                         Cancel
                       </button>
                     </>
                   )}
 
-                  {isSaving && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        color: "var(--session-ink-ghost)",
-                        letterSpacing: "1px",
-                      }}
-                    >
-                      Saving…
-                    </span>
-                  )}
-
-                  {/* Mark seen — clears this row from the new-signup badge
-                      without changing its status. */}
                   {!row.seen && (
                     <button
-                      onClick={() => handleMarkSeen(row)}
-                      disabled={seenSavingId === row.id}
+                      onClick={() => handleMarkSeen(row.id)}
+                      disabled={isSeenSaving}
                       style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        letterSpacing: "1px",
-                        textTransform: "uppercase",
-                        color: "var(--session-ink-ghost)",
-                        background: "none",
-                        border: "1px solid var(--session-ink-hairline)",
-                        borderRadius: 4,
-                        padding: "5px 9px",
-                        cursor: seenSavingId === row.id ? "default" : "pointer",
-                        opacity: seenSavingId === row.id ? 0.5 : 1,
-                        WebkitTapHighlightColor: "transparent",
+                        ...outlineBtn,
+                        marginLeft: "auto",
+                        cursor: isSeenSaving ? "default" : "pointer",
+                        opacity: isSeenSaving ? 0.5 : 1,
                       }}
                     >
-                      {seenSavingId === row.id ? "Saving…" : "Mark seen"}
+                      {isSeenSaving ? "Saving…" : "Mark seen"}
                     </button>
-                  )}
-
-                  {/* Add to beta button */}
-                  {!betaResult && (
-                    <button
-                      onClick={() => handleRowAddToBeta(row)}
-                      disabled={isBetaSaving}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        letterSpacing: "1px",
-                        textTransform: "uppercase",
-                        color: "var(--session-persona)",
-                        background: "none",
-                        border: "1px solid var(--session-persona)",
-                        borderRadius: 4,
-                        padding: "5px 9px",
-                        cursor: isBetaSaving ? "default" : "pointer",
-                        opacity: isBetaSaving ? 0.5 : 1,
-                        WebkitTapHighlightColor: "transparent",
-                        marginLeft: "auto",
-                      }}
-                    >
-                      {isBetaSaving ? "Adding…" : "Add to beta"}
-                    </button>
-                  )}
-                  {betaResult === "added" && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        color: "var(--session-persona)",
-                        letterSpacing: "0.5px",
-                        marginLeft: "auto",
-                      }}
-                    >
-                      Added
-                    </span>
-                  )}
-                  {betaResult === "already_exists" && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        color: "var(--session-ink-ghost)",
-                        letterSpacing: "0.5px",
-                        marginLeft: "auto",
-                      }}
-                    >
-                      Already on list
-                    </span>
                   )}
                 </div>
               </div>
@@ -365,7 +447,7 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
           <Pagination
             page={page}
             perPage={PER_PAGE}
-            total={items.length}
+            total={sorted.length}
             onChange={setPage}
           />
         </>
@@ -373,3 +455,120 @@ export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddTo
     </div>
   );
 }
+
+function StatusBadge({ status }: { status: WaitlistStatus }) {
+  const base: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "var(--size-meta)",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    borderRadius: 4,
+    padding: "1px 6px",
+    flexShrink: 0,
+  };
+  if (status === "invited") {
+    return (
+      <span
+        style={{
+          ...base,
+          color: "var(--session-cream)",
+          background: "var(--session-persona)",
+        }}
+      >
+        Invited
+      </span>
+    );
+  }
+  if (status === "declined") {
+    return (
+      <span
+        style={{
+          ...base,
+          color: "var(--session-ink-ghost)",
+          border: "1px solid var(--session-ink-hairline)",
+        }}
+      >
+        Declined
+      </span>
+    );
+  }
+  return (
+    <span
+      style={{
+        ...base,
+        color: "var(--session-ink-mid)",
+        border: "1px solid var(--session-ink-hairline)",
+      }}
+    >
+      Waiting
+    </span>
+  );
+}
+
+const formMsgStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  marginTop: 8,
+  letterSpacing: "0.5px",
+};
+
+const newPillStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: "var(--session-cream)",
+  background: "var(--session-walnut)",
+  borderRadius: 4,
+  padding: "1px 6px",
+  flexShrink: 0,
+};
+
+const ghostNote: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  color: "var(--session-ink-ghost)",
+  letterSpacing: "1px",
+};
+
+const solidBtn: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: "var(--session-cream)",
+  background: "var(--session-persona)",
+  border: "none",
+  borderRadius: 4,
+  padding: "5px 9px",
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
+};
+
+const outlineBtn: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: "var(--session-ink-ghost)",
+  background: "none",
+  border: "1px solid var(--session-ink-hairline)",
+  borderRadius: 4,
+  padding: "5px 9px",
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
+};
+
+const dangerBtn: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "var(--size-meta)",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: "var(--session-cream)",
+  background: "var(--session-error)",
+  border: "none",
+  borderRadius: 4,
+  padding: "5px 9px",
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
+};

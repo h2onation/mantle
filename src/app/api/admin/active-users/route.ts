@@ -1,6 +1,7 @@
 // Admin-only endpoint: who's in the beta, who's signed in, when they
 // were last active. Beta Health panel part 2 of 3. No new table —
-// joins beta_allowlist with auth.users.
+// joins invited waitlist rows (status='invited' === beta access) with
+// auth.users.
 //
 // Privacy: email is the only PII returned. Admin already sees emails
 // in the Users and Feedback tabs; surfacing them here is no new
@@ -39,14 +40,15 @@ export async function GET(): Promise<Response> {
     if (auth instanceof Response) return auth;
     const { admin } = auth;
 
-    // Parallel fetch: allowlist + auth users.
+    // Parallel fetch: invited waitlist rows + auth users.
     const [
       { data: allowlist, error: allowlistError },
       authResult,
     ] = await Promise.all([
       admin
-        .from("beta_allowlist")
+        .from("waitlist")
         .select("email, created_at")
+        .eq("status", "invited")
         .order("created_at", { ascending: false }),
       listAllAuthUsers(admin),
     ]);
@@ -60,8 +62,8 @@ export async function GET(): Promise<Response> {
     }
 
     // email → auth user lookup. Emails from auth.users are already stored
-    // lowercased by Supabase; beta_allowlist emails are lowercased by the
-    // POST handler. Normalize both sides anyway for safety.
+    // lowercased by Supabase; waitlist emails are lowercased on insert.
+    // Normalize both sides anyway for safety.
     const authByEmail = new Map<string, (typeof authResult.users)[number]>();
     for (const u of authResult.users) {
       if (u.email) authByEmail.set(u.email.toLowerCase(), u);

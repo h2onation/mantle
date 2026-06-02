@@ -6,7 +6,6 @@ import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { useAdminData } from "@/lib/hooks/useAdminData";
 import UsersTab from "@/components/admin/UsersTab";
 import WaitlistTab from "@/components/admin/WaitlistTab";
-import BetaAllowlistTab from "@/components/admin/BetaAllowlistTab";
 import UserProfilePane from "@/components/admin/UserProfilePane";
 import SchemaHealthTab from "@/components/admin/SchemaHealthTab";
 import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
@@ -16,7 +15,6 @@ import FeedbackSection from "@/components/admin/FeedbackSection";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 type Section = "users" | "beta" | "feedback" | "health";
-type BetaSubTab = "waitlist" | "allowlist";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "users", label: "Users" },
@@ -43,7 +41,6 @@ function AdminPageInner() {
     ? sectionParam
     : "users";
 
-  const [betaSubTab, setBetaSubTab] = useState<BetaSubTab>("waitlist");
   const [waitingCount, setWaitingCount] = useState(0);
 
   // Pending-waitlist count for the Beta nav badge — loaded regardless of the
@@ -70,7 +67,6 @@ function AdminPageInner() {
     if (section === "users") data.loadUsers();
     if (section === "beta") {
       data.loadWaitlist();
-      data.loadAllowlist();
     }
     if (section === "feedback") {
       data.loadBetaFeedback();
@@ -94,6 +90,13 @@ function AdminPageInner() {
       </div>
     );
   }
+
+  // New-signup badge = waiting AND unseen. Derive from the loaded list (so it
+  // ticks down live as the admin invites/declines/marks seen), falling back to
+  // the count endpoint when the list isn't loaded (other sections).
+  const newSignups = data.waitlistLoaded
+    ? data.waitlist.filter((r) => r.status === "waiting" && !r.seen).length
+    : waitingCount;
 
   return (
     <div
@@ -134,7 +137,7 @@ function AdminPageInner() {
         <AdminNavRail
           activeId={section}
           badges={{
-            ...(waitingCount > 0 ? { beta: waitingCount } : {}),
+            ...(newSignups > 0 ? { beta: newSignups } : {}),
             ...(data.betaFeedbackUnreadCount > 0
               ? { feedback: data.betaFeedbackUnreadCount }
               : {}),
@@ -158,73 +161,16 @@ function AdminPageInner() {
             <div
               style={{
                 flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
+                overflowY: "auto",
+                padding: "16px 24px 40px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 24,
-                  padding: "14px 24px 0",
-                  borderBottom: "1px solid var(--session-ink-hairline)",
-                }}
-              >
-                {(["waitlist", "allowlist"] as const).map((t) => {
-                  const active = t === betaSubTab;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setBetaSubTab(t)}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--size-meta)",
-                        letterSpacing: "2px",
-                        textTransform: "uppercase",
-                        color: active
-                          ? "var(--session-error)"
-                          : "var(--session-ink-ghost)",
-                        background: "none",
-                        border: "none",
-                        borderBottom: active
-                          ? "2px solid var(--session-error)"
-                          : "2px solid transparent",
-                        padding: "10px 2px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  padding: "12px 24px 40px",
-                }}
-              >
-                {betaSubTab === "waitlist" && (
-                  <WaitlistTab
-                    items={data.waitlist}
-                    onChangeStatus={data.changeWaitlistStatus}
-                    onMarkSeen={async (id) => {
-                      await data.markWaitlistSeen(id);
-                      setWaitingCount((n) => Math.max(0, n - 1));
-                    }}
-                    onAddToBeta={data.addToBeta}
-                  />
-                )}
-                {betaSubTab === "allowlist" && (
-                  <BetaAllowlistTab
-                    items={data.allowlist}
-                    onAdd={(email) => data.addToBeta(email)}
-                    onRemove={data.removeFromAllowlist}
-                  />
-                )}
-              </div>
+              <WaitlistTab
+                items={data.waitlist}
+                onChangeStatus={data.changeWaitlistStatus}
+                onMarkSeen={data.markWaitlistSeen}
+                onAddInvited={data.addInvitedEmail}
+              />
             </div>
           )}
 
