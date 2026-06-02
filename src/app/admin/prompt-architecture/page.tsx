@@ -8,6 +8,7 @@ import type {
   PromptSection,
 } from "@/lib/admin/prompt-sections";
 import type { PersonaMode } from "@/lib/persona/system-prompt";
+import { togglePersonaMode } from "@/lib/persona/persona-mode-toggle";
 import type { ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
@@ -103,6 +104,16 @@ const MODE_LABELS: Record<ConversationMode, string> = {
 
 const PERSONAS: PersonaMode[] = ["autistic", "adhd", "dyslexic", "general"];
 const MODES: ConversationMode[] = ["situation", "guided-intake", "upload"];
+
+// Mirrors composeTier2's "effective modes" rule: empty → general; any neurotype
+// drops general (it's a fallback only). Used wherever the page shows the active
+// persona as a single label — now a stacked label like "Autistic + ADHD".
+function personaLabel(modes: PersonaMode[]): string {
+  const requested = modes.length > 0 ? modes : (["general"] as PersonaMode[]);
+  const neuro = requested.filter((m) => m !== "general");
+  const effective = neuro.length > 0 ? neuro : requested;
+  return effective.map((m) => PERSONA_LABELS[m]).join(" + ");
+}
 
 // Section ids surfaced as Tier 3 mode-opener pills (vs the bigger conditional ladder).
 const MODE_OPENER_IDS = new Set<string>(["guided-intake", "upload-mode"]);
@@ -283,16 +294,19 @@ export default function UnderTheHoodPage() {
   const isAdmin = useIsAdmin();
   const [stageIndex, setStageIndex] = useState(0);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [personaMode, setPersonaMode] = useState<PersonaMode>("adhd");
+  const [personaModes, setPersonaModes] = useState<PersonaMode[]>(["adhd"]);
   const [convMode, setConvMode] = useState<ConversationMode>("situation");
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
 
+  // CSV mirrors how the runtime carries persona_modes; the route splits it and
+  // feeds composeTier2, so the rendered Tier-2 stacks exactly like production.
+  const personaParam = personaModes.join(",");
   useEffect(() => {
     let cancelled = false;
     setLoadState("loading");
     fetch(
-      `/api/admin/prompt-architecture?personaModes=${personaMode}&convMode=${convMode}`,
+      `/api/admin/prompt-architecture?personaModes=${personaParam}&convMode=${convMode}`,
     )
       .then(async (r) => {
         if (!r.ok) throw new Error(`fetch failed: ${r.status}`);
@@ -310,7 +324,7 @@ export default function UnderTheHoodPage() {
     return () => {
       cancelled = true;
     };
-  }, [personaMode, convMode]);
+  }, [personaParam, convMode]);
 
   // Aggregate sections across all phases (deduped by id) so the diagram can
   // show every block that could appear, not just whatever is active in one
@@ -372,8 +386,10 @@ export default function UnderTheHoodPage() {
     });
   };
 
+  // Reuse the exact runtime toggle (neurotypes stack; general is exclusive) so
+  // the admin selector can never drift from how the app composes personas.
   const handlePersonaPillClick = (mode: PersonaMode) => {
-    if (mode !== personaMode) setPersonaMode(mode);
+    setPersonaModes((cur) => togglePersonaMode(cur, mode));
     handleSelect({ kind: "persona", mode });
   };
 
@@ -438,7 +454,7 @@ export default function UnderTheHoodPage() {
             overflow: "hidden",
           }}
         >
-          <Header personaMode={personaMode} convMode={convMode} />
+          <Header personaModes={personaModes} convMode={convMode} />
 
           <div
             style={{
@@ -472,7 +488,7 @@ export default function UnderTheHoodPage() {
                   onSelect={handleSelect}
                   onPersonaPill={handlePersonaPillClick}
                   onModePill={handleModePillClick}
-                  personaMode={personaMode}
+                  personaModes={personaModes}
                   convMode={convMode}
                   sectionById={sectionById}
                   phasesBySection={phasesBySection}
@@ -520,7 +536,7 @@ export default function UnderTheHoodPage() {
                   <DetailPanel
                     selection={selection}
                     sectionById={sectionById}
-                    personaMode={personaMode}
+                    personaModes={personaModes}
                     convMode={convMode}
                     onClose={() => setSelection(null)}
                   />
@@ -541,10 +557,10 @@ export default function UnderTheHoodPage() {
 // ---------------------------------------------------------------------------
 
 function Header({
-  personaMode,
+  personaModes,
   convMode,
 }: {
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
   convMode: ConversationMode;
 }) {
   return (
@@ -583,7 +599,7 @@ function Header({
             textTransform: "uppercase",
           }}
         >
-          Active: {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
+          Active: {personaLabel(personaModes)} · {MODE_LABELS[convMode]}
         </span>
       </div>
       <p
@@ -792,13 +808,13 @@ function StageCaption({ stage }: { stage: Stage }) {
 function DetailPanel({
   selection,
   sectionById,
-  personaMode,
+  personaModes,
   convMode,
   onClose,
 }: {
   selection: Selection;
   sectionById: Map<string, PromptSection>;
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
   convMode: ConversationMode;
   onClose: () => void;
 }) {
@@ -809,7 +825,7 @@ function DetailPanel({
     return (
       <PersonaDetail
         mode={selection.mode}
-        activeMode={personaMode}
+        activeModes={personaModes}
         sectionById={sectionById}
         onClose={onClose}
       />
@@ -1058,16 +1074,16 @@ function SectionDetail({
 
 function PersonaDetail({
   mode,
-  activeMode,
+  activeModes,
   sectionById,
   onClose,
 }: {
   mode: PersonaMode;
-  activeMode: PersonaMode;
+  activeModes: PersonaMode[];
   sectionById: Map<string, PromptSection>;
   onClose: () => void;
 }) {
-  const isActive = mode === activeMode;
+  const isActive = activeModes.includes(mode);
   const [showSource, setShowSource] = useState(false);
   const personaSections = useMemo(
     () =>
@@ -1131,7 +1147,7 @@ function PersonaDetail({
         {personaSections.length} Tier 2 sections vary by persona —{" "}
         {personaSections.map((s) => s.label).join(", ")} —{" "}
         {totalTokens.toLocaleString()} tokens total for{" "}
-        {PERSONA_LABELS[isActive ? activeMode : mode]}.
+        {isActive ? personaLabel(activeModes) : PERSONA_LABELS[mode]}.
         {!isActive && (
           <span
             style={{
@@ -1467,7 +1483,7 @@ interface DiagramProps {
   onSelect: (s: Selection | null) => void;
   onPersonaPill: (mode: PersonaMode) => void;
   onModePill: (mode: ConversationMode) => void;
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
   convMode: ConversationMode;
   sectionById: Map<string, PromptSection>;
   phasesBySection: Map<string, Set<string>>;
@@ -1480,7 +1496,7 @@ function Diagram({
   onSelect,
   onPersonaPill,
   onModePill,
-  personaMode,
+  personaModes,
   convMode,
   sectionById,
   phasesBySection,
@@ -1550,7 +1566,7 @@ function Diagram({
               <PersonaFan
                 selection={selection}
                 onPersonaPill={onPersonaPill}
-                personaMode={personaMode}
+                personaModes={personaModes}
               />
             )}
             {visible.mode && (
@@ -1580,7 +1596,7 @@ function Diagram({
         {visible.example && (
           <ExampleAssemblyFooter
             sectionById={sectionById}
-            personaMode={personaMode}
+            personaModes={personaModes}
             convMode={convMode}
           />
         )}
@@ -1784,11 +1800,11 @@ function SpineBands({
 function PersonaFan({
   selection,
   onPersonaPill,
-  personaMode,
+  personaModes,
 }: {
   selection: Selection | null;
   onPersonaPill: (mode: PersonaMode) => void;
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
 }) {
   return (
     <div
@@ -1826,7 +1842,7 @@ function PersonaFan({
             textTransform: "uppercase",
           }}
         >
-          1 of 4 · click to switch
+          neurotypes stack · general is exclusive
         </span>
       </div>
       <div
@@ -1838,7 +1854,7 @@ function PersonaFan({
         }}
       >
         {PERSONAS.map((p) => {
-          const isActive = p === personaMode;
+          const isActive = personaModes.includes(p);
           const isSelected =
             selection?.kind === "persona" && selection.mode === p;
           return (
@@ -2318,11 +2334,11 @@ function CacheWrap({
 
 function ExampleAssemblyFooter({
   sectionById,
-  personaMode,
+  personaModes,
   convMode,
 }: {
   sectionById: Map<string, PromptSection>;
-  personaMode: PersonaMode;
+  personaModes: PersonaMode[];
   convMode: ConversationMode;
 }) {
   // Group sections by cache tier (derived from tier + condition).
@@ -2330,7 +2346,7 @@ function ExampleAssemblyFooter({
   const buckets: Record<string, Bucket> = {
     "tier1-static": { label: "Tier 1 + Introduction", tokens: 0, tier: "static" },
     "tier2-base": { label: "Tier 2 base voice (always-on)", tokens: 0, tier: "static" },
-    "tier2-persona": { label: `Tier 2 persona delta (${PERSONA_LABELS[personaMode]})`, tokens: 0, tier: "persona" },
+    "tier2-persona": { label: `Tier 2 persona delta (${personaLabel(personaModes)})`, tokens: 0, tier: "persona" },
     "tier3-mode": { label: `Tier 3 mode opener (${MODE_LABELS[convMode]})`, tokens: 0, tier: "persona" },
     "tier3-conditional": { label: "Tier 3 conditional blocks", tokens: 0, tier: "dynamic" },
     "dynamic": { label: "Live context (Manual, session, extraction)", tokens: 0, tier: "dynamic" },
@@ -2382,7 +2398,7 @@ function ExampleAssemblyFooter({
             textTransform: "uppercase",
           }}
         >
-          Token budget — {PERSONA_LABELS[personaMode]} · {MODE_LABELS[convMode]}
+          Token budget — {personaLabel(personaModes)} · {MODE_LABELS[convMode]}
         </span>
         <span
           style={{
