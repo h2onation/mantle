@@ -236,6 +236,18 @@ export function useAdminData() {
     setWaitlist((prev) => prev.map((row) => (row.id === id ? { ...row, status } : row)));
   }, []);
 
+  const markWaitlistSeen = useCallback(async (id: string) => {
+    const res = await fetch("/api/admin/waitlist", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, seen: true }),
+    });
+    if (!res.ok) throw new Error("Failed to mark seen");
+    setWaitlist((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, seen: true } : row))
+    );
+  }, []);
+
   const addToBeta = useCallback(
     async (email: string, waitlistId?: string): Promise<"added" | "already_exists"> => {
       const res = await fetch("/api/admin/beta-allowlist", {
@@ -341,6 +353,7 @@ export function useAdminData() {
     loadConversationMessages,
     closeConversation,
     changeWaitlistStatus,
+    markWaitlistSeen,
     addToBeta,
     removeFromAllowlist,
     markBetaFeedbackRead,

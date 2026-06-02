@@ -210,6 +210,10 @@ function AdminPageInner() {
                   <WaitlistTab
                     items={data.waitlist}
                     onChangeStatus={data.changeWaitlistStatus}
+                    onMarkSeen={async (id) => {
+                      await data.markWaitlistSeen(id);
+                      setWaitingCount((n) => Math.max(0, n - 1));
+                    }}
                     onAddToBeta={data.addToBeta}
                   />
                 )}

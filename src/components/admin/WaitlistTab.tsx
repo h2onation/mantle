@@ -16,12 +16,14 @@ export interface WaitlistRow {
   email: string;
   source: string | null;
   status: WaitlistStatus;
+  seen: boolean;
   created_at: string;
 }
 
 interface Props {
   items: WaitlistRow[];
   onChangeStatus: (id: string, status: WaitlistStatus) => Promise<void>;
+  onMarkSeen: (id: string) => Promise<void>;
   onAddToBeta: (email: string, waitlistId?: string) => Promise<"added" | "already_exists">;
 }
 
@@ -34,10 +36,11 @@ const STATUSES: WaitlistStatus[] = ["waiting", "invited", "declined"];
 // focus from the table.
 type Pending = { id: string; nextStatus: WaitlistStatus } | null;
 
-export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Props) {
+export default function WaitlistTab({ items, onChangeStatus, onMarkSeen, onAddToBeta }: Props) {
   const [page, setPage] = useState(0);
   const [pending, setPending] = useState<Pending>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [seenSavingId, setSeenSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Per-row "Add to beta" state
@@ -59,6 +62,18 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
       setError("Failed to update status. Try again.");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function handleMarkSeen(row: WaitlistRow) {
+    setError(null);
+    setSeenSavingId(row.id);
+    try {
+      await onMarkSeen(row.id);
+    } catch {
+      setError("Failed to mark seen. Try again.");
+    } finally {
+      setSeenSavingId(null);
     }
   }
 
@@ -111,16 +126,41 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
               >
                 <div
                   style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "13px",
-                    color: "var(--session-ink)",
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
-                  {row.email}
+                  {!row.seen && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "var(--size-meta)",
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        color: "var(--session-cream)",
+                        background: "var(--session-persona)",
+                        borderRadius: 4,
+                        padding: "1px 6px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      New
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13px",
+                      color: "var(--session-ink)",
+                      fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {row.email}
+                  </span>
                 </div>
                 <div style={adminMetaStyle}>
                   {formatAdminDate(row.created_at)}
@@ -240,6 +280,31 @@ export default function WaitlistTab({ items, onChangeStatus, onAddToBeta }: Prop
                     >
                       Saving…
                     </span>
+                  )}
+
+                  {/* Mark seen — clears this row from the new-signup badge
+                      without changing its status. */}
+                  {!row.seen && (
+                    <button
+                      onClick={() => handleMarkSeen(row)}
+                      disabled={seenSavingId === row.id}
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "var(--size-meta)",
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        color: "var(--session-ink-ghost)",
+                        background: "none",
+                        border: "1px solid var(--session-ink-hairline)",
+                        borderRadius: 4,
+                        padding: "5px 9px",
+                        cursor: seenSavingId === row.id ? "default" : "pointer",
+                        opacity: seenSavingId === row.id ? 0.5 : 1,
+                        WebkitTapHighlightColor: "transparent",
+                      }}
+                    >
+                      {seenSavingId === row.id ? "Saving…" : "Mark seen"}
+                    </button>
                   )}
 
                   {/* Add to beta button */}

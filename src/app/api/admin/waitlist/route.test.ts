@@ -121,4 +121,20 @@ describe("PATCH /api/admin/waitlist", () => {
     const res = await PATCH(patchReq({ id: "row-1", status: "declined" }));
     expect(res.status).toBe(500);
   });
+
+  it("marks a row seen", async () => {
+    const res = await PATCH(patchReq({ id: "row-1", seen: true }));
+    expect(res.status).toBe(200);
+    expect(updateCalls).toEqual([
+      { patch: { seen: true }, eq: { col: "id", val: "row-1" } },
+    ]);
+  });
+
+  it("prefers seen over status when both are present", async () => {
+    const res = await PATCH(patchReq({ id: "row-1", seen: false, status: "invited" }));
+    expect(res.status).toBe(200);
+    expect(updateCalls).toEqual([
+      { patch: { seen: false }, eq: { col: "id", val: "row-1" } },
+    ]);
+  });
 });

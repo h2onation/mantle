@@ -17,7 +17,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from("waitlist")
-      .select("id, email, source, status, created_at")
+      .select("id, email, source, status, seen, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -38,24 +38,32 @@ export async function PATCH(request: Request) {
     if (auth instanceof Response) return auth;
     const { admin } = auth;
 
-    let body: { id?: unknown; status?: unknown };
+    let body: { id?: unknown; status?: unknown; seen?: unknown };
     try {
       body = await request.json();
     } catch {
       return Response.json({ error: "invalid_body" }, { status: 400 });
     }
 
-    const { id, status } = body;
+    const { id, status, seen } = body;
     if (typeof id !== "string" || !id) {
       return Response.json({ error: "invalid_body" }, { status: 400 });
     }
-    if (!isWaitlistStatus(status)) {
+
+    // Two update modes: mark a row seen (clears it from the new-signup badge,
+    // status untouched), or change its status. `seen` takes precedence when set.
+    let patch: { seen: boolean } | { status: WaitlistStatus };
+    if (typeof seen === "boolean") {
+      patch = { seen };
+    } else if (isWaitlistStatus(status)) {
+      patch = { status };
+    } else {
       return Response.json({ error: "invalid_status" }, { status: 400 });
     }
 
     const { error } = await admin
       .from("waitlist")
-      .update({ status })
+      .update(patch)
       .eq("id", id);
 
     if (error) {
