@@ -20,46 +20,46 @@ import type { ConversationMode } from "@/lib/persona/config";
 // real export — no hand-curated metadata drift.
 // ---------------------------------------------------------------------------
 
-interface Stage {
+interface Step {
   id: number;
   title: string;
   caption: string;
 }
 
-const STAGES: Stage[] = [
+const STEPS: Step[] = [
   {
     id: 1,
-    title: "Layer 0 — the whole prompt",
+    title: "The whole prompt",
     caption:
-      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~7,000 tokens on a normal turn.",
+      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~7,000 tokens on a normal turn. These first six steps group the prompt by how often each part changes — which is why Tier 2's voice shows up in two of them.",
   },
   {
     id: 2,
-    title: "Layer 1 — static prefix (always-on)",
+    title: "The static prefix (always-on)",
     caption:
       "Identity, Tier 1 constitutional rules, and the base voice scaffold. Identical across every user, every turn. Cached forever.",
   },
   {
     id: 3,
-    title: "Layer 2 — persona delta (one of four)",
+    title: "The persona delta (one of four)",
     caption:
       "Trait-specific voice rules layered on top of the base. Selected at signup from autistic / ADHD / dyslexic / general. Click a pill to switch the active persona — the rest of the diagram re-renders from the live prompt.",
   },
   {
     id: 4,
-    title: "Layer 3 — mode opener (one of three)",
+    title: "The mode opener (one of three)",
     caption:
       "Entry-phase block by input mode (Situation / Guided Intake / Upload). Selected at conversation start. Click a pill to switch the active mode.",
   },
   {
     id: 5,
-    title: "Layer 4 — conditional Tier-3 blocks",
+    title: "The conditional Tier-3 blocks",
     caption:
       "Tier 3 blocks that fire based on conversation state (first turn, returning user, approaching checkpoint, clinical material, etc.). Rebuilt each turn.",
   },
   {
     id: 6,
-    title: "Layer 5 — live context (parallel)",
+    title: "The live context (parallel)",
     caption:
       "Dynamic blocks appended at runtime: confirmed Manual entries (compressed), session context, extraction brief from the parallel Sonnet call. Rebuilt each turn.",
   },
@@ -83,7 +83,7 @@ const STAGES: Stage[] = [
   },
   {
     id: 10,
-    title: "Worked example — token budget by layer",
+    title: "Worked example — token budget by cache group",
     caption:
       "Token totals from the live prompt for the current persona × mode. Cached vs rebuilt percentages are computed from the actual section sizes.",
   },
@@ -292,7 +292,7 @@ interface ApiResponse {
 
 export default function UnderTheHoodPage() {
   const isAdmin = useIsAdmin();
-  const [stageIndex, setStageIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [personaModes, setPersonaModes] = useState<PersonaMode[]>(["adhd"]);
   const [convMode, setConvMode] = useState<ConversationMode>("situation");
@@ -360,21 +360,21 @@ export default function UnderTheHoodPage() {
     return data.phases.map((p) => ({ id: p.id, label: p.label }));
   }, [data]);
 
-  const stage = STAGES[stageIndex];
+  const step = STEPS[stepIndex];
   const visible = useMemo(
     () => ({
-      atom: stage.id >= 1,
-      spine: stage.id >= 2,
-      persona: stage.id >= 3,
-      mode: stage.id >= 4,
-      conditional: stage.id >= 5,
-      dynamic: stage.id >= 6,
-      alongside: stage.id >= 7,
-      siblings: stage.id >= 8,
-      cache: stage.id >= 9,
-      example: stage.id >= 10,
+      atom: step.id >= 1,
+      spine: step.id >= 2,
+      persona: step.id >= 3,
+      mode: step.id >= 4,
+      conditional: step.id >= 5,
+      dynamic: step.id >= 6,
+      alongside: step.id >= 7,
+      siblings: step.id >= 8,
+      cache: step.id >= 9,
+      example: step.id >= 10,
     }),
-    [stage.id],
+    [step.id],
   );
 
   const handleSelect = (next: Selection | null) => {
@@ -517,12 +517,12 @@ export default function UnderTheHoodPage() {
                 }}
               >
                 <Stepper
-                  stageIndex={stageIndex}
-                  setStageIndex={(i) => {
-                    setStageIndex(i);
+                  stepIndex={stepIndex}
+                  setStepIndex={(i) => {
+                    setStepIndex(i);
                     setSelection(null);
                   }}
-                  stage={stage}
+                  step={step}
                 />
               </div>
               <div
@@ -541,7 +541,7 @@ export default function UnderTheHoodPage() {
                     onClose={() => setSelection(null)}
                   />
                 ) : (
-                  <StageCaption stage={stage} />
+                  <StepCaption step={step} />
                 )}
               </div>
             </div>
@@ -612,7 +612,7 @@ function Header({
           maxWidth: 820,
         }}
       >
-        How Jove&rsquo;s system prompt is assembled, layer by layer. The
+        How Jove&rsquo;s system prompt is assembled, piece by piece. The
         diagram reads the live codebase via{" "}
         <code
           style={{
@@ -627,19 +627,21 @@ function Header({
           /api/admin/prompt-architecture
         </code>{" "}
         — every section is a real export. Click any band, pill, or block to
-        inspect its source path, token count, and rendered text.
+        inspect its source path, token count, and rendered text. The
+        conversation state shown — Manual entries, briefs, turn counts — is
+        illustrative fixture data, not a real user.
       </p>
     </div>
   );
 }
 
 function Stepper({
-  stageIndex,
-  setStageIndex,
+  stepIndex,
+  setStepIndex,
 }: {
-  stageIndex: number;
-  setStageIndex: (i: number) => void;
-  stage: Stage;
+  stepIndex: number;
+  setStepIndex: (i: number) => void;
+  step: Step;
 }) {
   return (
     <div
@@ -652,10 +654,10 @@ function Stepper({
     >
       <button
         type="button"
-        onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
-        disabled={stageIndex === 0}
-        aria-label="Previous stage"
-        style={arrowBtnStyle(stageIndex === 0)}
+        onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
+        disabled={stepIndex === 0}
+        aria-label="Previous step"
+        style={arrowBtnStyle(stepIndex === 0)}
       >
         ←
       </button>
@@ -667,15 +669,15 @@ function Stepper({
           justifyContent: "space-between",
         }}
       >
-        {STAGES.map((s, i) => {
-          const active = i === stageIndex;
-          const visited = i <= stageIndex;
+        {STEPS.map((s, i) => {
+          const active = i === stepIndex;
+          const visited = i <= stepIndex;
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => setStageIndex(i)}
-              aria-label={`Stage ${s.id}: ${s.title}`}
+              onClick={() => setStepIndex(i)}
+              aria-label={`Step ${s.id}: ${s.title}`}
               title={s.title}
               style={{
                 all: "unset",
@@ -713,10 +715,10 @@ function Stepper({
       </div>
       <button
         type="button"
-        onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
-        disabled={stageIndex === STAGES.length - 1}
-        aria-label="Next stage"
-        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
+        onClick={() => setStepIndex(Math.min(STEPS.length - 1, stepIndex + 1))}
+        disabled={stepIndex === STEPS.length - 1}
+        aria-label="Next step"
+        style={arrowBtnStyle(stepIndex === STEPS.length - 1)}
       >
         →
       </button>
@@ -748,10 +750,10 @@ function arrowBtnStyle(disabled: boolean): React.CSSProperties {
 }
 
 // ---------------------------------------------------------------------------
-// Right column — stage caption or detail panel
+// Right column — step caption or detail panel
 // ---------------------------------------------------------------------------
 
-function StageCaption({ stage }: { stage: Stage }) {
+function StepCaption({ step }: { step: Step }) {
   return (
     <>
       <div
@@ -763,7 +765,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           textTransform: "uppercase",
         }}
       >
-        Stage {stage.id}
+        Step {step.id}
       </div>
       <h2
         style={{
@@ -776,7 +778,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink)",
         }}
       >
-        {stage.title}
+        {step.title}
       </h2>
       <p
         style={{
@@ -787,7 +789,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink-soft)",
         }}
       >
-        {stage.caption}
+        {step.caption}
       </p>
       <p
         style={{
@@ -907,7 +909,7 @@ function DetailHeader({
         }}
         aria-label="Close detail"
       >
-        ← Back to stage
+        ← Back to step
       </button>
     </div>
   );
@@ -1503,30 +1505,8 @@ function Diagram({
   phaseList,
 }: DiagramProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 18,
-        alignItems: "flex-start",
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          flex: "0 0 220px",
-          opacity: visible.dynamic ? 1 : 0.1,
-          transition: "opacity 220ms ease",
-        }}
-      >
-        <DynamicSidecar
-          selection={selection}
-          onSelect={onSelect}
-          sectionById={sectionById}
-        />
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <CacheWrap active={visible.cache}>
+    <div style={{ minWidth: 0 }}>
+      <CacheWrap active={visible.cache}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <PromptHeader
               visible={visible.atom}
@@ -1587,6 +1567,20 @@ function Diagram({
             )}
           </div>
         </CacheWrap>
+        {/* Live context = the prompt's dynamic tail, below the cache line. */}
+        <div
+          style={{
+            opacity: visible.dynamic ? 1 : 0.1,
+            transition: "opacity 220ms ease",
+            marginTop: 10,
+          }}
+        >
+          <DynamicSidecar
+            selection={selection}
+            onSelect={onSelect}
+            sectionById={sectionById}
+          />
+        </div>
         {visible.alongside && (
           <AlongsideStrip selection={selection} onSelect={onSelect} />
         )}
@@ -1600,7 +1594,6 @@ function Diagram({
             convMode={convMode}
           />
         )}
-      </div>
     </div>
   );
 }
@@ -1917,7 +1910,7 @@ function ModeFan({
             textTransform: "uppercase",
           }}
         >
-          1 of 3 · click to switch
+          entry phase only · click to switch
         </span>
       </div>
       <div
@@ -2286,7 +2279,9 @@ function DynamicSidecar({
         }}
       >
         Extraction runs concurrently each turn. The brief from turn N feeds
-        the prompt at turn N+1 — a one-turn lag.
+        the prompt at turn N+1 — a one-turn lag. Two other live-context blocks
+        — Transcript detected and Exploration focus — fire only on a paste or
+        an Explore tap, so these examples never show them.
       </div>
     </div>
   );

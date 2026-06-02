@@ -456,6 +456,30 @@ const SECTION_DEFS: SectionDef[] = [
     conditionFn: () => ({ type: "dynamic", label: "Dynamic: appended at runtime" }),
     alternativesFn: () => [],
   },
+  {
+    id: "transcript-detected",
+    label: "Transcript Detected",
+    tier: "dynamic",
+    // Header emitted by renderTranscriptContextBlock (system-prompt.ts): "TRANSCRIPT DETECTED".
+    // Fires when the user pastes a transcript (detectTranscript) and mode !== "upload".
+    // No mock phase exercises it today — see DynamicSidecar footnote on the page.
+    pattern: /^TRANSCRIPT DETECTED$/m,
+    source: { file: "system-prompt.ts", symbol: "renderTranscriptContextBlock" },
+    conditionFn: () => ({ type: "dynamic", label: "Dynamic: user pasted a transcript" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "exploration-focus",
+    label: "Exploration Focus",
+    tier: "dynamic",
+    // Header emitted by renderExplorationContextBlock (system-prompt.ts): "EXPLORATION FOCUS".
+    // Fires when the user taps "Explore with Jove" on a Manual entry or empty layer.
+    // No mock phase exercises it today — see DynamicSidecar footnote on the page.
+    pattern: /^EXPLORATION FOCUS$/m,
+    source: { file: "system-prompt.ts", symbol: "renderExplorationContextBlock" },
+    conditionFn: () => ({ type: "dynamic", label: "Dynamic: user tapped Explore with Jove" }),
+    alternativesFn: () => [],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -564,6 +588,39 @@ const MOCK_ENTRIES: MockManualEntry[] = [
     key_words: ["rehearsal", "conversations", "exhaustion", "stakes"],
     conversation_id: "mock-conv-recent",
     created_at: "2026-05-10T10:00:00Z",
+  },
+  {
+    id: "mock-4",
+    layer: 4,
+    name: "Yes Comes Out Before the Cost Is Counted",
+    content:
+      "Someone asks for something and the yes is already out. The accounting of what it costs — the time, the energy, the thing it displaces — happens later, alone, usually at night. By then the commitment is made and backing out would cost more than just absorbing it.",
+    summary: "Agrees before weighing the cost; the real accounting happens alone, too late to undo.",
+    key_words: ["yes", "overcommitting", "cost", "obligation"],
+    conversation_id: "mock-conv-old",
+    created_at: "2026-03-28T10:00:00Z",
+  },
+  {
+    id: "mock-5",
+    layer: 5,
+    name: "Recovery Needs a Closed Door",
+    content:
+      "After a day of being on, the only thing that resets the system is a closed door and no one needing anything. Not music, not a friend, not a routine. Silence and the absence of demand. Without it, the next day starts already depleted.",
+    summary: "Resets only behind a closed door with zero demands; without it the next day starts depleted.",
+    key_words: ["recovery", "solitude", "depletion", "reset"],
+    conversation_id: "mock-conv-older",
+    created_at: "2026-03-20T10:00:00Z",
+  },
+  {
+    id: "mock-6",
+    layer: 4,
+    name: "Conflict Gets Rehearsed Into Silence",
+    content:
+      "When something needs to be said to someone who matters, it gets rehearsed so many times that every version feels wrong. The rehearsal doesn't sharpen the message. It talks the message out of existence. By the end, saying nothing feels safer than any of the drafts.",
+    summary: "Over-rehearses hard conversations until every version feels wrong and silence wins.",
+    key_words: ["conflict", "rehearsal", "avoidance", "silence"],
+    conversation_id: "mock-conv-older",
+    created_at: "2026-03-12T10:00:00Z",
   },
 ];
 
