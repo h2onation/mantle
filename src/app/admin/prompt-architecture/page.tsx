@@ -129,6 +129,33 @@ const BASE_VOICE_IDS = new Set<string>([
   "advisory",
 ]);
 
+// Spine bands collapse Tier 1 (intro + constitutional rules) and the always-on
+// Tier 2 base voice into one band each — the sub-section headers stay visible
+// inside the band, and the full breakdown shows on click. Mirrors the real
+// cache blocks (buildSystemPromptBlocks bundles intro + Tier 1 into one block).
+const SPINE_GROUPS: { id: string; tier: "1" | "2"; label: string; sectionIds: string[] }[] = [
+  { id: "tier1", tier: "1", label: "Tier 1 · Identity + Constitutional Rules", sectionIds: ["intro", "tier1"] },
+  { id: "tier2-base", tier: "2", label: "Tier 2 · Base Voice", sectionIds: ["tier2-voice", "banned-phrases", "pacing", "when-wrong", "advisory"] },
+];
+
+// Plain-language descriptions for the live-context (dynamic) blocks, shown in
+// the detail panel so an admin can't mistake the placeholder example text for
+// shared prompt content.
+const DYNAMIC_DESCRIPTIONS: Record<string, string> = {
+  "extraction-brief":
+    "The note Jove's parallel extraction call writes about the user's last message — the scene, the body words, whether a checkpoint is near. Generated fresh per user, every turn. Jove reads it; the user never sees it.",
+  "confirmed-manual":
+    "The user's recent confirmed Manual entries, in full prose, read from the database each turn.",
+  "earlier-entries":
+    "Older Manual entries compressed to one line each (headline + summary + key words) so Jove recognizes them without re-reading the full prose.",
+  "session-context":
+    "For a returning user: how many sessions, and a short summary of last time. Read from the database.",
+  "transcript-detected":
+    "Fires only when the user pastes a transcript — tells Jove to read it as material, not as a message.",
+  "exploration-focus":
+    "Fires only when the user taps 'Explore with Jove' on a Manual entry or an empty layer.",
+};
+
 const COLOR = {
   identityBg: "var(--session-walnut-surface)",
   identityBorder: "var(--session-walnut-border)",
@@ -158,7 +185,8 @@ type Selection =
   | { kind: "persona"; mode: PersonaMode }
   | { kind: "convmode"; mode: ConversationMode }
   | { kind: "alongside"; id: string }
-  | { kind: "sibling"; id: string };
+  | { kind: "sibling"; id: string }
+  | { kind: "group"; id: string };
 
 function selectionKey(s: Selection | null): string | null {
   if (!s) return null;
@@ -167,7 +195,8 @@ function selectionKey(s: Selection | null): string | null {
   if (s.kind === "persona") return `persona:${s.mode}`;
   if (s.kind === "convmode") return `convmode:${s.mode}`;
   if (s.kind === "alongside") return `alongside:${s.id}`;
-  return `sibling:${s.id}`;
+  if (s.kind === "sibling") return `sibling:${s.id}`;
+  return `group:${s.id}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -849,6 +878,11 @@ function DetailPanel({
   if (selection.kind === "sibling") {
     return <SiblingDetail id={selection.id} onClose={onClose} />;
   }
+  if (selection.kind === "group") {
+    return (
+      <GroupDetail groupId={selection.id} sectionById={sectionById} onClose={onClose} />
+    );
+  }
   // section
   const section = sectionById.get(selection.id);
   if (!section) {
@@ -915,6 +949,151 @@ function DetailHeader({
   );
 }
 
+function GroupDetail({
+  groupId,
+  sectionById,
+  onClose,
+}: {
+  groupId: string;
+  sectionById: Map<string, PromptSection>;
+  onClose: () => void;
+}) {
+  const [showSource, setShowSource] = useState(false);
+  const group = SPINE_GROUPS.find((g) => g.id === groupId);
+  const sections = (group?.sectionIds ?? [])
+    .map((id) => sectionById.get(id))
+    .filter((s): s is PromptSection => Boolean(s));
+  if (!group || sections.length === 0) {
+    return (
+      <>
+        <DetailHeader label="Not in current view" onClose={onClose} />
+        <p style={{ color: "var(--session-ink-soft)", fontSize: 14 }}>
+          This group isn&rsquo;t active for the current persona × mode.
+        </p>
+      </>
+    );
+  }
+  const tokens = sections.reduce((sum, s) => sum + s.tokens, 0);
+  const files = Array.from(new Set(sections.map((s) => s.source.file)));
+  return (
+    <>
+      <DetailHeader label={`Tier ${group.tier} · always-on, cached`} onClose={onClose} />
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 22,
+          fontStyle: "italic",
+          fontWeight: 400,
+          lineHeight: 1.25,
+          color: "var(--session-ink)",
+        }}
+      >
+        {group.label}
+      </h2>
+      <p
+        style={{
+          margin: "6px 0 0",
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        One cached band holding {sections.length} sections that ship together on
+        every turn and never change. Broken out below.
+      </p>
+      <div
+        style={{
+          marginTop: 6,
+          display: "grid",
+          gridTemplateColumns: "max-content 1fr",
+          columnGap: 14,
+          rowGap: 10,
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--session-ink-soft)",
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        <DetailLabel>Sections</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {sections
+            .map((s) => `${s.label} (${s.tokens.toLocaleString()})`)
+            .join(", ")}
+        </span>
+        <DetailLabel>Tokens</DetailLabel>
+        <span style={{ color: "var(--session-ink)" }}>
+          {tokens.toLocaleString()}
+        </span>
+        <DetailLabel>Source</DetailLabel>
+        <div>
+          {files.map((f) => (
+            <code
+              key={f}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                color: "var(--session-ink)",
+                background: "var(--session-walnut-surface-soft)",
+                padding: "1px 6px",
+                borderRadius: 3,
+                marginRight: 6,
+                display: "inline-block",
+              }}
+            >
+              {f}
+            </code>
+          ))}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowSource((v) => !v)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          alignSelf: "flex-start",
+          padding: "6px 12px",
+          marginTop: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.5px",
+          color: "var(--session-ink)",
+          background: "var(--session-walnut-tint)",
+          border: "1px solid var(--session-walnut-border)",
+          borderRadius: 5,
+        }}
+      >
+        {showSource ? "Hide rendered text ↑" : "Show rendered text ↓"}
+      </button>
+      {showSource && (
+        <pre
+          style={{
+            margin: 0,
+            padding: 12,
+            background: "var(--session-walnut-surface-soft)",
+            border: "1px solid var(--session-walnut-border-soft)",
+            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 480,
+            overflowY: "auto",
+          }}
+        >
+          {sections.map((s) => `── ${s.label} ──\n${s.text}`).join("\n\n")}
+        </pre>
+      )}
+    </>
+  );
+}
+
 function SectionDetail({
   section,
   onClose,
@@ -939,6 +1118,34 @@ function SectionDetail({
       >
         {section.label}
       </h2>
+
+      {DYNAMIC_DESCRIPTIONS[section.id] && (
+        <div style={{ marginTop: 4 }}>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-spectral, var(--font-serif))",
+              fontSize: 14.5,
+              lineHeight: 1.55,
+              color: "var(--session-ink-soft)",
+            }}
+          >
+            {DYNAMIC_DESCRIPTIONS[section.id]}
+          </p>
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              fontStyle: "italic",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            The rendered text below is a placeholder example — on a real turn
+            it&rsquo;s generated per user and never shared.
+          </p>
+        </div>
+      )}
 
       <div
         style={{
@@ -1677,31 +1884,31 @@ function displayLabel(section: { tier: string; label: string }): string {
   }
 }
 
-function SectionBand({
-  sectionId,
+function GroupBand({
+  group,
   selection,
   onSelect,
   sectionById,
   bg,
   border,
-  fg,
 }: {
-  sectionId: string;
+  group: { id: string; tier: "1" | "2"; label: string; sectionIds: string[] };
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
   sectionById: Map<string, PromptSection>;
   bg: string;
   border: string;
-  fg?: string;
 }) {
-  const section = sectionById.get(sectionId);
-  if (!section) return null;
-  const selected =
-    selection?.kind === "section" && selection.id === sectionId;
+  const sections = group.sectionIds
+    .map((id) => sectionById.get(id))
+    .filter((s): s is PromptSection => Boolean(s));
+  if (sections.length === 0) return null;
+  const tokens = sections.reduce((sum, s) => sum + s.tokens, 0);
+  const selected = selection?.kind === "group" && selection.id === group.id;
   return (
     <button
       type="button"
-      onClick={() => onSelect({ kind: "section", id: sectionId })}
+      onClick={() => onSelect({ kind: "group", id: group.id })}
       style={{
         all: "unset",
         cursor: "pointer",
@@ -1729,10 +1936,10 @@ function SectionBand({
             fontFamily: "var(--font-sans)",
             fontSize: 13.5,
             fontWeight: 500,
-            color: fg ?? "var(--session-ink)",
+            color: "var(--session-ink)",
           }}
         >
-          {displayLabel(section)}
+          {group.label}
         </span>
         <span
           style={{
@@ -1743,8 +1950,19 @@ function SectionBand({
             textTransform: "uppercase",
           }}
         >
-          {section.tokens.toLocaleString()} tok · {section.condition.label}
+          {tokens.toLocaleString()} tok
         </span>
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "0.3px",
+          color: "var(--session-ink-ghost)",
+        }}
+      >
+        {sections.map((s) => s.label).join("  ·  ")}
       </div>
     </button>
   );
@@ -1759,31 +1977,17 @@ function SpineBands({
   onSelect: (s: Selection | null) => void;
   sectionById: Map<string, PromptSection>;
 }) {
-  // Tier 1 + every Tier 2 section that's truly base (always-on).
-  const t1Ids = ["intro", "tier1"];
-  const t2BaseIds = Array.from(BASE_VOICE_IDS);
   return (
     <>
-      {t1Ids.map((id) => (
-        <SectionBand
-          key={id}
-          sectionId={id}
+      {SPINE_GROUPS.map((group) => (
+        <GroupBand
+          key={group.id}
+          group={group}
           selection={selection}
           onSelect={onSelect}
           sectionById={sectionById}
-          bg={COLOR.identityBg}
-          border={COLOR.identityBorder}
-        />
-      ))}
-      {t2BaseIds.map((id) => (
-        <SectionBand
-          key={id}
-          sectionId={id}
-          selection={selection}
-          onSelect={onSelect}
-          sectionById={sectionById}
-          bg={COLOR.baseVoice}
-          border={COLOR.baseVoiceBorder}
+          bg={group.tier === "1" ? COLOR.identityBg : COLOR.baseVoice}
+          border={group.tier === "1" ? COLOR.identityBorder : COLOR.baseVoiceBorder}
         />
       ))}
     </>
