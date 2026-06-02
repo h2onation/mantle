@@ -2587,7 +2587,7 @@ function SiblingCallsStrip({
           marginBottom: 4,
         }}
       >
-        Sibling calls — the other three this turn
+        Sibling calls — what else runs this turn
       </div>
       <div
         style={{
