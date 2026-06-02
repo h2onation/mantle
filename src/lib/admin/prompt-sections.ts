@@ -234,7 +234,7 @@ const SECTION_DEFS: SectionDef[] = [
     // the block silently dropped from the page.
     pattern: /^FIRST MESSAGE \(new user/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST MESSAGE" },
-    conditionFn: () => ({ type: "state", label: "State: new user" }),
+    conditionFn: () => ({ type: "state", label: "State: new user, situation mode, turns 1–3" }),
     alternativesFn: () => [],
   },
   {
@@ -252,7 +252,7 @@ const SECTION_DEFS: SectionDef[] = [
     tier: "3",
     pattern: /^UPLOAD MODE$/m,
     source: { file: "system-prompt.ts + upload-copy.ts", symbol: "buildTier3 → UPLOAD MODE" },
-    conditionFn: () => ({ type: "conv-mode", label: "Conv mode: Upload" }),
+    conditionFn: () => ({ type: "conv-mode", label: "Conv mode: Upload, turns 1–2" }),
     alternativesFn: (_, convMode) => convModeAlternatives(convMode),
   },
   {
@@ -281,7 +281,7 @@ const SECTION_DEFS: SectionDef[] = [
     tier: "3",
     pattern: /^CHECKPOINTS$/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → CHECKPOINTS" },
-    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching" }),
+    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching, not a post-action turn" }),
     alternativesFn: () => [],
   },
   {
@@ -377,6 +377,19 @@ const SECTION_DEFS: SectionDef[] = [
     tier: "3",
     pattern: /^FABRICATED CONTENT$/m,
     source: { file: "system-prompt.ts", symbol: "buildTier3 → FABRICATED CONTENT" },
+    conditionFn: () => ({ type: "always", label: "Always" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "app-platform-questions",
+    label: "App & Platform Questions",
+    tier: "3",
+    // Added in the retry-storm fix (2026-05-25) and never given a parser entry.
+    // Without this, the parser treats everything from FABRICATED CONTENT to
+    // CHECKPOINT LANGUAGE as one block, mis-attributing prompt text and
+    // under-counting by one card.
+    pattern: /^APP AND PLATFORM QUESTIONS$/m,
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → APP AND PLATFORM QUESTIONS" },
     conditionFn: () => ({ type: "always", label: "Always" }),
     alternativesFn: () => [],
   },
