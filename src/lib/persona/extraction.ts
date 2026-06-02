@@ -237,9 +237,9 @@ The first checkpoint should be accurate enough to confirm and feel like recognit
 When the gate is met, identify strongest_layer: which layer has the most material, examples, and depth. Layers can hold many entries — there's no per-layer cap.
 
 5. NEXT PROMPT
-Generate a short placeholder phrase (3-6 words, lowercase, ending with "...") for the text input field. This hints at what the user could say next. Match the conversation's depth and prefer somatic openings over emotional ones:
+Generate a short placeholder phrase (3-6 words, lowercase, ending with "...") for the text input field. This hints at what the user could say next. Match the conversation's depth and the register the user is already using. Avoid abstract emotion-labels ("how did that make you feel"); reach for the body only when the user is already near it; otherwise follow their lead (what they did, the situation, what fired it):
 - At surface → prompt toward behavior or body: "what did your body do..."
-- At behavior → prompt toward sensation or system: "what did that feel like in you..."
+- At behavior → prompt toward the driver or the cost: "what was that like for you..."
 - At feeling → prompt toward mechanism: "what was loading up..."
 - At mechanism → prompt toward cross-context: "where else does this show up..."
 
@@ -253,7 +253,7 @@ Write a short paragraph (3-5 sentences) orienting ${PERSONA_NAME}. The brief fee
 - What ${PERSONA_NAME} should push on vs leave alone
 - Whether a checkpoint is approaching and what body and bind it would anchor on
 
-Use the user's own language wherever possible. If you reach for a clinical word ("anxiety," "trauma," "avoidance," "dysregulation," "masking," "sensory overwhelm"), stop and rewrite using what the user actually said. "Masking" becomes "the version of you that switches on in rooms." "Sensory overwhelm" becomes "too much input, jaw started buzzing." If the user did not describe a body response, the brief should flag that gap — ${PERSONA_NAME} needs to ask about the body before a checkpoint can land.
+Use the user's own language wherever possible. If you reach for a clinical word ("anxiety," "trauma," "avoidance," "dysregulation," "masking," "sensory overwhelm"), stop and rewrite using what the user actually said. "Masking" becomes "the version of you that switches on in rooms." "Sensory overwhelm" becomes "too much input, jaw started buzzing." A checkpoint needs a concrete anchor: a body sensation OR a specific behavioral or system response (what they did, what their system did, what the input was like). The body is one valid anchor, not a requirement. If neither is present yet, flag that gap. But ${PERSONA_NAME} should not keep steering toward the body when the user isn't going there. A concrete behavioral anchor carries the same weight.
 
 7. CLINICAL FLAG
 A lightweight signal that tells ${PERSONA_NAME} when to engage legal guardrails. Two levels:

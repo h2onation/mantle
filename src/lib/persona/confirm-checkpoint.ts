@@ -120,7 +120,7 @@ VOICE RULES:
   • "Every friendship that just wants me without a job to do." → "Friendships that just want me without a job can leave me restless."
   • "In those rooms I'm scanning." → "In moments like that, I notice I'm scanning."
   • "It costs me every low-stakes moment." → "It can cost me the low-stakes moments."
-- Somatic anchor REQUIRED in the passage. If the user described a body sensation or system state anywhere in the conversation, it must appear. The body is the evidence the mechanism is real.
+- Concrete anchor REQUIRED in the passage: a body sensation OR a specific behavioral or system response (what they did, what their system did, what the input was like). If the user gave a body sensation anywhere in the conversation, prefer it and make it appear. If they did not, a concrete behavioral anchor carries the same evidentiary weight. The anchor is the evidence the mechanism is real.
 - NOT A RECAP. Go one level deeper than what was said. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation.
 - No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "I shut down" not "I dissociate." "A second version of me switches on" not "I mask." "The room got too loud" not "sensory overwhelm."
 - No time references. No "right now," "currently," "at this stage," "these days." The entry describes how I operate, period.
