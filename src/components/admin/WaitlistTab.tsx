@@ -20,6 +20,12 @@ export interface WaitlistRow {
   seen: boolean;
   notes: string | null;
   created_at: string;
+  // When status flipped to 'invited' (null for rows invited before the column
+  // existed — display falls back to created_at).
+  invited_at: string | null;
+  // Login activity, joined from auth.users for invited rows (absent otherwise).
+  last_sign_in_at?: string | null;
+  first_sign_in_at?: string | null;
 }
 
 interface Props {
@@ -353,10 +359,25 @@ export default function WaitlistTab({
                   </span>
                 </div>
 
-                <div style={adminMetaStyle}>
-                  {formatAdminDate(row.created_at)}
-                  {row.notes ? ` · ${row.notes}` : ""}
-                </div>
+                {row.status === "invited" ? (
+                  <div style={adminMetaStyle}>
+                    Invited {formatAdminDate(row.invited_at ?? row.created_at)}
+                    {" · "}First sign-in{" "}
+                    {row.first_sign_in_at
+                      ? formatAdminDate(row.first_sign_in_at)
+                      : "—"}
+                    {" · "}Last login{" "}
+                    {row.last_sign_in_at
+                      ? formatAdminDate(row.last_sign_in_at)
+                      : "Never"}
+                    {row.notes ? ` · ${row.notes}` : ""}
+                  </div>
+                ) : (
+                  <div style={adminMetaStyle}>
+                    {formatAdminDate(row.created_at)}
+                    {row.notes ? ` · ${row.notes}` : ""}
+                  </div>
+                )}
 
                 {row.source && (
                   <div

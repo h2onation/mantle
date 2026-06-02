@@ -58,6 +58,12 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
+// auth.users join for invited-row login enrichment.
+let authUsers: Array<{ email: string; last_sign_in_at: string | null; created_at: string }> = [];
+vi.mock("@/lib/admin/list-auth-users", () => ({
+  listAllAuthUsers: async () => ({ users: authUsers, emailMap: {} }),
+}));
+
 import { GET, PATCH, POST } from "@/app/api/admin/waitlist/route";
 
 beforeEach(() => {
@@ -70,6 +76,7 @@ beforeEach(() => {
   updateCalls.length = 0;
   insertCalls.length = 0;
   lastOrderArgs = null;
+  authUsers = [];
 });
 
 function patchReq(body: unknown): Request {
@@ -111,6 +118,30 @@ describe("GET /api/admin/waitlist", () => {
     const res = await GET();
     expect(res.status).toBe(500);
   });
+
+  it("enriches invited rows with auth login activity", async () => {
+    listResponse = {
+      data: [
+        { id: "a", email: "in@y.com", source: null, status: "invited", seen: true, notes: null, invited_at: "2026-05-01T00:00:00Z", created_at: "2026-04-08T00:00:00Z" },
+        { id: "b", email: "wait@y.com", source: null, status: "waiting", seen: false, notes: null, invited_at: null, created_at: "2026-04-09T00:00:00Z" },
+      ],
+      error: null,
+    };
+    authUsers = [
+      { email: "In@Y.com", last_sign_in_at: "2026-05-20T00:00:00Z", created_at: "2026-05-02T00:00:00Z" },
+    ];
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const { items } = await res.json();
+    // invited row gets login fields (matched case-insensitively)
+    expect(items[0]).toMatchObject({
+      id: "a",
+      last_sign_in_at: "2026-05-20T00:00:00Z",
+      first_sign_in_at: "2026-05-02T00:00:00Z",
+    });
+    // waiting row has no auth account → no login fields added
+    expect(items[1].last_sign_in_at).toBeUndefined();
+  });
 });
 
 describe("PATCH /api/admin/waitlist", () => {
@@ -138,11 +169,20 @@ describe("PATCH /api/admin/waitlist", () => {
     expect(res.status).toBe(400);
   });
 
-  it("updates status when valid (invite)", async () => {
+  it("stamps invited_at when inviting", async () => {
     const res = await PATCH(patchReq({ id: "row-1", status: "invited" }));
     expect(res.status).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].eq).toEqual({ col: "id", val: "row-1" });
+    expect(updateCalls[0].patch.status).toBe("invited");
+    expect(typeof updateCalls[0].patch.invited_at).toBe("string");
+  });
+
+  it("does not stamp invited_at for a non-invite status change", async () => {
+    const res = await PATCH(patchReq({ id: "row-1", status: "declined" }));
+    expect(res.status).toBe(200);
     expect(updateCalls).toEqual([
-      { patch: { status: "invited" }, eq: { col: "id", val: "row-1" } },
+      { patch: { status: "declined" }, eq: { col: "id", val: "row-1" } },
     ]);
   });
 
@@ -207,9 +247,10 @@ describe("POST /api/admin/waitlist (manual invite)", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).result).toBe("added");
     expect(insertCalls).toHaveLength(0);
-    expect(updateCalls).toEqual([
-      { patch: { status: "invited" }, eq: { col: "id", val: "row-9" } },
-    ]);
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].eq).toEqual({ col: "id", val: "row-9" });
+    expect(updateCalls[0].patch.status).toBe("invited");
+    expect(typeof updateCalls[0].patch.invited_at).toBe("string");
   });
 
   it("returns already_exists when the email is already invited", async () => {

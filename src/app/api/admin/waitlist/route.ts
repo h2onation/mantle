@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/admin/verify-admin";
 import { isValidEmail, normalizeEmail } from "@/lib/beta-allowlist";
+import { listAllAuthUsers } from "@/lib/admin/list-auth-users";
 
 const ALLOWED_STATUSES = ["waiting", "invited", "declined"] as const;
 type WaitlistStatus = (typeof ALLOWED_STATUSES)[number];
@@ -18,7 +19,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from("waitlist")
-      .select("id, email, source, status, seen, notes, created_at")
+      .select("id, email, source, status, seen, notes, invited_at, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -26,7 +27,38 @@ export async function GET() {
       return Response.json({ error: "Failed to load" }, { status: 500 });
     }
 
-    return Response.json({ items: data || [] });
+    let rows = data || [];
+
+    // Enrich invited rows with login activity from auth.users (last + first
+    // sign-in). Only invited emails can have accounts, so skip the auth list
+    // entirely when there are none. Fail-soft: a list error just omits the
+    // login fields rather than failing the whole tab.
+    if (rows.some((r) => r.status === "invited")) {
+      try {
+        const { users } = await listAllAuthUsers(admin);
+        const byEmail = new Map<string, (typeof users)[number]>();
+        for (const u of users) {
+          if (u.email) byEmail.set(u.email.toLowerCase(), u);
+        }
+        rows = rows.map((r) => {
+          const u = byEmail.get(r.email.toLowerCase());
+          return u
+            ? {
+                ...r,
+                last_sign_in_at: u.last_sign_in_at ?? null,
+                first_sign_in_at: u.created_at ?? null,
+              }
+            : r;
+        });
+      } catch (enrichErr) {
+        console.error(
+          "[admin/waitlist] auth enrich failed:",
+          enrichErr instanceof Error ? enrichErr.message : "unknown"
+        );
+      }
+    }
+
+    return Response.json({ items: rows });
   } catch (err) {
     console.error("[admin/waitlist] unexpected error:", err);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -53,11 +85,18 @@ export async function PATCH(request: Request) {
 
     // Two update modes: mark a row seen (clears it from the new-signup badge,
     // status untouched), or change its status. `seen` takes precedence when set.
-    let patch: { seen: boolean } | { status: WaitlistStatus };
+    // Flipping status to 'invited' also stamps invited_at (when access was
+    // granted), distinct from created_at (when they joined the list).
+    let patch:
+      | { seen: boolean }
+      | { status: WaitlistStatus; invited_at?: string };
     if (typeof seen === "boolean") {
       patch = { seen };
     } else if (isWaitlistStatus(status)) {
-      patch = { status };
+      patch =
+        status === "invited"
+          ? { status, invited_at: new Date().toISOString() }
+          : { status };
     } else {
       return Response.json({ error: "invalid_status" }, { status: 400 });
     }
@@ -122,7 +161,7 @@ export async function POST(request: Request) {
       // Promote a waiting/declined row to invited.
       const { error: updateError } = await admin
         .from("waitlist")
-        .update({ status: "invited" })
+        .update({ status: "invited", invited_at: new Date().toISOString() })
         .eq("id", existing.id);
       if (updateError) {
         console.error("[admin/waitlist] POST promote error:", updateError.message);
@@ -131,12 +170,11 @@ export async function POST(request: Request) {
       return Response.json({ result: "added" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
     const { error: insertError } = await admin.from("waitlist").insert({
       email,
       status: "invited",
       seen: true,
-      notes: `Invited via admin on ${today}`,
+      invited_at: new Date().toISOString(),
     });
     if (insertError) {
       console.error("[admin/waitlist] POST insert error:", insertError.message);
