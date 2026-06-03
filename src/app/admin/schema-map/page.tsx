@@ -5,15 +5,26 @@ import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 // ---------------------------------------------------------------------------
-// Schema map — staged walkthrough of the database. Modeled on the
-// /admin/prompt-architecture page: stepper-driven layers, click-through
-// detail, worked-example footer at the end.
+// Schema map — "follow one user's words."
 //
-// Data is hand-curated for now (the schema doesn't change daily and
-// migrations are deliberate). When migrations land, update TABLES below.
+// The database is one short spine: each user (profiles) has chats
+// (conversations), each chat has messages, and a few confirmed messages
+// become Manual entries. Everything else — phone links, audit logs,
+// telemetry, beta signups — hangs off the side of that spine, watching or
+// guarding the path the words travel.
+//
+// The page is organized around that frame: a front door, a lifecycle
+// walkthrough (the spine → the working memory → the watchers → who can see
+// what → what survives a delete → the numbers), and a table-by-table map.
+//
+// Data is hand-curated (the schema doesn't change daily; migrations are
+// deliberate). When migrations land, update TABLES below.
 // ---------------------------------------------------------------------------
 
-type Layer =
+// Fine-grained role each table plays. Drives the satellite grouping + the
+// "tables by family" bar. (Renamed from "Layer" to avoid colliding with the
+// product's five Manual Layers.)
+type Family =
   | "spine"
   | "extraction"
   | "identity"
@@ -21,6 +32,9 @@ type Layer =
   | "telemetry"
   | "beta"
   | "deprecated";
+
+// Who can read a table's rows — the security posture.
+type Access = "user" | "backend" | "signup";
 
 interface Column {
   name: string;
@@ -44,65 +58,60 @@ interface Table {
   description: string;
   columns: Column[];
   connections: Connection[];
+  families: Family[];
+  access: Access;
   notes?: string;
   deprecated?: boolean;
-  layers: Layer[];
 }
 
-interface Stage {
+interface Step {
   id: number;
   title: string;
   caption: string;
 }
 
-const STAGES: Stage[] = [
+const STEPS: Step[] = [
   {
     id: 1,
-    title: "Layer 0 — the whole schema",
+    title: "The spine",
     caption:
-      "Every table the app touches, grouped by role. Four make up the user-data spine; the rest handle identity, audit, telemetry, and signup. Click any card for its columns, foreign keys, and notes.",
+      "Follow one user's words. They sign up (a profiles row), they start a chat (a conversations row), every turn is stored (a messages row), and a few confirmed turns graduate into their Manual (manual_entries). That four-table path is the product. Each arrow is a foreign key; all four delete together when the user is deleted. Everything else in the database hangs off this spine.",
   },
   {
     id: 2,
-    title: "Layer 1 — the spine",
+    title: "The working memory",
     caption:
-      "profiles → conversations → messages → manual_entries. The path every user's data travels. Each arrow is a foreign key with a documented on-delete behavior. Everything else in the schema hangs off this trunk.",
+      "Riding on each conversation is one JSONB blob — extraction_state — that the background call rewrites every turn so Jove remembers between turns. It's JSONB (a flexible JSON field) rather than columns because its shape is owned by the app's code and changes with the prompt; pinning it to columns would mean a migration per field. messages.extraction_snapshot keeps a frozen per-turn copy for replay.",
   },
   {
     id: 3,
-    title: "Layer 2 — extraction state",
+    title: "The watchers",
     caption:
-      "The conversations.extraction_state JSONB column (a flexible JSON field — schema lives inside the value, not the table) is where Jove's working memory lives. The parallel Sonnet call writes it every turn; the next turn's prompt reads it. messages.extraction_snapshot keeps a frozen per-turn copy for replay and debugging.",
+      "Off the spine sit the satellite tables — they record, route, or guard the path but never sit on it. Identity (phone links), audit (who did what), telemetry (sends, errors, safety, the shadow monitor), and beta signup. Most are never on the live user flow; several are write-only or dead weight.",
   },
   {
     id: 4,
-    title: "Layer 3 — identity",
+    title: "Who can see what",
     caption:
-      "profiles is the user record. phone_numbers links SMS channels. Both cascade-delete when the underlying auth.users row goes away. The only code path allowed to flip phone_numbers.verified=true is the OTP verify route.",
+      "Every table with user data has row-level security (RLS) on. Two patterns: tables a user can read their own rows from (scoped to their login), and backend-only tables no user can read at all (only the server and admins). A couple go further — api_errors stores a hashed user id, not a real link, and only the OTP verify route may ever flip phone_numbers.verified to true.",
   },
   {
     id: 5,
-    title: "Layer 4 — operational surface",
+    title: "What survives a delete",
     caption:
-      "Audit trails, error capture, and beta signup. Most are service-role write only with RLS blocking ordinary user reads. Some FKs are deliberately omitted (api_errors hashes user_id; admin_access_logs has no FKs at all) so the audit trail outlives the data it records.",
+      "When a user is deleted, a chain fires. Most user-scoped tables CASCADE (the rows go too). A few SET NULL — the row survives but forgets who it belonged to. And the audit/telemetry tables are deliberately wired to outlive the user they describe, so the record of what happened can't be erased by deleting an account.",
   },
   {
     id: 6,
-    title: "Cascades — what happens when a user is deleted",
+    title: "By the numbers",
     caption:
-      "Deleting an auth.users row triggers a chain. Most user-scoped tables CASCADE. A few SET NULL (linq_group_chats becomes ownerless rather than disappearing). admin_access_logs survives by design — audit records have no FK to profiles.",
-  },
-  {
-    id: 7,
-    title: "Worked example — schema by the numbers",
-    caption:
-      "Counts and stats from the current schema: total tables, columns, foreign keys, RLS-protected tables, cascading vs orphaning behaviors. Hand-curated for now; live row counts are a follow-up.",
+      "The whole schema at a glance — tables, columns, foreign keys, and how many cascade vs. survive a delete. Hand-curated for now (live row counts are a follow-up). Use it to spot dead weight: tables nothing reads, or kept only until a later migration drops them.",
   },
 ];
 
-const LAYER_LABEL: Record<Layer, string> = {
+const FAMILY_LABEL: Record<Family, string> = {
   spine: "Spine",
-  extraction: "Extraction",
+  extraction: "Working memory",
   identity: "Identity",
   audit: "Audit",
   telemetry: "Telemetry",
@@ -110,23 +119,67 @@ const LAYER_LABEL: Record<Layer, string> = {
   deprecated: "Deprecated",
 };
 
+const ACCESS_LABEL: Record<Access, string> = {
+  user: "User-readable",
+  backend: "Backend-only",
+  signup: "Signup gate",
+};
+
+// spine / satellite / deprecated — the top-level tag shown on cards + detail.
+type GroupTag = "spine" | "satellite" | "deprecated";
+
+function groupTag(t: Table): GroupTag {
+  if (t.deprecated) return "deprecated";
+  if (t.families.includes("spine")) return "spine";
+  return "satellite";
+}
+
+function tagTone(tag: GroupTag): { bg: string; fg: string; border: string; label: string } {
+  switch (tag) {
+    case "spine":
+      return {
+        bg: "var(--session-persona-tint)",
+        fg: "var(--session-persona)",
+        border: "var(--session-persona-border)",
+        label: "spine",
+      };
+    case "satellite":
+      return {
+        bg: "var(--session-walnut-tint)",
+        fg: "var(--session-walnut-meta-strong)",
+        border: "var(--session-walnut-border)",
+        label: "satellite",
+      };
+    case "deprecated":
+      return {
+        bg: "var(--session-warning-soft)",
+        fg: "var(--session-warning)",
+        border: "var(--session-warning)",
+        label: "deprecated",
+      };
+  }
+}
+
 // ---------------------------------------------------------------------------
-// TABLES — preserved from the previous schema-map, with new `layers` field.
+// TABLES — every table in the public schema, hand-mapped to track the
+// migrations. The columns + foreign keys are real; verify against
+// supabase/migrations/ when the schema changes.
 // ---------------------------------------------------------------------------
 
 const TABLES: Table[] = [
   {
     name: "profiles",
-    layers: ["spine", "identity"],
+    families: ["spine", "identity"],
+    access: "user",
     oneLine: "One row per user. The root of every user-owned chain.",
     rowMeans: "One mywalnut user. The id mirrors Supabase's auth.users.id.",
     description:
-      "When someone signs up through Supabase Auth, a corresponding profiles row is created with the same id. Everything user-scoped — conversations, manual entries, phone numbers, modal progress — points back to this row. Deleting a profile cascades through almost every user-owned table.",
+      "When someone signs up through Supabase Auth, a matching profiles row is created with the same id. Everything user-scoped — conversations, manual entries, phone numbers, modal progress — points back to this row. Deleting a profile cascades through almost every user-owned table.",
     columns: [
       { name: "id", type: "uuid", plain: "Mirrors auth.users.id. The user's unique identifier across the whole app." },
       { name: "display_name", type: "text", plain: "Optional name shown in UI." },
-      { name: "persona_modes", type: "text[]", plain: "Which Jove voice modes apply to this user (e.g. ['autistic', 'adhd']). Drives prompt assembly.", emphasized: true },
-      { name: "modal_progress", type: "integer", plain: "Onboarding modal step (0-3). Gates which one-time modals fire. The Halfway-there modal fires when this is 1.", emphasized: true },
+      { name: "persona_modes", type: "text[]", plain: "Which Jove voice modes apply to this user (e.g. ['autistic', 'adhd']). Drives prompt assembly. Default is ['general']; 'general' is exclusive.", emphasized: true },
+      { name: "modal_progress", type: "integer", plain: "Onboarding modal step (0-3). Gates which one-time modals fire.", emphasized: true },
       { name: "onboarding_completed_at", type: "timestamptz", plain: "When the user finished initial onboarding. Null until completed." },
     ],
     connections: [
@@ -143,21 +196,24 @@ const TABLES: Table[] = [
   },
   {
     name: "conversations",
-    layers: ["spine", "extraction"],
-    oneLine: "One row per chat session. Holds the per-turn extraction state.",
+    families: ["spine", "extraction"],
+    access: "user",
+    oneLine: "One row per chat session. Holds the per-turn working memory.",
     rowMeans:
       "A single conversation session between the user and Jove. Created when the user starts a new chat, lives across many message turns.",
     description:
-      "Each conversation accumulates messages and an extraction_state. The extraction_state column is the JSONB blob the background Sonnet call writes every turn — the 21 fields covered in the Extraction consumer map. The summary column is the AI-generated session summary used to orient Jove when the user returns. mode controls which entry path the conversation is on: situation (default), guided-intake, or upload.",
+      "Each conversation accumulates messages and a working-memory blob. extraction_state is the JSONB the background call rewrites every turn — see the Extraction map for the field-by-field breakdown. summary is the AI-generated session recap used to orient Jove when the user returns. mode controls which entry path the conversation is on: situation (default), guided-intake, or upload.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique conversation identifier." },
       { name: "user_id", type: "uuid", plain: "Which user owns this conversation.", emphasized: true },
       { name: "status", type: "text", plain: "'active' or 'completed'. Set to completed when the user wraps the session." },
       { name: "summary", type: "text", plain: "AI-generated multi-sentence summary of the session. Read by Jove on the user's next session for context.", emphasized: true },
-      { name: "extraction_state", type: "jsonb", plain: "The 21-field blob produced by the extractor every turn. Where Jove's working memory lives. See the Extraction consumer map for the field-by-field breakdown.", emphasized: true },
-      { name: "mode", type: "text", plain: "'situation' (default open exploration), 'guided-intake' (directed path), or 'upload' (pasted content). Drives which Tier 3 prompt block loads.", emphasized: true },
+      { name: "extraction_state", type: "jsonb", plain: "The case file the extractor rewrites every turn — where Jove's working memory lives. Mapped field-by-field in the Extraction map.", emphasized: true },
+      { name: "mode", type: "text", plain: "'situation' (default open exploration), 'guided-intake' (directed path), or 'upload' (pasted content). Drives which prompt block loads.", emphasized: true },
       { name: "channel", type: "text", plain: "'web' (default) or 'sms'. Tracks which surface the conversation came through." },
-      { name: "linq_group_chat_id", type: "uuid", plain: "Links a group conversation to a linq_group_chats row. Null for normal 1:1 conversations." },
+      { name: "processing_sms", type: "boolean", plain: "True while an SMS turn is mid-flight. Guards against double-processing concurrent inbound texts." },
+      { name: "calibration_ratings", type: "text", plain: "Dead column — never read or written. Documented in system.md as safe to ignore. Left in place, not yet dropped.", emphasized: true },
+      { name: "linq_group_chat_id", type: "uuid", plain: "Links a group conversation to a (deprecated) linq_group_chats row. Null for normal 1:1 conversations." },
     ],
     connections: [
       {
@@ -172,30 +228,33 @@ const TABLES: Table[] = [
         via: "linq_group_chat_id",
         cardinality: "N:1",
         onDelete: "SET NULL",
-        explanation: "If the group chat is deleted, this column becomes null but the conversation row survives.",
+        explanation: "If the (deprecated) group chat is deleted, this column becomes null but the conversation row survives.",
       },
     ],
     notes:
-      "The extraction_state column is huge in product impact — it's the entire context for Jove's next turn. There's NO row-per-extraction history table; only the current state is kept here (with frozen per-message copies on messages.extraction_snapshot).",
+      "extraction_state is huge in product impact — it's the entire context for Jove's next turn. There's NO row-per-extraction history table; only the current state is kept here, with frozen per-message copies on messages.extraction_snapshot.",
   },
   {
     name: "messages",
-    layers: ["spine", "extraction"],
+    families: ["spine", "extraction"],
+    access: "user",
     oneLine: "Every chat turn. User, assistant, and system messages.",
     rowMeans:
       "One message in a conversation. Either the user said something, Jove responded, or the system inserted a marker (e.g. checkpoint confirmation).",
     description:
-      "All chat history lives here. Each row knows its role (user/assistant/system) and whether it was a checkpoint moment. When a turn is a checkpoint, is_checkpoint flips to true and checkpoint_meta carries the composed entry preview. extraction_snapshot is a frozen per-message copy of the extraction state at that point — used for debugging and replay.",
+      "All chat history lives here. Each row knows its role (user/assistant/system) and whether it was a checkpoint moment. When a turn is a checkpoint, is_checkpoint flips true and checkpoint_meta carries the composed entry preview. extraction_snapshot is a frozen per-message copy of the working memory at that point — used for debugging and replay.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique message identifier." },
       { name: "conversation_id", type: "uuid", plain: "Which conversation this message belongs to.", emphasized: true },
       { name: "role", type: "text", plain: "'user', 'assistant' (Jove), or 'system' (checkpoint markers).", emphasized: true },
       { name: "content", type: "text", plain: "The actual message text." },
       { name: "is_checkpoint", type: "boolean", plain: "True when Jove proposed a Manual entry this turn.", emphasized: true },
-      { name: "checkpoint_meta", type: "jsonb", plain: "When is_checkpoint is true: holds composed_content, composed_name, layer, refinement_count, status (pending/confirmed/rejected/refined).", emphasized: true },
-      { name: "extraction_snapshot", type: "jsonb", plain: "Frozen copy of the conversation's extraction state at this turn. Lets you replay history.", emphasized: true },
+      { name: "checkpoint_meta", type: "jsonb", plain: "When is_checkpoint is true: composed_content, composed_name, layer, refinement_count, status (pending/confirmed/rejected/refined).", emphasized: true },
+      { name: "extraction_snapshot", type: "jsonb", plain: "Frozen copy of the conversation's working memory at this turn. Lets you replay history.", emphasized: true },
+      { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. Carries the checkpoint-suppressed marker, guided-intake chip taps, etc." },
       { name: "channel", type: "text", plain: "'web' or 'sms'. Tracks the message's origin surface." },
-      { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. First use: { chip_response: true } for guided-intake quick-reply taps." },
+      { name: "processing_text", type: "text", plain: "Legacy column — transient 'thinking…' text. Still selected by the admin message viewer." },
+      { name: "sender_phone", type: "text", plain: "Legacy column — the phone number an SMS message came from." },
     ],
     connections: [
       {
@@ -211,19 +270,20 @@ const TABLES: Table[] = [
   },
   {
     name: "manual_entries",
-    layers: ["spine"],
+    families: ["spine"],
+    access: "user",
     oneLine: "The user's confirmed Manual entries. The product output.",
     rowMeans:
       "One confirmed entry on one of the five layers of the user's Manual. Created when the user accepts a checkpoint.",
     description:
-      "The Manual itself. Each row is one entry on one layer (1-5). Entries are immutable on insert — there's no upsert, no replacement rule, no per-layer cap. To edit an existing entry, the change is logged in manual_changelog. The summary and key_words columns are the compressed-form data used to keep older entries readable to Jove without re-shipping their full prose every turn.",
+      "The Manual itself. Each row is one entry on one layer (1-5). Entries are inserted, never replaced — there's no upsert, no per-layer cap. To edit an existing entry, the change is logged in manual_changelog. summary and key_words are the compressed-form data that keeps older entries readable to Jove without re-shipping their full prose every turn.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique entry identifier." },
       { name: "user_id", type: "uuid", plain: "Which user this entry belongs to.", emphasized: true },
-      { name: "layer", type: "integer (1-5)", plain: "Which of the five layers this entry sits on. Checked by a CHECK constraint.", emphasized: true },
-      { name: "name", type: "text", plain: "The entry's headline (e.g. 'I Freeze When Asked What I Want'). The headline validator we built defends this.", emphasized: true },
+      { name: "layer", type: "integer (1-5)", plain: "Which of the five Manual layers this entry sits on (1 = My Strengths). CHECK-constrained.", emphasized: true },
+      { name: "name", type: "text", plain: "The entry's headline (e.g. 'I Freeze When Asked What I Want').", emphasized: true },
       { name: "content", type: "text", plain: "The entry's body — first-person prose, 80+ words, body-anchored.", emphasized: true },
-      { name: "source_message_id", type: "uuid", plain: "Points back to the message that proposed this entry. The only FK from manual_entries to messages.", emphasized: true },
+      { name: "source_message_id", type: "uuid", plain: "Points back to the message that proposed this entry.", emphasized: true },
       { name: "summary", type: "text", plain: "One-sentence third-person summary used when this entry is compressed into Jove's older-entries context.", emphasized: true },
       { name: "key_words", type: "text[]", plain: "3-6 charged words the user would recognize. Paired with summary in compressed form." },
     ],
@@ -248,16 +308,17 @@ const TABLES: Table[] = [
   },
   {
     name: "manual_changelog",
-    layers: ["audit"],
+    families: ["audit"],
+    access: "user",
     oneLine: "Audit trail for edits to existing Manual entries.",
     rowMeans:
       "One edit event — when a user changes an existing Manual entry, the before/after content and a change description are logged here.",
     description:
-      "Reserved for explicit-edit features. The current product writes new entries via INSERT into manual_entries; existing entries are not edited in production paths. This table exists for the future case when users can sharpen / rewrite existing entries.",
+      "Reserved for explicit-edit features. The current product writes new entries via INSERT into manual_entries; existing entries aren't edited in production paths. This table exists for the future case where users can sharpen / rewrite existing entries.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique edit identifier." },
       { name: "user_id", type: "uuid", plain: "Which user made the edit.", emphasized: true },
-      { name: "component_id", type: "uuid", plain: "The manual_entries.id being edited. Not enforced as a foreign key today.", emphasized: true },
+      { name: "component_id", type: "uuid", plain: "The manual_entries.id being edited. Legacy name (predates the 'entry' terminology); not enforced as a foreign key.", emphasized: true },
       { name: "layer", type: "integer (1-5)", plain: "Which layer the edited entry sits on." },
       { name: "previous_content", type: "text", plain: "The entry content before the edit." },
       { name: "new_content", type: "text", plain: "The entry content after the edit." },
@@ -281,44 +342,48 @@ const TABLES: Table[] = [
       },
     ],
     notes:
-      "Rarely written today. Confirmed in docs/system.md: 'current write paths do not exercise it.'",
+      "Rarely written today. Confirmed in docs/system.md: 'current write paths do not exercise it.' The column is named component_id for historical reasons — the entry table is manual_entries.",
   },
   {
     name: "phone_numbers",
-    layers: ["identity"],
-    oneLine: "Linked phone numbers for SMS-based interaction.",
+    families: ["identity"],
+    access: "user",
+    oneLine: "Linked phone number for SMS-based interaction. One per user.",
     rowMeans:
-      "One phone number a user has linked for SMS chat. A user can link multiple numbers across services.",
+      "The phone number a user has linked for SMS chat, plus its OTP verification state. One row per user (enforced by a unique constraint).",
     description:
-      "Stores phone numbers users link for SMS access. The verification flow uses verification_code + code_expires_at for OTP. service_type tracks which provider routes for this number (sendblue vs linq). The only code path allowed to set verified=true is the OTP verify route after hash comparison — this is a hard product rule.",
+      "Stores the phone number a user links for SMS access. The verification flow uses otp_code + otp_expires_at. service_type tracks which provider routes for this number. The only code path allowed to set verified=true is the OTP verify route after hash comparison — a hard product rule. A UNIQUE(user_id) constraint means one linked number per user.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique phone-link identifier." },
-      { name: "user_id", type: "uuid", plain: "Which user owns this phone number.", emphasized: true },
-      { name: "phone", type: "text", plain: "E.164-formatted phone number.", emphasized: true },
+      { name: "user_id", type: "uuid", plain: "Which user owns this phone number. UNIQUE — one row per user.", emphasized: true },
+      { name: "phone", type: "text", plain: "E.164-formatted phone number (the international '+countrycode…' format).", emphasized: true },
       { name: "verified", type: "boolean", plain: "Whether the OTP was verified. Only the /api/user/phone/verify route may set this to true.", emphasized: true },
-      { name: "verification_code", type: "text", plain: "Hashed OTP. Cleared after verification." },
-      { name: "code_expires_at", type: "timestamptz", plain: "When the OTP expires." },
+      { name: "otp_code", type: "text", plain: "Hashed one-time passcode. Cleared after verification. (Renamed from verification_code.)" },
+      { name: "otp_expires_at", type: "timestamptz", plain: "When the one-time passcode expires. (Renamed from code_expires_at.)" },
       { name: "service_type", type: "text", plain: "Which messaging provider routes for this number." },
-      { name: "otp_attempts", type: "integer", plain: "Brute-force-protection counter. Capped at OTP_MAX_ATTEMPTS (5). Verify route returns 429 once at cap. Resets on successful verify or fresh OTP send.", emphasized: true },
+      { name: "otp_attempts", type: "integer", plain: "Brute-force-protection counter. Capped at OTP_MAX_ATTEMPTS (5). Verify route returns 429 at cap. Resets on successful verify or fresh OTP send.", emphasized: true },
     ],
     connections: [
       {
         to: "profiles",
         via: "user_id",
-        cardinality: "N:1",
+        cardinality: "1:1",
         onDelete: "CASCADE",
-        explanation: "Phone links go away when the user is deleted.",
+        explanation: "Phone link goes away when the user is deleted.",
       },
     ],
+    notes:
+      "UNIQUE(user_id) was added so a user can't accumulate multiple linked numbers. OTP columns were renamed from verification_code / code_expires_at to otp_code / otp_expires_at.",
   },
   {
     name: "messaging_events",
-    layers: ["telemetry"],
+    families: ["telemetry"],
+    access: "backend",
     oneLine: "Audit trail of every outbound send and inbound webhook.",
     rowMeans:
       "One SMS/iMessage event — either an outbound message Jove sent or an inbound webhook event from a provider (Sendblue or Linq).",
     description:
-      "Telemetry for debugging send/receive issues across both messaging providers. Inbound rows back the idempotency check (partial unique index on provider + provider_message_id catches Sendblue's retry storms without an in-memory map). Outbound rows track status, error codes, and downgrade events. Designed to outlive user deletion — the FK to profiles is SET NULL so deleted users don't take their event history with them.",
+      "Telemetry for debugging send/receive issues across both messaging providers. Inbound rows back the idempotency check (a partial unique index on provider + provider_message_id catches retry storms without an in-memory map). Outbound rows track status, error codes, and downgrade events. Designed to outlive user deletion — the FK to profiles is SET NULL.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique event identifier." },
       { name: "direction", type: "text", plain: "'outbound' (Jove sent) or 'inbound' (provider webhook).", emphasized: true },
@@ -326,10 +391,9 @@ const TABLES: Table[] = [
       { name: "provider_message_id", type: "text", plain: "Provider-side ID. Backs inbound idempotency via a partial unique index.", emphasized: true },
       { name: "from_number", type: "text", plain: "Sender phone number (E.164)." },
       { name: "to_number", type: "text", plain: "Recipient phone number (E.164)." },
-      { name: "content", type: "text", plain: "Message text. Redacted after a retention window per ADR-037." },
+      { name: "content", type: "text", plain: "Message text. Redacted after a retention window." },
       { name: "status", type: "text", plain: "Provider-reported delivery status." },
       { name: "error_code", type: "text", plain: "Provider-reported error code if delivery failed." },
-      { name: "error_message", type: "text", plain: "Human-readable error description." },
       { name: "was_downgraded", type: "boolean", plain: "True when iMessage was downgraded to SMS at delivery time." },
       { name: "raw_payload", type: "jsonb", plain: "Full provider payload for forensic debugging." },
       { name: "owner_user_id", type: "uuid", plain: "The mywalnut user this event was for. SET NULL on user delete so the event survives.", emphasized: true },
@@ -345,22 +409,23 @@ const TABLES: Table[] = [
       },
     ],
     notes:
-      "RLS enabled with no public policies — service role writes via the admin client. Same security pattern as safety_events.",
+      "RLS enabled with no public policies — only the service-role backend writes; admins read via is_admin(). Same security pattern as safety_events.",
   },
   {
     name: "safety_events",
-    layers: ["telemetry"],
+    families: ["telemetry"],
+    access: "backend",
     oneLine: "Crisis-language detection log.",
     rowMeans:
       "One row per turn where the crisis detector fired. Records whether Jove appended the 988 resources.",
     description:
-      "Whenever crisis language is detected in a user message, a row lands here. crisis_detected is always true (any row implies detection). persona_included_988 tracks whether the LLM response actually mentioned 988, so we can audit cases where the model failed to include it and the appendix added it instead.",
+      "Whenever crisis language is detected in a user message, a row lands here. crisis_detected is always true (any row implies detection). persona_included_988 tracks whether the model's response actually mentioned 988, so we can audit cases where the model failed to include it and the appendix added it instead.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique safety-event identifier." },
       { name: "conversation_id", type: "uuid", plain: "Which conversation the event happened in.", emphasized: true },
       { name: "user_id", type: "uuid", plain: "Which user.", emphasized: true },
       { name: "crisis_detected", type: "boolean", plain: "Always true. Any row here means detection fired." },
-      { name: "persona_included_988", type: "boolean", plain: "Whether the original LLM response mentioned 988. Audit signal for the safety pipeline.", emphasized: true },
+      { name: "persona_included_988", type: "boolean", plain: "Whether the original response mentioned 988. Audit signal for the safety pipeline.", emphasized: true },
     ],
     connections: [
       {
@@ -378,31 +443,28 @@ const TABLES: Table[] = [
         explanation: "Delete the user, delete the safety events.",
       },
     ],
+    notes: "RLS-on, no public policies — service-role writes, admins read.",
   },
   {
     name: "monitor_reads",
-    layers: ["telemetry"],
+    families: ["telemetry"],
+    access: "backend",
     oneLine:
-      "Per-turn shadow-monitor alliance reads. Written every turn, read by nothing in the live pipeline.",
+      "Per-turn shadow-monitor reads. Written every turn, read by nothing live.",
     rowMeans:
-      "One alliance read from the Phase 0 shadow monitor — produced on a single web turn, capturing how the relationship looked at that moment (bond, task, scope, rupture, direction).",
+      "One alliance read from the Phase 0 shadow monitor — produced on a single web turn, capturing how the relationship looked (bond, task, scope, rupture, direction).",
     description:
-      "The persistence side of the shadow monitor — the Opus pre-call that runs alongside extraction on every web turn and reads the alliance, not the topic. The defining fact: this table is written every turn but NOTHING in the live pipeline reads it back. The only readers are out-of-band — admin SQL and the /replay-monitor harness. It's the write target of 'a sensor wired to no actuator': Phase 0 validated that the signal is detectable, but the component that would consume it (the deterministic selector) isn't built. Until it is, these rows change nothing about Jove's behavior. Admin-read-only via RLS; writes flow through the service-role admin client; end users never see it.",
+      "The persistence side of the shadow monitor — the Opus pre-call that runs alongside extraction on every web turn and reads the alliance, not the topic. The defining fact: this table is written every turn but NOTHING in the live pipeline reads it back. The only readers are out-of-band (admin SQL and the /replay-monitor harness). Phase 0 validated the signal is detectable; the component that would consume it isn't built yet. Until then, these rows change nothing about Jove's behavior. Admin-read-only via RLS; service-role writes; end users never see it.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique read identifier." },
       { name: "conversation_id", type: "uuid", plain: "Which conversation this read is from. CASCADE on delete.", emphasized: true },
       { name: "user_id", type: "uuid", plain: "Which user. FK to auth.users, CASCADE on delete." },
       { name: "triggering_message_id", type: "uuid", plain: "The user message that triggered the read — nullable, because the monitor fires before Jove's response row exists. SET NULL if that message is deleted." },
       { name: "bond_holding", type: "boolean", plain: "Is the working bond intact this turn.", emphasized: true },
-      { name: "task_agreed", type: "boolean", plain: "Are user and Jove aligned on what they're doing." },
-      { name: "scope", type: "text", plain: "'in_scope' / 'drifting' / 'out_of_scope'. CHECK-enforced to mirror the TS enum in monitor.ts.", emphasized: true },
+      { name: "scope", type: "text", plain: "'in_scope' / 'drifting' / 'out_of_scope'. CHECK-enforced to mirror the code enum.", emphasized: true },
       { name: "rupture", type: "text", plain: "'none' / 'withdrawal' / 'confrontation'. The kind of rupture this turn, if any.", emphasized: true },
       { name: "direction", type: "text", plain: "'steadying' / 'drifting' / 'sinking'. The sliding-window slope — the load-bearing signal validated in Phase 0.", emphasized: true },
-      { name: "reason", type: "text", plain: "One-sentence justification for the read. Nullable." },
       { name: "model", type: "text", plain: "Which model produced the read (currently Opus — a Phase-0 ceiling test)." },
-      { name: "input_tokens", type: "integer", plain: "Read-call input token count." },
-      { name: "output_tokens", type: "integer", plain: "Read-call output token count." },
-      { name: "latency_ms", type: "integer", plain: "Read-call latency." },
       { name: "turn_index", type: "integer", plain: "Which turn in the conversation this read is for." },
     ],
     connections: [
@@ -429,24 +491,24 @@ const TABLES: Table[] = [
       },
     ],
     notes:
-      "Phase 0 shadow dataset, written from persona-pipeline.ts:411–426 (fireBackgroundMonitor). RLS admin-read-only, no INSERT/UPDATE policy (service-role writes). Indexed for the two real queries: per-conversation timeline and global direction filter. Droppable when Phase 0 concludes — nothing in the pipeline depends on it.",
+      "Phase 0 shadow dataset, written by fireBackgroundMonitor in persona-pipeline.ts. RLS admin-read-only, no INSERT/UPDATE policy (service-role writes). Droppable when Phase 0 concludes — nothing in the pipeline depends on it.",
   },
   {
     name: "linq_group_chats",
-    layers: ["deprecated"],
+    families: ["deprecated"],
+    access: "backend",
     oneLine: "Group facilitator chat state. Deprecated.",
     rowMeans:
-      "One Linq group chat that Jove is participating in as facilitator. Tracks owner, participants, and recency of Jove's involvement.",
+      "One Linq group chat that Jove participated in as facilitator. Tracks owner, participants, and recency of Jove's involvement.",
     description:
-      "Per project memory: Linq is deprecated. This table and the conversation pathway that uses it (linq_group_chat_id on conversations) are slated for removal as 1:1 SMS migrates to Sendblue. No further investment.",
+      "Per project memory, Linq is deprecated. This table and the conversation pathway that uses it (linq_group_chat_id on conversations) are slated for removal as 1:1 SMS migrates to Sendblue. No further investment.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique group-chat identifier." },
       { name: "linq_chat_id", type: "text", plain: "External Linq-side chat identifier.", emphasized: true },
       { name: "owner_user_id", type: "uuid", plain: "The mywalnut user who owns this group chat. SET NULL on user delete (group survives).", emphasized: true },
       { name: "is_active", type: "boolean", plain: "Whether Jove is still participating in this chat." },
-      { name: "intro_sent", type: "boolean", plain: "Whether Jove has delivered its intro message." },
       { name: "non_persona_participant_count", type: "integer", plain: "Count of non-Jove participants. Drives facilitator behavior." },
-      { name: "messages_since_persona_spoke", type: "integer", plain: "How many messages have passed since Jove last spoke. Pacing signal." },
+      { name: "messages_since_persona_spoke", type: "integer", plain: "How many messages since Jove last spoke. Pacing signal." },
     ],
     connections: [
       {
@@ -463,7 +525,8 @@ const TABLES: Table[] = [
   },
   {
     name: "beta_feedback",
-    layers: ["beta"],
+    families: ["beta"],
+    access: "user",
     oneLine: "User-submitted feedback during beta.",
     rowMeans:
       "One feedback submission by a beta user. Surfaces in /admin/feedback.",
@@ -490,12 +553,13 @@ const TABLES: Table[] = [
   },
   {
     name: "feedback",
-    layers: ["beta"],
-    oneLine: "Generic in-app feedback widget submissions.",
+    families: ["beta"],
+    access: "user",
+    oneLine: "Older generic feedback widget. Predates beta_feedback.",
     rowMeans:
       "One feedback submission. Distinct from beta_feedback; tied to a session via session_id.",
     description:
-      "Older feedback table predating beta_feedback. The session_id column references a conversation but is informational — no FK constraint enforced.",
+      "Older feedback table predating beta_feedback. session_id references a conversation but is informational — no FK constraint enforced.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique feedback identifier." },
       { name: "user_id", type: "uuid", plain: "Which user submitted." },
@@ -514,25 +578,50 @@ const TABLES: Table[] = [
   },
   {
     name: "waitlist",
-    layers: ["beta"],
+    families: ["beta"],
+    access: "signup",
     oneLine: "Beta access list — status is the access gate.",
     rowMeans:
       "One person in the beta funnel. Their status IS their access: 'invited' means allowed to sign up / log in.",
     description:
-      "Single source of truth for beta access (retired the separate beta_allowlist table). status moves 'waiting' → 'invited' → 'declined'. The signup + OAuth gates (isEmailAllowlisted) read this table WHERE status='invited'. Inviting is a single atomic status flip — no copy/delete between tables. Emails are unique + lowercase (CHECK constraint).",
+      "Single source of truth for beta access (it replaced the separate beta_allowlist table). status moves 'waiting' → 'invited' → 'declined'. The signup + OAuth gates read this table WHERE status='invited'. Inviting is a single atomic status flip — no copy/delete between tables. Emails are unique + lowercase (CHECK constraint). Anon inserts are locked down — signups flow through /api/waitlist with the service-role client.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique row identifier." },
       { name: "email", type: "text (unique, lowercased)", plain: "The email." },
       { name: "source", type: "text", plain: "Freeform 'what brought you here' from the public form (null for manual invites)." },
       { name: "status", type: "text", plain: "'waiting', 'invited', or 'declined'. 'invited' === beta access.", emphasized: true },
       { name: "seen", type: "boolean", plain: "Admin has acknowledged this signup (clears the 'new signups' badge). Manual invites land seen=true." },
+      { name: "invited_at", type: "timestamptz", plain: "When the status flipped to 'invited'. Null for rows invited before this column existed.", emphasized: true },
       { name: "notes", type: "text", plain: "Optional admin note (e.g. on a manual invite)." },
     ],
     connections: [],
+    notes:
+      "No FK — a waitlist row exists before any auth user does. The anon-insert hole was closed; only the backend writes here now.",
+  },
+  {
+    name: "beta_allowlist",
+    families: ["deprecated"],
+    access: "signup",
+    oneLine: "Retired beta access list. Dead — kept until prod login is verified.",
+    rowMeans:
+      "An email that was once allowed into beta. No longer consulted by anything.",
+    description:
+      "The old beta-access table, replaced by waitlist.status='invited' in the beta-access unification. No code references it anymore. RLS is on with no policies. It's deliberately left in place — to be dropped in a later migration once production login is fully verified — so it's a live, empty-of-purpose table, not a clean part of the schema.",
+    columns: [
+      { name: "id", type: "uuid", plain: "Unique row identifier." },
+      { name: "email", type: "text", plain: "The allowlisted email (lowercased, CHECK-enforced)." },
+      { name: "notes", type: "text", plain: "Optional admin note." },
+      { name: "created_at", type: "timestamptz", plain: "When the row was added." },
+    ],
+    connections: [],
+    deprecated: true,
+    notes:
+      "Dead leftover. Superseded by waitlist (see unify_beta_access migration). Slated to be dropped once prod login is verified — until then it's a real table the schema still carries.",
   },
   {
     name: "admin_access_logs",
-    layers: ["audit"],
+    families: ["audit"],
+    access: "backend",
     oneLine: "Audit trail for admin actions on user data.",
     rowMeans:
       "One audit entry whenever an admin views or modifies user-scoped data.",
@@ -547,38 +636,39 @@ const TABLES: Table[] = [
     ],
     connections: [],
     notes:
-      "No FK constraints on admin_id / target_user_id / conversation_id — just UUID columns. Service-role write only. Survives user deletion by design — audit trail outlives the data.",
+      "No FK constraints on admin_id / target_user_id / conversation_id — just UUID columns. Service-role write only. Survives user deletion by design — the audit trail outlives the data it records.",
   },
   {
     name: "api_errors",
-    layers: ["telemetry"],
+    families: ["telemetry"],
+    access: "backend",
     oneLine: "Generic API route error capture.",
     rowMeans:
       "One error from any API route that called recordApiError(). Captures the route, method, status, message, and a hashed user ID.",
     description:
-      "RLS-on with no policies — service_role write and read only. Important: the user_id is HASHED, not a foreign key. This is deliberate so cross-user error correlation can't leak through accidental row exposure.",
+      "RLS-on with no policies — service-role write and read only. Important: the user_id is HASHED, not a foreign key. That's deliberate, so cross-user error correlation can't leak through accidental row exposure.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique error identifier." },
       { name: "route", type: "text", plain: "Which API route errored (e.g. '/api/chat')." },
       { name: "method", type: "text", plain: "HTTP method." },
       { name: "status_code", type: "integer", plain: "HTTP status code returned." },
       { name: "error_message", type: "text", plain: "Error message." },
-      { name: "error_stack", type: "text", plain: "Stack trace for server-side errors." },
-      { name: "user_id_hash", type: "text (16-char hex)", plain: "Hashed user identifier. NOT a foreign key — deliberate.", emphasized: true },
-      { name: "request_id", type: "text", plain: "Vercel structured-log correlation ID." },
+      { name: "user_id_hash", type: "text (16-char hex)", plain: "Hashed user identifier. NOT a foreign key — deliberate, so users can't be correlated across rows.", emphasized: true },
+      { name: "request_id", type: "text", plain: "Structured-log correlation ID." },
     ],
     connections: [],
     notes:
-      "No FK to profiles. The hashing pattern means even if RLS were misconfigured, cross-user correlation would require unhashing.",
+      "No FK to profiles. The hashing means even if RLS were misconfigured, cross-user correlation would require unhashing.",
   },
   {
     name: "confirm_failures",
-    layers: ["telemetry"],
-    oneLine: "Checkpoint confirmation failure telemetry.",
+    families: ["telemetry"],
+    access: "backend",
+    oneLine: "Checkpoint-confirm failure telemetry.",
     rowMeans:
       "One row per failed checkpoint confirm attempt. Captures the error kind, status code, and duration.",
     description:
-      "Service-role-only telemetry table for failures in the /api/checkpoint/confirm path. error_kind classifies the failure (e.g. 'rpc_error', 'not_pending'). message_id and conversation_id are UUID references but not foreign-key-enforced.",
+      "Service-role-only telemetry for failures in the /api/checkpoint/confirm path. error_kind classifies the failure. message_id and conversation_id are UUID references but not foreign-key-enforced.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique failure-event identifier." },
       { name: "user_id", type: "uuid", plain: "Which user hit the failure.", emphasized: true },
@@ -599,22 +689,35 @@ const TABLES: Table[] = [
       },
     ],
     notes:
-      "RLS-on, no policies. message_id and conversation_id are deliberately not FKs to avoid coupling telemetry to the lifetime of the source rows.",
+      "RLS-on, no policies. message_id and conversation_id are deliberately not FKs, to avoid coupling telemetry to the lifetime of the source rows.",
   },
 ];
 
 const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";
 
 // ---------------------------------------------------------------------------
-// Selection model
+// Selection
 // ---------------------------------------------------------------------------
 
-type Selection =
-  | { kind: "table"; name: string };
+type Selection = { kind: "table"; name: string };
 
 function selectionKey(s: Selection | null): string | null {
   if (!s) return null;
   return `table:${s.name}`;
+}
+
+// Which families the diagram spotlights at each step. null = no spotlight.
+function spotlightForStep(stepId: number): Set<Family> | null {
+  switch (stepId) {
+    case 1:
+      return new Set<Family>(["spine"]);
+    case 2:
+      return new Set<Family>(["spine", "extraction"]);
+    case 3:
+      return new Set<Family>(["identity", "audit", "telemetry", "beta"]);
+    default:
+      return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -623,29 +726,11 @@ function selectionKey(s: Selection | null): string | null {
 
 export default function SchemaMapPage() {
   const isAdmin = useIsAdmin();
-  const [stageIndex, setStageIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [selection, setSelection] = useState<Selection | null>(null);
 
-  const stage = STAGES[stageIndex];
-
-  // Layers highlighted at each stage. Stage 1 (overview) highlights none —
-  // everything is at full opacity. Later stages dim non-active layers.
-  const highlightedLayers: Set<Layer> | null = useMemo(() => {
-    switch (stage.id) {
-      case 2:
-        return new Set<Layer>(["spine"]);
-      case 3:
-        return new Set<Layer>(["extraction"]);
-      case 4:
-        return new Set<Layer>(["identity"]);
-      case 5:
-        return new Set<Layer>(["audit", "telemetry", "beta"]);
-      case 6:
-        return null; // cascade flow renders separately
-      default:
-        return null; // stage 1 (whole) + stage 7 (worked example) → no dimming
-    }
-  }, [stage.id]);
+  const step = STEPS[stepIndex];
+  const spotlight = useMemo(() => spotlightForStep(step.id), [step.id]);
 
   const handleSelect = (next: Selection | null) => {
     setSelection((cur) => {
@@ -654,6 +739,11 @@ export default function SchemaMapPage() {
       if (curKey === nextKey) return null;
       return next;
     });
+  };
+
+  const jumpToStep = (i: number) => {
+    setStepIndex(i);
+    setSelection(null);
   };
 
   if (!isAdmin) {
@@ -726,9 +816,13 @@ export default function SchemaMapPage() {
             }}
           >
             <div style={{ overflowY: "auto", paddingRight: 12 }}>
+              <FrontDoor onJump={jumpToStep} />
+              <div style={{ height: 12 }} />
+              <GlossaryBox />
+              <div style={{ height: 18 }} />
               <Diagram
-                stageId={stage.id}
-                highlightedLayers={highlightedLayers}
+                stepId={step.id}
+                spotlight={spotlight}
                 selection={selection}
                 onSelect={handleSelect}
               />
@@ -753,13 +847,7 @@ export default function SchemaMapPage() {
                   zIndex: 1,
                 }}
               >
-                <Stepper
-                  stageIndex={stageIndex}
-                  setStageIndex={(i) => {
-                    setStageIndex(i);
-                    setSelection(null);
-                  }}
-                />
+                <Stepper stepIndex={stepIndex} setStepIndex={jumpToStep} />
               </div>
               <div
                 style={{
@@ -774,7 +862,7 @@ export default function SchemaMapPage() {
                     onClose={() => setSelection(null)}
                   />
                 ) : (
-                  <StageCaption stage={stage} />
+                  <StepCaption step={step} />
                 )}
               </div>
             </div>
@@ -786,7 +874,7 @@ export default function SchemaMapPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Header + Stepper
+// Header
 // ---------------------------------------------------------------------------
 
 function Header() {
@@ -808,7 +896,7 @@ function Header() {
           letterSpacing: "-0.005em",
         }}
       >
-        Database schema
+        Where a user&rsquo;s data lives
       </div>
       <p
         style={{
@@ -817,61 +905,324 @@ function Header() {
           fontSize: "14.5px",
           lineHeight: 1.55,
           color: "var(--session-ink-soft)",
-          maxWidth: 820,
+          maxWidth: 880,
         }}
       >
-        The database, walked layer by layer. {TABLES.length} tables across
-        public and auth schemas — four make up the user-data spine, the rest
-        handle identity, audit trails, telemetry, and signup. Step through to
-        see what each layer holds, then click a table for its columns,
-        foreign keys, and on-delete behavior.
+        Every table in mywalnut&rsquo;s database ({TABLES.length} of them),
+        hand-mapped — what each one holds, who can see it, and what happens when
+        a user is deleted. Follow one user&rsquo;s words from signup to a Manual
+        entry; everything else watches or guards that path.
       </p>
+      <a
+        href="/admin/extraction-map"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 10,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.3px",
+          color: "var(--session-walnut-meta-strong)",
+          textDecoration: "none",
+        }}
+      >
+        ↳ The <code style={{ fontFamily: "var(--font-mono)" }}>extraction_state</code>{" "}
+        blob is mapped field-by-field in the Extraction map →
+      </a>
     </div>
   );
 }
 
-function Stepper({
-  stageIndex,
-  setStageIndex,
-}: {
-  stageIndex: number;
-  setStageIndex: (i: number) => void;
-}) {
+// ---------------------------------------------------------------------------
+// Front door — "follow one user's words," open by default.
+// ---------------------------------------------------------------------------
+
+function FrontDoor({ onJump }: { onJump: (i: number) => void }) {
+  const [open, setOpen] = useState(true);
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexShrink: 0,
+        borderRadius: 10,
+        border: "1px solid var(--session-walnut-border)",
+        background: "var(--session-walnut-surface-soft)",
+        overflow: "hidden",
       }}
     >
       <button
         type="button"
-        onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
-        disabled={stageIndex === 0}
-        aria-label="Previous stage"
-        style={arrowBtnStyle(stageIndex === 0)}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "14px 16px",
+        }}
+        aria-expanded={open}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: 16,
+            fontStyle: "italic",
+            color: "var(--session-ink)",
+          }}
+        >
+          Follow one user&rsquo;s words
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-ghost)",
+          }}
+        >
+          {open ? "hide ▲" : "what is this? ▼"}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <p
+            style={{
+              margin: "0 0 14px",
+              fontFamily: "var(--font-spectral, var(--font-serif))",
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              color: "var(--session-ink-soft)",
+            }}
+          >
+            The whole database is one short path the user&rsquo;s words travel,
+            plus the tables that watch or guard it.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <FrontDoorCard
+              tag="spine"
+              title="The spine"
+              body="The four tables a user's words travel through: their profile → each chat → every message → the entries that land in their Manual."
+              onJump={() => onJump(0)}
+            />
+            <FrontDoorCard
+              tag="spine"
+              title="The working memory"
+              body="One JSONB blob on each conversation (extraction_state) the background call rewrites every turn, so Jove remembers between turns."
+              onJump={() => onJump(1)}
+              accent="persona"
+            />
+            <FrontDoorCard
+              tag="satellite"
+              title="Everything else"
+              body="Phone links, audit logs, telemetry, beta signups — tables that watch or guard the path but never sit on it. Plus who can see what, and what survives a delete."
+              onJump={() => onJump(2)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FrontDoorCard({
+  tag,
+  title,
+  body,
+  onJump,
+  accent,
+}: {
+  tag: GroupTag;
+  title: string;
+  body: string;
+  onJump: () => void;
+  accent?: "persona";
+}) {
+  const tone = tagTone(tag);
+  const border = accent === "persona" ? "var(--session-persona-border)" : tone.border;
+  const bg = accent === "persona" ? "var(--session-persona-tint)" : tone.bg;
+  return (
+    <div
+      style={{
+        padding: "11px 13px",
+        borderRadius: 8,
+        border: `1px solid ${border}`,
+        background: bg,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 13.5,
+          fontWeight: 600,
+          color: "var(--session-ink)",
+          marginBottom: 4,
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-spectral, var(--font-serif))",
+          fontSize: 12.5,
+          lineHeight: 1.5,
+          color: "var(--session-ink-soft)",
+        }}
+      >
+        {body}
+      </div>
+      <JumpButton label="Show it below ↓" onClick={onJump} />
+    </div>
+  );
+}
+
+function JumpButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        marginTop: 8,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10.5,
+        letterSpacing: "0.5px",
+        color: "var(--session-walnut-meta-strong)",
+        borderBottom: "1px solid var(--session-walnut-border)",
+        paddingBottom: 1,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Glossary — collapsed by default; schema jargon one click away.
+// ---------------------------------------------------------------------------
+
+const GLOSSARY: { term: string; def: string }[] = [
+  { term: "Table", def: "Structured rows. Think spreadsheet." },
+  { term: "Column", def: "A field in a table, with a type (text, integer, jsonb…)." },
+  { term: "Foreign key (FK)", def: "A link from one table to another." },
+  { term: "CASCADE", def: "When the parent is deleted, this row goes with it." },
+  { term: "SET NULL", def: "Parent deleted, the link goes empty but the row survives." },
+  { term: "JSONB", def: "A flexible JSON column. Schema lives inside the value, not the table." },
+  { term: "RLS", def: "Row-level security. The database enforces who can read which rows." },
+  { term: "auth.users", def: "Supabase's hidden login table. Our profiles table mirrors its id." },
+];
+
+function GlossaryBox() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      style={{
+        borderRadius: 8,
+        border: "1px dashed var(--session-walnut-border-soft)",
+        background: "var(--session-walnut-tint)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "9px 14px",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10.5,
+          letterSpacing: "1.5px",
+          textTransform: "uppercase",
+          color: "var(--session-walnut-meta)",
+        }}
+        aria-expanded={open}
+      >
+        <span>Plain-English glossary</span>
+        <span style={{ color: "var(--session-ink-ghost)" }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div
+          style={{
+            padding: "0 14px 12px",
+            display: "grid",
+            gridTemplateColumns: "max-content 1fr",
+            columnGap: 14,
+            rowGap: 4,
+          }}
+        >
+          {GLOSSARY.map((g) => (
+            <Fragment key={g.term}>
+              <code
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11.5,
+                  color: "var(--session-ink)",
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {g.term}
+              </code>
+              <span
+                style={{
+                  fontFamily: "var(--font-spectral, var(--font-serif))",
+                  fontSize: 12.5,
+                  color: "var(--session-ink-soft)",
+                  lineHeight: 1.4,
+                }}
+              >
+                {g.def}
+              </span>
+            </Fragment>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stepper
+// ---------------------------------------------------------------------------
+
+function Stepper({
+  stepIndex,
+  setStepIndex,
+}: {
+  stepIndex: number;
+  setStepIndex: (i: number) => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
+        disabled={stepIndex === 0}
+        aria-label="Previous step"
+        style={arrowBtnStyle(stepIndex === 0)}
       >
         ←
       </button>
-      <div
-        style={{
-          display: "flex",
-          gap: 4,
-          flex: 1,
-          justifyContent: "space-between",
-        }}
-      >
-        {STAGES.map((s, i) => {
-          const active = i === stageIndex;
-          const visited = i <= stageIndex;
+      <div style={{ display: "flex", gap: 4, flex: 1, justifyContent: "space-between" }}>
+        {STEPS.map((s, i) => {
+          const active = i === stepIndex;
+          const visited = i <= stepIndex;
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => setStageIndex(i)}
-              aria-label={`Stage ${s.id}: ${s.title}`}
+              onClick={() => setStepIndex(i)}
+              aria-label={`Step ${s.id}: ${s.title}`}
               title={s.title}
               style={{
                 all: "unset",
@@ -895,9 +1246,7 @@ function Stepper({
                     ? "var(--session-ink-soft)"
                     : "var(--session-ink-ghost)",
                 border: `1px solid ${
-                  active
-                    ? "var(--session-walnut-border)"
-                    : "var(--session-walnut-border-soft)"
+                  active ? "var(--session-walnut-border)" : "var(--session-walnut-border-soft)"
                 }`,
                 fontWeight: active ? 500 : 400,
               }}
@@ -909,10 +1258,10 @@ function Stepper({
       </div>
       <button
         type="button"
-        onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
-        disabled={stageIndex === STAGES.length - 1}
-        aria-label="Next stage"
-        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
+        onClick={() => setStepIndex(Math.min(STEPS.length - 1, stepIndex + 1))}
+        disabled={stepIndex === STEPS.length - 1}
+        aria-label="Next step"
+        style={arrowBtnStyle(stepIndex === STEPS.length - 1)}
       >
         →
       </button>
@@ -935,19 +1284,17 @@ function arrowBtnStyle(disabled: boolean): React.CSSProperties {
     color: disabled ? "var(--session-ink-ghost)" : "var(--session-ink-soft)",
     background: disabled ? "transparent" : "var(--session-walnut-tint)",
     border: `1px solid ${
-      disabled
-        ? "var(--session-walnut-border-soft)"
-        : "var(--session-walnut-border)"
+      disabled ? "var(--session-walnut-border-soft)" : "var(--session-walnut-border)"
     }`,
     opacity: disabled ? 0.5 : 1,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Right column — stage caption or table detail
+// Right column — step caption or table detail
 // ---------------------------------------------------------------------------
 
-function StageCaption({ stage }: { stage: Stage }) {
+function StepCaption({ step }: { step: Step }) {
   return (
     <>
       <div
@@ -959,7 +1306,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           textTransform: "uppercase",
         }}
       >
-        Stage {stage.id}
+        Step {step.id} of {STEPS.length}
       </div>
       <h2
         style={{
@@ -972,7 +1319,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink)",
         }}
       >
-        {stage.title}
+        {step.title}
       </h2>
       <p
         style={{
@@ -983,7 +1330,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink-soft)",
         }}
       >
-        {stage.caption}
+        {step.caption}
       </p>
       <p
         style={{
@@ -995,19 +1342,37 @@ function StageCaption({ stage }: { stage: Stage }) {
           fontStyle: "italic",
         }}
       >
-        Click any table card to inspect its columns, foreign keys, and notes.
+        Click any table on the left for what it holds, its links, and what breaks if you remove it.
       </p>
     </>
   );
 }
 
-function TableDetail({
-  table,
-  onClose,
-}: {
-  table: Table;
-  onClose: () => void;
-}) {
+function GroupTagPill({ tag }: { tag: GroupTag }) {
+  const tone = tagTone(tag);
+  return (
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 9.5,
+        letterSpacing: "1.2px",
+        fontWeight: 500,
+        textTransform: "uppercase",
+        padding: "2px 7px",
+        borderRadius: 3,
+        background: tone.bg,
+        color: tone.fg,
+        border: `1px solid ${tone.border}`,
+      }}
+    >
+      {tone.label}
+    </span>
+  );
+}
+
+function TableDetail({ table, onClose }: { table: Table; onClose: () => void }) {
+  const [showColumns, setShowColumns] = useState(false);
+  const tag = groupTag(table);
   return (
     <>
       <div
@@ -1016,38 +1381,22 @@ function TableDetail({
           alignItems: "center",
           justifyContent: "space-between",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "1.5px",
-            color: "var(--session-walnut-meta)",
-            textTransform: "uppercase",
-          }}
-        >
-          {table.layers.map((l) => LAYER_LABEL[l]).join(" · ")}
-          {table.deprecated && (
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9.5,
-                letterSpacing: "1.2px",
-                fontWeight: 500,
-                padding: "2px 6px",
-                borderRadius: 3,
-                background: "var(--session-warning-soft)",
-                color: "var(--session-warning)",
-                border: "1px solid var(--session-warning-soft)",
-              }}
-            >
-              DEPRECATED
-            </span>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <GroupTagPill tag={tag} />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9.5,
+              letterSpacing: "1.2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink-ghost)",
+            }}
+          >
+            {ACCESS_LABEL[table.access]}
+          </span>
         </div>
         <button
           type="button"
@@ -1066,60 +1415,32 @@ function TableDetail({
           }}
           aria-label="Close detail"
         >
-          ← Back to stage
+          ← Back to step
         </button>
       </div>
 
-      <h2
+      <code
         style={{
-          margin: 0,
           fontFamily: "var(--font-mono)",
-          fontSize: 19,
+          fontSize: 18,
           fontWeight: 500,
-          lineHeight: 1.25,
           color: "var(--session-ink)",
-          letterSpacing: "-0.005em",
+          wordBreak: "break-word",
         }}
       >
         {table.name}
-      </h2>
+      </code>
       <p
         style={{
           margin: 0,
           fontFamily: "var(--font-spectral, var(--font-serif))",
           fontSize: 15,
-          fontStyle: "italic",
-          lineHeight: 1.5,
-          color: "var(--session-ink-soft)",
-        }}
-      >
-        {table.oneLine}
-      </p>
-      <p
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-spectral, var(--font-serif))",
-          fontSize: 14.5,
           lineHeight: 1.6,
-          color: "var(--session-ink-soft)",
+          color: "var(--session-ink)",
         }}
       >
         {table.description}
       </p>
-
-      <DetailSection title="Columns">
-        {table.columns.map((c) => (
-          <ColumnRow key={c.name} column={c} />
-        ))}
-      </DetailSection>
-
-      {table.connections.length > 0 && (
-        <DetailSection title="Foreign keys">
-          {table.connections.map((c) => (
-            <ConnectionRow key={`${c.to}-${c.via}`} conn={c} />
-          ))}
-        </DetailSection>
-      )}
 
       {table.notes && (
         <DetailSection title="Notes">
@@ -1129,7 +1450,7 @@ function TableDetail({
               fontFamily: "var(--font-spectral, var(--font-serif))",
               fontSize: 14,
               lineHeight: 1.55,
-              color: "var(--session-ink)",
+              color: "var(--session-ink-soft)",
               fontStyle: "italic",
             }}
           >
@@ -1137,17 +1458,58 @@ function TableDetail({
           </p>
         </DetailSection>
       )}
+
+      {/* Columns + foreign keys — opt in. */}
+      <div
+        style={{
+          marginTop: 8,
+          paddingTop: 12,
+          borderTop: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowColumns((v) => !v)}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.5px",
+            color: "var(--session-walnut-meta-strong)",
+          }}
+          aria-expanded={showColumns}
+        >
+          {showColumns
+            ? "Hide the columns ▲"
+            : `Show the columns — ${table.columns.length} column${
+                table.columns.length === 1 ? "" : "s"
+              }${table.connections.length ? `, ${table.connections.length} link${table.connections.length === 1 ? "" : "s"}` : ""} ▼`}
+        </button>
+
+        {showColumns && (
+          <div style={{ marginTop: 12 }}>
+            <DetailSection title="Columns">
+              {table.columns.map((c) => (
+                <ColumnRow key={c.name} column={c} />
+              ))}
+            </DetailSection>
+
+            {table.connections.length > 0 && (
+              <DetailSection title="Foreign keys (links to other tables)">
+                {table.connections.map((c) => (
+                  <ConnectionRow key={`${c.to}-${c.via}`} conn={c} />
+                ))}
+              </DetailSection>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }
 
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div
       style={{
@@ -1168,9 +1530,7 @@ function DetailSection({
       >
         {title}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {children}
-      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
     </div>
   );
 }
@@ -1210,13 +1570,7 @@ function ColumnRow({ column }: { column: Column }) {
         >
           {column.name}
         </code>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
-            color: "var(--session-ink-ghost)",
-          }}
-        >
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--session-ink-ghost)" }}>
           {column.type}
         </span>
       </div>
@@ -1259,13 +1613,7 @@ function ConnectionRow({ conn }: { conn: Connection }) {
           marginBottom: 4,
         }}
       >
-        <code
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 12.5,
-            color: "var(--session-ink)",
-          }}
-        >
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--session-ink)" }}>
           → {conn.to} <span style={{ color: "var(--session-ink-ghost)" }}>via {conn.via}</span>
         </code>
         <span
@@ -1277,7 +1625,7 @@ function ConnectionRow({ conn }: { conn: Connection }) {
             textTransform: "uppercase",
           }}
         >
-          {conn.cardinality} · ON DELETE {conn.onDelete}
+          ON DELETE {conn.onDelete}
         </span>
       </div>
       <div
@@ -1295,146 +1643,36 @@ function ConnectionRow({ conn }: { conn: Connection }) {
 }
 
 // ---------------------------------------------------------------------------
-// Reading guide — vocabulary primer for non-tech readers. Visible on every
-// stage so the technical names below (CASCADE, FK, JSONB…) have a glossary
-// the reader can glance at without leaving the page.
-// ---------------------------------------------------------------------------
-
-const READING_GUIDE: { term: string; def: string }[] = [
-  { term: "Table", def: "Structured rows. Think spreadsheet." },
-  { term: "Column", def: "A field in a table, with a type (text, integer, jsonb…)." },
-  { term: "Foreign key (FK)", def: "A link from one table to another." },
-  { term: "CASCADE", def: "When the parent is deleted, this row goes with it." },
-  { term: "SET NULL", def: "Parent deleted, link becomes empty but row survives." },
-  { term: "JSONB", def: "A flexible JSON column. Schema lives inside the value, not the table." },
-  { term: "RLS", def: "Row-level security. The database enforces who can read which rows." },
-];
-
-function ReadingGuide() {
-  return (
-    <div
-      style={{
-        padding: "12px 14px",
-        borderRadius: 8,
-        background: "var(--session-walnut-tint)",
-        border: "1px dashed var(--session-walnut-border-soft)",
-      }}
-    >
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10.5,
-          letterSpacing: "1.5px",
-          color: "var(--session-walnut-meta)",
-          textTransform: "uppercase",
-          marginBottom: 8,
-        }}
-      >
-        Reading guide
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "max-content 1fr",
-          columnGap: 14,
-          rowGap: 4,
-        }}
-      >
-        {READING_GUIDE.map((g) => (
-          <Fragment key={g.term}>
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11.5,
-                color: "var(--session-ink)",
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {g.term}
-            </code>
-            <span
-              style={{
-                fontFamily: "var(--font-spectral, var(--font-serif))",
-                fontSize: 12.5,
-                color: "var(--session-ink-soft)",
-                lineHeight: 1.4,
-              }}
-            >
-              {g.def}
-            </span>
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Diagram
+// Diagram — routes per step.
 // ---------------------------------------------------------------------------
 
 function Diagram({
-  stageId,
-  highlightedLayers,
+  stepId,
+  spotlight,
   selection,
   onSelect,
 }: {
-  stageId: number;
-  highlightedLayers: Set<Layer> | null;
+  stepId: number;
+  spotlight: Set<Family> | null;
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
-  if (stageId === 6) {
-    return (
-      <>
-        <ReadingGuide />
-        <CascadeDiagram selection={selection} onSelect={onSelect} />
-      </>
-    );
+  if (stepId === 4) {
+    return <RlsLens selection={selection} onSelect={onSelect} />;
   }
-  if (stageId === 7) {
-    return (
-      <>
-        <ReadingGuide />
-        <WorkedExampleFooter />
-      </>
-    );
+  if (stepId === 5) {
+    return <CascadeDiagram selection={selection} onSelect={onSelect} />;
   }
-
-  // Filter tables: for stage 3, only spine tables + extraction-tagged ones
-  // are shown (focus on extraction). For stages 2/4/5, show all but dim the
-  // ones outside the highlighted layer set.
-  const focusedView = stageId === 3;
+  if (stepId === 6) {
+    return <WorkedExampleFooter />;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <ReadingGuide />
-      {focusedView && (
-        <ExtractionFocusPanel selection={selection} onSelect={onSelect} />
-      )}
-
-      <SpineRow
-        highlightedLayers={highlightedLayers}
-        selection={selection}
-        onSelect={onSelect}
-      />
-
-      {!focusedView && (
-        <AdjacentGrid
-          highlightedLayers={highlightedLayers}
-          selection={selection}
-          onSelect={onSelect}
-        />
-      )}
-
-      {!focusedView && (
-        <DeprecatedRow
-          highlightedLayers={highlightedLayers}
-          selection={selection}
-          onSelect={onSelect}
-        />
-      )}
+      {stepId === 2 && <ExtractionFocusPanel selection={selection} onSelect={onSelect} />}
+      <SpineRow spotlight={spotlight} selection={selection} onSelect={onSelect} />
+      <AdjacentGrid spotlight={spotlight} selection={selection} onSelect={onSelect} />
+      <DeprecatedRow spotlight={spotlight} selection={selection} onSelect={onSelect} />
     </div>
   );
 }
@@ -1444,11 +1682,11 @@ function Diagram({
 // ---------------------------------------------------------------------------
 
 function SpineRow({
-  highlightedLayers,
+  spotlight,
   selection,
   onSelect,
 }: {
-  highlightedLayers: Set<Layer> | null;
+  spotlight: Set<Family> | null;
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
@@ -1457,26 +1695,17 @@ function SpineRow({
     .map((n) => TABLES.find((t) => t.name === n))
     .filter((t): t is Table => !!t);
 
-  const isHighlighted =
-    !highlightedLayers ||
-    highlightedLayers.has("spine") ||
-    highlightedLayers.has("extraction");
+  const lit = !spotlight || spotlight.has("spine") || spotlight.has("extraction");
 
   return (
     <div
       style={{
-        opacity: isHighlighted ? 1 : 0.35,
+        opacity: lit ? 1 : 0.32,
         transition: "opacity 220ms ease",
         padding: 14,
         borderRadius: 10,
-        background: isHighlighted
-          ? "var(--session-walnut-surface-soft)"
-          : "var(--session-walnut-tint)",
-        border: `1px solid ${
-          isHighlighted
-            ? "var(--session-walnut-border)"
-            : "var(--session-walnut-border-soft)"
-        }`,
+        background: lit ? "var(--session-persona-tint)" : "var(--session-walnut-tint)",
+        border: `1px solid ${lit ? "var(--session-persona-border)" : "var(--session-walnut-border-soft)"}`,
       }}
     >
       <div
@@ -1489,7 +1718,7 @@ function SpineRow({
           marginBottom: 10,
         }}
       >
-        The spine — user-data path
+        The spine — the path the words travel
       </div>
       <div
         style={{
@@ -1505,7 +1734,6 @@ function SpineRow({
             <TableCard
               key={t.name}
               table={t}
-              dimmed={false}
               selected={selection?.kind === "table" && selection.name === t.name}
               onClick={() => onSelect({ kind: "table", name: t.name })}
               size="medium"
@@ -1520,6 +1748,7 @@ function SpineRow({
                   fontSize: 14,
                   color: "var(--session-walnut-meta)",
                   textAlign: "center",
+                  alignSelf: "center",
                 }}
               >
                 →
@@ -1538,58 +1767,45 @@ function SpineRow({
           color: "var(--session-ink-ghost)",
         }}
       >
-        Each arrow is a foreign key. All four cascade-delete from a user.
+        Each arrow is a foreign key. All four cascade-delete from the user.
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Adjacent grid — identity / audit / telemetry / beta
+// Adjacent grid — the watchers (identity / audit / telemetry / beta)
 // ---------------------------------------------------------------------------
 
 function AdjacentGrid({
-  highlightedLayers,
+  spotlight,
   selection,
   onSelect,
 }: {
-  highlightedLayers: Set<Layer> | null;
+  spotlight: Set<Family> | null;
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
-  const groups: { layer: Layer; tables: Table[] }[] = [
-    { layer: "identity", tables: TABLES.filter((t) => t.layers.includes("identity") && !t.layers.includes("spine")) },
-    { layer: "audit", tables: TABLES.filter((t) => t.layers.includes("audit")) },
-    { layer: "telemetry", tables: TABLES.filter((t) => t.layers.includes("telemetry")) },
-    { layer: "beta", tables: TABLES.filter((t) => t.layers.includes("beta")) },
+  const groups: { family: Family; tables: Table[] }[] = [
+    { family: "identity", tables: TABLES.filter((t) => t.families.includes("identity") && !t.families.includes("spine")) },
+    { family: "audit", tables: TABLES.filter((t) => t.families.includes("audit")) },
+    { family: "telemetry", tables: TABLES.filter((t) => t.families.includes("telemetry")) },
+    { family: "beta", tables: TABLES.filter((t) => t.families.includes("beta")) },
   ];
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: 10,
-      }}
-    >
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
       {groups.map((g) => {
-        const isHighlighted =
-          !highlightedLayers || highlightedLayers.has(g.layer);
+        const lit = !spotlight || spotlight.has(g.family);
         return (
           <div
-            key={g.layer}
+            key={g.family}
             style={{
-              opacity: isHighlighted ? 1 : 0.3,
+              opacity: lit ? 1 : 0.3,
               transition: "opacity 220ms ease",
               padding: 12,
               borderRadius: 8,
-              background: isHighlighted
-                ? "var(--session-walnut-tint)"
-                : "transparent",
-              border: `1px solid ${
-                isHighlighted
-                  ? "var(--session-walnut-border-soft)"
-                  : "var(--session-walnut-border-soft)"
-              }`,
+              background: lit ? "var(--session-walnut-tint)" : "transparent",
+              border: "1px solid var(--session-walnut-border-soft)",
             }}
           >
             <div
@@ -1602,32 +1818,17 @@ function AdjacentGrid({
                 marginBottom: 8,
               }}
             >
-              {LAYER_LABEL[g.layer]}
-              <span
-                style={{
-                  marginLeft: 6,
-                  color: "var(--session-ink-ghost)",
-                  fontWeight: 400,
-                }}
-              >
+              {FAMILY_LABEL[g.family]}
+              <span style={{ marginLeft: 6, color: "var(--session-ink-ghost)", fontWeight: 400 }}>
                 {g.tables.length}
               </span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {g.tables.map((t) => (
                 <TableCard
                   key={t.name}
                   table={t}
-                  dimmed={false}
-                  selected={
-                    selection?.kind === "table" && selection.name === t.name
-                  }
+                  selected={selection?.kind === "table" && selection.name === t.name}
                   onClick={() => onSelect({ kind: "table", name: t.name })}
                   size="small"
                 />
@@ -1640,28 +1841,24 @@ function AdjacentGrid({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Deprecated row
-// ---------------------------------------------------------------------------
-
 function DeprecatedRow({
-  highlightedLayers,
+  spotlight,
   selection,
   onSelect,
 }: {
-  highlightedLayers: Set<Layer> | null;
+  spotlight: Set<Family> | null;
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
-  const deprecated = TABLES.filter((t) => t.layers.includes("deprecated"));
+  const deprecated = TABLES.filter((t) => t.deprecated);
   if (deprecated.length === 0) return null;
-  // Highlighted when no specific layers are active (stage 1) or when
-  // "deprecated" is explicitly in the highlighted set (not the current case).
-  const isHighlighted = !highlightedLayers;
+  // Dead-by-nature — show at a steady muted opacity regardless of the step,
+  // but lift slightly when the watchers (its neighbors) are spotlighted.
+  const lit = !spotlight || spotlight.has("beta") || spotlight.has("telemetry");
   return (
     <div
       style={{
-        opacity: isHighlighted ? 0.7 : 0.3,
+        opacity: lit ? 0.85 : 0.55,
         transition: "opacity 220ms ease",
         padding: 12,
         borderRadius: 8,
@@ -1679,14 +1876,8 @@ function DeprecatedRow({
           marginBottom: 8,
         }}
       >
-        Deprecated
-        <span
-          style={{
-            marginLeft: 6,
-            color: "var(--session-ink-ghost)",
-            fontWeight: 400,
-          }}
-        >
+        Deprecated / dead
+        <span style={{ marginLeft: 6, color: "var(--session-ink-ghost)", fontWeight: 400 }}>
           {deprecated.length}
         </span>
       </div>
@@ -1695,7 +1886,6 @@ function DeprecatedRow({
           <TableCard
             key={t.name}
             table={t}
-            dimmed={false}
             selected={selection?.kind === "table" && selection.name === t.name}
             onClick={() => onSelect({ kind: "table", name: t.name })}
             size="small"
@@ -1707,7 +1897,7 @@ function DeprecatedRow({
 }
 
 // ---------------------------------------------------------------------------
-// Table card — small / medium / large clickable cell
+// Table card
 // ---------------------------------------------------------------------------
 
 function TableCard({
@@ -1717,13 +1907,11 @@ function TableCard({
   size,
 }: {
   table: Table;
-  dimmed: boolean;
   selected: boolean;
   onClick: () => void;
   size: "small" | "medium" | "large";
 }) {
-  const padding =
-    size === "large" ? "12px 14px" : size === "medium" ? "10px 12px" : "8px 10px";
+  const padding = size === "large" ? "12px 14px" : size === "medium" ? "10px 12px" : "8px 10px";
   const titleSize = size === "large" ? 14.5 : size === "medium" ? 13.5 : 12.5;
   return (
     <button
@@ -1738,9 +1926,7 @@ function TableCard({
           ? "var(--session-warning-soft)"
           : "var(--session-walnut-surface-soft)",
         border: `1px solid ${
-          table.deprecated
-            ? "var(--session-warning-soft)"
-            : "var(--session-walnut-border)"
+          table.deprecated ? "var(--session-warning)" : "var(--session-walnut-border)"
         }`,
         borderRadius: 6,
         boxShadow: selected ? SELECTED_RING : "none",
@@ -1749,22 +1935,13 @@ function TableCard({
         textAlign: "left",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
         <code
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: titleSize,
             fontWeight: 500,
-            color: table.deprecated
-              ? "var(--session-warning)"
-              : "var(--session-ink)",
+            color: table.deprecated ? "var(--session-warning)" : "var(--session-ink)",
             textDecoration: table.deprecated ? "line-through" : "none",
           }}
         >
@@ -1800,7 +1977,7 @@ function TableCard({
 }
 
 // ---------------------------------------------------------------------------
-// Stage 3 — Extraction focus panel
+// Step 2 — working memory focus panel
 // ---------------------------------------------------------------------------
 
 function ExtractionFocusPanel({
@@ -1829,15 +2006,9 @@ function ExtractionFocusPanel({
           marginBottom: 10,
         }}
       >
-        Where Jove’s working memory lives
+        Where Jove&rsquo;s working memory lives
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div
           style={{
             padding: 12,
@@ -1879,7 +2050,7 @@ function ExtractionFocusPanel({
               fontStyle: "italic",
             }}
           >
-            JSONB column. The background Sonnet extraction call writes here every turn. The 21 fields drive the next turn’s prompt assembly. See the Extraction consumer map for the field-by-field breakdown.
+            JSONB column. The background extraction call rewrites it every turn; the next turn&rsquo;s prompt reads it.
           </div>
         </div>
         <div
@@ -1923,14 +2094,35 @@ function ExtractionFocusPanel({
               fontStyle: "italic",
             }}
           >
-            JSONB column. A copy of the extraction state at the moment each message was sent — used for replay and debugging. Lets you reconstruct what Jove was thinking at any past turn.
+            JSONB column. A copy of that state at the moment each message was sent — used to replay what Jove was working from at any past turn.
           </div>
         </div>
       </div>
 
+      <a
+        href="/admin/extraction-map"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 14,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11.5,
+          letterSpacing: "0.3px",
+          color: "var(--session-walnut-meta-strong)",
+          textDecoration: "none",
+          padding: "6px 11px",
+          borderRadius: 6,
+          border: "1px solid var(--session-walnut-border)",
+          background: "var(--session-walnut-surface-soft)",
+        }}
+      >
+        Deep dive — every field in this blob → the Extraction map
+      </a>
+
       <div
         style={{
-          marginTop: 14,
+          marginTop: 12,
           fontFamily: "var(--font-spectral, var(--font-serif))",
           fontSize: 13,
           lineHeight: 1.55,
@@ -1938,24 +2130,16 @@ function ExtractionFocusPanel({
           fontStyle: "italic",
         }}
       >
-        Both live on tables you’ve already met — conversations and messages. Click either card below to see the column layout in detail.
+        Both live on tables you&rsquo;ve already met — conversations and messages. Click either below for the column layout.
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-          marginTop: 10,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
         {["conversations", "messages"].map((name) => {
           const t = TABLES.find((x) => x.name === name)!;
           return (
             <TableCard
               key={t.name}
               table={t}
-              dimmed={false}
               selected={selection?.kind === "table" && selection.name === t.name}
               onClick={() => onSelect({ kind: "table", name: t.name })}
               size="medium"
@@ -1968,7 +2152,125 @@ function ExtractionFocusPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Stage 6 — Cascade diagram
+// Step 4 — who can see what (RLS lens)
+// ---------------------------------------------------------------------------
+
+function RlsLens({
+  selection,
+  onSelect,
+}: {
+  selection: Selection | null;
+  onSelect: (s: Selection | null) => void;
+}) {
+  const groups: { access: Access; subtitle: string }[] = [
+    { access: "user", subtitle: "RLS scoped to the logged-in user — a user sees only their own rows (or their own conversation's rows). Admins read via is_admin()." },
+    { access: "backend", subtitle: "RLS on with no user policy — no end user can read these at all. Only the service-role backend writes; admins read via is_admin(). Audit, telemetry, errors." },
+    { access: "signup", subtitle: "The beta gate. Anon inserts are locked down; the backend writes. A row exists before any auth user does." },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {groups.map((g) => {
+        const tables = TABLES.filter((t) => t.access === g.access);
+        return (
+          <div
+            key={g.access}
+            style={{
+              padding: 14,
+              borderRadius: 10,
+              background: "var(--session-walnut-tint)",
+              border: "1px solid var(--session-walnut-border)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                letterSpacing: "1.5px",
+                color: "var(--session-walnut-meta-strong)",
+                textTransform: "uppercase",
+                marginBottom: 4,
+              }}
+            >
+              {ACCESS_LABEL[g.access]}
+              <span style={{ marginLeft: 6, color: "var(--session-ink-ghost)", fontWeight: 400 }}>
+                {tables.length}
+              </span>
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-spectral, var(--font-serif))",
+                fontSize: 13,
+                fontStyle: "italic",
+                color: "var(--session-ink-soft)",
+                lineHeight: 1.45,
+                marginBottom: 10,
+              }}
+            >
+              {g.subtitle}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {tables.map((t) => (
+                <TableCard
+                  key={t.name}
+                  table={t}
+                  selected={selection?.kind === "table" && selection.name === t.name}
+                  onClick={() => onSelect({ kind: "table", name: t.name })}
+                  size="small"
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <div
+        style={{
+          padding: 14,
+          borderRadius: 10,
+          background: "var(--session-walnut-surface-soft)",
+          border: "1px solid var(--session-walnut-border)",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.5px",
+            color: "var(--session-walnut-meta-strong)",
+            textTransform: "uppercase",
+            marginBottom: 8,
+          }}
+        >
+          Two rules worth knowing
+        </div>
+        <ul
+          style={{
+            margin: 0,
+            paddingLeft: 18,
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: 13.5,
+            lineHeight: 1.55,
+            color: "var(--session-ink)",
+          }}
+        >
+          <li style={{ marginBottom: 6 }}>
+            <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>api_errors</code> stores a{" "}
+            <strong style={{ fontWeight: 600 }}>hashed</strong> user id, not a real link — so even a
+            misconfigured policy can&rsquo;t correlate errors back to a person.
+          </li>
+          <li>
+            Only the OTP verify route may ever set{" "}
+            <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>phone_numbers.verified</code>{" "}
+            to true — a hard product rule, not just convention.
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 5 — what survives a delete
 // ---------------------------------------------------------------------------
 
 function CascadeDiagram({
@@ -1978,8 +2280,6 @@ function CascadeDiagram({
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
-  // Compute cascade chain from auth.users → profiles → everything that
-  // cascades from it. Group by behavior so the contrast is visible.
   const fromProfiles: { table: Table; conn: Connection }[] = [];
   for (const t of TABLES) {
     for (const c of t.connections) {
@@ -1992,9 +2292,8 @@ function CascadeDiagram({
   const setNull = fromProfiles.filter((x) => x.conn.onDelete === "SET NULL");
   const surviving = TABLES.filter(
     (t) =>
-      t.connections.every(
-        (c) => c.to !== "profiles" && c.to !== "auth.users",
-      ) && !t.layers.includes("spine"),
+      t.connections.every((c) => c.to !== "profiles" && c.to !== "auth.users") &&
+      !t.families.includes("spine"),
   );
 
   return (
@@ -2017,34 +2316,33 @@ function CascadeDiagram({
             marginBottom: 8,
           }}
         >
-          Trigger
+          When a user deletes their account
+        </div>
+        <div
+          style={{
+            fontFamily: "var(--font-spectral, var(--font-serif))",
+            fontSize: 14,
+            lineHeight: 1.5,
+            color: "var(--session-ink)",
+            marginBottom: 6,
+          }}
+        >
+          The login row goes first; the profile cascades from it; then everything below cascades from the profile.
         </div>
         <code
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: 14,
-            color: "var(--session-ink)",
-            fontWeight: 500,
+            fontSize: 11.5,
+            color: "var(--session-ink-ghost)",
           }}
         >
-          DELETE FROM auth.users WHERE id = $1
+          delete auth.users → profiles → …
         </code>
-        <div
-          style={{
-            marginTop: 6,
-            fontFamily: "var(--font-spectral, var(--font-serif))",
-            fontSize: 13,
-            fontStyle: "italic",
-            color: "var(--session-ink-soft)",
-          }}
-        >
-          The profile cascades from auth.users. Then everything below cascades from the profile.
-        </div>
       </div>
 
       <CascadeGroup
         title={`Cascading — ${cascading.length} tables`}
-        subtitle="Row deleted with the user."
+        subtitle="Rows deleted with the user."
         accent="var(--session-error)"
         accentBg="var(--session-error-ghost)"
         items={cascading}
@@ -2054,7 +2352,7 @@ function CascadeDiagram({
 
       <CascadeGroup
         title={`Set null — ${setNull.length} table${setNull.length === 1 ? "" : "s"}`}
-        subtitle="Row survives, FK becomes null."
+        subtitle="Row survives, but forgets who it belonged to."
         accent="var(--session-warning)"
         accentBg="var(--session-warning-soft)"
         items={setNull}
@@ -2072,24 +2370,15 @@ function CascadeDiagram({
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: 8,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.5px",
+            color: "var(--session-walnut-meta-strong)",
+            textTransform: "uppercase",
             marginBottom: 6,
           }}
         >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "1.5px",
-              color: "var(--session-walnut-meta-strong)",
-              textTransform: "uppercase",
-            }}
-          >
-            Outliving the user — {surviving.length} tables
-          </div>
+          Outliving the user — {surviving.length} tables
         </div>
         <div
           style={{
@@ -2101,14 +2390,13 @@ function CascadeDiagram({
             lineHeight: 1.45,
           }}
         >
-          Tables with no FK to profiles or auth.users — audit and telemetry rows that survive user deletion by design. admin_access_logs in particular is meant to outlast the data it records.
+          No FK to profiles or auth.users — audit and telemetry rows that survive user deletion by design. The record of what happened can&rsquo;t be erased by deleting an account.
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {surviving.map((t) => (
             <TableCard
               key={t.name}
               table={t}
-              dimmed={false}
               selected={selection?.kind === "table" && selection.name === t.name}
               onClick={() => onSelect({ kind: "table", name: t.name })}
               size="small"
@@ -2139,35 +2427,18 @@ function CascadeGroup({
 }) {
   if (items.length === 0) return null;
   return (
-    <div
-      style={{
-        padding: 14,
-        borderRadius: 10,
-        background: accentBg,
-        border: `1px solid ${accent}`,
-        borderColor: accent,
-      }}
-    >
+    <div style={{ padding: 14, borderRadius: 10, background: accentBg, border: `1px solid ${accent}` }}>
       <div
         style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "1.5px",
+          color: accent,
+          textTransform: "uppercase",
           marginBottom: 4,
         }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "1.5px",
-            color: accent,
-            textTransform: "uppercase",
-          }}
-        >
-          {title}
-        </div>
+        {title}
       </div>
       <div
         style={{
@@ -2203,24 +2474,10 @@ function CascadeGroup({
               gap: 2,
             }}
           >
-            <code
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 12.5,
-                color: "var(--session-ink)",
-                fontWeight: 500,
-              }}
-            >
+            <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--session-ink)", fontWeight: 500 }}>
               {table.name}
             </code>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9.5,
-                color: "var(--session-ink-ghost)",
-                letterSpacing: "0.5px",
-              }}
-            >
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--session-ink-ghost)", letterSpacing: "0.5px" }}>
               via {conn.via}
             </span>
           </button>
@@ -2231,7 +2488,7 @@ function CascadeGroup({
 }
 
 // ---------------------------------------------------------------------------
-// Stage 7 — Worked example footer
+// Step 6 — by the numbers
 // ---------------------------------------------------------------------------
 
 function WorkedExampleFooter() {
@@ -2247,24 +2504,25 @@ function WorkedExampleFooter() {
     0,
   );
   const deprecated = TABLES.filter((t) => t.deprecated).length;
-  const layerCounts: { layer: Layer; count: number }[] = (
-    [
-      { layer: "spine" as Layer, count: TABLES.filter((t) => t.layers.includes("spine")).length },
-      { layer: "identity" as Layer, count: TABLES.filter((t) => t.layers.includes("identity") && !t.layers.includes("spine")).length },
-      { layer: "audit" as Layer, count: TABLES.filter((t) => t.layers.includes("audit")).length },
-      { layer: "telemetry" as Layer, count: TABLES.filter((t) => t.layers.includes("telemetry")).length },
-      { layer: "beta" as Layer, count: TABLES.filter((t) => t.layers.includes("beta")).length },
-      { layer: "deprecated" as Layer, count: TABLES.filter((t) => t.layers.includes("deprecated")).length },
-    ]
-  ).filter((x) => x.count > 0);
 
-  const layerColors: Record<Layer, string> = {
-    spine: "var(--session-walnut-surface)",
+  const families: Family[] = ["spine", "identity", "audit", "telemetry", "beta", "deprecated"];
+  const familyCounts = families
+    .map((family) => ({
+      family,
+      count:
+        family === "identity"
+          ? TABLES.filter((t) => t.families.includes("identity") && !t.families.includes("spine")).length
+          : TABLES.filter((t) => t.families.includes(family)).length,
+    }))
+    .filter((x) => x.count > 0);
+
+  const familyColors: Record<Family, string> = {
+    spine: "var(--session-persona-muted)",
     extraction: "var(--session-walnut-highlight)",
-    identity: "var(--session-walnut-surface-soft)",
-    audit: "var(--session-walnut-tint)",
-    telemetry: "var(--session-persona-muted)",
-    beta: "var(--session-warning-soft)",
+    identity: "var(--session-walnut-surface)",
+    audit: "var(--session-walnut-surface-soft)",
+    telemetry: "var(--session-walnut-tint)",
+    beta: "var(--session-walnut-meta-soft)",
     deprecated: "var(--session-warning-soft)",
   };
 
@@ -2287,7 +2545,7 @@ function WorkedExampleFooter() {
           marginBottom: 12,
         }}
       >
-        Schema by the numbers
+        The schema by the numbers
       </div>
 
       <div
@@ -2299,11 +2557,11 @@ function WorkedExampleFooter() {
         }}
       >
         <HeroStat value={totalTables} label="Tables" />
-        <HeroStat value={totalColumns} label="Columns" />
+        <HeroStat value={totalColumns} label="Columns mapped" />
         <HeroStat value={totalFKs} label="Foreign keys" />
-        <HeroStat value={cascading} label="Cascading FKs" />
-        <HeroStat value={settingNull} label="Set-null FKs" />
-        <HeroStat value={deprecated} label="Deprecated" />
+        <HeroStat value={cascading} label="Cascading" />
+        <HeroStat value={settingNull} label="Set-null" />
+        <HeroStat value={deprecated} label="Dead / deprecated" />
       </div>
 
       <div
@@ -2316,7 +2574,7 @@ function WorkedExampleFooter() {
           marginBottom: 6,
         }}
       >
-        Tables by layer
+        Tables by family
       </div>
       <div
         style={{
@@ -2328,22 +2586,18 @@ function WorkedExampleFooter() {
           marginBottom: 8,
         }}
       >
-        {layerCounts.map((l) => (
+        {familyCounts.map((l) => (
           <div
-            key={l.layer}
-            style={{
-              flexGrow: l.count,
-              background: layerColors[l.layer],
-              minWidth: 0,
-            }}
-            title={`${LAYER_LABEL[l.layer]}: ${l.count}`}
+            key={l.family}
+            style={{ flexGrow: l.count, background: familyColors[l.family], minWidth: 0 }}
+            title={`${FAMILY_LABEL[l.family]}: ${l.count}`}
           />
         ))}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-        {layerCounts.map((l) => (
+        {familyCounts.map((l) => (
           <div
-            key={l.layer}
+            key={l.family}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -2359,12 +2613,12 @@ function WorkedExampleFooter() {
                 width: 9,
                 height: 9,
                 borderRadius: 2,
-                background: layerColors[l.layer],
+                background: familyColors[l.family],
                 border: "1px solid var(--session-walnut-border-soft)",
                 display: "inline-block",
               }}
             />
-            {LAYER_LABEL[l.layer]}
+            {FAMILY_LABEL[l.family]}
             <span style={{ color: "var(--session-ink-ghost)" }}>{l.count}</span>
           </div>
         ))}
@@ -2380,9 +2634,9 @@ function WorkedExampleFooter() {
           lineHeight: 1.5,
         }}
       >
-        Hand-curated for now. A follow-up will introspect information_schema
-        for live counts (real columns, real FKs, real RLS policies) plus add
-        row counts for the current admin user.
+        Hand-curated to track the migrations. A follow-up will introspect
+        information_schema for live counts (real columns, real FKs, real RLS
+        policies) plus row counts.
       </div>
     </div>
   );
