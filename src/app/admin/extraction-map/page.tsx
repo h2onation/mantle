@@ -5,7 +5,7 @@ import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 // ---------------------------------------------------------------------------
-// Extraction consumer map — staged walkthrough of the 21 fields the
+// Extraction consumer map — stepd walkthrough of the 21 fields the
 // background Sonnet extraction call writes every turn. Modeled on
 // /admin/prompt-architecture and /admin/schema-map: stepper-driven layers,
 // sticky right-column detail, click-through inspection, reading guide.
@@ -30,46 +30,46 @@ interface Field {
   notes?: string;
 }
 
-interface Stage {
+interface Step {
   id: number;
   title: string;
   caption: string;
 }
 
-const STAGES: Stage[] = [
+const STEPS: Step[] = [
   {
     id: 1,
-    title: "Layer 0 — the extraction call",
+    title: "The extraction call",
     caption:
       "Every turn, a background Sonnet call analyzes the conversation and writes a single JSON blob to conversations.extraction_state. 20 fields total. The next turn's prompt reads it; the current turn's response doesn't depend on it (one-turn lag). Click any field for its source, readers, and gating role.",
   },
   {
     id: 2,
-    title: "Layer 1 — the brief",
+    title: "The brief",
     caption:
       "sage_brief is the headline output. A 3-5 sentence cheat sheet that names what's underneath the surface topic, which exact words are load-bearing, what to push on vs leave alone. Rendered verbatim at the top of Jove's brief block every turn. Empty = Jove flies blind.",
   },
   {
     id: 3,
-    title: "Layer 2 — the checkpoint gate",
+    title: "The checkpoint gate",
     caption:
       "The fields that decide whether a checkpoint can fire. First checkpoint needs ≥1 concrete example and depth at 'feeling'; subsequent ones need ≥2 distinct contexts, a behavior-driver link, and depth at 'mechanism'. distinct_contexts enforces the two-instance rule. (has_charged_language used to gate here; Lock 1 replaced it with a deterministic language-bank read, so it's informational now.)",
   },
   {
     id: 4,
-    title: "Layer 3 — phase + safety",
+    title: "Phase + safety",
     caption:
       "Two signals that override everything downstream. pattern_engaged blocks premature checkpoints (no Manual entry until Jove named a pattern AND the user engaged with it). clinical_flag carries the safety override — crisis fires the 988 protocol; caution keeps Jove behavioral.",
   },
   {
     id: 5,
-    title: "Layer 4 — composer + voice",
+    title: "Composer + voice",
     caption:
       "Three fields that shape what Jove says and how the Manual entry composer writes. language_bank holds the user's exact charged phrases (top 15 cumulative). sage_brief is rendered verbatim. emerging_pattern_snippet is a regenerated <15-word phrase describing the forming pattern; drives Modal 2.",
   },
   {
     id: 6,
-    title: "Layer 5 — per-layer state",
+    title: "Per-layer state",
     caption:
       "Each of the 5 Manual layers tracks its own state. signal (none / emerging / explored / checkpoint_ready) advances monotonically. material accumulates Jove-side observations. examples track user-narrated moments.",
   },
@@ -442,15 +442,15 @@ function selectionKey(s: Selection | null): string | null {
 
 export default function ExtractionMapPage() {
   const isAdmin = useIsAdmin();
-  const [stageIndex, setStageIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [selection, setSelection] = useState<Selection | null>(null);
 
-  const stage = STAGES[stageIndex];
+  const step = STEPS[stepIndex];
 
-  // Which categories the current stage highlights. null = overview/worked-example
+  // Which categories the current step highlights. null = overview/worked-example
   // → no dimming (everything visible).
   const highlightedCategories: Set<CategoryId> | null = useMemo(() => {
-    switch (stage.id) {
+    switch (step.id) {
       case 2:
         return new Set<CategoryId>(["composer"]); // sage_brief is shown alone
       case 3:
@@ -466,7 +466,7 @@ export default function ExtractionMapPage() {
       default:
         return null;
     }
-  }, [stage.id]);
+  }, [step.id]);
 
   const handleSelect = (next: Selection | null) => {
     setSelection((cur) => {
@@ -548,7 +548,7 @@ export default function ExtractionMapPage() {
           >
             <div style={{ overflowY: "auto", paddingRight: 12 }}>
               <Diagram
-                stageId={stage.id}
+                stepId={step.id}
                 highlightedCategories={highlightedCategories}
                 selection={selection}
                 onSelect={handleSelect}
@@ -575,9 +575,9 @@ export default function ExtractionMapPage() {
                 }}
               >
                 <Stepper
-                  stageIndex={stageIndex}
-                  setStageIndex={(i) => {
-                    setStageIndex(i);
+                  stepIndex={stepIndex}
+                  setStepIndex={(i) => {
+                    setStepIndex(i);
                     setSelection(null);
                   }}
                 />
@@ -595,7 +595,7 @@ export default function ExtractionMapPage() {
                     onClose={() => setSelection(null)}
                   />
                 ) : (
-                  <StageCaption stage={stage} />
+                  <StepCaption step={step} />
                 )}
               </div>
             </div>
@@ -641,18 +641,18 @@ function Header() {
           maxWidth: 820,
         }}
       >
-        What Jove&rsquo;s background extraction call produces every turn — {FIELDS.length} fields written into one JSON blob — and which parts of the system read each one. Step through the layers, then click any field to see its source, every place it&rsquo;s read, and what it gates.
+        What Jove&rsquo;s background extraction call writes every turn — {FIELDS.length} fields in one JSON blob that the <em>next</em> turn&rsquo;s prompt reads, not the current one (a one-turn lag). Step through each part below, then click any field to see its source, everywhere it&rsquo;s read, and whether anything breaks if you remove it.
       </p>
     </div>
   );
 }
 
 function Stepper({
-  stageIndex,
-  setStageIndex,
+  stepIndex,
+  setStepIndex,
 }: {
-  stageIndex: number;
-  setStageIndex: (i: number) => void;
+  stepIndex: number;
+  setStepIndex: (i: number) => void;
 }) {
   return (
     <div
@@ -665,10 +665,10 @@ function Stepper({
     >
       <button
         type="button"
-        onClick={() => setStageIndex(Math.max(0, stageIndex - 1))}
-        disabled={stageIndex === 0}
-        aria-label="Previous stage"
-        style={arrowBtnStyle(stageIndex === 0)}
+        onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
+        disabled={stepIndex === 0}
+        aria-label="Previous step"
+        style={arrowBtnStyle(stepIndex === 0)}
       >
         ←
       </button>
@@ -680,15 +680,15 @@ function Stepper({
           justifyContent: "space-between",
         }}
       >
-        {STAGES.map((s, i) => {
-          const active = i === stageIndex;
-          const visited = i <= stageIndex;
+        {STEPS.map((s, i) => {
+          const active = i === stepIndex;
+          const visited = i <= stepIndex;
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => setStageIndex(i)}
-              aria-label={`Stage ${s.id}: ${s.title}`}
+              onClick={() => setStepIndex(i)}
+              aria-label={`Step ${s.id}: ${s.title}`}
               title={s.title}
               style={{
                 all: "unset",
@@ -726,10 +726,10 @@ function Stepper({
       </div>
       <button
         type="button"
-        onClick={() => setStageIndex(Math.min(STAGES.length - 1, stageIndex + 1))}
-        disabled={stageIndex === STAGES.length - 1}
-        aria-label="Next stage"
-        style={arrowBtnStyle(stageIndex === STAGES.length - 1)}
+        onClick={() => setStepIndex(Math.min(STEPS.length - 1, stepIndex + 1))}
+        disabled={stepIndex === STEPS.length - 1}
+        aria-label="Next step"
+        style={arrowBtnStyle(stepIndex === STEPS.length - 1)}
       >
         →
       </button>
@@ -761,10 +761,10 @@ function arrowBtnStyle(disabled: boolean): React.CSSProperties {
 }
 
 // ---------------------------------------------------------------------------
-// Right column — stage caption or field detail
+// Right column — step caption or field detail
 // ---------------------------------------------------------------------------
 
-function StageCaption({ stage }: { stage: Stage }) {
+function StepCaption({ step }: { step: Step }) {
   return (
     <>
       <div
@@ -776,7 +776,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           textTransform: "uppercase",
         }}
       >
-        Stage {stage.id}
+        Step {step.id}
       </div>
       <h2
         style={{
@@ -789,7 +789,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink)",
         }}
       >
-        {stage.title}
+        {step.title}
       </h2>
       <p
         style={{
@@ -800,7 +800,7 @@ function StageCaption({ stage }: { stage: Stage }) {
           color: "var(--session-ink-soft)",
         }}
       >
-        {stage.caption}
+        {step.caption}
       </p>
       <p
         style={{
@@ -891,7 +891,7 @@ function FieldDetail({
           }}
           aria-label="Close detail"
         >
-          ← Back to stage
+          ← Back to step
         </button>
       </div>
 
@@ -1142,17 +1142,17 @@ function ReadingGuide() {
 // ---------------------------------------------------------------------------
 
 function Diagram({
-  stageId,
+  stepId,
   highlightedCategories,
   selection,
   onSelect,
 }: {
-  stageId: number;
+  stepId: number;
   highlightedCategories: Set<CategoryId> | null;
   selection: Selection | null;
   onSelect: (s: Selection | null) => void;
 }) {
-  if (stageId === 8) {
+  if (stepId === 8) {
     return (
       <>
         <ReadingGuide />
@@ -1161,9 +1161,9 @@ function Diagram({
     );
   }
 
-  // Stage 2 is the brief deep-dive — show sage_brief as a hero card on its own
+  // Step 2 is the brief deep-dive — show sage_brief as a hero card on its own
   // with the rest dimmed.
-  if (stageId === 2) {
+  if (stepId === 2) {
     const sageBrief = FIELDS.find((f) => f.path === "sage_brief")!;
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1394,7 +1394,7 @@ function FieldCard({
 }
 
 // ---------------------------------------------------------------------------
-// Stage 2 hero card — sage_brief gets its own moment
+// Step 2 hero card — sage_brief gets its own moment
 // ---------------------------------------------------------------------------
 
 function HeroFieldCard({
