@@ -51,6 +51,14 @@ export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
 // catch it; if Opus catches it, we know how far Haiku has to climb.
 export const MONITOR_MODEL = "claude-opus-4-7";
 
+// Off by default. The Phase 0 shadow monitor runs MONITOR_MODEL (Opus) on
+// every web turn and writes a monitor_reads row that nothing on the call
+// path reads back — pure cost during beta. Gated so it can be flipped on
+// deliberately for a shadow-analysis window, or run offline via the
+// /replay-monitor harness over saved transcripts. Set MONITOR_ENABLED=true
+// in the environment to re-enable live per-turn firing.
+export const MONITOR_ENABLED = process.env.MONITOR_ENABLED === "true";
+
 // Single source of truth for both the system-message text persisted after a
 // checkpoint action and the natural-language reply mapSystemMessages() in
 // call-persona.ts uses to render that system message as a synthetic user turn

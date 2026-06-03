@@ -21,7 +21,7 @@ import {
 } from "@/lib/persona/call-persona";
 import type { PersonaMode, OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 import type { ManualEntryForContext } from "@/lib/persona/manual-context";
-import { MONITOR_MODEL } from "@/lib/persona/config";
+import { MONITOR_MODEL, MONITOR_ENABLED } from "@/lib/persona/config";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -424,6 +424,11 @@ export function fireBackgroundMonitor(
   userId: string,
   triggeringMessageId: string | null
 ): void {
+  // Off by default during beta — the monitor is log-only and nothing reads
+  // its output back, so live per-turn Opus firing is pure cost. Re-enable
+  // with MONITOR_ENABLED=true, or analyze offline via /replay-monitor.
+  if (!MONITOR_ENABLED) return;
+
   console.log("[persona-pipeline] monitor_attempt", {
     conversation_id: ctx.conversationId,
     message_count: ctx.messages.length,
