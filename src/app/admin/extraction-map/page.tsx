@@ -717,6 +717,23 @@ function Header() {
         for, who reads it, and whether anything breaks if you remove it. Use it
         to see what the extractor tracks, and to spot notes nothing reads.
       </p>
+      <a
+        href="/admin/prompt-architecture"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 10,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.3px",
+          color: "var(--session-walnut-meta-strong)",
+          textDecoration: "none",
+        }}
+      >
+        ↳ This is the deep dive behind the &ldquo;Extraction Brief&rdquo; block
+        in Jove&rsquo;s prompt — see it in context →
+      </a>
     </div>
   );
 }

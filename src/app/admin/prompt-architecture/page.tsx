@@ -1153,6 +1153,30 @@ function SectionDetail({
         </p>
       )}
 
+      {section.id === "extraction-brief" && (
+        <div style={{ marginTop: 10 }}>
+          <a
+            href="/admin/extraction-map"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              letterSpacing: "0.3px",
+              color: "var(--session-walnut-meta-strong)",
+              textDecoration: "none",
+              padding: "6px 11px",
+              borderRadius: 6,
+              border: "1px solid var(--session-walnut-border)",
+              background: "var(--session-walnut-tint)",
+            }}
+          >
+            Deep dive — every note this call writes →
+          </a>
+        </div>
+      )}
+
       <div
         style={{
           marginTop: 6,
