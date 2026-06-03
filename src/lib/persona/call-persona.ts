@@ -895,6 +895,7 @@ export function callPersona({
 
         if (isCheckpoint) {
           try {
+            const compositionStart = Date.now();
             composedEntry = await composeManualEntry({
               checkpointText: conversationalText,
               conversationHistory: messages,
@@ -914,6 +915,18 @@ export function callPersona({
               depth: previousExtraction?.depth ?? null,
               sageBrief: previousExtraction?.sage_brief ?? null,
               currentThread: previousExtraction?.current_thread ?? null,
+            });
+            // Composition is a blocking Opus call that runs after the
+            // conversational stream and before the checkpoint card — the
+            // gap a founder flagged as "feels like a bug." Measure it so we
+            // can confirm where the seconds go before optimizing (model,
+            // Manual size). Log-only; no behavior change.
+            logEvent({
+              event: "composition_latency",
+              surface: "chat",
+              conversation_id: convId,
+              duration_ms: Date.now() - compositionStart,
+              manual_entry_count: manualComponents?.length ?? 0,
             });
 
             if (composedEntry?.content) {
