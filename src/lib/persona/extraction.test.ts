@@ -284,8 +284,9 @@ describe("formatExtractionForPersona", () => {
   });
 
   describe("checkpoint readiness — standard", () => {
-    it("signals enough material when all standard criteria met", () => {
+    it("signals a real piece when all criteria met AND depth has reached mechanism", () => {
       const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 2,
           has_mechanism: true,
@@ -295,12 +296,32 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, false);
-      expect(result).toContain("enough material here to reflect a piece back");
+      expect(result).toContain("a real piece here you could reflect back");
       expect(result).toContain(LAYER_NAMES[3]);
     });
 
-    it("signals not enough yet, with the missing reasons in plain English", () => {
+    it("withholds the ready hint and says stay-in-it when gate is met but depth is shallow", () => {
+      // Fewer, deeper, later: even with a fully-met gate, we do not dangle
+      // "there's a piece here" until the conversation reaches the mechanism.
       const state = makeState({
+        depth: "feeling",
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 3,
+        },
+      });
+      const result = formatExtractionForPersona(state, false);
+      expect(result).not.toContain("a real piece here you could reflect back");
+      expect(result).toContain("Stay in it");
+      expect(result).toContain("why it fires");
+    });
+
+    it("points DOWN to the live edge (not a missing-items checklist) when shallow", () => {
+      const state = makeState({
+        depth: "surface",
         checkpoint_gate: {
           concrete_examples: 1,
           has_mechanism: false,
@@ -310,14 +331,16 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, false);
-      expect(result).toContain("Not enough yet to reflect a piece back");
-      expect(result).toContain("more concrete scene");
-      expect(result).toContain("haven't reached the mechanism");
-      expect(result).toContain("haven't captured a phrase");
+      expect(result).toContain("Stay in it");
+      expect(result).toContain("The live edge is underneath, not sideways");
+      // The old production-line checklist framing is gone.
+      expect(result).not.toContain("Not enough yet to reflect a piece back");
+      expect(result).not.toContain("more concrete scene");
     });
 
-    it("does not mention mechanism gap when has_mechanism is true", () => {
+    it("when deep enough but evidence is thin, names ONE gap softly (not a checklist)", () => {
       const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 0,
           has_mechanism: true,
@@ -327,13 +350,17 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, false);
-      expect(result).not.toContain("haven't reached the mechanism");
+      expect(result).toContain("The understanding is there");
+      expect(result).toContain("concrete scene");
+      // Only the single most important gap, not the multi-item list.
+      expect(result).not.toContain("Not enough yet to reflect a piece back");
     });
   });
 
-  describe("checkpoint readiness — first checkpoint (lighter)", () => {
-    it("ready with: 1 example + charged language + mechanism", () => {
+  describe("checkpoint readiness — first checkpoint (deeper everywhere)", () => {
+    it("ready with: 1 example + charged language + mechanism AND depth at mechanism", () => {
       const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 1,
           has_mechanism: true,
@@ -343,11 +370,12 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, true);
-      expect(result).toContain("enough material here to reflect a piece back");
+      expect(result).toContain("a real piece here you could reflect back");
     });
 
-    it("ready with: 1 example + charged language + behavior_driver_link", () => {
+    it("ready with: 1 example + charged language + behavior_driver_link AND depth at mechanism", () => {
       const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 1,
           has_mechanism: false,
@@ -357,11 +385,28 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, true);
-      expect(result).toContain("enough material here to reflect a piece back");
+      expect(result).toContain("a real piece here you could reflect back");
     });
 
-    it("not ready when first checkpoint and no charged language", () => {
+    it("first checkpoint still gated on depth: shallow gets stay-in-it, not the ready hint", () => {
       const state = makeState({
+        depth: "behavior",
+        checkpoint_gate: {
+          concrete_examples: 1,
+          has_mechanism: false,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 2,
+        },
+      });
+      const result = formatExtractionForPersona(state, true);
+      expect(result).not.toContain("a real piece here you could reflect back");
+      expect(result).toContain("Stay in it");
+    });
+
+    it("deep-enough first checkpoint with no charged language names the thin gap", () => {
+      const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 1,
           has_mechanism: true,
@@ -371,11 +416,13 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, true);
-      expect(result).toContain("Not enough yet");
+      expect(result).toContain("The understanding is there");
+      expect(result).toContain("carries real weight");
     });
 
     it("no longer inlines the first-reflection wrapper note (wrapper moved to approaching signal)", () => {
       const state = makeState({
+        depth: "mechanism",
         checkpoint_gate: {
           concrete_examples: 1,
           has_mechanism: true,
@@ -479,8 +526,9 @@ describe("formatExtractionForPersona", () => {
       expect(result).not.toContain("Care note");
     });
 
-    it("blocks the ready signal when crisis is active", () => {
+    it("suppresses the readiness hint entirely when crisis is active", () => {
       const state = makeState({
+        depth: "mechanism",
         clinical_flag: { active: true, level: "crisis", note: "Self-harm intent" },
         checkpoint_gate: {
           concrete_examples: 3,
@@ -491,11 +539,16 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, false);
-      expect(result).toContain("Not enough yet");
+      // During crisis we say nothing about checkpoints. The safety note
+      // above already told Jove to stop building.
+      expect(result).not.toContain("a real piece here you could reflect back");
+      expect(result).not.toContain("Stay in it");
+      expect(result).toContain("Safety note:");
     });
 
-    it("does NOT block the ready signal when only caution is active", () => {
+    it("does NOT block the ready hint when only caution is active (depth permitting)", () => {
       const state = makeState({
+        depth: "mechanism",
         clinical_flag: { active: true, level: "caution", note: "Diagnostic question" },
         checkpoint_gate: {
           concrete_examples: 2,
@@ -506,18 +559,17 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, false);
-      expect(result).toContain("enough material here to reflect a piece back");
+      expect(result).toContain("a real piece here you could reflect back");
     });
 
-    it("safety note appears before the readiness sentence", () => {
+    it("safety note is present and the readiness hint is absent during crisis", () => {
       const state = makeState({
+        depth: "mechanism",
         clinical_flag: { active: true, level: "crisis", note: "Crisis detected" },
       });
       const result = formatExtractionForPersona(state, false);
-      const safetyIdx = result.indexOf("Safety note:");
-      const readyIdx = result.indexOf("reflect a piece back");
-      expect(safetyIdx).toBeGreaterThanOrEqual(0);
-      expect(readyIdx).toBeGreaterThan(safetyIdx);
+      expect(result.indexOf("Safety note:")).toBeGreaterThanOrEqual(0);
+      expect(result).not.toContain("reflect a piece back");
     });
   });
 
