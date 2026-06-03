@@ -26,19 +26,21 @@ type Skill = {
 // workspace that are NOT committed mywalnut skills, so the filesystem scan
 // below won't reliably surface them (symlinks into ~/.agents don't deploy;
 // Dynamic Workflows is a built-in Claude Code tool with no file at all).
-// Listed here purely as a reference so they aren't forgotten. Merged into the
-// scan results by id, so a locally-discovered copy always wins over these.
+// Listed here purely as a reference so they aren't forgotten. These ARE the
+// curated founder-facing view: when one matches a scanned skill by id, this
+// entry replaces it (so the clean label/description shown here wins over the
+// underlying skill's technical name).
 const REFERENCE_CAPABILITIES: Skill[] = [
   {
     id: "remotion-best-practices",
-    name: "remotion-best-practices",
+    name: "Remotion",
     description:
-      "Best practices for Remotion — building videos in React. Compositions are React components; `npx remotion render` turns them into MP4s. Used for the mywalnut pitch/walkthrough video in pitch-video/.",
-    invocation: "/remotion-best-practices",
+      "Create videos in React. Compositions are React components; `npx remotion studio` opens the live editor and `npx remotion render` exports an MP4. Used for the mywalnut pitch/walkthrough video in pitch-video/.",
+    invocation: null,
     scope: "project-skill",
     origin: "installed",
-    source: ".agents/skills/remotion-best-practices (symlinked into .claude/skills)",
-    body: "Domain knowledge for working with Remotion code: project setup, composition structure, animation patterns, and rendering. Run `npx remotion studio` (live editor) or `npx remotion render` (export MP4) from the pitch-video/ project. Tags: remotion, video, react, animation, composition.",
+    source: "remotion-best-practices skill · .agents/skills (symlinked into .claude/skills)",
+    body: "Video creation in React with Remotion. Run `npx remotion studio` (live editor) or `npx remotion render` (export MP4) from the pitch-video/ project. The underlying skill provides domain knowledge: project setup, composition structure, animation patterns, and rendering. Tags: remotion, video, react, animation, composition.",
   },
   {
     id: "frontend-design",
@@ -224,13 +226,14 @@ export async function GET() {
     if (skill) skills.push(skill);
   }
 
-  // Merge in reference capabilities not already discovered on disk, so they
-  // show up even where the symlinks/built-in tools aren't present (e.g. the
-  // deployed admin page). A locally-discovered copy always wins.
-  const discoveredIds = new Set(skills.map((s) => s.id));
-  for (const cap of REFERENCE_CAPABILITIES) {
-    if (!discoveredIds.has(cap.id)) skills.push(cap);
-  }
+  // Merge in reference capabilities. These are the curated founder-facing view,
+  // so they take precedence: drop any scanned skill with a matching id and use
+  // the reference entry instead (clean label/description over the underlying
+  // skill's technical name). This also covers cases where the symlinks/built-in
+  // tools aren't present at all (e.g. the deployed admin page).
+  const referenceIds = new Set(REFERENCE_CAPABILITIES.map((c) => c.id));
+  const merged = skills.filter((s) => !referenceIds.has(s.id));
+  merged.push(...REFERENCE_CAPABILITIES);
 
-  return Response.json({ skills });
+  return Response.json({ skills: merged });
 }
