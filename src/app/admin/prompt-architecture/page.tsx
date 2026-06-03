@@ -1764,16 +1764,40 @@ const OVERVIEW_PARTS: {
 
 function BucketsOverview({ onJump }: { onJump: (i: number) => void }) {
   const [open, setOpen] = useState<string | null>("instructions");
+  const [shown, setShown] = useState(false);
   return (
-    <div
-      style={{
-        marginBottom: 18,
-        border: "1px solid var(--session-walnut-border)",
-        borderRadius: 10,
-        background: "var(--session-walnut-tint)",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{ marginBottom: 14 }}>
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: "0.5px",
+          textTransform: "uppercase",
+          color: "var(--session-ink-ghost)",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          paddingBottom: 1,
+          borderBottom: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        {shown ? "Hide the overview" : "The prompt, in three parts"}
+        <span style={{ fontSize: 9 }}>{shown ? "▲" : "▾"}</span>
+      </button>
+      {shown && (
+        <div
+          style={{
+            marginTop: 10,
+            border: "1px solid var(--session-walnut-border)",
+            borderRadius: 10,
+            background: "var(--session-walnut-tint)",
+            overflow: "hidden",
+          }}
+        >
       <div
         style={{
           display: "flex",
@@ -1905,6 +1929,8 @@ function BucketsOverview({ onJump }: { onJump: (i: number) => void }) {
           </div>
         );
       })}
+        </div>
+      )}
     </div>
   );
 }
