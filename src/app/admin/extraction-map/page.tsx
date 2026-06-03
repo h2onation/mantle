@@ -421,21 +421,6 @@ const FIELDS: Field[] = [
     ],
     gates: "Informational hint only.",
   },
-  {
-    path: "next_prompt",
-    type: "string (3-6 words, '…')",
-    category: "auxiliary",
-    loadBearing: "auxiliary",
-    summary: "UI placeholder hint for the chat input field.",
-    represents:
-      "UI placeholder hint for the chat input field — what the user could say next, matched to current depth.",
-    storage: "conversations.extraction_state.next_prompt",
-    readers: [
-      { where: "call-persona.ts:784 (SSE payload)", what: "Surfaced to client as nextPrompt" },
-      { where: "MobileSession (chat input placeholder)", what: "Shown as ghost text in the input field" },
-    ],
-    gates: "Pure UI hint. Doesn't affect Jove's reasoning.",
-  },
 ];
 
 const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";

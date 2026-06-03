@@ -30,7 +30,6 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       note: "",
     },
     observation_miss_count: 0,
-    next_prompt: "",
     sage_brief: "",
     emerging_pattern_snippet: null,
     pattern_engaged: false,

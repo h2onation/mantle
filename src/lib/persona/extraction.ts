@@ -49,7 +49,6 @@ export interface ExtractionState {
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
   observation_miss_count: number;
-  next_prompt: string;
   sage_brief: string;
   // Short phrase (under 15 words) describing the pattern the extraction
   // layer is beginning to see in the user's language and behavior.
@@ -107,7 +106,6 @@ function defaultState(): ExtractionState {
       note: "",
     },
     observation_miss_count: 0,
-    next_prompt: "",
     sage_brief: "",
     emerging_pattern_snippet: null,
     pattern_engaged: false,
@@ -344,7 +342,6 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
     "note": ""
   },
   "observation_miss_count": 0,
-  "next_prompt": "3-6 word placeholder hint...",
   "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}",
   "emerging_pattern_snippet": "short phrase under 15 words, OR null",
   "pattern_engaged": false,
@@ -358,7 +355,6 @@ CRITICAL RULES:
 - When a layer already has a confirmed entry, its signal starts at "explored" minimum.
 - Be aggressive about capturing language. If in doubt, capture it.
 - The checkpoint gate is a quality assessment. Do not count turns.
-- The next_prompt must be 3-6 words, lowercase, ending with "..."
 - Layers can hold many entries. Don't gate on count.
 - NO CLINICAL LANGUAGE in any field ${PERSONA_NAME} will read (sage_brief, current_thread, layer material). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
 
@@ -424,7 +420,6 @@ export function mergeExtractionState(
     checkpoint_gate: mergedGate,
     clinical_flag: parsed.clinical_flag || state.clinical_flag,
     observation_miss_count: observationMissCount,
-    next_prompt: parsed.next_prompt || "",
     sage_brief: parsed.sage_brief || "",
     emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
     // Honor the documented reset (prose ~L302): the model is fed the prior
@@ -525,7 +520,7 @@ export async function runExtraction(
         opens,
         closes
       );
-      return { ...state, next_prompt: "", sage_brief: "" };
+      return { ...state, sage_brief: "" };
     }
 
     const parsed = JSON.parse(cleaned);
@@ -534,7 +529,7 @@ export async function runExtraction(
   } catch (err) {
     // Re-throw so fireBackgroundExtraction's .catch handles the failure
     // without writing a degraded state over the prior good one. Previous
-    // behavior returned `{...state, next_prompt: "", sage_brief: ""}`, which
+    // behavior returned `{...state, sage_brief: ""}`, which
     // wiped the prior turn's working brief and degraded Jove's next turn on
     // top of the underlying error. Logs stay under the [extraction] prefix
     // so existing ops queries continue to match.

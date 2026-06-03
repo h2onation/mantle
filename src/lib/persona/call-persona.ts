@@ -511,7 +511,6 @@ export function callPersona({
                 checkpoint: null,
                 processingText: "",
                 cleanContent: UPLOAD_OPENER,
-                nextPrompt: "",
                 emergingPatternSnippet: null,
                 hasLayerEmergingOrBeyond: false,
                 concreteExamples: 0,
@@ -1012,7 +1011,7 @@ export function callPersona({
 
         // Modal 2 trigger inputs. Use previousExtraction (one-turn lag)
         // since current-turn extraction runs in parallel and isn't ready
-        // when this event fires. Same pattern as nextPrompt above.
+        // when this event fires.
         const hasLayerEmergingOrBeyond = previousExtraction
           ? Object.values(previousExtraction.layers).some(
               (l) => l.signal !== "none"
@@ -1034,7 +1033,6 @@ export function callPersona({
               checkpoint,
               processingText,
               cleanContent: conversationalText,
-              nextPrompt: previousExtraction?.next_prompt || "",
               emergingPatternSnippet:
                 previousExtraction?.emerging_pattern_snippet ?? null,
               hasLayerEmergingOrBeyond,

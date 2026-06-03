@@ -135,11 +135,11 @@ describe("parseSSEStream", () => {
       expect(onTextDelta).toHaveBeenCalledWith("after");
     });
 
-    it("passes cleanContent and nextPrompt fields in message_complete events", async () => {
+    it("passes cleanContent in message_complete events", async () => {
       const onTextDelta = vi.fn();
       const onMessageComplete = vi.fn();
       const response = createMockResponse([
-        'data: {"type":"message_complete","messageId":"m1","conversationId":"c1","checkpoint":null,"processingText":"tracking","cleanContent":"stripped text","nextPrompt":"hint"}\n',
+        'data: {"type":"message_complete","messageId":"m1","conversationId":"c1","checkpoint":null,"processingText":"tracking","cleanContent":"stripped text"}\n',
       ]);
 
       await parseSSEStream(response, { onTextDelta, onMessageComplete });
@@ -147,7 +147,6 @@ describe("parseSSEStream", () => {
       expect(onMessageComplete).toHaveBeenCalledWith(
         expect.objectContaining({
           cleanContent: "stripped text",
-          nextPrompt: "hint",
         })
       );
     });

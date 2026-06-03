@@ -36,7 +36,6 @@ const baseJson = {
   early_frame_delivered: false,
   depth_signal_delivered: false,
   approaching_signal_delivered: false,
-  next_prompt: "",
   sage_brief: "",
 };
 

@@ -19,10 +19,9 @@ export interface MessageCompleteEvent {
   } | null;
   processingText: string;
   cleanContent?: string;
-  nextPrompt?: string;
   promptAuth?: boolean;
   // Modal 2 (Pattern-Forming) trigger inputs, derived from the
-  // previous-turn extraction state (one-turn lag, same as nextPrompt).
+  // previous-turn extraction state (one-turn lag).
   // Optional so older clients ignore them gracefully.
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
