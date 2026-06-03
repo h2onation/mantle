@@ -884,6 +884,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       turnCount: 1,
       checkpointApproaching: false,
       personaModes: ["autistic"],
+      priorCheckpointSuppressed: false,
       mode,
     };
   }
