@@ -669,30 +669,52 @@ export function formatExtractionForPersona(
         gate.has_behavior_driver_link
   );
 
-  if (gateReady) {
-    context += `There's enough material here to reflect a piece back. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}.`;
+  // Depth gate on the SOFT hint only. The hard checkpoint gate
+  // (applyCheckpointGates) is unchanged — this governs what the brief
+  // whispers to Jove each turn, not whether an entry can fire. Until the
+  // conversation reaches the mechanism (WHY a pattern fires) we don't
+  // dangle "there's a piece here." And when it isn't ready we point Jove
+  // DOWN to the live edge instead of handing it a "what's still missing"
+  // checklist — that checklist turned every turn into a countdown to a
+  // deliverable, which is what made the whole thing feel performative.
+  // Applies to the first checkpoint too: fewer, deeper, later.
+  const DEPTH_LADDER = ["surface", "behavior", "feeling", "mechanism", "origin"];
+  const depthIdx = DEPTH_LADDER.indexOf(state.depth);
+  const deepEnough = depthIdx >= DEPTH_LADDER.indexOf("mechanism");
+
+  if (isCrisis) {
+    // During crisis emit nothing about readiness. The safety note above
+    // already told Jove to stop building.
+  } else if (!deepEnough) {
+    // Below the mechanism: keep Jove in it. Point at what's underneath,
+    // never sideways to "go find another example."
+    if (depthIdx < DEPTH_LADDER.indexOf("feeling")) {
+      context +=
+        "Stay in it. They've shown you what happens, not yet what it feels like from inside or why it fires. The live edge is underneath, not sideways.\n";
+    } else {
+      context +=
+        "Stay in it. They've named what happens and how it feels. You haven't reached why it fires yet. Go for the mechanism underneath before you reflect anything back.\n";
+    }
+  } else if (gateReady) {
+    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath.\n`;
   } else {
-    const missing: string[] = [];
+    // Deep enough, but the evidence is still thin. One soft line naming
+    // the single most important gap — not the old multi-item checklist.
     const minExamples = isFirstCheckpoint ? 1 : 2;
+    let gap: string | null = null;
     if (gate.concrete_examples < minExamples) {
-      const need = minExamples - gate.concrete_examples;
-      missing.push(`you need ${need} more concrete scene${need === 1 ? "" : "s"} the user has walked you through`);
+      gap = "a concrete scene the user has walked through in detail";
+    } else if (!gate.has_charged_language) {
+      gap = "a phrase from the user that carries real weight";
+    } else if (distinctContextsValue !== null && distinctContextsValue < minContexts) {
+      gap = "a second situation where this shows up, not more moments inside the same one";
+    } else if (!gate.has_behavior_driver_link) {
+      gap = "the link between what they do and what's driving it";
     }
-    if (distinctContextsValue !== null && distinctContextsValue < minContexts) {
-      const need = minContexts - distinctContextsValue;
-      missing.push(
-        `the pattern needs evidence from ${need} more distinct ${need === 1 ? "context" : "contexts"} — a different situation where this has shown up, not more moments inside the same one`
-      );
-    }
-    if (!gate.has_mechanism && !isFirstCheckpoint)
-      missing.push("you haven't reached the mechanism underneath the behavior yet");
-    if (!gate.has_charged_language)
-      missing.push("you haven't captured a phrase from the user that carries weight");
-    if (!gate.has_behavior_driver_link && !gate.has_mechanism)
-      missing.push("you haven't connected what they do to what's driving it");
-    context += `Not enough yet to reflect a piece back. ${missing.join(". ")}.`;
+    context += gap
+      ? `The understanding is there. Still thin on ${gap}. Stay with it.\n`
+      : "There's a real piece here you could reflect back when the moment is right.\n";
   }
-  context += "\n";
 
   // First-checkpoint wrapper is no longer delivered inside the reflection —
   // it now rides along with the approaching signal (see Tier 3 PROGRESS

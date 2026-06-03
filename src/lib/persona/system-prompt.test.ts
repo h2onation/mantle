@@ -642,9 +642,14 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("POST-REJECTION");
     });
 
-    it("pins the exact fixed-string response after rejection", () => {
+    it("instructs a varied, entry-specific one-liner instead of a fixed string", () => {
       const result = build({ postRejection: true });
-      expect(result).toContain("That entry didn't land. Was it off, or just not ready?");
+      // The old verbatim line is gone — the response is now generated,
+      // references the specific rejected entry, and varies each time.
+      expect(result).not.toContain("must be exactly this single line");
+      expect(result).toContain("Vary the wording every time");
+      expect(result).toContain("Never reuse a fixed line");
+      expect(result).toContain("naming what it was about in the user's own terms");
     });
 
     it("scopes the fixed line to the immediate post-rejection turn only", () => {
@@ -1259,20 +1264,20 @@ describe("buildSystemPrompt", () => {
         expect(result).toContain(phrase);
       });
 
-      // Regression pin: dev-simulator audit caught em-dash-joined
-      // clauses widespread in body prose. Expanded DASH_TO_PERIOD_RULE
-      // with audit-derived examples. Pin a couple so future edits don't
-      // silently regress.
-      it("DASH_TO_PERIOD_RULE clarifies body-prose scope (not just openers)", () => {
+      // The rule was softened from an absolute ban to a default: periods
+      // by default, a single dash allowed in body prose when it carries
+      // rhythm a period would flatten. The ban was flattening the voice
+      // into a monotone staccato (audit, 2026-06-03).
+      it("DASH_TO_PERIOD_RULE defaults to periods but allows a dash in body prose for rhythm", () => {
         const result = build();
-        expect(result).toContain("applies to BODY prose, not just openers");
+        expect(result).toContain("Default to periods");
+        expect(result).toContain("body prose");
+        expect(result).toContain("One dash at most in a turn");
       });
 
-      it("DASH_TO_PERIOD_RULE pins audit-derived bad/good pairs", () => {
+      it("DASH_TO_PERIOD_RULE keeps the period-landing exemplars", () => {
         const result = build();
-        // Pairs lifted from real dev-simulator drift in 2026-05-19 audit
         expect(result).toContain("Your body filed it as a mistake");
-        expect(result).toContain("The fluorescents pulling focus");
         expect(result).toContain("You weren't evasive because you didn't care");
       });
 

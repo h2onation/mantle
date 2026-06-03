@@ -297,19 +297,15 @@ export const WEAK_STRONG_EXAMPLES_BASE: readonly {
   },
 ] as const;
 
-export const DASH_TO_PERIOD_RULE = `Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones. This applies to BODY prose, not just openers. Every Jove turn, every checkpoint composition, every reflection.
-Bad: "She went quiet — what did you do?"
-Good: "She went quiet. What did you do?"
+export const DASH_TO_PERIOD_RULE = `Default to periods. Short sentences over long ones. In openers and any sharp landing, the full stop is what makes the line hit. Use a period there, never a dash.
+A dash earns its place only in body prose, and only when it carries a beat a period would flatten. One dash at most in a turn. If a period reads just as strong, use the period. The failure mode to avoid is a dash in every other sentence, which flattens the whole voice into one hum. Vary the rhythm. Don't trade an em-dash tic for a staccato tic.
+Land hard with periods:
 Bad: "Not the wrong thing — the true thing."
 Good: "Not the wrong thing. The true thing."
 Bad: "Your body filed it as a mistake — before your head had any say."
 Good: "Your body filed it as a mistake. Before your head had any say."
 Bad: "You weren't evasive because you didn't care — you were evasive because committing felt like exposure."
-Good: "You weren't evasive because you didn't care. You were evasive because committing felt like exposure."
-Bad: "The fluorescents pulling focus — that's not a bad day."
-Good: "The fluorescents pulling focus. That's not a bad day."
-Bad: "None of that was chosen — your body was already running."
-Good: "Your body was already running. None of that was chosen."`;
+Good: "You weren't evasive because you didn't care. You were evasive because committing felt like exposure."`;
 
 /** Banned phrases. Identical across all four persona files; consolidated
  *  here. Tests assert each phrase appears in the rendered prompt. */
