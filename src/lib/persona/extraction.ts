@@ -361,6 +361,37 @@ CRITICAL RULES:
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
 /**
+ * Coerce a model-supplied layer id to a number in 1..5, or null.
+ *
+ * The extraction model intermittently emits layer ids as strings ("1")
+ * instead of numbers (1). Left uncoerced, a string `strongest_layer`
+ * breaks the strict-equality membership checks the checkpoint gate runs
+ * against numeric `language_bank[].layers`: `[1].includes("1") === false`.
+ * That silently fails the Lock-1 charged-phrase-on-layer check
+ * (validateMaterialQuality) and suppresses every otherwise-ready
+ * checkpoint — the 2026-06-03 doom-loop incident. Normalize at the parse
+ * boundary so the whole pipeline downstream compares numbers to numbers.
+ */
+export function toLayerNumber(value: unknown): number | null {
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN;
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+}
+
+/** Coerce a model-supplied layer list to clean numbers, dropping anything
+ *  that isn't a valid 1..5 layer id. See toLayerNumber. */
+export function coerceLayerList(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(toLayerNumber)
+    .filter((n): n is number => n !== null);
+}
+
+/**
  * Merge a freshly-parsed extraction payload with the prior state. Pure and
  * exported so the merge rules — monotonic gate counts, the pattern_engaged
  * reset, the observation-miss clamp — are unit-testable without an Anthropic
@@ -408,12 +439,23 @@ export function mergeExtractionState(
       ...incoming,
       concrete_examples: Math.max(incomingExamples, prevExamples),
       distinct_contexts: Math.max(incomingContexts, prevContexts),
+      // Normalize the layer id to a number so downstream gate checks
+      // compare numbers to numbers (see toLayerNumber).
+      strongest_layer: toLayerNumber(incoming.strongest_layer),
     };
   })();
 
   return {
     layers: parsed.layers || state.layers,
-    language_bank: parsed.language_bank || state.language_bank,
+    // Coerce each entry's layer ids to numbers at the boundary so the
+    // checkpoint gate's layer-membership checks never compare a string
+    // "1" against a numeric 1 (see toLayerNumber / the 2026-06-03 incident).
+    language_bank: Array.isArray(parsed.language_bank)
+      ? parsed.language_bank.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (e: any) => ({ ...e, layers: coerceLayerList(e?.layers) })
+        )
+      : state.language_bank,
     depth: parsed.depth || state.depth,
     current_thread: parsed.current_thread || state.current_thread,
     mode: parsed.mode || state.mode,

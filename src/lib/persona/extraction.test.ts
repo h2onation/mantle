@@ -89,6 +89,70 @@ describe("mergeExtractionState — state merge", () => {
   });
 });
 
+// Layer-type coercion (2026-06-03 doom-loop incident). The model intermittently
+// emits layer ids as strings ("1"). Left uncoerced, a string strongest_layer
+// broke the gate's strict-equality membership against numeric language_bank
+// layers ([1].includes("1") === false), suppressing every ready checkpoint.
+// Normalize at the parse boundary so everything downstream compares numbers.
+describe("mergeExtractionState — layer type coercion", () => {
+  it("coerces a string strongest_layer to a number", () => {
+    const merged = mergeExtractionState(
+      {
+        checkpoint_gate: {
+          concrete_examples: 5,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: "1",
+        },
+      },
+      makeState()
+    );
+    expect(merged.checkpoint_gate.strongest_layer).toBe(1);
+  });
+
+  it("coerces string layer ids in the language bank to numbers", () => {
+    const merged = mergeExtractionState(
+      {
+        language_bank: [
+          { phrase: "x", context: "y", charge: "high", layers: ["1", "4"] },
+        ],
+      },
+      makeState()
+    );
+    expect(merged.language_bank[0].layers).toEqual([1, 4]);
+  });
+
+  it("drops malformed layer ids rather than carrying garbage forward", () => {
+    const merged = mergeExtractionState(
+      {
+        language_bank: [
+          { phrase: "x", context: "y", charge: "high", layers: ["9", "abc", 2] },
+        ],
+      },
+      makeState()
+    );
+    // 9 is out of range, "abc" is non-numeric, 2 is valid.
+    expect(merged.language_bank[0].layers).toEqual([2]);
+  });
+
+  it("leaves a null strongest_layer as null", () => {
+    const merged = mergeExtractionState(
+      {
+        checkpoint_gate: {
+          concrete_examples: 0,
+          has_mechanism: false,
+          has_charged_language: false,
+          has_behavior_driver_link: false,
+          strongest_layer: null,
+        },
+      },
+      makeState()
+    );
+    expect(merged.checkpoint_gate.strongest_layer).toBeNull();
+  });
+});
+
 describe("formatExtractionForPersona", () => {
   describe("schema names do not leak", () => {
     it("does not contain raw schema labels", () => {

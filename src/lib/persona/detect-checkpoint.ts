@@ -47,3 +47,23 @@ export function detectCheckpointInResponse(text: string): CheckpointDetection {
   if (!text) return { isCheckpoint: false };
   return { isCheckpoint: TRANSITION_LINE_PATTERN.test(text) };
 }
+
+/**
+ * Locate the checkpoint transition line within a response, using the SAME
+ * pattern that decided `isCheckpoint`. Returns the match's start index and
+ * length, or null when no transition line is present.
+ *
+ * This is the single source of truth for the transition contract. The
+ * suppression-strip path (call-persona.ts) slices at this boundary instead
+ * of re-matching with a second, narrower regex — that earlier dual-regex
+ * design let a transition the detector caught (e.g. "write this up for your
+ * Manual") survive un-stripped, shipping entry prose to chat with no card.
+ */
+export function findCheckpointTransition(
+  text: string
+): { index: number; length: number } | null {
+  if (!text) return null;
+  const m = text.match(TRANSITION_LINE_PATTERN);
+  if (!m || m.index === undefined) return null;
+  return { index: m.index, length: m[0].length };
+}

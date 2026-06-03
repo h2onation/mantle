@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
+import {
+  detectCheckpointInResponse,
+  findCheckpointTransition,
+} from "@/lib/persona/detect-checkpoint";
 
 describe("detectCheckpointInResponse", () => {
   it("returns true when the canonical transition line is present", () => {
@@ -135,6 +138,39 @@ describe("detectCheckpointInResponse", () => {
       "Let me read what you wrote about your Manual.",
     ])("does NOT match adjacent prose: %s", (text) => {
       expect(detectCheckpointInResponse(text).isCheckpoint).toBe(false);
+    });
+  });
+
+  // findCheckpointTransition is the single source of truth the suppression
+  // stripper shares with the detector (one transition contract, no second
+  // regex). It returns the match boundary so the stripper can slice there.
+  describe("findCheckpointTransition", () => {
+    it("returns the match boundary for a transition mid-text", () => {
+      const lead = "Here's the shape of it. ";
+      const text = `${lead}I want to put this in your Manual. Entry prose.`;
+      const m = findCheckpointTransition(text);
+      expect(m).not.toBeNull();
+      expect(m!.index).toBe(lead.length);
+      // Slicing at the boundary leaves exactly the lead-in.
+      expect(text.slice(0, m!.index).trim()).toBe("Here's the shape of it.");
+    });
+
+    it("returns null when no transition line is present", () => {
+      expect(findCheckpointTransition("Walk me through what happened.")).toBeNull();
+    });
+
+    it("agrees with detectCheckpointInResponse on the same input (one contract)", () => {
+      const samples = [
+        "I want to put something in your Manual.",
+        "Let me write this up for your Manual.",
+        "Walk me through what happened.",
+        "Your Manual has room to add more entries.",
+      ];
+      for (const s of samples) {
+        const detected = detectCheckpointInResponse(s).isCheckpoint;
+        const found = findCheckpointTransition(s) !== null;
+        expect(found).toBe(detected);
+      }
     });
   });
 });

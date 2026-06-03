@@ -50,6 +50,11 @@ export interface ConversationContext {
   checkpointApproaching: boolean;
   personaModes: PersonaMode[];
   mode: "situation" | "guided-intake" | "upload";
+  /** True when the immediately-preceding assistant turn proposed a
+   *  checkpoint that the material-quality gate suppressed. Drives the
+   *  POST-SUPPRESSION prompt block so Jove doesn't re-propose the same
+   *  entry and re-trigger the suppression loop (2026-06-03 incident). */
+  priorCheckpointSuppressed: boolean;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -156,6 +161,22 @@ export async function loadConversationContext(
     messages = [{ role: "user", content: "[Session started]" }];
   }
 
+  // Loop circuit-breaker (2026-06-03): did the immediately-preceding
+  // assistant turn propose a checkpoint that the gate suppressed? The
+  // suppressed turn tags its row metadata; we read it back here so the
+  // next turn's prompt can tell Jove not to re-propose the same entry.
+  const priorAssistant = [...(historyResult.data || [])]
+    .reverse()
+    .find((m: { role: string }) => m.role === "assistant");
+  const priorCheckpointSuppressed = Boolean(
+    (
+      priorAssistant?.metadata as
+        | { checkpoint_suppressed?: boolean }
+        | null
+        | undefined
+    )?.checkpoint_suppressed
+  );
+
   // Raw entries from manual_entries. We map source_message_id → conversation_id
   // below so prepareManualContext can split "current session" from "older"
   // without another round-trip.
@@ -253,6 +274,7 @@ export async function loadConversationContext(
     checkpointApproaching,
     personaModes,
     mode: conversationMode,
+    priorCheckpointSuppressed,
   };
 }
 
@@ -279,6 +301,7 @@ export function buildPromptOptionsFromContext(
     checkpointApproaching: ctx.checkpointApproaching,
     personaModes: ctx.personaModes,
     mode: ctx.mode,
+    priorCheckpointSuppressed: ctx.priorCheckpointSuppressed,
   };
 }
 
@@ -613,11 +636,20 @@ export function validateMaterialQuality(
   const chargedPhrases = (extractionState.language_bank || []).filter(
     (e) => e.charge === "high" || e.charge === "medium"
   );
-  const candidateLayer = gate.strongest_layer;
+  // Coerce to a number so a legacy/in-flight string strongest_layer ("1")
+  // can't fail strict-equality membership against numeric language_bank
+  // layers. Boundary coercion (mergeExtractionState) handles freshly-written
+  // state; this guards previousExtraction rows persisted before that fix.
+  const candidateLayer =
+    gate.strongest_layer === null || gate.strongest_layer === undefined
+      ? null
+      : Number(gate.strongest_layer);
   const builtOnCharged =
     candidateLayer !== null
       ? chargedPhrases.filter(
-          (e) => Array.isArray(e.layers) && e.layers.includes(candidateLayer)
+          (e) =>
+            Array.isArray(e.layers) &&
+            e.layers.some((l) => Number(l) === candidateLayer)
         )
       : chargedPhrases;
   if (builtOnCharged.length === 0) {
@@ -694,7 +726,7 @@ export function deriveCheckpointApproaching(
       (e) =>
         (e.charge === "high" || e.charge === "medium") &&
         Array.isArray(e.layers) &&
-        e.layers.some((ln) => signalReadyLayers.includes(ln))
+        e.layers.some((ln) => signalReadyLayers.includes(Number(ln)))
     );
     if (chargedOnSignalLayer && !crisisActive) return true;
   }

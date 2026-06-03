@@ -231,29 +231,39 @@ describe("detectCrisisInUserMessage", () => {
 // detected checkpoint, the transition line Jove already wrote needs to
 // come out of the saved response — otherwise the user reads
 // "I want to put something in your Manual" in chat with no trigger
-// card. The helper strips the transition + reflection and falls back
-// to a neutral continuation when nothing substantive precedes the line.
+// card. The helper keeps the model's genuine lead-in and strips the
+// transition + entry prose. It uses the SAME transition contract the
+// detector used (findCheckpointTransition) — there is no second,
+// narrower regex. No canned continuation is appended: the old fixed
+// staple ("What was happening right before that landed?") was
+// context-blind and drove the 2026-06-03 suppression loop. Only when
+// nothing usable precedes the line does it fall back to one neutral
+// grounding directive.
 
 describe("stripCheckpointFromText", () => {
-  it("strips the transition line and everything after it when nothing precedes it", () => {
+  it("falls back to a single neutral handoff when nothing precedes the transition", () => {
     const input =
       "I want to put something in your Manual. There is a thing your system does when pressure lands. Body Goes Quiet. What would you change or sharpen?";
     const result = stripCheckpointFromText(input);
     expect(result).not.toContain("in your Manual");
     expect(result).not.toContain("Body Goes Quiet");
     expect(result).not.toContain("What would you change");
-    // Falls back to a single grounding question.
-    expect(result).toContain("?");
+    // The old context-blind staple must never appear again.
+    expect(result).not.toContain("right before that landed");
+    // Falls back to a single grounding handoff (non-empty, contentful).
+    expect(result.length).toBeGreaterThan(10);
   });
 
   it("preserves a substantive landing or lead-in that came before the transition", () => {
     const input =
-      "That moment you described at the dinner table is sitting with me — the way your jaw locked before anyone had even said anything yet. I want to put something in your Manual. Body Goes Quiet First.";
+      "That moment you described at the dinner table is sitting with me. The way your jaw locked before anyone had even said anything yet. I want to put something in your Manual. Body Goes Quiet First.";
     const result = stripCheckpointFromText(input);
     expect(result).toContain("dinner table");
     expect(result).toContain("jaw locked");
     expect(result).not.toContain("in your Manual");
     expect(result).not.toContain("Body Goes Quiet");
+    // No fabricated continuation stapled on — only the model's own words remain.
+    expect(result).not.toContain("right before that landed");
   });
 
   it("returns the original text unchanged when no transition line is present", () => {
@@ -262,9 +272,7 @@ describe("stripCheckpointFromText", () => {
     expect(stripCheckpointFromText(input)).toBe(input);
   });
 
-  it("catches paraphrase variants the strict detector doesn't (broader than detect-checkpoint)", () => {
-    // The suppression pattern needs to be broader than the firing
-    // pattern so a near-miss the model produced still gets cleaned up.
+  it("strips every transition variant the detector recognizes (one shared contract)", () => {
     const variants = [
       "I'd like to put this in your Manual. Reflection follows.",
       "I'm going to put that into your Manual. Reflection follows.",
@@ -276,6 +284,19 @@ describe("stripCheckpointFromText", () => {
       const result = stripCheckpointFromText(v);
       expect(result).not.toContain("Reflection follows");
     }
+  });
+
+  it("strips the 'write up for your Manual' variant the old narrow suppressor missed (latent ghost-checkpoint path)", () => {
+    // The detector catches this (verb drift "write up", prep "for"); the
+    // retired SUPPRESSION_PATTERN did not, so it shipped entry prose to
+    // chat with no card. Unifying on findCheckpointTransition closes it.
+    const input =
+      "Here's what I'm seeing in all of it. Let me write this up for your Manual. The Quiet Build. What would you change?";
+    const result = stripCheckpointFromText(input);
+    expect(result).toContain("Here's what I'm seeing");
+    expect(result).not.toContain("write this up");
+    expect(result).not.toContain("The Quiet Build");
+    expect(result).not.toContain("What would you change");
   });
 });
 

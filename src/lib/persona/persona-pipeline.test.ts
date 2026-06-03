@@ -107,6 +107,31 @@ describe("validateMaterialQuality", () => {
     expect(result.reasons.join(" ")).toMatch(/concrete scenes/);
   });
 
+  it("passes the charged-phrase gate when strongest_layer is a string '1' (2026-06-03 incident guard)", () => {
+    // The extraction model emitted strongest_layer as the string "1" while
+    // language_bank layers were numeric [1]. [1].includes("1") === false, so
+    // the Lock-1 charged-phrase-on-layer check found nothing and suppressed
+    // every otherwise-ready checkpoint — the doom loop. The consumer now
+    // Number-coerces both sides. Reproduce the incident state exactly.
+    const state = makeExtractionState({
+      language_bank: chargedBank(1), // numeric layers [1]
+      pattern_engaged: true,
+      depth: "mechanism",
+      checkpoint_gate: {
+        concrete_examples: 5,
+        distinct_contexts: 2,
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        // String layer id, exactly as the model emitted it in the incident.
+        strongest_layer: "1" as unknown as number,
+      },
+    });
+    const result = validateMaterialQuality(state, false);
+    expect(result.ok).toBe(true);
+    expect(result.reasons.join(" ")).not.toMatch(/charged phrase/);
+  });
+
   it("requires 1 scene for the first-checkpoint gate", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(1),

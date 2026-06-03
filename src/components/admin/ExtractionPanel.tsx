@@ -15,6 +15,14 @@ export interface ExtractionSnapshot {
   mode?: string;
   checkpoint_gate?: ExtractionGate;
   sage_brief?: string;
+  /** The REAL gate verdict, frozen server-side at the turn via
+   *  applyCheckpointGates (call-persona.ts step 11b). Present on snapshots
+   *  written after 2026-06-03. When absent (older snapshots, SMS path) the
+   *  overlay shows "—" rather than recomputing a looser, lying approximation. */
+  gate_eval?: {
+    passed: boolean;
+    reason?: string | null;
+  };
 }
 
 export default function ExtractionPanel({
@@ -29,12 +37,10 @@ export default function ExtractionPanel({
   const isExpanded = forceExpanded || expanded;
 
   const gate = snapshot.checkpoint_gate;
-  const gateMet = gate
-    ? gate.concrete_examples >= 2 &&
-      gate.has_mechanism &&
-      gate.has_charged_language &&
-      gate.has_behavior_driver_link
-    : false;
+  // The real, engine-authoritative verdict frozen at the turn. Do NOT
+  // recompute from gate fields here — the old inline formula omitted half
+  // the gate and read "yes" while the engine suppressed (2026-06-03).
+  const gateEval = snapshot.gate_eval;
 
   return (
     <div style={{ marginTop: 6 }}>
@@ -82,9 +88,19 @@ export default function ExtractionPanel({
                 {gate.has_behavior_driver_link ? "y" : "n"}
               </div>
               <div>
-                Gate met: {gateMet ? "yes" : "no"} | Strongest: L
-                {gate.strongest_layer ?? "?"}
+                Gate met:{" "}
+                {gateEval
+                  ? gateEval.passed
+                    ? "yes"
+                    : "no"
+                  : "—"}{" "}
+                | Strongest: L{gate.strongest_layer ?? "?"}
               </div>
+              {gateEval && !gateEval.passed && gateEval.reason && (
+                <div style={{ color: "var(--session-warning)" }}>
+                  Held: {gateEval.reason}
+                </div>
+              )}
             </>
           )}
           {snapshot.sage_brief && (

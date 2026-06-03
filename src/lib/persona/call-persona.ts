@@ -8,7 +8,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD, type PersonaMode } from "@/lib/persona/system-prompt";
 import { logEvent } from "@/lib/observability/log";
-import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
+import {
+  detectCheckpointInResponse,
+  findCheckpointTransition,
+} from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
@@ -290,38 +293,44 @@ export async function findRetryStormDuplicate(
   return subsequentAssistant ? null : recentDup.id;
 }
 
-// Broader than the detection regex so we catch paraphrases the strict
-// detector doesn't. Used only for suppression rewrites — never for
-// firing a checkpoint. (Firing still goes through detect-checkpoint.ts.)
-const SUPPRESSION_PATTERN =
-  /(?:I want to put|I'd like to put|I'm going to put|Let me put|I want to add|I'd like to add)\s+(?:something|this|that)\s+(?:in|into)\s+your\s+Manual\b/i;
-
-const SUPPRESSION_CONTINUATION =
-  "What was happening right before that landed?";
-const SUPPRESSION_FALLBACK_FULL = `Let me stay with that for a beat. ${SUPPRESSION_CONTINUATION}`;
+// Last-resort handoff used only when a suppressed checkpoint leaves no
+// usable lead-in (the model led straight with the transition line, so
+// there's nothing of its own to keep). A plain grounding directive —
+// no presupposition, not in the banned-phrase list. The common case
+// keeps the model's genuine lead-in instead; this is the empty-string
+// floor so a suppressed turn never ships a blank or dangling message.
+const SUPPRESSION_EMPTY_FALLBACK =
+  "Tell me what's going on for you right now.";
 
 /**
- * Rewrite a Jove response that contains a checkpoint transition line
- * which is being suppressed (gate failed, cooldown active, or
- * composition errored). Strip the transition line and everything after
- * it (the checkpoint reflection that would have followed). Keep any
- * landing or lead-in that preceded it. If nothing substantive remains,
- * fall back to a neutral continuation.
+ * Rewrite a Jove response whose checkpoint transition line is being
+ * suppressed (gate failed or composition errored). Strip the transition
+ * line and everything after it (the entry prose that would have followed),
+ * keeping the genuine landing or lead-in that preceded it.
+ *
+ * Uses findCheckpointTransition — the SAME contract the detector used to
+ * decide this was a checkpoint — so there is exactly one transition
+ * definition. (The old design used a second, narrower regex here, which
+ * let some detected transitions survive un-stripped and ship entry prose
+ * to chat with no card.)
+ *
+ * No canned continuation is appended: the previous fixed staple ("What
+ * was happening right before that landed?") was context-blind, looked
+ * identical to the model's own words next turn, and drove the 2026-06-03
+ * suppression doom-loop. We keep what the model actually said and only
+ * fall back to a neutral grounding line when nothing usable remains.
  *
  * Without this, Jove's words ("I want to put something in your Manual")
  * end up saved to chat without a paired trigger card — the user reads
  * the promise and sees nothing happen.
  */
 export function stripCheckpointFromText(text: string): string {
-  const match = text.match(SUPPRESSION_PATTERN);
-  if (!match || match.index === undefined) {
+  const match = findCheckpointTransition(text);
+  if (!match) {
     return text;
   }
   const before = text.slice(0, match.index).trim();
-  if (before.length < 40) {
-    return SUPPRESSION_FALLBACK_FULL;
-  }
-  return `${before}\n\n${SUPPRESSION_CONTINUATION}`;
+  return before.length > 0 ? before : SUPPRESSION_EMPTY_FALLBACK;
 }
 
 /** Deterministic fallback for the post-confirm follow-up message when the
@@ -766,10 +775,33 @@ export function callPersona({
         // 11b. Save extraction snapshot. The column is guaranteed present
         //      in the 20260417 squash baseline; any error here is a real
         //      DB failure, not schema drift.
+        //
+        //      We freeze the REAL gate verdict alongside the state. The admin
+        //      overlay used to recompute "Gate met" from a looser inline
+        //      formula that omitted depth, distinct_contexts, pattern_engaged,
+        //      turn-count, and the Lock-1 charged-phrase-on-layer check — so it
+        //      read "yes" while the engine was suppressing every turn
+        //      (2026-06-03). Computing applyCheckpointGates here, where
+        //      isFirstCheckpoint and turnCount actually exist, makes the
+        //      overlay show the same verdict and reason the engine acts on.
         if (messageId && previousExtraction) {
+          const gateEval = applyCheckpointGates(
+            turnsSinceCheckpoint,
+            previousExtraction,
+            isFirstCheckpoint,
+            turnCount
+          );
           admin
             .from("messages")
-            .update({ extraction_snapshot: previousExtraction })
+            .update({
+              extraction_snapshot: {
+                ...previousExtraction,
+                gate_eval: {
+                  passed: gateEval.passed,
+                  reason: gateEval.reason ?? null,
+                },
+              },
+            })
             .eq("id", messageId)
             .then(({ error }) => {
               if (error) {
@@ -813,9 +845,17 @@ export function callPersona({
             isCheckpoint = false;
             conversationalText = stripCheckpointFromText(conversationalText);
             if (messageId) {
+              // Tag the row so next turn's loadConversationContext surfaces
+              // priorCheckpointSuppressed → POST-SUPPRESSION block, which
+              // holds the proposal instructions for one turn. This is the
+              // loop circuit-breaker: a gate that keeps failing can no longer
+              // drive Jove to re-propose-and-strip every turn (2026-06-03).
               await admin
                 .from("messages")
-                .update({ content: conversationalText })
+                .update({
+                  content: conversationalText,
+                  metadata: { checkpoint_suppressed: true },
+                })
                 .eq("id", messageId);
             }
             if (process.env.NODE_ENV !== "production") {

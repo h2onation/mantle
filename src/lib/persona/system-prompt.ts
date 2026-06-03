@@ -234,6 +234,11 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  rejection (set by the confirm route for action === "rejected"). Gates the
    *  POST-REJECTION block. Mutually exclusive with postConfirmMode. */
   postRejection?: boolean;
+  /** True when the previous assistant turn proposed a checkpoint the
+   *  material-quality gate suppressed. Gates the POST-SUPPRESSION block and
+   *  holds the checkpoint-proposal instructions for one turn so Jove can't
+   *  re-propose the same un-ripe entry and re-enter the suppression loop. */
+  priorCheckpointSuppressed?: boolean;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -313,6 +318,10 @@ export interface Tier3Flags {
   /** True only on the turn that immediately follows a checkpoint rejection.
    *  Gates the POST-REJECTION block. Mutually exclusive with postConfirmMode. */
   postRejection: boolean;
+  /** True only on the turn immediately after a gate-suppressed checkpoint.
+   *  Gates the POST-SUPPRESSION block and suppresses the checkpoint-proposal
+   *  instructions for that one turn (2026-06-03 loop fix). */
+  priorCheckpointSuppressed: boolean;
 }
 
 interface Tier3Block {
@@ -605,6 +614,17 @@ After this one-line response, return to natural exploration on the user's next t
 `,
   },
   {
+    id: "post-suppression",
+    shouldRender: (f) =>
+      f.priorCheckpointSuppressed &&
+      f.postConfirmMode === null &&
+      !f.postRejection,
+    render: () => `
+POST-SUPPRESSION (your last proposed entry was held back)
+Last turn you moved to put something in the user's Manual, but the material wasn't ripe enough to stand on its own yet. Do not repeat that proposal this turn, and do not announce that anything was held — the user never saw a card. Just continue the conversation: ask one grounding question that gets a specific moment, scene, or body detail. Let the entry build from there and propose it again only once there's concrete ground under it.
+`,
+  },
+  {
     id: "post-confirm",
     shouldRender: (f) => f.postConfirmMode !== null,
     render: (f) =>
@@ -738,6 +758,7 @@ export interface Tier3FlagInput {
   mode?: ConversationMode;
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
   postRejection?: boolean;
+  priorCheckpointSuppressed?: boolean;
 }
 
 /** Single source of truth for Tier-3 block gating. BOTH 1:1 builders
@@ -757,15 +778,23 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
     mode = "situation",
     postConfirmMode = null,
     postRejection = false,
+    priorCheckpointSuppressed = false,
   } = input;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
   // Checkpoint-proposal instructions load only on a normal approaching turn —
-  // never on a post-action turn (a post-confirm follow-up or a post-rejection),
-  // which each have a pinned response the proposal machinery would contradict.
-  // Returning-user status flows through the RETURNING USER block.
+  // never on a post-action turn (a post-confirm follow-up, a post-rejection,
+  // or the turn right after a gate-suppressed checkpoint), which each have a
+  // pinned or corrective response the proposal machinery would contradict.
+  // Holding the instructions for one turn after a suppression is the loop
+  // circuit-breaker: it stops Jove re-proposing the same un-ripe entry and
+  // re-triggering the strip (2026-06-03 incident). Returning-user status flows
+  // through the RETURNING USER block.
   const showCheckpointInstructions =
-    checkpointApproaching && postConfirmMode === null && !postRejection;
+    checkpointApproaching &&
+    postConfirmMode === null &&
+    !postRejection &&
+    !priorCheckpointSuppressed;
 
   const flags: Tier3Flags = {
     isNewUser,
@@ -778,6 +807,7 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
     postConfirmMode,
     postRejection,
     mode,
+    priorCheckpointSuppressed,
   };
   return flags;
 }
