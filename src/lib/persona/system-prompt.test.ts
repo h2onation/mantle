@@ -326,7 +326,7 @@ describe("buildSystemPrompt", () => {
       });
       // The block instructs the model to deliver the opener verbatim — a
       // distinctive substring of SITUATION_OPENER must be in the prompt.
-      expect(result).toContain("aren't always obvious");
+      expect(result).toContain("the part that's hard to see from the inside");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {

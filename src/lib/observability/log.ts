@@ -20,7 +20,8 @@ export type ConfirmEvent =
   | "confirm_stream_started"
   | "confirm_stream_ended"
   | "confirm_outcome"
-  | "cache_performance";
+  | "cache_performance"
+  | "composition_latency";
 
 export type ConfirmOutcome =
   | "success"
@@ -62,6 +63,9 @@ export interface LogEntry {
   output_tokens?: number;
   cache_creation_input_tokens?: number;
   cache_read_input_tokens?: number;
+  // composition_latency field. How many confirmed Manual entries were sent
+  // (uncompressed) to the composer — the suspected driver of compose time.
+  manual_entry_count?: number;
 }
 
 // Fixed salt so the same user maps to the same hash across deploys.

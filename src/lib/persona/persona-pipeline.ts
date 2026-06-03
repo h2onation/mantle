@@ -815,6 +815,11 @@ const SOMATIC_WORD_PATTERNS = [
   // composer could recognize. These add the activation side.
   /\brac(?:e|es|ed|ing)\b/i, /\bsurg/i, /\bhot\b/i, /\bprickl/i,
   /\balert\b/i, /\blit\s*up\b/i, /\bpound/i, /\belectri/i, /\bjump(?:y|ing)\b/i,
+  // Sensory-environmental load. For users whose anchor is the input itself
+  // (a draining environment, sound, noise) rather than a body location, the
+  // load IS the somatic anchor. Added 2026-06-03 so the log-validator stops
+  // false-flagging sensory-anchored entries (cf. the music transcript).
+  /\bdrain/i, /\bexhaust/i, /\bnois/i,
 ];
 
 /**

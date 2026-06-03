@@ -4,7 +4,7 @@ import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
 import { PERSONA_NAME, COMPOSITION_MODEL } from "./config";
 import { deriveSummaryFromContent } from "./manual-context";
 
-// ─── Manual entry composition (Sonnet) ─────────────────────────────────────
+// ─── Manual entry composition (Opus) ───────────────────────────────────────
 
 interface ComposeManualEntryOptions {
   checkpointText: string;
@@ -39,7 +39,7 @@ interface ComposeManualEntryOptions {
 }
 
 /**
- * Calls Sonnet to compose a polished manual entry from a checkpoint reflection.
+ * Calls Opus (COMPOSITION_MODEL) to compose a polished manual entry from a checkpoint reflection.
  * Invoked server-side after the deterministic transition-line detection.
  * Opus picks the layer, picks the headline, polishes the prose, and emits
  * the compressed summary + key_words used to shrink older entries when
@@ -151,6 +151,10 @@ Friction example.
 Strength example. Strengths get the SAME care and the same depth. Name the capability and the conditions that bring it out. Do not bend it into a hidden cost or a downside the user never raised. A strength is allowed to just be a strength.
   Recap: "I'm good at focusing on a problem for a long time."
   Right: "When a problem has a real edge to it, I drop in and the rest of the room goes quiet. Hours pass and I don't clock them. It isn't discipline. It's that the problem is more interesting than anything else competing for me. The same depth that makes me lose track of time is what lets me find the thing everyone else walked past."
+
+Stay in the user's frame. The entry's subject is the thing THEY named as the problem, in their words, not a more interesting angle you found. If they came in about one thing and you write the entry about a different thing, you have substituted your read for theirs. Keep their driver as the spine. A nearby thread can appear, but it does not take over the entry. Pitch the entry at the altitude of the pattern they named, not a narrow single moment of it.
+  Substituted frame (wrong): "I leave the room instead of asking him to turn the music down. I manage the discomfort alone rather than risk his reaction." (The user led with a sensory need. The sound drains them, they want quiet. This makes the entry about conflict-avoidance, a thread they did not lead with.)
+  User's frame (right): "When I'm already tired, the sound takes over my space and I can't get to quiet. It drains me before I can name it. There is a real fear that asking will set him off, so I end up holding the load myself. But the thing I actually need is simple. Quiet I get to choose." (The sensory need stays the spine. The relational fear is present but does not replace it.)
 
 VOICE RULES:
 - First person. The user is the author. "I" not "You."
