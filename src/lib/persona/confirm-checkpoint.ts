@@ -24,6 +24,18 @@ interface ComposeManualEntryOptions {
    *  "unknown" (e.g. legacy extraction state without this field); the
    *  softener check is then skipped to preserve prior behavior. */
   distinctContexts?: number | null;
+  /** The session's accumulated understanding, carried from the latest
+   *  extraction state. The composer only sees the last 8 messages, so
+   *  without these it writes the entry blind to the depth the whole
+   *  session built — which is the mechanical reason entries read as
+   *  recap. depth is the deepest rung reached (surface → behavior →
+   *  feeling → mechanism → origin); sageBrief is the running read of
+   *  what's underneath; currentThread is what's live right now. All
+   *  optional / nullable so legacy callers and thin states degrade
+   *  gracefully. */
+  depth?: string | null;
+  sageBrief?: string | null;
+  currentThread?: string | null;
 }
 
 /**
@@ -60,6 +72,9 @@ export async function composeManualEntry(
     languageBank,
     manualComponents,
     distinctContexts,
+    depth,
+    sageBrief,
+    currentThread,
   } = options;
 
   const chargedLanguage = languageBank
@@ -96,6 +111,22 @@ export async function composeManualEntry(
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n\n");
 
+  // The session's accumulated understanding. The recent-history window
+  // above only spans 8 messages; an entry composed from that alone reads
+  // as a recap of the last few turns. These lines carry forward the depth
+  // the whole conversation reached so the entry can name what the user
+  // couldn't see from inside, not just replay what they just said.
+  const depthBrief = [
+    depth ? `- Depth this conversation reached: ${depth}` : null,
+    sageBrief ? `- What's underneath it: ${sageBrief}` : null,
+    currentThread ? `- The live thread: ${currentThread}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const depthSection = depthBrief
+    ? `\nWHERE THIS CONVERSATION GOT TO (compose from this understanding, not just the recent messages above):\n${depthBrief}\n`
+    : "";
+
   const system = `You compose manual entries for a self-authored Manual. You receive a checkpoint reflection from a conversationalist called ${PERSONA_NAME} and the recent conversation. Your job is to distill this into a structured entry that reads as the user describing themselves to themselves.
 
 THE ENTRY (field: "content")
@@ -106,6 +137,20 @@ The passage follows immediately. 80+ words. It makes these moves in any order:
 - A reframe somewhere. The pattern is not what it looks like on the surface. Name what it actually is.
 - Conditions or texture. When it fires hardest. What makes it different from the surface read. The user's own noticing.
 - What changes now. If the conversation produced a clear stance ("I need people to X" or "I'm going to stop doing Y"), land it in the passage. If the user sees the pattern but hasn't landed on a stance, use their own words about where they are. If they said nothing about stance, omit. Do not fabricate a takeaway. This is not advice or a treatment plan. It flows naturally in the prose, not as a separate section.
+
+STUDY THESE EXEMPLARS FIRST. They are the bar. Imitate this depth before you worry about the rules below. The rules tell you what to avoid. These show you what to reach for.
+
+The single most important move: GO ONE LEVEL DEEPER. A recap replays what the user already said in better words. A real entry names the part they couldn't see from inside. If they could have written the sentence themselves before this conversation, it's a recap. Go past it.
+  Recap: "You avoid hard conversations because they stress you out."
+  Deeper: "I don't avoid the conversation. I avoid the second I'd have to watch it land wrong on someone. The talking was never the hard part. The hard part is the face changing across from me."
+
+Friction example.
+  Recap: "When my manager checks in, my chest gets tight. My mind goes blank even though I know the answer."
+  Right: "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
+
+Strength example. Strengths get the SAME care and the same depth. Name the capability and the conditions that bring it out. Do not bend it into a hidden cost or a downside the user never raised. A strength is allowed to just be a strength.
+  Recap: "I'm good at focusing on a problem for a long time."
+  Right: "When a problem has a real edge to it, I drop in and the rest of the room goes quiet. Hours pass and I don't clock them. It isn't discipline. It's that the problem is more interesting than anything else competing for me. The same depth that makes me lose track of time is what lets me find the thing everyone else walked past."
 
 VOICE RULES:
 - First person. The user is the author. "I" not "You."
@@ -182,15 +227,10 @@ COMPRESSED REPRESENTATION (for future reference):
 - summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If a clear stance emerged, mention it.
 - key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
 
-EXEMPLARS:
-
-Wrong (passage): "When my manager checks in, my chest gets tight. My mind goes blank even though I know the answer."
-Right (passage): "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
-
 Respond with ONLY valid JSON. No markdown. No backticks.
 {"content": "Statement + passage...", "name": "Headline", "layer": 1, "acknowledgment": "Specific reflective sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
-  const userContent = `${languageSection}${manualSection}
+  const userContent = `${languageSection}${manualSection}${depthSection}
 RECENT CONVERSATION:
 ${historyText}
 

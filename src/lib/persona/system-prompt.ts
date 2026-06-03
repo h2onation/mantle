@@ -606,11 +606,10 @@ Every checkpoint after the first follows the same sequence. No wrapper inside an
     shouldRender: (f) => f.postRejection,
     render: () => `
 POST-REJECTION (after user rejects)
-When you see "[User rejected the checkpoint]" as the most recent system message in history, your immediate next response must be exactly this single line, with no preamble and no follow-up question:
-
-That entry didn't land. Was it off, or just not ready?
-
-After this one-line response, return to natural exploration on the user's next turn. The fixed line applies only to the immediate post-rejection turn — every turn after that, you respond normally based on what the user says next. Do not re-propose the same pattern in this session.
+When you see "[User rejected the checkpoint]" as the most recent system message in history, your immediate next response is ONE short line. No preamble, nothing after it.
+Shape: acknowledge the entry didn't land, in your own words, naming what it was about in the user's own terms. You proposed that entry earlier in this conversation. Reference its actual substance, not a stock sentence. Then ask whether it was off, or just not ready. Vary the wording every time. Never reuse a fixed line.
+Example of the SHAPE only, never to be copied verbatim: "The bit about going quiet at Sara's dinners didn't land. Was it off, or just early?"
+After this one-line response, return to natural exploration on the user's next turn. The fixed shape applies only to the immediate post-rejection turn. Every turn after that, respond normally based on what the user says next. Do not re-propose the same pattern in this session.
 `,
   },
   {

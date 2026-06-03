@@ -907,6 +907,13 @@ export function callPersona({
               // only described one situation.
               distinctContexts:
                 previousExtraction?.checkpoint_gate?.distinct_contexts ?? null,
+              // Carry the session's accumulated understanding into the
+              // composer so the entry is written from the depth the whole
+              // conversation reached, not just the last 8 messages. This
+              // is the fix for entries that read as recap.
+              depth: previousExtraction?.depth ?? null,
+              sageBrief: previousExtraction?.sage_brief ?? null,
+              currentThread: previousExtraction?.current_thread ?? null,
             });
 
             if (composedEntry?.content) {
