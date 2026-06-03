@@ -41,7 +41,7 @@ const STAGES: Stage[] = [
     id: 1,
     title: "Layer 0 — the extraction call",
     caption:
-      "Every turn, a background Sonnet call analyzes the conversation and writes a single JSON blob to conversations.extraction_state. 21 fields total. The next turn's prompt reads it; the current turn's response doesn't depend on it (one-turn lag). Click any field for its source, readers, and gating role.",
+      "Every turn, a background Sonnet call analyzes the conversation and writes a single JSON blob to conversations.extraction_state. 20 fields total. The next turn's prompt reads it; the current turn's response doesn't depend on it (one-turn lag). Click any field for its source, readers, and gating role.",
   },
   {
     id: 2,
@@ -53,7 +53,7 @@ const STAGES: Stage[] = [
     id: 3,
     title: "Layer 2 — the checkpoint gate",
     caption:
-      "Six fields that decide whether a checkpoint can fire. First checkpoint needs ≥1 concrete example; subsequent ones need ≥2 distinct contexts plus a charged-language anchor and a behavior-driver link. distinct_contexts enforces the two-instance rule.",
+      "The fields that decide whether a checkpoint can fire. First checkpoint needs ≥1 concrete example and depth at 'feeling'; subsequent ones need ≥2 distinct contexts, a behavior-driver link, and depth at 'mechanism'. distinct_contexts enforces the two-instance rule. (has_charged_language used to gate here; Lock 1 replaced it with a deterministic language-bank read, so it's informational now.)",
   },
   {
     id: 4,
@@ -77,13 +77,13 @@ const STAGES: Stage[] = [
     id: 7,
     title: "Auxiliary signals",
     caption:
-      "Seven fields that don't gate anything but shape Jove's framing — depth of conversation, extractor's stance recommendation, the current thread, observation-miss count, what the user has named (cost, stance), and a UI placeholder hint. Prune candidates if the extraction prompt gets cramped.",
+      "Five fields that don't gate anything but shape Jove's framing — extractor's stance recommendation, the current thread, observation-miss count, and what the user has named (cost, stance). Prune candidates if the extraction prompt gets cramped.",
   },
   {
     id: 8,
     title: "By the numbers",
     caption:
-      "21 fields total, fanning out to 5 downstream surfaces — checkpoint gate, Jove's brief, composer, modals, chat input. 14 are load-bearing (at least one reader); 7 are auxiliary (could be pruned without changing behavior).",
+      "20 fields total, fanning out to 5 downstream surfaces — checkpoint gate, Jove's brief, composer, modals, chat input. 13 are load-bearing (at least one reader); 7 are auxiliary (could be pruned without changing behavior).",
   },
 ];
 
@@ -157,7 +157,7 @@ const FIELDS: Field[] = [
     path: "checkpoint_gate.has_charged_language",
     type: "boolean",
     category: "gate",
-    loadBearing: "load-bearing",
+    loadBearing: "auxiliary",
     summary: "Whether the language bank holds ≥1 high-charge phrase from the user.",
     represents:
       "Whether the language bank holds ≥1 high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor a checkpoint.",
@@ -196,6 +196,22 @@ const FIELDS: Field[] = [
       { where: "extraction.ts:541, 567 (formatExtractionForPersona)", what: "Names the target layer in Jove's brief; surfaces existing entries on that layer" },
     ],
     gates: "Tells composer which layer to deepen on when the checkpoint fires (indirect, via the brief).",
+  },
+  {
+    path: "depth",
+    type: "enum (5 values)",
+    category: "gate",
+    loadBearing: "load-bearing",
+    summary: "Vertical position: surface → behavior → feeling → mechanism → origin.",
+    represents:
+      "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism → origin.",
+    storage: "conversations.extraction_state.depth",
+    readers: [
+      { where: "persona-pipeline.ts:567 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked until depth ≥ 'feeling' (first checkpoint) / 'mechanism' (subsequent)" },
+      { where: "extraction.ts:609 (formatExtractionForPersona)", what: "One-line framing in the brief" },
+      { where: "call-persona.ts:362", what: "Dev-only debug log" },
+    ],
+    gates: "Checkpoint depth gate — blocks the checkpoint until the conversation reaches 'feeling' (first) / 'mechanism' (subsequent).",
   },
 
   // ── Phase ──────────────────────────────────────────────────────────────
@@ -329,22 +345,6 @@ const FIELDS: Field[] = [
   },
 
   // ── Auxiliary signals ────────────────────────────────────────────────────
-  {
-    path: "depth",
-    type: "enum (5 values)",
-    category: "auxiliary",
-    loadBearing: "auxiliary",
-    summary: "Vertical position: surface → behavior → feeling → mechanism → origin.",
-    represents:
-      "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism → origin.",
-    storage: "conversations.extraction_state.depth",
-    readers: [
-      { where: "extraction.ts:609 (formatExtractionForPersona)", what: "One-line framing in the brief" },
-      { where: "call-persona.ts:362", what: "Dev-only debug log" },
-    ],
-    gates: "None. Could be approximated from has_mechanism + has_behavior_driver_link.",
-    notes: "Low cost to keep, low value to remove.",
-  },
   {
     path: "mode",
     type: "'situation_led' | 'direct_exploration' | 'synthesis'",
