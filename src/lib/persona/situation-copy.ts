@@ -1,2 +1,2 @@
 export const SITUATION_OPENER =
-  "I'm Jove. A conversational AI built to help you explore the parts that aren't always obvious. To help you find the words. Don't worry about where you start. Big or small.";
+  "I'm Jove. Start with a situation you're still turning over — a reaction that surprised you, a loop you keep hitting, something you're good at but can't quite explain. Something you want to understand about yourself, what works as much as what gets in the way. I read it back closely and show you the part that's hard to see from the inside.";
