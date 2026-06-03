@@ -1371,7 +1371,6 @@ function GroupTagPill({ tag }: { tag: GroupTag }) {
 }
 
 function TableDetail({ table, onClose }: { table: Table; onClose: () => void }) {
-  const [showColumns, setShowColumns] = useState(false);
   const tag = groupTag(table);
   return (
     <>
@@ -1459,52 +1458,19 @@ function TableDetail({ table, onClose }: { table: Table; onClose: () => void }) 
         </DetailSection>
       )}
 
-      {/* Columns + foreign keys — opt in. */}
-      <div
-        style={{
-          marginTop: 8,
-          paddingTop: 12,
-          borderTop: "1px solid var(--session-walnut-border-soft)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setShowColumns((v) => !v)}
-          style={{
-            all: "unset",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "0.5px",
-            color: "var(--session-walnut-meta-strong)",
-          }}
-          aria-expanded={showColumns}
-        >
-          {showColumns
-            ? "Hide the columns ▲"
-            : `Show the columns — ${table.columns.length} column${
-                table.columns.length === 1 ? "" : "s"
-              }${table.connections.length ? `, ${table.connections.length} link${table.connections.length === 1 ? "" : "s"}` : ""} ▼`}
-        </button>
+      <DetailSection title="Columns">
+        {table.columns.map((c) => (
+          <ColumnRow key={c.name} column={c} />
+        ))}
+      </DetailSection>
 
-        {showColumns && (
-          <div style={{ marginTop: 12 }}>
-            <DetailSection title="Columns">
-              {table.columns.map((c) => (
-                <ColumnRow key={c.name} column={c} />
-              ))}
-            </DetailSection>
-
-            {table.connections.length > 0 && (
-              <DetailSection title="Foreign keys (links to other tables)">
-                {table.connections.map((c) => (
-                  <ConnectionRow key={`${c.to}-${c.via}`} conn={c} />
-                ))}
-              </DetailSection>
-            )}
-          </div>
-        )}
-      </div>
+      {table.connections.length > 0 && (
+        <DetailSection title="Foreign keys (links to other tables)">
+          {table.connections.map((c) => (
+            <ConnectionRow key={`${c.to}-${c.via}`} conn={c} />
+          ))}
+        </DetailSection>
+      )}
     </>
   );
 }

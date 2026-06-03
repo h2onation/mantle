@@ -1118,7 +1118,6 @@ function FieldDetail({
   field: Field;
   onClose: () => void;
 }) {
-  const [showCode, setShowCode] = useState(false);
   const meta = JOB_META[field.job];
   const tone = toneStyle(meta.tone);
 
@@ -1260,32 +1259,17 @@ function FieldDetail({
         </DetailSection>
       )}
 
-      {/* Engineering detail — opt in. */}
+      {/* Engineering detail */}
       <div
         style={{
           marginTop: 8,
           paddingTop: 12,
           borderTop: "1px solid var(--session-walnut-border-soft)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}
       >
-        <button
-          type="button"
-          onClick={() => setShowCode((v) => !v)}
-          style={{
-            all: "unset",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "0.5px",
-            color: "var(--session-walnut-meta-strong)",
-          }}
-          aria-expanded={showCode}
-        >
-          {showCode ? "Hide the code ▲" : `Show the code — stored at, ${field.readers.length} reader${field.readers.length === 1 ? "" : "s"} ▼`}
-        </button>
-
-        {showCode && (
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <DetailLabel>Stored at</DetailLabel>
               <code
@@ -1357,8 +1341,6 @@ function FieldDetail({
                 )}
               </div>
             </div>
-          </div>
-        )}
       </div>
     </>
   );
