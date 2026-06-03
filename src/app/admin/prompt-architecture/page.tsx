@@ -514,6 +514,7 @@ export default function UnderTheHoodPage() {
             }}
           >
             <div style={{ overflowY: "auto", paddingRight: 12 }}>
+              <BucketsOverview onJump={setStepIndex} />
               {loadState === "loading" && <DiagramSkeleton />}
               {loadState === "error" && (
                 <div
@@ -1704,6 +1705,208 @@ interface DiagramProps {
   sectionById: Map<string, PromptSection>;
   phasesBySection: Map<string, Set<string>>;
   phaseList: { id: string; label: string }[];
+}
+
+// ---------------------------------------------------------------------------
+// Buckets overview — the plain-language front door. One prompt, three parts,
+// each expanding to its section headers + one-liners. "Show it in the diagram
+// below" jumps the walkthrough to that region. Static content (no live data),
+// so it renders regardless of load state.
+// ---------------------------------------------------------------------------
+
+const OVERVIEW_PARTS: {
+  id: string;
+  title: string;
+  one: string;
+  accent: string;
+  step: number;
+  items: { name: string; note: string }[];
+}[] = [
+  {
+    id: "instructions",
+    title: "Instructions",
+    one: "How Jove behaves — written by you, in code.",
+    accent: "var(--session-walnut-meta-strong)",
+    step: 4,
+    items: [
+      { name: "Tier 1 · Constitutional", note: "Seven hard rules that never change and override everything." },
+      { name: "Tier 2 · Voice", note: "How Jove sounds — a shared base plus a small per-persona add-on." },
+      { name: "Tier 3 · Conversation mechanics", note: "Situational guidance that switches on and off by the moment." },
+    ],
+  },
+  {
+    id: "about-user",
+    title: "About the user",
+    one: "Who this person is — read from the database each turn.",
+    accent: "var(--session-persona)",
+    step: 5,
+    items: [
+      { name: "Recent confirmed Manual entries", note: "Their latest entries, in full prose." },
+      { name: "Earlier confirmed Manual entries (compressed)", note: "Older entries, one line each." },
+      { name: "Last session recap", note: "Session count + a summary of last time." },
+      { name: "Extraction brief", note: "A per-turn note about their last message; one turn behind." },
+    ],
+  },
+  {
+    id: "conversation",
+    title: "The conversation",
+    one: "What's being said now — the messages the model continues.",
+    accent: "var(--session-warning)",
+    step: 6,
+    items: [
+      { name: "The new message", note: "What the user just sent." },
+      { name: "The chat so far", note: "Every earlier turn, re-sent each turn." },
+      { name: "Trimming for long chats", note: "First 2 + last 48 once it passes ~50 messages." },
+      { name: "Checkpoint actions", note: "Confirm / reject inserted as chat events." },
+    ],
+  },
+];
+
+function BucketsOverview({ onJump }: { onJump: (i: number) => void }) {
+  const [open, setOpen] = useState<string | null>("instructions");
+  return (
+    <div
+      style={{
+        marginBottom: 18,
+        border: "1px solid var(--session-walnut-border)",
+        borderRadius: 10,
+        background: "var(--session-walnut-tint)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "11px 16px",
+          borderBottom: "1px solid var(--session-walnut-border-soft)",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            letterSpacing: "1.5px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta-strong)",
+          }}
+        >
+          The prompt — one call, every turn
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10.5,
+            color: "var(--session-ink-ghost)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          3 parts · click to open
+        </span>
+      </div>
+      {OVERVIEW_PARTS.map((p, i) => {
+        const isOpen = open === p.id;
+        return (
+          <div
+            key={p.id}
+            style={{
+              position: "relative",
+              borderTop: i ? "1px solid var(--session-walnut-border-soft)" : "none",
+            }}
+          >
+            <span
+              style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: p.accent }}
+            />
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? null : p.id)}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                boxSizing: "border-box",
+                width: "100%",
+                display: "flex",
+                alignItems: "baseline",
+                gap: 12,
+                padding: "13px 16px 13px 22px",
+              }}
+            >
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--session-ink-ghost)" }}>
+                {i + 1}
+              </span>
+              <span style={{ flex: 1 }}>
+                <span
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 14.5,
+                    fontWeight: 600,
+                    color: "var(--session-ink)",
+                  }}
+                >
+                  {p.title}
+                </span>
+                <span style={{ display: "block", fontSize: 13, color: "var(--session-ink-soft)", marginTop: 2 }}>
+                  {p.one}
+                </span>
+              </span>
+              <span
+                style={{ fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--session-ink-soft)", lineHeight: 1 }}
+              >
+                {isOpen ? "–" : "+"}
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ padding: "0 16px 14px 22px" }}>
+                {p.items.map((it) => (
+                  <div
+                    key={it.name}
+                    style={{ padding: "9px 0", borderTop: "1px solid var(--session-walnut-border-soft)" }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 13.5,
+                        fontWeight: 500,
+                        color: "var(--session-ink)",
+                      }}
+                    >
+                      {it.name}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "var(--session-ink-soft)", marginTop: 1 }}>
+                      {it.note}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => onJump(p.step)}
+                  style={{
+                    all: "unset",
+                    cursor: "pointer",
+                    marginTop: 12,
+                    padding: "5px 11px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.5px",
+                    color: "var(--session-ink)",
+                    background: "var(--session-walnut-surface-soft)",
+                    border: "1px solid var(--session-walnut-border)",
+                    borderRadius: 5,
+                  }}
+                >
+                  Show it in the diagram below ↓
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function Diagram({
