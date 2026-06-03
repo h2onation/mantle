@@ -57,6 +57,14 @@ export const MONITOR_MODEL = "claude-opus-4-7";
 // for Jove. Lives here (not in persona-pipeline.ts) to avoid a circular import
 // between persona-pipeline.ts and call-persona.ts.
 export const CHECKPOINT_ACTIONS = {
+  // LEGACY — DO NOT DELETE. Current code no longer writes a confirmed action
+  // row (the confirm path persists nothing; only rejected / refined / deferred
+  // insert a system row). But pre-`2350176` conversations DO contain
+  // "[User confirmed the checkpoint]" rows in prod — 19 confirmed on 2026-06-03
+  // — and mapSystemMessages() needs this entry to render them as a turn on
+  // reload. Re-check before ever removing it:
+  //   select count(*) from messages where role='system'
+  //     and content='[User confirmed the checkpoint]';   -- must be 0 to delete
   confirmed: {
     systemMessage: "[User confirmed the checkpoint]",
     naturalReply: "I confirmed that checkpoint. That resonates.",
