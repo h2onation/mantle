@@ -811,14 +811,14 @@ describe("buildEntriesSummary", () => {
     // entry's layer" highlighted in the recap.
     const result = buildEntriesSummary({
       entryCount: 5,
-      confirmedLayerName: "Where I'm Strong",
+      confirmedLayerName: "My Strengths",
       otherLayersWithMaterial: [
         "Some of My Patterns",
         "How I Process Things",
       ],
       remainingEmptyCount: 2,
     });
-    const idx1 = result.indexOf("Where I'm Strong");
+    const idx1 = result.indexOf("My Strengths");
     const idx2 = result.indexOf("Some of My Patterns");
     expect(idx1).toBeLessThan(idx2);
   });
@@ -829,7 +829,7 @@ describe("buildEntriesSummary", () => {
     expect(
       buildEntriesSummary({
         entryCount: 5,
-        confirmedLayerName: "Where I'm Strong",
+        confirmedLayerName: "My Strengths",
         otherLayersWithMaterial: [
           "Some of My Patterns",
           "How I Process Things",

@@ -137,11 +137,11 @@ Everything Jove observes and the user validates flows into the Manual. The Manua
 
 **Five categories:**
 
+- My Strengths
 - Some of My Patterns
 - How I Process Things
 - What Helps
 - How I Show Up with People
-- Where I'm Strong
 
 Categories are provisional. Will be tested and revised after beta.
 

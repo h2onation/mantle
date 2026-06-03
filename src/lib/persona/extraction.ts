@@ -147,6 +147,11 @@ const LAYER_MODEL_BLOCK = LAYERS.map(
     `Layer ${l.id} (${l.name}): ${l.description}\n  Example: "${l.example}"`
 ).join("\n");
 
+// Resolve layer ids by slug so the per-layer mechanism note below survives a
+// reorder — the canonical ids in layers.ts can move; the slugs never do.
+const WHAT_HELPS_LAYER = LAYERS.find((l) => l.slug === "what-helps")!.id;
+const STRENGTHS_LAYER = LAYERS.find((l) => l.slug === "where-strong")!.id;
+
 const EXTRACTION_SYSTEM = `You are the extraction layer for a conversational AI called ${PERSONA_NAME} that builds Manuals for late-diagnosed autistic adults. You run silently before ${PERSONA_NAME} responds. Your job is to analyze what the user just said and produce structured context so ${PERSONA_NAME} can have a deeper, more grounded conversation.
 
 You receive:
@@ -223,7 +228,7 @@ STANDARD GATE (all must be true):
 - has_charged_language: The language bank contains at least one high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor the checkpoint.
 - has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
 
-Mechanism per layer: For Layer 3 (${LAYER_NAMES[3]}), "mechanism" means why-this-need-is-non-negotiable, not optional preference. For Layer 5 (${LAYER_NAMES[5]}), "mechanism" means the conditions that activate the strength.
+Mechanism per layer: For Layer ${WHAT_HELPS_LAYER} (${LAYER_NAMES[WHAT_HELPS_LAYER]}), "mechanism" means why-this-need-is-non-negotiable, not optional preference. For Layer ${STRENGTHS_LAYER} (${LAYER_NAMES[STRENGTHS_LAYER]}), "mechanism" means the conditions that activate the strength.
 
 FIRST-CHECKPOINT GATE (lighter, when "is_first_checkpoint" is true):
 The first checkpoint is a teaching moment. The user needs to experience the confirm-and-write loop quickly. Lighter bar:

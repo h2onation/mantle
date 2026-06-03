@@ -30,6 +30,23 @@ export interface LayerDefinition {
 export const LAYERS: readonly LayerDefinition[] = [
   {
     id: 1,
+    slug: "where-strong",
+    name: "My Strengths",
+    description:
+      "Understand the traits that make you exceptional and the environments that bring them out.",
+    dimensions: [
+      "hyperfocus",
+      "pattern recognition",
+      "systemizing",
+      "loyalty",
+      "honesty",
+      "context-dependent capabilities",
+    ],
+    example:
+      "When something captures my attention I can stay with it for hours in a state most people can't access.",
+  },
+  {
+    id: 2,
     slug: "patterns",
     name: "Some of My Patterns",
     description:
@@ -44,7 +61,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     example: "When plans change I go still. It looks like resistance. It's recalculation.",
   },
   {
-    id: 2,
+    id: 3,
     slug: "processing",
     name: "How I Process Things",
     description:
@@ -60,7 +77,7 @@ export const LAYERS: readonly LayerDefinition[] = [
       "Fluorescent lights and background noise are load on my system. By the time I seem irritable I've been absorbing input for hours.",
   },
   {
-    id: 3,
+    id: 4,
     slug: "what-helps",
     name: "What Helps",
     description:
@@ -75,7 +92,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     example: "I need roughly an hour alone after social time. This is maintenance, not withdrawal.",
   },
   {
-    id: 4,
+    id: 5,
     slug: "with-people",
     name: "How I Show Up with People",
     description:
@@ -89,23 +106,6 @@ export const LAYERS: readonly LayerDefinition[] = [
     ],
     example:
       "When voices get raised I go offline. It's not stonewalling. My system shuts down input.",
-  },
-  {
-    id: 5,
-    slug: "where-strong",
-    name: "Where I'm Strong",
-    description:
-      "What you bring when conditions are right. Strengths in context, not in isolation. The state others rarely see and what activates it.",
-    dimensions: [
-      "hyperfocus",
-      "pattern recognition",
-      "systemizing",
-      "loyalty",
-      "honesty",
-      "context-dependent capabilities",
-    ],
-    example:
-      "When something captures my attention I can stay with it for hours in a state most people can't access.",
   },
 ] as const;
 
@@ -158,17 +158,17 @@ export function renderManualEntryFull(entry: {
  *   • INVITE — one italic line in Jove's voice. Opens a door.
  */
 export const LAYER_EMPTY_STATUS: Record<number, string> = {
-  1: "No patterns named here yet.",
-  2: "Nothing about how you process the world yet.",
-  3: "Nothing about what you need to function yet.",
-  4: "Nothing about how you show up with people yet.",
-  5: "Nothing about where you're strong yet.",
+  1: "Nothing about where you're strong yet.",
+  2: "No patterns named here yet.",
+  3: "Nothing about how you process the world yet.",
+  4: "Nothing about what you need to function yet.",
+  5: "Nothing about how you show up with people yet.",
 };
 
 export const LAYER_EMPTY_INVITE: Record<number, string> = {
-  1: "When something's been hard to put words to, we can start there.",
-  2: "Tell me about a recent moment your system was working harder than it looked.",
-  3: "Start anywhere — even something small that feels non-negotiable.",
-  4: "Pick someone you're close to. What does showing up there look like?",
-  5: "What activates the version of you most people don't get to see?",
+  1: "What activates the version of you most people don't get to see?",
+  2: "When something's been hard to put words to, we can start there.",
+  3: "Tell me about a recent moment your system was working harder than it looked.",
+  4: "Start anywhere — even something small that feels non-negotiable.",
+  5: "Pick someone you're close to. What does showing up there look like?",
 };

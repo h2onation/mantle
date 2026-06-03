@@ -3115,11 +3115,11 @@ function CheckpointComposing() {
 // ═══════════════════════════════════════════════════════════════════
 function EmptyManual() {
   const layers = [
-    { num: "I", name: "Some of my patterns" },
-    { num: "II", name: "How I process things" },
-    { num: "III", name: "What helps" },
-    { num: "IV", name: "How I show up with people" },
-    { num: "V", name: "Where I'm strong" },
+    { num: "I", name: "My Strengths" },
+    { num: "II", name: "Some of my patterns" },
+    { num: "III", name: "How I process things" },
+    { num: "IV", name: "What helps" },
+    { num: "V", name: "How I show up with people" },
   ];
 
   return (
@@ -3339,11 +3339,11 @@ function ExportSheet() {
           {/* Layer count list */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {[
-              ["I", "Some of my patterns", 4],
-              ["II", "How I process things", 3],
-              ["III", "What helps", 4],
-              ["IV", "How I show up with people", 2],
-              ["V", "Where I'm strong", 1],
+              ["I", "My Strengths", 1],
+              ["II", "Some of my patterns", 4],
+              ["III", "How I process things", 3],
+              ["IV", "What helps", 4],
+              ["V", "How I show up with people", 2],
             ].map(([num, name, count]) => (
               <div key={num as string} style={{ display: "flex", justifyContent: "space-between", fontFamily: '"Spectral", serif', fontSize: 12 }}>
                 <span style={{ color: "rgba(22,20,18,0.78)" }}>
