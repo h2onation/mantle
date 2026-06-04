@@ -178,7 +178,7 @@ VOICE RULES:
 - Write like a field note, not literature. Flat, honest, direct. If a sentence sounds like it belongs in a poem or an essay, rewrite it plain.
 
 HEADLINE (field: "name"):
-4-8 words. Flatly descriptive. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject of the headline should be "I" — NOT a body part as agent.
+4-8 words. Flatly descriptive. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject is ALWAYS "I" — never a body part, a system metaphor, or a nominalization. BANNED as the subject: Loop, Pattern, Response, Reaction, Processing, Stomach, Voice, Body, Mind, System, or anything ending in "-ing" acting as the agent. A title like "Worst-Case Loop Fills the Processing" fails on every axis at once: Loop is not the subject, "fills" is abstract not observable, and there is no trigger. Get the title right here — it is the most visible line in the entry and gets composed once, in this call. No second pass cleans it up.
 
 ALTITUDE FIRST: name the PATTERN the user is actually describing, not a narrow single conclusion. If the user named a broad, recurring way they operate (it shows up across situations, not just the one scene in front of you), the headline names THAT, in their words, even if it is wider than one trigger. Do not shrink a broad pattern down to one of its instances just to make the title concrete. Test: would the user say "yes, that's the thing that runs me" (right altitude), or "yes, that happened once" (too narrow, you captured an instance not the pattern)?
 
@@ -325,59 +325,30 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
       ? parsed.acknowledgment.trim()
       : "";
 
-  // Headline validation + retry-once. The main composer juggles layer
-  // pick, prose polish, summary, key_words, acknowledgment, AND the
-  // headline. Quality on the headline suffers — "Worst-Case Loop Fills
-  // the Processing" passed through despite the composition prompt
-  // explicitly forbidding nominalization-as-agent. The validator below
-  // catches the structural failures (subject not "I", abstract verb,
-  // no trigger word, missing softener for single-example); on failure
-  // we call a focused headline composer once with a tight prompt that
-  // does nothing but write the headline. Use the better of the two
-  // attempts (lower violation count). Never block the entry — if both
-  // attempts fail, ship the original and log for tuning visibility.
+  // Headline validation (log-only). Single-call policy: the title is
+  // composed once, by the main composer, which carries the full headline
+  // rules (subject is "I", observable verb, named trigger, banned
+  // subjects, single-example softener). We do NOT fire a second model
+  // call to rewrite the title — a sloppy title is fixed in the one
+  // prompt, not patched by a follow-up call. This deterministic check
+  // runs once on the result purely for tuning visibility: if a title
+  // still fails structurally, it ships as composed and we log it so the
+  // composer prompt can be sharpened. Never blocks the entry.
   const isSingleExample =
     typeof distinctContexts === "number" && distinctContexts <= 1;
-  const initialName = parsed.name || "Untitled";
+  const finalName = parsed.name || "Untitled";
   // The user's own words. Lets the headline validator honor a "felt-state"
-  // verb (lose myself, fade, etc.) when it is the user's exact phrase, so
-  // the title can name the pattern in their language instead of being
-  // forced to a narrower observable proxy.
+  // verb (lose myself, fade, etc.) when it is the user's exact phrase.
   const userMessageText = conversationHistory
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join(" ");
-  let finalName = initialName;
-  const headlineCheck = validateHeadline(initialName, isSingleExample, userMessageText);
+  const headlineCheck = validateHeadline(finalName, isSingleExample, userMessageText);
   if (!headlineCheck.ok) {
     console.warn(
-      "[composeManualEntry] Headline failed validation: %s — retrying once",
+      "[composeManualEntry] Headline failed validation (shipping as composed, single-call policy): %s",
       headlineCheck.reasons.join("; ")
     );
-    const retry = await composeHeadline(
-      parsed.content,
-      isSingleExample,
-      initialName,
-      headlineCheck.reasons
-    );
-    if (retry) {
-      const retryCheck = validateHeadline(retry, isSingleExample, userMessageText);
-      if (retryCheck.reasons.length < headlineCheck.reasons.length) {
-        finalName = retry;
-        if (!retryCheck.ok) {
-          console.warn(
-            "[composeManualEntry] Retry better but still imperfect: %s",
-            retryCheck.reasons.join("; ")
-          );
-        }
-      } else {
-        console.warn(
-          "[composeManualEntry] Retry no better (%d reasons vs %d): keeping original",
-          retryCheck.reasons.length,
-          headlineCheck.reasons.length
-        );
-      }
-    }
   }
 
   return {
@@ -510,91 +481,6 @@ export function validateHeadline(
   }
 
   return { ok: reasons.length === 0, reasons };
-}
-
-/**
- * Focused headline composer for retry-once. The main composer juggles
- * six outputs at once; this call does nothing but write a headline,
- * with a 60-line system prompt instead of ~170. The user prompt names
- * the prior failure explicitly so the retry knows what to avoid.
- *
- * Returns null on API failure, empty output, or any error — the caller
- * falls back to the original attempt. Never throws.
- */
-async function composeHeadline(
-  content: string,
-  isSingleExample: boolean,
-  previousAttempt: string,
-  failureReasons: string[]
-): Promise<string | null> {
-  const softenerLine = isSingleExample
-    ? '\nMANDATORY: this entry came from a single example. The headline MUST contain "can" or "sometimes" as a softener. "Keep" / "always" / "every" are intensifiers, not softeners — do not use them.'
-    : "";
-
-  const system = `You write headlines for Manual entries.
-
-REQUIRED FORMAT: one of these shapes, exactly:
-- "I [observable verb] when [specific trigger]"
-- "I [observable verb] before [specific event]"
-- "I [observable verb] after [specific moment]"
-- "I [observable verb] while [specific activity]"
-
-HARD RULES (every one must pass):
-- 4-8 words. Hard cap.
-- First word: "I". The subject is always the user. Never a body part, never a system metaphor, never a nominalization.
-- Verb is OBSERVABLE AND LITERAL. Two failure modes to avoid:
-  1. Abstract / internal verbs (felt states, not actions). BANNED: disappear, vanish, fade, fall apart, dissolve, come undone, lose myself, go missing, break open, shut down inside.
-  2. Postural / embodied metaphors that LOOK observable but stand in for a semantic claim. AVOID: stay seated, tighten, swallow, brace, lean in, stiffen. Prefer the plainer literal verb that carries the same meaning: stay at, keep going to, sit through, wait, go quiet, leave, say, agree, ask.
-- Trigger names a LITERAL situation, not a personified force. Don't write "when small talk drains" or "when the room scans" — use the event ("at low-stakes dinners," "in surface conversations").
-- Trigger word required: when, before, after, while.
-- BANNED subjects: Loop, Pattern, Response, Reaction, Processing, Stomach, Voice, Body, Mind, System, anything ending in -ing as agent.${softenerLine}
-
-PASSING EXAMPLES:
-- "I Freeze When Asked What I Want"
-- "I Go Quiet When Someone Waits"
-- "I Keep Going to Dinners That Drain Me"
-- "I Stay at Conversations That Stay Surface"
-- "I Wait to Answer When Someone Watches"
-
-FAILING EXAMPLES (and why):
-- "Worst-Case Loop Fills the Processing" — Loop is not the subject. "Fills" is abstract. No trigger.
-- "Stomach Pushes Me to Fix the Call" — body-part as agent.
-- "I Disappear When Nobody Needs Me" — Disappear is internal, not observable.
-- "I Stay Seated While Small Talk Drains" — "stay seated" is postural metaphor, "small talk drains" personifies the trigger. Plain rewrite: "I Keep Going to Dinners That Drain Me."
-- "I Tighten Before Answering Hard Questions" — observable but metaphorical. Plain rewrite: "I Go Quiet Before Hard Questions."
-- "I Keep Following the Script" — no trigger; "Keep" is an intensifier, not a softener.
-
-OUTPUT: just the headline. No quotes, no JSON, no preamble. Just the words.`;
-
-  const userContent = `Manual entry text:
-${content}
-
-Previous attempt failed: "${previousAttempt}"
-Failures: ${failureReasons.join("; ")}
-
-Write a new headline that passes every rule above.`;
-
-  try {
-    const response = await anthropicFetch({
-      model: COMPOSITION_MODEL,
-      max_tokens: 64,
-      system,
-      messages: [{ role: "user", content: userContent }],
-    });
-    const raw = extractResponseText(response).trim();
-    if (!raw) return null;
-    // Strip wrapping quotes and take only the first line so any chatter
-    // the model added past the headline (rare with this prompt) doesn't
-    // bleed in.
-    return raw
-      .split("\n")[0]
-      .trim()
-      .replace(/^["']/, "")
-      .replace(/["']$/, "");
-  } catch (err) {
-    console.error("[composeHeadline] retry failed:", err);
-    return null;
-  }
 }
 
 interface ConfirmCheckpointOptions {
