@@ -79,7 +79,3 @@ export const LANDING_EXAMPLES: readonly { label: string; line: string }[] = [
     line: "You ran the whole picture forward and saw where it lands. Most people can't do that without seeing every piece first.",
   },
 ] as const;
-
-export const DEEPENING_ADDITIONS = "";
-
-export const WEAK_STRONG_EXAMPLES: readonly { weak: string; strong: string }[] = [] as const;

@@ -13,6 +13,24 @@
 
 ---
 
+> **⚠ STATUS UPDATE (2026-06-04) — read before trusting §1 and the selector roadmap.**
+> The **Phase-0 shadow monitor (§1 / "Watcher 1") has been removed** — code,
+> `monitor_reads` table, replay harness, and `/replay-monitor` skill are gone
+> (drop migration `20260604000000`). It was gated off and consumed by nothing.
+> The **two-layer-engine / two-watcher roadmap** that frames much of this
+> document — including the **pre-prompt selector** (ADR-043 Decision 1) that was
+> to read the monitor — is **PAUSED and flagged as a candidate overbuild**, not
+> being pursued. Do **not** rebuild toward it by default. See **ADR-045** for
+> the decision and the consumer-first re-entry condition; prefer in-call
+> detection over a separate watcher if it is ever revisited.
+> **Still live and unaffected**: the checkpoint quality gate
+> (`validateMaterialQuality` / `deriveCheckpointApproaching`, ADR-043 Decisions
+> 2 & 3), the suppression circuit-breaker, and Lock 1. Sections below that
+> describe the monitor or the selector as current are historical until this
+> document is reworked.
+
+---
+
 ## Executive summary (read first)
 
 The engine has **six components** that move data and one another:

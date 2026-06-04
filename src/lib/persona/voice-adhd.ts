@@ -68,7 +68,3 @@ export const LANDING_EXAMPLES: readonly { label: string; line: string }[] = [
     line: "You meant to answer Sunday. You tried twice. That's care doing what care does, reaching for him. What didn't land was the execution, and you're grading the love by whether the task hit on time. Those are two different systems. Both times the slot got pulled, what pulled it?",
   },
 ] as const;
-
-export const DEEPENING_ADDITIONS = "";
-
-export const WEAK_STRONG_EXAMPLES: readonly { weak: string; strong: string }[] = [] as const;

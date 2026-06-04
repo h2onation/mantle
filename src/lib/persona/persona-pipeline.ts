@@ -11,17 +11,12 @@ import {
   type ExtractionState,
 } from "@/lib/persona/extraction";
 import {
-  runMonitor,
-  type MonitorResult,
-} from "@/lib/persona/monitor";
-import {
   mapSystemMessages,
   applySlidingWindow,
   detectCrisisInUserMessage,
 } from "@/lib/persona/call-persona";
 import type { PersonaMode, OneOnOnePromptOptions } from "@/lib/persona/system-prompt";
 import type { ManualEntryForContext } from "@/lib/persona/manual-context";
-import { MONITOR_MODEL, MONITOR_ENABLED } from "@/lib/persona/config";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -375,94 +370,6 @@ export function fireBackgroundExtraction(
       console.error("[persona-pipeline] extraction_failed", {
         conversation_id: ctx.conversationId,
         error_class: classifyExtractionError(err),
-        error_message: err instanceof Error ? err.message : String(err),
-        error_name: err instanceof Error ? err.name : null,
-      });
-    });
-
-  waitUntil(promise);
-}
-
-// ── 2b. Background shadow monitor ──────────────────────────────────────────
-//
-// Phase 0 of the two-layer engine plan
-// (docs/reference/two-layer-engine-evaluation.md). Fires the Haiku
-// monitor on every web turn alongside extraction. Log-only — no
-// behavior on the call path reads or gates on the monitor's output.
-//
-// Persistence goes to public.monitor_reads, a dedicated table created
-// for shadow analysis. The table is admin-read-only (RLS); users never
-// see it. When Phase 0 concludes, either Phase 1 picks up the same
-// signal or we drop the table.
-//
-// Two structured log lines per call mirror the extraction pattern so
-// log queries group consistently:
-//   [persona-pipeline] monitor_attempt  { conversation_id, message_count }
-//   [persona-pipeline] monitor_failed   { conversation_id, error_class, ... }
-// Success is silent in stdout (the DB row IS the success record).
-//
-// On any failure — parse, API, DB — we swallow via .catch. Shadow mode
-// must never affect the user-facing turn. The downstream call path
-// does not await this promise; waitUntil keeps the function alive
-// until it settles.
-
-function classifyMonitorError(err: unknown): string {
-  if (err instanceof Error) {
-    if (err.name === "AbortError") return "abort";
-    const msg = err.message || "";
-    if (msg.includes("unparseable read")) return "parse";
-    if (msg.includes("unexpected response shape")) return "response_shape";
-    if (msg.startsWith("Anthropic API ")) return "http";
-    if (err.name === "SyntaxError") return "parse";
-  }
-  return "other";
-}
-
-export function fireBackgroundMonitor(
-  ctx: ConversationContext,
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  triggeringMessageId: string | null
-): void {
-  // Off by default during beta — the monitor is log-only and nothing reads
-  // its output back, so live per-turn Opus firing is pure cost. Re-enable
-  // with MONITOR_ENABLED=true, or analyze offline via /replay-monitor.
-  if (!MONITOR_ENABLED) return;
-
-  console.log("[persona-pipeline] monitor_attempt", {
-    conversation_id: ctx.conversationId,
-    message_count: ctx.messages.length,
-  });
-
-  const promise = runMonitor({ conversationHistory: ctx.messages })
-    .then(async (result: MonitorResult) => {
-      const { error } = await admin.from("monitor_reads").insert({
-        conversation_id: ctx.conversationId,
-        user_id: userId,
-        triggering_message_id: triggeringMessageId,
-        bond_holding: result.read.bond_holding,
-        task_agreed: result.read.task_agreed,
-        scope: result.read.scope,
-        rupture: result.read.rupture,
-        direction: result.read.direction,
-        reason: result.read.reason || null,
-        model: MONITOR_MODEL,
-        input_tokens: result.usage.input_tokens ?? null,
-        output_tokens: result.usage.output_tokens ?? null,
-        latency_ms: result.latency_ms,
-        turn_index: ctx.turnCount,
-      });
-      if (error) {
-        console.error(
-          "[persona-pipeline] Failed to write monitor_read:",
-          error
-        );
-      }
-    })
-    .catch((err) => {
-      console.error("[persona-pipeline] monitor_failed", {
-        conversation_id: ctx.conversationId,
-        error_class: classifyMonitorError(err),
         error_message: err instanceof Error ? err.message : String(err),
         error_name: err instanceof Error ? err.name : null,
       });
