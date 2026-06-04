@@ -64,6 +64,17 @@ const REFERENCE_CAPABILITIES: Skill[] = [
     source: "Built-in Claude Code tool (no file)",
     body: "Not a filesystem skill — a built-in tool. Structures work across many agents to be comprehensive (decompose and cover in parallel), confident (independent perspectives and adversarial checks before committing), or to take on scale one context can't hold (migrations, audits, broad sweeps). Must be explicitly opted into; it can spawn many agents and consume significant tokens.",
   },
+  {
+    id: "insights",
+    name: "Insights",
+    description:
+      "Built-in Claude Code command. Analyzes your recent Claude Code sessions and generates a usage report — what's working, where work drifts, friction patterns, and suggestions (skills, hooks, workflows) tailored to how you actually drive the agent.",
+    invocation: "/insights",
+    scope: "user-skill",
+    origin: "installed",
+    source: "Built-in Claude Code command (no file)",
+    body: "Not a filesystem skill — a built-in Claude Code command. Run /insights to generate a self-contained HTML usage report from your recent sessions: project areas worked on, interaction style, what's working, friction analysis, and concrete suggestions. The report is written to ~/.claude/usage-data/ on your machine and is not part of the deployed app. Listed here purely as a reminder that the command exists.",
+  },
 ];
 
 function parseFrontmatter(text: string): {

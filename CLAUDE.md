@@ -98,6 +98,10 @@ These apply to every task. No exceptions.
 - **Design tokens**: Admin UI sources colors from CSS variables in `src/app/globals.css` (`--session-walnut-*`, `--session-persona*`, `--session-warning*`, etc.) — never inline `rgba()`/`rgb()` literals. The test in `src/lib/design-tokens.test.ts` enforces this on `src/app/admin/**` and `src/components/admin/**`. To add a real exception (e.g. a layer-identity gradient that no token expresses), update its `ALLOWLIST` with a one-line reason.
 - **Shipping**: Before merging to main, run `/ship` or manually update `docs/state.md` with what changed.
 
+## Migrations
+
+- For Supabase migrations: check for timestamp collisions with parallel branches and verify prod constraints before shipping. There is no automated migration pipeline — flag migration steps for the user to run by hand.
+
 ## Security Rules
 
 - Never log user message content, phone numbers, or auth tokens. Log event types, IDs, and counts only.
