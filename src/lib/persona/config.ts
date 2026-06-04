@@ -33,8 +33,19 @@ export const PERSONA_NAME_FORMAL = "Jove";
 // Model IDs for the four LLM call sites in src/lib/persona/.
 // Centralized here so a model bump touches one file. Verify dated suffixes
 // via Anthropic docs before changing — see CLAUDE.md "Model IDs" rule.
-export const PERSONA_MODEL = "claude-sonnet-4-6";
-export const PERSONA_MAX_TOKENS = 2048;
+// The CONVERSATIONAL turn — the one the user actually feels. Bumped from
+// Sonnet 4.6 to Opus 4.7 (the strongest model in this app; also MONITOR_MODEL)
+// 2026-06-04 to test how much of the "sharper, more synthetic" feel of a
+// claude.ai-style conversation is model tier vs craft. Opus on EVERY turn is
+// a real cost/latency increase — reversible to claude-sonnet-4-6, and can be
+// gated to complex turns later if cost demands. See the conversation-delta
+// analysis. Extraction stays on Sonnet (background, cost-sensitive).
+export const PERSONA_MODEL = "claude-opus-4-7";
+// 4x the old 2048 cap so a synthesis turn (land evidence -> name the pattern
+// -> hand back a test) can complete without truncating the evidence trail at
+// the moment it matters. Pairs with the relaxed "one or two beats" voice rule
+// (synthesis turns only). Dial down later if replies run long.
+export const PERSONA_MAX_TOKENS = 8192;
 export const EXTRACTION_MODEL = "claude-sonnet-4-6";
 export const COMPOSITION_MODEL = "claude-opus-4-6";
 export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";

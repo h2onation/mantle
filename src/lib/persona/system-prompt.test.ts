@@ -1421,7 +1421,9 @@ describe("buildSystemPrompt", () => {
         // during the 16→12 trim. Rule list now ends at 12.
         const result = build();
         expect(result).toContain('Silence is processing');
-        expect(result).toContain('Compress.');
+        expect(result).toContain('Compress by default');
+        // Synthesis-turn exception: compression is the default, not a gag.
+        expect(result).toContain('A real synthesis earns more beats');
       });
 
       it("folds the state-aware drop-the-wit clause into the imagery rule", () => {
