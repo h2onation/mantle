@@ -87,7 +87,7 @@ const STEPS: Step[] = [
     id: 3,
     title: "The watchers",
     caption:
-      "Off the spine sit the satellite tables — they record, route, or guard the path but never sit on it. Identity (phone links), audit (who did what), telemetry (sends, errors, safety, the shadow monitor), and beta signup. Most are never on the live user flow; several are write-only or dead weight.",
+      "Off the spine sit the satellite tables — they record, route, or guard the path but never sit on it. Identity (phone links), audit (who did what), telemetry (sends, errors, safety), and beta signup. Most are never on the live user flow; several are write-only or dead weight.",
   },
   {
     id: 4,
@@ -444,54 +444,6 @@ const TABLES: Table[] = [
       },
     ],
     notes: "RLS-on, no public policies — service-role writes, admins read.",
-  },
-  {
-    name: "monitor_reads",
-    families: ["telemetry"],
-    access: "backend",
-    oneLine:
-      "Per-turn shadow-monitor reads. Written every turn, read by nothing live.",
-    rowMeans:
-      "One alliance read from the Phase 0 shadow monitor — produced on a single web turn, capturing how the relationship looked (bond, task, scope, rupture, direction).",
-    description:
-      "The persistence side of the shadow monitor — the Opus pre-call that runs alongside extraction on every web turn and reads the alliance, not the topic. The defining fact: this table is written every turn but NOTHING in the live pipeline reads it back. The only readers are out-of-band (admin SQL and the /replay-monitor harness). Phase 0 validated the signal is detectable; the component that would consume it isn't built yet. Until then, these rows change nothing about Jove's behavior. Admin-read-only via RLS; service-role writes; end users never see it.",
-    columns: [
-      { name: "id", type: "uuid", plain: "Unique read identifier." },
-      { name: "conversation_id", type: "uuid", plain: "Which conversation this read is from. CASCADE on delete.", emphasized: true },
-      { name: "user_id", type: "uuid", plain: "Which user. FK to auth.users, CASCADE on delete." },
-      { name: "triggering_message_id", type: "uuid", plain: "The user message that triggered the read — nullable, because the monitor fires before Jove's response row exists. SET NULL if that message is deleted." },
-      { name: "bond_holding", type: "boolean", plain: "Is the working bond intact this turn.", emphasized: true },
-      { name: "scope", type: "text", plain: "'in_scope' / 'drifting' / 'out_of_scope'. CHECK-enforced to mirror the code enum.", emphasized: true },
-      { name: "rupture", type: "text", plain: "'none' / 'withdrawal' / 'confrontation'. The kind of rupture this turn, if any.", emphasized: true },
-      { name: "direction", type: "text", plain: "'steadying' / 'drifting' / 'sinking'. The sliding-window slope — the load-bearing signal validated in Phase 0.", emphasized: true },
-      { name: "model", type: "text", plain: "Which model produced the read (currently Opus — a Phase-0 ceiling test)." },
-      { name: "turn_index", type: "integer", plain: "Which turn in the conversation this read is for." },
-    ],
-    connections: [
-      {
-        to: "conversations",
-        via: "conversation_id",
-        cardinality: "N:1",
-        onDelete: "CASCADE",
-        explanation: "Delete a conversation, and its monitor reads go with it.",
-      },
-      {
-        to: "auth.users",
-        via: "user_id",
-        cardinality: "N:1",
-        onDelete: "CASCADE",
-        explanation: "Delete the user, delete their monitor reads.",
-      },
-      {
-        to: "messages",
-        via: "triggering_message_id",
-        cardinality: "N:1",
-        onDelete: "SET NULL",
-        explanation: "If the triggering message is deleted, the read survives with a null link.",
-      },
-    ],
-    notes:
-      "Phase 0 shadow dataset, written by fireBackgroundMonitor in persona-pipeline.ts. RLS admin-read-only, no INSERT/UPDATE policy (service-role writes). Droppable when Phase 0 concludes — nothing in the pipeline depends on it.",
   },
   {
     name: "linq_group_chats",

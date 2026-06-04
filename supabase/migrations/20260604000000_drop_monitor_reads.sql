@@ -1,0 +1,13 @@
+-- Drop the Phase-0 shadow-monitor table.
+--
+-- The shadow monitor (monitor.ts) was a per-turn alliance read written to
+-- monitor_reads. It was gated off (MONITOR_ENABLED default false) and nothing
+-- on the live call path ever read the rows back — the admin docs described it
+-- as "consumed by nothing." The whole subsystem (monitor.ts, the replay
+-- harness, the /replay-monitor skill, fireBackgroundMonitor, MONITOR_MODEL /
+-- MONITOR_ENABLED) was removed on 2026-06-04 per the overbuilt-review cut.
+--
+-- This discards the shadow rows collected during the Phase-0 window. They were
+-- out-of-band analysis data, never on any user-facing path. No table depends on
+-- monitor_reads (its FKs point OUT to conversations / auth.users / messages).
+DROP TABLE IF EXISTS public.monitor_reads;

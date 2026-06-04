@@ -73,7 +73,7 @@ const STEPS: Step[] = [
     id: 8,
     title: "Sibling calls — the other AI calls this turn",
     caption:
-      "Jove is one of three model calls that fire on every turn — Jove (Sonnet), Extraction (Sonnet), and the shadow Monitor (Opus, whose output nothing reads). The Composer (Opus) is a fourth model call, but it fires only on checkpoint turns, composing at proposal time. The detector that flags a checkpoint is a deterministic regex, not a model call.",
+      "Jove is one of two model calls that fire on every turn — Jove (Opus) and Extraction (Sonnet, in the background). The Composer (Opus) is a third model call, but it fires only on checkpoint turns, composing at proposal time. The detector that flags a checkpoint is a deterministic regex, not a model call.",
   },
   {
     id: 9,
@@ -292,17 +292,6 @@ const SIBLING_CALLS: {
     description:
       "Background analyzer. Fires as a non-awaited Promise the same turn the user sends a message — Jove and extraction race. The brief it writes feeds the prompt one turn later (the 'one-turn lag' you never feel). Includes the language bank, layer signals, checkpoint gate, sage brief.",
     source: "src/lib/persona/extraction.ts → runExtraction",
-  },
-  {
-    id: "monitor",
-    label: "Shadow monitor",
-    model: "Opus",
-    when: "Parallel — fires the same instant as Jove, every turn",
-    reads: "The last 8 messages of the conversation",
-    writes: "A structured alliance read to the monitor_reads table",
-    description:
-      "Reads the alliance, not the topic — is the bond holding, is the conversation drifting or sinking. Phase 0 shadow mode: it runs on every web turn and writes to its own table, but NOTHING downstream reads it back. A validated sensor wired to no actuator — the input to a feedback loop (the deterministic selector) that isn't built yet. Until that exists, the monitor changes nothing about Jove's behavior.",
-    source: "src/lib/persona/monitor.ts → runMonitor",
   },
   {
     id: "classifier",

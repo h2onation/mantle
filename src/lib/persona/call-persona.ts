@@ -21,7 +21,6 @@ import {
   loadConversationContext,
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
-  fireBackgroundMonitor,
   handleCrisisDetection,
   applyCheckpointGates,
   buildCheckpointMeta,
@@ -423,9 +422,8 @@ export function callPersona({
           }
         }
 
-        // 1. Save user message. Capture the returned id so the Phase 0
-        //    shadow monitor (step 3) can record it as triggering_message_id
-        //    on the monitor_reads row.
+        // 1. Save user message. Capture the returned id for linking the
+        //    assistant response and dedup below.
         //
         // Fix B (retry-storm dedup): before inserting, look back 30
         // seconds for an identical user message in this conversation
@@ -536,12 +534,6 @@ export function callPersona({
           message !== null && message !== "[Session started]";
         if (hasUserContent) {
           fireBackgroundExtraction(ctx, admin);
-          // 3b. Phase 0 shadow monitor — fire alongside extraction. Log-only,
-          //     never gates anything on this turn. Web only for now (we're
-          //     in callPersona which is the web entry point; the SMS
-          //     persona-bridge intentionally does NOT call this — Q-5 in
-          //     docs/reference/two-layer-engine-evaluation.md).
-          fireBackgroundMonitor(ctx, admin, userId, userMessageId);
         }
 
         // 7b. Transcript detection — runs on every user message so the

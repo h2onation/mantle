@@ -34,7 +34,7 @@ export const PERSONA_NAME_FORMAL = "Jove";
 // Centralized here so a model bump touches one file. Verify dated suffixes
 // via Anthropic docs before changing — see CLAUDE.md "Model IDs" rule.
 // The CONVERSATIONAL turn — the one the user actually feels. Bumped from
-// Sonnet 4.6 to Opus 4.7 (the strongest model in this app; also MONITOR_MODEL)
+// Sonnet 4.6 to Opus 4.7 (the strongest model in this app)
 // 2026-06-04 to test how much of the "sharper, more synthetic" feel of a
 // claude.ai-style conversation is model tier vs craft. Opus on EVERY turn is
 // a real cost/latency increase — reversible to claude-sonnet-4-6, and can be
@@ -50,25 +50,6 @@ export const EXTRACTION_MODEL = "claude-sonnet-4-6";
 export const COMPOSITION_MODEL = "claude-opus-4-6";
 export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";
 export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
-// Phase 0 — shadow monitor. Reads alliance state (bond / task / scope /
-// rupture / direction) per turn. Currently log-only — no behavior gates
-// on this. See docs/reference/two-layer-engine-evaluation.md § 3 Phase 0.
-//
-// Set to Opus deliberately. Phase 0 is a ceiling test: we want to know
-// whether rupture / withdrawal / sinking detection is POSSIBLE at the
-// best model we can throw at the problem, not whether it works on a
-// budget. Cost optimization (e.g., flipping back to Haiku) is for after
-// Opus proves the signal is detectable. If Opus misses, Haiku won't
-// catch it; if Opus catches it, we know how far Haiku has to climb.
-export const MONITOR_MODEL = "claude-opus-4-7";
-
-// Off by default. The Phase 0 shadow monitor runs MONITOR_MODEL (Opus) on
-// every web turn and writes a monitor_reads row that nothing on the call
-// path reads back — pure cost during beta. Gated so it can be flipped on
-// deliberately for a shadow-analysis window, or run offline via the
-// /replay-monitor harness over saved transcripts. Set MONITOR_ENABLED=true
-// in the environment to re-enable live per-turn firing.
-export const MONITOR_ENABLED = process.env.MONITOR_ENABLED === "true";
 
 // Single source of truth for both the system-message text persisted after a
 // checkpoint action and the natural-language reply mapSystemMessages() in
