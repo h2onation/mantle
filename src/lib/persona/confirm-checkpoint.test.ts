@@ -52,7 +52,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 // Import AFTER mock is set up
-import { confirmCheckpoint } from "@/lib/persona/confirm-checkpoint";
+import { confirmCheckpoint, validateHeadline } from "@/lib/persona/confirm-checkpoint";
 
 beforeEach(() => {
   resetMockChain();
@@ -370,5 +370,77 @@ describe("confirmCheckpoint", () => {
 
     const args = rpcArgs();
     expect(args!.p_key_words).toBeNull();
+  });
+});
+
+// ─── validateHeadline ──────────────────────────────────────────────────────
+// Previously unexported + zero coverage (it gates every entry title).
+// Exported + tested 2026-06-03 ahead of the user's-word verb carve-out.
+describe("validateHeadline", () => {
+  // Baseline structural rules (these existed before the carve-out).
+  it("passes a clean trigger-shaped headline", () => {
+    expect(validateHeadline("I Go Quiet When Someone Waits", false).ok).toBe(true);
+  });
+
+  it("fails when the subject is not 'I' (body-part / nominalization as agent)", () => {
+    const r = validateHeadline("Stomach Pushes Me to Fix the Call", false);
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("subject is not 'I'");
+  });
+
+  it("fails when there is no trigger/condition word", () => {
+    const r = validateHeadline("I Keep Following the Script", false);
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("no trigger word");
+  });
+
+  it("fails a banned felt-state verb the user never said", () => {
+    const r = validateHeadline("I Disappear When Nobody Needs Me", false, "i feel invisible at parties");
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("abstract/internal verb");
+  });
+
+  it("requires a softener on a single-example headline", () => {
+    const r = validateHeadline("I Freeze When Asked What I Want", true);
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("softener");
+  });
+
+  // The carve-out: the user's OWN exact felt-state phrase wins over the ban.
+  it("ALLOWS a banned verb when it is the user's exact phrase", () => {
+    const r = validateHeadline(
+      "I Lose Myself When the Verdict Isn't In",
+      false,
+      "I'm such a people pleaser. I end up losing myself in the conversation. I lose myself."
+    );
+    expect(r.reasons.join(" ")).not.toContain("abstract/internal verb");
+    expect(r.ok).toBe(true);
+  });
+
+  it("STILL bans the same verb when the user did not say it (regression guard)", () => {
+    const r = validateHeadline(
+      "I Lose Myself When the Verdict Isn't In",
+      false,
+      "I get nervous in rooms and check what people think of me"
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("abstract/internal verb");
+  });
+
+  it("only the user-said verb is exempted, not every banned verb in the title", () => {
+    // User said "lose myself" but not "fade"; a title using fade still fails.
+    const r = validateHeadline(
+      "I Fade When the Room Goes Quiet",
+      false,
+      "i lose myself around new people"
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("abstract/internal verb");
+  });
+
+  it("defaults userText to empty (legacy callers): banned verbs stay banned", () => {
+    const r = validateHeadline("I Lose Myself When Nobody Needs Me", false);
+    expect(r.ok).toBe(false);
+    expect(r.reasons.join(" ")).toContain("abstract/internal verb");
   });
 });

@@ -849,7 +849,8 @@ describe("buildSystemPrompt", () => {
       const result = build({ checkpointApproaching: true });
       // The "EXACT phrase" warning explains WHY the phrase matters — without
       // this framing, the model treated it as stylistic and drifted.
-      expect(result).toContain("This EXACT phrase");
+      expect(result).toContain("Say these EXACT words");
+      expect(result).toContain("invisible to the system");
       expect(result).toContain("contract with the system");
       // The audit-observed drift phrasings are listed as explicit non-matches.
       expect(result).toContain("Let me write this up for your Manual");
@@ -1335,7 +1336,7 @@ describe("buildSystemPrompt", () => {
     describe("somatic-first and short-answer handling", () => {
       it("VOICE_RULES contains the body-substitute phrasing", () => {
         const result = build();
-        expect(result).toContain("what their body did");
+        expect(result).toContain("physically or mentally");
       });
 
       it("SHORT ANSWERS uses walkthrough framing, not patronizing language", () => {
@@ -2738,7 +2739,7 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Never suggest journaling");
       expect(result).toContain("Short sentences. One idea each");
       // Autistic-unique behavioral guidance is preserved too
-      expect(result).toContain("what their body did");
+      expect(result).toContain("physically or mentally");
       expect(result).toContain("Silence is processing");
     });
 

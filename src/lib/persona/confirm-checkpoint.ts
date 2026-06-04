@@ -103,7 +103,7 @@ export async function composeManualEntry(
     return `Layer ${l.id} — ${l.name} (${l.dimensions.join(", ")}):\n${entriesText}`;
   }).join("\n\n");
 
-  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the layer this entry belongs to based on what the entry IS (the dimensions above), and how it relates to entries already on that layer. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension.\n`;
+  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the layer this entry belongs to based on what the entry IS (the dimensions above), and how it relates to entries already on that layer. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
 
   // Last 8 messages for context
   const recentHistory = conversationHistory.slice(-8);
@@ -180,11 +180,13 @@ VOICE RULES:
 HEADLINE (field: "name"):
 4-8 words. Flatly descriptive. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject of the headline should be "I" — NOT a body part as agent.
 
-REQUIRED: name a SPECIFIC TRIGGER or CONDITION. Format: "I [verb] when [specific trigger]" or "I [verb] before [specific event]" or "I [verb] after [specific moment]." The trigger names a concrete situation — a person, a moment, a sensation. Not "before I can say it" (vague — what stops me?) but "when guilt hits" or "when someone waits for me to answer" (specific). Not "in real life" (too broad) but "outside the dungeon" or "when there's no contract" (specific). The title should answer "WHEN does this fire?" not just "WHAT happens?"
+ALTITUDE FIRST: name the PATTERN the user is actually describing, not a narrow single conclusion. If the user named a broad, recurring way they operate (it shows up across situations, not just the one scene in front of you), the headline names THAT, in their words, even if it is wider than one trigger. Do not shrink a broad pattern down to one of its instances just to make the title concrete. Test: would the user say "yes, that's the thing that runs me" (right altitude), or "yes, that happened once" (too narrow, you captured an instance not the pattern)?
+
+REQUIRED: name a SPECIFIC TRIGGER or CONDITION. Format: "I [verb] when [specific trigger]" or "I [verb] before [specific event]" or "I [verb] after [specific moment]." The trigger names a concrete situation — a person, a moment, a sensation. Not "before I can say it" (vague — what stops me?) but "when guilt hits" or "when someone waits for me to answer" (specific). Not "in real life" (too broad) but "outside the dungeon" or "when there's no contract" (specific). The title should answer "WHEN does this fire?" not just "WHAT happens?" But when the pattern the user named is broad and recurring, keep the condition light ("when the verdict isn't in," "in quiet moments with no task") rather than narrowing the whole pattern to a single instance. Altitude beats trigger-specificity when the two conflict.
 
 DO NOT personify the trigger as an actor doing something to you. "When small talk drains," "when the room scans," "when the gap fires," "while the conversation pulls" — these are imagery, not literal situations. Use the event instead: "at low-stakes dinners," "in surface conversations," "when the talk stays small."
 
-REQUIRED: the verb must describe an OBSERVABLE BEHAVIOR — what a friend watching the scene would see you do. Abstract / internal / metaphorical verbs are not allowed because they describe a felt state, not an action. Forbidden verbs include: "disappear," "vanish," "lose myself," "fade," "go missing," "come undone," "fall apart," "shut down inside," "break open," "dissolve." If the user described feeling like they "disappear," translate that into the observable behavior — what do they actually DO in the moment? Steer the conversation? Get quiet? Scan for problems? Build a topic? Use that verb instead.
+REQUIRED: the verb must describe an OBSERVABLE BEHAVIOR — what a friend watching the scene would see you do. Abstract / internal / metaphorical verbs are not allowed because they describe a felt state, not an action. Forbidden verbs include: "disappear," "vanish," "lose myself," "fade," "go missing," "come undone," "fall apart," "shut down inside," "break open," "dissolve." If the user described feeling like they "disappear," translate that into the observable behavior — what do they actually DO in the moment? Steer the conversation? Get quiet? Scan for problems? Build a topic? Use that verb instead. EXCEPTION — the user's own words win: if one of these forbidden verbs is the user's OWN exact phrase (they literally said "I lose myself" or "I disappear"), use their phrase. Their truest self-description outranks this list. The ban is only for felt-state verbs the user did not say — it stops you from inventing poetic vagueness, not from quoting the user.
 
 SECONDARY VERB RULE: prefer the flattest literal verb over embodied / postural metaphors that LOOK observable but stand in for a semantic claim. "Stay seated," "tighten," "swallow," "brace," "lean in," "stiffen" — a friend could see these, but each one does metaphorical work where a plainer verb would carry the same meaning. Prefer "stay at," "keep going to," "sit through," "wait," "go quiet," "leave," "say," "agree," "ask." If swapping the embodied metaphor for the literal verb preserves the meaning, swap it. The headline reads like a field note, not a tagline.
 
@@ -337,8 +339,16 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
   const isSingleExample =
     typeof distinctContexts === "number" && distinctContexts <= 1;
   const initialName = parsed.name || "Untitled";
+  // The user's own words. Lets the headline validator honor a "felt-state"
+  // verb (lose myself, fade, etc.) when it is the user's exact phrase, so
+  // the title can name the pattern in their language instead of being
+  // forced to a narrower observable proxy.
+  const userMessageText = conversationHistory
+    .filter((m) => m.role === "user")
+    .map((m) => m.content)
+    .join(" ");
   let finalName = initialName;
-  const headlineCheck = validateHeadline(initialName, isSingleExample);
+  const headlineCheck = validateHeadline(initialName, isSingleExample, userMessageText);
   if (!headlineCheck.ok) {
     console.warn(
       "[composeManualEntry] Headline failed validation: %s — retrying once",
@@ -351,7 +361,7 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
       headlineCheck.reasons
     );
     if (retry) {
-      const retryCheck = validateHeadline(retry, isSingleExample);
+      const retryCheck = validateHeadline(retry, isSingleExample, userMessageText);
       if (retryCheck.reasons.length < headlineCheck.reasons.length) {
         finalName = retry;
         if (!retryCheck.ok) {
@@ -433,9 +443,10 @@ function findUniversalToneViolations(
  * exemplars include headlines up to 11 words — the other axes are the
  * load-bearing ones.
  */
-function validateHeadline(
+export function validateHeadline(
   headline: string,
-  isSingleExample: boolean
+  isSingleExample: boolean,
+  userText: string = ""
 ): { ok: boolean; reasons: string[] } {
   const reasons: string[] = [];
   const trimmed = headline.trim();
@@ -466,8 +477,17 @@ function validateHeadline(
     /\bbreak open\b/i,
     /\bshut down inside\b/i,
   ];
+  // Mirror-exact-language carve-out (2026-06-03): a "felt-state" verb is
+  // only banned when it is Jove's word, not the user's. If the user's own
+  // messages contain that exact phrase (they literally said "I lose
+  // myself"), it is their truest self-description and wins over the ban —
+  // this is what lets the title name the pattern in the user's words
+  // ("I Lose Myself When the Verdict Isn't In") instead of a narrowed
+  // observable proxy ("I Scan Before Speaking Around New People"). The ban
+  // still fires for any banned verb the user never said, so vague/poetic
+  // titles ("I Disappear...", body-part-as-agent) are still rejected.
   for (const re of BANNED_VERBS) {
-    if (re.test(trimmed)) {
+    if (re.test(trimmed) && !re.test(userText)) {
       reasons.push(`abstract/internal verb matched ${re.source}`);
     }
   }
