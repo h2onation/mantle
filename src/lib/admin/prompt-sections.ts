@@ -184,7 +184,7 @@ const SECTION_DEFS: SectionDef[] = [
     label: "Deepening",
     tier: "2",
     pattern: /^DEEPENING$/m,
-    source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "DEEPENING_INTRO, DEEPENING_ADDITIONS, WEAK_STRONG_EXAMPLES_BASE + WEAK_STRONG_EXAMPLES" },
+    source: { file: "voice-scaffold.ts", symbol: "DEEPENING_INTRO, WEAK_STRONG_EXAMPLES_BASE" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
     alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
   },

@@ -63,7 +63,3 @@ export const LANDING_EXAMPLES: readonly { label: string; line: string }[] = [
     line: "You read the room before they said anything. Pattern recognition at a speed the people around you don't have a word for.",
   },
 ] as const;
-
-export const DEEPENING_ADDITIONS = "";
-
-export const WEAK_STRONG_EXAMPLES: readonly { weak: string; strong: string }[] = [] as const;

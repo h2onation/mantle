@@ -41,8 +41,6 @@ type VoiceModule = {
   VOICE_RULES: readonly string[];
   EXAMPLE_REGISTER: readonly { label: string; line: string }[];
   LANDING_EXAMPLES: readonly { label: string; line: string }[];
-  DEEPENING_ADDITIONS: string;
-  WEAK_STRONG_EXAMPLES: readonly { weak: string; strong: string }[];
 };
 
 const VOICE_MODULES: Record<PersonaMode, VoiceModule> = {
@@ -126,17 +124,8 @@ export function composeTier2(modes: PersonaMode[]): string {
     ],
     (e) => `${e.label}|${e.line}`,
   );
-  // DEEPENING_ADDITIONS is persona-only — the scaffold provides
-  // DEEPENING_INTRO/OUTRO around whatever the persona contributes.
-  const deepeningAdditions = effective
-    .map((m) => VOICE_MODULES[m].DEEPENING_ADDITIONS)
-    .filter((s) => s.length > 0)
-    .join("\n\n");
   const weakStrong = dedupeBy(
-    [
-      ...WEAK_STRONG_EXAMPLES_BASE,
-      ...effective.flatMap((m) => [...VOICE_MODULES[m].WEAK_STRONG_EXAMPLES]),
-    ],
+    [...WEAK_STRONG_EXAMPLES_BASE],
     (e) => `${e.weak}|${e.strong}`,
   );
 
@@ -151,9 +140,7 @@ export function composeTier2(modes: PersonaMode[]): string {
     .map(({ weak, strong }) => `- "${weak}" → "${strong}"`)
     .join("\n");
 
-  const deepeningBlock = deepeningAdditions
-    ? `${DEEPENING_INTRO}\n\n${deepeningAdditions}\n\nWeak → strong:\n${weakStrongRendered}`
-    : `${DEEPENING_INTRO}\n\nWeak → strong:\n${weakStrongRendered}`;
+  const deepeningBlock = `${DEEPENING_INTRO}\n\nWeak → strong:\n${weakStrongRendered}`;
 
   return `${TIER_2_HEADER}
 

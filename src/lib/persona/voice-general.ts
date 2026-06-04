@@ -25,10 +25,3 @@ export const LANDING_EXAMPLES: readonly {
   label: string;
   line: string;
 }[] = [] as const;
-
-export const DEEPENING_ADDITIONS = "";
-
-export const WEAK_STRONG_EXAMPLES: readonly {
-  weak: string;
-  strong: string;
-}[] = [] as const;
