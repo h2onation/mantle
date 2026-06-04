@@ -649,7 +649,17 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain("must be exactly this single line");
       expect(result).toContain("Vary the wording every time");
       expect(result).toContain("Never reuse a fixed line");
-      expect(result).toContain("naming what it was about in the user's own terms");
+      expect(result).toContain("the substance, in plain conversational language");
+    });
+
+    it("references the rejected entry by substance but forbids framing it as a title", () => {
+      // Regression guard: a post-rejection turn confabulated a title-cased
+      // headline the user never saw ("The Defense Fires Before the Charge one
+      // didn't land"). Referencing the theme is fine; framing it as the card's
+      // name is the bug.
+      const result = build({ postRejection: true });
+      expect(result).toContain("framing it as a named card is not");
+      expect(result).toContain('no "the [Name] one didn\'t land" construction');
     });
 
     it("scopes the fixed line to the immediate post-rejection turn only", () => {
