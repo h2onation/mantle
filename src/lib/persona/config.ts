@@ -47,7 +47,11 @@ export const PERSONA_MODEL = "claude-opus-4-7";
 // (synthesis turns only). Dial down later if replies run long.
 export const PERSONA_MAX_TOKENS = 8192;
 export const EXTRACTION_MODEL = "claude-sonnet-4-6";
-export const COMPOSITION_MODEL = "claude-opus-4-6";
+// Reconciled to match PERSONA_MODEL (was claude-opus-4-6 — unintentional version
+// drift). The composed Manual entry is the product's core artifact; it runs on
+// the same Opus tier as the conversational turn. Fires only on checkpoint turns,
+// so the cost delta vs 4-6 is small.
+export const COMPOSITION_MODEL = "claude-opus-4-7";
 export const SUMMARY_MODEL = "claude-haiku-4-5-20251001";
 export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
 

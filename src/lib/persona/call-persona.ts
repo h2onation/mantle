@@ -764,33 +764,32 @@ export function callPersona({
         //      contains an em dash that would trip the dash_usage check.
         validateResponseStructure(fullText, messageId);
 
-        // 11b. Save extraction snapshot. The column is guaranteed present
-        //      in the 20260417 squash baseline; any error here is a real
-        //      DB failure, not schema drift.
-        //
-        //      We freeze the REAL gate verdict alongside the state. The admin
-        //      overlay used to recompute "Gate met" from a looser inline
-        //      formula that omitted depth, distinct_contexts, pattern_engaged,
-        //      turn-count, and the Lock-1 charged-phrase-on-layer check — so it
-        //      read "yes" while the engine was suppressing every turn
-        //      (2026-06-03). Computing applyCheckpointGates here, where
-        //      isFirstCheckpoint and turnCount actually exist, makes the
-        //      overlay show the same verdict and reason the engine acts on.
+        // Checkpoint gate verdict, computed ONCE here (pure function, identical
+        // inputs) and reused by both the admin-overlay snapshot (11b) and the
+        // fire/strip decision (12b). These were two separate applyCheckpointGates
+        // calls before — a drift trap; the 2026-06-03 incident was two gate
+        // formulas diverging (the overlay read "yes" while the engine suppressed).
+        const gateResult = applyCheckpointGates(
+          turnsSinceCheckpoint,
+          previousExtraction,
+          isFirstCheckpoint,
+          turnCount
+        );
+
+        // 11b. Save extraction snapshot. The column is guaranteed present in the
+        //      20260417 squash baseline; any error here is a real DB failure, not
+        //      schema drift. Freeze the REAL gate verdict (gateResult) alongside
+        //      the state so the overlay shows the same verdict and reason the
+        //      engine acts on, computed where isFirstCheckpoint and turnCount exist.
         if (messageId && previousExtraction) {
-          const gateEval = applyCheckpointGates(
-            turnsSinceCheckpoint,
-            previousExtraction,
-            isFirstCheckpoint,
-            turnCount
-          );
           admin
             .from("messages")
             .update({
               extraction_snapshot: {
                 ...previousExtraction,
                 gate_eval: {
-                  passed: gateEval.passed,
-                  reason: gateEval.reason ?? null,
+                  passed: gateResult.passed,
+                  reason: gateResult.reason ?? null,
                 },
               },
             })
@@ -827,12 +826,6 @@ export function callPersona({
         //      — otherwise the user reads "I want to put something in
         //      your Manual" in chat with no trigger card to back it up.
         if (isCheckpoint) {
-          const gateResult = applyCheckpointGates(
-            turnsSinceCheckpoint,
-            previousExtraction,
-            isFirstCheckpoint,
-            turnCount
-          );
           if (!gateResult.passed) {
             isCheckpoint = false;
             conversationalText = stripCheckpointFromText(conversationalText);
