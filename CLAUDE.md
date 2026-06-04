@@ -115,4 +115,4 @@ These apply to every task. No exceptions.
 - `/ship` — Merge to main with state.md update gate. Build, test, update state, merge.
 - `/cleanup` — Remove stale worktrees and branches after a session.
 - `/evaluate [transcript]` — Run Jove conversation quality audit against a pasted transcript. Read-only.
-- `/overbuild-check` — Periodic deletion-only pass against the Removal-first / Complexity Gate. Hunts for dead code, dormant subsystems, duplicate logic, and prompt scaffolding that teaches the model what it already knows. Reports + recommends cuts; never deletes without approval.
+- `/overbuild-check` — Counter-ratchet against overbuilding. Hunts four kinds of bloat (dead weight, over-architecture, context/attention bloat, inefficiency) across code and prompt; tracks accretion over time (ratchet meter), remembers settled decisions so it won't re-litigate, ranks findings by cost, and adversarially verifies each cut. Remedy is always simplification — never adds. Never deletes without approval. Optional flags: `--deep` (fan out parallel agents), `--test-rule` (empirically test a prompt rule), `--from-scratch` (minimal-rebuild delta).
