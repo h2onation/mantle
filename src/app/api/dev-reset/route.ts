@@ -18,7 +18,6 @@ export async function POST() {
     // so manual_entries must be deleted BEFORE messages.
     // 1. Manual data first (removes FK refs to messages)
     await admin.from("manual_entries").delete().eq("user_id", userId);
-    await admin.from("manual_changelog").delete().eq("user_id", userId);
 
     // 2. Feedback (FK to auth.users, not cascade-deleted without deleting auth user)
     await admin.from("feedback").delete().eq("user_id", userId);

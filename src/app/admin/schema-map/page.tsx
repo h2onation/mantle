@@ -276,7 +276,7 @@ const TABLES: Table[] = [
     rowMeans:
       "One confirmed entry on one of the five layers of the user's Manual. Created when the user accepts a checkpoint.",
     description:
-      "The Manual itself. Each row is one entry on one layer (1-5). Entries are inserted, never replaced — there's no upsert, no per-layer cap. To edit an existing entry, the change is logged in manual_changelog. summary and key_words are the compressed-form data that keeps older entries readable to Jove without re-shipping their full prose every turn.",
+      "The Manual itself. Each row is one entry on one layer (1-5). Entries are inserted, never replaced — there's no upsert, no per-layer cap. summary and key_words are the compressed-form data that keeps older entries readable to Jove without re-shipping their full prose every turn.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique entry identifier." },
       { name: "user_id", type: "uuid", plain: "Which user this entry belongs to.", emphasized: true },
@@ -304,45 +304,7 @@ const TABLES: Table[] = [
       },
     ],
     notes:
-      "Confirmation is always an INSERT. There is no replace-existing flow today. The manual_changelog table is reserved for explicit edits.",
-  },
-  {
-    name: "manual_changelog",
-    families: ["audit"],
-    access: "user",
-    oneLine: "Audit trail for edits to existing Manual entries.",
-    rowMeans:
-      "One edit event — when a user changes an existing Manual entry, the before/after content and a change description are logged here.",
-    description:
-      "Reserved for explicit-edit features. The current product writes new entries via INSERT into manual_entries; existing entries aren't edited in production paths. This table exists for the future case where users can sharpen / rewrite existing entries.",
-    columns: [
-      { name: "id", type: "uuid", plain: "Unique edit identifier." },
-      { name: "user_id", type: "uuid", plain: "Which user made the edit.", emphasized: true },
-      { name: "component_id", type: "uuid", plain: "The manual_entries.id being edited. Legacy name (predates the 'entry' terminology); not enforced as a foreign key.", emphasized: true },
-      { name: "layer", type: "integer (1-5)", plain: "Which layer the edited entry sits on." },
-      { name: "previous_content", type: "text", plain: "The entry content before the edit." },
-      { name: "new_content", type: "text", plain: "The entry content after the edit." },
-      { name: "change_description", type: "text", plain: "Plain-English description of what changed." },
-      { name: "conversation_id", type: "uuid", plain: "Which conversation the edit happened in. SET NULL if that conversation is deleted." },
-    ],
-    connections: [
-      {
-        to: "profiles",
-        via: "user_id",
-        cardinality: "N:1",
-        onDelete: "CASCADE",
-        explanation: "Edits go away when the user is deleted.",
-      },
-      {
-        to: "conversations",
-        via: "conversation_id",
-        cardinality: "N:1",
-        onDelete: "SET NULL",
-        explanation: "If the conversation is deleted, the edit log survives but loses its conversation link.",
-      },
-    ],
-    notes:
-      "Rarely written today. Confirmed in docs/system.md: 'current write paths do not exercise it.' The column is named component_id for historical reasons — the entry table is manual_entries.",
+      "Confirmation is always an INSERT. There is no replace-existing flow today.",
   },
   {
     name: "phone_numbers",

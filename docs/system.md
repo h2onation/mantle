@@ -221,7 +221,7 @@ Not enforced at the DB layer (stored as untyped JSONB on the `messages` table). 
 
 ## Manual Entry Accumulation
 
-Layers can hold many entries. Confirmation is always an insert — there is no upsert, no per-layer cap, no replacement rule. The `manual_changelog` table is reserved for explicit edits to existing entries (current write paths do not exercise it).
+Layers can hold many entries. Confirmation is always an insert — there is no upsert, no per-layer cap, no replacement rule. (There is no edit/version flow; the unused `manual_changelog` table was dropped 2026-06-04 — see ADR-045 sibling cleanup.)
 
 ## Migration Protocols
 
