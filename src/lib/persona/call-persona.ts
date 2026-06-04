@@ -815,7 +815,12 @@ export function callPersona({
         let isCheckpoint = false;
         const processingText = "listening...";
 
-        if (postConfirmMode === null) {
+        // ctx.checkpointsEnabled is false when the `checkpoints` feature gate
+        // is OFF — skip detection entirely so no checkpoint is ever proposed,
+        // gated, or composed. The checkpoint-derived Tier 3 flags are already
+        // zeroed in loadConversationContext, so this one guard fully disables
+        // the pipeline while leaving the voice + extraction loop intact.
+        if (postConfirmMode === null && ctx.checkpointsEnabled) {
           isCheckpoint = detectCheckpointInResponse(conversationalText).isCheckpoint;
         }
 

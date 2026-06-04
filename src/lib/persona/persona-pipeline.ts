@@ -21,6 +21,7 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction } from "./config";
+import { getFeatureGates } from "./feature-gates";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
@@ -50,6 +51,13 @@ export interface ConversationContext {
    *  POST-SUPPRESSION prompt block so Jove doesn't re-propose the same
    *  entry and re-trigger the suppression loop (2026-06-03 incident). */
   priorCheckpointSuppressed: boolean;
+  /** False when the `checkpoints` feature gate is OFF. Read by
+   *  call-persona.ts to skip checkpoint detection entirely, so no
+   *  checkpoint is ever proposed while the gate is disabled. The
+   *  checkpoint-derived prompt flags (checkpointApproaching,
+   *  priorCheckpointSuppressed) are already zeroed in this context when
+   *  the gate is OFF, so one boolean fully neutralizes the pipeline. */
+  checkpointsEnabled: boolean;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -99,6 +107,7 @@ export async function loadConversationContext(
     extractionResult,
     lastCheckpointResult,
     profileResult,
+    gates,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -128,6 +137,9 @@ export async function loadConversationContext(
       .select("persona_modes")
       .eq("id", userId)
       .maybeSingle(),
+    // Global feature gates — folded into this existing parallel batch so
+    // the per-turn read adds no extra round-trip. Fails open to all-ON.
+    getFeatureGates(admin),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -135,18 +147,28 @@ export async function loadConversationContext(
   // profiles row has a null persona_modes — pre-onboarding signups, legacy
   // rows that pre-date the array migration, or any path that creates a
   // profile without setting persona_modes (e.g., the chat-route upsert).
-  const personaModes: PersonaMode[] =
+  const resolvedPersonaModes: PersonaMode[] =
     personaModesOverride && personaModesOverride.length > 0
       ? personaModesOverride
       : (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
+  // personaDeltas gate OFF → clamp to the neutral "general" voice so
+  // composeTier2 renders the base scaffold only and no neurotype delta loads.
+  const personaModes: PersonaMode[] = gates.personaDeltas
+    ? resolvedPersonaModes
+    : ["general"];
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
-  const conversationMode: "situation" | "guided-intake" | "upload" =
+  const resolvedConversationMode: "situation" | "guided-intake" | "upload" =
     rawMode === "guided-intake" ? "guided-intake" :
     rawMode === "upload" ? "upload" : "situation";
+  // conversationModes gate OFF → force "situation" (the documented default
+  // fallback) so guided-intake / upload entry blocks, the upload opener
+  // short-circuit, and transcript-wrap behavior never fire.
+  const conversationMode: "situation" | "guided-intake" | "upload" =
+    gates.conversationModes ? resolvedConversationMode : "situation";
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -266,10 +288,14 @@ export async function loadConversationContext(
     conversationId,
     extractionForPersona,
     turnCount,
-    checkpointApproaching,
+    // checkpoints gate OFF → zero every checkpoint-derived prompt flag so
+    // the CHECKPOINTS and POST-SUPPRESSION Tier 3 blocks never render, and
+    // expose checkpointsEnabled so call-persona.ts skips detection entirely.
+    checkpointApproaching: gates.checkpoints && checkpointApproaching,
     personaModes,
     mode: conversationMode,
-    priorCheckpointSuppressed,
+    priorCheckpointSuppressed: gates.checkpoints && priorCheckpointSuppressed,
+    checkpointsEnabled: gates.checkpoints,
   };
 }
 

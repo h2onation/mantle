@@ -175,9 +175,13 @@ export async function processTextMessage(
   //     channel: if Jove wrote the transition line, this turn is a
   //     checkpoint. Composition picks layer + name + summary.
   let checkpointText: string | null = null;
-  let isCheckpoint = messageId
-    ? detectCheckpointInResponse(responseText).isCheckpoint
-    : false;
+  // ctx.checkpointsEnabled is false when the `checkpoints` feature gate is
+  // OFF — the SMS path honors the same global switch as the web path so the
+  // gate isn't a half-truth across channels.
+  let isCheckpoint =
+    messageId && ctx.checkpointsEnabled
+      ? detectCheckpointInResponse(responseText).isCheckpoint
+      : false;
 
   // 11b. Shared checkpoint gates (material quality + turn-count)
   if (isCheckpoint) {

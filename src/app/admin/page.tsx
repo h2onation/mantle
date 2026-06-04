@@ -12,6 +12,7 @@ import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
+import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 type Section = "users" | "beta" | "feedback" | "health";
@@ -182,6 +183,7 @@ function AdminPageInner() {
                 padding: "18px 24px 40px",
               }}
             >
+              <FeatureGatesPanel />
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
               <ActiveUsersPanel />
