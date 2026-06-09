@@ -20,6 +20,9 @@ import {
   EXAMPLE_REGISTER_BASE,
   LANDING_EXAMPLES_BASE,
   WEAK_STRONG_EXAMPLES_BASE,
+  REBUILT_CHARACTER,
+  REBUILT_LIMITS,
+  REBUILT_MECHANICS,
 } from "@/lib/persona/voice-scaffold";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
@@ -226,6 +229,14 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  holds the checkpoint-proposal instructions for one turn so Jove can't
    *  re-propose the same un-ripe entry and re-enter the suppression loop. */
   priorCheckpointSuppressed?: boolean;
+  /** Voice rebuild A/B switch (Phase 0–2, docs/voice-rebuild-proposal.md).
+   *  "rebuilt" emits CHARACTER + LIMITS + MECHANICS in place of the
+   *  three-tier voice; dynamic context (Manual, session summary, extraction
+   *  brief) is unchanged so the A/B isolates the voice. Production callers
+   *  never set this — absent/"legacy" is byte-identical to the pre-switch
+   *  prompt. The lab harness (scripts/voice-ab.ts) is the only caller that
+   *  passes "rebuilt" until Phase 3a flips the default. */
+  voiceVariant?: "legacy" | "rebuilt";
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -958,6 +969,43 @@ export function buildSystemPromptBlocks(
     transcriptContext,
     personaModes = ["general"],
   } = options;
+
+  // Voice rebuild variant (Phase 0–2, docs/voice-rebuild-proposal.md). The
+  // rebuilt prompt is CHARACTER + LIMITS + MECHANICS + the same dynamic
+  // context as legacy — no tiers, no rule arrays, no persona deltas. Block
+  // shape mirrors legacy so the caller's cache_control placement works
+  // identically: tier1 slot = CHARACTER, staticContext = LIMITS + MECHANICS +
+  // older Manual, dynamic = per-turn. Production callers never set
+  // voiceVariant, so this branch is unreachable on the live path until
+  // Phase 3a flips the default; scripts/voice-ab.ts is the only caller.
+  if (options.voiceVariant === "rebuilt") {
+    const { older: rebuiltOlder, recent: rebuiltRecent } =
+      prepareManualContextBlocks(manualComponents, currentConversationId);
+
+    let rebuiltStatic = `\n\n${REBUILT_LIMITS}\n\n${REBUILT_MECHANICS}`;
+    if (rebuiltOlder) {
+      rebuiltStatic += `\n\n${rebuiltOlder.trimEnd()}\n`;
+    }
+
+    let rebuiltDynamic = "\n";
+    if (rebuiltRecent) rebuiltDynamic += rebuiltRecent;
+    rebuiltDynamic += renderSessionContextBlock({
+      isReturningUser,
+      sessionCount,
+      sessionSummary,
+    });
+    if (extractionContext) rebuiltDynamic += extractionContext;
+    rebuiltDynamic += renderTranscriptContextBlock(transcriptContext);
+    if (explorationContext) {
+      rebuiltDynamic += "\n" + renderExplorationContextBlock(explorationContext);
+    }
+
+    return {
+      tier1: REBUILT_CHARACTER,
+      staticContext: rebuiltStatic,
+      dynamic: rebuiltDynamic,
+    };
+  }
 
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
