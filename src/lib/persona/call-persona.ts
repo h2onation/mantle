@@ -529,10 +529,12 @@ export function callPersona({
           return;
         }
 
-        // 3. Fire extraction in background
+        // 3. Fire extraction in background. Skipped when the extraction_brief
+        //    gate is OFF (ctx.extractionEnabled=false) — voice-only mode runs
+        //    no analysis call and Jove gets no brief (cleared in ctx).
         const hasUserContent =
           message !== null && message !== "[Session started]";
-        if (hasUserContent) {
+        if (hasUserContent && ctx.extractionEnabled) {
           fireBackgroundExtraction(ctx, admin);
         }
 

@@ -72,8 +72,10 @@ export async function processTextMessage(
   const ctx = await loadConversationContext(admin, conversationId, userId);
   markLatency(timings, "context_loaded");
 
-  // 4. Fire extraction in background (only for real user messages)
-  if (messageText !== null) {
+  // 4. Fire extraction in background (only for real user messages). Skipped
+  //    when the extraction_brief gate is OFF (ctx.extractionEnabled=false) so
+  //    the SMS path honors voice-only mode like the web path.
+  if (messageText !== null && ctx.extractionEnabled) {
     fireBackgroundExtraction(ctx, admin);
   }
 

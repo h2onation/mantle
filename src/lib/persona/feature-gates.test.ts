@@ -29,6 +29,7 @@ describe("getFeatureGates", () => {
       personaDeltas: true,
       conversationModes: true,
       checkpoints: true,
+      extractionBrief: true,
     });
   });
 
@@ -44,15 +45,16 @@ describe("getFeatureGates", () => {
       { data: [{ key: "checkpoints", enabled: false }], error: null },
     );
     const gates = await getFeatureGates(mock as never);
-    // checkpoints row present and false; the other two have no row → stay ON
+    // checkpoints row present and false; the others have no row → stay ON
     expect(gates).toEqual({
       personaDeltas: true,
       conversationModes: true,
       checkpoints: false,
+      extractionBrief: true,
     });
   });
 
-  it("maps all three keys when all are present", async () => {
+  it("maps all four keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
@@ -60,6 +62,7 @@ describe("getFeatureGates", () => {
           { key: "persona_deltas", enabled: false },
           { key: "conversation_modes", enabled: false },
           { key: "checkpoints", enabled: false },
+          { key: "extraction_brief", enabled: false },
         ],
         error: null,
       },
@@ -69,6 +72,7 @@ describe("getFeatureGates", () => {
       personaDeltas: false,
       conversationModes: false,
       checkpoints: false,
+      extractionBrief: false,
     });
   });
 
@@ -88,6 +92,7 @@ describe("getFeatureGates", () => {
       personaDeltas: false,
       conversationModes: true,
       checkpoints: true,
+      extractionBrief: true,
     });
   });
 
@@ -103,10 +108,11 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the three known keys", () => {
+  it("accepts the four known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
     expect(isFeatureGateKey("conversation_modes")).toBe(true);
     expect(isFeatureGateKey("checkpoints")).toBe(true);
+    expect(isFeatureGateKey("extraction_brief")).toBe(true);
   });
 
   it("rejects unknown keys and non-strings", () => {

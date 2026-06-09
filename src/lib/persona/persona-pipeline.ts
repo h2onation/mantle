@@ -58,6 +58,11 @@ export interface ConversationContext {
    *  priorCheckpointSuppressed) are already zeroed in this context when
    *  the gate is OFF, so one boolean fully neutralizes the pipeline. */
   checkpointsEnabled: boolean;
+  /** False when the `extraction_brief` feature gate is OFF. Read by
+   *  call-persona.ts to skip the background extraction call. When false,
+   *  extractionForPersona is also already cleared in this context, so Jove
+   *  converses voice-only with no analysis steering it. */
+  extractionEnabled: boolean;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -235,8 +240,19 @@ export async function loadConversationContext(
       ? sourceMsgToConv.get(e.source_message_id) || null
       : null,
   }));
-  const previousExtraction: ExtractionState | null =
-    extractionResult.data?.extraction_state ?? null;
+  // extraction_brief gate OFF → the pipeline sees NO analysis state at all.
+  // We null the stored extraction_state at the source (not just the rendered
+  // brief), so every downstream reader — the checkpoint material-quality gate,
+  // checkpointApproaching, the admin extraction_snapshot, and the brief — sees
+  // null and behaves as if nothing has been analyzed. Without this, a returning
+  // user's frozen-but-non-null stored state would let the checkpoint gate still
+  // pass and fire an entry composed from stale analysis, contradicting
+  // voice-only mode. This mirrors how the checkpoints gate zeros every
+  // checkpoint-derived flag. The DB row is untouched, so flipping the gate
+  // back ON restores the real state on the next turn.
+  const previousExtraction: ExtractionState | null = gates.extractionBrief
+    ? (extractionResult.data?.extraction_state ?? null)
+    : null;
   const sessionSummary: string | null =
     extractionResult.data?.summary ?? null;
 
@@ -264,7 +280,8 @@ export async function loadConversationContext(
     sessionCount = count || 1;
   }
 
-  // Derived prompt flags
+  // Derived prompt flags. When extraction_brief is OFF, previousExtraction is
+  // already null (cleared above), so no brief renders — voice-only.
   const extractionForPersona = previousExtraction
     ? formatExtractionForPersona(previousExtraction, isFirstCheckpoint, manualComponents)
     : "";
@@ -296,6 +313,7 @@ export async function loadConversationContext(
     mode: conversationMode,
     priorCheckpointSuppressed: gates.checkpoints && priorCheckpointSuppressed,
     checkpointsEnabled: gates.checkpoints,
+    extractionEnabled: gates.extractionBrief,
   };
 }
 

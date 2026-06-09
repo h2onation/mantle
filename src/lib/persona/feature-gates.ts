@@ -22,8 +22,12 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *                            overlays (approaching, post-suppression) also go
  *                            dark. Jove keeps naming patterns in conversation
  *                            but never proposes a Manual entry.
- *
- * Extraction is deliberately NOT gated — it is half the core loop.
+ *   extractionBrief    OFF → voice-only: the background Sonnet extraction call
+ *                            is skipped and no brief is rendered into Jove's
+ *                            prompt, so zero analysis steers the conversation.
+ *                            Note: checkpoints depend on extraction state, so
+ *                            with this OFF the checkpoint gate fails closed
+ *                            (no entries fire) even if `checkpoints` is ON.
  *
  * Every gate defaults ON, and the read fails open to ON on any error or
  * missing row, so production behaves exactly as it does today when the
@@ -34,12 +38,14 @@ export interface FeatureGates {
   personaDeltas: boolean;
   conversationModes: boolean;
   checkpoints: boolean;
+  extractionBrief: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
   personaDeltas: true,
   conversationModes: true,
   checkpoints: true,
+  extractionBrief: true,
 };
 
 /**
@@ -51,6 +57,7 @@ export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   persona_deltas: "personaDeltas",
   conversation_modes: "conversationModes",
   checkpoints: "checkpoints",
+  extraction_brief: "extractionBrief",
 };
 
 export type FeatureGateKey = keyof typeof FEATURE_GATE_KEYS;

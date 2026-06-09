@@ -30,6 +30,12 @@ const GATE_META: {
     label: "Checkpoint pipeline",
     off: "OFF → Jove never proposes a Manual entry. Detection, the quality gate, and composition all go dark. Voice + extraction still run.",
   },
+  {
+    key: "extraction_brief",
+    field: "extractionBrief",
+    label: "Extraction analysis",
+    off: "OFF → voice-only. The background analysis call is skipped and Jove gets no brief steering it. Checkpoints can't fire either (they depend on it).",
+  },
 ];
 
 export default function FeatureGatesPanel() {
