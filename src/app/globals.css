@@ -499,6 +499,88 @@ textarea:focus-visible {
   }
 }
 
+/* Desktop shell (authenticated app >=1030px) — hover/active states for
+   the sidebar, rail buttons, and rail tooltips. Component structure
+   lives in src/components/desktop/. Tokens only — no raw colors. */
+.mw-dsk-item:hover,
+.mw-dsk-item[data-active="true"],
+.mw-dsk-session:hover,
+.mw-dsk-session[data-active="true"] {
+  background: var(--session-walnut-surface-soft);
+}
+
+.mw-dsk-item:hover,
+.mw-dsk-item[data-active="true"] {
+  color: var(--session-ink);
+}
+
+.mw-dsk-manual-card:hover,
+.mw-dsk-manual-card[data-active="true"] {
+  border-color: var(--session-walnut-meta) !important;
+}
+
+.mw-dsk-railbtn {
+  all: unset;
+  cursor: pointer;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--session-ink-faded);
+  margin-bottom: 6px;
+}
+
+.mw-dsk-railbtn:hover,
+.mw-dsk-railbtn[data-active="true"] {
+  color: var(--session-ink);
+  background: var(--session-walnut-surface-soft);
+}
+
+/* The Manual keeps its weight at rail width: a walnut plate behind
+   the book icon. */
+.mw-dsk-railbtn-manual {
+  color: var(--session-walnut-meta-strong);
+  background: var(--session-walnut-surface-soft);
+  border: 1px solid var(--session-walnut-border);
+}
+
+.mw-dsk-railbtn-manual:hover,
+.mw-dsk-railbtn-manual[data-active="true"] {
+  color: var(--session-walnut-meta-strong);
+  border-color: var(--session-walnut-meta);
+}
+
+/* Rail tooltip — labels what each icon hides. */
+.mw-dsk-tip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 10px 5px;
+  border-radius: 8px;
+  background: var(--session-walnut-surface);
+  border: 1px solid var(--session-walnut-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--session-ink-soft);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 80;
+}
+
+.mw-dsk-railbtn:hover .mw-dsk-tip {
+  opacity: 1;
+}
+
 /* Vitrine canvas — outer background for the DesktopVitrine wrapper.
    Paired gradient family: light is Bloom (cream radial on warm-walnut
    saddle); dark is Hearth (warm cream-walnut radial on deep tobacco).

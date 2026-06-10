@@ -26,9 +26,11 @@ interface MobileManualProps {
   ) => Promise<UpdateEntryResult>;
   onNavigateToSession?: () => void;
   onOpenDrawer?: () => void;
+  // false when the desktop shell provides its own header. Default true.
+  showTopBar?: boolean;
 }
 
-export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, onNavigateToSession, onOpenDrawer }: MobileManualProps) {
+export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, onNavigateToSession, onOpenDrawer, showTopBar = true }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = useMemo(() => buildLayers(entries), [entries]);
   const isEmpty = layers.every((l) => l.entries.length === 0);
@@ -63,13 +65,13 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
         position: "relative",
       }}
     >
-      <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />
+      {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
 
       {/* Scroll fade overlay */}
       <div
         style={{
           position: "absolute",
-          top: 68,
+          top: showTopBar ? 68 : 0,
           left: 0,
           right: 0,
           height: "48px",

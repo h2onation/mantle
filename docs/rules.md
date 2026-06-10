@@ -264,7 +264,9 @@ Full token list lives in `globals.css`. Agent reads the file for exact values. D
 
 Do not reintroduce any of the following. These were deliberately removed.
 
-Desktop layout · Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Theme toggle · Sound / audio · Ambient particles · Resonant content (URL detection + fetch; replaced by Upload mode)
+Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Sound / audio · Ambient particles · Resonant content (URL detection + fetch; replaced by Upload mode)
+
+(Removed from this list 2026-06-10 with founder sign-off: "Desktop layout" — superseded by the desktop shell initiative; the entry referred to a pre-vitrine layout that no longer exists. "Theme toggle" — stale; a theme toggle has been live in the DesktopVitrine colophon and ships in the desktop sidebar.)
 
 ## Pre-Launch Legal Requirements
 

@@ -4,6 +4,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
 import MobileLayout, { type MobileView } from "@/components/layout/MobileLayout";
+import DesktopShell from "@/components/desktop/DesktopShell";
+import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
+import { formatShortDate } from "@/lib/utils/format";
 import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
 import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
@@ -25,6 +28,7 @@ function sleep(ms: number) {
 }
 
 export default function MainApp() {
+  const isDesktop = useIsDesktop();
   const [activeView, setActiveView] = useState<MobileView>("session");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
@@ -299,7 +303,7 @@ export default function MainApp() {
   // 60px+ that's clearly horizontal (dx > 1.5 * dy) opens the drawer.
   // Only active when the drawer is closed; doesn't fight scrolling.
   useEffect(() => {
-    if (drawerOpen) return;
+    if (drawerOpen || isDesktop) return;
     let startX = 0;
     let startY = 0;
     let armed = false;
@@ -335,7 +339,29 @@ export default function MainApp() {
       document.removeEventListener("touchmove", onMove);
       document.removeEventListener("touchend", onEnd);
     };
-  }, [drawerOpen, handleOpenDrawer]);
+  }, [drawerOpen, handleOpenDrawer, isDesktop]);
+
+  // Desktop sidebar is always visible, so keep its session list fresh
+  // the way opening the drawer does on mobile.
+  useEffect(() => {
+    if (isDesktop) refreshConversations();
+  }, [isDesktop, refreshConversations]);
+
+  // Desktop: picking a session always lands on the conversation view;
+  // picking the already-active session is "back to the conversation"
+  // and shouldn't reload anything.
+  const handleSelectSessionDesktop = useCallback(
+    (id: string) => {
+      setActiveView("session");
+      if (id !== conversationId) switchConversation(id);
+    },
+    [conversationId, switchConversation]
+  );
+
+  const handleLogout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }, []);
 
   const handleNavigateToManual = useCallback(() => {
     setActiveView("manual");
@@ -363,7 +389,11 @@ export default function MainApp() {
   // "needed" we swap in PostLoginOnboarding then. Blocking on the
   // status check turned the splash into a hard wall when the fetch
   // didn't resolve quickly enough on first paint.
-  if (!initialized) {
+  // isDesktop === null means the media query hasn't been measured yet
+  // (first client render). Gating on it alongside `initialized` means
+  // the user never sees the wrong shell flash during hydration — the
+  // splash below is the same blank linen either way.
+  if (!initialized || isDesktop === null) {
     return (
       <div
         style={{
@@ -384,87 +414,126 @@ export default function MainApp() {
 
   const showAuthModal = isGuest && (promptAuth || bannerAuthRequested) && !authDismissed;
 
+  // The four view nodes are built once and handed to whichever shell is
+  // active. Desktop hides each view's TopBar (the room header replaces it).
+  const sessionContent = (
+    <MobileSession
+      messages={messages}
+      conversationId={conversationId}
+      isLoading={isLoading}
+      isStreaming={isStreaming}
+      confirmedEntries={confirmedEntries}
+      activeCheckpoint={activeCheckpoint}
+      checkpointError={checkpointError}
+      errorMessage={errorMessage}
+      sendMessage={sendMessage}
+      sendChipResponse={sendChipResponse}
+      retryLastMessage={retryLastMessage}
+      confirmCheckpoint={confirmCheckpoint}
+      startConversation={startConversation}
+      isGuest={isGuest}
+      onSignInPrompt={handleSignInPrompt}
+      modalProgress={modalState?.modalProgress ?? null}
+      signupAtMs={modalState?.signupAtMs ?? null}
+      isAnonymous={modalState?.isAnonymous ?? false}
+      onModalProgressAdvance={handleModalProgressAdvance}
+      emergingPatternSnippet={emergingPatternSnippet}
+      hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
+      concreteExamples={concreteExamples}
+      firstName={firstName}
+      onOpenDrawer={handleOpenDrawer}
+      draftToRestore={draftToRestore}
+      onDraftRestored={clearDraftToRestore}
+      showTopBar={!isDesktop}
+    />
+  );
+  const manualContent = (
+    <MobileManual
+      entries={confirmedEntries}
+      firstName={firstName}
+      onExploreWithPersona={handleExploreWithPersona}
+      onUpdateEntry={updateEntry}
+      onNavigateToSession={() => setActiveView("session")}
+      onOpenDrawer={handleOpenDrawer}
+      showTopBar={!isDesktop}
+    />
+  );
+  const settingsContent = (
+    <MobileSettings
+      userEmail={userEmail}
+      isActive={activeView === "settings"}
+      onSimulationEvent={handleSimulationEvent}
+      onPopulateComplete={loadManual}
+      onOpenDrawer={handleOpenDrawer}
+      onNavigateToSession={() => setActiveView("session")}
+      showTopBar={!isDesktop}
+    />
+  );
+  const crisisContent = (
+    <MobileCrisis
+      onNavigateToSession={() => setActiveView("session")}
+      onOpenDrawer={handleOpenDrawer}
+      showTopBar={!isDesktop}
+    />
+  );
+
+  const activeConversation =
+    conversations.find((c) => c.id === conversationId) ?? null;
+  const sessionTitle =
+    activeConversation?.title || activeConversation?.preview || "New session";
+  const sessionDate = formatShortDate(
+    activeConversation?.updated_at ?? new Date().toISOString()
+  );
+
   return (
     <>
-      <MobileLayout
-        activeView={activeView}
-        hasActiveCheckpoint={activeCheckpoint !== null}
-        sessionContent={
-          <MobileSession
-            messages={messages}
-            conversationId={conversationId}
-            isLoading={isLoading}
-            isStreaming={isStreaming}
-            confirmedEntries={confirmedEntries}
-            activeCheckpoint={activeCheckpoint}
-            checkpointError={checkpointError}
-            errorMessage={errorMessage}
-            sendMessage={sendMessage}
-            sendChipResponse={sendChipResponse}
-            retryLastMessage={retryLastMessage}
-            confirmCheckpoint={confirmCheckpoint}
-            startConversation={startConversation}
-            isGuest={isGuest}
-            onSignInPrompt={handleSignInPrompt}
-            modalProgress={modalState?.modalProgress ?? null}
-            signupAtMs={modalState?.signupAtMs ?? null}
-            isAnonymous={modalState?.isAnonymous ?? false}
-            onModalProgressAdvance={handleModalProgressAdvance}
-            emergingPatternSnippet={emergingPatternSnippet}
-            hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
-            concreteExamples={concreteExamples}
-            firstName={firstName}
-            onOpenDrawer={handleOpenDrawer}
-            draftToRestore={draftToRestore}
-            onDraftRestored={clearDraftToRestore}
-          />
-        }
-        manualContent={
-          <MobileManual
-            entries={confirmedEntries}
-            firstName={firstName}
-            onExploreWithPersona={handleExploreWithPersona}
-            onUpdateEntry={updateEntry}
-            onNavigateToSession={() => setActiveView("session")}
-            onOpenDrawer={handleOpenDrawer}
-          />
-        }
-        settingsContent={
-          <MobileSettings
-            userEmail={userEmail}
-            isActive={activeView === "settings"}
-            onSimulationEvent={handleSimulationEvent}
-            onPopulateComplete={loadManual}
-            onOpenDrawer={handleOpenDrawer}
-            onNavigateToSession={() => setActiveView("session")}
-          />
-        }
-        crisisContent={
-          <MobileCrisis
-            onNavigateToSession={() => setActiveView("session")}
-            onOpenDrawer={handleOpenDrawer}
-          />
-        }
-        overlay={
-          <SessionDrawer
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            conversations={conversations}
-            activeConversationId={conversationId}
-            activeView={activeView}
-            manualEntryCount={confirmedEntries.length}
-            onSelectSession={switchConversation}
-            onNewSession={handleNewSession}
-            onNavigateToManual={handleNavigateToManual}
-            onNavigateToSettings={handleNavigateToSettings}
-            onNavigateToCrisis={handleNavigateToCrisis}
-            onLogout={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              window.location.href = "/login";
-            }}
-          />
-        }
-      />
+      {isDesktop ? (
+        <DesktopShell
+          activeView={activeView}
+          hasActiveCheckpoint={activeCheckpoint !== null}
+          sessionContent={sessionContent}
+          manualContent={manualContent}
+          settingsContent={settingsContent}
+          crisisContent={crisisContent}
+          sessionTitle={sessionTitle}
+          sessionDate={sessionDate}
+          conversations={conversations}
+          activeConversationId={conversationId}
+          manualEntryCount={confirmedEntries.length}
+          onSelectSession={handleSelectSessionDesktop}
+          onNewSession={handleNewSession}
+          onNavigateToSession={() => setActiveView("session")}
+          onNavigateToManual={handleNavigateToManual}
+          onNavigateToSettings={handleNavigateToSettings}
+          onNavigateToCrisis={handleNavigateToCrisis}
+          onLogout={handleLogout}
+        />
+      ) : (
+        <MobileLayout
+          activeView={activeView}
+          hasActiveCheckpoint={activeCheckpoint !== null}
+          sessionContent={sessionContent}
+          manualContent={manualContent}
+          settingsContent={settingsContent}
+          crisisContent={crisisContent}
+          overlay={
+            <SessionDrawer
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              conversations={conversations}
+              activeConversationId={conversationId}
+              activeView={activeView}
+              manualEntryCount={confirmedEntries.length}
+              onSelectSession={switchConversation}
+              onNewSession={handleNewSession}
+              onNavigateToManual={handleNavigateToManual}
+              onNavigateToSettings={handleNavigateToSettings}
+              onNavigateToCrisis={handleNavigateToCrisis}
+              onLogout={handleLogout}
+            />
+          }
+        />
+      )}
 
       {/* Exploration interstitial overlay */}
       {explorationPhase !== null && (

@@ -5,13 +5,15 @@ import TopBar from "@/components/shared/TopBar";
 interface MobileCrisisProps {
   onNavigateToSession?: () => void;
   onOpenDrawer?: () => void;
+  // false when the desktop shell provides its own header. Default true.
+  showTopBar?: boolean;
 }
 
 // Dedicated Crisis Support surface, reached from the drawer's footer
 // row. Kept deliberately quiet — a serif intro line, two link cards,
 // the "free + 24/7" reassurance. The drawer is the entry point; the
 // TopBar back chevron returns to chat.
-export default function MobileCrisis({ onNavigateToSession, onOpenDrawer }: MobileCrisisProps) {
+export default function MobileCrisis({ onNavigateToSession, onOpenDrawer, showTopBar = true }: MobileCrisisProps) {
   return (
     <div
       style={{
@@ -20,7 +22,7 @@ export default function MobileCrisis({ onNavigateToSession, onOpenDrawer }: Mobi
         flexDirection: "column",
       }}
     >
-      <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />
+      {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
 
       <div
         style={{

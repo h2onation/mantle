@@ -74,6 +74,8 @@ interface MobileSessionProps {
   concreteExamples?: number;
   firstName?: string | null;
   onOpenDrawer: () => void;
+  // false when the desktop shell provides its own header. Default true.
+  showTopBar?: boolean;
   // Server-rejected paste recovery: when /api/chat returns a 400 with an
   // `error` message (e.g. MAX_UPLOAD_LENGTH), useChat surfaces the
   // rejected text here so ChatInput can rehydrate the textarea. Cleared
@@ -107,6 +109,7 @@ export default function MobileSession({
   concreteExamples = 0,
   firstName = null,
   onOpenDrawer,
+  showTopBar = true,
   draftToRestore = null,
   onDraftRestored,
 }: MobileSessionProps) {
@@ -340,7 +343,7 @@ export default function MobileSession({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      <TopBar onMenu={onOpenDrawer} />
+      {showTopBar && <TopBar onMenu={onOpenDrawer} />}
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (

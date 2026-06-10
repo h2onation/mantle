@@ -10,7 +10,16 @@ import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-export default function BetaFeedbackButton() {
+interface BetaFeedbackButtonProps {
+  // "floating" (default) pins the trigger to the top-right of the
+  // phone frame; "inline" renders it as a normal inline element so the
+  // desktop room header can host it. The popover is identical.
+  variant?: "floating" | "inline";
+}
+
+export default function BetaFeedbackButton({
+  variant = "floating",
+}: BetaFeedbackButtonProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -83,10 +92,9 @@ export default function BetaFeedbackButton() {
         aria-label="Send feedback"
         title="Send feedback"
         style={{
-          position: "absolute",
-          top: 22,
-          right: 22,
-          zIndex: 110,
+          ...(variant === "floating"
+            ? { position: "absolute" as const, top: 22, right: 22, zIndex: 110 }
+            : { position: "static" as const }),
           fontFamily: "var(--font-mono)",
           fontSize: "10px",
           letterSpacing: "1.8px",

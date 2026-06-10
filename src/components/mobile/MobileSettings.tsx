@@ -24,6 +24,8 @@ interface MobileSettingsProps {
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
   onOpenDrawer?: () => void;
+  // false when the desktop shell provides its own header. Default true.
+  showTopBar?: boolean;
   onNavigateToSession?: () => void;
 }
 
@@ -65,6 +67,7 @@ export default function MobileSettings({
   onSimulationEvent,
   onPopulateComplete,
   onOpenDrawer,
+  showTopBar = true,
   onNavigateToSession,
 }: MobileSettingsProps) {
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
@@ -341,7 +344,7 @@ export default function MobileSettings({
         flexDirection: "column",
       }}
     >
-      <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />
+      {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
 
       <div
         style={{

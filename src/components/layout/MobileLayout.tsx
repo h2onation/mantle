@@ -23,7 +23,8 @@ interface MobileLayoutProps {
   overlay?: React.ReactNode;
 }
 
-function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): string {
+// Shared with DesktopShell so both shells light the room identically.
+export function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): string {
   if (view === "session") {
     return hasActiveCheckpoint
       ? "var(--session-bg-checkpoint)"
