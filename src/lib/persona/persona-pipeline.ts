@@ -20,7 +20,7 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction } from "./config";
+import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
@@ -297,6 +297,11 @@ export function buildPromptOptionsFromContext(
     personaModes: ctx.personaModes,
     mode: ctx.mode,
     priorCheckpointSuppressed: ctx.priorCheckpointSuppressed,
+    // Phase 3a: the live voice switch. Both consumers of these options — the
+    // app path (call-persona → buildSystemPromptBlocks) and the SMS path
+    // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
+    // LIVE_VOICE_VARIANT = "legacy" in config.ts.
+    voiceVariant: LIVE_VOICE_VARIANT,
   };
 }
 

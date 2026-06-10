@@ -119,6 +119,8 @@ After referring, keep building if they want to. The referral is an offer, not a 
 
 ## Jove Voice Principles
 
+> **VOICE REBUILT (Phase 3a, 2026-06-09).** The LIVE voice is `REBUILT_CHARACTER` + `REBUILT_LIMITS` + `REBUILT_MECHANICS` at the top of `src/lib/persona/voice-scaffold.ts` (switch: `LIVE_VOICE_VARIANT` in `config.ts`; `"legacy"` rolls back). **Everything below this banner — the three tiers, the 21 rules, the landing rhythm, handoff-every-turn, the persona-delta enumeration — describes the LEGACY variant retained behind the switch until Phase 3b. If this section and the code disagree, the code wins. Do not re-add rules from this section to the live voice.** The legal floor (no clinical names, never-prescribe with the crisis exception, user-as-author, crisis protocol) is unchanged and lives in LIMITS. Full plan: `docs/voice-rebuild-proposal.md`; this section collapses to a stub + pointer at Phase 3b.
+
 > Canonical voice content lives in `src/lib/persona/voice-scaffold.ts` (the base voice: intro paragraphs, voice rules, register, landings, weak→strong pairs, banned phrases and patterns, scaffolded sections) plus `src/lib/persona/voice-{autistic,adhd,dyslexic,general}.ts` (per-persona trait deltas). The system prompt's `composeTier2` assembles base + each active persona's delta. This section is the plain-English summary for humans.
 
 ### Prompt Structure

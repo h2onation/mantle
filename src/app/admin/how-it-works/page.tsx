@@ -34,7 +34,7 @@ const STAGES: Stage[] = [
     id: 2,
     title: "The prompt gets assembled — and extraction fires alongside it",
     caption:
-      "Jove doesn't see one fixed prompt. Every turn, a recipe gets built fresh: identity rules, voice scaffold, the user's persona delta, the conversation mode, plus conditional blocks that only fire when relevant (returning user, approaching a checkpoint, clinical material, and so on). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory (what's underneath the surface topic, which phrases are load-bearing, where the conversation is); that working memory feeds the next turn's prompt (a one-turn lag you never feel).",
+      "Jove doesn't see one fixed prompt. Every turn, a recipe gets built fresh: the voice (a short character + hard limits + entry mechanics — rebuilt June 2026 from the earlier rule-pile), the conversation mode, plus conditional blocks that only fire when relevant (returning user, clinical material, and so on). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory (what's underneath the surface topic, which phrases are load-bearing, where the conversation is); that working memory feeds the next turn's prompt (a one-turn lag you never feel).",
     specifics:
       "~7,000 tokens assembled. One background fire-and-forget call: extraction (Sonnet — feeds next turn).",
     actor: "system",

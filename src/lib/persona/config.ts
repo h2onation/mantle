@@ -97,6 +97,17 @@ export const CHECKPOINT_ACTIONS = {
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 
+// ── Voice rebuild — Phase 3a switch ──────────────────────────────────────────
+// Which voice the LIVE conversation paths run. "rebuilt" = CHARACTER + LIMITS
+// + MECHANICS (voice-scaffold.ts top banner); "legacy" = the three-tier
+// rule-pile. This is the single rollback lever: set to "legacy" and both the
+// app path (persona-pipeline → call-persona) and the SMS path (persona-bridge)
+// revert on the next turn. The legacy arrays stay in the tree until the
+// Phase-3a soak confirms the rebuilt voice holds (Phase 3b deletes them).
+// See docs/voice-rebuild-proposal.md §8.
+export type VoiceVariant = "legacy" | "rebuilt";
+export const LIVE_VOICE_VARIANT: VoiceVariant = "rebuilt";
+
 // Conversation mode: which entry path the user took into a session. Centralized
 // here so the runtime tuple (used for input validation in /api/chat) and the
 // derived type (used in BuildPromptOptions and downstream consumers) stay in

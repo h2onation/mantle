@@ -50,6 +50,24 @@ import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/config";
 type Variant = "legacy" | "rebuilt";
 type Msg = { role: "user" | "assistant"; content: string };
 
+/** Retry transient API failures (network blips, rate-limit aborts after big
+ *  sweeps). 3 attempts, exponential backoff. The Jove call is fatal to a
+ *  conversation if it fails; extraction already degrades gracefully. */
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const wait = attempt * 15_000;
+      console.warn(`  [retry] ${label} attempt ${attempt} failed (${err instanceof Error ? err.message : err}); waiting ${wait / 1000}s`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  throw lastErr;
+}
+
 // ── Scenarios ────────────────────────────────────────────────────────────────
 // Each scenario embeds its behavioral persona (Phase-0 requirement): the sim
 // user descriptions below are explicit about checkpoint behavior because
@@ -113,10 +131,8 @@ async function runConversation(
 
   for (let turn = 1; turn <= maxTurns; turn++) {
     // 1. Simulated user speaks (responding to a checkpoint when one is open).
-    const userMessage = await generateSimulatedUserMessage(
-      scenario.persona,
-      history,
-      pendingCheckpoint
+    const userMessage = await withRetry("sim-user", () =>
+      generateSimulatedUserMessage(scenario.persona, history, pendingCheckpoint)
     );
     if (userMessage.includes("[END]")) {
       endedBy = "sim-user-end";
@@ -167,12 +183,14 @@ async function runConversation(
     ].filter((b) => b.text.trim().length > 0) as SystemBlock[];
 
     // 3. Jove's turn.
-    const response = await anthropicFetch({
-      model: PERSONA_MODEL,
-      max_tokens: PERSONA_MAX_TOKENS,
-      system,
-      messages: history,
-    });
+    const response = await withRetry("jove-turn", () =>
+      anthropicFetch({
+        model: PERSONA_MODEL,
+        max_tokens: PERSONA_MAX_TOKENS,
+        system,
+        messages: history,
+      })
+    );
     const joveText = extractResponseText(response);
     history.push({ role: "assistant", content: joveText });
 

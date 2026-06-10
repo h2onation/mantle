@@ -67,6 +67,12 @@ const REFINE_SIGNALS = [
   "part of it",
   "some of that",
   "mostly but",
+  // Correction-with-replacement ("no, it's not that I'm avoiding — it's more
+  // that...") is a refinement, not a confirm. The voice A/B (2026-06-09)
+  // caught these being parsed as "confirmed" because neither signal list
+  // matched the correction shape.
+  "it's not that",
+  "it's more that",
 ];
 
 /**
