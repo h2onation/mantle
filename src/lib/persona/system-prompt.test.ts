@@ -709,10 +709,10 @@ describe("buildSystemPrompt", () => {
     });
 
     it("instructs naming the Manual-entry callback by title", () => {
-      // Soak iteration 2 (2026-06-10): the callback must be unmistakable —
-      // a vague allusion to the entry's topic reads as confusion.
+      // Soak iterations 2+5 (2026-06-10): general opener by default; the
+      // callback fires only after a confirmed entry, named by title.
       const result = build(earlyTurnReturning);
-      expect(result).toContain("name it as theirs, by title");
+      expect(result).toContain("reference it by title");
     });
 
     it("does NOT contain the old closing-question variants", () => {
