@@ -281,6 +281,78 @@
         color: var(--session-walnut-meta-strong);
       }
 
+      /* ── The Manual card — the artifact gets a shelf of its own, in
+         the same plate vocabulary as its layer cards. ── */
+      .manual-card {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin: 10px 12px 6px;
+        padding: 14px 14px 13px;
+        width: calc(100% - 24px);
+        text-align: left;
+        cursor: pointer;
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-walnut-border);
+        border-radius: 12px;
+        box-shadow: inset 0 1px 0 rgba(var(--halo-ink), 0.1);
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      [data-theme="light"] .manual-card {
+        background: rgba(92, 58, 30, 0.08);
+      }
+
+      .manual-card:hover {
+        border-color: rgba(var(--halo-ink), 0.5);
+        transform: translateY(-1px);
+      }
+
+      .manual-card.active {
+        border-color: rgba(var(--halo-ink), 0.6);
+      }
+
+      .manual-card .ic {
+        width: 21px;
+        height: 21px;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .manual-card .text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .manual-card .title {
+        display: block;
+        font-family: var(--font-serif);
+        font-size: 18px;
+        line-height: 1.15;
+        color: var(--session-ink);
+        white-space: nowrap;
+      }
+
+      .manual-card .title span {
+        color: var(--session-paratext-spine);
+      }
+
+      .manual-card .meta {
+        display: block;
+        margin-top: 4px;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        white-space: nowrap;
+      }
+
+      .manual-card .chev {
+        font-family: var(--font-sans);
+        font-size: 16px;
+        color: var(--session-walnut-meta);
+      }
+
       .sb-label {
         margin: 18px 24px 8px;
         font-family: var(--font-mono);
@@ -454,6 +526,20 @@
         font-family: var(--font-mono);
         font-size: 8px;
         letter-spacing: 0.5px;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      /* The Manual keeps its weight even at rail width: walnut plate
+         behind the book, brighter icon, hairline border. */
+      .rail-btn.manual-emph {
+        color: var(--session-walnut-meta-strong);
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-walnut-border);
+      }
+
+      .rail-btn.manual-emph:hover,
+      .rail-btn.manual-emph.active {
+        border-color: rgba(var(--halo-ink), 0.5);
         color: var(--session-walnut-meta-strong);
       }
 
@@ -906,10 +992,13 @@
             New session
           </button>
 
-          <button class="sb-item" id="manual-item">
+          <button class="manual-card" id="manual-item">
             <svg class="ic" viewBox="0 0 18 18"><path d="M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z" /></svg>
-            Your Manual
-            <span class="count">5</span>
+            <span class="text">
+              <span class="title">Your Manual<span>.</span></span>
+              <span class="meta">5 entries · 1 new</span>
+            </span>
+            <span class="chev">›</span>
           </button>
 
           <p class="sb-label">Sessions</p>
@@ -969,10 +1058,10 @@
             <svg class="ic" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" /></svg>
             <span class="tip">New session</span>
           </button>
-          <button class="rail-btn" id="rail-manual">
+          <button class="rail-btn manual-emph" id="rail-manual">
             <svg class="ic" viewBox="0 0 18 18"><path d="M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z" /></svg>
             <span class="badge">5</span>
-            <span class="tip">Your Manual · 5 entries</span>
+            <span class="tip">Your Manual · 5 entries · 1 new</span>
           </button>
           <button class="rail-btn" id="rail-sessions">
             <svg class="ic" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M9 5.5V9l2.3 1.8" /></svg>
@@ -1170,7 +1259,12 @@
     <script>
       const body = document.body;
       const setSidebar = (v) => (body.dataset.sidebar = v);
-      const setView = (v) => (body.dataset.view = v);
+      const setView = (v) => {
+        body.dataset.view = v;
+        const active = v === "manual";
+        document.getElementById("manual-item").classList.toggle("active", active);
+        document.getElementById("rail-manual").classList.toggle("active", active);
+      };
 
       document.getElementById("collapse").addEventListener("click", () => setSidebar("rail"));
       document.getElementById("expand").addEventListener("click", () => setSidebar("open"));
