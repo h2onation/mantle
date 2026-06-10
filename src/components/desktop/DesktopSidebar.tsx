@@ -170,11 +170,10 @@ export default function DesktopSidebar({
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            padding: "22px 16px 14px 24px",
+            justifyContent: "flex-end",
+            padding: "16px 16px 8px",
           }}
         >
-          <p style={{ ...EYEBROW_STYLE, margin: 0 }}>A private manual</p>
           <button
             className="mw-dsk-railbtn"
             onClick={() => setCollapsed(true)}
