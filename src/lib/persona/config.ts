@@ -61,17 +61,21 @@ export const SIMULATION_MODEL = "claude-haiku-4-5-20251001";
 // for Jove. Lives here (not in persona-pipeline.ts) to avoid a circular import
 // between persona-pipeline.ts and call-persona.ts.
 export const CHECKPOINT_ACTIONS = {
-  // LEGACY — DO NOT DELETE. Current code no longer writes a confirmed action
-  // row (the confirm path persists nothing; only rejected / refined / deferred
-  // insert a system row). But pre-`2350176` conversations DO contain
-  // "[User confirmed the checkpoint]" rows in prod — 19 confirmed on 2026-06-03
-  // — and mapSystemMessages() needs this entry to render them as a turn on
-  // reload. Re-check before ever removing it:
-  //   select count(*) from messages where role='system'
-  //     and content='[User confirmed the checkpoint]';   -- must be 0 to delete
+  // LOAD-BEARING on every confirm, not legacy. The confirm RPC
+  // (confirm_checkpoint_write, migration 20260417000003:117-118) inserts a
+  // "[User confirmed the checkpoint]" system row on EVERY confirm, and
+  // mapSystemMessages() replays this naturalReply as a synthetic user turn on
+  // the next turn and on every reload. (An earlier comment here claimed the
+  // confirm path persists nothing — that was wrong; verified 2026-06-09.)
+  //
+  // The reply is deliberately flat and affect-free: a tap is an ACTION, not a
+  // felt response. The previous text ("That resonates.") fabricated recognition
+  // the user never expressed, so Jove treated every confirm — including
+  // tap-to-dismiss — as a landed pattern. Voice-rebuild Phase 1; see
+  // docs/voice-rebuild-proposal.md §6.
   confirmed: {
     systemMessage: "[User confirmed the checkpoint]",
-    naturalReply: "I confirmed that checkpoint. That resonates.",
+    naturalReply: "I saved that to my Manual.",
   },
   rejected: {
     systemMessage: "[User rejected the checkpoint]",
@@ -92,6 +96,17 @@ export const CHECKPOINT_ACTIONS = {
 } as const;
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
+
+// ── Voice rebuild — Phase 3a switch ──────────────────────────────────────────
+// Which voice the LIVE conversation paths run. "rebuilt" = CHARACTER + LIMITS
+// + MECHANICS (voice-scaffold.ts top banner); "legacy" = the three-tier
+// rule-pile. This is the single rollback lever: set to "legacy" and both the
+// app path (persona-pipeline → call-persona) and the SMS path (persona-bridge)
+// revert on the next turn. The legacy arrays stay in the tree until the
+// Phase-3a soak confirms the rebuilt voice holds (Phase 3b deletes them).
+// See docs/voice-rebuild-proposal.md §8.
+export type VoiceVariant = "legacy" | "rebuilt";
+export const LIVE_VOICE_VARIANT: VoiceVariant = "rebuilt";
 
 // Conversation mode: which entry path the user took into a session. Centralized
 // here so the runtime tuple (used for input validation in /api/chat) and the

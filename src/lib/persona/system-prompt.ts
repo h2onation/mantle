@@ -20,6 +20,9 @@ import {
   EXAMPLE_REGISTER_BASE,
   LANDING_EXAMPLES_BASE,
   WEAK_STRONG_EXAMPLES_BASE,
+  REBUILT_CHARACTER,
+  REBUILT_LIMITS,
+  REBUILT_MECHANICS,
 } from "@/lib/persona/voice-scaffold";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
@@ -226,6 +229,15 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  holds the checkpoint-proposal instructions for one turn so Jove can't
    *  re-propose the same un-ripe entry and re-enter the suppression loop. */
   priorCheckpointSuppressed?: boolean;
+  /** Voice rebuild switch (docs/voice-rebuild-proposal.md §8). "rebuilt"
+   *  emits CHARACTER + LIMITS + MECHANICS (+ a trimmed operational Tier 3)
+   *  in place of the three-tier voice; dynamic context (Manual, session
+   *  summary, extraction brief) is unchanged. Absent/"legacy" is
+   *  byte-identical to the pre-switch prompt. As of Phase 3a the live call
+   *  sites pass LIVE_VOICE_VARIANT from config.ts (the rollback lever);
+   *  the builder default stays legacy so direct callers and tests are
+   *  unaffected. */
+  voiceVariant?: "legacy" | "rebuilt";
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -799,8 +811,19 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
   return flags;
 }
 
-function buildTier3(flags: Tier3Flags): string {
-  const blocks = TIER_3_BLOCKS.filter((b) => b.shouldRender(flags))
+// Voice-flavored Tier-3 blocks the rebuilt voice replaces (see the rebuilt
+// branch in buildSystemPromptBlocks for the per-block rationale).
+const REBUILT_TIER3_EXCLUSIONS: ReadonlySet<string> = new Set([
+  "checkpoints",
+  "first-checkpoint",
+  "adapting-short-answers",
+  "readiness-gate",
+]);
+
+function buildTier3(flags: Tier3Flags, exclude?: ReadonlySet<string>): string {
+  const blocks = TIER_3_BLOCKS.filter(
+    (b) => b.shouldRender(flags) && !exclude?.has(b.id)
+  )
     .map((b) => b.render(flags))
     .join("");
   return "TIER 3: CONVERSATION MECHANICS\n" + blocks;
@@ -959,6 +982,59 @@ export function buildSystemPromptBlocks(
     personaModes = ["general"],
   } = options;
 
+  // Voice rebuild variant (docs/voice-rebuild-proposal.md §8). The rebuilt
+  // prompt is CHARACTER + LIMITS + MECHANICS + a TRIMMED Tier 3 + the same
+  // dynamic context as legacy — no rule arrays, no persona deltas. Block
+  // shape mirrors legacy so the caller's cache_control placement works
+  // identically: tier1 slot = CHARACTER, staticContext = LIMITS + MECHANICS +
+  // older Manual, dynamic = trimmed Tier 3 + per-turn context.
+  //
+  // The Tier-3 trim keeps the OPERATIONAL blocks production needs (openers,
+  // guided-intake/upload modes, returning-user, post-confirm pinned
+  // templates, post-rejection/suppression, clinical + referral + fabrication
+  // guards) and drops only the VOICE-flavored blocks the rebuilt core
+  // replaces or contradicts:
+  //   - checkpoints / first-checkpoint: MECHANICS carries the transition-line
+  //     contract and readiness; the old block's blanket "tentative grammar"
+  //     contradicts the rebuilt voice.
+  //   - adapting-short-answers: its "Guarded → slow down, soften" reflex is
+  //     the opposite of the rebuilt press-for-precision posture.
+  //   - readiness-gate: the canned 3-entry milestone speech (off-voice,
+  //     two-option menu — flagged by the voice audit).
+  if (options.voiceVariant === "rebuilt") {
+    const { older: rebuiltOlder, recent: rebuiltRecent } =
+      prepareManualContextBlocks(manualComponents, currentConversationId);
+
+    let rebuiltStatic = `\n\n${REBUILT_LIMITS}\n\n${REBUILT_MECHANICS}`;
+    if (rebuiltOlder) {
+      rebuiltStatic += `\n\n${rebuiltOlder.trimEnd()}\n`;
+    }
+
+    const rebuiltTier3 = buildTier3(
+      deriveTier3Flags(options),
+      REBUILT_TIER3_EXCLUSIONS
+    );
+
+    let rebuiltDynamic = `\n\n${rebuiltTier3}\n`;
+    if (rebuiltRecent) rebuiltDynamic += rebuiltRecent;
+    rebuiltDynamic += renderSessionContextBlock({
+      isReturningUser,
+      sessionCount,
+      sessionSummary,
+    });
+    if (extractionContext) rebuiltDynamic += extractionContext;
+    rebuiltDynamic += renderTranscriptContextBlock(transcriptContext);
+    if (explorationContext) {
+      rebuiltDynamic += "\n" + renderExplorationContextBlock(explorationContext);
+    }
+
+    return {
+      tier1: REBUILT_CHARACTER,
+      staticContext: rebuiltStatic,
+      dynamic: rebuiltDynamic,
+    };
+  }
+
   const intro = `You are ${PERSONA_NAME}. You help people understand how they operate through deep conversation. You are not a therapist, not a coach. You are a skilled conversationalist who listens, asks the right questions, and reflects back what you hear. Nothing becomes part of someone's manual unless they confirm it.`;
 
   const tier2 = composeTier2(personaModes);
@@ -1023,6 +1099,15 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // ─── Group chat prompt (completely separate from 1:1 Jove) ────────────
   if (options.kind === "group") {
     return buildGroupPrompt(options.groupContext, options.manualComponents);
+  }
+
+  // Rebuilt voice (Phase 3a): delegate to the blocks builder and join. The
+  // flat-string consumers (SMS persona-bridge, admin prompt viewer) get the
+  // same rebuilt prompt as the app path; there is no legacy-bytes constraint
+  // for the rebuilt variant, so delegation is safe and keeps one source.
+  if (options.voiceVariant === "rebuilt") {
+    const blocks = buildSystemPromptBlocks(options);
+    return blocks.tier1 + blocks.staticContext + blocks.dynamic;
   }
 
   const {

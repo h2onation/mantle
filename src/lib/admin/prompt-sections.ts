@@ -4,7 +4,7 @@ import {
   type PersonaMode,
   type OneOnOnePromptOptions,
 } from "@/lib/persona/system-prompt";
-import type { ConversationMode } from "@/lib/persona/config";
+import { LIVE_VOICE_VARIANT, type ConversationMode } from "@/lib/persona/config";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,6 +116,37 @@ function convModeAlternatives(currentMode: ConvMode): SectionAlternative[] {
 }
 
 const SECTION_DEFS: SectionDef[] = [
+  // ── Rebuilt voice (Phase 3a — the LIVE voice; docs/voice-rebuild-proposal.md §8).
+  // The "Live Voice ·" label prefix suppresses the legacy Tier-N display
+  // prefix in displayLabel(). Legacy defs below still match when the viewer
+  // renders the legacy variant (rollback or comparison).
+  {
+    id: "rebuilt-character",
+    label: "Live Voice · Character",
+    tier: "1",
+    pattern: /^CHARACTER$/m,
+    source: { file: "voice-scaffold.ts", symbol: "REBUILT_CHARACTER" },
+    conditionFn: () => ({ type: "always", label: "Always (rebuilt voice)" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "rebuilt-limits",
+    label: "Live Voice · Limits",
+    tier: "1",
+    pattern: /^LIMITS — these never bend$/m,
+    source: { file: "voice-scaffold.ts", symbol: "REBUILT_LIMITS" },
+    conditionFn: () => ({ type: "always", label: "Always (rebuilt voice)" }),
+    alternativesFn: () => [],
+  },
+  {
+    id: "rebuilt-mechanics",
+    label: "Live Voice · Mechanics",
+    tier: "2",
+    pattern: /^MECHANICS — how Manual entries get made$/m,
+    source: { file: "voice-scaffold.ts", symbol: "REBUILT_MECHANICS" },
+    conditionFn: () => ({ type: "always", label: "Always (rebuilt voice)" }),
+    alternativesFn: () => [],
+  },
   {
     id: "intro",
     label: "Introduction",
@@ -718,6 +749,9 @@ export function buildAllPhases(
       ...config.options,
       mode: convMode,
       personaModes,
+      // The viewer shows the LIVE prompt — same switch as the conversation
+      // paths, so the admin page tracks the rebuilt voice automatically.
+      voiceVariant: LIVE_VOICE_VARIANT,
     } as OneOnOnePromptOptions);
 
     const sections = parsePromptSections(prompt, personaModes, convMode, altTokenCache);

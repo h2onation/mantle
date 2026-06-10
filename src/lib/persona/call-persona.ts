@@ -158,6 +158,14 @@ const CRISIS_PHRASES = [
   "self-harm",
   "better off without me",
   "no point anymore",
+  // The doctrine's canonical indirect signal (rules.md crisis protocol,
+  // Tier 1 R6 example list) is "I don't see the point anymore" — which does
+  // NOT contain the "no point anymore" substring above. Found by the voice
+  // A/B (2026-06-09): the rebuilt-voice arm missed the 988 handoff and the
+  // deterministic backstop here never fired because the doctrine's own
+  // example phrase failed its own detector. "see the point anymore" covers
+  // the don't/can't/no-longer variants.
+  "see the point anymore",
   "want to disappear",
   "not worth living",
   "no reason to keep going",

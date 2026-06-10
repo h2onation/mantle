@@ -34,6 +34,8 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 
 ## Prompt Structure
 
+> **VOICE REBUILT (Phase 3a, 2026-06-09).** The LIVE voice is `REBUILT_CHARACTER` + `REBUILT_LIMITS` + `REBUILT_MECHANICS` at the top of `src/lib/persona/voice-scaffold.ts`, plus a trimmed Tier 3 (checkpoints / first-checkpoint / adapting / readiness-gate blocks excluded — MECHANICS replaces them). The switch is `LIVE_VOICE_VARIANT` in `src/lib/persona/config.ts`; set it to `"legacy"` to roll back. **The three-tier description below describes the LEGACY variant, retained behind the switch until Phase 3b. If this doc and the code disagree, the code wins. Do not re-add rules from the description below to the live voice.** Full plan: `docs/voice-rebuild-proposal.md`.
+
 The Jove system prompt is built in `src/lib/persona/system-prompt.ts` in three tiers. Lower tiers override higher tiers when they conflict.
 
 - **Tier 1 — Constitutional.** Seven rules that never change: not a therapist, user is the author, mirror exact language, every turn ends with a handoff (question OR directive that hands the user a clear next move), nothing enters the manual without confirmation, no clinical framework names, direct when asked what Jove is. Edit only for a fundamental product change.

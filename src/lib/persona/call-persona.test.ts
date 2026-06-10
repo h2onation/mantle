@@ -73,7 +73,7 @@ describe("mapSystemMessages", () => {
     expect(result).toEqual([
       {
         role: "user",
-        content: "I confirmed that checkpoint. That resonates.",
+        content: "I saved that to my Manual.",
       },
     ]);
   });
@@ -150,7 +150,7 @@ describe("mapSystemMessages", () => {
       { role: "assistant", content: "Let me reflect that back" },
       {
         role: "user",
-        content: "I confirmed that checkpoint. That resonates.",
+        content: "I saved that to my Manual.",
       },
       { role: "assistant", content: "Great, moving on" },
       // unknown system message dropped
