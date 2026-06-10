@@ -326,7 +326,7 @@ describe("buildSystemPrompt", () => {
       });
       // The block instructs the model to deliver the opener verbatim — a
       // distinctive substring of SITUATION_OPENER must be in the prompt.
-      expect(result).toContain("the part that's hard to see from the inside");
+      expect(result).toContain("I'll tell you what I actually see in it");
     });
 
     it("does NOT contain FIRST MESSAGE for returning users", () => {
@@ -528,11 +528,13 @@ describe("buildSystemPrompt", () => {
 
     it("pins the first-time scaffolding paragraph", () => {
       const result = build({ postConfirmMode: "first-message-2" });
-      expect(result).toContain("A Manual takes time to build");
-      expect(result).toContain("showing up daily over the next two weeks");
+      // Trimmed 2026-06-10 (voice rebuild soak): the retention pitch
+      // ("showing up daily over the next two weeks") was cut — it landed on
+      // the recognition peak. Only the entry-ownership line remains.
       expect(result).toContain(
-        "You can change the name or sharpen the entry anytime"
+        "You can change the name or sharpen this entry anytime"
       );
+      expect(result).not.toContain("showing up daily over the next two weeks");
     });
 
     it("requires a continue-or-pivot offer with a specific thread", () => {
@@ -584,10 +586,11 @@ describe("buildSystemPrompt", () => {
 
     it("does NOT include the first-time scaffolding paragraph", () => {
       const result = build({ postConfirmMode: "subsequent-single" });
-      // Subsequent users already know how the Manual builds; the
-      // two-week commitment line is first-confirm only.
-      expect(result).not.toContain("A Manual takes time to build");
-      expect(result).not.toContain("showing up daily over the next two weeks");
+      // Subsequent users already know the entry is editable; the
+      // ownership line is first-confirm only.
+      expect(result).not.toContain(
+        "You can change the name or sharpen this entry anytime"
+      );
     });
 
     it("requires a continue-or-pivot offer with a specific thread", () => {
@@ -705,9 +708,11 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain('The opener: "Welcome back."');
     });
 
-    it("permits referencing either a recent entry OR an open thread", () => {
+    it("instructs naming the Manual-entry callback by title", () => {
+      // Soak iteration 2 (2026-06-10): the callback must be unmistakable —
+      // a vague allusion to the entry's topic reads as confusion.
       const result = build(earlyTurnReturning);
-      expect(result).toContain("entry name OR an open thread");
+      expect(result).toContain("name it as theirs, by title");
     });
 
     it("does NOT contain the old closing-question variants", () => {

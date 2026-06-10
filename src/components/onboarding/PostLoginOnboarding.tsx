@@ -7,7 +7,7 @@ import SeedScreen from "./SeedScreen";
 
 // Renders the InfoScreens → PersonaModeScreen → SeedScreen sequence
 // for an already-authenticated user finishing first-time onboarding.
-// Skips EntryScreen / LoginScreen entirely. SeedScreen runs in
+// Skips the login screen entirely. SeedScreen runs in
 // post-login mode (writes profiles.onboarding_completed_at instead
 // of creating an anonymous account) and calls onComplete when done,
 // which lets MainApp re-render into the normal app without a route

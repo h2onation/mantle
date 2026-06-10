@@ -7,81 +7,8 @@ import { join } from "path";
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf-8");
 
 describe("PR3 onboarding copy pass", () => {
-  // ─── EntryScreen ─────────────────────────────────────────────────────────
-  describe("EntryScreen", () => {
-    const src = read("src/components/onboarding/EntryScreen.tsx");
-
-    it("uses hero-scale 'mywalnut.' wordmark with walnut period", () => {
-      expect(src).toContain("mywalnut");
-      expect(src).toContain("var(--session-walnut)");
-    });
-
-    it("uses 'A private manual' eyebrow", () => {
-      expect(src).toContain("A private manual");
-    });
-
-    it("uses italic Spectral thesis line with persona name", () => {
-      expect(src).toContain("A behavioral playbook for how you actually work");
-      expect(src).toContain("{PERSONA_NAME}");
-    });
-
-    it("uses 'Sign in' as the primary CTA (closed beta)", () => {
-      expect(src).toContain("Sign in");
-      expect(src).toContain("onLogin");
-      expect(src).not.toContain("Already have access?");
-    });
-
-    it("includes privacy and terms links", () => {
-      expect(src).toContain('href="/privacy"');
-      expect(src).toContain('href="/terms"');
-    });
-
-    // ── Dead copy and old concepts (negative assertions) ─────
-
-    it("does NOT carry editorial-pastiche paratext or colophon", () => {
-      expect(src).not.toContain("Issue One");
-      expect(src).not.toContain("Spring 2026");
-      expect(src).not.toContain("Set in Newsreader");
-      expect(src).not.toContain("Assembled in conversation");
-    });
-
-    it("does NOT contain gerund chapter titles", () => {
-      expect(src).not.toContain("On bringing");
-      expect(src).not.toContain("On listening");
-      expect(src).not.toContain("On composing");
-      expect(src).not.toContain("On sharing");
-    });
-
-    it("does NOT contain the rotating specimen or pull-quote", () => {
-      expect(src).not.toContain("ROTATING_EXAMPLES");
-      expect(src).not.toContain("You shut down and people think you");
-      expect(src).not.toContain("Nothing enters the manual");
-    });
-
-    it("does NOT reference the removed HeroManualVignette or sand-ripples image", () => {
-      expect(src).not.toContain("HeroManualVignette");
-      expect(src).not.toContain("hero-sand");
-    });
-
-    it("does NOT contain the previous 'Map your operating system.' headline", () => {
-      expect(src).not.toContain("Map your operating system.");
-    });
-
-    it("does NOT contain the old 'You understand yourself in fragments.' headline", () => {
-      expect(src).not.toContain("You understand yourself in fragments.");
-    });
-
-    it("does NOT contain (Coming soon) qualifiers", () => {
-      expect(src).not.toContain("(Coming soon)");
-      expect(src).not.toContain("mw-entry-soon");
-    });
-
-    it("does NOT contain the old multi-section landing page content", () => {
-      expect(src).not.toContain("Join the waitlist");
-      expect(src).not.toContain("Your Manual, in five layers");
-      expect(src).not.toContain("How it works");
-    });
-  });
+  // EntryScreen was deleted 2026-06-10: /login now renders LoginScreen
+  // directly. The marketing landing at / owns the brand moment.
 
   // ─── InfoScreens ─────────────────────────────────────────────────────────
   describe("InfoScreens", () => {
