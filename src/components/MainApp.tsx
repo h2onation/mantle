@@ -342,10 +342,14 @@ export default function MainApp() {
   }, [drawerOpen, handleOpenDrawer, isDesktop]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
-  // the way opening the drawer does on mobile.
+  // the way opening the drawer does on mobile. refreshConversations is
+  // a plain function from useChat (new identity every render) — keeping
+  // it out of the deps is load-bearing, or this effect re-runs on every
+  // render and hammers /api/conversations in a loop.
   useEffect(() => {
     if (isDesktop) refreshConversations();
-  }, [isDesktop, refreshConversations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDesktop]);
 
   // Desktop: picking a session always lands on the conversation view;
   // picking the already-active session is "back to the conversation"

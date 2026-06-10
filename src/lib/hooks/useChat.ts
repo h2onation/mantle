@@ -192,6 +192,9 @@ export function useChat() {
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
+  // Conversations we've already fired the early title pass for — one
+  // Haiku call per conversation, never re-fired on later turns.
+  const earlyTitleRequested = useRef<Set<string>>(new Set());
   // Set when a checkpoint becomes active in finalizeMessage; read when the
   // user acts so checkpoint_{confirmed,rejected,refined} can report the
   // wall-clock time the user took to decide.
@@ -633,6 +636,8 @@ export function useChat() {
     // is deterministic; relying on messages.length after optimistic
     // append races the next render.
     const userMessageNumber = messages.length + 1;
+    const userMessageCountAtSend =
+      messages.filter((m) => m.role === "user").length + 1;
 
     // Optimistically add user message
     setMessages((prev) => [...prev, { role: "user", content: text }]);
@@ -757,6 +762,30 @@ export function useChat() {
       // If a new conversation was created, refresh the list
       if (completeEvent?.conversationId && !conversationId) {
         refreshConversations();
+      }
+
+      // Early title: once the user has sent their 3rd message, fire the
+      // session summary once so the sidebar/header name the session by
+      // what the user brought — instead of waiting for the stale-session
+      // pass (>30 min away). That later pass still regenerates the title
+      // as the conversation evolves, so an early read self-corrects.
+      const convIdForTitle = completeEvent?.conversationId ?? conversationId;
+      if (
+        userMessageCountAtSend === 3 &&
+        convIdForTitle &&
+        !earlyTitleRequested.current.has(convIdForTitle) &&
+        !conversations.find((c) => c.id === convIdForTitle)?.title
+      ) {
+        earlyTitleRequested.current.add(convIdForTitle);
+        fetch("/api/session/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId: convIdForTitle }),
+        })
+          .then(() => refreshConversations())
+          .catch((err) =>
+            console.error("[useChat] Early title generation failed:", err)
+          );
       }
     } catch {
       setErrorMessage("Connection lost. Try again.");
