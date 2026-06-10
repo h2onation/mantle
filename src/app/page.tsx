@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./landing.css";
 import HeroRotator from "@/components/landing/HeroRotator";
 import RevealInit from "@/components/landing/RevealInit";
@@ -40,9 +41,11 @@ export default function Landing() {
             mywalnut<span className="dot">.</span>
           </span>
           <nav className="nav">
-            <a className="signin" href="/login">
+            {/* Link (not <a>) so Next prefetches /login while the visitor
+                reads the page — the form renders instantly on click. */}
+            <Link className="signin" href="/login">
               Sign in
-            </a>
+            </Link>
             <a className="nav-cta" href="#contact">
               Request beta access
             </a>

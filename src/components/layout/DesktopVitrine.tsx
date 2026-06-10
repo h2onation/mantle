@@ -36,7 +36,7 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
  * Shared by every route that renders inside the phone frame so landing
  * and authenticated surfaces are visually consistent:
  *   - MainApp (authenticated /) → sessions, manual, settings
- *   - OnboardingFlow (/login) → entry screen, login, info screens, seed
+ *   - LoginPage (/login) → login form
  *
  * Children render inside the 430px frame and are responsible for their
  * own background and content. DesktopVitrine provides only the outer
