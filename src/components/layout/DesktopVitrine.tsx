@@ -4,7 +4,6 @@ import { APP_VERSION } from "@/lib/version";
 import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { PERSONA_NAME } from "@/lib/persona/config";
-import DevToolsPanel from "@/components/admin/DevToolsPanel";
 
 interface DesktopVitrineProps {
   children: React.ReactNode;
@@ -144,11 +143,6 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             Nothing enters it unless you confirm.
           </p>
 
-          {isAdmin && (
-            <div className="mw-dev-tools">
-              <DevToolsPanel />
-            </div>
-          )}
 
           {/* Theme toggle. Sits above the publication-meta row as an
               editorial register shift — same mono caps, dot separators,

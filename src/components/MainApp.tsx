@@ -271,10 +271,10 @@ export default function MainApp() {
     }
   }, [loadConversation]);
 
-  // Bridge events from the desktop DevToolsPanel (which lives outside this
-  // component tree, in DesktopVitrine) back into the in-frame app so
-  // populate refreshes the manual + navigates to it, and simulate switches
-  // to the simulated session.
+  // Bridge events from the DevToolsPanel (hosted in the desktop sidebar
+  // and the admin settings view) into the app so populate refreshes the
+  // manual + navigates to it, and simulate switches to the simulated
+  // session. Window events keep the panel location-independent.
   useEffect(() => {
     function onPopulate() {
       loadManual();
