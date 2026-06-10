@@ -197,19 +197,14 @@
         padding: 26px 20px 20px 24px;
       }
 
-      .sb-head .word {
+      .sb-head .sb-eyebrow {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 23px;
-        letter-spacing: -0.4px;
-        line-height: 1;
-        color: var(--session-paratext);
-        font-weight: 400;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
         white-space: nowrap;
-      }
-
-      .sb-head .word span {
-        color: var(--session-paratext-spine);
       }
 
       .icon-btn {
@@ -585,6 +580,75 @@
         min-height: 0;
         display: flex;
         flex-direction: column;
+      }
+
+      /* ── Room header — the brand persists here no matter what the
+         sidebar does; the session title rides with it, Claude-style. ── */
+      .room-header {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        height: 56px;
+        padding: 0 26px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+        background: color-mix(in srgb, var(--session-linen) 72%, transparent);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        z-index: 10;
+      }
+
+      .room-header .word {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 21px;
+        letter-spacing: -0.3px;
+        line-height: 1;
+        color: var(--session-paratext);
+        font-weight: 400;
+        white-space: nowrap;
+      }
+
+      .room-header .word span {
+        color: var(--session-paratext-spine);
+      }
+
+      .room-header .rh-title {
+        flex: 1;
+        text-align: center;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 16px;
+        color: var(--session-ink-mid);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        padding: 0 12px;
+      }
+
+      .room-header .rh-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+        white-space: nowrap;
+      }
+
+      .room-header .rh-meta a {
+        color: var(--session-ink-faded);
+        text-decoration: none;
+        padding-bottom: 2px;
+        border-bottom: 1px solid transparent;
+      }
+
+      .room-header .rh-meta a:hover {
+        color: var(--session-ink);
+        border-bottom-color: var(--session-paratext-spine);
       }
 
       .view {
@@ -981,7 +1045,7 @@
         <!-- expanded -->
         <div class="inner">
           <div class="sb-head">
-            <p class="word">mywalnut<span>.</span></p>
+            <p class="sb-eyebrow">A private manual</p>
             <button class="icon-btn" id="collapse" title="Collapse sidebar">
               <svg class="ic" viewBox="0 0 18 18"><path d="M11 4l-5 5 5 5" /></svg>
             </button>
@@ -1049,7 +1113,6 @@
 
         <!-- rail (collapsed) — every destination stays visible -->
         <div class="rail">
-          <span class="dot-mark">.</span>
           <button class="rail-btn" id="expand" title="">
             <svg class="ic" viewBox="0 0 18 18"><path d="M7 4l5 5-5 5" /></svg>
             <span class="tip">Open sidebar</span>
@@ -1078,16 +1141,20 @@
 
       <!-- CENTER ROOM -->
       <main class="room">
+        <header class="room-header">
+          <p class="word">mywalnut<span>.</span></p>
+          <span class="rh-title" id="rh-title">The bouncer protecting the real one inside</span>
+          <span class="rh-meta">
+            <span id="rh-meta-label">Session · Jun 10</span>
+            <a href="#">Feedback</a>
+          </span>
+        </header>
+
         <!-- View 1: the conversation -->
         <div class="view session">
           <div class="scroll" id="scroll">
             <div class="atmo">
               <div class="page">
-                <div class="session-head">
-                  <p class="eyebrow">Session · Tuesday, June 10</p>
-                  <h1>The bouncer protecting the real one inside</h1>
-                </div>
-
                 <div class="msg jove">
                   <span class="speaker">Jove</span>
                   <p>
@@ -1264,6 +1331,12 @@
         const active = v === "manual";
         document.getElementById("manual-item").classList.toggle("active", active);
         document.getElementById("rail-manual").classList.toggle("active", active);
+        document.getElementById("rh-title").textContent = active
+          ? "Your Manual"
+          : "The bouncer protecting the real one inside";
+        document.getElementById("rh-meta-label").textContent = active
+          ? "5 entries · 1 new"
+          : "Session · Jun 10";
       };
 
       document.getElementById("collapse").addEventListener("click", () => setSidebar("rail"));
