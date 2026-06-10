@@ -24,8 +24,8 @@
   --session-ink-soft:       rgba(245, 243, 238, 0.85);
   --session-ink-persona:    rgba(228, 224, 214, 0.72);
   --session-ink-mid:        rgba(228, 224, 214, 0.62);
-  --session-ink-faded:      rgba(228, 224, 214, 0.45);
-  --session-ink-ghost:      rgba(228, 224, 214, 0.38);
+  --session-ink-faded:      rgba(228, 224, 214, 0.55); /* 2026-06-10 contrast pass: 3.7 -> 5.0 */
+  --session-ink-ghost:      rgba(228, 224, 214, 0.50); /* 2026-06-10 contrast pass: 3.0 -> 4.1 */
   --session-ink-whisper:    rgba(228, 224, 214, 0.22);
   --session-ink-hairline:   rgba(245, 237, 222, 0.06);
 
@@ -47,7 +47,7 @@
   --session-walnut-surface-soft:rgba(115, 72, 42, 0.10);
   --session-walnut-border:      rgba(170, 120, 82, 0.18);
   --session-walnut-border-soft: rgba(170, 120, 82, 0.14);
-  --session-walnut-meta:        rgba(170, 120, 82, 0.65);
+  --session-walnut-meta:        rgba(220, 170, 120, 0.75); /* 2026-06-10 contrast pass: the darker walnut hue maxes at 3.4 on the dark ground; brightened family reaches 5.5 */
 
   /* Error — oxblood, lifted for dark ground */
   --session-error:        #D08278;
@@ -217,8 +217,8 @@
   --session-ink-soft:       #4A3220;
   --session-ink-persona:    rgba(31, 20, 10, 0.78);
   --session-ink-mid:        rgba(31, 20, 10, 0.64);
-  --session-ink-faded:      #7A5E40;
-  --session-ink-ghost:      rgba(31, 20, 10, 0.42);
+  --session-ink-faded:      #6B4E32; /* 2026-06-10 contrast pass: 3.8 -> 4.9 */
+  --session-ink-ghost:      rgba(31, 20, 10, 0.55); /* 2026-06-10 contrast pass: 2.6 -> 3.7 (placeholder tier) */
   --session-ink-whisper:    rgba(31, 20, 10, 0.22);
   --session-ink-hairline:   rgba(92, 58, 30, 0.10);
 
@@ -227,7 +227,7 @@
   --session-hair-soft:      rgba(92, 58, 30, 0.14);
 
   /* Sage — kept for Jove continuity; dialed for legibility on linen. */
-  --session-persona:        #5E7A4F;
+  --session-persona:        #4E6346; /* 2026-06-10 contrast pass: 3.6 -> 5.0 on the cream bubble */
   --session-persona-soft:   rgba(94, 122, 79, 0.32);
   --session-persona-muted:  rgba(94, 122, 79, 0.14);
   --session-persona-border: rgba(94, 122, 79, 0.30);

@@ -8,9 +8,11 @@ import TopBar from "@/components/shared/TopBar";
 interface LoginScreenProps {
   onBack: () => void;
   initialMode?: "login" | "signup";
+  // false when the desktop auth shell provides its own header. Default true.
+  showTopBar?: boolean;
 }
 
-export default function LoginScreen({ onBack, initialMode = "login" }: LoginScreenProps) {
+export default function LoginScreen({ onBack, initialMode = "login", showTopBar = true }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -175,7 +177,7 @@ export default function LoginScreen({ onBack, initialMode = "login" }: LoginScre
         boxSizing: "border-box",
       }}
     >
-      <TopBar onBack={onBack} />
+      {showTopBar && <TopBar onBack={onBack} />}
 
       <div
         style={{
