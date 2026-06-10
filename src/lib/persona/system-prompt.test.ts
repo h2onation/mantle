@@ -708,9 +708,11 @@ describe("buildSystemPrompt", () => {
       expect(result).not.toContain('The opener: "Welcome back."');
     });
 
-    it("permits referencing either a recent entry OR an open thread", () => {
+    it("instructs naming the Manual-entry callback by title", () => {
+      // Soak iteration 2 (2026-06-10): the callback must be unmistakable —
+      // a vague allusion to the entry's topic reads as confusion.
       const result = build(earlyTurnReturning);
-      expect(result).toContain("entry name OR an open thread");
+      expect(result).toContain("name it as theirs, by title");
     });
 
     it("does NOT contain the old closing-question variants", () => {
