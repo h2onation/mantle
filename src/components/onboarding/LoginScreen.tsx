@@ -180,6 +180,7 @@ export default function LoginScreen({ onBack, initialMode = "login", showTopBar 
       {showTopBar && <TopBar onBack={onBack} />}
 
       <div
+        className="mw-scroll"
         style={{
           flex: 1,
           overflowY: "auto",

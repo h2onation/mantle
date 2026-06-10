@@ -25,6 +25,7 @@ export default function MobileCrisis({ onNavigateToSession, onOpenDrawer, showTo
       {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
 
       <div
+        className="mw-scroll"
         style={{
           flex: 1,
           overflowY: "auto",

@@ -84,6 +84,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
       {/* Scrollable content */}
       <div
         ref={scrollRef}
+        className="mw-scroll"
         style={{
           flex: 1,
           overflowY: "auto",

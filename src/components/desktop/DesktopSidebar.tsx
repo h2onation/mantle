@@ -263,12 +263,12 @@ export default function DesktopSidebar({
 
         <p style={{ ...EYEBROW_STYLE, margin: "16px 24px 8px" }}>Sessions</p>
         <div
+          className="mw-scroll"
           style={{
             flex: 1,
             minHeight: 0,
             overflowY: "auto",
             paddingBottom: 8,
-            scrollbarWidth: "thin",
           }}
         >
           {visibleConversations.map((conv) => {
@@ -345,13 +345,13 @@ export default function DesktopSidebar({
         </div>
 
         <div
+          className="mw-scroll"
           style={{
             borderTop: "1px solid var(--session-ink-hairline)",
             padding: "10px 12px 14px",
             maxHeight: "60vh",
             overflowY: "auto",
             flexShrink: 0,
-            scrollbarWidth: "thin",
           }}
         >
           <button

@@ -413,6 +413,7 @@ export default function MobileSession({
           aria-live="polite"
           aria-atomic="false"
           aria-label="Conversation messages"
+          className="mw-scroll"
           style={{
             height: "100%",
             overflowY: "auto",

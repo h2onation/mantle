@@ -475,6 +475,38 @@ textarea:focus-visible {
   }
 }
 
+/* Overlay-style scrollbars (the claude.ai / ChatGPT pattern): on
+   fine-pointer devices the thumb is invisible until the pointer is
+   over the scroll area. Wheel/trackpad scrolling implies hover, so the
+   bar shows exactly while scrolling and hides otherwise — no JS.
+   Mobile keeps native overlay scrollbars (media query never matches).
+   The webkit rules cover Safari; Chrome/Firefox use scrollbar-color
+   and ignore the webkit pseudos when scrollbar-* is set. */
+@media (hover: hover) and (pointer: fine) {
+  .mw-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .mw-scroll:hover {
+    scrollbar-color: var(--session-walnut-border) transparent;
+  }
+
+  .mw-scroll::-webkit-scrollbar {
+    width: 9px;
+    background: transparent;
+  }
+
+  .mw-scroll::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 8px;
+  }
+
+  .mw-scroll:hover::-webkit-scrollbar-thumb {
+    background: var(--session-walnut-border);
+  }
+}
+
 /* Desktop shell (authenticated app >=1030px) — hover/active states for
    the sidebar, rail buttons, and rail tooltips. Component structure
    lives in src/components/desktop/. Tokens only — no raw colors. */

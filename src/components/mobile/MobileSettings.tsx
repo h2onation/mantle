@@ -347,6 +347,7 @@ export default function MobileSettings({
       {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
 
       <div
+        className="mw-scroll"
         style={{
           flex: 1,
           overflowY: "auto",
