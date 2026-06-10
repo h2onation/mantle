@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desktop Option 6 — The Desk (hover-reveal rail + center page switch)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-serif: "Instrument Serif", serif;
+        --font-body: "Spectral", serif;
+        --font-mono: "DM Mono", monospace;
+        --font-sans: "DM Sans", sans-serif;
+
+        --session-linen: #0a0b10;
+        --session-ink: rgba(245, 243, 238, 0.97);
+        --session-ink-soft: rgba(245, 243, 238, 0.85);
+        --session-ink-mid: rgba(228, 224, 214, 0.62);
+        --session-ink-faded: rgba(228, 224, 214, 0.45);
+        --session-ink-ghost: rgba(228, 224, 214, 0.38);
+        --session-ink-hairline: rgba(245, 237, 222, 0.06);
+
+        --session-walnut: rgb(170, 120, 82);
+        --session-walnut-surface: rgba(115, 72, 42, 0.2);
+        --session-walnut-surface-soft: rgba(115, 72, 42, 0.1);
+        --session-walnut-border: rgba(170, 120, 82, 0.18);
+        --session-walnut-meta: rgba(170, 120, 82, 0.65);
+        --session-walnut-meta-strong: rgba(220, 170, 120, 0.85);
+        --session-bubble-border: rgba(170, 120, 82, 0.2);
+
+        --session-persona: #9cb18a;
+
+        --session-jove-bg: rgba(72, 80, 98, 0.3);
+        --session-jove-border: rgba(170, 180, 200, 0.12);
+        --session-user-bg: rgba(115, 72, 42, 0.2);
+        --session-user-border: rgba(170, 120, 82, 0.2);
+        --session-ink-user-text: rgba(245, 243, 238, 0.92);
+
+        --session-paratext: rgba(245, 232, 212, 0.88);
+        --session-paratext-mid: rgba(232, 218, 196, 0.62);
+        --session-paratext-spine: rgb(200, 145, 95);
+
+        --session-bubble-shadow: 0 6px 24px rgba(0, 0, 0, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        --session-plate-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(220, 170, 120, 0.1);
+
+        --halo-ink: 220, 165, 110;
+        --rail-w: 60px;
+        --ease: cubic-bezier(0.25, 0.8, 0.3, 1);
+
+        --canvas-bg: radial-gradient(
+            ellipse 110% 45% at 50% 10%,
+            rgba(115, 72, 42, 0.26),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 120% 70% at 50% 95%,
+            rgba(36, 42, 55, 0.85),
+            transparent 70%
+          );
+      }
+
+      [data-theme="light"] {
+        --session-linen: #e5d8be;
+        --session-ink: #1f140a;
+        --session-ink-soft: rgba(31, 20, 10, 0.85);
+        --session-ink-mid: rgba(31, 20, 10, 0.62);
+        --session-ink-faded: rgba(31, 20, 10, 0.45);
+        --session-ink-ghost: rgba(31, 20, 10, 0.38);
+        --session-ink-hairline: rgba(31, 20, 10, 0.08);
+
+        --session-walnut: #5c3a1e;
+        --session-walnut-surface: rgba(232, 220, 196, 0.9);
+        --session-walnut-surface-soft: rgba(236, 224, 200, 0.93);
+        --session-walnut-border: rgba(92, 58, 30, 0.32);
+        --session-walnut-meta: #5c3f23;
+        --session-walnut-meta-strong: #5c3f23;
+        --session-bubble-border: rgba(92, 58, 30, 0.32);
+
+        --session-persona: #5e7a4f;
+
+        --session-jove-bg: rgba(232, 220, 196, 0.9);
+        --session-jove-border: rgba(92, 58, 30, 0.32);
+        --session-user-bg: rgba(92, 58, 30, 0.1);
+        --session-user-border: rgba(92, 58, 30, 0.32);
+        --session-ink-user-text: #1f140a;
+
+        --session-paratext: rgba(70, 45, 22, 0.92);
+        --session-paratext-mid: rgba(70, 45, 22, 0.68);
+        --session-paratext-spine: rgb(140, 90, 45);
+
+        --session-bubble-shadow: 0 8px 24px rgba(31, 20, 10, 0.12),
+          0 2px 5px rgba(31, 20, 10, 0.1);
+        --session-plate-shadow: 0 22px 56px rgba(31, 20, 10, 0.16),
+          0 6px 14px rgba(31, 20, 10, 0.1),
+          inset 0 1px 0 rgba(245, 235, 215, 0.4);
+
+        --halo-ink: 180, 110, 60;
+
+        --canvas-bg: radial-gradient(
+            ellipse 130% 60% at 50% 10%,
+            rgba(212, 176, 128, 0.4),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 90% 55% at 50% 95%,
+            rgba(255, 248, 232, 0.92),
+            transparent 70%
+          );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background-color: var(--session-linen);
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E");
+        background-size: 220px 220px;
+        font-family: var(--font-body);
+        color: var(--session-ink);
+        overflow: hidden;
+      }
+
+      .app {
+        display: flex;
+        height: 100vh;
+      }
+
+      svg.ic {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+        flex: 0 0 auto;
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         THE RAIL — permanent, slim, icons with badges. Hover anywhere
+         on it and the full drawer glides over the page (no layout
+         shift), then retreats when the pointer leaves. ChatGPT's
+         collapsed-sidebar behavior in walnut.
+         ════════════════════════════════════════════════════════════ */
+      .sidebar-zone {
+        position: relative;
+        flex: 0 0 var(--rail-w);
+        z-index: 70;
+      }
+
+      .rail {
+        position: absolute;
+        inset: 0;
+        width: var(--rail-w);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 22px 0 16px;
+        border-right: 1px solid var(--session-ink-hairline);
+        background: rgba(115, 72, 42, 0.06);
+      }
+
+      [data-theme="light"] .rail {
+        background: var(--session-walnut-surface-soft);
+      }
+
+      .rail .dot-mark {
+        font-family: var(--font-serif);
+        font-size: 24px;
+        line-height: 1;
+        color: var(--session-paratext-spine);
+        margin-bottom: 18px;
+      }
+
+      .rail-btn {
+        all: unset;
+        cursor: pointer;
+        position: relative;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--session-ink-faded);
+        margin-bottom: 6px;
+      }
+
+      .rail-btn:hover {
+        color: var(--session-ink);
+        background: rgba(115, 72, 42, 0.16);
+      }
+
+      [data-theme="light"] .rail-btn:hover {
+        background: rgba(92, 58, 30, 0.08);
+      }
+
+      .rail-btn.active {
+        color: var(--session-walnut-meta-strong);
+        background: rgba(115, 72, 42, 0.18);
+      }
+
+      [data-theme="light"] .rail-btn.active {
+        background: rgba(92, 58, 30, 0.1);
+      }
+
+      .rail-btn .badge {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        font-family: var(--font-mono);
+        font-size: 8px;
+        letter-spacing: 0.5px;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .rail .spacer {
+        flex: 1;
+      }
+
+      /* The drawer that glides over the page on hover */
+      .drawer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 296px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--session-linen);
+        border-right: 1px solid var(--session-walnut-border);
+        box-shadow: 24px 0 64px rgba(0, 0, 0, 0.35);
+        transform: translateX(-100%);
+        transition: transform 0.32s var(--ease);
+        pointer-events: none;
+      }
+
+      [data-theme="light"] .drawer {
+        box-shadow: 24px 0 64px rgba(31, 20, 10, 0.2);
+      }
+
+      .drawer::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(115, 72, 42, 0.08);
+        pointer-events: none;
+      }
+
+      [data-theme="light"] .drawer::before {
+        background: rgba(236, 224, 200, 0.6);
+      }
+
+      .sidebar-zone:hover .drawer,
+      .drawer:hover {
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+
+      .drawer > * {
+        position: relative;
+      }
+
+      .dw-head {
+        padding: 26px 24px 20px;
+      }
+
+      .dw-head .word {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 23px;
+        letter-spacing: -0.4px;
+        line-height: 1;
+        color: var(--session-paratext);
+        font-weight: 400;
+      }
+
+      .dw-head .word span {
+        color: var(--session-paratext-spine);
+      }
+
+      .dw-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 2px 12px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: var(--session-ink-mid);
+        font-family: var(--font-body);
+        font-size: 14.5px;
+        white-space: nowrap;
+        border: none;
+        background: none;
+        width: calc(100% - 24px);
+        text-align: left;
+      }
+
+      .dw-item:hover {
+        background: rgba(115, 72, 42, 0.14);
+        color: var(--session-ink);
+      }
+
+      [data-theme="light"] .dw-item:hover {
+        background: rgba(92, 58, 30, 0.07);
+      }
+
+      .dw-item .ic {
+        color: var(--session-walnut-meta);
+      }
+
+      .dw-item .count {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .dw-label {
+        margin: 18px 24px 8px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .dw-sessions {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+        padding-bottom: 8px;
+      }
+
+      .dw-session {
+        display: block;
+        margin: 1px 12px;
+        padding: 8px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+      }
+
+      .dw-session:hover {
+        background: rgba(115, 72, 42, 0.12);
+      }
+
+      [data-theme="light"] .dw-session:hover {
+        background: rgba(92, 58, 30, 0.06);
+      }
+
+      .dw-session.active {
+        background: rgba(115, 72, 42, 0.16);
+      }
+
+      [data-theme="light"] .dw-session.active {
+        background: rgba(92, 58, 30, 0.09);
+      }
+
+      .dw-session .title {
+        display: block;
+        font-family: var(--font-body);
+        font-size: 13.5px;
+        line-height: 1.4;
+        color: var(--session-ink-mid);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dw-session.active .title {
+        color: var(--session-ink);
+      }
+
+      .dw-session .when {
+        display: block;
+        margin-top: 2px;
+        font-family: var(--font-mono);
+        font-size: 8.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .dw-foot {
+        border-top: 1px solid var(--session-ink-hairline);
+        padding: 12px 12px 14px;
+      }
+
+      .dw-foot .dw-item {
+        margin: 2px 0;
+        width: 100%;
+      }
+
+      .dw-foot .beta {
+        margin: 10px 12px 0;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         CENTER — one page at a time, with the bookmark switch at top:
+         Conversation · Manual. The Manual replaces the chat.
+         ════════════════════════════════════════════════════════════ */
+      .room {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .switch-bar {
+        display: flex;
+        justify-content: center;
+        align-items: baseline;
+        gap: 26px;
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .switch-bar button {
+        all: unset;
+        cursor: pointer;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 19px;
+        color: var(--session-ink-faded);
+        padding-bottom: 5px;
+        border-bottom: 1px solid transparent;
+        transition: color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .switch-bar button:hover {
+        color: var(--session-ink-mid);
+      }
+
+      .switch-bar .dot {
+        font-family: var(--font-serif);
+        color: var(--session-paratext-spine);
+        font-size: 19px;
+      }
+
+      body[data-view="session"] .switch-bar button.to-session,
+      body[data-view="manual"] .switch-bar button.to-manual {
+        color: var(--session-ink);
+        border-bottom-color: var(--session-paratext-spine);
+      }
+
+      .switch-bar .count {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: var(--session-walnut-meta-strong);
+        margin-left: 7px;
+        font-style: normal;
+      }
+
+      .view {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        animation: viewIn 0.35s ease;
+      }
+
+      body[data-view="session"] .view.session,
+      body[data-view="manual"] .view.manual {
+        display: flex;
+      }
+
+      @keyframes viewIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .scroll {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      .atmo {
+        min-height: 100%;
+        background-image: var(--canvas-bg);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+      }
+
+      .page {
+        max-width: 660px;
+        margin: 0 auto;
+        padding: 40px 36px 40px;
+      }
+
+      .session-head {
+        margin-bottom: 42px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .session-head .eyebrow {
+        margin: 0 0 12px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+      }
+
+      .session-head h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 28px;
+        line-height: 1.25;
+        color: var(--session-ink-soft);
+      }
+
+      .msg {
+        margin-bottom: 25px;
+        padding: 15px 22px 17px;
+        border-radius: 16px;
+        font-size: 15.5px;
+        line-height: 1.66;
+        box-shadow: var(--session-bubble-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .msg p {
+        margin: 0 0 13px;
+      }
+
+      .msg p:last-child {
+        margin-bottom: 0;
+      }
+
+      .msg.jove {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-top-left-radius: 5px;
+        margin-right: 9%;
+      }
+
+      .msg.user {
+        background: var(--session-user-bg);
+        border: 1px solid var(--session-user-border);
+        border-top-right-radius: 5px;
+        margin-left: 13%;
+        color: var(--session-ink-user-text);
+      }
+
+      .msg .speaker {
+        display: block;
+        margin-bottom: 7px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-persona);
+      }
+
+      .checkpoint-confirmed {
+        position: relative;
+        margin: 36px 4% 34px;
+        padding: 23px 26px 21px;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-radius: 18px;
+        box-shadow: inset 0 1px 0 rgba(var(--halo-ink), 0.14),
+          0 2px 4px rgba(0, 0, 0, 0.14), 0 14px 32px rgba(120, 75, 40, 0.16);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .checkpoint-confirmed::before {
+        content: "";
+        position: absolute;
+        inset: -36px -44px -50px;
+        background: radial-gradient(
+          ellipse 55% 50% at 50% 50%,
+          rgba(var(--halo-ink), 0.13),
+          transparent 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .checkpoint-confirmed .eyebrow {
+        margin: 0 0 12px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .checkpoint-confirmed h3 {
+        margin: 0 0 13px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 22px;
+        line-height: 1.3;
+        color: var(--session-ink);
+      }
+
+      .checkpoint-confirmed .meta-row {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 12px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+      }
+
+      .checkpoint-confirmed .meta-row button {
+        all: unset;
+        cursor: pointer;
+        color: var(--session-walnut-meta-strong);
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+      }
+
+      .composer-dock {
+        padding: 14px 36px 26px;
+      }
+
+      .composer {
+        max-width: 660px;
+        margin: 0 auto;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 18px;
+        box-shadow: var(--session-plate-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        padding: 15px 20px 11px;
+      }
+
+      .composer textarea {
+        display: block;
+        width: 100%;
+        min-height: 46px;
+        border: none;
+        outline: none;
+        resize: none;
+        background: transparent;
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--session-ink);
+      }
+
+      .composer textarea::placeholder {
+        font-style: italic;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 7px;
+        padding-top: 10px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .composer .hint {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .send {
+        all: unset;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+      }
+
+      /* Manual reading room */
+      .manual-page {
+        max-width: 660px;
+        margin: 0 auto;
+        padding: 40px 36px 96px;
+      }
+
+      .manual-mast h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 44px;
+        letter-spacing: -0.5px;
+        color: var(--session-ink);
+      }
+
+      .manual-mast h1 span {
+        color: var(--session-paratext-spine);
+      }
+
+      .manual-mast .sub {
+        margin: 10px 0 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 17px;
+        color: var(--session-ink-mid);
+      }
+
+      .manual-meta {
+        display: flex;
+        gap: 18px;
+        margin: 22px 0 0;
+        padding-bottom: 28px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .chapter {
+        padding: 38px 0 6px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .chapter:last-of-type {
+        border-bottom: none;
+      }
+
+      .chapter .ch-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 6px;
+      }
+
+      .chapter .numeral {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 17px;
+        color: var(--session-walnut-meta);
+        min-width: 26px;
+      }
+
+      .chapter h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 25px;
+        color: var(--session-ink-soft);
+      }
+
+      .chapter .entry {
+        margin: 20px 0 26px 40px;
+      }
+
+      .chapter .entry h3 {
+        margin: 0 0 8px;
+        font-family: var(--font-body);
+        font-weight: 500;
+        font-size: 17px;
+        color: var(--session-ink);
+      }
+
+      .chapter .entry .body {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--session-ink-soft);
+        max-width: 58ch;
+      }
+
+      .chapter .entry .meta {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .chapter .entry.fresh h3::after {
+        content: "· new";
+        margin-left: 10px;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .chapter .empty {
+        margin: 18px 0 24px 40px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 15px;
+        color: var(--session-ink-ghost);
+      }
+    </style>
+  </head>
+  <body data-view="session">
+    <div class="app">
+      <!-- RAIL + HOVER DRAWER -->
+      <div class="sidebar-zone">
+        <div class="rail">
+          <span class="dot-mark">.</span>
+          <button class="rail-btn" title="New session">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" /></svg>
+          </button>
+          <button class="rail-btn" id="rail-manual" title="Your Manual">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z" /></svg>
+            <span class="badge">5</span>
+          </button>
+          <button class="rail-btn active" id="rail-session" title="Current session">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M3 4.5h12v8H8l-3.5 2.8V12.5H3z" /></svg>
+          </button>
+          <button class="rail-btn" title="Sessions">
+            <svg class="ic" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M9 5.5V9l2.3 1.8" /></svg>
+            <span class="badge">33</span>
+          </button>
+          <span class="spacer"></span>
+          <button class="rail-btn" id="theme-toggle-rail" title="Theme">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M14.5 11A6.5 6.5 0 017 3.5 6.5 6.5 0 1014.5 11z" /></svg>
+          </button>
+          <button class="rail-btn" title="Settings">
+            <svg class="ic" viewBox="0 0 18 18"><circle cx="9" cy="9" r="2.4" /><path d="M9 2v2.2M9 13.8V16M2 9h2.2M13.8 9H16M4.1 4.1l1.5 1.5M12.4 12.4l1.5 1.5M13.9 4.1l-1.5 1.5M5.6 12.4l-1.5 1.5" /></svg>
+          </button>
+        </div>
+
+        <div class="drawer">
+          <div class="dw-head">
+            <p class="word">mywalnut<span>.</span></p>
+          </div>
+
+          <button class="dw-item">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" /></svg>
+            New session
+          </button>
+          <button class="dw-item" id="dw-manual">
+            <svg class="ic" viewBox="0 0 18 18"><path d="M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z" /></svg>
+            Your Manual
+            <span class="count">5</span>
+          </button>
+
+          <p class="dw-label">Sessions</p>
+          <div class="dw-sessions">
+            <a class="dw-session active">
+              <span class="title">The bouncer protecting the real one</span>
+              <span class="when">Jun 10 · Today</span>
+            </a>
+            <a class="dw-session">
+              <span class="title">Why I rehearse phone calls</span>
+              <span class="when">Jun 4</span>
+            </a>
+            <a class="dw-session">
+              <span class="title">How I talk to myself after mistakes</span>
+              <span class="when">Jun 4</span>
+            </a>
+            <a class="dw-session">
+              <span class="title">The meeting that went sideways</span>
+              <span class="when">May 30</span>
+            </a>
+            <a class="dw-session">
+              <span class="title">Noticing before naming</span>
+              <span class="when">May 28</span>
+            </a>
+            <a class="dw-session">
+              <span class="title">First session</span>
+              <span class="when">May 24</span>
+            </a>
+          </div>
+
+          <div class="dw-foot">
+            <button class="dw-item">
+              <svg class="ic" viewBox="0 0 18 18"><circle cx="9" cy="9" r="2.4" /><path d="M9 2v2.2M9 13.8V16M2 9h2.2M13.8 9H16M4.1 4.1l1.5 1.5M12.4 12.4l1.5 1.5M13.9 4.1l-1.5 1.5M5.6 12.4l-1.5 1.5" /></svg>
+              Settings
+            </button>
+            <button class="dw-item" id="theme-toggle">
+              <svg class="ic" viewBox="0 0 18 18"><path d="M14.5 11A6.5 6.5 0 017 3.5 6.5 6.5 0 1014.5 11z" /></svg>
+              Theme
+            </button>
+            <button class="dw-item" style="color: rgba(208, 130, 120, 0.8)">
+              <svg class="ic" viewBox="0 0 18 18"><path d="M9 15S3 11.6 3 7.4a3.4 3.4 0 016-2.2 3.4 3.4 0 016 2.2C15 11.6 9 15 9 15z" /></svg>
+              Crisis support
+            </button>
+            <p class="beta">In closed beta · v2.11</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <main class="room">
+        <div class="switch-bar">
+          <button class="to-session" id="to-session">Conversation</button>
+          <span class="dot">·</span>
+          <button class="to-manual" id="to-manual">
+            Manual<span class="count">5</span>
+          </button>
+        </div>
+
+        <!-- conversation -->
+        <div class="view session">
+          <div class="scroll" id="scroll">
+            <div class="atmo">
+              <div class="page">
+                <div class="session-head">
+                  <p class="eyebrow">Session · Tuesday, June 10</p>
+                  <h1>The bouncer protecting the real one inside</h1>
+                </div>
+
+                <div class="msg jove">
+                  <span class="speaker">Jove</span>
+                  <p>
+                    What you're telling me now is the cost side. What it takes
+                    to keep that running.
+                  </p>
+                  <p>
+                    The "I don't know who I am underneath" — is that true, or
+                    is it that you do know, and the underneath one doesn't get
+                    to come out anywhere?
+                  </p>
+                </div>
+
+                <div class="msg user">
+                  I know who's underneath. I think I do. But she doesn't get
+                  to exist in most places. So it's like... she's not real
+                  because she's not allowed to be visible. The one people see
+                  is the safe one. The joke-maker. The smaller version. And
+                  the real one just stays tired and quiet and waits. God, that
+                  sounds so sad when I say it out loud.
+                </div>
+
+                <div class="checkpoint-confirmed">
+                  <p class="eyebrow">✓ In your manual now</p>
+                  <h3>I Shrink My Ideas Before Anyone Can Reject Them</h3>
+                  <div class="meta-row">
+                    <span>Layer II · Some of My Patterns</span>
+                    <button id="cp-link">Read it there ›</button>
+                  </div>
+                </div>
+
+                <div class="msg jove">
+                  <span class="speaker">Jove</span>
+                  <p>It's in. Yours now, in your words.</p>
+                  <p>
+                    Where did the bouncer come from? You said the safe one
+                    took the job a long time ago — when did showing the real
+                    one first feel like a risk?
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-dock">
+            <div class="composer">
+              <textarea placeholder="Write back to Jove… take the room you need."></textarea>
+              <div class="tools">
+                <span class="hint">Return to send · Shift+Return for a new line</span>
+                <button class="send">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- manual -->
+        <div class="view manual">
+          <div class="scroll">
+            <div class="atmo">
+              <div class="manual-page">
+                <div class="manual-mast">
+                  <h1>Your Manual<span>.</span></h1>
+                  <p class="sub">A document about how you operate, in your own voice.</p>
+                </div>
+                <div class="manual-meta">
+                  <span>5 entries</span>
+                  <span>·</span>
+                  <span>Every one confirmed by you</span>
+                  <span>·</span>
+                  <span>Began May 24</span>
+                </div>
+
+                <section class="chapter">
+                  <div class="ch-head">
+                    <span class="numeral">I</span>
+                    <h2>My Strengths</h2>
+                  </div>
+                  <div class="entry">
+                    <h3>I Notice What Others Miss</h3>
+                    <p class="body">
+                      Small shifts in tone, the thing nobody said, the detail
+                      that doesn't fit. It costs me energy, but it's also the
+                      first thing people thank me for when the dust settles.
+                    </p>
+                    <p class="meta">Confirmed May 28 · from "Noticing before naming"</p>
+                  </div>
+                </section>
+
+                <section class="chapter">
+                  <div class="ch-head">
+                    <span class="numeral">II</span>
+                    <h2>Some of My Patterns</h2>
+                  </div>
+                  <div class="entry">
+                    <h3>The Safe One Answers First</h3>
+                    <p class="body">
+                      In groups, the version of me that jokes and agrees gets
+                      to the conversation before the real one does. It keeps
+                      things smooth, and it keeps things small.
+                    </p>
+                    <p class="meta">Confirmed Jun 4 · from "Why I rehearse phone calls"</p>
+                  </div>
+                  <div class="entry fresh">
+                    <h3>I Shrink My Ideas Before Anyone Can Reject Them</h3>
+                    <p class="body">
+                      I present the smaller version of what I actually think —
+                      hedged, joked about, easy to wave off. If it gets
+                      rejected, it was only the small version. The real idea
+                      stays safe, and unheard.
+                    </p>
+                    <p class="meta">Confirmed just now · from "The bouncer protecting the real one inside"</p>
+                  </div>
+                </section>
+
+                <section class="chapter">
+                  <div class="ch-head">
+                    <span class="numeral">III</span>
+                    <h2>How I Process Things</h2>
+                  </div>
+                  <div class="entry">
+                    <h3>When Plans Change I Go Still</h3>
+                    <p class="body">
+                      The freeze isn't refusal — it's recalculation. I need a
+                      minute to rebuild the picture before I can move again,
+                      and pushing me to react faster makes it take longer.
+                    </p>
+                    <p class="meta">Confirmed Jun 4 · from "How I talk to myself after mistakes"</p>
+                  </div>
+                </section>
+
+                <section class="chapter">
+                  <div class="ch-head">
+                    <span class="numeral">IV</span>
+                    <h2>What Helps</h2>
+                  </div>
+                  <div class="entry">
+                    <h3>Written Beats Verbal, Every Time</h3>
+                    <p class="body">
+                      Give it to me in writing and I'll come back sharper than
+                      anyone in the room. Say it fast in a hallway and it may
+                      never have happened.
+                    </p>
+                    <p class="meta">Confirmed May 30 · from "The meeting that went sideways"</p>
+                  </div>
+                </section>
+
+                <section class="chapter">
+                  <div class="ch-head">
+                    <span class="numeral">V</span>
+                    <h2>How I Show Up with People</h2>
+                  </div>
+                  <p class="empty">
+                    Nothing here yet. It will come from conversation, when
+                    it's ready.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const body = document.body;
+      const setView = (v) => (body.dataset.view = v);
+
+      document.getElementById("to-session").addEventListener("click", () => setView("session"));
+      document.getElementById("to-manual").addEventListener("click", () => setView("manual"));
+      document.getElementById("rail-manual").addEventListener("click", () => setView("manual"));
+      document.getElementById("rail-session").addEventListener("click", () => setView("session"));
+      document.getElementById("dw-manual").addEventListener("click", () => setView("manual"));
+      document.getElementById("cp-link").addEventListener("click", () => setView("manual"));
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setView("session");
+        if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+          e.preventDefault();
+          setView(body.dataset.view === "manual" ? "session" : "manual");
+        }
+      });
+
+      const flipTheme = () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+      };
+      document.getElementById("theme-toggle").addEventListener("click", flipTheme);
+      document.getElementById("theme-toggle-rail").addEventListener("click", flipTheme);
+
+      const scroller = document.getElementById("scroll");
+      scroller.scrollTop = scroller.scrollHeight;
+    </script>
+  </body>
+</html>
