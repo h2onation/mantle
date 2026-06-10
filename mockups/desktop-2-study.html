@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desktop Option 2 — The Study (conversation + Manual spine)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-serif: "Instrument Serif", serif;
+        --font-body: "Spectral", serif;
+        --font-mono: "DM Mono", monospace;
+        --font-sans: "DM Sans", sans-serif;
+
+        --session-linen: #0a0b10;
+        --session-ink: rgba(245, 243, 238, 0.97);
+        --session-ink-soft: rgba(245, 243, 238, 0.85);
+        --session-ink-mid: rgba(228, 224, 214, 0.62);
+        --session-ink-faded: rgba(228, 224, 214, 0.45);
+        --session-ink-ghost: rgba(228, 224, 214, 0.38);
+        --session-ink-hairline: rgba(245, 237, 222, 0.06);
+
+        --session-walnut: rgb(170, 120, 82);
+        --session-walnut-surface: rgba(115, 72, 42, 0.2);
+        --session-walnut-surface-soft: rgba(115, 72, 42, 0.1);
+        --session-walnut-border: rgba(170, 120, 82, 0.18);
+        --session-walnut-meta: rgba(170, 120, 82, 0.65);
+        --session-walnut-meta-strong: rgba(220, 170, 120, 0.85);
+        --session-walnut-highlight: rgba(220, 170, 120, 0.12);
+        --session-bubble-border: rgba(170, 120, 82, 0.2);
+
+        --session-persona: #9cb18a;
+
+        --session-jove-bg: rgba(72, 80, 98, 0.3);
+        --session-jove-border: rgba(170, 180, 200, 0.12);
+        --session-user-bg: rgba(115, 72, 42, 0.2);
+        --session-user-border: rgba(170, 120, 82, 0.2);
+        --session-ink-user-text: rgba(245, 243, 238, 0.92);
+
+        --session-paratext: rgba(245, 232, 212, 0.88);
+        --session-paratext-mid: rgba(232, 218, 196, 0.62);
+        --session-paratext-spine: rgb(200, 145, 95);
+
+        --session-bubble-shadow: 0 6px 24px rgba(0, 0, 0, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        --session-plate-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(220, 170, 120, 0.1);
+
+        --halo-ink: 220, 165, 110;
+
+        --canvas-bg: radial-gradient(
+            ellipse 110% 45% at 35% 12%,
+            rgba(115, 72, 42, 0.28),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 120% 70% at 45% 95%,
+            rgba(36, 42, 55, 0.85),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 65% 45% at 100% 0%,
+            rgba(85, 55, 30, 0.35),
+            transparent 60%
+          );
+      }
+
+      [data-theme="light"] {
+        --session-linen: #e5d8be;
+        --session-ink: #1f140a;
+        --session-ink-soft: rgba(31, 20, 10, 0.85);
+        --session-ink-mid: rgba(31, 20, 10, 0.62);
+        --session-ink-faded: rgba(31, 20, 10, 0.45);
+        --session-ink-ghost: rgba(31, 20, 10, 0.38);
+        --session-ink-hairline: rgba(31, 20, 10, 0.08);
+
+        --session-walnut: #5c3a1e;
+        --session-walnut-surface: rgba(232, 220, 196, 0.9);
+        --session-walnut-surface-soft: rgba(236, 224, 200, 0.93);
+        --session-walnut-border: rgba(92, 58, 30, 0.32);
+        --session-walnut-meta: #5c3f23;
+        --session-walnut-meta-strong: #5c3f23;
+        --session-walnut-highlight: rgba(245, 235, 215, 0.4);
+        --session-bubble-border: rgba(92, 58, 30, 0.32);
+
+        --session-persona: #5e7a4f;
+
+        --session-jove-bg: rgba(232, 220, 196, 0.9);
+        --session-jove-border: rgba(92, 58, 30, 0.32);
+        --session-user-bg: rgba(92, 58, 30, 0.1);
+        --session-user-border: rgba(92, 58, 30, 0.32);
+        --session-ink-user-text: #1f140a;
+
+        --session-paratext: rgba(70, 45, 22, 0.92);
+        --session-paratext-mid: rgba(70, 45, 22, 0.68);
+        --session-paratext-spine: rgb(140, 90, 45);
+
+        --session-bubble-shadow: 0 8px 24px rgba(31, 20, 10, 0.12),
+          0 2px 5px rgba(31, 20, 10, 0.1);
+        --session-plate-shadow: 0 22px 56px rgba(31, 20, 10, 0.16),
+          0 6px 14px rgba(31, 20, 10, 0.1),
+          inset 0 1px 0 rgba(245, 235, 215, 0.4);
+
+        --halo-ink: 180, 110, 60;
+
+        --canvas-bg: radial-gradient(
+            ellipse 130% 60% at 35% 12%,
+            rgba(212, 176, 128, 0.4),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 90% 55% at 45% 95%,
+            rgba(255, 248, 232, 0.92),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 65% 45% at 100% 0%,
+            rgba(92, 58, 30, 0.22),
+            transparent 60%
+          );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background-color: var(--session-linen);
+        font-family: var(--font-body);
+        color: var(--session-ink);
+        overflow: hidden;
+      }
+
+      .canvas {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E");
+        background-size: 220px 220px;
+        background-repeat: repeat;
+      }
+
+      /* ── Chrome ── */
+      .masthead {
+        position: fixed;
+        top: 40px;
+        left: 48px;
+        z-index: 20;
+      }
+
+      .masthead p {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 34px;
+        letter-spacing: -0.5px;
+        line-height: 1;
+        color: var(--session-paratext);
+        font-weight: 400;
+      }
+
+      .masthead p span {
+        color: var(--session-paratext-spine);
+      }
+
+      .masthead .sub {
+        margin-top: 10px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+      }
+
+      nav {
+        position: fixed;
+        top: 48px;
+        right: 152px;
+        z-index: 20;
+        display: flex;
+        gap: 22px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        transition: right 0.45s cubic-bezier(0.25, 0.8, 0.3, 1);
+      }
+
+      body[data-manual="open"] nav {
+        right: 520px;
+      }
+
+      nav a {
+        color: var(--session-paratext-mid);
+        text-decoration: none;
+        padding-bottom: 3px;
+        border-bottom: 1px solid transparent;
+      }
+
+      nav a:hover {
+        color: var(--session-paratext);
+        border-bottom-color: var(--session-paratext-spine);
+      }
+
+      nav a .count {
+        color: var(--session-paratext-spine);
+        margin-left: 5px;
+      }
+
+      .colophon {
+        position: fixed;
+        bottom: 40px;
+        left: 48px;
+        z-index: 35;
+        max-width: 220px;
+      }
+
+      .colophon .statement {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--session-paratext-mid);
+      }
+
+      .colophon .meta {
+        margin: 12px 0 0;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+        opacity: 0.75;
+      }
+
+      .colophon .meta button {
+        all: unset;
+        cursor: pointer;
+      }
+
+      .colophon .meta button:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (max-width: 1280px) {
+        .colophon {
+          display: none;
+        }
+      }
+
+      /* ── Conversation column ──
+         Fixed reading measure (~64ch). The column sits center-left and
+         cedes ground to the Manual pane when it opens. */
+      .scroll {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 124px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+        transition: right 0.45s cubic-bezier(0.25, 0.8, 0.3, 1),
+          left 0.45s cubic-bezier(0.25, 0.8, 0.3, 1);
+      }
+
+      body[data-manual="open"] .scroll {
+        left: 286px;
+        right: 492px;
+      }
+
+      .atmo {
+        min-height: 100%;
+        background-image: var(--canvas-bg);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+      }
+
+      /* Scroll fade — content recedes before it reaches the chrome. */
+      .top-fade {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 116px;
+        z-index: 10;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          var(--session-linen) 18%,
+          transparent
+        );
+        opacity: 0.92;
+      }
+
+      .page {
+        max-width: 648px;
+        margin: 0 auto;
+        padding: 124px 24px 200px;
+      }
+
+      .session-head {
+        margin-bottom: 48px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .session-head .eyebrow {
+        margin: 0 0 13px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+      }
+
+      .session-head h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 29px;
+        line-height: 1.25;
+        color: var(--session-ink-soft);
+      }
+
+      .msg {
+        margin-bottom: 26px;
+        padding: 16px 24px 18px;
+        border-radius: 16px;
+        font-size: 16px;
+        line-height: 1.68;
+        box-shadow: var(--session-bubble-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .msg p {
+        margin: 0 0 14px;
+      }
+
+      .msg p:last-child {
+        margin-bottom: 0;
+      }
+
+      .msg.jove {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-top-left-radius: 5px;
+        margin-right: 9%;
+      }
+
+      .msg.user {
+        background: var(--session-user-bg);
+        border: 1px solid var(--session-user-border);
+        border-top-right-radius: 5px;
+        margin-left: 13%;
+        color: var(--session-ink-user-text);
+      }
+
+      .msg .speaker {
+        display: block;
+        margin-bottom: 8px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-persona);
+      }
+
+      /* ── Confirmed checkpoint — the moment after. The plate settles,
+         and a drawn trail carries the entry toward the spine. ── */
+      .checkpoint-confirmed {
+        position: relative;
+        margin: 38px 4% 34px;
+        padding: 24px 28px 22px;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-radius: 18px;
+        box-shadow: inset 0 1px 0 rgba(var(--halo-ink), 0.14),
+          0 2px 4px rgba(0, 0, 0, 0.14), 0 14px 32px rgba(120, 75, 40, 0.16);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .checkpoint-confirmed::before {
+        content: "";
+        position: absolute;
+        inset: -40px -48px -56px;
+        background: radial-gradient(
+          ellipse 55% 50% at 50% 50%,
+          rgba(var(--halo-ink), 0.14),
+          transparent 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .checkpoint-confirmed .eyebrow {
+        margin: 0 0 14px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .checkpoint-confirmed .eyebrow .tick {
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        border: 1px solid var(--session-walnut-meta-strong);
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+      }
+
+      .checkpoint-confirmed h3 {
+        margin: 0 0 14px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 23px;
+        line-height: 1.3;
+        color: var(--session-ink);
+      }
+
+      .checkpoint-confirmed .meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 13px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+      }
+
+      .checkpoint-confirmed .meta-row a {
+        color: var(--session-walnut-meta-strong);
+        text-decoration: none;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+      }
+
+      /* The travel trail — a dotted arc leaving the plate for the spine.
+         Visible only while the spine is closed (the trail lands on it). */
+      .trail {
+        position: absolute;
+        left: calc(100% - 8px);
+        top: 38%;
+        width: 30vw;
+        max-width: 460px;
+        height: 120px;
+        pointer-events: none;
+        opacity: 0.9;
+      }
+
+      body[data-manual="open"] .trail {
+        display: none;
+      }
+
+      .trail path {
+        fill: none;
+        stroke: rgba(var(--halo-ink), 0.75);
+        stroke-width: 1.6;
+        stroke-dasharray: 1 9;
+        stroke-linecap: round;
+      }
+
+      .trail circle {
+        fill: rgba(var(--halo-ink), 0.9);
+      }
+
+      /* ── Composer ── */
+      .composer-wrap {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 124px;
+        z-index: 30;
+        padding: 52px 24px 32px;
+        background: linear-gradient(
+          to top,
+          var(--session-linen) 25%,
+          transparent
+        );
+        pointer-events: none;
+        transition: right 0.45s cubic-bezier(0.25, 0.8, 0.3, 1),
+          left 0.45s cubic-bezier(0.25, 0.8, 0.3, 1);
+      }
+
+      body[data-manual="open"] .composer-wrap {
+        left: 286px;
+        right: 492px;
+      }
+
+      .composer {
+        pointer-events: auto;
+        max-width: 648px;
+        margin: 0 auto;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 18px;
+        box-shadow: var(--session-plate-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        padding: 16px 22px 12px;
+      }
+
+      .composer textarea {
+        display: block;
+        width: 100%;
+        min-height: 48px;
+        border: none;
+        outline: none;
+        resize: none;
+        background: transparent;
+        font-family: var(--font-body);
+        font-size: 16.5px;
+        line-height: 1.6;
+        color: var(--session-ink);
+      }
+
+      .composer textarea::placeholder {
+        font-style: italic;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+        padding-top: 10px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .composer .hint {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .send {
+        all: unset;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         THE SPINE — the Manual as a closed book on the desk's edge.
+         A progress cue, not a progress display: layer numerals and
+         entry pips, no content. Click to open.
+         ════════════════════════════════════════════════════════════ */
+      .spine {
+        position: fixed;
+        top: 50%;
+        right: 28px;
+        transform: translateY(-50%);
+        z-index: 40;
+        width: 84px;
+        height: min(680px, 78vh);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 22px 0 18px;
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-walnut-border);
+        border-radius: 14px;
+        box-shadow: var(--session-plate-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        cursor: pointer;
+        transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.25, 0.8, 0.3, 1);
+      }
+
+      .spine:hover {
+        transform: translateY(-50%) translateX(-3px);
+      }
+
+      body[data-manual="open"] .spine {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .spine .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--session-paratext-spine);
+        margin-bottom: 16px;
+      }
+
+      .spine .title {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 3.5px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        writing-mode: vertical-rl;
+        margin-bottom: 22px;
+      }
+
+      .spine .bands {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-self: stretch;
+        border-top: 1px solid var(--session-ink-hairline);
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .spine .band {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 0;
+        position: relative;
+      }
+
+      .spine .band .numeral {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 15px;
+        color: var(--session-ink-mid);
+        line-height: 1;
+      }
+
+      .spine .band .pips {
+        display: flex;
+        gap: 4px;
+      }
+
+      .spine .band .pips i {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--session-walnut-meta);
+        opacity: 0.7;
+      }
+
+      .spine .band .pips i.empty {
+        background: transparent;
+        border: 1px solid var(--session-ink-hairline);
+      }
+
+      .spine .band.lit {
+        background: radial-gradient(
+          ellipse 90% 80% at 50% 50%,
+          rgba(var(--halo-ink), 0.22),
+          transparent 75%
+        );
+      }
+
+      .spine .band.lit .numeral {
+        color: var(--session-ink);
+      }
+
+      .spine .band.lit .pips i.new {
+        background: rgb(var(--halo-ink));
+        box-shadow: 0 0 8px rgba(var(--halo-ink), 0.9);
+      }
+
+      .spine .count {
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .spine .count .n {
+        display: block;
+        font-family: var(--font-serif);
+        font-size: 22px;
+        color: var(--session-ink-soft);
+        line-height: 1;
+      }
+
+      .spine .count .label {
+        display: block;
+        margin-top: 5px;
+        font-family: var(--font-mono);
+        font-size: 8.5px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         THE OPEN MANUAL PANE — slides in from the right edge when the
+         spine is clicked, or when a checkpoint lands.
+         ════════════════════════════════════════════════════════════ */
+      .manual-pane {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 468px;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        background: var(--session-walnut-surface-soft);
+        border-left: 1px solid var(--session-walnut-border);
+        box-shadow: -24px 0 64px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        transform: translateX(105%);
+        transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.3, 1);
+      }
+
+      [data-theme="light"] .manual-pane {
+        box-shadow: -24px 0 64px rgba(31, 20, 10, 0.18);
+      }
+
+      body[data-manual="open"] .manual-pane {
+        transform: translateX(0);
+      }
+
+      .manual-pane .pane-head {
+        padding: 36px 36px 22px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .manual-pane .pane-head h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 30px;
+        color: var(--session-ink);
+      }
+
+      .manual-pane .pane-head h2 span {
+        color: var(--session-paratext-spine);
+      }
+
+      .manual-pane .pane-head .sub {
+        margin: 8px 0 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 14.5px;
+        color: var(--session-ink-mid);
+      }
+
+      .manual-pane .close {
+        all: unset;
+        cursor: pointer;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid var(--session-walnut-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--session-ink-mid);
+        font-size: 15px;
+        font-family: var(--font-sans);
+      }
+
+      .manual-pane .close:hover {
+        color: var(--session-ink);
+      }
+
+      .manual-pane .layers {
+        flex: 1;
+        overflow-y: auto;
+        padding: 26px 36px 28px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      .layer {
+        margin-bottom: 26px;
+      }
+
+      .layer .tab {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 7px;
+        padding: 5px 12px 4px;
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-walnut-border);
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+        margin-left: 10px;
+      }
+
+      .layer .tab .numeral {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 13px;
+        letter-spacing: 0;
+        color: var(--session-ink-mid);
+      }
+
+      .layer .plate {
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 14px;
+        border-top-left-radius: 2px;
+        padding: 16px 20px;
+      }
+
+      .layer .plate h4 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 18px;
+        color: var(--session-ink-soft);
+      }
+
+      .layer .entries {
+        margin-top: 12px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .layer .entry {
+        padding: 12px 2px 12px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .layer .entry:last-child {
+        border-bottom: none;
+        padding-bottom: 2px;
+      }
+
+      .layer .entry .headline {
+        font-family: var(--font-body);
+        font-size: 14.5px;
+        color: var(--session-ink);
+      }
+
+      .layer .entry .when {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+        white-space: nowrap;
+      }
+
+      .layer .entry.fresh {
+        margin: 6px -10px 0;
+        padding: 12px 12px;
+        border: 1px solid rgba(var(--halo-ink), 0.45);
+        border-radius: 10px;
+        background: radial-gradient(
+          ellipse 100% 100% at 50% 0%,
+          rgba(var(--halo-ink), 0.12),
+          transparent 80%
+        );
+      }
+
+      .layer .entry.fresh .when {
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .layer .empty {
+        margin-top: 10px;
+        padding: 14px 2px 4px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 14px;
+        color: var(--session-ink-ghost);
+      }
+
+      .manual-pane .pane-foot {
+        padding: 18px 36px 26px;
+        border-top: 1px solid var(--session-ink-hairline);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+        white-space: nowrap;
+      }
+
+      .manual-pane .pane-foot a {
+        color: var(--session-walnut-meta-strong);
+        text-decoration: none;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+      }
+    </style>
+  </head>
+  <body data-manual="closed">
+    <div class="canvas" aria-hidden="true"></div>
+    <div class="top-fade" aria-hidden="true"></div>
+
+    <header class="masthead">
+      <p>mywalnut<span>.</span></p>
+      <p class="sub">A private manual</p>
+    </header>
+
+    <nav>
+      <a href="#">Sessions<span class="count">33</span></a>
+      <a href="#">Settings</a>
+    </nav>
+
+    <div class="scroll" id="scroll">
+      <div class="atmo">
+        <main class="page">
+          <div class="session-head">
+            <p class="eyebrow">Session · Tuesday, June 10</p>
+            <h1>The bouncer protecting the real one inside</h1>
+          </div>
+
+          <div class="msg jove">
+            <span class="speaker">Jove</span>
+            <p>
+              What you're telling me now is the cost side. What it takes to
+              keep that running.
+            </p>
+            <p>
+              The "I don't know who I am underneath" — is that true, or is it
+              that you do know, and the underneath one doesn't get to come out
+              anywhere?
+            </p>
+          </div>
+
+          <div class="msg user">
+            I know who's underneath. I think I do. But she doesn't get to
+            exist in most places. So it's like... she's not real because she's
+            not allowed to be visible. The one people see is the safe one. The
+            joke-maker. The smaller version. And the real one just stays tired
+            and quiet and waits. God, that sounds so sad when I say it out
+            loud.
+          </div>
+
+          <div class="checkpoint-confirmed">
+            <svg class="trail" viewBox="0 0 460 120" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M 6 30 C 150 8, 290 20, 448 62" />
+              <circle cx="448" cy="62" r="3" />
+            </svg>
+            <p class="eyebrow"><span class="tick">✓</span> In your manual now</p>
+            <h3>I Shrink My Ideas Before Anyone Can Reject Them</h3>
+            <div class="meta-row">
+              <span>Layer II · Some of My Patterns</span>
+              <a href="#" id="view-link">Read it there ›</a>
+            </div>
+          </div>
+
+          <div class="msg jove">
+            <span class="speaker">Jove</span>
+            <p>
+              It's in. Yours now, in your words.
+            </p>
+            <p>
+              Where did the bouncer come from? You said the safe one took the
+              job a long time ago — when did showing the real one first feel
+              like a risk?
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea placeholder="Write back to Jove… take the room you need."></textarea>
+        <div class="tools">
+          <span class="hint">Return to send · Shift+Return for a new line</span>
+          <button class="send">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- The Manual, closed: a spine at the desk's edge -->
+    <aside class="spine" id="spine" title="Open your Manual">
+      <span class="dot"></span>
+      <span class="title">My Manual</span>
+      <div class="bands">
+        <div class="band">
+          <span class="numeral">I</span>
+          <span class="pips"><i></i></span>
+        </div>
+        <div class="band lit">
+          <span class="numeral">II</span>
+          <span class="pips"><i></i><i class="new"></i></span>
+        </div>
+        <div class="band">
+          <span class="numeral">III</span>
+          <span class="pips"><i></i></span>
+        </div>
+        <div class="band">
+          <span class="numeral">IV</span>
+          <span class="pips"><i></i></span>
+        </div>
+        <div class="band">
+          <span class="numeral">V</span>
+          <span class="pips"><i class="empty"></i></span>
+        </div>
+      </div>
+      <div class="count">
+        <span class="n">5</span>
+        <span class="label">Entries</span>
+      </div>
+    </aside>
+
+    <!-- The Manual, open: slides in over the desk's right edge -->
+    <aside class="manual-pane" id="manual-pane">
+      <div class="pane-head">
+        <div>
+          <h2>Your Manual<span>.</span></h2>
+          <p class="sub">A document about how you operate, in your own voice.</p>
+        </div>
+        <button class="close" id="close-pane" aria-label="Close manual">✕</button>
+      </div>
+
+      <div class="layers">
+        <section class="layer">
+          <span class="tab"><span class="numeral">I</span> Layer</span>
+          <div class="plate">
+            <h4>My Strengths</h4>
+            <div class="entries">
+              <div class="entry">
+                <span class="headline">I Notice What Others Miss</span>
+                <span class="when">May 28</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="layer">
+          <span class="tab"><span class="numeral">II</span> Layer</span>
+          <div class="plate">
+            <h4>Some of My Patterns</h4>
+            <div class="entries">
+              <div class="entry">
+                <span class="headline">The Safe One Answers First</span>
+                <span class="when">Jun 4</span>
+              </div>
+              <div class="entry fresh">
+                <span class="headline">I Shrink My Ideas Before Anyone Can Reject Them</span>
+                <span class="when">Just now</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="layer">
+          <span class="tab"><span class="numeral">III</span> Layer</span>
+          <div class="plate">
+            <h4>How I Process Things</h4>
+            <div class="entries">
+              <div class="entry">
+                <span class="headline">When Plans Change I Go Still</span>
+                <span class="when">Jun 4</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="layer">
+          <span class="tab"><span class="numeral">IV</span> Layer</span>
+          <div class="plate">
+            <h4>What Helps</h4>
+            <div class="entries">
+              <div class="entry">
+                <span class="headline">Written Beats Verbal, Every Time</span>
+                <span class="when">May 30</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="layer">
+          <span class="tab"><span class="numeral">V</span> Layer</span>
+          <div class="plate">
+            <h4>How I Show Up with People</h4>
+            <p class="empty">Nothing here yet. It will come from conversation, when it's ready.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="pane-foot">
+        <span>5 entries · all confirmed</span>
+        <a href="#">Read the full manual ›</a>
+      </div>
+    </aside>
+
+    <footer class="colophon">
+      <p class="statement">
+        Written by you, assembled in conversation. Nothing enters it unless
+        you confirm.
+      </p>
+      <p class="meta">
+        <button id="theme-toggle">Dark · Light</button>
+        &nbsp;&nbsp;In closed beta
+      </p>
+    </footer>
+
+    <script>
+      const body = document.body;
+      document.getElementById("spine").addEventListener("click", () => {
+        body.dataset.manual = "open";
+      });
+      document.getElementById("view-link").addEventListener("click", (e) => {
+        e.preventDefault();
+        body.dataset.manual = "open";
+      });
+      document.getElementById("close-pane").addEventListener("click", () => {
+        body.dataset.manual = "closed";
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") body.dataset.manual = "closed";
+        if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+          e.preventDefault();
+          body.dataset.manual = body.dataset.manual === "open" ? "closed" : "open";
+        }
+      });
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+      });
+      const scroller = document.getElementById("scroll");
+      scroller.scrollTop = scroller.scrollHeight;
+    </script>
+  </body>
+</html>

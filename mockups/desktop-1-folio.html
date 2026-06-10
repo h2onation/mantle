@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desktop Option 1 — The Folio (refined single column)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ════════════════════════════════════════════════════════════
+         TOKENS — lifted from src/app/globals.css (Hearth + Bloom)
+         ════════════════════════════════════════════════════════════ */
+      :root {
+        --font-serif: "Instrument Serif", serif;
+        --font-body: "Spectral", serif;
+        --font-mono: "DM Mono", monospace;
+        --font-sans: "DM Sans", sans-serif;
+
+        --session-linen: #0a0b10;
+        --session-ink: rgba(245, 243, 238, 0.97);
+        --session-ink-soft: rgba(245, 243, 238, 0.85);
+        --session-ink-mid: rgba(228, 224, 214, 0.62);
+        --session-ink-faded: rgba(228, 224, 214, 0.45);
+        --session-ink-ghost: rgba(228, 224, 214, 0.38);
+        --session-ink-hairline: rgba(245, 237, 222, 0.06);
+
+        --session-walnut: rgb(170, 120, 82);
+        --session-walnut-surface: rgba(115, 72, 42, 0.2);
+        --session-walnut-border: rgba(170, 120, 82, 0.18);
+        --session-walnut-meta: rgba(170, 120, 82, 0.65);
+        --session-walnut-meta-strong: rgba(220, 170, 120, 0.85);
+        --session-bubble-border: rgba(170, 120, 82, 0.2);
+
+        --session-persona: #9cb18a;
+
+        --session-jove-bg: rgba(72, 80, 98, 0.3);
+        --session-jove-border: rgba(170, 180, 200, 0.12);
+        --session-user-bg: rgba(115, 72, 42, 0.2);
+        --session-user-border: rgba(170, 120, 82, 0.2);
+        --session-ink-user-text: rgba(245, 243, 238, 0.92);
+
+        --session-paratext: rgba(245, 232, 212, 0.88);
+        --session-paratext-mid: rgba(232, 218, 196, 0.62);
+        --session-paratext-spine: rgb(200, 145, 95);
+
+        --session-bubble-shadow: 0 6px 24px rgba(0, 0, 0, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        --session-plate-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(220, 170, 120, 0.1);
+
+        --canvas-bg: radial-gradient(
+            ellipse 110% 45% at 35% 12%,
+            rgba(115, 72, 42, 0.28),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 120% 70% at 50% 95%,
+            rgba(36, 42, 55, 0.85),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 65% 45% at 100% 0%,
+            rgba(85, 55, 30, 0.35),
+            transparent 60%
+          );
+      }
+
+      [data-theme="light"] {
+        --session-linen: #e5d8be;
+        --session-ink: #1f140a;
+        --session-ink-soft: rgba(31, 20, 10, 0.85);
+        --session-ink-mid: rgba(31, 20, 10, 0.62);
+        --session-ink-faded: rgba(31, 20, 10, 0.45);
+        --session-ink-ghost: rgba(31, 20, 10, 0.38);
+        --session-ink-hairline: rgba(31, 20, 10, 0.08);
+
+        --session-walnut: #5c3a1e;
+        --session-walnut-surface: rgba(92, 58, 30, 0.1);
+        --session-walnut-border: rgba(92, 58, 30, 0.32);
+        --session-walnut-meta: #5c3f23;
+        --session-walnut-meta-strong: #5c3f23;
+        --session-bubble-border: rgba(92, 58, 30, 0.32);
+
+        --session-persona: #5e7a4f;
+
+        --session-jove-bg: rgba(232, 220, 196, 0.9);
+        --session-jove-border: rgba(92, 58, 30, 0.32);
+        --session-user-bg: rgba(92, 58, 30, 0.1);
+        --session-user-border: rgba(92, 58, 30, 0.32);
+        --session-ink-user-text: #1f140a;
+
+        --session-paratext: rgba(70, 45, 22, 0.92);
+        --session-paratext-mid: rgba(70, 45, 22, 0.68);
+        --session-paratext-spine: rgb(140, 90, 45);
+
+        --session-bubble-shadow: 0 8px 24px rgba(31, 20, 10, 0.12),
+          0 2px 5px rgba(31, 20, 10, 0.1);
+        --session-plate-shadow: 0 22px 56px rgba(31, 20, 10, 0.16),
+          0 6px 14px rgba(31, 20, 10, 0.1),
+          inset 0 1px 0 rgba(245, 235, 215, 0.4);
+
+        --canvas-bg: radial-gradient(
+            ellipse 130% 60% at 35% 12%,
+            rgba(212, 176, 128, 0.4),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 90% 55% at 50% 95%,
+            rgba(255, 248, 232, 0.92),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 65% 45% at 100% 0%,
+            rgba(92, 58, 30, 0.22),
+            transparent 60%
+          );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background-color: var(--session-linen);
+        font-family: var(--font-body);
+        color: var(--session-ink);
+        overflow: hidden;
+      }
+
+      /* The app frame: chrome is static, only the conversation scrolls —
+         the same architecture as the live app. */
+      .scroll {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      /* Atmosphere lives on a fixed layer behind the page — same visual
+         as background-attachment: fixed, without Chrome's backdrop-filter
+         banding artifact. */
+      .canvas {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E");
+        background-size: 220px 220px;
+        background-repeat: repeat;
+      }
+
+      /* Gradient atmosphere lives in the scroll content so glass
+         surfaces (backdrop-filter) sample it without banding. */
+      .atmo {
+        min-height: 100%;
+        background-image: var(--canvas-bg);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+      }
+
+      /* Scroll fade — content recedes before it reaches the chrome. */
+      .top-fade {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 116px;
+        z-index: 10;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          var(--session-linen) 18%,
+          transparent
+        );
+        opacity: 0.92;
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         CHROME — masthead top-left, nav top-right, colophon bottom-left.
+         The canvas paratext stops being a picture frame and becomes the
+         working chrome of the page itself.
+         ════════════════════════════════════════════════════════════ */
+      .masthead {
+        position: fixed;
+        top: 40px;
+        left: 48px;
+        z-index: 20;
+      }
+
+      .masthead p {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 34px;
+        font-weight: 400;
+        letter-spacing: -0.5px;
+        line-height: 1;
+        color: var(--session-paratext);
+      }
+
+      .masthead p span {
+        color: var(--session-paratext-spine);
+      }
+
+      .masthead .sub {
+        margin-top: 10px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+      }
+
+      nav {
+        position: fixed;
+        top: 48px;
+        right: 56px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        color: var(--session-paratext-mid);
+        text-decoration: none;
+        padding-bottom: 3px;
+        border-bottom: 1px solid transparent;
+        transition: color 0.2s ease, border-color 0.2s ease;
+      }
+
+      nav a:hover {
+        color: var(--session-paratext);
+        border-bottom-color: var(--session-paratext-spine);
+      }
+
+      nav a .count {
+        color: var(--session-paratext-spine);
+        margin-left: 5px;
+      }
+
+      nav .dot {
+        color: var(--session-paratext-mid);
+        opacity: 0.5;
+      }
+
+      .colophon {
+        position: fixed;
+        bottom: 40px;
+        left: 48px;
+        z-index: 35;
+        max-width: 230px;
+      }
+
+      @media (max-width: 1280px) {
+        .colophon {
+          display: none;
+        }
+      }
+
+      .colophon .statement {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--session-paratext-mid);
+      }
+
+      .colophon .meta {
+        margin: 12px 0 0;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+        opacity: 0.75;
+      }
+
+      .colophon .meta button {
+        all: unset;
+        cursor: pointer;
+      }
+
+      .colophon .meta button:hover {
+        color: var(--session-paratext);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         THE PAGE — a single manuscript column, max 66ch, with a
+         marginalia rail hanging off its left edge.
+         ════════════════════════════════════════════════════════════ */
+      .page {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 132px 24px 220px;
+        position: relative;
+      }
+
+      .session-head {
+        margin-bottom: 52px;
+        padding-bottom: 28px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .session-head .eyebrow {
+        margin: 0 0 14px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+      }
+
+      .session-head h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 30px;
+        line-height: 1.25;
+        letter-spacing: -0.2px;
+        color: var(--session-ink-soft);
+      }
+
+      /* ── Messages ── */
+      .exchange {
+        position: relative;
+      }
+
+      .msg {
+        position: relative;
+        margin-bottom: 26px;
+        padding: 16px 24px 18px;
+        border-radius: 16px;
+        font-size: 16px;
+        line-height: 1.68;
+        letter-spacing: -0.03px;
+        box-shadow: var(--session-bubble-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .msg p {
+        margin: 0 0 14px;
+      }
+
+      .msg p:last-child {
+        margin-bottom: 0;
+      }
+
+      .msg.jove {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-top-left-radius: 5px;
+        margin-right: 9%;
+        color: var(--session-ink);
+      }
+
+      .msg.user {
+        background: var(--session-user-bg);
+        border: 1px solid var(--session-user-border);
+        border-top-right-radius: 5px;
+        margin-left: 13%;
+        color: var(--session-ink-user-text);
+      }
+
+      .msg .speaker {
+        display: block;
+        margin-bottom: 8px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-persona);
+      }
+
+      /* ── Marginalia — the desk margin earns its keep. Notes hang in
+         the left margin at the moments they mark: session start, the
+         checkpoint. Tufte sidenotes in mywalnut vocabulary. ── */
+      .margin-note {
+        position: absolute;
+        right: calc(100% + 44px);
+        width: 168px;
+        text-align: right;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.4px;
+        line-height: 1.8;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+        opacity: 0.85;
+      }
+
+      .margin-note .rule {
+        display: block;
+        margin: 0 0 8px auto;
+        width: 34px;
+        height: 1px;
+        background: var(--session-paratext-spine);
+        opacity: 0.55;
+      }
+
+      .margin-note em {
+        display: block;
+        margin-top: 4px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 14px;
+        letter-spacing: 0;
+        text-transform: none;
+        line-height: 1.4;
+        color: var(--session-paratext);
+      }
+
+      @media (max-width: 1180px) {
+        .margin-note {
+          display: none;
+        }
+      }
+
+      /* ── Checkpoint plate — Jove's surface, walnut halo ── */
+      .checkpoint {
+        position: relative;
+        margin: 40px 4% 36px;
+        padding: 26px 28px 24px;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-radius: 18px;
+        box-shadow: inset 0 1px 0 rgba(220, 170, 120, 0.14),
+          0 2px 4px rgba(0, 0, 0, 0.18), 0 14px 32px rgba(120, 75, 40, 0.18),
+          0 22px 50px rgba(120, 75, 40, 0.14);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        cursor: pointer;
+      }
+
+      .checkpoint::before {
+        content: "";
+        position: absolute;
+        inset: -48px -56px -72px;
+        background: radial-gradient(
+          ellipse 55% 50% at 50% 50%,
+          rgba(220, 165, 110, 0.18),
+          transparent 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      [data-theme="light"] .checkpoint::before {
+        background: radial-gradient(
+          ellipse 55% 50% at 50% 50%,
+          rgba(180, 110, 60, 0.18),
+          transparent 70%
+        );
+      }
+
+      .checkpoint .layer-line {
+        margin: 0 0 4px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 15px;
+        color: var(--session-ink-mid);
+      }
+
+      .checkpoint .eyebrow {
+        margin: 0 0 16px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .checkpoint h3 {
+        margin: 0 0 18px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 1.3;
+        color: var(--session-ink);
+      }
+
+      .checkpoint .review {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 14px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+      }
+
+      .checkpoint .review .arrow {
+        color: var(--session-walnut-meta-strong);
+        font-size: 14px;
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         COMPOSER — the writing slab. Desktop's one real superpower is
+         a keyboard; the input invites the long answer.
+         ════════════════════════════════════════════════════════════ */
+      .composer-wrap {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 30;
+        padding: 56px 24px 36px;
+        background: linear-gradient(
+          to top,
+          var(--session-linen) 30%,
+          transparent
+        );
+        pointer-events: none;
+      }
+
+      .composer {
+        pointer-events: auto;
+        max-width: 680px;
+        margin: 0 auto;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 18px;
+        box-shadow: var(--session-plate-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        padding: 18px 22px 14px;
+      }
+
+      .composer textarea {
+        display: block;
+        width: 100%;
+        min-height: 56px;
+        border: none;
+        outline: none;
+        resize: none;
+        background: transparent;
+        font-family: var(--font-body);
+        font-size: 16.5px;
+        line-height: 1.6;
+        color: var(--session-ink);
+      }
+
+      .composer textarea::placeholder {
+        font-style: italic;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 12px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .composer .hint {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .composer .mic {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid var(--session-walnut-border);
+        background: transparent;
+        color: var(--session-walnut-meta);
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .composer .send {
+        all: unset;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="canvas" aria-hidden="true"></div>
+    <div class="top-fade" aria-hidden="true"></div>
+    <header class="masthead">
+      <p>mywalnut<span>.</span></p>
+      <p class="sub">A private manual</p>
+    </header>
+
+    <nav>
+      <a href="#">Manual<span class="count">4</span></a>
+      <span class="dot">·</span>
+      <a href="#">Sessions<span class="count">33</span></a>
+      <span class="dot">·</span>
+      <a href="#">Settings</a>
+    </nav>
+
+    <div class="scroll" id="scroll">
+    <div class="atmo">
+    <main class="page">
+      <div class="session-head">
+        <p class="eyebrow">Session · Tuesday, June 10</p>
+        <h1>The bouncer protecting the real one inside</h1>
+      </div>
+
+      <div class="exchange">
+        <div class="msg jove" style="position: relative">
+          <span class="margin-note">
+            <span class="rule"></span>
+            4:12 pm
+          </span>
+          <span class="speaker">Jove</span>
+          <p>
+            What you're telling me now is the cost side. What it takes to keep
+            that running.
+          </p>
+          <p>
+            The "I don't know who I am underneath" — is that true, or is it
+            that you do know, and the underneath one doesn't get to come out
+            anywhere?
+          </p>
+        </div>
+
+        <div class="msg user">
+          I know who's underneath. I think I do. But she doesn't get to exist
+          in most places. So it's like... she's not real because she's not
+          allowed to be visible. The one people see is the safe one. The
+          joke-maker. The smaller version. And the real one just stays tired
+          and quiet and waits. God, that sounds so sad when I say it out loud.
+        </div>
+
+        <div class="msg jove">
+          <span class="speaker">Jove</span>
+          <p>
+            "She's not real because she's not allowed to be visible" — that
+            one landed hard, and I want to put it down.
+          </p>
+        </div>
+
+        <div class="checkpoint" style="position: relative">
+          <span class="margin-note" style="top: 30px">
+            <span class="rule"></span>
+            Checkpoint
+            <em>Layer II · Some of My Patterns</em>
+          </span>
+          <p class="layer-line">Some of My Patterns</p>
+          <p class="eyebrow">Potential manual entry</p>
+          <h3>I Shrink My Ideas Before Anyone Can Reject Them</h3>
+          <div class="review">
+            <span>Review before anything is saved</span>
+            <span class="arrow">›</span>
+          </div>
+        </div>
+      </div>
+    </main>
+    </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea placeholder="Write back to Jove… take the room you need."></textarea>
+        <div class="tools">
+          <span class="hint">Return to send · Shift+Return for a new line</span>
+          <div class="actions">
+            <button class="mic" aria-label="Voice input">●</button>
+            <button class="send">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="colophon">
+      <p class="statement">
+        Written by you, assembled in conversation. Nothing enters it unless
+        you confirm.
+      </p>
+      <p class="meta">
+        <button id="theme-toggle">Dark · Light</button>
+        &nbsp;&nbsp;In closed beta
+      </p>
+    </footer>
+
+    <script>
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+      });
+      const scroller = document.getElementById("scroll");
+      scroller.scrollTop = scroller.scrollHeight;
+    </script>
+  </body>
+</html>

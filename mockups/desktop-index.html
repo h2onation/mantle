@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mywalnut — desktop direction mockups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #0a0b10;
+        color: rgba(245, 243, 238, 0.92);
+        font-family: "Spectral", serif;
+        padding: 72px 24px 96px;
+      }
+      .wrap { max-width: 760px; margin: 0 auto; }
+      h1 {
+        font-family: "Instrument Serif", serif;
+        font-weight: 400;
+        font-size: 44px;
+        margin: 0 0 6px;
+        letter-spacing: -0.5px;
+      }
+      h1 span { color: rgb(200, 145, 95); }
+      .sub {
+        font-style: italic;
+        font-size: 17px;
+        color: rgba(228, 224, 214, 0.62);
+        margin: 0 0 52px;
+      }
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid rgba(170, 120, 82, 0.2);
+        border-radius: 16px;
+        background: rgba(115, 72, 42, 0.1);
+        padding: 26px 30px 24px;
+        margin-bottom: 22px;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+      a.card:hover {
+        border-color: rgba(220, 170, 120, 0.55);
+        transform: translateY(-2px);
+      }
+      .eyebrow {
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: rgba(220, 170, 120, 0.85);
+        margin: 0 0 10px;
+      }
+      .card h2 {
+        font-family: "Instrument Serif", serif;
+        font-style: italic;
+        font-weight: 400;
+        font-size: 28px;
+        margin: 0 0 10px;
+      }
+      .card p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.65;
+        color: rgba(228, 224, 214, 0.72);
+      }
+      .note {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(245, 237, 222, 0.08);
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: rgba(228, 224, 214, 0.45);
+        line-height: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Desktop directions<span>.</span></h1>
+      <p class="sub">
+        Three ways to grow mywalnut past the phone frame. Each mockup has a
+        working theme toggle (bottom-left, or the left rail in option 3).
+      </p>
+
+      <a class="card" href="/mockups/desktop-1-folio.html">
+        <p class="eyebrow">Option 1 · The safe floor</p>
+        <h2>The Folio — refined single column</h2>
+        <p>
+          The conversation becomes the page. Fixed 66-character measure,
+          larger type, marginalia in the side margins (timestamps,
+          checkpoint marks), a writing-slab composer. The Manual stays
+          behind a quiet top-right link. Zero disclosure risk.
+        </p>
+      </a>
+
+      <a class="card" href="/mockups/desktop-2-study.html">
+        <p class="eyebrow">Option 2 · Recommended</p>
+        <h2>The Study — conversation + Manual spine</h2>
+        <p>
+          Same reading column, plus the Manual as a closed book spine on the
+          desk's edge — layer numerals and entry pips, no content. It opens
+          on demand (click, ⌘M) or when a checkpoint lands, and the
+          confirmed entry visibly travels into its layer. Esc closes it.
+        </p>
+      </a>
+
+      <a class="card" href="/mockups/desktop-3-studio.html">
+        <p class="eyebrow">Option 3 · The far end</p>
+        <h2>The Studio — session rail + conversation + Manual</h2>
+        <p>
+          The full desktop app: sessions as a table of contents on the left,
+          conversation centered, Manual always open on the right. Most
+          capable, most "workstation" — the document watches the
+          conversation, which is exactly its risk.
+        </p>
+      </a>
+
+      <p class="note">
+        Static mockups · June 2026 · content is simulated · tokens lifted
+        from src/app/globals.css (Hearth + Bloom)
+      </p>
+    </div>
+  </body>
+</html>

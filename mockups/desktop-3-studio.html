@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desktop Option 3 — The Studio (session rail + conversation + Manual)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Spectral:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-serif: "Instrument Serif", serif;
+        --font-body: "Spectral", serif;
+        --font-mono: "DM Mono", monospace;
+        --font-sans: "DM Sans", sans-serif;
+
+        --session-linen: #0a0b10;
+        --session-ink: rgba(245, 243, 238, 0.97);
+        --session-ink-soft: rgba(245, 243, 238, 0.85);
+        --session-ink-mid: rgba(228, 224, 214, 0.62);
+        --session-ink-faded: rgba(228, 224, 214, 0.45);
+        --session-ink-ghost: rgba(228, 224, 214, 0.38);
+        --session-ink-hairline: rgba(245, 237, 222, 0.06);
+
+        --session-walnut: rgb(170, 120, 82);
+        --session-walnut-surface: rgba(115, 72, 42, 0.2);
+        --session-walnut-surface-soft: rgba(115, 72, 42, 0.1);
+        --session-walnut-border: rgba(170, 120, 82, 0.18);
+        --session-walnut-meta: rgba(170, 120, 82, 0.65);
+        --session-walnut-meta-strong: rgba(220, 170, 120, 0.85);
+        --session-bubble-border: rgba(170, 120, 82, 0.2);
+
+        --session-persona: #9cb18a;
+
+        --session-jove-bg: rgba(72, 80, 98, 0.3);
+        --session-jove-border: rgba(170, 180, 200, 0.12);
+        --session-user-bg: rgba(115, 72, 42, 0.2);
+        --session-user-border: rgba(170, 120, 82, 0.2);
+        --session-ink-user-text: rgba(245, 243, 238, 0.92);
+
+        --session-paratext: rgba(245, 232, 212, 0.88);
+        --session-paratext-mid: rgba(232, 218, 196, 0.62);
+        --session-paratext-spine: rgb(200, 145, 95);
+
+        --session-bubble-shadow: 0 6px 24px rgba(0, 0, 0, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        --session-plate-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(220, 170, 120, 0.1);
+
+        --halo-ink: 220, 165, 110;
+
+        --canvas-bg: radial-gradient(
+            ellipse 110% 45% at 50% 10%,
+            rgba(115, 72, 42, 0.26),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 120% 70% at 50% 95%,
+            rgba(36, 42, 55, 0.85),
+            transparent 70%
+          );
+      }
+
+      [data-theme="light"] {
+        --session-linen: #e5d8be;
+        --session-ink: #1f140a;
+        --session-ink-soft: rgba(31, 20, 10, 0.85);
+        --session-ink-mid: rgba(31, 20, 10, 0.62);
+        --session-ink-faded: rgba(31, 20, 10, 0.45);
+        --session-ink-ghost: rgba(31, 20, 10, 0.38);
+        --session-ink-hairline: rgba(31, 20, 10, 0.08);
+
+        --session-walnut: #5c3a1e;
+        --session-walnut-surface: rgba(232, 220, 196, 0.9);
+        --session-walnut-surface-soft: rgba(236, 224, 200, 0.93);
+        --session-walnut-border: rgba(92, 58, 30, 0.32);
+        --session-walnut-meta: #5c3f23;
+        --session-walnut-meta-strong: #5c3f23;
+        --session-bubble-border: rgba(92, 58, 30, 0.32);
+
+        --session-persona: #5e7a4f;
+
+        --session-jove-bg: rgba(232, 220, 196, 0.9);
+        --session-jove-border: rgba(92, 58, 30, 0.32);
+        --session-user-bg: rgba(92, 58, 30, 0.1);
+        --session-user-border: rgba(92, 58, 30, 0.32);
+        --session-ink-user-text: #1f140a;
+
+        --session-paratext: rgba(70, 45, 22, 0.92);
+        --session-paratext-mid: rgba(70, 45, 22, 0.68);
+        --session-paratext-spine: rgb(140, 90, 45);
+
+        --session-bubble-shadow: 0 8px 24px rgba(31, 20, 10, 0.12),
+          0 2px 5px rgba(31, 20, 10, 0.1);
+        --session-plate-shadow: 0 22px 56px rgba(31, 20, 10, 0.16),
+          0 6px 14px rgba(31, 20, 10, 0.1),
+          inset 0 1px 0 rgba(245, 235, 215, 0.4);
+
+        --halo-ink: 180, 110, 60;
+
+        --canvas-bg: radial-gradient(
+            ellipse 130% 60% at 50% 10%,
+            rgba(212, 176, 128, 0.4),
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 90% 55% at 50% 95%,
+            rgba(255, 248, 232, 0.92),
+            transparent 70%
+          );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background-color: var(--session-linen);
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.020'/%3E%3C/svg%3E");
+        background-size: 220px 220px;
+        font-family: var(--font-body);
+        color: var(--session-ink);
+        overflow: hidden;
+      }
+
+      .studio {
+        display: grid;
+        grid-template-columns: 264px 1fr 372px;
+        height: 100vh;
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         LEFT RAIL — the desk drawer. Sessions as a journal's table of
+         contents: mono dates, serif first-lines. Not a chat list.
+         ════════════════════════════════════════════════════════════ */
+      .rail {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--session-ink-hairline);
+        background: var(--session-walnut-surface-soft);
+        padding: 36px 0 24px;
+        min-height: 0;
+      }
+
+      [data-theme="dark"] .rail {
+        background: rgba(115, 72, 42, 0.06);
+      }
+
+      .rail .masthead {
+        padding: 0 28px 24px;
+      }
+
+      .rail .masthead p {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 26px;
+        letter-spacing: -0.4px;
+        line-height: 1;
+        color: var(--session-paratext);
+        font-weight: 400;
+      }
+
+      .rail .masthead p span {
+        color: var(--session-paratext-spine);
+      }
+
+      .rail .masthead .sub {
+        margin-top: 8px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-paratext-mid);
+      }
+
+      .rail .new-session {
+        margin: 0 28px 26px;
+        padding: 11px 16px;
+        border: 1px solid var(--session-walnut-border);
+        border-radius: 12px;
+        background: var(--session-walnut-surface);
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        text-align: center;
+        cursor: pointer;
+      }
+
+      .rail .new-session:hover {
+        border-color: var(--session-walnut-meta);
+      }
+
+      .rail .toc-label {
+        padding: 0 28px;
+        margin: 0 0 12px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .rail .toc {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      .rail .toc-item {
+        display: block;
+        padding: 13px 28px 13px 25px;
+        border-left: 3px solid transparent;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .rail .toc-item:hover {
+        background: var(--session-walnut-surface-soft);
+      }
+
+      [data-theme="dark"] .rail .toc-item:hover {
+        background: rgba(115, 72, 42, 0.12);
+      }
+
+      .rail .toc-item.active {
+        border-left-color: var(--session-paratext-spine);
+        background: var(--session-walnut-surface-soft);
+      }
+
+      [data-theme="dark"] .rail .toc-item.active {
+        background: rgba(115, 72, 42, 0.14);
+      }
+
+      .rail .toc-item .when {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+        margin-bottom: 4px;
+      }
+
+      .rail .toc-item .title {
+        display: block;
+        font-family: var(--font-body);
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: var(--session-ink-mid);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .rail .toc-item.active .title {
+        color: var(--session-ink);
+      }
+
+      .rail .toc-more {
+        display: block;
+        padding: 14px 28px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+        cursor: pointer;
+      }
+
+      .rail .foot {
+        padding: 18px 28px 0;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .rail .foot .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px 12px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+      }
+
+      .rail .foot .links a,
+      .rail .foot .links button {
+        all: unset;
+        cursor: pointer;
+        color: var(--session-ink-faded);
+      }
+
+      .rail .foot .links a:hover,
+      .rail .foot .links button:hover {
+        color: var(--session-ink-mid);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .rail .foot .crisis {
+        color: rgba(208, 130, 120, 0.75) !important;
+      }
+
+      .rail .foot .beta {
+        margin: 12px 0 0;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         CENTER — the conversation. Same fixed measure; the canvas
+         gradient lives here so the room still has its hearth.
+         ════════════════════════════════════════════════════════════ */
+      .room {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .room .scroll {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      .room .atmo {
+        min-height: 100%;
+        background-image: var(--canvas-bg);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+      }
+
+      .page {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 52px 28px 40px;
+      }
+
+      .session-head {
+        margin-bottom: 44px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .session-head .eyebrow {
+        margin: 0 0 12px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+      }
+
+      .session-head h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 27px;
+        line-height: 1.25;
+        color: var(--session-ink-soft);
+      }
+
+      .msg {
+        margin-bottom: 24px;
+        padding: 15px 22px 17px;
+        border-radius: 16px;
+        font-size: 15.5px;
+        line-height: 1.66;
+        box-shadow: var(--session-bubble-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .msg p {
+        margin: 0 0 13px;
+      }
+
+      .msg p:last-child {
+        margin-bottom: 0;
+      }
+
+      .msg.jove {
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-top-left-radius: 5px;
+        margin-right: 9%;
+      }
+
+      .msg.user {
+        background: var(--session-user-bg);
+        border: 1px solid var(--session-user-border);
+        border-top-right-radius: 5px;
+        margin-left: 13%;
+        color: var(--session-ink-user-text);
+      }
+
+      .msg .speaker {
+        display: block;
+        margin-bottom: 7px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: var(--session-persona);
+      }
+
+      .checkpoint-confirmed {
+        position: relative;
+        margin: 34px 4% 32px;
+        padding: 22px 26px 20px;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-jove-border);
+        border-radius: 18px;
+        box-shadow: inset 0 1px 0 rgba(var(--halo-ink), 0.14),
+          0 2px 4px rgba(0, 0, 0, 0.14), 0 14px 32px rgba(120, 75, 40, 0.16);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .checkpoint-confirmed::before {
+        content: "";
+        position: absolute;
+        inset: -36px -44px -50px;
+        background: radial-gradient(
+          ellipse 55% 50% at 50% 50%,
+          rgba(var(--halo-ink), 0.13),
+          transparent 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .checkpoint-confirmed .eyebrow {
+        margin: 0 0 12px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .checkpoint-confirmed h3 {
+        margin: 0 0 13px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 21px;
+        line-height: 1.3;
+        color: var(--session-ink);
+      }
+
+      .checkpoint-confirmed .meta-row {
+        padding-top: 12px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+      }
+
+      .composer-dock {
+        padding: 14px 28px 24px;
+      }
+
+      .composer {
+        max-width: 640px;
+        margin: 0 auto;
+        background: var(--session-jove-bg);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 18px;
+        box-shadow: var(--session-plate-shadow);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        padding: 14px 20px 10px;
+      }
+
+      .composer textarea {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        border: none;
+        outline: none;
+        resize: none;
+        background: transparent;
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--session-ink);
+      }
+
+      .composer textarea::placeholder {
+        font-style: italic;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 6px;
+        padding-top: 9px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .composer .hint {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-ghost);
+      }
+
+      .composer .send {
+        all: unset;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+      }
+
+      /* ════════════════════════════════════════════════════════════
+         RIGHT — the Manual, always present. The cost of the studio:
+         the document watches the conversation.
+         ════════════════════════════════════════════════════════════ */
+      .manual {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        border-left: 1px solid var(--session-ink-hairline);
+        background: var(--session-walnut-surface-soft);
+      }
+
+      [data-theme="dark"] .manual {
+        background: rgba(115, 72, 42, 0.06);
+      }
+
+      .manual .head {
+        padding: 34px 30px 20px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+      }
+
+      .manual .head h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 26px;
+        color: var(--session-ink);
+      }
+
+      .manual .head h2 span {
+        color: var(--session-paratext-spine);
+      }
+
+      .manual .head .sub {
+        margin: 7px 0 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 13.5px;
+        color: var(--session-ink-mid);
+      }
+
+      .manual .layers {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 22px 30px 24px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--session-walnut-border) transparent;
+      }
+
+      .layer {
+        margin-bottom: 22px;
+      }
+
+      .layer .tab {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 4px 10px 3px;
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-walnut-border);
+        border-bottom: none;
+        border-radius: 7px 7px 0 0;
+        font-family: var(--font-mono);
+        font-size: 8.5px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--session-walnut-meta);
+        margin-left: 9px;
+      }
+
+      .layer .tab .numeral {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 12px;
+        letter-spacing: 0;
+        color: var(--session-ink-mid);
+      }
+
+      .layer .plate {
+        background: var(--session-walnut-surface);
+        border: 1px solid var(--session-bubble-border);
+        border-radius: 12px;
+        border-top-left-radius: 2px;
+        padding: 13px 16px;
+      }
+
+      .layer .plate h4 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        font-size: 16px;
+        color: var(--session-ink-soft);
+      }
+
+      .layer .entries {
+        margin-top: 9px;
+        border-top: 1px solid var(--session-ink-hairline);
+      }
+
+      .layer .entry {
+        padding: 10px 2px;
+        border-bottom: 1px solid var(--session-ink-hairline);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .layer .entry:last-child {
+        border-bottom: none;
+        padding-bottom: 2px;
+      }
+
+      .layer .entry .headline {
+        font-family: var(--font-body);
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--session-ink);
+      }
+
+      .layer .entry .when {
+        font-family: var(--font-mono);
+        font-size: 8.5px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--session-ink-faded);
+        white-space: nowrap;
+      }
+
+      .layer .entry.fresh {
+        margin: 5px -8px 0;
+        padding: 10px;
+        border: 1px solid rgba(var(--halo-ink), 0.45);
+        border-radius: 9px;
+        background: radial-gradient(
+          ellipse 100% 100% at 50% 0%,
+          rgba(var(--halo-ink), 0.12),
+          transparent 80%
+        );
+      }
+
+      .layer .entry.fresh .when {
+        color: var(--session-walnut-meta-strong);
+      }
+
+      .layer .empty {
+        margin-top: 8px;
+        padding: 11px 2px 3px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 13px;
+        color: var(--session-ink-ghost);
+      }
+
+      .manual .foot {
+        padding: 15px 30px 22px;
+        border-top: 1px solid var(--session-ink-hairline);
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: var(--session-ink-mid);
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        white-space: nowrap;
+      }
+
+      .manual .foot a {
+        color: var(--session-walnut-meta-strong);
+        text-decoration: none;
+        border-bottom: 1px solid var(--session-walnut-meta-strong);
+        padding-bottom: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="studio">
+      <!-- LEFT RAIL -->
+      <aside class="rail">
+        <div class="masthead">
+          <p>mywalnut<span>.</span></p>
+          <p class="sub">A private manual</p>
+        </div>
+
+        <button class="new-session">+ New session</button>
+
+        <p class="toc-label">Sessions</p>
+        <div class="toc">
+          <a class="toc-item active">
+            <span class="when">Jun 10 · Today</span>
+            <span class="title">The bouncer protecting the real one</span>
+          </a>
+          <a class="toc-item">
+            <span class="when">Jun 4</span>
+            <span class="title">Why I rehearse phone calls</span>
+          </a>
+          <a class="toc-item">
+            <span class="when">Jun 4</span>
+            <span class="title">How I talk to myself after mistakes</span>
+          </a>
+          <a class="toc-item">
+            <span class="when">May 30</span>
+            <span class="title">The meeting that went sideways</span>
+          </a>
+          <a class="toc-item">
+            <span class="when">May 28</span>
+            <span class="title">Noticing before naming</span>
+          </a>
+          <a class="toc-item">
+            <span class="when">May 24</span>
+            <span class="title">First session</span>
+          </a>
+          <span class="toc-more">Show all (33) ›</span>
+        </div>
+
+        <div class="foot">
+          <div class="links">
+            <button>Settings</button>
+            <span>·</span>
+            <button id="theme-toggle">Theme</button>
+            <span>·</span>
+            <button class="crisis">Crisis support</button>
+          </div>
+          <p class="beta">In closed beta · v2.11</p>
+        </div>
+      </aside>
+
+      <!-- CENTER ROOM -->
+      <main class="room">
+        <div class="scroll" id="scroll">
+          <div class="atmo">
+            <div class="page">
+              <div class="session-head">
+                <p class="eyebrow">Session · Tuesday, June 10</p>
+                <h1>The bouncer protecting the real one inside</h1>
+              </div>
+
+              <div class="msg jove">
+                <span class="speaker">Jove</span>
+                <p>
+                  What you're telling me now is the cost side. What it takes
+                  to keep that running.
+                </p>
+                <p>
+                  The "I don't know who I am underneath" — is that true, or is
+                  it that you do know, and the underneath one doesn't get to
+                  come out anywhere?
+                </p>
+              </div>
+
+              <div class="msg user">
+                I know who's underneath. I think I do. But she doesn't get to
+                exist in most places. So it's like... she's not real because
+                she's not allowed to be visible. The one people see is the
+                safe one. The joke-maker. The smaller version. And the real
+                one just stays tired and quiet and waits. God, that sounds so
+                sad when I say it out loud.
+              </div>
+
+              <div class="checkpoint-confirmed">
+                <p class="eyebrow">✓ In your manual now</p>
+                <h3>I Shrink My Ideas Before Anyone Can Reject Them</h3>
+                <div class="meta-row">Layer II · Some of My Patterns</div>
+              </div>
+
+              <div class="msg jove">
+                <span class="speaker">Jove</span>
+                <p>It's in. Yours now, in your words.</p>
+                <p>
+                  Where did the bouncer come from? You said the safe one took
+                  the job a long time ago — when did showing the real one
+                  first feel like a risk?
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer-dock">
+          <div class="composer">
+            <textarea placeholder="Write back to Jove…"></textarea>
+            <div class="tools">
+              <span class="hint">Return to send</span>
+              <button class="send">Send</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT MANUAL -->
+      <aside class="manual">
+        <div class="head">
+          <h2>Your Manual<span>.</span></h2>
+          <p class="sub">A document about how you operate, in your own voice.</p>
+        </div>
+
+        <div class="layers">
+          <section class="layer">
+            <span class="tab"><span class="numeral">I</span> Layer</span>
+            <div class="plate">
+              <h4>My Strengths</h4>
+              <div class="entries">
+                <div class="entry">
+                  <span class="headline">I Notice What Others Miss</span>
+                  <span class="when">May 28</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="layer">
+            <span class="tab"><span class="numeral">II</span> Layer</span>
+            <div class="plate">
+              <h4>Some of My Patterns</h4>
+              <div class="entries">
+                <div class="entry">
+                  <span class="headline">The Safe One Answers First</span>
+                  <span class="when">Jun 4</span>
+                </div>
+                <div class="entry fresh">
+                  <span class="headline">I Shrink My Ideas Before Anyone Can Reject Them</span>
+                  <span class="when">Just now</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="layer">
+            <span class="tab"><span class="numeral">III</span> Layer</span>
+            <div class="plate">
+              <h4>How I Process Things</h4>
+              <div class="entries">
+                <div class="entry">
+                  <span class="headline">When Plans Change I Go Still</span>
+                  <span class="when">Jun 4</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="layer">
+            <span class="tab"><span class="numeral">IV</span> Layer</span>
+            <div class="plate">
+              <h4>What Helps</h4>
+              <div class="entries">
+                <div class="entry">
+                  <span class="headline">Written Beats Verbal, Every Time</span>
+                  <span class="when">May 30</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="layer">
+            <span class="tab"><span class="numeral">V</span> Layer</span>
+            <div class="plate">
+              <h4>How I Show Up with People</h4>
+              <p class="empty">Nothing here yet.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="foot">
+          <span>5 entries</span>
+          <a href="#">Read the full manual ›</a>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+      });
+      const scroller = document.getElementById("scroll");
+      scroller.scrollTop = scroller.scrollHeight;
+    </script>
+  </body>
+</html>
