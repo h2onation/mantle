@@ -645,7 +645,7 @@ describe("call-persona — post-confirm error handling", () => {
       /\/\/ subsequent-single\s*\n\s*return \[([\s\S]*?)\]\.join/
     );
     expect(subsequentBranch).toBeTruthy();
-    expect(subsequentBranch![1]).not.toContain("A Manual takes time to build");
+    expect(subsequentBranch![1]).not.toContain("POST_CONFIRM_FIRST_ENTRY_SCAFFOLD");
   });
 
   it("fallback does NOT reference the old 'A working name' / entries-summary vocabulary", () => {

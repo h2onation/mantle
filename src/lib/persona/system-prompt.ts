@@ -350,8 +350,13 @@ interface Tier3Block {
  *  Shared by the POST-CONFIRM Tier 3 block (first-message-2 branch) and the
  *  deterministic buildPostConfirmFallback in call-persona.ts, so the two
  *  copies can never drift. */
+// Trimmed 2026-06-10 (voice rebuild soak): the original carried a retention
+// pitch ("showing up daily over the next two weeks") that landed directly on
+// the recognition peak — the first live exchange showed it firing right after
+// the user's sharpest moment of feeling seen. Keep only the line that is
+// genuinely about the entry just saved.
 export const POST_CONFIRM_FIRST_ENTRY_SCAFFOLD =
-  "A Manual takes time to build. Best results come from showing up daily over the next two weeks. You can change the name or sharpen the entry anytime.";
+  "You can change the name or sharpen this entry anytime — it's yours.";
 
 export const TIER_3_BLOCKS: readonly Tier3Block[] = [
   {
