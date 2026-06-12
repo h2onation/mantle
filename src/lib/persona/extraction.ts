@@ -244,6 +244,7 @@ Write a short paragraph (3-5 sentences) orienting ${PERSONA_NAME}. The brief fee
 - What the user is actually describing underneath the surface topic (in behavioral and somatic terms — what their body did, what their system was doing, what the input was like — never clinical labels)
 - Which of the user's exact sensory or system words are load-bearing (e.g. "buzzing," "too loud," "went offline," "shut down," "went still," "full," "tight"). Name them so ${PERSONA_NAME} can carry them forward verbatim.
 - What the most charged or unresolved piece is
+- If the user has passed a judgment on themselves ("lazy," "in the wrong," "broken"), name it in their words — and whether it is still standing or the conversation has overturned it
 - What ${PERSONA_NAME} should push on vs leave alone
 - Whether a checkpoint is approaching and what body and bind it would anchor on
 
@@ -756,7 +757,7 @@ export function formatExtractionForPersona(
   } else if (gateReady) {
     context += "\nPattern is live and engaged. Work toward what changes now that the user can see this. When you have enough, propose the checkpoint with the pinned transition.\n";
   } else {
-    context += "\nPattern is engaged but material isn't strong enough yet for a checkpoint. Keep deepening — ask about the body, the cost, what fires it.\n";
+    context += "\nPattern is engaged but material isn't strong enough yet for a checkpoint. Keep deepening — by offering reads to confirm or correct, not by interrogating. For the cost: name a likely consequence from the scene they walked and let them correct it. For the body: what would someone watching have seen them do? For how far back this runs: offer it as a read they can take or correct — never ask them to compute how long.\n";
   }
 
   // Readiness signals
@@ -765,7 +766,7 @@ export function formatExtractionForPersona(
   } else if (state.user_named_cost && !state.user_named_stance) {
     context += "The user named the cost but hasn't landed on what they want. Work toward what changes before checkpointing, or checkpoint with an incomplete stance.\n";
   } else if (!state.user_named_cost && state.pattern_engaged) {
-    context += "The user hasn't named what this costs them yet. Ask about the cost before proposing.\n";
+    context += "The user hasn't named what this costs them yet. Don't ask what it costs — name a likely consequence from the scene they walked and let them confirm or correct it before proposing.\n";
   }
 
   context += "── END BRIEF ──\n";
