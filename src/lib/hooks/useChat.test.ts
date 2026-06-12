@@ -114,7 +114,8 @@ describe("buildChatMessageFromEvent", () => {
 // who closed the app while a checkpoint proposal was on screen came back to an
 // inert card with no confirm/reject/refine affordance, because the resume path
 // never re-derived the active checkpoint. This helper is the shared source of
-// truth used by both the resume path and loadConversation.
+// truth for every conversation-load path: resume, loadConversation, and
+// switchConversation (the drawer picker, which had the same dead-end bug).
 describe("pendingCheckpointFromMessages", () => {
   it("returns null for an empty message list", () => {
     expect(pendingCheckpointFromMessages([])).toBeNull();
@@ -160,6 +161,35 @@ describe("pendingCheckpointFromMessages", () => {
     expect(result).toEqual({
       messageId: "m2",
       layer: 3,
+      name: "Polished Name",
+      content: "the reflection text",
+      composedContent: "polished entry",
+    });
+  });
+
+  // Drawer-switch regression (2026-06-12): switchConversation selects rows
+  // with a `channel` column that the resume path doesn't carry. The helper
+  // must tolerate that shape and still re-activate the pending proposal.
+  it("re-activates a pending checkpoint from drawer-switch rows (extra channel field)", () => {
+    const result = pendingCheckpointFromMessages([
+      { id: "m1", content: "hi", is_checkpoint: false, channel: null },
+      {
+        id: "m2",
+        content: "the reflection text",
+        is_checkpoint: true,
+        channel: "app",
+        checkpoint_meta: {
+          layer: 2,
+          name: "Raw name",
+          composed_name: "Polished Name",
+          composed_content: "polished entry",
+          status: "pending",
+        },
+      },
+    ]);
+    expect(result).toEqual({
+      messageId: "m2",
+      layer: 2,
       name: "Polished Name",
       content: "the reflection text",
       composedContent: "polished entry",

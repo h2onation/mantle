@@ -109,7 +109,8 @@ export function buildChatMessageFromEvent(
  * Derive an active checkpoint from a freshly-loaded message list. Returns the
  * checkpoint to re-activate when the last message is a still-pending proposal,
  * else null — so a user who closed the app mid-proposal can still act on it.
- * Shared by every conversation-load path (resume + reload). Exported for testing.
+ * Shared by every conversation-load path (resume + reload + drawer switch).
+ * Exported for testing.
  */
 export function pendingCheckpointFromMessages(
   dbMessages: Array<{
@@ -1117,6 +1118,12 @@ export function useChat() {
           checkpointMeta: m.checkpoint_meta || null,
         }));
       setMessages(chatMessages);
+
+      // Detect + re-activate a pending checkpoint in the last message, same
+      // as loadConversation — otherwise switching to this conversation from
+      // the drawer renders the proposal as an inert historical card.
+      const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
+      if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
     }
 
     setConversationId(targetConversationId);
