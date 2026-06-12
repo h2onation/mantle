@@ -340,6 +340,29 @@ export function stripCheckpointFromText(text: string): string {
   return before.length > 0 ? before : SUPPRESSION_EMPTY_FALLBACK;
 }
 
+/**
+ * Split a checkpoint response at its transition line for split delivery
+ * (the lead-in ships to the client immediately; the entry composes after).
+ * Returns the genuine lead-in (Jove responding to what the user just
+ * said) and the remainder (transition line + entry prose), or null when
+ * there is no usable split — no transition match, the model led straight
+ * with the transition (empty lead-in), or nothing follows it.
+ *
+ * Uses findCheckpointTransition so the boundary is the same contract the
+ * detector and the suppression stripper already share — one transition
+ * definition, three consumers.
+ */
+export function splitCheckpointLeadIn(
+  text: string
+): { leadIn: string; remainder: string } | null {
+  const match = findCheckpointTransition(text);
+  if (!match || match.index <= 0) return null;
+  const leadIn = text.slice(0, match.index).trim();
+  const remainder = text.slice(match.index).trim();
+  if (leadIn.length === 0 || remainder.length === 0) return null;
+  return { leadIn, remainder };
+}
+
 /** Deterministic fallback for the post-confirm follow-up message when the
  *  Sonnet call fails. Mirrors the structure of the prompt-driven version
  *  (pinned "Saved." opener + optional first-time scaffolding paragraph +
@@ -753,9 +776,10 @@ export function callPersona({
         }
 
         // 11. Save Jove's response (conversational part only).
-        //     Include created_at so the 7f transition insert below can
-        //     offset its own timestamp to sort before this row in
-        //     time-ordered queries.
+        //     created_at is selected back so the split-delivery lead-in
+        //     (12b2) and the acknowledgment bubble (13b) can backdate
+        //     their own rows to sort before this one in time-ordered
+        //     queries.
         const { data: savedResponse } = await admin
           .from("messages")
           .insert({
@@ -763,10 +787,12 @@ export function callPersona({
             role: "assistant",
             content: conversationalText,
           })
-          .select("id")
+          .select("id, created_at")
           .single();
 
         const messageId = savedResponse?.id || null;
+        const savedResponseCreatedAt: string | null =
+          (savedResponse as { created_at?: string } | null)?.created_at ?? null;
 
         // 11a. Response structure validation (logs violations, does not block).
         //      Runs on fullText — the raw model output — not conversationalText,
@@ -875,6 +901,69 @@ export function callPersona({
           );
         }
 
+        // 12b2. Split delivery. Composition (12c) is a blocking Opus call
+        //       that runs for seconds (see composition_latency) — and the
+        //       chat renders nothing until it finishes, because both
+        //       visible artifacts of a checkpoint turn (acknowledgment
+        //       bubble + trigger card) are composition outputs. Ship
+        //       Jove's lead-in NOW as its own message so the user reads
+        //       something at normal-turn latency while the entry
+        //       composes. The `composing: true` flag tells the client to
+        //       keep the typing indicator up until the acknowledgment and
+        //       card events land.
+        //
+        //       The remainder (transition line + entry prose) stays on
+        //       the checkpoint row — rendered as the trigger card in
+        //       chat, kept in full for history and extraction. Rows are
+        //       backdated so a time-ordered reload reads the same way the
+        //       live stream did: lead-in (−2s) → acknowledgment (−1s) →
+        //       card. If the lead-in insert fails, fall through to
+        //       today's single-row behavior — never strand the lead-in
+        //       text outside the DB.
+        let leadInEmitted = false;
+        let checkpointRowDeleted = false;
+        if (isCheckpoint && messageId) {
+          const split = splitCheckpointLeadIn(conversationalText);
+          if (split) {
+            const leadInCreatedAt = savedResponseCreatedAt
+              ? new Date(
+                  new Date(savedResponseCreatedAt).getTime() - 2000
+                ).toISOString()
+              : undefined;
+            const { data: leadInRow } = await admin
+              .from("messages")
+              .insert({
+                conversation_id: convId,
+                role: "assistant",
+                content: split.leadIn,
+                ...(leadInCreatedAt ? { created_at: leadInCreatedAt } : {}),
+              })
+              .select("id")
+              .single();
+            if (leadInRow?.id) {
+              await admin
+                .from("messages")
+                .update({ content: split.remainder })
+                .eq("id", messageId);
+              conversationalText = split.remainder;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "message_complete",
+                    messageId: leadInRow.id,
+                    conversationId: convId,
+                    checkpoint: null,
+                    processingText: "",
+                    cleanContent: split.leadIn,
+                    composing: true,
+                  })}\n\n`
+                )
+              );
+              leadInEmitted = true;
+            }
+          }
+        }
+
         // 12c. Composition: when the detector says yes (and gates pass),
         //      call Opus to compose the polished entry. Opus picks the
         //      layer based on the entry content + the existing Manual,
@@ -948,15 +1037,28 @@ export function callPersona({
 
           if (!composedEntry) {
             // Composition failed — same broken-promise risk as a gate
-            // failure. Rewrite + update the saved row so the chat
-            // doesn't carry an unresolved transition line.
+            // failure.
             isCheckpoint = false;
-            conversationalText = stripCheckpointFromText(conversationalText);
-            if (messageId) {
-              await admin
-                .from("messages")
-                .update({ content: conversationalText })
-                .eq("id", messageId);
+            if (leadInEmitted && messageId) {
+              // Split delivery already shipped the lead-in as its own
+              // row — exactly the text the strip path would have kept.
+              // Delete the orphaned remainder row (the unbacked "I want
+              // to put something in your Manual" promise) so reload
+              // never shows it, and emit nothing more: the final event
+              // carries empty cleanContent, which the client skips.
+              await admin.from("messages").delete().eq("id", messageId);
+              checkpointRowDeleted = true;
+              conversationalText = "";
+            } else {
+              // No lead-in was emitted — rewrite + update the saved row
+              // so the chat doesn't carry an unresolved transition line.
+              conversationalText = stripCheckpointFromText(conversationalText);
+              if (messageId) {
+                await admin
+                  .from("messages")
+                  .update({ content: conversationalText })
+                  .eq("id", messageId);
+              }
             }
           }
         }
@@ -988,8 +1090,10 @@ export function callPersona({
           );
         }
 
-        // 13. Update message metadata
-        if (messageId) {
+        // 13. Update message metadata. Skipped when the composition-failure
+        //     path above deleted the checkpoint row — there is nothing
+        //     left to update.
+        if (messageId && !checkpointRowDeleted) {
           const updateData: Record<string, unknown> = {
             processing_text: processingText,
           };

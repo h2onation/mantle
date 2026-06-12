@@ -146,6 +146,12 @@ export function useChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  // Split delivery: true between the checkpoint lead-in event and the
+  // acknowledgment/card events that follow on the same stream. Keeps the
+  // typing indicator visible while the entry composes server-side —
+  // without it, the lead-in bubble landing would hide the indicator and
+  // the user would stare at a silent chat for the compose duration.
+  const [composingCheckpoint, setComposingCheckpoint] = useState(false);
   const [activeCheckpoint, setActiveCheckpoint] =
     useState<ActiveCheckpoint | null>(null);
   const [confirmedEntries, setConfirmedEntries] = useState<
@@ -290,6 +296,13 @@ export function useChat() {
           fullText += text;
         },
         onMessageComplete: (data) => {
+          // Split delivery: the lead-in event carries composing: true —
+          // the entry is still composing server-side, keep the typing
+          // indicator up. Any subsequent event (acknowledgment, card)
+          // clears it; the finally block below is the safety net for
+          // streams that die mid-compose.
+          setComposingCheckpoint(data.composing === true);
+
           // Snapshot the text accumulated since the previous
           // message_complete (or since stream start). This is THIS
           // message's streamed content, if any.
@@ -316,6 +329,7 @@ export function useChat() {
       });
     } finally {
       setIsStreaming(false);
+      setComposingCheckpoint(false);
     }
 
     if (sseError) {
@@ -1358,6 +1372,7 @@ export function useChat() {
     conversationId,
     isLoading,
     isStreaming,
+    composingCheckpoint,
     activeCheckpoint,
     confirmedEntries,
     firstName,

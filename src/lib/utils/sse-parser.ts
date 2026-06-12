@@ -32,6 +32,11 @@ export interface MessageCompleteEvent {
   // (treated as "situation" when missing).
   mode?: ConversationMode;
   chips?: string[];
+  // Split delivery: true on the checkpoint lead-in event — the entry is
+  // still composing server-side and more events follow on this stream.
+  // The client keeps the typing indicator up until the next
+  // message_complete (or stream end) clears it.
+  composing?: boolean;
 }
 
 interface SSECallbacks {
