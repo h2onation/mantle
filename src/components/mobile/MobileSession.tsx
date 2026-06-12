@@ -473,81 +473,68 @@ export default function MobileSession({
                           setCheckpointOverlayOpen(true);
                         }}
                       >
-                        {/* Brass layer eyebrow — matches the Manual headers
-                            and the confirm overlay (no warm chapter tab). */}
+                        {/* The trigger reads as the Plate the moment it
+                            appears: centered brass eyebrow, a display
+                            headline, the brass rule. Tapping opens the
+                            confirm overlay for the full entry + actions. */}
                         {cpLayer && (
                           <p
                             style={{
-                              margin: "0 4px 5px",
+                              margin: "0 0 14px",
                               fontFamily: "var(--font-mono)",
                               fontSize: 10,
                               fontWeight: 500,
                               letterSpacing: "0.22em",
                               textTransform: "uppercase",
                               color: "var(--session-walnut-meta-strong)",
+                              textAlign: "center",
                             }}
                           >
                             {formatLayerEyebrow(cpLayer)}
                           </p>
                         )}
-                        <p
-                          style={{
-                            margin: "0 4px 14px",
-                            fontFamily:
-                              "var(--font-spectral), var(--font-serif), serif",
-                            fontStyle: "italic",
-                            fontWeight: 400,
-                            fontSize: 13.5,
-                            lineHeight: 1.3,
-                            letterSpacing: "-0.005em",
-                            color: "var(--session-ink-mid)",
-                          }}
-                        >
-                          Potential manual entry
-                        </p>
                         {activeCheckpoint?.name && (
                           <h3
                             style={{
-                              margin: "0 4px",
-                              fontFamily:
-                                "var(--font-spectral), var(--font-persona), serif",
-                              fontStyle: "italic",
-                              fontSize: 17,
+                              margin: "0 auto",
+                              maxWidth: "22ch",
+                              fontFamily: "var(--font-serif), Georgia, serif",
+                              fontSize: 25,
                               fontWeight: 400,
-                              lineHeight: 1.32,
-                              letterSpacing: "-0.15px",
+                              lineHeight: 1.14,
+                              letterSpacing: "-0.01em",
                               color: "var(--session-ink)",
+                              textAlign: "center",
                             }}
                           >
                             {activeCheckpoint.name}
                           </h3>
                         )}
                         <div
+                          aria-hidden="true"
                           style={{
-                            margin: "16px 4px 0",
-                            paddingTop: 12,
-                            borderTop: "1px solid var(--session-hair-soft)",
+                            width: 64,
+                            height: 2,
+                            margin: "16px auto 0",
+                            background: "var(--session-walnut-border)",
+                          }}
+                        />
+                        <div
+                          style={{
+                            margin: "16px 0 0",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "space-between",
-                            fontFamily:
-                              "var(--font-sans, 'DM Sans', sans-serif)",
-                            fontSize: 11.5,
-                            color: "var(--session-ink-faded)",
+                            justifyContent: "center",
+                            gap: 7,
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 10,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: "var(--session-walnut-meta)",
                           }}
                         >
                           <span>Tap to review</span>
-                          <span
-                            style={{
-                              fontFamily:
-                                "var(--font-spectral), var(--font-persona), serif",
-                              fontSize: 18,
-                              lineHeight: 1,
-                              color: "var(--session-walnut)",
-                            }}
-                          >
-                            ›
-                          </span>
+                          <span aria-hidden="true">&rarr;</span>
                         </div>
                       </button>
 
