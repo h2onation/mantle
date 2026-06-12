@@ -8,7 +8,7 @@
 ---
 
 ## Deployed Features
-*Last verified: 2026-06-10*
+*Last verified: 2026-06-11*
 
 **Live features at a glance** (audit-only catalog of what's working end-to-end across all surfaces; full ship log below):
 
@@ -24,6 +24,7 @@
 - Session summary: Haiku, fire-and-forget on stale sessions (> 30 min)
 - Session history: side drawer, browse/switch past sessions, start new session
 - Desktop shell (viewports >= 1030px): persistent sidebar (collapsible to an icon rail; prominent Your Manual card, session list, settings / theme / crisis / logout, admin dev tools) + room header (wordmark, live session title, feedback) + one-view-at-a-time center with the conversation capped at a reading measure. Below 1030px and on login/onboarding, the phone-frame vitrine is unchanged.
+- Theming: two themes ship — light **"Slate & Brass"** (cool stone ground + graphite ink + aged-brass accent; the **new default** since 2026-06-11) and the unchanged dark **"Hearth"**. The sidebar/drawer Theme control cycles light / dark / system. All surfaces are token-driven (`--session-*` in `globals.css`), one block per theme; chat + sidebar are hand-polished to the Slate & Brass treatment, Manual + checkpoint inherit the tokens but their full polish is pending (next pass).
 - Dev simulate: Settings → "Simulate user" → auto-runs conversation until checkpoint. Persona modes (autistic / ADHD / dyslexic / general) and intake mode (situation / guided-intake / upload) are selectable per-run. Persona can emit `[END]` to stop naturally.
 - Dev reset: deletes all user data (not profile/auth) + localStorage clear
 - Crisis protocol: detects crisis language, provides 988 + Crisis Text Line
@@ -40,6 +41,8 @@
 ---
 
 **Ship log** (newest first):
+
+- **Slate & Brass theme — the rebrand's first surface (chat + sidebar); light is now the default** (2026-06-11, branch claude/interesting-grothendieck-9027d8): The light theme is re-palettized to **Slate & Brass** — cool greige stone ground (`#E8E6DF`), graphite ink (`#1C1B18`), aged-brass accent (the `--session-walnut*` token family carries brass values in light; the names stay theme-agnostic, dark still binds them to walnut), with seamless off-screen-anchored surface gradients (centered pools anchored above/below the frame so no elliptical boundary ever shows). **Light is now the default** — the FOUC script, SSR `data-theme`, and `useTheme` all flip their fallback to light; `setTheme` now persists "system" explicitly so follow-OS stays distinguishable from the no-choice default (theme-color updated to `#E8E6DF`). Because the app is token-driven, the whole app re-skins from the one token block; **chat + sidebar are the hand-polished surfaces this pass** — Jove bubbles run squarer (10px) with a brass top-rule and the brass JOVE label, the user bubble is a defined greige card (`#ECE9E0→#E4E0D5`, graphite hairline), the composer is stone glass, the desktop sidebar + mobile drawer inherit brass automatically (no component rewrite — drawer widened to 88% / 420px cap), and the chat-scroll bottom feather widened 4px→28px so messages dissolve above the composer instead of hitting a hard edge. **Dark mode is untouched** — verified byte-identical (slate Jove, sage persona, 16px radius); two new tokens (`--session-jove-rule`, `--session-bubble-radius`) default to dark-preserving values (transparent rule, 16px). The in-chat checkpoint's hardcoded warm-amber halo was recolored to brass so it's on-brand; its full structural redesign (the demo's letterpress Plate + press-confirm) rides with the **Manual + checkpoint pass (next)** since the checkpoint shares components with the Manual. Design exploration committed under `design-demos/` (five initial directions → Kernel refinements → five chat/color palettes; Slate & Brass chosen). **Tests/build:** 1139/1139 pass, clean `next build`, both re-run on the integrated state after a clean **rebase onto origin/main** (11 parallel-session commits — soak 6/7/8, hover-scrollbars, session titling — zero conflicts) and a **fast-forward push** that never touched the parallel session's dirty local checkout. **Browser-verified** (devtest, light theme, real dev server): chat bubbles, sidebar, the wider drawer, dark-mode parity, and no console errors. **Commits** `ae0edc6` (theme), `ecbc750` (demos).
 
 - **Hover-reveal scrollbars on desktop** (2026-06-10): scrollbar thumbs are transparent until the pointer is over the scroll area (`.mw-scroll` in globals.css, applied to conversation/manual/settings/crisis/login/sidebar scrollers) — the claude.ai pattern; wheel scrolling implies hover so the bar shows exactly while scrolling, pure CSS, fine-pointer devices only, mobile native bars untouched.
 
