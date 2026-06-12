@@ -41,6 +41,11 @@ interface MobileSessionProps {
   conversationId: string | null;
   isLoading: boolean;
   isStreaming: boolean;
+  // Split delivery: true while a checkpoint entry composes server-side
+  // after its lead-in bubble has already landed. Keeps the typing
+  // indicator visible even though the last message is a fresh assistant
+  // bubble. Optional so older callers default to today's behavior.
+  composingCheckpoint?: boolean;
   confirmedEntries: ManualEntry[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
@@ -88,6 +93,7 @@ export default function MobileSession({
   conversationId,
   isLoading,
   isStreaming,
+  composingCheckpoint = false,
   confirmedEntries,
   activeCheckpoint,
   checkpointError,
@@ -704,17 +710,20 @@ export default function MobileSession({
             })}
 
             {/* Typing indicator. Shows when a Jove turn is in-flight and
-                we don't already have a chat bubble for it. Three cases
+                we don't already have a chat bubble for it. Four cases
                 where the last message is NOT a fresh user message but the
                 indicator should still fire:
                   - First-turn boot (messages.length === 0)
                   - Post-user-message wait (default case)
                   - Post-confirm wait (last message is a checkpoint card;
-                    Jove is composing the continue-or-pivot follow-up) */}
+                    Jove is composing the continue-or-pivot follow-up)
+                  - Split delivery (last message is the checkpoint lead-in
+                    bubble; the entry is still composing server-side) */}
             {(isLoading || isStreaming) &&
               (messages.length === 0 ||
                messages[messages.length - 1].role === "user" ||
-               messages[messages.length - 1].isCheckpoint === true) && (
+               messages[messages.length - 1].isCheckpoint === true ||
+               composingCheckpoint) && (
                 <div style={{ animation: "checkpointFadeIn 0.3s ease-out both" }}>
                   <Bubble
                     speaker="jove"

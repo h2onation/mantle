@@ -8,6 +8,7 @@ import {
   detectCrisisInUserMessage,
   selectTranscriptContextForPrompt,
   shouldEmitUploadOpener,
+  splitCheckpointLeadIn,
   stripCheckpointFromText,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
@@ -297,6 +298,59 @@ describe("stripCheckpointFromText", () => {
     expect(result).not.toContain("write this up");
     expect(result).not.toContain("The Quiet Build");
     expect(result).not.toContain("What would you change");
+  });
+});
+
+// ── splitCheckpointLeadIn (split delivery) ──
+// The composition Opus call blocks for seconds after the conversational
+// stream finishes; splitCheckpointLeadIn carves the response at the
+// transition line so the lead-in can ship immediately while the entry
+// composes. Same findCheckpointTransition contract as the detector and
+// the suppression stripper — one transition definition, three consumers.
+
+describe("splitCheckpointLeadIn", () => {
+  it("splits a checkpoint response into lead-in and remainder at the transition line", () => {
+    const input =
+      "That moment you described at the dinner table is sitting with me. The way your jaw locked before anyone had even said anything yet. I want to put something in your Manual. Body Goes Quiet First.";
+    const result = splitCheckpointLeadIn(input);
+    expect(result).not.toBeNull();
+    expect(result!.leadIn).toContain("dinner table");
+    expect(result!.leadIn).toContain("jaw locked");
+    expect(result!.leadIn).not.toContain("in your Manual");
+    expect(result!.remainder).toContain("I want to put something in your Manual");
+    expect(result!.remainder).toContain("Body Goes Quiet First");
+    // Nothing lost, nothing duplicated: lead-in + remainder cover the input.
+    expect(result!.leadIn + " " + result!.remainder).toBe(input);
+  });
+
+  it("returns null when the model led straight with the transition (no lead-in to ship early)", () => {
+    const input =
+      "I want to put something in your Manual. There is a thing your system does when pressure lands.";
+    expect(splitCheckpointLeadIn(input)).toBeNull();
+  });
+
+  it("returns null when no transition line is present (not a checkpoint turn)", () => {
+    const input =
+      "Walk me through what happened. Start from right before it began.";
+    expect(splitCheckpointLeadIn(input)).toBeNull();
+  });
+
+  it("returns null when only whitespace precedes the transition", () => {
+    const input =
+      "  \n\nI want to put something in your Manual. Entry prose here.";
+    expect(splitCheckpointLeadIn(input)).toBeNull();
+  });
+
+  it("agrees with stripCheckpointFromText on the boundary (shared contract)", () => {
+    // The lead-in the split ships early must be exactly the text the
+    // strip path would have kept on a suppression — otherwise a
+    // composition failure after split delivery would show the user
+    // different words than a pre-split suppression would have.
+    const input =
+      "Here's what I'm seeing in all of it. Let me write this up for your Manual. The Quiet Build. What would you change?";
+    const split = splitCheckpointLeadIn(input);
+    expect(split).not.toBeNull();
+    expect(split!.leadIn).toBe(stripCheckpointFromText(input));
   });
 });
 
