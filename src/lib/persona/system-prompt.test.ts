@@ -383,19 +383,21 @@ describe("buildSystemPrompt", () => {
       expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
     });
 
-    it("delivers the SITUATION_OPENER verbatim and does not explain Manual structure", () => {
+    it("delivers the SITUATION_OPENER verbatim and sets the deal once", () => {
       // Bootstrap pattern: Jove no longer introduces itself separately; the
-      // opener IS the introduction. The block tells the model to deliver
-      // SITUATION_OPENER verbatim on turn 1 and to skip explanation of the
-      // checkpoint/Manual machinery.
+      // opener IS the introduction. Soak iteration 10 (2026-06-12) replaced
+      // the old "don't explain the Manual" surprise-mechanism rule with THE
+      // DEAL — the one-line expectation set early ("bringing the user along",
+      // founder ruling). Mechanics beyond the deal still aren't lectured.
       const result = build({
         manualComponents: [],
         isReturningUser: false,
         turnCount: 1,
       });
       expect(result).toContain("Deliver the opener below verbatim");
+      expect(result).toContain("THE DEAL (once, early)");
       expect(result).toContain(
-        "Don't explain checkpoints, the Manual, or the five layers"
+        "Don't explain layers or mechanics beyond that"
       );
     });
 
