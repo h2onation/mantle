@@ -6,12 +6,13 @@ import { PostHogProvider } from "@/components/PostHogProvider";
 import ThemeInit from "@/components/ThemeInit";
 import PersonaDyslexicFontInit from "@/components/PersonaDyslexicFontInit";
 
-// FOUC-safe theme bootstrap. Reads localStorage.mywalnut.theme; falls
-// back to prefers-color-scheme; falls back to "dark". Sets the
-// resolved theme on <html data-theme> AND updates the meta
-// theme-color tag (iOS PWA status bar) — both before the first paint.
-// Subsequent theme changes flow through useTheme / ThemeInit.
-const THEME_FOUC_SCRIPT = `(function(){try{var s=localStorage.getItem('mywalnut.theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);var c=t==='light'?'#E5D8BE':'#0A0B10';var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('content',c);}}catch(e){}})();`;
+// FOUC-safe theme bootstrap. Reads localStorage.mywalnut.theme. Light
+// is the default brand experience: an explicit "light"/"dark" choice
+// wins; "system" follows the OS; anything else (including no stored
+// value) resolves to light. Sets the resolved theme on <html data-theme>
+// AND updates the meta theme-color tag (iOS PWA status bar) — both before
+// the first paint. Subsequent theme changes flow through useTheme / ThemeInit.
+const THEME_FOUC_SCRIPT = `(function(){try{var s=localStorage.getItem('mywalnut.theme');var t=(s==='light'||s==='dark')?s:(s==='system'?(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):'light');document.documentElement.setAttribute('data-theme',t);var c=t==='light'?'#E8E6DF':'#0A0B10';var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('content',c);}}catch(e){}})();`;
 
 // FOUC-safe persona-dyslexic bootstrap. Reads localStorage.mywalnut.persona-dyslexic
 // (set by the picker / reconciled by PersonaDyslexicFontInit against the
@@ -63,7 +64,7 @@ const spectral = Spectral({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0A0B10",
+  themeColor: "#E8E6DF",
 };
 
 export const metadata: Metadata = {
@@ -95,7 +96,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
       className={`${instrumentSerif.variable} ${dmSans.variable} ${sourceSerif4.variable} ${dmMono.variable} ${newsreader.variable} ${spectral.variable}`}
     >

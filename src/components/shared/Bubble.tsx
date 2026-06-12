@@ -14,7 +14,7 @@ const JOVE_STYLE: React.CSSProperties = {
   marginRight: "auto",
   background: "var(--session-jove-bg)",
   border: "1px solid var(--session-jove-border)",
-  borderRadius: "16px",
+  borderRadius: "var(--session-bubble-radius)",
   borderTopLeftRadius: "5px",
 };
 
@@ -24,7 +24,7 @@ const USER_STYLE: React.CSSProperties = {
   marginRight: 0,
   background: "var(--session-user-bg)",
   border: "1px solid var(--session-user-border)",
-  borderRadius: "16px",
+  borderRadius: "var(--session-bubble-radius)",
   borderTopRightRadius: "5px",
 };
 
@@ -37,7 +37,11 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
         padding: "12px 20px 14px",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
-        boxShadow: "var(--session-bubble-shadow)",
+        // Jove carries a thin brass top-rule in light (--session-jove-rule
+        // is transparent in dark, so dark is unchanged).
+        boxShadow: isJove
+          ? "inset 0 2px 0 var(--session-jove-rule), var(--session-bubble-shadow)"
+          : "var(--session-bubble-shadow)",
       }}
     >
       {isJove && showLabel && (

@@ -15,15 +15,17 @@ interface UseThemeReturn {
   setTheme: (t: ThemeChoice) => void;
 }
 
+// Light is the default brand experience. An explicit "light"/"dark"/
+// "system" choice is honored; no stored value resolves to light.
 function readStoredTheme(): ThemeChoice {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "light";
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    if (v === "light" || v === "dark") return v;
+    if (v === "light" || v === "dark" || v === "system") return v;
   } catch {
     // localStorage can throw in private mode / disabled storage; fall through.
   }
-  return "system";
+  return "light";
 }
 
 function systemPrefersLight(): boolean {
@@ -38,7 +40,7 @@ function systemPrefersLight(): boolean {
 function applyTheme(resolved: ResolvedTheme) {
   if (typeof document === "undefined") return;
   document.documentElement.setAttribute("data-theme", resolved);
-  const color = resolved === "light" ? "#E5D8BE" : "#0A0B10";
+  const color = resolved === "light" ? "#E8E6DF" : "#0A0B10";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     meta.setAttribute("content", color);
@@ -46,7 +48,7 @@ function applyTheme(resolved: ResolvedTheme) {
 }
 
 export function useTheme(): UseThemeReturn {
-  const [theme, setThemeState] = useState<ThemeChoice>("system");
+  const [theme, setThemeState] = useState<ThemeChoice>("light");
   const [systemLight, setSystemLight] = useState(false);
 
   // Initialize on mount: pull persisted choice and current system pref.
@@ -80,11 +82,10 @@ export function useTheme(): UseThemeReturn {
 
   const setTheme = useCallback((t: ThemeChoice) => {
     try {
-      if (t === "system") {
-        localStorage.removeItem(STORAGE_KEY);
-      } else {
-        localStorage.setItem(STORAGE_KEY, t);
-      }
+      // Store every choice — including "system" — explicitly. A missing
+      // key means "no choice yet" and resolves to the light default, so
+      // "system" (follow OS) has to be persisted to stay distinguishable.
+      localStorage.setItem(STORAGE_KEY, t);
     } catch {
       // Persistence is best-effort; the in-memory state still updates.
     }

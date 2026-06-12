@@ -125,8 +125,10 @@ export default function SessionDrawer({
           top: 0,
           left: 0,
           bottom: 0,
-          width: "86%",
-          maxWidth: 360,
+          // Standard nav-drawer width — opens to ~88% of the screen, capped
+          // so it still leaves a strip of the conversation visible behind it.
+          width: "88%",
+          maxWidth: 420,
           background: "var(--session-drawer-bg)",
           backdropFilter: "blur(40px) saturate(140%)",
           WebkitBackdropFilter: "blur(40px) saturate(140%)",

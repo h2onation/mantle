@@ -150,6 +150,12 @@
   --session-user-bg:            rgba(115, 72, 42, 0.20);
   --session-user-border:        rgba(170, 120, 82, 0.20);
 
+  /* Jove bubble top-rule + bubble radius — tokenized so the light
+     (Slate & Brass) theme can add a brass top accent and run squarer
+     corners without changing dark. Dark keeps no rule and 16px. */
+  --session-jove-rule:          transparent;
+  --session-bubble-radius:      16px;
+
   /* Circular button inset — TopBar circle, drag handle, mic icon background. */
   --session-button-inset:        rgba(0, 0, 0, 0.30);
 
@@ -202,48 +208,51 @@
    surrounding tone shifts. Espresso ink for AAA contrast on linen.
    Source: src/app/demo/linen/page.tsx (Version 03 — Embossed linen). */
 [data-theme="light"] {
-  /* Surface — medium linen, with cream and parchment variants for
-     slightly-warmer / slightly-cooler paper. cream-bright lifts the bottom
-     of card gradients that start at cream. */
-  --session-linen:       #E5D8BE;
-  --session-cream:       #ECE0C8;
-  --session-cream-bright: #EFEADF;
-  --session-parchment:   #DFD3B5;
+  /* Surface — cool greige stone, with paper + parchment variants.
+     Paper surfaces are bright stone-white, barely lifted off the ground;
+     lift comes from hairline borders + soft shadow, not fill contrast. */
+  --session-linen:       #E8E6DF;
+  --session-cream:       #F2F1EB;
+  --session-cream-bright: #F7F6F1;
+  --session-parchment:   #E1DFD7;
 
-  /* Ink hierarchy — espresso on linen. The primary ink hits AAA on
-     the linen ground; faded/whisper tiers cascade down for hint
-     copy, meta rows, and disabled affordances. */
-  --session-ink:            #1F140A;
-  --session-ink-soft:       #4A3220;
-  --session-ink-persona:    rgba(31, 20, 10, 0.78);
-  --session-ink-mid:        rgba(31, 20, 10, 0.64);
-  --session-ink-faded:      #6B4E32; /* 2026-06-10 contrast pass: 3.8 -> 4.9 */
-  --session-ink-ghost:      rgba(31, 20, 10, 0.55); /* 2026-06-10 contrast pass: 2.6 -> 3.7 (placeholder tier) */
-  --session-ink-whisper:    rgba(31, 20, 10, 0.22);
-  --session-ink-hairline:   rgba(92, 58, 30, 0.10);
+  /* Ink hierarchy — graphite on stone. The primary ink clears AAA;
+     faded/whisper tiers cascade down for hint copy, meta rows, and
+     disabled affordances. */
+  --session-ink:            #1C1B18;
+  --session-ink-soft:       #3A3833;
+  --session-ink-persona:    rgba(28, 27, 24, 0.78);
+  --session-ink-mid:        rgba(28, 27, 24, 0.64);
+  --session-ink-faded:      #54524A; /* graphite mute — ~6.3:1 on stone */
+  --session-ink-ghost:      rgba(28, 27, 24, 0.55); /* placeholder tier */
+  --session-ink-whisper:    rgba(28, 27, 24, 0.22);
+  --session-ink-hairline:   rgba(28, 27, 24, 0.10);
 
-  /* Hair — warm walnut borders on linen. */
-  --session-hair:           rgba(92, 58, 30, 0.28);
-  --session-hair-soft:      rgba(92, 58, 30, 0.14);
+  /* Hair — graphite hairline borders on stone. */
+  --session-hair:           rgba(28, 27, 24, 0.22);
+  --session-hair-soft:      rgba(28, 27, 24, 0.12);
 
-  /* Sage — kept for Jove continuity; dialed for legibility on linen. */
-  --session-persona:        #4E6346; /* 2026-06-10 contrast pass: 3.6 -> 5.0 on the cream bubble */
-  --session-persona-soft:   rgba(94, 122, 79, 0.32);
-  --session-persona-muted:  rgba(94, 122, 79, 0.14);
-  --session-persona-border: rgba(94, 122, 79, 0.30);
-  --session-persona-tint:   rgba(94, 122, 79, 0.08);
+  /* Persona (Jove) — brass replaces sage in Slate & Brass. The JOVE
+     label, typing dots, caret, and waveform read in the deepened brass
+     that clears AA on the stone-white bubble. */
+  --session-persona:        #7A5A1E; /* brass-deep — ~5.5:1 on stone-white */
+  --session-persona-soft:   rgba(166, 128, 60, 0.34);
+  --session-persona-muted:  rgba(166, 128, 60, 0.16);
+  --session-persona-border: rgba(166, 128, 60, 0.34);
+  --session-persona-tint:   rgba(166, 128, 60, 0.08);
 
-  /* Walnut — same spine identity as dark, but the surface variants
-     re-tune for linen: the surface tints are walnut washes (V3
-     Embossed values) and the meta tone is the espresso mono-caps
-     reading on linen. */
-  --session-walnut:             #5C3A1E;
-  --session-walnut-light:       rgba(92, 58, 30, 0.55);
-  --session-walnut-surface:     rgba(232, 220, 196, 0.90);
-  --session-walnut-surface-soft:rgba(236, 224, 200, 0.93);
-  --session-walnut-border:      rgba(92, 58, 30, 0.32);
-  --session-walnut-border-soft: rgba(92, 58, 30, 0.22);
-  --session-walnut-meta:        #5C3F23;
+  /* Accent — aged brass. The --session-walnut* token family carries the
+     brass values in this theme (the names stay theme-agnostic; dark
+     still binds them to walnut). Decorative brass for period marks,
+     borders, and large icons; the meta tone is deepened brass that
+     clears AA for mono-caps and small labels on stone. */
+  --session-walnut:             #A6803C;
+  --session-walnut-light:       rgba(166, 128, 60, 0.55);
+  --session-walnut-surface:     rgba(248, 247, 243, 0.92);
+  --session-walnut-surface-soft:rgba(250, 249, 245, 0.94);
+  --session-walnut-border:      rgba(122, 90, 30, 0.30);
+  --session-walnut-border-soft: rgba(122, 90, 30, 0.20);
+  --session-walnut-meta:        #7A5A1E;
 
   /* Error — oxblood, AAA on linen. */
   --session-error:        #7A2E2E;
@@ -255,15 +264,15 @@
   --session-warning:      #B6852A;
   --session-warning-soft: rgba(182, 133, 42, 0.10);
 
-  /* Overlays — warm tint on linen reads better than pure black. */
-  --session-backdrop:       rgba(31, 20, 10, 0.45);
-  --session-backdrop-heavy: rgba(31, 20, 10, 0.85);
+  /* Overlays — graphite tint reads cleaner than pure black on stone. */
+  --session-backdrop:       rgba(28, 27, 24, 0.45);
+  --session-backdrop-heavy: rgba(28, 27, 24, 0.82);
 
-  /* Glow */
-  --session-glow-scroll: rgba(92, 58, 30, 0.04);
+  /* Glow — faint brass scroll fade. */
+  --session-glow-scroll: rgba(166, 128, 60, 0.04);
 
-  /* Vignette — gentle ink wash on linen edges. */
-  --session-vignette: rgba(31, 20, 10, 0.05);
+  /* Vignette — gentle graphite wash on stone edges. */
+  --session-vignette: rgba(28, 27, 24, 0.05);
 
   /* Paratext — masthead + colophon on the Bloom canvas. The canvas
      surround is warm-walnut (dark), so paratext stays cream rather
@@ -273,83 +282,87 @@
   --session-paratext-spine:  rgb(220, 175, 120);
   --session-paratext-strong: rgba(252, 246, 230, 1);
 
-  /* Per-surface gradients — V3 Embossed linen, verbatim from
-     src/app/demo/linen/page.tsx C object. Cream highlight at top,
-     caramel pool mid-bottom, deep walnut at a corner. */
+  /* Per-surface gradients — Slate & Brass, seamless. Pools are centered
+     on the horizontal and anchored OFF-SCREEN on the vertical (above the
+     top / below the bottom) so only the smooth body of the gradient is
+     ever in frame — never a bright center, never a visible elliptical
+     boundary. rgba(...,0) stops (not `transparent`) keep the fade from
+     muddying to grey. Cool stone-white light high, faint brass low. */
   --session-bg-welcome:
-    radial-gradient(ellipse 110% 55% at 30% 18%, rgba(255, 248, 228, 0.85), transparent 60%),
-    radial-gradient(ellipse 75% 50% at 100% 88%, rgba(92, 58, 30, 0.34), transparent 65%),
-    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(212, 176, 128, 0.62), transparent 60%);
+    radial-gradient(150% 90% at 50% -16%, rgba(252, 251, 246, 0.78), rgba(252, 251, 246, 0) 70%),
+    radial-gradient(150% 95% at 50% 118%, rgba(166, 128, 60, 0.12), rgba(166, 128, 60, 0) 72%);
   --session-bg-chat:
-    radial-gradient(ellipse 130% 60% at 35% 15%, rgba(212, 176, 128, 0.40), transparent 65%),
-    radial-gradient(ellipse 90% 55% at 50% 95%, rgba(255, 248, 232, 0.92), transparent 70%),
-    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(92, 58, 30, 0.25), transparent 60%);
+    radial-gradient(150% 90% at 50% -18%, rgba(252, 251, 246, 0.80), rgba(252, 251, 246, 0) 70%),
+    radial-gradient(150% 95% at 50% 120%, rgba(166, 128, 60, 0.10), rgba(166, 128, 60, 0) 72%);
   --session-bg-checkpoint:
-    radial-gradient(ellipse 120% 60% at 50% 25%, rgba(255, 250, 232, 0.85), transparent 65%),
-    radial-gradient(ellipse 95% 55% at 35% 100%, rgba(208, 168, 118, 0.60), transparent 70%),
-    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(92, 58, 30, 0.34), transparent 60%);
+    radial-gradient(150% 90% at 50% -16%, rgba(252, 251, 246, 0.82), rgba(252, 251, 246, 0) 70%),
+    radial-gradient(150% 95% at 50% 120%, rgba(166, 128, 60, 0.12), rgba(166, 128, 60, 0) 72%);
   --session-bg-manual:
-    radial-gradient(ellipse 130% 60% at 50% 10%, rgba(255, 250, 232, 0.78), transparent 60%),
-    radial-gradient(ellipse 100% 55% at 50% 100%, rgba(208, 168, 118, 0.48), transparent 70%),
-    radial-gradient(ellipse 60% 45% at 0% 90%, rgba(92, 58, 30, 0.28), transparent 60%);
+    radial-gradient(150% 90% at 50% -16%, rgba(252, 251, 246, 0.74), rgba(252, 251, 246, 0) 70%),
+    radial-gradient(150% 95% at 50% 120%, rgba(166, 128, 60, 0.13), rgba(166, 128, 60, 0) 72%);
 
-  /* Elevation — light lifts use ink shadows, not transparent dark. */
-  --lift:    0 5px 14px rgba(31, 20, 10, 0.08), 0 1px 3px rgba(31, 20, 10, 0.06);
-  --lift-hi: 0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10);
+  /* Elevation — graphite shadows. */
+  --lift:    0 5px 14px rgba(28, 27, 24, 0.08), 0 1px 3px rgba(28, 27, 24, 0.06);
+  --lift-hi: 0 22px 56px rgba(28, 27, 24, 0.16), 0 6px 14px rgba(28, 27, 24, 0.10);
 
   /* ─── Phase 4 audit tokens (light values) ──────────────────────────
      Same token names as the dark block above; remapped to V3 Embossed
      linen equivalents. */
 
-  /* Bubble + plate primary border — V3 paper-border 0.32 walnut. */
-  --session-bubble-border:      rgba(92, 58, 30, 0.32);
+  /* Bubble + plate primary border — brass hairline. */
+  --session-bubble-border:      rgba(122, 90, 30, 0.30);
 
-  /* Bubble fills, semantic by speaker — light values. Jove sits on the
-     cream paper surface; user sits on the warm walnut wash. Both surfaces
-     are warm-leaning in light mode (slate doesn't read on linen). The
-     dark block flips Jove to slate so navy is the cool Jove character in
-     dark mode while light mode keeps the cream paper. */
-  --session-jove-bg:            rgba(232, 220, 196, 0.90);
-  --session-jove-border:        rgba(92, 58, 30, 0.32);
-  --session-user-bg:            rgba(92, 58, 30, 0.10);
-  --session-user-border:        rgba(92, 58, 30, 0.32);
+  /* Bubble fills, semantic by speaker — Slate & Brass. Jove sits on the
+     bright stone-white sheet the Manual is printed on; the user sits on a
+     warm greige (a faint brass wash over stone). Cool-paper vs warm-greige
+     reads the two voices apart at a glance; graphite text on both. The
+     dark block keeps Jove slate (cool) and the user walnut (warm). */
+  --session-jove-bg:            rgba(252, 251, 247, 0.93);
+  --session-jove-border:        rgba(40, 38, 33, 0.16);
+  --session-user-bg:            linear-gradient(160deg, #ECE9E0, #E4E0D5);
+  --session-user-border:        rgba(28, 27, 24, 0.22);
 
-  /* Circular button inset — warm ink at low alpha. */
-  --session-button-inset:        rgba(31, 20, 10, 0.08);
+  /* Jove bubble top-rule — a thin brass accent in light (transparent in
+     dark, set in :root). Bubble corners run squarer / architectural. */
+  --session-jove-rule:          #A6803C;
+  --session-bubble-radius:      10px;
 
-  /* Drawer panel — warm linen with a touch of opacity for the
+  /* Circular button inset — graphite at low alpha. */
+  --session-button-inset:        rgba(28, 27, 24, 0.07);
+
+  /* Drawer panel — stone paper with a touch of opacity for the
      backdrop-filter to lift the surface above the page gradient. */
-  --session-drawer-bg:           rgba(229, 216, 190, 0.95);
+  --session-drawer-bg:           rgba(240, 239, 233, 0.95);
 
-  /* V3 paper-shadow (chat bubble) and plate-shadow (modals). */
-  --session-bubble-shadow:       0 8px 24px rgba(31, 20, 10, 0.12), 0 2px 5px rgba(31, 20, 10, 0.10);
-  --session-plate-shadow:        0 22px 56px rgba(31, 20, 10, 0.16), 0 6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
-  --session-sheet-shadow:        0 -22px 56px rgba(31, 20, 10, 0.16), 0 -6px 14px rgba(31, 20, 10, 0.10), 0 1px 0 rgba(245, 235, 215, 0.4) inset;
+  /* Graphite-tinted paper-shadow (chat bubble) and plate-shadow (modals). */
+  --session-bubble-shadow:       0 8px 24px rgba(28, 27, 24, 0.10), 0 2px 5px rgba(28, 27, 24, 0.08);
+  --session-plate-shadow:        0 22px 56px rgba(28, 27, 24, 0.14), 0 6px 14px rgba(28, 27, 24, 0.09), 0 1px 0 rgba(255, 254, 250, 0.5) inset;
+  --session-sheet-shadow:        0 -22px 56px rgba(28, 27, 24, 0.14), 0 -6px 14px rgba(28, 27, 24, 0.09), 0 1px 0 rgba(255, 254, 250, 0.5) inset;
 
-  /* Card shadow — soft paper lift on linen for card-tier surfaces. */
-  --session-card-shadow:         0 5px 14px rgba(31, 20, 10, 0.08), 0 1px 3px rgba(31, 20, 10, 0.06);
+  /* Card shadow — soft paper lift on stone for card-tier surfaces. */
+  --session-card-shadow:         0 5px 14px rgba(28, 27, 24, 0.08), 0 1px 3px rgba(28, 27, 24, 0.06);
 
-  /* Walnut meta highlights — V3 espresso mono-caps tone for headings
-     and eyebrows. The "soft" variant fades it for low-emphasis labels. */
-  --session-walnut-meta-strong:  #5C3F23;
-  --session-walnut-meta-soft:    rgba(92, 63, 35, 0.55);
-  --session-walnut-highlight:    rgba(245, 235, 215, 0.4);
+  /* Brass meta highlights — deepened brass mono-caps tone for headings
+     and eyebrows. The "soft" variant fades it for low-emphasis labels;
+     highlight is the paper inset sheen. */
+  --session-walnut-meta-strong:  #644A18;
+  --session-walnut-meta-soft:    rgba(122, 90, 30, 0.55);
+  --session-walnut-highlight:    rgba(255, 254, 250, 0.5);
 
-  /* User bubble text — full ink on linen; the walnut-wash bubble has
-     enough contrast to carry the primary text color directly. */
-  --session-ink-user-text:       #1F140A;
+  /* User bubble text — full graphite on the warm-greige bubble. */
+  --session-ink-user-text:       #1C1B18;
 
-  /* Oxblood error borders — deeper to maintain contrast on linen. */
+  /* Oxblood error borders. */
   --session-error-border:        rgba(122, 46, 46, 0.35);
   --session-error-border-soft:   rgba(122, 46, 46, 0.20);
 
-  /* OAuth button — quiet ink wash on linen. */
-  --session-oauth-surface:       rgba(31, 20, 10, 0.04);
-  --session-oauth-border:        rgba(92, 58, 30, 0.18);
+  /* OAuth button — quiet graphite wash on stone. */
+  --session-oauth-surface:       rgba(28, 27, 24, 0.04);
+  --session-oauth-border:        rgba(28, 27, 24, 0.16);
 
-  /* Manual page — same names as dark, retuned for linen. */
-  --session-walnut-tint:         rgba(92, 58, 30, 0.07);
-  --session-popover-shadow:      0 10px 32px rgba(31, 20, 10, 0.18), 0 2px 6px rgba(31, 20, 10, 0.10);
+  /* Manual page — same names as dark, retuned for stone. */
+  --session-walnut-tint:         rgba(122, 90, 30, 0.06);
+  --session-popover-shadow:      0 10px 32px rgba(28, 27, 24, 0.16), 0 2px 6px rgba(28, 27, 24, 0.10);
 }
 
 /* No-JS fallback. When the FOUC script doesn't run (JS disabled) and
@@ -776,11 +789,11 @@ textarea:focus-visible {
 }
 [data-theme="light"] .checkpoint-trigger-frame::before {
   background:
-    radial-gradient(ellipse 55% 50% at 50% 55%, rgba(180, 110, 60, 0.18), transparent 70%);
+    radial-gradient(ellipse 55% 50% at 50% 55%, rgba(166, 128, 60, 0.12), transparent 70%);
 }
 [data-theme="light"] .checkpoint-trigger-frame::after {
   background:
-    radial-gradient(ellipse 60% 55% at 50% 55%, rgba(200, 130, 70, 0.32), transparent 72%);
+    radial-gradient(ellipse 60% 55% at 50% 55%, rgba(166, 128, 60, 0.20), transparent 72%);
 }
 
 .checkpoint-trigger-plate {
@@ -807,11 +820,11 @@ textarea:focus-visible {
 }
 [data-theme="light"] .checkpoint-trigger-plate {
   box-shadow:
-    inset 0 1px 0 rgba(245, 235, 215, 0.6),
-    0 2px 4px rgba(31, 20, 10, 0.12),
-    0 14px 32px rgba(31, 20, 10, 0.16),
-    0 22px 50px rgba(180, 120, 70, 0.32),
-    0 48px 110px rgba(180, 120, 70, 0.22);
+    inset 0 1px 0 rgba(255, 254, 250, 0.6),
+    0 2px 4px rgba(28, 27, 24, 0.10),
+    0 14px 32px rgba(28, 27, 24, 0.12),
+    0 22px 50px rgba(166, 128, 60, 0.18),
+    0 48px 110px rgba(166, 128, 60, 0.12);
 }
 
 /* Typing indicator dot pulse */
