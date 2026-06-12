@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mywalnut — chat & color directions</title>
+<style>
+  :root { --paper:#F4F1EA; --ink:#1E1A14; --ink-soft:#5C5447; --hair:#DDD6C8; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--paper); color:var(--ink); font-family:Georgia,'Times New Roman',serif; min-height:100vh; padding:64px 32px 96px; }
+  .wrap { max-width:920px; margin:0 auto; }
+  h1 { font-size:34px; font-weight:400; letter-spacing:-0.01em; }
+  .sub { color:var(--ink-soft); font-size:16px; margin-top:10px; line-height:1.6; max-width:64ch; }
+  .sub strong { color:var(--ink); font-weight:600; }
+  .back { display:inline-block; margin-top:18px; font-size:13.5px; color:var(--ink-soft); text-decoration:none; border-bottom:1px solid var(--hair); padding-bottom:2px; }
+  .back:hover { color:var(--ink); }
+  .list { margin-top:44px; display:flex; flex-direction:column; }
+  a.card { display:grid; grid-template-columns: 1fr auto; gap:24px; align-items:center; padding:26px 18px; border-top:1px solid var(--hair); text-decoration:none; color:inherit; transition:background .15s ease; }
+  a.card:last-of-type { border-bottom:1px solid var(--hair); }
+  a.card:hover { background:rgba(0,0,0,0.03); }
+  .name { font-size:21px; }
+  .tag { font-size:12px; color:var(--ink-soft); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.12em; margin-left:10px; }
+  .desc { color:var(--ink-soft); font-size:14.5px; margin-top:6px; line-height:1.55; max-width:62ch; }
+  .swatches { display:flex; gap:0; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .sw { width:34px; height:46px; }
+  .foot { margin-top:40px; color:var(--ink-soft); font-size:13.5px; line-height:1.7; }
+  @media (max-width:640px){ a.card{ grid-template-columns:1fr; } .swatches{ margin-top:12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Chat &amp; color directions</h1>
+  <p class="sub">Five re-palettes of the approved Kernel demo. <strong>Everything but the color and the chat is identical</strong> — same layout, same checkpoint, same Manual, same content, same fonts — so the only variable is palette and how the conversation feels. Each has the Desktop/Phone toggle and the live <strong>Add to Manual</strong> flow.</p>
+  <a class="back" href="1e-kernel-refined-2.html">← the current base (1e · Kernel · Refined II)</a>
+
+  <div class="list">
+    <a class="card" href="palette-hearth.html">
+      <span>
+        <span class="name">Hearth<span class="tag">warm dark</span></span>
+        <span class="desc" style="display:block">The dark-mode answer the app needs. Warm espresso-aubergine ground, candlelight amber, full-strength cream ink. Jove speaks from a lamplit vessel; the user from an ember one; the checkpoint glows like paper held to a flame.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#1A1310"></span><span class="sw" style="background:#E2A04A"></span><span class="sw" style="background:#C46A2B"></span><span class="sw" style="background:#F0E6D4"></span><span class="sw" style="background:#9DB585"></span></span>
+    </a>
+
+    <a class="card" href="palette-oat-ink.html">
+      <span>
+        <span class="name">Oat &amp; Ink<span class="tag">bright · high-contrast</span></span>
+        <span class="desc" style="display:block">The brightest, most modern-editorial option. Warm oat-bone paper, near-black ink, one persimmon accent. Flat crisp bubbles with confident borders — no glass. Calm, low-clutter, maximum legibility.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#EFEBE0"></span><span class="sw" style="background:#16140F"></span><span class="sw" style="background:#C0492B"></span><span class="sw" style="background:#E8E2D3"></span><span class="sw" style="background:#F7F4EC"></span></span>
+    </a>
+
+    <a class="card" href="palette-sage-grove.html">
+      <span>
+        <span class="name">Sage Grove<span class="tag">green-forward</span></span>
+        <span class="desc" style="display:block">Pushes the green. Jove fully owns a eucalyptus identity; the user answers in warm terracotta — the two voices read as green vs clay. Soft organic bubbles, green-gold morning light. Botanical, grown-up, warm.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#EEF0E4"></span><span class="sw" style="background:#516D45"></span><span class="sw" style="background:#BC6A45"></span><span class="sw" style="background:#20231A"></span><span class="sw" style="background:#C99A4A"></span></span>
+    </a>
+
+    <a class="card" href="palette-rose-walnut.html">
+      <span>
+        <span class="name">Rose Walnut<span class="tag">warm rosé</span></span>
+        <span class="desc" style="display:block">An unexpected warm rosé — intimate and distinctive without being saccharine. Blush-linen ground, dusty-rose user glass against cooler cream Jove paper, walnut thread, muted-plum checkpoint. A romance-of-the-self palette.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F3E9E2"></span><span class="sw" style="background:#B5736B"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#271C18"></span><span class="sw" style="background:#8C4A52"></span></span>
+    </a>
+
+    <a class="card" href="palette-slate-brass.html">
+      <span>
+        <span class="name">Slate &amp; Brass<span class="tag">cool · refined</span></span>
+        <span class="desc" style="display:block">The only cool-ground option: greige-stone paper with an aged-brass accent used like a metal detail. Squarer architectural bubbles, hairline apparatus. The most luxury-editorial of the set — cool calm, one warm metal.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#E8E6DF"></span><span class="sw" style="background:#A6803C"></span><span class="sw" style="background:#3E5A57"></span><span class="sw" style="background:#1C1B18"></span><span class="sw" style="background:#F2F1EB"></span></span>
+    </a>
+  </div>
+
+  <p class="foot">Built 2026-06-11 · each page's colophon (bottom strip) lists exact hexes. Mix-and-match reactions welcome — "Hearth for dark, Oat &amp; Ink for light" is a valid answer, and so is "this palette, but the chat bubbles from that one."</p>
+</div>
+</body>
+</html>

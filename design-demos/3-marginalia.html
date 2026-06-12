@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mywalnut — 03 Marginalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&display=swap" rel="stylesheet">
+<style>
+/* ————————————————————————————— MARGINALIA ——
+   The app is a book interior. Jove is the print.
+   The pen belongs to the user. Nothing is bound
+   into the Manual without the user's hand.
+——————————————————————————————————————————— */
+:root{
+  --paper:#F7F1E3;
+  --paper-hi:#FBF6E9;
+  --paper-deep:#EFE7D2;
+  --ink:#232019;
+  --ink-soft:rgba(35,32,25,.74);
+  --ink-faint:rgba(35,32,25,.55);
+  --pen:#2447A8;
+  --pen-soft:rgba(36,71,168,.78);
+  --hl:#F5D547;
+  --hl-settled:rgba(245,213,71,.45);
+  --thread:#8C4A38;
+  --leather:#46291D;
+  --leather-hi:#553225;
+  --cream:#F2E8D2;
+  --rule:rgba(35,32,25,.28);
+  --hairline:rgba(35,32,25,.18);
+  --desk:#1C1510;
+  --chrome:#14100C;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-optical-sizing:auto;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  font-family:'Literata',Georgia,serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1400px 900px at 50% 12%, #2E241B 0%, var(--desk) 72%);
+  min-height:100vh;
+  padding-top:46px;
+}
+/* paper grain over everything, very faint */
+body::after{
+  content:"";position:fixed;inset:0;z-index:400;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px;border-radius:2px}
+.demo-bar :focus-visible,.sidebar :focus-visible{outline-color:var(--cream)}
+
+/* ———————————————— demo bar (neutral chrome) ———————————————— */
+.demo-bar{
+  position:fixed;top:0;left:0;right:0;height:46px;z-index:350;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;background:var(--chrome);
+  border-bottom:1px solid rgba(0,0,0,.65);
+  color:#E8E0CC;
+}
+.db-name{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500}
+.db-name b{font-weight:700;color:#fff}
+.db-toggle{display:flex;border:1px solid rgba(232,224,204,.35);border-radius:999px;overflow:hidden}
+.db-toggle button{
+  background:transparent;border:0;color:#E8E0CC;cursor:pointer;
+  font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:7px 18px;
+  transition:background .15s ease,color .15s ease;
+}
+.db-toggle button:hover{background:rgba(232,224,204,.12)}
+.db-toggle button[aria-pressed="true"]{background:#E8E0CC;color:var(--chrome);font-weight:600}
+
+/* ———————————————— shells ———————————————— */
+body[data-shell="desktop"] .shell-phone{display:none}
+body[data-shell="phone"]  .shell-desktop{display:none}
+
+/* ———————————————— desktop: cover + open page ———————————————— */
+.shell-desktop{min-height:calc(100vh - 46px)}
+.sidebar{
+  position:fixed;left:0;top:46px;bottom:0;width:272px;z-index:10;
+  background:linear-gradient(160deg,var(--leather-hi) 0%,var(--leather) 55%,#341E14 100%);
+  color:var(--cream);
+  padding:34px 26px 26px;
+  display:flex;flex-direction:column;
+  box-shadow:inset -10px 0 24px rgba(0,0,0,.35);
+}
+.sidebar::before{ /* blind tooling */
+  content:"";position:absolute;inset:14px;border:1px solid rgba(242,232,210,.18);pointer-events:none;
+}
+.sidebar::after{
+  content:"";position:absolute;inset:19px;border:1px solid rgba(242,232,210,.08);pointer-events:none;
+}
+.ribbon{
+  position:absolute;top:0;right:34px;width:13px;height:92px;
+  background:linear-gradient(#A2543E,#7C3D2C);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 86%,0 100%);
+  box-shadow:0 3px 6px rgba(0,0,0,.4);
+}
+.bookplate{
+  background:var(--paper);border-radius:2px;padding:7px;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);
+  transform:rotate(-.4deg);position:relative;
+}
+.bookplate svg{display:block;width:100%;height:auto}
+.side-nav{margin-top:38px;display:grid;gap:5px;position:relative;z-index:2}
+.nav-btn{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  background:none;border:0;color:var(--cream);cursor:pointer;
+  font-size:13px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;
+  padding:12px 12px;border-radius:2px;
+  transition:background .15s ease,color .15s ease;
+}
+.nav-btn:hover{background:rgba(242,232,210,.09)}
+.nav-btn[aria-current="page"]{background:rgba(242,232,210,.12);color:#FFF8E6;font-weight:600}
+.nav-mark{flex:0 0 auto;opacity:0;transition:opacity .2s ease}
+.nav-btn[aria-current="page"] .nav-mark{opacity:1}
+.nav-btn[aria-disabled="true"]{opacity:.45;cursor:default}
+.nav-btn[aria-disabled="true"]:hover{background:none}
+.sidebar-foot{
+  margin-top:auto;position:relative;z-index:2;
+  font-style:italic;font-size:13.5px;line-height:1.55;color:rgba(242,232,210,.85);
+  padding-top:18px;border-top:1px solid rgba(242,232,210,.18);
+}
+.desk{margin-left:272px;display:flex;justify-content:center;padding:26px 36px}
+.page{
+  width:min(720px,100%);
+  height:calc(100vh - 46px - 52px);
+  min-height:540px;
+  background:var(--paper);
+  border-radius:3px;
+  display:flex;flex-direction:column;position:relative;
+  box-shadow:
+    0 2px 0 -1px var(--paper-deep),
+    0 4px 0 -2px #E2D7BC,
+    0 7px 0 -3px #D4C7A6,
+    0 22px 50px rgba(0,0,0,.5);
+}
+.page::before{ /* gutter shadow — the open book */
+  content:"";position:absolute;left:0;top:0;bottom:0;width:74px;
+  border-radius:3px 0 0 3px;pointer-events:none;
+  background:linear-gradient(to right,rgba(35,32,25,.13),rgba(35,32,25,.05) 38%,transparent 100%);
+}
+.running-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:20px 58px 12px 64px;border-bottom:1px solid var(--hairline);
+}
+.rh-mark{font-style:italic;font-weight:600;font-size:15px;letter-spacing:.01em}
+.rh-view{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.pageview{position:relative;flex:1;min-height:0}
+.scroller{position:absolute;inset:0;overflow-y:auto;padding:32px 58px 28px 64px;scrollbar-width:thin;scrollbar-color:rgba(35,32,25,.3) transparent}
+body[data-view="session"] .manual-scroller{visibility:hidden;pointer-events:none}
+body[data-view="manual"]  .chat-scroller{visibility:hidden;pointer-events:none}
+body[data-view="manual"]  .inputbar{display:none}
+.inputbar{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 58px 8px 64px;border-top:1px solid var(--hairline);
+}
+.note-input{
+  flex:1;background:transparent;border:0;
+  border-bottom:1px dashed rgba(36,71,168,.5);
+  font-family:'Caveat',cursive;font-size:20px;color:var(--pen);
+  padding:7px 2px 5px;
+}
+.note-input::placeholder{color:var(--pen-soft);opacity:1}
+.note-input:focus{outline:none;border-bottom:1px solid var(--pen)}
+.note-input:focus-visible{outline:none}
+.btn-send{
+  display:flex;align-items:center;gap:8px;flex:0 0 auto;
+  background:var(--ink);color:var(--paper);border:0;cursor:pointer;
+  font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
+  padding:10px 16px;border-radius:2px;
+  box-shadow:0 2px 0 rgba(35,32,25,.35);
+  transition:background .15s ease,transform .1s ease,box-shadow .1s ease;
+}
+.btn-send:hover{background:#0F0D09}
+.btn-send:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(35,32,25,.35)}
+.folio{
+  text-align:center;font-size:12px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink-faint);padding:7px 0 15px;
+}
+
+/* ———————————————— phone: the pocket edition ———————————————— */
+.shell-phone{display:flex;justify-content:center;padding:30px 16px 44px}
+.phone-frame{
+  width:430px;max-width:100%;
+  height:min(840px,calc(100vh - 46px - 74px));
+  min-height:560px;
+  background:var(--paper);
+  border:12px solid #15100C;border-radius:50px;
+  box-shadow:0 34px 90px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.06);
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+.p-topbar{
+  display:flex;align-items:center;gap:9px;
+  padding:16px 18px 11px;border-bottom:1px solid var(--hairline);position:relative;z-index:20;
+}
+.p-mark{display:flex;align-items:center;gap:8px}
+.p-mark svg{display:block}
+.p-word{font-style:italic;font-weight:600;font-size:17px}
+.p-menu-btn{
+  margin-left:auto;display:flex;align-items:center;gap:7px;
+  background:none;border:1px solid var(--rule);border-radius:999px;cursor:pointer;
+  color:var(--ink);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
+  padding:7px 13px;transition:background .15s ease;
+}
+.p-menu-btn:hover{background:rgba(35,32,25,.06)}
+.p-dropdown{
+  position:absolute;top:54px;right:14px;z-index:30;min-width:170px;
+  background:var(--paper-hi);border:1px solid var(--rule);border-radius:3px;
+  box-shadow:0 14px 34px rgba(35,32,25,.3);
+  padding:6px;display:none;
+}
+.p-dropdown.open{display:block}
+.p-dropdown button{
+  display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--ink);
+  padding:11px 12px;border-radius:2px;
+}
+.p-dropdown button:hover{background:rgba(36,71,168,.07)}
+.p-dropdown button[aria-current="page"]{font-weight:700;background:rgba(245,213,71,.3)}
+.p-dropdown button[aria-disabled="true"]{opacity:.45;cursor:default}
+.p-view{position:relative;flex:1;min-height:0}
+.p-view .scroller{padding:24px 22px 20px}
+.shell-phone .inputbar{padding:11px 16px 6px}
+.p-folio{
+  text-align:center;font-size:12px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--ink-faint);padding:5px 0 13px;
+}
+
+/* ———————————————— the conversation: print vs pen ———————————————— */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.chat-scroller .msg{animation:rise .55s ease both;animation-delay:var(--d,0s)}
+.msg{margin:0 0 24px}
+.msg-jove{
+  max-width:84%;font-size:16.5px;line-height:1.66;
+  text-align:justify;hyphens:auto;color:var(--ink);
+}
+.msg-user{
+  margin-left:auto;max-width:72%;width:fit-content;
+  font-family:'Caveat',cursive;font-size:20px;line-height:1.32;
+  color:var(--pen);transform:rotate(-0.8deg);
+}
+.msg-user.alt{transform:rotate(-0.3deg)}
+.msg-user::before{content:"—\00a0";opacity:.7}
+
+/* ———————————————— the checkpoint: a passage, highlighted ———————————————— */
+.checkpoint{
+  position:relative;margin:8px 0 30px;
+  background:var(--paper-hi);
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:26px 30px 22px 32px;
+}
+.chat-scroller .checkpoint{animation:rise .55s ease both;animation-delay:var(--d,0s)}
+.cp-tag{
+  position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+  background:var(--paper-hi);padding:0 12px;
+  font-size:12px;letter-spacing:.26em;text-transform:uppercase;font-weight:600;color:var(--thread);
+}
+.cp-eyebrow{
+  font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:500;
+  color:var(--ink-soft);margin-bottom:12px;
+}
+.cp-head{
+  font-size:25px;line-height:1.3;font-style:italic;font-weight:600;
+  letter-spacing:.005em;margin-bottom:14px;max-width:88%;
+}
+.hl{
+  background-image:linear-gradient(var(--hl) 0 100%);
+  background-repeat:no-repeat;background-size:0% 88%;background-position:0 62%;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  padding:1px 5px;margin:-1px -5px;
+  animation:sweep .9s cubic-bezier(.25,.7,.3,1) both;
+  animation-delay:calc(var(--d,0s) + .85s);
+}
+@keyframes sweep{to{background-size:100% 88%}}
+.checkpoint.is-bound .hl{
+  background-image:linear-gradient(var(--hl-settled) 0 100%);
+  background-size:100% 88%;animation:none;
+  transition:background-image .6s ease;
+}
+.cp-body{font-size:16px;line-height:1.7;text-align:justify;hyphens:auto;max-width:96%}
+.cp-note{
+  position:absolute;top:46px;right:-6px;width:138px;
+  font-family:'Caveat',cursive;font-size:19px;line-height:1.1;color:var(--pen);
+  transform:rotate(-3deg);text-align:left;
+}
+.cp-note svg{display:block;margin-top:3px;margin-left:8px}
+.cp-actions{display:flex;align-items:center;gap:16px;margin-top:20px;transition:opacity .35s ease}
+.checkpoint.is-bound .cp-actions{opacity:0}
+.btn-press{
+  background:var(--ink);color:var(--paper);border:0;cursor:pointer;
+  font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
+  padding:13px 24px;border-radius:2px;
+  box-shadow:0 3px 0 rgba(35,32,25,.4);
+  transition:background .15s ease,transform .1s ease,box-shadow .1s ease;
+}
+.btn-press:hover{background:#0F0D09}
+.btn-press:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(35,32,25,.4)}
+.btn-press:disabled{cursor:default}
+.btn-quiet{
+  background:none;border:0;cursor:pointer;padding:10px 6px;
+  font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:var(--ink-soft);
+  transition:color .15s ease;
+}
+.btn-quiet:hover{
+  color:var(--pen);
+  text-decoration:underline wavy var(--pen) 1px;text-underline-offset:5px;
+}
+.cp-bound{
+  display:flex;align-items:center;gap:9px;margin-top:20px;
+  font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--thread);
+  animation:rise .5s ease both;
+}
+.cp-bound[hidden]{display:none}
+/* binding: the stitch */
+.stitch{
+  position:absolute;left:-2px;top:12px;bottom:12px;width:0;
+  border-left:3px dashed var(--thread);
+  transform:scaleY(0);transform-origin:top;
+  transition:transform .8s ease .1s;
+}
+.checkpoint.is-bound .stitch{transform:scaleY(1)}
+/* binding: the page-corner fold */
+.fold{
+  position:absolute;top:-1px;right:0;width:34px;height:34px;
+  background:linear-gradient(225deg,var(--paper) 0 49.5%,#E9DDBE 50%,#D5C7A4 100%);
+  border-bottom-left-radius:6px;
+  box-shadow:-3px 3px 6px rgba(35,32,25,.18);
+  opacity:0;transform:scale(0);transform-origin:top right;
+  transition:opacity .4s ease .55s,transform .4s ease .55s;
+}
+.checkpoint.is-bound .fold{opacity:1;transform:scale(1)}
+@keyframes press{0%{transform:none}40%{transform:scale(.992)}100%{transform:none}}
+.checkpoint.is-bound{animation:press .5s ease}
+
+/* ———————————————— the Manual: a true book ———————————————— */
+.manual-scroller.reveal .manual-titlepage,
+.manual-scroller.reveal .chapter{animation:rise .55s ease both;animation-delay:var(--d,0s)}
+.manual-titlepage{text-align:center;padding:14px 0 34px}
+.mt-fleuron{display:inline-block;margin-bottom:14px}
+.mt-title{font-size:35px;font-style:italic;font-weight:600;letter-spacing:.005em;line-height:1.15}
+.mt-sub{font-style:italic;font-size:15.5px;color:var(--ink-soft);margin-top:8px}
+.mt-ed{font-size:12px;letter-spacing:.26em;text-transform:uppercase;font-weight:500;color:var(--thread);margin-top:16px}
+.chapter{margin:0 0 38px}
+.ch-head{text-align:center;margin-bottom:14px}
+.ch-num{font-size:27px;font-weight:500;letter-spacing:.1em;color:var(--thread)}
+.ch-title{font-size:14px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;margin-top:5px}
+.ch-rule{width:128px;height:1px;background:var(--rule);margin:13px auto 0;position:relative}
+.ch-rule::after{
+  content:"";position:absolute;left:50%;top:-3px;width:7px;height:7px;
+  background:var(--paper);border:1px solid var(--rule);transform:translateX(-50%) rotate(45deg);
+}
+.entry{border-bottom:1px solid rgba(35,32,25,.15)}
+.entry:first-of-type{border-top:1px solid rgba(35,32,25,.15)}
+.entry-head{
+  width:100%;display:flex;align-items:baseline;gap:11px;
+  background:none;border:0;cursor:pointer;text-align:left;
+  padding:14px 8px;transition:background .15s ease;
+}
+.entry-head:hover{background:rgba(36,71,168,.05)}
+.entry-star{flex:0 0 auto;align-self:center}
+.entry-h{flex:1;font-size:18px;font-style:italic;font-weight:500;line-height:1.4;color:var(--ink)}
+.hl-perm{
+  background-image:linear-gradient(var(--hl-settled) 0 100%);background-repeat:no-repeat;
+  background-size:100% 86%;background-position:0 64%;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  padding:1px 4px;margin:-1px -4px;
+}
+.scribble-new{
+  position:relative;display:inline-block;margin-left:12px;
+  font-family:'Caveat',cursive;font-style:normal;font-size:18px;font-weight:600;color:var(--pen);
+  transform:rotate(-5deg);padding:0 7px;vertical-align:middle;
+}
+.scribble-new svg{position:absolute;inset:-5px -3px;width:calc(100% + 6px);height:calc(100% + 10px);pointer-events:none}
+.entry-chev{flex:0 0 auto;align-self:center;transition:transform .2s ease;color:var(--ink-soft)}
+.entry-head[aria-expanded="true"] .entry-chev{transform:rotate(90deg)}
+.entry-body{padding:4px 8px 20px;font-size:16px;line-height:1.72;text-align:justify;hyphens:auto}
+.entry-body > p::first-letter{
+  float:left;font-size:46px;line-height:.86;font-weight:600;font-style:normal;
+  color:var(--thread);padding:5px 9px 0 0;
+}
+.entry-omitted{
+  padding:2px 8px 18px;
+  font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--ink-soft);
+}
+.entry-empty{font-style:italic;font-size:15.5px;line-height:1.6;color:var(--ink-soft);padding:14px 8px 18px;border-top:1px solid rgba(35,32,25,.15);border-bottom:1px solid rgba(35,32,25,.15)}
+
+/* phone-shell adjustments */
+.shell-phone .msg-jove{font-size:16px;max-width:92%}
+.shell-phone .msg-user{max-width:82%}
+.shell-phone .checkpoint{padding:24px 20px 20px 24px}
+.shell-phone .cp-head{max-width:100%;font-size:22px}
+.shell-phone .cp-note{
+  position:static;width:auto;margin:-4px 0 12px;transform:rotate(-1.5deg);
+  display:flex;align-items:center;gap:8px;
+}
+.shell-phone .cp-note svg{margin:0;transform:rotate(38deg)}
+.shell-phone .cp-actions{flex-wrap:wrap;gap:8px 14px}
+.shell-phone .mt-title{font-size:29px}
+
+@media (max-width:1060px){
+  .sidebar{width:230px}
+  .desk{margin-left:230px;padding:22px 20px}
+  .scroller{padding:28px 40px 24px 46px}
+  .running-head{padding:18px 40px 12px 46px}
+  .inputbar{padding:12px 40px 8px 46px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .hl{background-size:100% 88%}
+}
+</style>
+</head>
+<body data-shell="desktop" data-view="session">
+
+<!-- ———— demo chrome ———— -->
+<div class="demo-bar">
+  <span class="db-name"><b>03</b> — Marginalia</span>
+  <div class="db-toggle" role="group" aria-label="Preview device">
+    <button type="button" data-shellbtn="desktop" aria-pressed="true">Desktop</button>
+    <button type="button" data-shellbtn="phone" aria-pressed="false">Phone</button>
+  </div>
+</div>
+
+<!-- ———— desktop shell ———— -->
+<div class="shell shell-desktop">
+  <aside class="sidebar">
+    <span class="ribbon" aria-hidden="true"></span>
+    <div class="bookplate">
+      <svg viewBox="0 0 212 170" role="img" aria-label="mywalnut bookplate — the author's copy">
+        <rect x="4" y="4" width="204" height="162" fill="none" stroke="#232019" stroke-width="1.6"/>
+        <rect x="10" y="10" width="192" height="150" fill="none" stroke="#232019" stroke-width="0.7"/>
+        <path d="M10 10 l8 8 M202 10 l-8 8 M10 160 l8 -8 M202 160 l-8 -8" stroke="#232019" stroke-width="0.7"/>
+        <text x="106" y="33" text-anchor="middle" font-size="12" letter-spacing="5" fill="#232019" font-weight="500">EX LIBRIS</text>
+        <g fill="none" stroke="#232019" stroke-linecap="round">
+          <path d="M106 48 C92 48 81 60 81 76 C81 91 93 102 106 102 C119 102 131 91 131 76 C131 60 120 48 106 48 Z" stroke-width="1.6"/>
+          <path d="M106 50 C102 66 102 86 106 100" stroke-width="1"/>
+          <path d="M95 54 C88 64 87 82 94 96" stroke-width="0.9" opacity="0.8"/>
+          <path d="M88 60 C84 68 84 82 89 92" stroke-width="0.8" opacity="0.65"/>
+          <path d="M117 54 C124 64 125 82 118 96" stroke-width="0.9" opacity="0.8"/>
+          <path d="M124 60 C128 68 128 82 123 92" stroke-width="0.8" opacity="0.65"/>
+          <path d="M100 60 C98 66 99 72 97 78 C96 83 98 88 97 92" stroke-width="0.7" opacity="0.7"/>
+          <path d="M112 60 C114 66 113 72 115 78 C116 83 114 88 115 92" stroke-width="0.7" opacity="0.7"/>
+        </g>
+        <path d="M76 112 H136" stroke="#232019" stroke-width="0.7"/>
+        <text x="106" y="136" text-anchor="middle" font-size="24" font-style="italic" font-weight="600" fill="#232019">mywalnut.</text>
+        <text x="106" y="154" text-anchor="middle" font-size="12" letter-spacing="3.5" fill="#5E5A4E" font-weight="500">THE AUTHOR&#8217;S COPY</text>
+      </svg>
+    </div>
+    <nav class="side-nav" aria-label="Primary">
+      <button type="button" class="nav-btn" data-nav="session" aria-current="page">
+        <svg class="nav-mark" width="20" height="12" viewBox="0 0 20 12" aria-hidden="true" fill="none" stroke="#F2E8D2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 7 C7 5.5 12 5.5 17 6.2"/><path d="M13 2.5 L18 6.2 L12.5 9.5"/>
+        </svg>
+        Session
+      </button>
+      <button type="button" class="nav-btn" data-nav="manual">
+        <svg class="nav-mark" width="20" height="12" viewBox="0 0 20 12" aria-hidden="true" fill="none" stroke="#F2E8D2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 7 C7 5.5 12 5.5 17 6.2"/><path d="M13 2.5 L18 6.2 L12.5 9.5"/>
+        </svg>
+        Manual
+      </button>
+      <button type="button" class="nav-btn" aria-disabled="true">
+        <svg class="nav-mark" width="20" height="12" viewBox="0 0 20 12" aria-hidden="true"></svg>
+        Settings
+      </button>
+    </nav>
+    <p class="sidebar-foot">Nothing is bound into the Manual without your hand.</p>
+  </aside>
+
+  <main class="desk">
+    <div class="page">
+      <div class="running-head">
+        <span class="rh-mark">mywalnut.</span>
+        <span class="rh-view" data-rh>The Session</span>
+      </div>
+      <div class="pageview">
+        <div class="scroller chat-scroller" data-chat aria-live="polite"></div>
+        <div class="scroller manual-scroller" data-manual></div>
+      </div>
+      <form class="inputbar" data-inputform>
+        <label class="visually-hidden" hidden for="note-d">Write a note</label>
+        <input id="note-d" class="note-input" type="text" autocomplete="off" placeholder="Say it how it actually happened">
+        <button class="btn-send" type="submit">
+          <svg width="15" height="17" viewBox="0 0 24 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L19 13 C19 19 16 23 12 23 C8 23 5 19 5 13 Z"/>
+            <path d="M12 9 L12 16"/><circle cx="12" cy="18" r="1.3"/>
+          </svg>
+          Send
+        </button>
+      </form>
+      <div class="folio" data-folio>&middot;&nbsp;&nbsp;17&nbsp;&nbsp;&middot;</div>
+    </div>
+  </main>
+</div>
+
+<!-- ———— phone shell: the pocket edition ———— -->
+<div class="shell shell-phone">
+  <div class="phone-frame">
+    <div class="p-topbar">
+      <span class="p-mark">
+        <svg width="24" height="26" viewBox="0 0 52 56" aria-hidden="true" fill="none" stroke="#232019" stroke-linecap="round">
+          <path d="M26 4 C13 4 4 15 4 29 C4 43 15 52 26 52 C37 52 48 43 48 29 C48 15 39 4 26 4 Z" stroke-width="2.6"/>
+          <path d="M26 6 C22 21 22 39 26 50" stroke-width="1.7"/>
+          <path d="M16 12 C10 21 9 37 15 48" stroke-width="1.4" opacity="0.75"/>
+          <path d="M36 12 C42 21 43 37 37 48" stroke-width="1.4" opacity="0.75"/>
+        </svg>
+        <span class="p-word">mywalnut.</span>
+      </span>
+      <button type="button" class="p-menu-btn" data-menubtn aria-expanded="false" aria-haspopup="true">
+        <svg width="14" height="11" viewBox="0 0 14 11" aria-hidden="true" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M1 1.5 H13 M1 5.5 H13 M1 9.5 H10"/>
+        </svg>
+        Menu
+      </button>
+      <div class="p-dropdown" data-menu>
+        <button type="button" data-nav="session" aria-current="page">Session</button>
+        <button type="button" data-nav="manual">Manual</button>
+        <button type="button" aria-disabled="true">Settings</button>
+      </div>
+    </div>
+    <div class="p-view">
+      <div class="scroller chat-scroller" data-chat aria-live="polite"></div>
+      <div class="scroller manual-scroller" data-manual></div>
+    </div>
+    <form class="inputbar" data-inputform>
+      <input class="note-input" type="text" autocomplete="off" placeholder="Say it how it actually happened" aria-label="Write a note">
+      <button class="btn-send" type="submit">
+        <svg width="15" height="17" viewBox="0 0 24 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 L19 13 C19 19 16 23 12 23 C8 23 5 19 5 13 Z"/>
+          <path d="M12 9 L12 16"/><circle cx="12" cy="18" r="1.3"/>
+        </svg>
+        Send
+      </button>
+    </form>
+    <div class="p-folio" data-folio2>Pocket edition &middot; 17</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var PRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ———— state ———— */
+  var state = { view:'session', confirmed:false, manualShown:false, userNoteCount:0 };
+  var entriesOpen = { l1a:true };
+
+  /* ———— content (the shared script, verbatim) ———— */
+  var CHAT = [
+    {who:'user', t:'I told my manager I’d have the deck done by Friday. It’s Wednesday night and I haven’t opened the file. I keep doing this.'},
+    {who:'jove', t:'Which part keeps happening. The not opening it, or the promising Friday in the first place? Walk me through the moment you said Friday.'},
+    {who:'user', t:'She asked when I could have it and Friday just came out. It felt generous at the time. Like plenty of room.'},
+    {who:'jove', t:'Plenty of room for the version of you in that meeting. He wasn’t the one who had to open the file. What does Wednesday-night you know that meeting you didn’t?'},
+    {who:'user', t:'That it isn’t real yet. A deadline isn’t real until it’s close enough to touch. Then the panic kicks in, and honestly the panic works. The deck will be good. It’s always good.'},
+    {who:'jove', t:'So the system delivers. The deck is always good. The cost isn’t the quality. It’s the days of dread you pay before the panic shows up to do the work. I think there’s a piece of your Manual in this. Want to see it?'},
+    {who:'user', t:'ok show me'}
+  ];
+  var CP_HEAD = 'Deadlines aren’t real until I can touch them';
+  var CP_BODY = 'You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn’t turn real until it’s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.';
+  var POST_CONFIRM = 'That’s in your Manual now. You said the panic works. Where else does the engine only start when something is close enough to touch?';
+
+  var LAYERS = [
+    {num:'I', title:'My Strengths', items:[
+      {id:'l1a', starred:true,
+       h:'I build the whole thing in my head before I touch it',
+       body:'Before you open a file or write a line, the structure assembles itself somewhere behind your eyes. From outside, the stillness reads as not working. The stillness is the work. By the time your hands move, most of the decisions are already made. It’s why the work holds up under pressure that should have sunk it.'},
+      {id:'l1b', h:'I notice the thing everyone else walks past', omitted:true}
+    ]},
+    {num:'II', title:'Some of My Patterns', items:[
+      {id:'l2a', h:'I say yes at the speed of the room',
+       body:'In the moment, the answer people want to hear leaves your mouth before the calendar gets a vote. It isn’t people-pleasing exactly. The room has a rhythm and you match it. The cost arrives later, addressed to a version of you who was never in the meeting.'}
+    ]},
+    {num:'III', title:'How I Process Things', checkpoint:true},
+    {num:'IV', title:'What Helps', items:[
+      {id:'l4a', h:'Another person in the room starts the engine early',
+       body:'You can’t start alone at two weeks out. You can start next to someone. It doesn’t matter if they’re working on something else entirely. Their presence makes the work real the way a deadline does, without the dread. The engine turns over early and quietly.'}
+    ]},
+    {num:'V', title:'How I Show Up with People', items:[
+      {id:'l5a', h:'Quiet doesn’t mean gone',
+       body:'In a group your face goes still and your words go short. From outside it can read as checked out. It’s the opposite. Everything is arriving at once and you’re routing it. The people who know you well have learned that the quiet is where you do your part of the conversation.'}
+    ]}
+  ];
+
+  /* ———— small svg parts ———— */
+  var SVG_CHEV = '<svg class="entry-chev" width="13" height="13" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2.5 L10.5 7 L4.5 11.5"/></svg>';
+  var SVG_STAR = '<svg class="entry-star" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#2447A8" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2.4 L14.8 8.9 L21.8 9.4 L16.4 14 L18.2 21 L12 17 L5.8 21 L7.6 14 L2.2 9.4 L9.2 8.9 Z"/></svg>';
+  var SVG_ARROW = '<svg width="52" height="22" viewBox="0 0 52 22" aria-hidden="true" fill="none" stroke="#2447A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M50 4 C38 12 24 16 6 15"/><path d="M13 9 L5 15 L14 19"/></svg>';
+  var SVG_CHECK = '<svg width="15" height="13" viewBox="0 0 16 14" aria-hidden="true" fill="none" stroke="#2447A8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8 L6 12 L14 2"/></svg>';
+  var SVG_ELLIPSE = '<svg viewBox="0 0 70 36" preserveAspectRatio="none" aria-hidden="true" fill="none" stroke="#2447A8" stroke-width="1.6" stroke-linecap="round"><path d="M10 17 C9 8 24 4 36 4 C52 4 64 8 63 17 C62 27 48 32 33 32 C19 32 8 28 8 19 C8 13 14 8 24 6"/></svg>';
+  var SVG_FLEURON = '<svg class="mt-fleuron" width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" fill="#8C4A38" opacity="0.85"><path d="M10 0 C12.5 4.5 15.5 7.5 20 10 C15.5 12.5 12.5 15.5 10 20 C7.5 15.5 4.5 12.5 0 10 C4.5 7.5 7.5 4.5 10 0 Z"/></svg>';
+
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ———— chat rendering ———— */
+  function joveHTML(t, delay){
+    return '<div class="msg msg-jove" style="--d:'+delay+'s">'+t+'</div>';
+  }
+  function userHTML(t, delay, alt){
+    return '<div class="msg msg-user'+(alt?' alt':'')+'" style="--d:'+delay+'s">'+t+'</div>';
+  }
+  function checkpointHTML(delay){
+    return '' +
+    '<section class="checkpoint" style="--d:'+delay+'s" aria-label="Checkpoint">' +
+      '<span class="stitch" aria-hidden="true"></span>' +
+      '<span class="fold" aria-hidden="true"></span>' +
+      '<span class="cp-tag">Checkpoint</span>' +
+      '<div class="cp-note">this one’s true' + SVG_ARROW + '</div>' +
+      '<p class="cp-eyebrow">Layer III &middot; How I Process Things</p>' +
+      '<h3 class="cp-head"><span class="hl">' + CP_HEAD + '</span></h3>' +
+      '<p class="cp-body">' + CP_BODY + '</p>' +
+      '<div class="cp-actions">' +
+        '<button type="button" class="btn-press" data-action="confirm">Add to Manual</button>' +
+        '<button type="button" class="btn-quiet">Edit</button>' +
+        '<button type="button" class="btn-quiet">Not quite</button>' +
+      '</div>' +
+      '<p class="cp-bound" hidden>' + SVG_CHECK + ' Pressed into the Manual &middot; Layer III</p>' +
+    '</section>';
+  }
+  function renderChat(){
+    var html = '';
+    var userCount = 0;
+    CHAT.forEach(function(m, i){
+      var d = (i * 0.16).toFixed(2);
+      if(m.who === 'jove'){ html += joveHTML(m.t, d); }
+      else { userCount++; html += userHTML(m.t, d, userCount % 2 === 0); }
+    });
+    html += checkpointHTML((CHAT.length * 0.16).toFixed(2));
+    document.querySelectorAll('[data-chat]').forEach(function(c){ c.innerHTML = html; });
+  }
+
+  /* ———— manual rendering ———— */
+  function entryHTML(item){
+    var open = !!entriesOpen[item.id];
+    var head = '';
+    if(item.starred) head += SVG_STAR;
+    var hText = esc(item.h);
+    if(item.isNew){
+      hText = '<span class="hl-perm">' + hText + '</span>' +
+              '<span class="scribble-new">' + SVG_ELLIPSE + 'new</span>';
+    }
+    head += '<span class="entry-h">' + hText + '</span>' + SVG_CHEV;
+    var body = '';
+    if(open){
+      if(item.omitted){
+        body = '<div class="entry-omitted" id="body-'+item.id+'">Passage omitted from this excerpt</div>';
+      } else {
+        body = '<div class="entry-body" id="body-'+item.id+'"><p>'+item.body+'</p></div>';
+      }
+    }
+    return '<div class="entry">' +
+      '<button type="button" class="entry-head" data-toggle="'+item.id+'" aria-expanded="'+open+'" aria-controls="body-'+item.id+'">' + head + '</button>' +
+      body + '</div>';
+  }
+  function chapterHTML(layer, idx){
+    var d = (0.1 + idx * 0.12).toFixed(2);
+    var inner = '';
+    if(layer.checkpoint && !state.confirmed){
+      inner = '<p class="entry-empty">Nothing is bound into this layer yet. A passage is waiting at the checkpoint in your session.</p>';
+    } else {
+      var items = layer.checkpoint
+        ? [{id:'l3a', h:CP_HEAD, body:CP_BODY, isNew:true}]
+        : layer.items;
+      items.forEach(function(it){ inner += entryHTML(it); });
+    }
+    return '<section class="chapter" style="--d:'+d+'s">' +
+      '<div class="ch-head">' +
+        '<div class="ch-num">'+layer.num+'</div>' +
+        '<h3 class="ch-title">'+layer.title+'</h3>' +
+        '<div class="ch-rule" aria-hidden="true"></div>' +
+      '</div>' + inner + '</section>';
+  }
+  function renderManual(){
+    var html = '<header class="manual-titlepage" style="--d:0s">' +
+      SVG_FLEURON +
+      '<h2 class="mt-title">The Manual</h2>' +
+      '<p class="mt-sub">in the author’s own words</p>' +
+      '<p class="mt-ed">First edition &middot; still being written</p>' +
+    '</header>';
+    LAYERS.forEach(function(l, i){ html += chapterHTML(l, i); });
+    document.querySelectorAll('[data-manual]').forEach(function(c){
+      c.innerHTML = html;
+      c.classList.toggle('reveal', !state.manualShown);
+    });
+  }
+
+  /* ———— view + shell switching ———— */
+  function setView(v){
+    state.view = v;
+    document.body.dataset.view = v;
+    document.querySelectorAll('[data-nav]').forEach(function(b){
+      if(b.dataset.nav === v){ b.setAttribute('aria-current','page'); }
+      else { b.removeAttribute('aria-current'); }
+    });
+    var rh = document.querySelector('[data-rh]');
+    if(rh) rh.textContent = v === 'session' ? 'The Session' : 'The Manual';
+    var folio = document.querySelector('[data-folio]');
+    if(folio) folio.innerHTML = v === 'session' ? '&middot;&nbsp;&nbsp;17&nbsp;&nbsp;&middot;' : '&middot;&nbsp;&nbsp;23&nbsp;&nbsp;&middot;';
+    var pf = document.querySelector('[data-folio2]');
+    if(pf) pf.innerHTML = 'Pocket edition &middot; ' + (v === 'session' ? '17' : '23');
+    if(v === 'manual' && !state.manualShown){
+      /* first opening: let the staggered reveal play, then retire it */
+      window.setTimeout(function(){
+        state.manualShown = true;
+        document.querySelectorAll('[data-manual]').forEach(function(c){ c.classList.remove('reveal'); });
+      }, PRM ? 0 : 1400);
+    }
+    closeMenu();
+  }
+  function setShell(s){
+    document.body.dataset.shell = s;
+    document.querySelectorAll('[data-shellbtn]').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.shellbtn === s));
+    });
+  }
+
+  /* ———— phone menu ———— */
+  var menuBtn = document.querySelector('[data-menubtn]');
+  var menu = document.querySelector('[data-menu]');
+  function closeMenu(){
+    if(menu){ menu.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false'); }
+  }
+  if(menuBtn){
+    menuBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = menu.classList.toggle('open');
+      menuBtn.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', function(e){
+      if(menu.classList.contains('open') && !menu.contains(e.target)) closeMenu();
+    });
+  }
+
+  /* ———— the binding moment ———— */
+  function appendJove(text){
+    document.querySelectorAll('[data-chat]').forEach(function(c){
+      c.insertAdjacentHTML('beforeend', joveHTML(text, 0));
+      scrollChat(c);
+    });
+  }
+  function scrollChat(c){
+    if(PRM){ c.scrollTop = c.scrollHeight; }
+    else { c.scrollTo({top: c.scrollHeight, behavior:'smooth'}); }
+  }
+  function bindCheckpoint(){
+    if(state.confirmed) return;
+    state.confirmed = true;
+    entriesOpen.l3a = true;
+    document.querySelectorAll('.checkpoint').forEach(function(cp){
+      cp.classList.add('is-bound');
+      cp.querySelectorAll('.cp-actions button').forEach(function(b){ b.disabled = true; });
+      window.setTimeout(function(){
+        var a = cp.querySelector('.cp-actions');
+        var bl = cp.querySelector('.cp-bound');
+        if(a) a.hidden = true;
+        if(bl) bl.hidden = false;
+      }, PRM ? 0 : 650);
+    });
+    window.setTimeout(function(){
+      appendJove(POST_CONFIRM);
+      renderManual();
+    }, PRM ? 120 : 1500);
+  }
+
+  /* ———— events ———— */
+  document.querySelectorAll('[data-chat]').forEach(function(c){
+    c.addEventListener('click', function(e){
+      if(e.target.closest('[data-action="confirm"]')) bindCheckpoint();
+    });
+  });
+  document.querySelectorAll('[data-manual]').forEach(function(c){
+    c.addEventListener('click', function(e){
+      var t = e.target.closest('[data-toggle]');
+      if(!t) return;
+      var id = t.dataset.toggle;
+      entriesOpen[id] = !entriesOpen[id];
+      renderManual();
+      var again = c.querySelector('[data-toggle="'+id+'"]');
+      if(again) again.focus({preventScroll:true});
+    });
+  });
+  document.querySelectorAll('[data-nav]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.getAttribute('aria-disabled') === 'true') return;
+      if(b.dataset.nav) setView(b.dataset.nav);
+    });
+  });
+  document.querySelectorAll('[data-shellbtn]').forEach(function(b){
+    b.addEventListener('click', function(){ setShell(b.dataset.shellbtn); });
+  });
+  /* writing in your own hand: typed notes land in the margin */
+  document.querySelectorAll('[data-inputform]').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      e.preventDefault();
+      var input = f.querySelector('.note-input');
+      var v = input.value.trim();
+      if(!v) return;
+      state.userNoteCount++;
+      document.querySelectorAll('[data-chat]').forEach(function(c){
+        c.insertAdjacentHTML('beforeend', userHTML(esc(v), 0, state.userNoteCount % 2 === 0));
+        scrollChat(c);
+      });
+      input.value = '';
+    });
+  });
+
+  /* ———— first print ———— */
+  renderChat();
+  renderManual();
+})();
+</script>
+</body>
+</html>

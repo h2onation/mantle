@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — 04 Nocturne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Base Fraunces first; the full-axis request second so SOFT/WONK win when available -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+<style>
+/* ————————————————————————————————————————————————
+   NOCTURNE — the 1 a.m. conversation, designed on purpose.
+   Candlelight, not terminal.
+   ———————————————————————————————————————————————— */
+:root{
+  --night:#1C1418;
+  --night-deep:#150F12;
+  --night-raised:#251A20;
+  --ink:#F0E6D2;
+  --ink-soft:#DECFB8;
+  --ink-dim:#C2B49E;
+  --moth:#8A7D8F;
+  --moth-text:#A89BB0;
+  --amber:#E2A04A;
+  --amber-bright:#F0B568;
+  --ember:#B85C38;
+  --serif:'Fraunces', Georgia, 'Times New Roman', serif;
+  --ui:'Schibsted Grotesk', 'Gill Sans', 'Helvetica Neue', sans-serif;
+  --ease:cubic-bezier(.23,.8,.32,1);
+}
+*{box-sizing:border-box}
+html{color-scheme:dark; overflow:hidden}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  font-family:var(--ui);
+  background:
+    radial-gradient(90rem 60rem at 10% -12%, rgba(226,160,74,.055), transparent 55%),
+    radial-gradient(70rem 50rem at 88% 112%, rgba(184,92,56,.05), transparent 60%),
+    linear-gradient(180deg,#191015 0%, var(--night-deep) 100%);
+  background-attachment:fixed;
+  overflow:hidden;
+}
+/* film grain so the dark has body */
+body::after{
+  content:"";
+  position:fixed; inset:-60px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.05;
+  mix-blend-mode:overlay;
+  pointer-events:none;
+  z-index:90;
+}
+::selection{background:rgba(226,160,74,.35); color:var(--ink)}
+:focus-visible{outline:2px solid var(--amber); outline-offset:2px; border-radius:4px}
+button{font-family:var(--ui)}
+*{scrollbar-width:thin; scrollbar-color:rgba(226,160,74,.28) transparent}
+
+/* ———————— DEMO BAR (neutral chrome, not the app) ———————— */
+.demo-bar{
+  position:fixed; inset:0 0 auto 0; height:46px; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 18px;
+  background:#131215;
+  border-bottom:1px solid #29262c;
+}
+.demo-name{display:flex; align-items:baseline; gap:12px}
+.demo-name strong{font:600 12.5px var(--ui); letter-spacing:.16em; text-transform:uppercase; color:#C3BFCB}
+.demo-name span{font:400 12.5px var(--ui); color:#8A8794}
+.seg{display:flex; background:#1B1A1E; border:1px solid #2F2C34; border-radius:999px; padding:3px; gap:2px}
+.seg button{
+  border:none; background:transparent; color:#A9A6B0;
+  font:600 12.5px var(--ui); letter-spacing:.04em;
+  padding:7px 16px; border-radius:999px; cursor:pointer;
+  transition:background .2s, color .2s;
+}
+.seg button:hover{color:#E8E5EE}
+.seg button.on{background:#35323B; color:#F2EFE9}
+
+/* ———————— SHELLS ———————— */
+.shell-desktop{
+  display:grid; grid-template-columns:272px 1fr;
+  height:calc(100dvh - 46px); margin-top:46px;
+}
+body[data-shell="phone"] .shell-desktop{display:none}
+.shell-phone{
+  display:none;
+  height:calc(100dvh - 46px); margin-top:46px;
+  align-items:center; justify-content:center; padding:22px;
+}
+body[data-shell="phone"] .shell-phone{display:flex}
+
+/* ———————— SIDEBAR (desktop) ———————— */
+.sidebar{
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+  padding:28px 18px 20px;
+  background:linear-gradient(180deg,#20151B 0%, #170F13 100%);
+  border-right:1px solid rgba(226,160,74,.10);
+}
+.sidebar::before{ /* the lamp in the corner of the study */
+  content:""; position:absolute; top:-90px; left:-70px;
+  width:300px; height:260px;
+  background:radial-gradient(closest-side, rgba(226,160,74,.14), transparent 70%);
+  pointer-events:none;
+}
+.brand{display:flex; align-items:center; gap:12px; padding:4px 10px 26px; position:relative}
+.wordmark{font-family:var(--serif); font-optical-sizing:auto; font-size:21px; font-weight:500; letter-spacing:.005em; color:var(--ink)}
+.wordmark .dot{color:var(--amber); text-shadow:0 0 12px rgba(226,160,74,.95)}
+.nav{display:flex; flex-direction:column; gap:4px}
+.nav-item{
+  position:relative;
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px; border-radius:10px;
+  background:transparent; border:none; cursor:pointer; text-align:left;
+  color:var(--ink-dim); font:500 14.5px/1 var(--ui); letter-spacing:.01em;
+  transition:background .25s, color .25s;
+}
+.nav-item svg{opacity:.7; flex:none; transition:opacity .25s}
+.nav-item:hover{background:rgba(240,230,210,.05); color:var(--ink)}
+.nav-item:hover svg{opacity:1}
+.nav-item.active{
+  background:linear-gradient(90deg, rgba(226,160,74,.14), rgba(226,160,74,.03));
+  color:var(--ink);
+}
+.nav-item.active::before{
+  content:""; position:absolute; left:0; top:9px; bottom:9px; width:2px;
+  border-radius:2px; background:var(--amber);
+  box-shadow:0 0 8px rgba(226,160,74,.8);
+}
+.nav-item.active svg{color:var(--amber); opacity:1}
+.nav-item[aria-disabled="true"]{cursor:default}
+.nav-item[aria-disabled="true"]:hover{background:transparent; color:var(--ink-dim)}
+.new-dot{
+  width:7px; height:7px; border-radius:50%; margin-left:auto;
+  background:var(--amber); box-shadow:0 0 8px rgba(226,160,74,.9);
+  opacity:0; transform:scale(.4); transition:opacity .3s, transform .3s;
+}
+.has-new .new-dot{opacity:1; transform:none; animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(226,160,74,.7)} 50%{box-shadow:0 0 14px rgba(226,160,74,1)}}
+.side-foot{
+  margin-top:auto; padding:16px 12px 2px;
+  display:flex; align-items:center; gap:10px;
+  border-top:1px solid rgba(240,230,210,.07);
+  color:var(--moth-text); font:italic 400 13px var(--serif);
+}
+.side-foot svg{flex:none; opacity:.8}
+
+/* ———————— MAIN COLUMN ———————— */
+.main{overflow-y:auto; overflow-x:hidden}
+.main .app{max-width:720px; margin:0 auto; padding:34px 36px 0; min-height:100%; display:flex; flex-direction:column}
+
+/* ———————— PHONE FRAME ———————— */
+.phone-frame{
+  width:430px; max-width:100%;
+  height:min(840px, 100%);
+  border-radius:48px; padding:11px;
+  border:1px solid rgba(240,230,210,.14);
+  background:linear-gradient(180deg,#211519,#150E12);
+  box-shadow:0 26px 90px rgba(0,0,0,.55), 0 0 130px rgba(226,160,74,.07);
+  display:flex;
+}
+.phone-inner{
+  flex:1; min-width:0; border-radius:38px; overflow:hidden;
+  display:flex; flex-direction:column; position:relative;
+  background:linear-gradient(180deg,#1E1318 0%, #170F13 100%);
+  border:1px solid rgba(240,230,210,.06);
+}
+.island{
+  position:absolute; top:10px; left:50%; transform:translateX(-50%);
+  width:94px; height:22px; border-radius:12px; background:#0D090B; z-index:5;
+}
+.phone-top{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 18px 6px; position:relative;
+}
+.phone-top .wordmark{font-size:17px}
+.menu-btn{
+  background:none; border:none; padding:8px; border-radius:8px; cursor:pointer;
+  color:var(--ink-dim); display:grid; place-items:center;
+}
+.menu-btn:hover{color:var(--ink); background:rgba(240,230,210,.05)}
+.tabs{display:flex; padding:8px 18px 8px}
+.tabset{
+  display:flex; flex:1; padding:3px; border-radius:999px;
+  background:rgba(240,230,210,.05); border:1px solid rgba(240,230,210,.08);
+}
+.tab{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+  border:none; background:transparent; cursor:pointer;
+  color:var(--ink-dim); font:600 13px var(--ui); letter-spacing:.02em;
+  padding:9px 10px; border-radius:999px;
+  transition:background .25s, color .25s;
+}
+.tab:hover{color:var(--ink)}
+.tab.active{background:rgba(226,160,74,.16); color:var(--amber-bright)}
+.tab .new-dot{margin-left:0}
+.phone-body{flex:1; overflow-y:auto; overflow-x:hidden; min-height:0}
+.phone-body .app{padding:6px 18px 0; min-height:100%; display:flex; flex-direction:column}
+
+/* ———————— VIEWS ———————— */
+.app[data-view="session"] .view-manual{display:none}
+.app[data-view="manual"] .view-session{display:none}
+.view-session{display:flex; flex-direction:column; flex:1}
+
+/* ———————— CHAT ———————— */
+.chat{display:flex; flex-direction:column; gap:26px; padding:8px 0 6px}
+.session-mark{
+  display:flex; align-items:center; gap:14px;
+  color:var(--moth-text); font:500 12px var(--ui);
+  letter-spacing:.24em; text-transform:uppercase;
+}
+.session-mark::before,.session-mark::after{content:""; height:1px; flex:1}
+.session-mark::before{background:linear-gradient(90deg, transparent, rgba(226,160,74,.28))}
+.session-mark::after{background:linear-gradient(90deg, rgba(226,160,74,.28), transparent)}
+
+.msg-dimmable{transition:opacity 1s ease}
+.app.dimmed .msg-dimmable{opacity:.55}
+
+.msg.jove{max-width:58ch}
+.speaker{
+  display:flex; align-items:center; gap:8px; margin:0 0 7px;
+  color:var(--amber); font:600 12px var(--ui); letter-spacing:.2em; text-transform:uppercase;
+}
+.spark{
+  width:6px; height:6px; border-radius:50%; background:var(--amber);
+  box-shadow:0 0 9px rgba(226,160,74,.95);
+  animation:candleGlow 3.6s ease-in-out infinite;
+}
+@keyframes candleGlow{0%,100%{opacity:.65} 50%{opacity:1}}
+.msg.jove .bubble{
+  position:relative; z-index:0; margin:0;
+  font:400 16.5px/1.7 var(--serif); font-optical-sizing:auto;
+  color:var(--ink);
+}
+.msg.jove .bubble::before{ /* text caught in lamplight */
+  content:""; position:absolute; inset:-16px -26px -18px -20px; z-index:-1;
+  background:radial-gradient(62% 110% at 16% 0%, rgba(226,160,74,.10), transparent 72%);
+  border-radius:24px; pointer-events:none;
+}
+.msg.user{display:flex; justify-content:flex-end}
+.msg.user .bubble{
+  margin:0; max-width:46ch;
+  padding:13px 17px;
+  font:400 14.5px/1.6 var(--ui); color:var(--ink);
+  background:linear-gradient(180deg,#3B241C,#33201A);
+  border:1px solid rgba(184,92,56,.4);
+  border-radius:18px 18px 6px 18px;
+  box-shadow:0 4px 18px rgba(0,0,0,.28);
+}
+.typing{display:inline-flex; gap:7px; padding:14px 18px; background:rgba(226,160,74,.07); border-radius:16px}
+.flick{width:6px; height:6px; border-radius:50%; background:var(--amber); opacity:.3; animation:flicker 1.5s ease-in-out infinite}
+.flick:nth-child(2){animation-delay:.22s}
+.flick:nth-child(3){animation-delay:.44s}
+@keyframes flicker{0%,100%{opacity:.22; transform:translateY(0)} 50%{opacity:1; transform:translateY(-2px)}}
+
+/* one orchestrated entrance */
+@keyframes rise{from{opacity:0; transform:translateY(14px)}}
+@keyframes rise2{from{opacity:0; transform:translateY(8px)}}
+@keyframes cardIn{from{opacity:0; transform:translateY(18px) scale(.985)}}
+.chat > *{animation:rise .65s var(--ease) backwards}
+.chat > *:nth-child(1){animation-delay:.15s}
+.chat > *:nth-child(2){animation-delay:.3s}
+.chat > *:nth-child(3){animation-delay:.5s}
+.chat > *:nth-child(4){animation-delay:.7s}
+.chat > *:nth-child(5){animation-delay:.9s}
+.chat > *:nth-child(6){animation-delay:1.05s}
+.chat > *:nth-child(7){animation-delay:1.2s}
+.chat > *:nth-child(8){animation-delay:1.35s}
+.chat > .checkpoint{animation:cardIn .9s var(--ease) 1.55s backwards}
+
+/* ———————— CHECKPOINT — a pattern surfacing from the dark ———————— */
+.checkpoint{
+  position:relative; margin-top:4px;
+  border-radius:20px; padding:26px 30px 28px;
+  background:linear-gradient(180deg,#2C1D24 0%, #251722 60%, #221520 100%);
+  border:1px solid rgba(226,160,74,.32);
+  box-shadow:
+    0 8px 70px rgba(226,160,74,.11),
+    0 18px 50px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(240,230,210,.06);
+  transition:border-color 1s ease, box-shadow 1s ease;
+}
+.checkpoint::before{
+  content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 0%, rgba(226,160,74,.10), transparent 55%);
+}
+.checkpoint.confirmed{
+  border-color:rgba(226,160,74,.16);
+  box-shadow:0 6px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(240,230,210,.04);
+}
+.card-top{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.tag-checkpoint{
+  display:flex; align-items:center; gap:8px;
+  color:var(--amber); font:600 12px var(--ui); letter-spacing:.22em; text-transform:uppercase;
+  text-shadow:0 0 14px rgba(226,160,74,.4);
+}
+.tag-checkpoint svg{flex:none}
+.tag-layer{color:var(--moth-text); font:600 12px var(--ui); letter-spacing:.18em; text-transform:uppercase}
+
+.constellation{position:relative; height:118px; margin:22px 0 4px}
+.const-lines{position:absolute; inset:0; width:100%; height:100%}
+.const-lines path{
+  stroke:rgba(226,160,74,.55); stroke-width:1; fill:none;
+  stroke-dasharray:1; /* dotted, like a star chart's linework */
+  animation:lineFade .9s ease-out backwards;
+}
+@keyframes lineFade{from{opacity:0}}
+.const-lines path:nth-child(1){animation-delay:2.05s}
+.const-lines path:nth-child(2){animation-delay:2.15s}
+.const-lines path:nth-child(3){animation-delay:2.25s}
+.frag{
+  position:absolute; padding-left:14px;
+  font:italic 500 13px/1.4 var(--serif); color:var(--moth-text);
+  animation:rise2 .7s var(--ease) backwards;
+}
+.frag::before{
+  content:""; position:absolute; left:0; top:5px; width:6px; height:6px;
+  background:var(--amber); transform:rotate(45deg);
+  box-shadow:0 0 9px rgba(226,160,74,.85);
+}
+.frag.f1{left:2px; top:8px; animation-delay:1.95s}
+.frag.f2{left:62%; top:2px; animation-delay:2.05s}
+.frag.f3{left:23%; top:64px; animation-delay:2.15s}
+.const-point{
+  position:absolute; left:calc(50% - 4px); top:108px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--amber-bright);
+  box-shadow:0 0 16px rgba(226,160,74,1);
+  animation:rise2 .6s var(--ease) 2.55s backwards;
+}
+.card-eyebrow{
+  margin:14px 0 10px; text-align:center;
+  color:var(--amber); font:600 12.5px var(--ui); letter-spacing:.2em; text-transform:uppercase;
+  animation:rise2 .6s var(--ease) 2.5s backwards;
+}
+.card-headline{
+  margin:0 auto 18px; max-width:22ch; text-align:center;
+  font-family:var(--serif); font-optical-sizing:auto;
+  font-size:27px; line-height:1.22; font-weight:500; color:var(--ink);
+  font-variation-settings:"SOFT" 30, "WONK" 1;
+  animation:rise2 .7s var(--ease) 2.6s backwards;
+}
+.card-body{
+  margin:0 0 24px;
+  font:400 16px/1.72 var(--serif); font-optical-sizing:auto; color:var(--ink-soft);
+  animation:rise2 .7s var(--ease) 2.75s backwards;
+}
+.card-actions{
+  display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+  animation:rise2 .6s var(--ease) 2.9s backwards;
+}
+.btn{
+  font:600 14px var(--ui); letter-spacing:.02em;
+  border-radius:999px; padding:12px 24px; cursor:pointer;
+  transition:transform .25s, box-shadow .25s, border-color .25s, color .25s, filter .25s;
+}
+.btn-add{
+  background:linear-gradient(180deg,#F2B768,#DC9434);
+  color:#2B1810; border:1px solid rgba(255,222,166,.5);
+  box-shadow:0 6px 26px rgba(226,160,74,.28);
+}
+.btn-add:hover{transform:translateY(-1px); filter:brightness(1.06); box-shadow:0 8px 34px rgba(226,160,74,.42)}
+.btn-add:active{transform:translateY(1px)}
+.btn-ghost{background:transparent; border:1px solid rgba(168,155,176,.35); color:var(--ink-dim)}
+.btn-ghost:hover{border-color:rgba(226,160,74,.5); color:var(--ink)}
+.card-foot{
+  margin:18px 0 0; text-align:center;
+  font:italic 400 13px var(--serif); color:var(--moth-text);
+  animation:rise2 .6s var(--ease) 3s backwards;
+}
+.checkpoint.confirmed .card-actions,
+.checkpoint.confirmed .card-foot{display:none}
+.seal{
+  display:none;
+  align-items:center; justify-content:center; gap:10px;
+  width:fit-content; margin:20px auto 2px; padding:11px 20px;
+  border-radius:999px;
+  border:1px solid rgba(226,160,74,.38);
+  background:rgba(226,160,74,.09);
+  color:var(--amber-bright); font:600 13px var(--ui); letter-spacing:.04em;
+}
+.checkpoint.confirmed .seal{display:flex; animation:sealIn .7s var(--ease) both}
+@keyframes sealIn{from{opacity:0; transform:translateY(10px) scale(.96)}}
+.embers{position:absolute; inset:0; pointer-events:none}
+.ember{
+  position:absolute; bottom:58px; width:5px; height:5px; border-radius:50%;
+  background:var(--amber-bright); box-shadow:0 0 10px rgba(226,160,74,.9);
+  opacity:0;
+}
+.ember:nth-child(1){left:31%; --dur:1.5s; --del:.05s}
+.ember:nth-child(2){left:39%; --dur:1.2s; --del:.3s}
+.ember:nth-child(3){left:46%; --dur:1.7s; --del:.12s}
+.ember:nth-child(4){left:53%; --dur:1.35s; --del:.42s}
+.ember:nth-child(5){left:60%; --dur:1.6s; --del:.2s}
+.ember:nth-child(6){left:68%; --dur:1.25s; --del:.55s}
+.ember:nth-child(7){left:50%; --dur:1.85s; --del:0s}
+.checkpoint.confirmed .ember{animation:emberUp var(--dur,1.5s) ease-out var(--del,0s) forwards}
+@keyframes emberUp{
+  0%{opacity:0; transform:translateY(0) scale(1)}
+  12%{opacity:.95}
+  100%{opacity:0; transform:translateY(-130px) scale(.25)}
+}
+
+/* once the entrance has fully played, never replay it on view switches */
+.app.booted .chat > *,
+.app.booted .const-lines path,
+.app.booted :is(.frag,.const-point,.card-eyebrow,.card-headline,.card-body,.card-actions,.card-foot){animation:none}
+.app.booted .chat > .typing-row .flick{animation:flicker 1.5s ease-in-out infinite}
+.app.booted .chat > .typing-row .flick:nth-child(2){animation-delay:.22s}
+.app.booted .chat > .typing-row .flick:nth-child(3){animation-delay:.44s}
+.app.booted .chat > .msg-in{animation:rise .65s var(--ease) backwards}
+
+/* ———————— COMPOSER ———————— */
+.composer{
+  position:sticky; bottom:0; margin-top:auto;
+  padding:20px 0 22px;
+  background:linear-gradient(180deg, rgba(24,16,19,0) 0%, #181013 42%);
+}
+.composer-inner{display:flex; align-items:center; gap:10px}
+.composer input{
+  flex:1; min-width:0;
+  background:#281B21; color:var(--ink);
+  border:1px solid rgba(240,230,210,.10); border-radius:999px;
+  padding:13px 18px; font:400 14px var(--ui);
+  outline:none; transition:border-color .25s, box-shadow .25s;
+}
+.composer input::placeholder{color:var(--moth-text)}
+.composer input:focus{border-color:rgba(226,160,74,.5); box-shadow:0 0 0 3px rgba(226,160,74,.12)}
+.send{
+  width:44px; height:44px; flex:none; border-radius:50%;
+  display:grid; place-items:center; cursor:pointer;
+  background:linear-gradient(180deg,#F0B261,#D89233);
+  border:1px solid rgba(255,222,166,.5); color:#2B1810;
+  box-shadow:0 4px 18px rgba(226,160,74,.25);
+  transition:transform .25s, box-shadow .25s;
+}
+.send:hover{transform:translateY(-1px); box-shadow:0 6px 26px rgba(226,160,74,.42)}
+.send:active{transform:translateY(1px)}
+
+/* ———————— MANUAL — the night ledger ———————— */
+.view-manual{padding:6px 0 64px}
+@keyframes settle{from{opacity:0; transform:translateY(6px)}}
+.manual-head{animation:settle .45s var(--ease) backwards}
+.layer{margin-top:36px; animation:settle .45s var(--ease) backwards}
+.layer:nth-of-type(1){animation-delay:.06s}
+.layer:nth-of-type(2){animation-delay:.12s}
+.layer:nth-of-type(3){animation-delay:.18s}
+.layer:nth-of-type(4){animation-delay:.24s}
+.layer:nth-of-type(5){animation-delay:.3s}
+.manual-eyebrow{
+  color:var(--amber); font:600 12px var(--ui); letter-spacing:.24em; text-transform:uppercase;
+  text-shadow:0 0 14px rgba(226,160,74,.35);
+}
+.manual-title{
+  margin:12px 0 8px;
+  font-family:var(--serif); font-optical-sizing:auto;
+  font-size:32px; line-height:1.15; font-weight:500; color:var(--ink);
+  font-variation-settings:"SOFT" 30, "WONK" 1;
+}
+.manual-sub{margin:0; font:italic 400 15px/1.55 var(--serif); color:var(--moth-text); max-width:46ch}
+.layer-head{display:flex; align-items:center; gap:14px}
+.layer-num{
+  flex:none; min-width:34px;
+  font-family:var(--serif); font-size:16px; font-weight:500;
+  color:var(--amber); letter-spacing:.06em;
+  text-shadow:0 0 12px rgba(226,160,74,.35);
+}
+.layer-name{margin:0; font-family:var(--serif); font-optical-sizing:auto; font-size:19px; font-weight:500; color:var(--ink)}
+.layer-head::after{
+  content:""; flex:1; height:1px; margin-left:4px;
+  background:linear-gradient(90deg, rgba(226,160,74,.42), rgba(226,160,74,.05));
+}
+.entries{margin-top:6px; display:flex; flex-direction:column}
+.entry{border-bottom:1px solid rgba(240,230,210,.06)}
+.entry:last-child{border-bottom:none}
+.entry-h{margin:0}
+.entry-toggle{
+  width:100%; display:flex; align-items:center; gap:12px;
+  padding:16px 10px; border:none; background:none; cursor:pointer; text-align:left;
+  border-radius:12px;
+  transition:background .25s;
+}
+.entry-toggle:hover{background:rgba(240,230,210,.035)}
+.entry-headline{
+  flex:1; font-family:var(--serif); font-optical-sizing:auto;
+  font-size:17px; font-weight:500; line-height:1.4; color:var(--ink);
+}
+.entry-mark{flex:none; width:7px; height:7px; transform:rotate(45deg); background:rgba(168,155,176,.55)}
+.entry-star{flex:none; color:#D9CCB7; display:grid; place-items:center}
+.entry-new .entry-star{color:var(--amber); filter:drop-shadow(0 0 6px rgba(226,160,74,.8))}
+.chev{flex:none; color:var(--moth-text); transition:transform .35s var(--ease)}
+.entry.open .chev{transform:rotate(180deg)}
+.entry-body{display:grid; grid-template-rows:0fr; transition:grid-template-rows .5s var(--ease)}
+.entry.open .entry-body{grid-template-rows:1fr}
+.entry-body > div{overflow:hidden; min-height:0}
+.entry-prose{
+  margin:0; padding:4px 10px 24px 29px; max-width:60ch;
+  font:400 16px/1.78 var(--serif); font-optical-sizing:auto; color:var(--ink-soft);
+}
+.entry-prose::first-letter{
+  float:left; padding:7px 10px 0 0;
+  font-size:46px; line-height:.78; font-weight:500; color:var(--amber);
+  font-variation-settings:"SOFT" 50, "WONK" 1;
+}
+.entry-row{display:flex; align-items:center; gap:12px; padding:16px 10px}
+.entry-row .entry-headline{color:var(--ink)}
+.layer-empty{margin:0; padding:14px 10px 18px; font:italic 400 14px var(--serif); color:var(--moth-text)}
+.entry-new{
+  background:linear-gradient(90deg, rgba(226,160,74,.08), transparent 75%);
+  border-radius:14px; border-bottom-color:transparent;
+  animation:newGlow 1.4s var(--ease) backwards;
+}
+@keyframes newGlow{from{opacity:0; transform:translateY(8px); background-color:rgba(226,160,74,.14)}}
+.pill-new{
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  padding:4px 11px; border-radius:999px; white-space:nowrap;
+  background:rgba(226,160,74,.12); border:1px solid rgba(226,160,74,.4);
+  color:var(--amber-bright); font:600 12px var(--ui); letter-spacing:.06em;
+}
+
+/* ———————— PHONE-SCALE ADJUSTMENTS ———————— */
+.phone-inner .chat{gap:22px}
+.phone-inner .msg.jove .bubble{font-size:15.5px}
+.phone-inner .checkpoint{padding:20px 18px 22px; border-radius:16px}
+.phone-inner .card-headline{font-size:22px}
+.phone-inner .card-body{font-size:15px}
+.phone-inner .frag{font-size:12.5px}
+.phone-inner .manual-title{font-size:26px}
+.phone-inner .entry-prose{padding-left:25px; font-size:15px}
+.phone-inner .layer{margin-top:30px}
+
+/* ———————— CALM FOR THOSE WHO ASK FOR IT ———————— */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+    scroll-behavior:auto !important;
+  }
+}
+</style>
+</head>
+<body data-shell="desktop">
+
+<!-- ———————— DEMO BAR ———————— -->
+<header class="demo-bar">
+  <div class="demo-name"><strong>04 — Nocturne</strong><span>rebrand exploration</span></div>
+  <div class="seg" role="group" aria-label="Preview device">
+    <button type="button" data-shell-btn="desktop" class="on" aria-pressed="true">Desktop</button>
+    <button type="button" data-shell-btn="phone" aria-pressed="false">Phone</button>
+  </div>
+</header>
+
+<!-- ———————— THE APP, ONCE, AS A TEMPLATE ———————— -->
+<template id="app-tpl">
+<div class="app" data-view="session">
+
+  <!-- SESSION -->
+  <div class="view view-session">
+    <div class="chat" role="log" aria-live="polite">
+
+      <div class="session-mark msg-dimmable"><span>Wednesday &middot; 1:04 AM</span></div>
+
+      <div class="msg user msg-dimmable">
+        <p class="bubble">I told my manager I&rsquo;d have the deck done by Friday. It&rsquo;s Wednesday night and I haven&rsquo;t opened the file. I keep doing this.</p>
+      </div>
+
+      <div class="msg jove msg-dimmable">
+        <span class="speaker"><i class="spark" aria-hidden="true"></i>Jove</span>
+        <p class="bubble">Which part keeps happening. The not opening it, or the promising Friday in the first place? Walk me through the moment you said Friday.</p>
+      </div>
+
+      <div class="msg user msg-dimmable">
+        <p class="bubble">She asked when I could have it and Friday just came out. It felt generous at the time. Like plenty of room.</p>
+      </div>
+
+      <div class="msg jove msg-dimmable">
+        <span class="speaker"><i class="spark" aria-hidden="true"></i>Jove</span>
+        <p class="bubble">Plenty of room for the version of you in that meeting. He wasn&rsquo;t the one who had to open the file. What does Wednesday-night you know that meeting you didn&rsquo;t?</p>
+      </div>
+
+      <div class="msg user msg-dimmable">
+        <p class="bubble">That it isn&rsquo;t real yet. A deadline isn&rsquo;t real until it&rsquo;s close enough to touch. Then the panic kicks in, and honestly the panic works. The deck will be good. It&rsquo;s always good.</p>
+      </div>
+
+      <div class="msg jove msg-dimmable">
+        <span class="speaker"><i class="spark" aria-hidden="true"></i>Jove</span>
+        <p class="bubble">So the system delivers. The deck is always good. The cost isn&rsquo;t the quality. It&rsquo;s the days of dread you pay before the panic shows up to do the work. I think there&rsquo;s a piece of your Manual in this. Want to see it?</p>
+      </div>
+
+      <div class="msg user msg-dimmable">
+        <p class="bubble">ok show me</p>
+      </div>
+
+      <!-- ———— CHECKPOINT: a pattern surfacing from the dark ———— -->
+      <section class="checkpoint" aria-label="Checkpoint — a proposed Manual entry">
+        <div class="embers" aria-hidden="true">
+          <span class="ember"></span><span class="ember"></span><span class="ember"></span><span class="ember"></span><span class="ember"></span><span class="ember"></span><span class="ember"></span>
+        </div>
+
+        <div class="card-top">
+          <span class="tag-checkpoint">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.6 3 1.8 4.2 4.8 4.8-3 .6-4.2 1.8-4.8 4.8-.6-3-1.8-4.2-4.8-4.8 3-.6 4.2-1.8 4.8-4.8Z"/></svg>
+            Checkpoint
+          </span>
+          <span class="tag-layer">Layer III</span>
+        </div>
+
+        <div class="constellation" aria-hidden="true">
+          <svg class="const-lines" viewBox="0 0 100 118" preserveAspectRatio="none">
+            <path d="M2.5 16 L50 112" vector-effect="non-scaling-stroke"/>
+            <path d="M63 10 L50 112" vector-effect="non-scaling-stroke"/>
+            <path d="M24 72 L50 112" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="frag f1">&ldquo;Friday just came out&rdquo;</span>
+          <span class="frag f2">&ldquo;it isn&rsquo;t real yet&rdquo;</span>
+          <span class="frag f3">&ldquo;the panic works&rdquo;</span>
+          <span class="const-point"></span>
+        </div>
+
+        <p class="card-eyebrow">How I Process Things</p>
+        <h3 class="card-headline">Deadlines aren&rsquo;t real until I can touch them</h3>
+        <p class="card-body">You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn&rsquo;t turn real until it&rsquo;s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>
+
+        <div class="card-actions">
+          <button type="button" class="btn btn-add">Add to Manual</button>
+          <button type="button" class="btn btn-ghost">Edit</button>
+          <button type="button" class="btn btn-ghost">Not quite</button>
+        </div>
+
+        <div class="seal">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.6 3 1.8 4.2 4.8 4.8-3 .6-4.2 1.8-4.8 4.8-.6-3-1.8-4.2-4.8-4.8 3-.6 4.2-1.8 4.8-4.8Z"/></svg>
+          <span>Added to your Manual &middot; Layer III &mdash; How I Process Things</span>
+        </div>
+
+        <p class="card-foot">Nothing enters your Manual unless you say yes.</p>
+      </section>
+
+    </div>
+
+    <div class="composer msg-dimmable">
+      <div class="composer-inner">
+        <input type="text" placeholder="Say it how it actually happened" aria-label="Message Jove">
+        <button type="button" class="send" aria-label="Send" title="Send">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14.5v-10M4.8 8.6 9 4.4l4.2 4.2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL — the night ledger -->
+  <div class="view view-manual">
+    <header class="manual-head">
+      <p class="manual-eyebrow">The Manual</p>
+      <h2 class="manual-title">Five layers, in your words</h2>
+      <p class="manual-sub">Written in session, confirmed by you. Nothing lands here without your yes.</p>
+    </header>
+
+    <!-- Layer I -->
+    <section class="layer">
+      <div class="layer-head"><span class="layer-num" aria-hidden="true">I.</span><h3 class="layer-name">My Strengths</h3></div>
+      <div class="entries">
+        <article class="entry open">
+          <h4 class="entry-h">
+            <button type="button" class="entry-toggle" aria-expanded="true">
+              <span class="entry-star" title="Starred entry"><svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.6 3 1.8 4.2 4.8 4.8-3 .6-4.2 1.8-4.8 4.8-.6-3-1.8-4.2-4.8-4.8 3-.6 4.2-1.8 4.8-4.8Z"/></svg></span>
+              <span class="entry-headline">I build the whole thing in my head before I touch it</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+            </button>
+          </h4>
+          <div class="entry-body"><div>
+            <p class="entry-prose">Before you open a file or write a line, the structure assembles itself somewhere behind your eyes. From outside, the stillness reads as not working. The stillness is the work. By the time your hands move, most of the decisions are already made. It&rsquo;s why the work holds up under pressure that should have sunk it.</p>
+          </div></div>
+        </article>
+        <div class="entry">
+          <div class="entry-row">
+            <span class="entry-mark" aria-hidden="true"></span>
+            <span class="entry-headline">I notice the thing everyone else walks past</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Layer II -->
+    <section class="layer">
+      <div class="layer-head"><span class="layer-num" aria-hidden="true">II.</span><h3 class="layer-name">Some of My Patterns</h3></div>
+      <div class="entries">
+        <article class="entry">
+          <h4 class="entry-h">
+            <button type="button" class="entry-toggle" aria-expanded="false">
+              <span class="entry-mark" aria-hidden="true"></span>
+              <span class="entry-headline">I say yes at the speed of the room</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+            </button>
+          </h4>
+          <div class="entry-body"><div>
+            <p class="entry-prose">In the moment, the answer people want to hear leaves your mouth before the calendar gets a vote. It isn&rsquo;t people-pleasing exactly. The room has a rhythm and you match it. The cost arrives later, addressed to a version of you who was never in the meeting.</p>
+          </div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Layer III -->
+    <section class="layer">
+      <div class="layer-head"><span class="layer-num" aria-hidden="true">III.</span><h3 class="layer-name">How I Process Things</h3></div>
+      <div class="entries">
+        <p class="layer-empty">Nothing here yet. It surfaces in session.</p>
+        <article class="entry entry-new open" hidden>
+          <h4 class="entry-h">
+            <button type="button" class="entry-toggle" aria-expanded="true">
+              <span class="entry-star" title="Starred entry"><svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.6 3 1.8 4.2 4.8 4.8-3 .6-4.2 1.8-4.8 4.8-.6-3-1.8-4.2-4.8-4.8 3-.6 4.2-1.8 4.8-4.8Z"/></svg></span>
+              <span class="entry-headline">Deadlines aren&rsquo;t real until I can touch them</span>
+              <span class="pill-new">Just added</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+            </button>
+          </h4>
+          <div class="entry-body"><div>
+            <p class="entry-prose">You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn&rsquo;t turn real until it&rsquo;s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>
+          </div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Layer IV -->
+    <section class="layer">
+      <div class="layer-head"><span class="layer-num" aria-hidden="true">IV.</span><h3 class="layer-name">What Helps</h3></div>
+      <div class="entries">
+        <article class="entry">
+          <h4 class="entry-h">
+            <button type="button" class="entry-toggle" aria-expanded="false">
+              <span class="entry-mark" aria-hidden="true"></span>
+              <span class="entry-headline">Another person in the room starts the engine early</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+            </button>
+          </h4>
+          <div class="entry-body"><div>
+            <p class="entry-prose">You can&rsquo;t start alone at two weeks out. You can start next to someone. It doesn&rsquo;t matter if they&rsquo;re working on something else entirely. Their presence makes the work real the way a deadline does, without the dread. The engine turns over early and quietly.</p>
+          </div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Layer V -->
+    <section class="layer">
+      <div class="layer-head"><span class="layer-num" aria-hidden="true">V.</span><h3 class="layer-name">How I Show Up with People</h3></div>
+      <div class="entries">
+        <article class="entry">
+          <h4 class="entry-h">
+            <button type="button" class="entry-toggle" aria-expanded="false">
+              <span class="entry-mark" aria-hidden="true"></span>
+              <span class="entry-headline">Quiet doesn&rsquo;t mean gone</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>
+            </button>
+          </h4>
+          <div class="entry-body"><div>
+            <p class="entry-prose">In a group your face goes still and your words go short. From outside it can read as checked out. It&rsquo;s the opposite. Everything is arriving at once and you&rsquo;re routing it. The people who know you well have learned that the quiet is where you do your part of the conversation.</p>
+          </div></div>
+        </article>
+      </div>
+    </section>
+  </div>
+
+</div>
+</template>
+
+<!-- ———————— DESKTOP SHELL ———————— -->
+<div class="shell-desktop">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle cx="20" cy="20" r="15.5" stroke="rgba(226,160,74,.32)" stroke-width="1"/>
+        <path d="M20 6 A14 14 0 0 0 20 34 A17.5 17.5 0 0 1 20 6 Z" fill="rgba(226,160,74,.15)" stroke="#E2A04A" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M16.5 9.5 C10.5 14 10.5 26 16.5 30.5" stroke="#E2A04A" stroke-width=".6" opacity=".6"/>
+        <circle cx="29.5" cy="9.5" r="1.1" fill="#E2A04A"/>
+        <circle cx="32.2" cy="14" r=".6" fill="#E2A04A" opacity=".8"/>
+      </svg>
+      <span class="wordmark">mywalnut<span class="dot">.</span></span>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <button type="button" class="nav-item active" data-nav="session" aria-current="page">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 2.2C6.2 5.6 4.7 8.1 4.7 10.4a4.3 4.3 0 0 0 8.6 0C13.3 8.1 11.8 5.6 9 2.2Z"/>
+          <path d="M9 13.4c-1.2-.9-1.8-1.9-1.8-3 0-.9.6-2 1.8-3.4 1.2 1.4 1.8 2.5 1.8 3.4 0 1.1-.6 2.1-1.8 3Z" opacity=".5"/>
+        </svg>
+        <span>Session</span><span class="new-dot" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="nav-item" data-nav="manual">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 4.6C7.8 3.4 6 2.8 3 2.8v11c3 0 4.8.6 6 1.8 1.2-1.2 3-1.8 6-1.8v-11c-3 0-4.8.6-6 1.8Z"/>
+          <path d="M9 4.6v11"/>
+        </svg>
+        <span>Manual</span><span class="new-dot" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="nav-item" aria-disabled="true" title="Not wired in this demo">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 5.5h12M3 12.5h12"/>
+          <circle cx="7" cy="5.5" r="1.8" fill="#1C1418"/>
+          <circle cx="11.5" cy="12.5" r="1.8" fill="#1C1418"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+    <div class="side-foot">
+      <svg width="14" height="14" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M20 6 A14 14 0 0 0 20 34 A17.5 17.5 0 0 1 20 6 Z" fill="rgba(226,160,74,.2)" stroke="#E2A04A" stroke-width="1.6" stroke-linejoin="round"/>
+      </svg>
+      <span>Late is fine here.</span>
+    </div>
+  </aside>
+  <main class="main scroller" data-app-mount></main>
+</div>
+
+<!-- ———————— PHONE SHELL ———————— -->
+<div class="shell-phone">
+  <div class="phone-frame">
+    <div class="phone-inner">
+      <span class="island" aria-hidden="true"></span>
+      <div class="phone-top">
+        <span style="display:flex;align-items:center;gap:9px">
+          <svg width="22" height="22" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <circle cx="20" cy="20" r="15.5" stroke="rgba(226,160,74,.32)" stroke-width="1.4"/>
+            <path d="M20 6 A14 14 0 0 0 20 34 A17.5 17.5 0 0 1 20 6 Z" fill="rgba(226,160,74,.15)" stroke="#E2A04A" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+          <span class="wordmark">mywalnut<span class="dot">.</span></span>
+        </span>
+        <button type="button" class="menu-btn" aria-label="Menu" title="Menu — not wired in this demo">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h12M3 9.5h12M3 13.5h8"/></svg>
+        </button>
+      </div>
+      <div class="tabs">
+        <div class="tabset" role="group" aria-label="View">
+          <button type="button" class="tab active" data-nav="session" aria-current="page">Session</button>
+          <button type="button" class="tab" data-nav="manual">Manual<span class="new-dot" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <div class="phone-body scroller" data-app-mount></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var tpl = document.getElementById('app-tpl');
+  document.querySelectorAll('[data-app-mount]').forEach(function(m){
+    m.appendChild(tpl.content.cloneNode(true));
+  });
+
+  var confirmed = false;
+  function apps(){ return Array.prototype.slice.call(document.querySelectorAll('.app')); }
+
+  function setShell(s){
+    document.body.dataset.shell = s;
+    document.querySelectorAll('[data-shell-btn]').forEach(function(b){
+      var on = b.getAttribute('data-shell-btn') === s;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function setView(v){
+    apps().forEach(function(a){ a.dataset.view = v; });
+    document.querySelectorAll('[data-nav]').forEach(function(b){
+      var on = b.dataset.nav === v;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    if (v === 'manual'){
+      document.querySelectorAll('[data-nav="manual"]').forEach(function(b){ b.classList.remove('has-new'); });
+    }
+  }
+
+  /* anchor each view when navigated to: the Manual opens at its head, the Session at its latest word */
+  function anchorView(v){
+    document.querySelectorAll('.scroller').forEach(function(s){
+      s.scrollTop = (v === 'manual') ? 0 : s.scrollHeight;
+    });
+  }
+
+  function scrollChats(smooth){
+    document.querySelectorAll('.scroller').forEach(function(s){
+      var glide = (smooth && !RM);
+      requestAnimationFrame(function(){ s.scrollTo({ top: s.scrollHeight, behavior: glide ? 'smooth' : 'auto' }); });
+      /* guarantee the landing even if the glide is interrupted */
+      setTimeout(function(){ s.scrollTop = s.scrollHeight; }, glide ? 700 : 0);
+    });
+  }
+
+  var FOLLOWUP = 'That’s in your Manual now. You said the panic works. Where else does the engine only start when something is close enough to touch?';
+
+  function confirmCheckpoint(){
+    if (confirmed) return;
+    confirmed = true;
+    apps().forEach(function(a){
+      a.classList.remove('dimmed');
+      var card = a.querySelector('.checkpoint');
+      card.classList.add('confirmed');
+      var empty = a.querySelector('.layer-empty');
+      if (empty) empty.hidden = true;
+      var ne = a.querySelector('.entry-new');
+      if (ne) ne.hidden = false;
+    });
+    document.querySelectorAll('[data-nav="manual"]').forEach(function(b){ b.classList.add('has-new'); });
+
+    var t1 = RM ? 150 : 950;
+    var t2 = RM ? 500 : 2500;
+    setTimeout(function(){
+      apps().forEach(function(a){
+        var chat = a.querySelector('.chat');
+        var ty = document.createElement('div');
+        ty.className = 'msg jove typing-row';
+        ty.setAttribute('aria-hidden', 'true');
+        ty.innerHTML = '<span class="speaker"><i class="spark"></i>Jove</span>' +
+          '<div class="bubble typing"><span class="flick"></span><span class="flick"></span><span class="flick"></span></div>';
+        chat.appendChild(ty);
+      });
+      scrollChats(true);
+    }, t1);
+    setTimeout(function(){
+      apps().forEach(function(a){
+        var chat = a.querySelector('.chat');
+        var ty = chat.querySelector('.typing-row');
+        if (ty) ty.remove();
+        var d = document.createElement('div');
+        d.className = 'msg jove msg-in';
+        d.innerHTML = '<span class="speaker"><i class="spark" aria-hidden="true"></i>Jove</span>' +
+          '<p class="bubble">' + FOLLOWUP + '</p>';
+        chat.appendChild(d);
+      });
+      scrollChats(true);
+    }, t2);
+  }
+
+  document.addEventListener('click', function(e){
+    var sb = e.target.closest('[data-shell-btn]');
+    if (sb){ setShell(sb.getAttribute('data-shell-btn')); return; }
+    var nb = e.target.closest('[data-nav]');
+    if (nb){ setView(nb.dataset.nav); anchorView(nb.dataset.nav); return; }
+    if (e.target.closest('.btn-add')){ confirmCheckpoint(); return; }
+    var tg = e.target.closest('.entry-toggle');
+    if (tg){
+      var en = tg.closest('.entry');
+      var open = en.classList.toggle('open');
+      tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+  });
+
+  /* the room dims gently while the checkpoint glows; confirming relights it */
+  setTimeout(function(){
+    if (!confirmed) apps().forEach(function(a){ a.classList.add('dimmed'); });
+  }, RM ? 200 : 2700);
+
+  /* once an app's entrance has fully played, never replay it on view switches */
+  document.addEventListener('animationend', function(e){
+    if (e.target.classList && e.target.classList.contains('card-foot')){
+      var a = e.target.closest('.app');
+      if (a) a.classList.add('booted');
+    }
+  });
+
+  setView('session');
+  setShell('desktop');
+})();
+</script>
+</body>
+</html>

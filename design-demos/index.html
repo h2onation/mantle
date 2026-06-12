@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mywalnut — rebrand explorations</title>
+<style>
+  :root {
+    --paper: #F4F1EA;
+    --ink: #1E1A14;
+    --ink-soft: #5C5447;
+    --hair: #DDD6C8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    padding: 64px 32px 96px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 34px; font-weight: 400; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-soft); font-size: 16px; margin-top: 10px; line-height: 1.6; max-width: 62ch; }
+  .sub strong { color: var(--ink); font-weight: 600; }
+  .list { margin-top: 48px; display: flex; flex-direction: column; }
+  a.card {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 24px;
+    align-items: center;
+    padding: 26px 18px;
+    border-top: 1px solid var(--hair);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+  }
+  a.card:last-of-type { border-bottom: 1px solid var(--hair); }
+  a.card:hover { background: rgba(0,0,0,0.03); }
+  .num { font-size: 13px; color: var(--ink-soft); font-family: 'Courier New', monospace; }
+  .name { font-size: 21px; }
+  .desc { color: var(--ink-soft); font-size: 14.5px; margin-top: 6px; line-height: 1.55; max-width: 56ch; }
+  .swatches { display: flex; gap: 5px; }
+  .sw { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+  .foot { margin-top: 40px; color: var(--ink-soft); font-size: 13.5px; line-height: 1.7; }
+  @media (max-width: 640px) {
+    a.card { grid-template-columns: 40px 1fr; }
+    .swatches { grid-column: 2; margin-top: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>mywalnut — five rebrand directions</h1>
+  <p class="sub">Same layout framework, same conversation, same Manual content in all five — so your reaction is purely about the brand. Each demo has a <strong>Desktop / Phone</strong> toggle in the top bar, working <strong>Session ↔ Manual</strong> navigation, and a live checkpoint: click <strong>Add to Manual</strong> and watch what happens.</p>
+
+  <div class="list">
+    <a class="card" href="1-kernel.html">
+      <span class="num">01</span>
+      <span>
+        <span class="name">Kernel</span>
+        <span class="desc" style="display:block">The current brand, executed to its potential. Linen and walnut stay; Jove's green deepens to moss; the brand finally gets a mark (the halved-walnut kernel); the checkpoint becomes a page binding into the Manual instead of a black modal.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F2EBDD"></span><span class="sw" style="background:#2B2118"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#3F5C3A"></span><span class="sw" style="background:#C46A2B"></span></span>
+    </a>
+
+    <a class="card" href="1e-kernel-refined-2.html">
+      <span class="num">01e</span>
+      <span>
+        <span class="name">Kernel · Refined II &nbsp;←&nbsp;latest</span>
+        <span class="desc" style="display:block">Round 4 — the production chat bubbles transplanted exactly (cream Jove bubble with the JOVE label inside, walnut-wash user bubble, the 5px notch), plus the live app's radial gradient atmosphere adapted to the Kernel linen. Plate checkpoint, sessions sidebar + phone drawer all carried over.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#E8DCC4"></span><span class="sw" style="background:#4E6346"></span><span class="sw" style="background:#261D13"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#C46A2B"></span></span>
+    </a>
+
+    <a class="card" href="1d-kernel-refined.html">
+      <span class="num">01d</span>
+      <span>
+        <span class="name">Kernel · Refined</span>
+        <span class="desc" style="display:block">Round 3 synthesis — Plate's checkpoint and clean sidebar, chat bubbles back for both voices (moss vessel for Jove, linen card for you), the live wordmark only (no glyph), and sessions get a home: a sidebar list on desktop, a menu drawer on phone.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#FFFDF6"></span><span class="sw" style="background:#ECF0E3"></span><span class="sw" style="background:#261D13"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#C46A2B"></span></span>
+    </a>
+
+    <a class="card" href="1a-kernel-plate.html">
+      <span class="num">01a</span>
+      <span>
+        <span class="name">Kernel · Plate</span>
+        <span class="desc" style="display:block">Round 2 — checkpoint as fine stationery: a solid letterpress plate with an inset hairline frame. Confirming presses the card — shadows tighten, an ember rule strikes under the headline, then it lifts and settles.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#FFFDF6"></span><span class="sw" style="background:#261D13"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#3F5C3A"></span><span class="sw" style="background:#C46A2B"></span></span>
+    </a>
+
+    <a class="card" href="1b-kernel-illumination.html">
+      <span class="num">01b</span>
+      <span>
+        <span class="name">Kernel · Illumination</span>
+        <span class="desc" style="display:block">Round 2 — checkpoint with no card at all: the entry is typeset directly on the linen with an ember drop cap between hairline rules. Confirming gilds the initial from ember to walnut-gold; the gold initial travels into the Manual.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F2EBDD"></span><span class="sw" style="background:#2B2118"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#3F5C3A"></span><span class="sw" style="background:#C9952C"></span></span>
+    </a>
+
+    <a class="card" href="1c-kernel-folio.html">
+      <span class="num">01c</span>
+      <span>
+        <span class="name">Kernel · Folio</span>
+        <span class="desc" style="display:block">Round 2 — checkpoint as the literal Manual page: a folio sheet slides in from the right (bottom sheet on phone) with a giant Roman-numeral watermark. Confirming ink-fills the numeral and the page flies into the Manual nav.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F2EBDD"></span><span class="sw" style="background:#271D12"></span><span class="sw" style="background:#7A4A24"></span><span class="sw" style="background:#3F5C3A"></span><span class="sw" style="background:#C46A2B"></span></span>
+    </a>
+
+    <a class="card" href="2-owners-manual.html">
+      <span class="num">02</span>
+      <span>
+        <span class="name">Owner's Manual</span>
+        <span class="desc" style="display:block">Takes the name literally: a beautifully-set technical document of you. Numbered entries, figure labels, one signal orange. The checkpoint is a draft ticket you stamp — user-as-author made physical. Zero ambiguity, by design.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F6F3EC"></span><span class="sw" style="background:#14120E"></span><span class="sw" style="background:#55504A"></span><span class="sw" style="background:#E8500A"></span></span>
+    </a>
+
+    <a class="card" href="3-marginalia.html">
+      <span class="num">03</span>
+      <span>
+        <span class="name">Marginalia</span>
+        <span class="desc" style="display:block">You are annotating the book of yourself. Jove is printed text; you write in ballpoint blue; the checkpoint is a passage being highlighted, then stitched into the Manual. The pen belongs to the user.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F7F1E3"></span><span class="sw" style="background:#232019"></span><span class="sw" style="background:#2447A8"></span><span class="sw" style="background:#F5D547"></span><span class="sw" style="background:#8C4A38"></span></span>
+    </a>
+
+    <a class="card" href="4-nocturne.html">
+      <span class="num">04</span>
+      <span>
+        <span class="name">Nocturne</span>
+        <span class="desc" style="display:block">The 1 a.m. conversation, designed on purpose. Warm aubergine dark, candlelight amber, Fraunces. The checkpoint surfaces from the dark as a constellation of your own words. The answer to what mywalnut at night should feel like.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#1C1418"></span><span class="sw" style="background:#E2A04A"></span><span class="sw" style="background:#F0E6D2"></span><span class="sw" style="background:#8A7D8F"></span><span class="sw" style="background:#B85C38"></span></span>
+    </a>
+
+    <a class="card" href="5-grove.html">
+      <span class="num">05</span>
+      <span>
+        <span class="name">Grove</span>
+        <span class="desc" style="display:block">The walnut tree, not the walnut wood. Botanical-atlas line art, leaf green and morning cream. The Manual is a garden ledger; the checkpoint is a specimen card that takes root — a sprout draws itself when you confirm.</span>
+      </span>
+      <span class="swatches"><span class="sw" style="background:#F5F1E6"></span><span class="sw" style="background:#3E6B34"></span><span class="sw" style="background:#5B4632"></span><span class="sw" style="background:#7FA86B"></span><span class="sw" style="background:#E9B83C"></span></span>
+    </a>
+  </div>
+
+  <p class="foot">Built 2026-06-10 · standalone files, no build step — fonts load from Google Fonts, so open with internet. Each page has a colophon at the bottom with the exact fonts and hex values, so you can react with specifics ("Kernel's moss + Nocturne's checkpoint" is a valid answer).</p>
+</div>
+</body>
+</html>

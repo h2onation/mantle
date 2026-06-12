@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — Hearth · warm dark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   HEARTH — the warm DARK mode, made definitive.
+   Ground is a warm espresso/aubergine near-black, never
+   blue-grey. Body ink is full-strength warm cream — no
+   half-alpha greys for prose on dark. Candlelight amber is
+   the living light; ember carries the user/brand thread; a
+   faint moss tints the JOVE label. The atmosphere pools amber
+   lamplight on the dark, centered horizontally and anchored
+   off-screen vertically so no boundary or arc ever shows. The
+   checkpoint Plate stays the brightest paper in the system —
+   a warm-lit cream sheet glowing on the dark, no drop shadow,
+   defined by its inset frame and the warm glow behind it.
+   ============================================================ */
+
+:root{
+  /* ---- warm-dark ground (espresso/aubergine, never blue-grey) ---- */
+  --ground:       #1A1310;   /* the warm near-black field */
+  --ground-deep:  #15100D;   /* deepest pocket */
+  --surface:      #241A14;   /* one step up — Jove's vessel base */
+  --surface-2:    #2C2017;   /* raised panels, entries */
+  --surface-3:    #34261B;   /* hover / open states */
+
+  --plate:        #FBF3E2;   /* the brightest sheet, reserved for the plate */
+  --plate-2:      #F6ECD6;
+  --plate-3:      #EFE2C7;
+
+  /* ---- warm cream ink at FULL strength on dark ---- */
+  --ink:          #F0E6D4;   /* body cream — full strength, ~13:1 on ground */
+  --ink-soft:     #E4D6BE;   /* secondary prose */
+  --ink-mute:     #C2AE93;   /* labels / meta — ~7:1 on ground, AA for small */
+  --ink-faint:    #9C8869;   /* hairline-adjacent, decorative only */
+
+  /* ink for use ON the bright plate (dark warm ink on cream) */
+  --ink-on-plate:     #2A1E12;
+  --ink-mute-on-plate:#5E4A33;
+
+  /* ---- candlelight amber: the living light ---- */
+  --amber:        #E2A04A;
+  --amber-bright: #F0B864;
+  --amber-soft:   rgba(226,160,74,.16);
+  --amber-glow:   rgba(240,184,100,.40);
+
+  /* ---- ember: the user / brand thread ---- */
+  --ember:        #C46A2B;
+  --ember-warm:   #D67E3A;   /* user vessel light */
+  --ember-deep:   #8A3F12;
+  --ember-tint:   rgba(196,106,43,.18);
+
+  /* ---- moss: a faint tint for the JOVE label ---- */
+  --moss:         #8FA877;   /* lit moss that reads on the dark vessel */
+  --moss-deep:    #5F7A4C;
+
+  --persona:      #9DB585;   /* the JOVE label — moss in candlelight, AA on surface */
+
+  --chrome:       #100B08;   /* demo bar / colophon — deepest warm chrome */
+  --chrome-text:  #EFE3CE;
+
+  --serif-display:"Instrument Serif", Georgia, serif;
+  --serif-text:   "Source Serif 4", Georgia, serif;
+  --sans:         "DM Sans", Helvetica, sans-serif;
+  --mono:         ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  /* physical shadow language — warm-black depth */
+  --shadow-card:
+    0 1px 0 rgba(255,236,206,.06) inset,
+    0 1px 2px rgba(0,0,0,.40),
+    0 14px 32px -22px rgba(0,0,0,.70);
+  --shadow-pop:
+    0 2px 4px rgba(0,0,0,.45),
+    0 22px 48px -20px rgba(0,0,0,.65);
+
+  --ease-settle:  cubic-bezier(.22,.75,.25,1);
+  --ease-press:   cubic-bezier(.4,0,.6,1);
+
+  /* ---- the atmosphere, seamless — lamplight on the dark ----
+     pools of candlelight amber over the warm-black ground.
+     every pool is centered on the horizontal and anchored
+     OFF-SCREEN on the vertical (above the top / below the
+     bottom) so only the smooth body of the gradient is ever in
+     frame — never the bright center, never a visible boundary.
+     rgba(...,0) stops (not `transparent`) keep the fade from
+     muddying to a dead grey. */
+  --atmo-chat:
+    radial-gradient(150% 90% at 50% -18%, rgba(226,160,74,.18), rgba(226,160,74,0) 70%),
+    radial-gradient(150% 95% at 50% 120%, rgba(196,106,43,.20), rgba(196,106,43,0) 72%);
+  --atmo-manual:
+    radial-gradient(150% 90% at 50% -18%, rgba(226,160,74,.20), rgba(226,160,74,0) 70%),
+    radial-gradient(150% 95% at 50% 120%, rgba(196,106,43,.22), rgba(196,106,43,0) 72%),
+    radial-gradient(70% 55% at 6% 108%, rgba(143,168,119,.12), rgba(143,168,119,0) 62%);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ overflow:clip; }
+html,body{ height:100%; }
+
+body{
+  font-family:var(--serif-text);
+  color:var(--ink);
+  background:var(--ground);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* paper grain — one quiet veil over everything but the demo chrome.
+   on dark we lift it with screen so it warms rather than muddies. */
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none;
+  z-index:5;
+  opacity:.06;
+  mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.sr-only{
+  position:absolute; width:1px; height:1px;
+  padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+button{ font-family:inherit; cursor:pointer; }
+:focus{ outline:none; }
+:focus-visible{
+  outline:2px solid var(--amber);
+  outline-offset:3px;
+  border-radius:4px;
+}
+
+/* ---------------- demo bar (neutral chrome, not the app) ---------------- */
+
+.demo-bar{
+  position:fixed; top:0; left:0; right:0; height:46px;
+  z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 18px;
+  background:var(--chrome);
+  color:var(--chrome-text);
+  font-family:var(--sans);
+}
+.demo-name{
+  font-size:12px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--chrome-text);
+}
+.demo-name b{ color:var(--amber); font-weight:600; }
+.shell-toggle{
+  display:flex; gap:2px;
+  border:1px solid rgba(239,227,206,.22);
+  border-radius:99px; padding:2px;
+}
+.shell-toggle button{
+  font-family:var(--sans);
+  font-size:12px; font-weight:600; letter-spacing:.06em;
+  padding:5px 16px; border:0; border-radius:99px;
+  background:transparent; color:rgba(239,227,206,.66);
+  transition:color .2s, background .2s;
+}
+.shell-toggle button:hover{ color:var(--chrome-text); }
+.shell-toggle button[aria-pressed="true"]{
+  background:var(--amber); color:#241406;
+}
+
+/* ---------------- colophon strip (neutral chrome, bottom) ---------------- */
+
+.colophon{
+  position:fixed; bottom:0; left:0; right:0; height:42px;
+  z-index:100;
+  display:flex; align-items:center; gap:22px;
+  padding:0 18px;
+  overflow:hidden;
+  background:var(--chrome);
+  color:rgba(239,227,206,.82);
+  font-family:var(--sans);
+  font-size:12px; letter-spacing:.03em;
+  white-space:nowrap;
+}
+.colo-name{ font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--chrome-text); flex:none; }
+.colo-name b{ color:var(--amber); font-weight:700; }
+.colo-note{ font-family:var(--serif-text); font-style:italic; font-size:13px; color:rgba(239,227,206,.74); overflow:hidden; text-overflow:ellipsis; }
+.colo-fonts{ flex:none; color:rgba(239,227,206,.62); }
+.colo-swatches{ flex:none; margin-left:auto; display:flex; align-items:center; gap:10px; }
+.colo-swatches .sw{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; color:rgba(239,227,206,.66); font-style:normal;
+}
+.colo-swatches .sw::before{
+  content:"";
+  width:13px; height:13px; border-radius:50%;
+  background:var(--c);
+  box-shadow:0 0 0 1px rgba(239,227,206,.3);
+}
+@media (max-width:1280px){ .colo-note{ display:none; } }
+@media (max-width:880px){ .colo-fonts{ display:none; } .colo-swatches .sw span{ display:none; } }
+
+/* ---------------- stage / shells ---------------- */
+
+.stage{ height:calc(100vh - 88px); margin-top:46px; position:relative; }
+
+body[data-shell="desktop"] .shell-phone{ display:none; }
+body[data-shell="phone"]   .shell-desktop{ display:none; }
+
+/* ===== desktop shell ===== */
+
+.shell-desktop{ display:flex; height:100%; position:relative; }
+
+/* the atmosphere spans the WHOLE shell — behind the sidebar and the
+   content both — so there is no seam at the sidebar edge and no box
+   boundary at the window edge. switched per view below. */
+.shell-desktop::before{
+  content:"";
+  position:absolute; inset:0; z-index:0;
+  pointer-events:none;
+}
+body[data-view="session"] .shell-desktop::before{ background:var(--atmo-chat); }
+body[data-view="manual"]  .shell-desktop::before{ background:var(--atmo-manual); }
+
+.sidebar{
+  width:272px; flex:none;
+  position:relative; z-index:1;
+  display:flex; flex-direction:column;
+  padding:34px 26px 26px;
+  border-right:1px solid rgba(226,160,74,.16);
+  background:linear-gradient(180deg, rgba(36,26,20,.55), rgba(21,16,13,.30));
+}
+
+/* the brand is the wordmark. nothing else. */
+.wordmark{
+  font-family:var(--serif-display);
+  font-size:28px; line-height:1;
+  letter-spacing:-.015em;
+  color:var(--ink);
+}
+.wordmark .dot{ color:var(--amber); }
+
+.side-nav{ margin-top:40px; display:flex; flex-direction:column; gap:4px; }
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  width:100%; text-align:left;
+  font-family:var(--sans);
+  font-size:14.5px; font-weight:500; letter-spacing:.01em;
+  color:var(--ink-mute);
+  background:transparent; border:0; border-radius:8px;
+  padding:11px 14px;
+  transition:background .18s, color .18s, box-shadow .18s;
+}
+.nav-item:hover{ background:rgba(226,160,74,.10); color:var(--ink); }
+.nav-item[aria-current="true"]{
+  background:var(--surface-2);
+  color:var(--ink);
+  box-shadow:inset 3px 0 0 var(--amber), 0 1px 2px rgba(0,0,0,.4);
+}
+.nav-item.is-muted{ color:var(--ink-faint); cursor:default; }
+.nav-item.is-muted:hover{ background:transparent; color:var(--ink-faint); }
+
+.nav-dot{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--ember-warm); flex:none; margin-left:auto;
+}
+.nav-dot[hidden]{ display:none; }
+@keyframes dot-arrive{ 0%{transform:scale(0);} 60%{transform:scale(1.6);} 100%{transform:scale(1);} }
+.nav-dot{ animation:dot-arrive .5s var(--ease-settle); }
+
+/* ---- sessions: where the conversations live ---- */
+
+.sessions{ margin-top:36px; min-height:0; }
+.sessions-head{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:8px;
+  padding:0 2px;
+}
+.sessions-head span{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.2em; text-transform:uppercase;
+  color:var(--amber);
+}
+.sessions-head::after{
+  content:""; flex:1; height:1px;
+  background:rgba(226,160,74,.18);
+}
+.session-list{ display:flex; flex-direction:column; gap:2px; }
+.session-item{
+  display:flex; align-items:center; gap:8px;
+  width:100%; text-align:left;
+  background:transparent; border:0; border-radius:8px;
+  padding:9px 10px;
+  transition:background .18s;
+}
+.session-item:hover{ background:rgba(226,160,74,.09); }
+.session-item:hover .session-title{ color:var(--ink); }
+.session-title{
+  flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-family:var(--sans);
+  font-size:13.5px; font-weight:500;
+  color:var(--ink-soft);
+  transition:color .18s;
+}
+.session-date{
+  flex:none;
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--ink-mute);
+}
+.session-item.is-active{
+  background:var(--surface-2);
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.session-item.is-active::before{
+  content:"";
+  width:6px; height:6px; border-radius:50%;
+  background:var(--amber); flex:none;
+}
+.session-item.is-active .session-title{ color:var(--ink); font-weight:600; }
+.session-item.is-active .session-date{ color:var(--amber); }
+
+.new-session{
+  display:flex; align-items:center; gap:8px;
+  width:100%; text-align:left;
+  background:transparent; border:0; border-radius:8px;
+  padding:9px 10px;
+  margin-top:2px;
+  font-family:var(--sans);
+  font-size:13px; font-weight:600;
+  color:var(--ink-mute);
+  transition:background .18s, color .18s;
+}
+.new-session:hover{ background:rgba(226,160,74,.09); color:var(--ink); }
+.new-session svg{ flex:none; }
+
+.side-foot{
+  margin-top:auto; padding-top:20px;
+  border-top:1px solid rgba(226,160,74,.16);
+  font-family:var(--serif-text);
+  font-style:italic;
+  font-size:13px; line-height:1.55;
+  color:var(--ink-mute);
+}
+
+/* the content area is transparent — the atmosphere lives behind the
+   whole shell now, so the content column floats over a seamless wash */
+.desktop-main{ flex:1; min-width:0; position:relative; z-index:1; display:flex; justify-content:center; overflow:hidden; background:transparent; }
+
+.main-col{
+  width:100%; max-width:720px;
+  height:100%; min-height:0;
+  display:flex; flex-direction:column;
+  padding:0 32px;
+}
+
+/* ===== phone shell ===== */
+
+.shell-phone{
+  height:100%;
+  display:flex; align-items:center; justify-content:center;
+  padding:22px;
+}
+.phone-frame{
+  width:430px; max-width:100%;
+  height:min(840px, 100%);
+  background:linear-gradient(165deg, #2A1D10, #110C08);
+  border-radius:50px;
+  padding:11px;
+  box-shadow:0 2px 4px rgba(0,0,0,.5), 0 40px 80px -30px rgba(0,0,0,.8);
+  display:flex;
+}
+.phone-screen{
+  flex:1; min-height:0;
+  border-radius:40px;
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+  background:var(--ground);
+}
+/* the phone carries the same atmosphere, per view */
+body[data-view="session"] .phone-screen{ background:var(--atmo-chat), var(--ground); }
+body[data-view="manual"]  .phone-screen{ background:var(--atmo-manual), var(--ground); }
+
+.phone-top{
+  flex:none;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 20px 12px;
+  border-bottom:1px solid rgba(226,160,74,.14);
+}
+.phone-top .wordmark{ font-size:18px; }
+
+.menu-btn{
+  width:38px; height:38px;
+  display:grid; place-items:center;
+  border:1px solid rgba(226,160,74,.26);
+  border-radius:10px;
+  background:var(--surface-2);
+  color:var(--ink);
+  transition:background .18s, border-color .18s;
+}
+.menu-btn:hover{ background:var(--surface-3); border-color:rgba(226,160,74,.5); }
+.menu-btn svg{ display:block; }
+
+.phone-content{ flex:1; min-height:0; display:flex; flex-direction:column; }
+
+.home-pill{
+  flex:none;
+  height:18px;
+  display:grid; place-items:center;
+}
+.home-pill::before{
+  content:"";
+  width:120px; height:4px; border-radius:99px;
+  background:rgba(240,230,212,.30);
+}
+
+/* ---- phone drawer: warm dark panel sliding in from the right ---- */
+
+.drawer-dim{
+  position:absolute; inset:0; z-index:45;
+  background:rgba(0,0,0,.5);
+  border:0;
+  opacity:0; visibility:hidden;
+  transition:opacity .3s, visibility 0s .3s;
+}
+.drawer{
+  position:absolute; top:0; right:0; bottom:0; z-index:50;
+  width:min(300px, 86%);
+  display:flex; flex-direction:column;
+  padding:18px 18px 22px;
+  background:linear-gradient(195deg, var(--surface-2), var(--ground-deep));
+  border-left:1px solid rgba(226,160,74,.2);
+  box-shadow:-2px 0 4px rgba(0,0,0,.4), -28px 0 56px -28px rgba(0,0,0,.75);
+  transform:translateX(103%);
+  visibility:hidden;
+  transition:transform .38s var(--ease-press), visibility 0s .38s;
+}
+.phone-screen.drawer-open .drawer{
+  transform:none; visibility:visible;
+  transition:transform .45s var(--ease-settle);
+}
+.phone-screen.drawer-open .drawer-dim{
+  opacity:1; visibility:visible;
+  transition:opacity .3s;
+}
+.drawer-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.drawer-head .wordmark{ font-size:18px; }
+.drawer-close{
+  width:34px; height:34px;
+  display:grid; place-items:center;
+  border:1px solid rgba(226,160,74,.24);
+  border-radius:9px;
+  background:transparent;
+  color:var(--ink-mute);
+  transition:color .18s, border-color .18s, background .18s;
+}
+.drawer-close:hover{ color:var(--ink); border-color:rgba(226,160,74,.5); background:rgba(226,160,74,.07); }
+.drawer .side-nav{ margin-top:0; }
+.drawer .sessions{ margin-top:28px; }
+.drawer .session-item.is-active{ background:var(--surface-3); }
+.drawer .side-foot{ border-top-color:rgba(226,160,74,.14); }
+
+/* ---------------- app root & views ---------------- */
+
+#appRoot{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.view{ display:none; }
+body[data-view="session"] .view-session{ display:flex; flex-direction:column; flex:1; min-height:0; }
+body[data-view="manual"]  .view-manual{ display:block; flex:1; min-height:0; overflow-y:auto; }
+
+/* ---------------- session view ---------------- */
+
+.chat-scroll{
+  flex:1; min-height:0;
+  overflow-y:auto;
+  padding:34px 6px 26px;
+  /* the messages dissolve into the atmosphere at the foot rather than
+     meeting a veil of a different color — a mask fades to whatever is
+     actually behind, so no seam can form above the composer */
+  -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+  mask-image:linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+}
+body[data-shell="phone"] .chat-scroll{ padding:22px 18px 22px; }
+
+.session-head{ margin-bottom:32px; }
+.kicker{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.2em; text-transform:uppercase;
+  color:var(--amber);
+}
+.session-head h1{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:40px; line-height:1.05;
+  letter-spacing:-.02em;
+  margin-top:8px;
+  color:var(--ink);
+}
+body[data-shell="phone"] .session-head h1{ font-size:31px; }
+.session-head::after{
+  content:"";
+  display:block; margin-top:18px;
+  height:1px; background:rgba(226,160,74,.22);
+  transform:scaleX(0); transform-origin:left center;
+  animation:rule-grow .9s var(--ease-settle) .45s forwards;
+}
+@keyframes rule-grow{ to{ transform:scaleX(1); } }
+
+.msg{ margin-bottom:22px; }
+
+/* ---- the bubbles, lamplit ----
+   Jove's bubble is a warm-lit vessel: a surface a step lighter
+   than the ground, with a soft amber inner glow and a hairline
+   that catches the candlelight, the moss-tinted JOVE label set
+   inside, cream text at full strength. The user's vessel sits
+   on the right, deeper and ember-tinted — the brand thread —
+   also cream text. Warm-lit vs ember-warm: the two read apart
+   at a glance, both well past AA on the dark. */
+
+.msg-jove p{
+  max-width:92%;
+  margin-right:auto;
+  background:
+    radial-gradient(120% 140% at 18% -20%, rgba(226,160,74,.12), rgba(226,160,74,0) 60%),
+    linear-gradient(180deg, var(--surface-3), var(--surface));
+  border:1px solid rgba(226,160,74,.26);
+  border-radius:16px;
+  border-top-left-radius:5px;
+  padding:13px 20px 15px;
+  box-shadow:
+    0 1px 0 rgba(255,236,206,.07) inset,
+    0 0 0 .5px rgba(226,160,74,.05),
+    0 12px 26px -18px rgba(0,0,0,.7);
+  font-size:14.5px; line-height:1.62; letter-spacing:-.03px;
+  color:var(--ink);
+}
+.jove-tag{
+  display:block;
+  font-family:var(--mono);
+  font-size:9.5px;            /* production-exact; sanctioned exception to the 12px floor */
+  letter-spacing:2.2px;
+  text-transform:uppercase;
+  line-height:1;
+  margin:0 0 7px;
+  color:var(--persona);
+}
+
+/* the user's voice is an ember-warm vessel: a deeper warm panel
+   tinted by the ember/brand thread, glowing on the right. cream
+   text. unmistakably the warm, committed-to-brand side opposite
+   Jove's amber-lit vessel — yet both surfaces, both lamplit. */
+.msg-user p{
+  max-width:88%;
+  margin-left:auto;
+  background:
+    radial-gradient(120% 140% at 82% -20%, rgba(214,126,58,.20), rgba(214,126,58,0) 60%),
+    linear-gradient(158deg, #3A2516, #2A1A10);
+  border:1px solid rgba(214,126,58,.34);
+  border-radius:16px;
+  border-top-right-radius:5px;
+  padding:13px 20px 15px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,224,184,.08),
+    0 10px 24px -18px rgba(0,0,0,.6);
+  font-size:14.5px; line-height:1.62; letter-spacing:-.03px;
+  color:var(--ink);
+}
+
+/* typing indicator — a slow amber candle-flicker pulse in a Jove vessel */
+.typing p{ display:inline-block; }
+.typing .dots{
+  display:inline-flex; gap:5px; align-items:center;
+  padding:3px 0 1px;
+}
+.typing .dots span{
+  width:6px; height:6px; border-radius:50%;
+  background:var(--amber);
+  opacity:.28;
+  animation:candle-flicker 1.5s ease-in-out infinite;
+}
+.typing .dots span:nth-child(2){ animation-delay:.25s; }
+.typing .dots span:nth-child(3){ animation-delay:.5s; }
+@keyframes candle-flicker{
+  0%,100%{ opacity:.24; transform:translateY(0); box-shadow:0 0 0 rgba(240,184,100,0); }
+  35%    { opacity:.95; transform:translateY(-2px); box-shadow:0 0 9px rgba(240,184,100,.55); }
+  60%    { opacity:.6;  transform:translateY(-.5px); box-shadow:0 0 4px rgba(240,184,100,.3); }
+}
+
+/* ---------------- checkpoint — the letterpress plate ----------------
+   the brightest paper in the system — a warm-lit cream sheet glowing
+   on the dark. no drop shadow: defined by its inset letterpress frame
+   and the warm amber glow gathered behind it. */
+
+.checkpoint{
+  margin:40px 0 34px;
+  max-width:600px;
+  position:relative;
+}
+/* the gathered glow — candlelight over the sheet, ember pooling low */
+.checkpoint::before{
+  content:"";
+  position:absolute; inset:-64px -84px;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 82% 62% at 50% 30%, rgba(244,196,118,.34), transparent 66%),
+    radial-gradient(ellipse 72% 56% at 38% 94%, rgba(196,106,43,.30), transparent 72%);
+}
+.cp-plate{
+  position:relative;
+  background:linear-gradient(178deg, var(--plate), var(--plate-2) 62%, var(--plate-3));
+  border:1px solid rgba(120,72,30,.5);
+  border-radius:3px;
+  padding:42px 48px 34px;
+  /* no drop shadow — the plate is the cleanest paper in the system,
+     defined by its letterpress frame and the warm glow behind it */
+  box-shadow:
+    inset 0 1px 0 rgba(255,250,238,.8),
+    0 0 38px -6px rgba(240,184,100,.32);
+  transition:transform .18s var(--ease-press);
+}
+body[data-shell="phone"] .cp-plate{ padding:32px 26px 28px; }
+
+/* the inset letterpress frame — one hairline, set just inside the edge */
+.cp-plate::before{
+  content:"";
+  position:absolute; inset:11px;
+  border:1px solid rgba(120,72,30,.34);
+  border-radius:1px;
+  pointer-events:none;
+  box-shadow:0 1px 0 rgba(255,250,238,.7);
+}
+body[data-shell="phone"] .cp-plate::before{ inset:9px; }
+
+/* the press — carried now by scale and the ember rule, not shadow */
+.checkpoint.is-pressing .cp-plate{
+  transform:scale(.985);
+}
+.checkpoint.is-set .cp-plate{
+  animation:plate-settle .75s var(--ease-settle);
+}
+@keyframes plate-settle{
+  0%  { transform:scale(.985); }
+  55% { transform:scale(1.004); }
+  100%{ transform:scale(1); }
+}
+
+.cp-top{ text-align:center; }
+.cp-kicker{
+  font-family:var(--serif-text);
+  font-style:italic;
+  font-size:14px;
+  color:var(--ink-mute-on-plate);
+}
+.cp-eyebrow{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase;
+  color:var(--ember-deep);
+  margin-top:9px;
+}
+.cp-headline{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:38px; line-height:1.08;
+  letter-spacing:-.015em;
+  color:var(--ink-on-plate);
+  text-align:center;
+  max-width:17ch;
+  margin:22px auto 18px;
+}
+body[data-shell="phone"] .cp-headline{ font-size:29px; }
+
+/* the rule beneath the headline. a quiet hairline until the press —
+   then the ember draws itself outward from the center. */
+.cp-rule{
+  position:relative;
+  width:76px; height:2px;
+  margin:0 auto 24px;
+  background:rgba(120,72,30,.3);
+}
+.cp-rule-ember{
+  position:absolute; inset:0;
+  background:var(--ember);
+  transform:scaleX(0); transform-origin:center;
+}
+.checkpoint.is-set .cp-rule-ember{
+  animation:rule-draw-c .55s var(--ease-settle) .12s forwards;
+}
+@keyframes rule-draw-c{ to{ transform:scaleX(1); } }
+
+.cp-body{
+  font-size:15.5px; line-height:1.72;
+  color:var(--ink-on-plate);
+}
+
+.cp-actions{
+  display:flex; align-items:center; justify-content:center;
+  gap:10px; flex-wrap:wrap;
+  margin-top:26px;
+  transition:opacity .25s;
+}
+.cp-actions.is-leaving{ opacity:0; }
+.cp-actions[hidden]{ display:none; }
+
+.btn-primary{
+  font-family:var(--sans);
+  font-size:14px; font-weight:700; letter-spacing:.02em;
+  color:#FFF6E6;
+  background:var(--ember-deep);
+  border:0; border-radius:8px;
+  padding:12px 24px;
+  box-shadow:0 1px 2px rgba(0,0,0,.3), 0 5px 12px -5px rgba(138,63,18,.7);
+  transition:background .18s, transform .18s var(--ease-settle), box-shadow .18s;
+}
+.btn-primary:hover{
+  background:#A04F15;
+  transform:translateY(-1px);
+  box-shadow:0 2px 3px rgba(0,0,0,.25), 0 8px 18px -6px rgba(160,79,21,.75);
+}
+.btn-primary:active{
+  transform:translateY(0) scale(.98);
+  box-shadow:0 1px 1px rgba(0,0,0,.3), 0 2px 6px -3px rgba(160,79,21,.6);
+}
+.btn-ghost{
+  font-family:var(--sans);
+  font-size:14px; font-weight:600;
+  color:var(--ink-mute-on-plate);
+  background:transparent;
+  border:1px solid rgba(120,72,30,.4);
+  border-radius:8px;
+  padding:11px 18px;
+  transition:border-color .18s, color .18s, background .18s;
+}
+.btn-ghost:hover{ border-color:rgba(120,72,30,.7); color:var(--ink-on-plate); background:rgba(120,72,30,.07); }
+
+.cp-confirmed{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin-top:26px;
+  font-family:var(--sans);
+  font-size:13.5px; font-weight:600;
+  color:var(--ember-deep);
+  opacity:0; transform:translateY(4px);
+  transition:opacity .4s var(--ease-settle) .15s, transform .4s var(--ease-settle) .15s;
+}
+.cp-confirmed[hidden]{ display:none; }
+.cp-confirmed.show{ opacity:1; transform:none; }
+.cp-confirmed em{ font-style:normal; color:var(--ink-on-plate); }
+.cp-check{ flex:none; }
+.cp-check circle{ fill:rgba(196,106,43,.16); stroke:var(--ember); stroke-width:1.5; }
+.cp-check .tick{
+  stroke:var(--ember-deep); stroke-width:2.4;
+  stroke-linecap:round; stroke-linejoin:round; fill:none;
+  stroke-dasharray:20; stroke-dashoffset:20;
+}
+.cp-confirmed.show .tick{ animation:tick-draw .45s var(--ease-settle) .35s forwards; }
+@keyframes tick-draw{ to{ stroke-dashoffset:0; } }
+
+/* ---------------- composer ---------------- */
+
+/* transparent — no veil, so nothing seams against the atmosphere.
+   the chat-scroll mask above handles the message fade. */
+.composer{
+  flex:none;
+  padding:14px 6px 26px;
+  background:transparent;
+}
+body[data-shell="phone"] .composer{ padding:10px 14px 14px; background:transparent; }
+/* the composer is warm dark glass with an amber focus ring */
+.composer-inner{
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(158deg, rgba(52,38,27,.72), rgba(30,22,16,.62));
+  backdrop-filter:blur(18px) saturate(120%);
+  -webkit-backdrop-filter:blur(18px) saturate(120%);
+  border:1px solid rgba(226,160,74,.24);
+  border-radius:14px;
+  padding:6px 6px 6px 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,236,206,.07),
+    0 14px 30px -20px rgba(0,0,0,.7);
+  transition:border-color .2s, box-shadow .2s;
+}
+.composer-inner:focus-within{
+  border-color:var(--amber);
+  box-shadow:
+    inset 0 1px 0 rgba(255,236,206,.08),
+    0 0 0 3px rgba(226,160,74,.22),
+    0 16px 34px -20px rgba(0,0,0,.7);
+}
+.composer input{
+  flex:1; min-width:0;
+  border:0; background:transparent;
+  font-family:var(--serif-text);
+  font-size:15.5px;
+  color:var(--ink);
+  padding:10px 0;
+}
+.composer input::placeholder{ color:var(--ink-mute); font-style:italic; opacity:1; }
+.composer input:focus{ outline:none; }
+.send-btn{
+  flex:none;
+  width:42px; height:42px;
+  border:0; border-radius:10px;
+  background:var(--ember);
+  color:#FFF6E6;
+  display:grid; place-items:center;
+  transition:background .18s, transform .18s var(--ease-settle);
+}
+.send-btn:hover{ background:var(--ember-warm); transform:scale(1.05); }
+.send-btn:active{ transform:scale(.96); }
+
+/* ---------------- manual view ---------------- */
+
+.view-manual{ padding:34px 6px 60px; }
+body[data-shell="phone"] .view-manual{ padding:22px 18px 48px; }
+
+.manual-head{ margin-bottom:38px; }
+.manual-head h1{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:46px; line-height:1.02; letter-spacing:-.02em;
+  margin-top:8px;
+  color:var(--ink);
+}
+body[data-shell="phone"] .manual-head h1{ font-size:34px; }
+.manual-sub{
+  margin-top:10px;
+  font-size:14.5px; font-style:italic;
+  color:var(--ink-mute);
+}
+.manual-head::after{
+  content:"";
+  display:block; margin-top:20px;
+  height:1px; background:rgba(226,160,74,.22);
+}
+
+.layer{ margin-bottom:40px; }
+.layer-head{
+  display:flex; align-items:baseline; gap:14px;
+  margin-bottom:16px;
+}
+.layer-numeral{
+  font-family:var(--serif-display);
+  font-style:italic;
+  font-size:33px; line-height:1;
+  color:var(--amber);
+  min-width:38px;
+}
+.layer-name{
+  font-family:var(--sans);
+  font-size:13px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase;
+  color:var(--ink);
+}
+.layer-head .rule{
+  flex:1; height:1px;
+  background:rgba(226,160,74,.18);
+  transform:translateY(-4px);
+}
+
+.layer-entries{ display:flex; flex-direction:column; gap:10px; padding-left:52px; }
+body[data-shell="phone"] .layer-entries{ padding-left:0; }
+
+.entry{
+  background:var(--surface);
+  border:1px solid rgba(226,160,74,.18);
+  border-radius:10px;
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+  transition:border-color .2s, box-shadow .2s;
+}
+.entry:hover{ border-color:rgba(226,160,74,.34); }
+.entry.open{
+  background:var(--surface-2);
+  box-shadow:0 1px 0 rgba(255,236,206,.06) inset, 0 1px 2px rgba(0,0,0,.5), 0 20px 40px -26px rgba(0,0,0,.8);
+}
+.entry-toggle{
+  width:100%;
+  display:flex; align-items:center; gap:12px;
+  text-align:left;
+  background:transparent; border:0;
+  padding:17px 18px;
+  transition:background .18s;
+}
+.entry-toggle:focus-visible{ outline-offset:-3px; border-radius:9px; }
+button.entry-toggle:hover{ background:rgba(226,160,74,.06); }
+button.entry-toggle:hover .entry-title{ color:var(--amber-bright); }
+button.entry-toggle:hover .chev{ color:var(--amber); }
+.entry-star{ color:var(--amber); font-size:14px; flex:none; transform:translateY(-1px); }
+.entry-title{
+  flex:1;
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:22px; line-height:1.18; letter-spacing:-.008em;
+  color:var(--ink);
+  transition:color .18s;
+}
+body[data-shell="phone"] .entry-title{ font-size:19px; }
+.chev{ flex:none; color:var(--ink-mute); transition:transform .3s var(--ease-settle), color .18s; }
+.entry.open .chev{ transform:rotate(180deg); }
+
+.entry-body{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows .35s var(--ease-settle);
+}
+.entry.open .entry-body{ grid-template-rows:1fr; }
+.entry-inner{ overflow:hidden; min-height:0; }
+.entry-inner p{
+  margin:0 18px;
+  padding:15px 0 18px;
+  border-top:1px solid rgba(226,160,74,.16);
+  font-size:15px; line-height:1.72;
+  color:var(--ink-soft);
+  max-width:62ch;
+}
+
+.layer-empty{
+  font-size:14.5px; font-style:italic;
+  color:var(--ink-mute);
+  padding:6px 2px;
+}
+
+/* just-added state — a small ember rule drawn under the title,
+   the press moment carried into the Manual */
+.entry.just-added{
+  border-color:rgba(214,126,58,.6);
+  animation:entry-arrive .6s var(--ease-settle);
+}
+.entry.just-added .entry-title::after{
+  content:"";
+  display:block;
+  width:36px; height:2px;
+  margin-top:7px;
+  background:var(--ember-warm);
+  transform:scaleX(0); transform-origin:left center;
+  animation:rule-draw-l .5s var(--ease-settle) .3s forwards;
+}
+@keyframes rule-draw-l{ to{ transform:scaleX(1); } }
+@keyframes entry-arrive{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:none; }
+}
+.tag-new{
+  flex:none;
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--amber-bright);
+  background:var(--amber-soft);
+  border-radius:99px;
+  padding:4px 10px;
+}
+
+/* ---------------- entrance choreography ----------------
+   one shared move: rise and settle, staggered down the page. */
+
+.reveal{
+  opacity:0;
+  animation:rise .6s var(--ease-settle) forwards;
+  animation-delay:var(--d, 0s);
+}
+@keyframes rise{
+  from{ opacity:0; transform:translateY(14px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ---------------- reduced motion ---------------- */
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+    transition-duration:.01ms !important;
+  }
+  .chat-scroll{ scroll-behavior:auto; }
+  .session-head::after{ transform:none; }
+  .cp-rule-ember{ transform:scaleX(1); opacity:0; }
+  .checkpoint.is-set .cp-rule-ember{ opacity:1; }
+}
+</style>
+</head>
+<body data-shell="desktop" data-view="session">
+
+<!-- ====== demo bar ====== -->
+<div class="demo-bar">
+  <span class="demo-name"><b>Hearth</b> — warm dark</span>
+  <div class="shell-toggle" role="group" aria-label="Shell preview">
+    <button type="button" id="toggleDesktop" aria-pressed="true">Desktop</button>
+    <button type="button" id="togglePhone" aria-pressed="false">Phone</button>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ====== desktop shell ====== -->
+  <div class="shell-desktop">
+    <aside class="sidebar">
+      <div class="brand reveal" style="--d:.05s">
+        <span class="wordmark">mywalnut<span class="dot">.</span></span>
+      </div>
+      <nav class="side-nav reveal" style="--d:.15s" aria-label="Main">
+        <button type="button" class="nav-item" data-nav="session" aria-current="true">Session</button>
+        <button type="button" class="nav-item" data-nav="manual" aria-current="false">Manual <span class="nav-dot manual-dot" hidden aria-hidden="true"></span></button>
+        <button type="button" class="nav-item is-muted" aria-disabled="true">Settings</button>
+      </nav>
+
+      <!-- where the sessions live -->
+      <div class="sessions reveal" style="--d:.22s">
+        <div class="sessions-head"><span>Sessions</span></div>
+        <div class="session-list" role="list">
+          <button type="button" class="session-item is-active" role="listitem" aria-current="true">
+            <span class="session-title">Wednesday night</span>
+            <span class="session-date">Tonight</span>
+          </button>
+          <button type="button" class="session-item" role="listitem">
+            <span class="session-title">Saying yes at the speed of the room</span>
+            <span class="session-date">Jun 3</span>
+          </button>
+          <button type="button" class="session-item" role="listitem">
+            <span class="session-title">The quiet in meetings</span>
+            <span class="session-date">May 28</span>
+          </button>
+          <button type="button" class="session-item" role="listitem">
+            <span class="session-title">First session</span>
+            <span class="session-date">May 21</span>
+          </button>
+          <button type="button" class="new-session">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 2.5 V11.5 M2.5 7 H11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            New session
+          </button>
+        </div>
+      </div>
+
+      <p class="side-foot reveal" style="--d:.3s">Nothing goes in your Manual unless you say so.</p>
+    </aside>
+    <main class="desktop-main">
+      <div class="main-col" id="desktopSlot">
+
+        <!-- ====== app content (moves between shells) ====== -->
+        <div id="appRoot">
+
+          <!-- ——— SESSION ——— -->
+          <section class="view view-session" aria-label="Session">
+            <div class="chat-scroll" id="chatScroll">
+              <header class="session-head reveal" style="--d:.1s">
+                <span class="kicker">Session</span>
+                <h1>Wednesday night</h1>
+              </header>
+
+              <div class="msg msg-user reveal" style="--d:.18s">
+                <p>I told my manager I’d have the deck done by Friday. It’s Wednesday night and I haven’t opened the file. I keep doing this.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.26s">
+                <p><span class="jove-tag">Jove</span>Which part keeps happening. The not opening it, or the promising Friday in the first place? Walk me through the moment you said Friday.</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.34s">
+                <p>She asked when I could have it and Friday just came out. It felt generous at the time. Like plenty of room.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.42s">
+                <p><span class="jove-tag">Jove</span>Plenty of room for the version of you in that meeting. He wasn’t the one who had to open the file. What does Wednesday-night you know that meeting you didn’t?</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.5s">
+                <p>That it isn’t real yet. A deadline isn’t real until it’s close enough to touch. Then the panic kicks in, and honestly the panic works. The deck will be good. It’s always good.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.58s">
+                <p><span class="jove-tag">Jove</span>So the system delivers. The deck is always good. The cost isn’t the quality. It’s the days of dread you pay before the panic shows up to do the work. I think there’s a piece of your Manual in this. Want to see it?</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.66s">
+                <p>ok show me</p>
+              </div>
+
+              <!-- ——— CHECKPOINT: the letterpress plate ——— -->
+              <div class="checkpoint reveal" id="checkpoint" style="--d:.82s">
+                <div class="cp-plate">
+                  <div class="cp-top">
+                    <div class="cp-kicker">A page for your Manual</div>
+                    <div class="cp-eyebrow">Layer III · How I Process Things</div>
+                  </div>
+                  <h3 class="cp-headline">Deadlines aren’t real until I can touch them</h3>
+                  <div class="cp-rule" aria-hidden="true"><span class="cp-rule-ember"></span></div>
+                  <p class="cp-body">You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn’t turn real until it’s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>
+                  <div class="cp-actions" id="cpActions">
+                    <button type="button" class="btn-primary" id="addToManual">Add to Manual</button>
+                    <button type="button" class="btn-ghost">Edit</button>
+                    <button type="button" class="btn-ghost">Not quite</button>
+                  </div>
+                  <div class="cp-confirmed" id="cpConfirmed" hidden>
+                    <svg class="cp-check" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+                      <circle cx="13" cy="13" r="11.5"/>
+                      <path class="tick" d="M8 13.4 L11.6 16.8 L18 9.6"/>
+                    </svg>
+                    <span>In your Manual · <em>Layer III — How I Process Things</em></span>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /chat-scroll -->
+
+            <div class="composer">
+              <div class="composer-inner">
+                <input type="text" id="chatInput" aria-label="Message" placeholder="Say it how it actually happened" autocomplete="off">
+                <button type="button" class="send-btn" id="sendBtn" aria-label="Send">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M9 14.5 V3.5 M9 3.5 L4.2 8.3 M9 3.5 L13.8 8.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ——— MANUAL ——— -->
+          <section class="view view-manual" aria-label="Manual">
+            <header class="manual-head">
+              <span class="kicker">The Manual</span>
+              <h1>Your Manual</h1>
+              <p class="manual-sub">Five layers · <span id="entryCount">five</span> entries · written by you</p>
+            </header>
+
+            <!-- Layer I -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">I.</span>
+                <h2 class="layer-name">My Strengths</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry open">
+                  <button type="button" class="entry-toggle" aria-expanded="true">
+                    <span class="entry-star" aria-hidden="true">★</span><span class="sr-only">Starred entry.</span>
+                    <span class="entry-title">I build the whole thing in my head before I touch it</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>Before you open a file or write a line, the structure assembles itself somewhere behind your eyes. From outside, the stillness reads as not working. The stillness is the work. By the time your hands move, most of the decisions are already made. It’s why the work holds up under pressure that should have sunk it.</p>
+                  </div></div>
+                </article>
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false" disabled style="cursor:default">
+                    <span class="entry-title">I notice the thing everyone else walks past</span>
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer II -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">II.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">I say yes at the speed of the room</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>In the moment, the answer people want to hear leaves your mouth before the calendar gets a vote. It isn’t people-pleasing exactly. The room has a rhythm and you match it. The cost arrives later, addressed to a version of you who was never in the meeting.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer III -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">III.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries" id="layer3Entries">
+                <p class="layer-empty" id="layer3Empty">Nothing here yet.</p>
+              </div>
+            </section>
+
+            <!-- Layer IV -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">IV.</span>
+                <h2 class="layer-name">What Helps</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">Another person in the room starts the engine early</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>You can’t start alone at two weeks out. You can start next to someone. It doesn’t matter if they’re working on something else entirely. Their presence makes the work real the way a deadline does, without the dread. The engine turns over early and quietly.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer V -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">V.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">Quiet doesn’t mean gone</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>In a group your face goes still and your words go short. From outside it can read as checked out. It’s the opposite. Everything is arriving at once and you’re routing it. The people who know you well have learned that the quiet is where you do your part of the conversation.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+          </section>
+
+        </div><!-- /appRoot -->
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ====== phone shell ====== -->
+  <div class="shell-phone">
+    <div class="phone-frame">
+      <div class="phone-screen" id="phoneScreen">
+        <div class="phone-top">
+          <span class="wordmark">mywalnut<span class="dot">.</span></span>
+          <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 6 H15 M3 12 H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="phone-content" id="phoneSlot"></div>
+        <div class="home-pill" aria-hidden="true"></div>
+
+        <!-- drawer: warm dark panel from the right -->
+        <button type="button" class="drawer-dim" id="drawerDim" tabindex="-1" aria-label="Close menu"></button>
+        <nav class="drawer" id="drawer" aria-label="Menu" aria-hidden="true">
+          <div class="drawer-head">
+            <span class="wordmark">mywalnut<span class="dot">.</span></span>
+            <button type="button" class="drawer-close" id="drawerClose" aria-label="Close menu">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 3 L11 11 M11 3 L3 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="side-nav">
+            <button type="button" class="nav-item" data-nav="session" aria-current="true">Session</button>
+            <button type="button" class="nav-item" data-nav="manual" aria-current="false">Manual <span class="nav-dot manual-dot" hidden aria-hidden="true"></span></button>
+            <button type="button" class="nav-item is-muted" aria-disabled="true">Settings</button>
+          </div>
+          <div class="sessions">
+            <div class="sessions-head"><span>Sessions</span></div>
+            <div class="session-list" role="list">
+              <button type="button" class="session-item is-active" role="listitem" aria-current="true">
+                <span class="session-title">Wednesday night</span>
+                <span class="session-date">Tonight</span>
+              </button>
+              <button type="button" class="session-item" role="listitem">
+                <span class="session-title">Saying yes at the speed of the room</span>
+                <span class="session-date">Jun 3</span>
+              </button>
+              <button type="button" class="session-item" role="listitem">
+                <span class="session-title">The quiet in meetings</span>
+                <span class="session-date">May 28</span>
+              </button>
+              <button type="button" class="session-item" role="listitem">
+                <span class="session-title">First session</span>
+                <span class="session-date">May 21</span>
+              </button>
+              <button type="button" class="new-session">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M7 2.5 V11.5 M2.5 7 H11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                New session
+              </button>
+            </div>
+          </div>
+          <p class="side-foot">Nothing goes in your Manual unless you say so.</p>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /stage -->
+
+<!-- ====== colophon strip ====== -->
+<footer class="colophon">
+  <span class="colo-name"><b>Hearth</b> warm dark</span>
+  <span class="colo-note">Lamplit dark — Jove speaks from a warm-lit vessel with an amber inner glow; the user's voice is an ember-warm vessel on the right, the brand thread. The checkpoint is the brightest paper, a cream sheet glowing on the dark — defined by its frame and warm glow, no drop shadow.</span>
+  <span class="colo-fonts">Instrument Serif · Source Serif 4 · DM Sans</span>
+  <span class="colo-swatches" aria-label="Palette">
+    <i class="sw" style="--c:#1A1310"><span>ground 1A1310</span></i>
+    <i class="sw" style="--c:#F0E6D4"><span>cream F0E6D4</span></i>
+    <i class="sw" style="--c:#E2A04A"><span>amber E2A04A</span></i>
+    <i class="sw" style="--c:#C46A2B"><span>ember C46A2B</span></i>
+    <i class="sw" style="--c:#9DB585"><span>moss 9DB585</span></i>
+    <i class="sw" style="--c:#FBF3E2"><span>plate FBF3E2</span></i>
+  </span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var $  = function(s){ return document.querySelector(s); };
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  var appRoot     = $("#appRoot");
+  var desktopSlot = $("#desktopSlot");
+  var phoneSlot   = $("#phoneSlot");
+  var chatScroll  = $("#chatScroll");
+  var phoneScreen = $("#phoneScreen");
+  var drawer      = $("#drawer");
+  var menuBtn     = $("#menuBtn");
+
+  /* ---------- shell toggle ---------- */
+  function setShell(shell){
+    document.body.dataset.shell = shell;
+    (shell === "phone" ? phoneSlot : desktopSlot).appendChild(appRoot);
+    $("#toggleDesktop").setAttribute("aria-pressed", String(shell === "desktop"));
+    $("#togglePhone").setAttribute("aria-pressed", String(shell === "phone"));
+    closeDrawer();
+    scrollChat(false);
+  }
+  $("#toggleDesktop").addEventListener("click", function(){ setShell("desktop"); });
+  $("#togglePhone").addEventListener("click", function(){ setShell("phone"); });
+
+  /* ---------- view switching (both shells) ---------- */
+  function setView(view){
+    document.body.dataset.view = view;
+    $$(".nav-item[data-nav]").forEach(function(btn){
+      btn.setAttribute("aria-current", String(btn.dataset.nav === view));
+    });
+    closeDrawer();
+    if (view === "session") scrollChat(false);
+  }
+  $$(".nav-item[data-nav]").forEach(function(btn){
+    btn.addEventListener("click", function(){ setView(btn.dataset.nav); });
+  });
+
+  /* ---------- phone drawer ---------- */
+  function openDrawer(){
+    phoneScreen.classList.add("drawer-open");
+    drawer.setAttribute("aria-hidden", "false");
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeDrawer(){
+    phoneScreen.classList.remove("drawer-open");
+    drawer.setAttribute("aria-hidden", "true");
+    menuBtn.setAttribute("aria-expanded", "false");
+  }
+  menuBtn.addEventListener("click", openDrawer);
+  $("#drawerClose").addEventListener("click", closeDrawer);
+  $("#drawerDim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") closeDrawer();
+  });
+
+  /* ---------- manual accordions ---------- */
+  function wireToggle(btn){
+    btn.addEventListener("click", function(){
+      var entry = btn.closest(".entry");
+      var open = entry.classList.toggle("open");
+      btn.setAttribute("aria-expanded", String(open));
+    });
+  }
+  $$(".entry-toggle:not([disabled])").forEach(wireToggle);
+
+  /* ---------- chat scroll ---------- */
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function scrollChat(smooth){
+    requestAnimationFrame(function(){
+      chatScroll.scrollTo({
+        top: chatScroll.scrollHeight,
+        behavior: (smooth && !reduceMotion.matches) ? "smooth" : "auto"
+      });
+    });
+  }
+
+  /* ---------- jove message helpers (production bubble: label inside) ---------- */
+  var JOVE_TAG = '<span class="jove-tag">Jove</span>';
+
+  var typingEl = null;
+  function showTyping(){
+    typingEl = document.createElement("div");
+    typingEl.className = "msg msg-jove typing reveal";
+    typingEl.style.setProperty("--d", "0s");
+    typingEl.setAttribute("aria-hidden", "true");
+    typingEl.innerHTML =
+      '<p>' + JOVE_TAG +
+      '<span class="dots"><span></span><span></span><span></span></span></p>';
+    $("#checkpoint").after(typingEl);
+    scrollChat(true);
+  }
+  function removeTyping(){
+    if (typingEl){ typingEl.remove(); typingEl = null; }
+  }
+
+  function appendFollowup(){
+    var msg = document.createElement("div");
+    msg.className = "msg msg-jove reveal";
+    msg.style.setProperty("--d", "0s");
+    msg.innerHTML =
+      '<p>' + JOVE_TAG +
+      'That’s in your Manual now. You said the panic works. Where else does the engine only start when something is close enough to touch?</p>';
+    $("#checkpoint").after(msg);
+    scrollChat(true);
+  }
+
+  /* ---------- checkpoint confirm: the press ----------
+     depress (scale .985, shadow tightens) → ember rule draws
+     under the headline → lift and settle → confirmation →
+     typing → Jove's follow-up. */
+  var confirmed = false;
+  $("#addToManual").addEventListener("click", function(){
+    if (confirmed) return;
+    confirmed = true;
+
+    var checkpoint = $("#checkpoint");
+    var actions    = $("#cpActions");
+    var confirmRow = $("#cpConfirmed");
+
+    if (reduceMotion.matches){
+      checkpoint.classList.add("is-set");
+      actions.hidden = true;
+      confirmRow.hidden = false;
+      confirmRow.classList.add("show");
+      addManualEntry();
+      appendFollowup();
+      scrollChat(false);
+      return;
+    }
+
+    /* 1 — the press */
+    checkpoint.classList.add("is-pressing");
+
+    /* 2 — release: lift and settle, ember rule draws */
+    setTimeout(function(){
+      checkpoint.classList.remove("is-pressing");
+      checkpoint.classList.add("is-set");
+    }, 240);
+
+    /* 3 — actions give way to the confirmation line */
+    actions.classList.add("is-leaving");
+    setTimeout(function(){
+      actions.hidden = true;
+      confirmRow.hidden = false;
+      requestAnimationFrame(function(){ confirmRow.classList.add("show"); });
+      scrollChat(true);
+    }, 430);
+
+    /* 4 — Jove returns to the conversation */
+    setTimeout(showTyping, 1050);
+    setTimeout(function(){
+      removeTyping();
+      appendFollowup();
+    }, 2250);
+
+    addManualEntry();
+  });
+
+  function addManualEntry(){
+    var empty = $("#layer3Empty");
+    if (empty) empty.remove();
+
+    var entry = document.createElement("article");
+    entry.className = "entry open just-added";
+    entry.innerHTML =
+      '<button type="button" class="entry-toggle" aria-expanded="true">' +
+        '<span class="entry-title">Deadlines aren’t real until I can touch them</span>' +
+        '<span class="tag-new">Just added</span>' +
+        '<svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</button>' +
+      '<div class="entry-body"><div class="entry-inner">' +
+        '<p>You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn’t turn real until it’s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>' +
+      '</div></div>';
+    $("#layer3Entries").appendChild(entry);
+    wireToggle(entry.querySelector(".entry-toggle"));
+
+    $("#entryCount").textContent = "six";
+    $$(".manual-dot").forEach(function(d){ d.hidden = false; });
+  }
+
+  /* ---------- entrance: land on the checkpoint ---------- */
+  scrollChat(false);
+  window.addEventListener("load", function(){ scrollChat(false); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ scrollChat(false); });
+  setTimeout(function(){ scrollChat(false); }, 1400); /* after the entrance settles */
+})();
+</script>
+</body>
+</html>

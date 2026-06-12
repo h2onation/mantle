@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — 01 · Kernel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   01 — KERNEL · the current brand, executed to full potential
+   linen paper · espresso ink · deep walnut · moss for Jove ·
+   one ember highlight reserved for the checkpoint moment
+   ============================================================ */
+
+:root{
+  --linen:        #F2EBDD;
+  --linen-deep:   #E7DBC2;
+  --linen-well:   #ECE2CC;
+  --paper:        #FAF5E9;
+  --paper-bright: #FDFAF2;
+
+  --ink:          #2B2118;
+  --ink-mute:     #6B5B49;   /* 5.5:1 on linen */
+
+  --walnut:       #7A4A24;
+  --walnut-deep:  #5E3618;
+  --walnut-tint:  rgba(122,74,36,.13);
+
+  --moss:         #3F5C3A;
+  --moss-deep:    #2F4630;
+  --moss-ink:     #2C3A26;
+  --moss-tint:    #E3E8DA;
+
+  --ember:        #C46A2B;
+  --ember-deep:   #A04F15;   /* 5.2:1 on paper — small text safe */
+  --ember-tint:   rgba(196,106,43,.14);
+
+  --chrome:       #17130E;
+  --chrome-text:  #EDE5D4;
+
+  --serif-display:"Instrument Serif", Georgia, serif;
+  --serif-text:   "Source Serif 4", Georgia, serif;
+  --sans:         "DM Sans", Helvetica, sans-serif;
+
+  --shadow-card:  0 1px 0 rgba(255,255,255,.55) inset, 0 1px 2px rgba(43,33,24,.07), 0 14px 32px -22px rgba(43,33,24,.45);
+  --shadow-pop:   0 2px 4px rgba(43,33,24,.10), 0 22px 48px -20px rgba(43,33,24,.40);
+  --ease-settle:  cubic-bezier(.22,.75,.25,1);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ overflow:clip; }
+html,body{ height:100%; }
+
+body{
+  font-family:var(--serif-text);
+  color:var(--ink);
+  background:
+    radial-gradient(1100px 680px at 72% -12%, rgba(253,250,242,.95) 0%, rgba(253,250,242,0) 58%),
+    radial-gradient(900px 620px at 6% 112%, rgba(228,214,186,.75) 0%, rgba(228,214,186,0) 55%),
+    var(--linen);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* paper grain — one quiet veil over everything but the demo chrome */
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none;
+  z-index:5;
+  opacity:.05;
+  mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.sr-only{
+  position:absolute; width:1px; height:1px;
+  padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+button{ font-family:inherit; cursor:pointer; }
+:focus{ outline:none; }
+:focus-visible{
+  outline:2px solid var(--ember);
+  outline-offset:2px;
+  border-radius:4px;
+}
+
+/* ---------------- demo bar (neutral chrome, not the app) ---------------- */
+
+.demo-bar{
+  position:fixed; top:0; left:0; right:0; height:46px;
+  z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 18px;
+  background:var(--chrome);
+  color:var(--chrome-text);
+  font-family:var(--sans);
+}
+.demo-name{
+  font-size:12px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--chrome-text);
+}
+.demo-name b{ color:#C99B62; font-weight:600; }
+.shell-toggle{
+  display:flex; gap:2px;
+  border:1px solid rgba(237,229,212,.25);
+  border-radius:99px; padding:2px;
+}
+.shell-toggle button{
+  font-family:var(--sans);
+  font-size:12px; font-weight:600; letter-spacing:.06em;
+  padding:5px 16px; border:0; border-radius:99px;
+  background:transparent; color:rgba(237,229,212,.65);
+  transition:color .2s, background .2s;
+}
+.shell-toggle button:hover{ color:var(--chrome-text); }
+.shell-toggle button[aria-pressed="true"]{
+  background:var(--linen); color:var(--ink);
+}
+
+/* ---------------- stage / shells ---------------- */
+
+.stage{ height:calc(100vh - 46px); margin-top:46px; position:relative; }
+
+body[data-shell="desktop"] .shell-phone{ display:none; }
+body[data-shell="phone"]   .shell-desktop{ display:none; }
+
+/* ===== desktop shell ===== */
+
+.shell-desktop{ display:flex; height:100%; }
+
+.sidebar{
+  width:272px; flex:none;
+  display:flex; flex-direction:column;
+  padding:34px 26px 26px;
+  border-right:1px solid rgba(122,74,36,.16);
+  background:linear-gradient(180deg, rgba(253,250,242,.55), rgba(253,250,242,0) 40%);
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.brand .mark{ width:42px; height:42px; flex:none; }
+.wordmark{
+  font-family:var(--serif-display);
+  font-size:29px; line-height:1;
+  letter-spacing:-.015em;
+  color:var(--ink);
+}
+.wordmark .dot{ color:var(--walnut); }
+
+.side-nav{ margin-top:44px; display:flex; flex-direction:column; gap:4px; }
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  width:100%; text-align:left;
+  font-family:var(--sans);
+  font-size:14.5px; font-weight:500; letter-spacing:.01em;
+  color:var(--ink-mute);
+  background:transparent; border:0; border-radius:8px;
+  padding:11px 14px;
+  transition:background .18s, color .18s, box-shadow .18s;
+}
+.nav-item:hover{ background:rgba(122,74,36,.07); color:var(--ink); }
+.nav-item[aria-current="true"]{
+  background:var(--paper);
+  color:var(--ink);
+  box-shadow:inset 3px 0 0 var(--walnut), 0 1px 2px rgba(43,33,24,.06);
+}
+.nav-item.is-muted{ color:rgba(107,91,73,.65); cursor:default; }
+.nav-item.is-muted:hover{ background:transparent; color:rgba(107,91,73,.65); }
+
+.nav-dot{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--ember); flex:none; margin-left:auto;
+}
+.nav-dot[hidden]{ display:none; }
+@keyframes dot-arrive{ 0%{transform:scale(0);} 60%{transform:scale(1.6);} 100%{transform:scale(1);} }
+.nav-dot{ animation:dot-arrive .5s var(--ease-settle); }
+
+.side-foot{
+  margin-top:auto; padding-top:20px;
+  border-top:1px solid rgba(122,74,36,.14);
+  font-family:var(--serif-text);
+  font-style:italic;
+  font-size:13px; line-height:1.55;
+  color:var(--ink-mute);
+}
+
+.desktop-main{ flex:1; min-width:0; display:flex; justify-content:center; overflow:hidden; }
+.main-col{
+  width:100%; max-width:720px;
+  height:100%; min-height:0;
+  display:flex; flex-direction:column;
+  padding:0 32px;
+}
+
+/* ===== phone shell ===== */
+
+.shell-phone{
+  height:100%;
+  display:flex; align-items:center; justify-content:center;
+  padding:22px;
+}
+.phone-frame{
+  width:430px; max-width:100%;
+  height:min(880px, 100%);
+  background:linear-gradient(165deg, #2A2014, #18120B);
+  border-radius:50px;
+  padding:11px;
+  box-shadow:0 2px 4px rgba(43,33,24,.2), 0 40px 80px -30px rgba(43,33,24,.55);
+  display:flex;
+}
+.phone-screen{
+  flex:1; min-height:0;
+  border-radius:40px;
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+  background:
+    radial-gradient(560px 360px at 80% -8%, rgba(253,250,242,.9) 0%, rgba(253,250,242,0) 60%),
+    var(--linen);
+}
+.phone-top{
+  flex:none;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 20px 12px;
+  border-bottom:1px solid rgba(122,74,36,.14);
+  position:relative;
+}
+.phone-brand{ display:flex; align-items:center; gap:9px; }
+.phone-brand .mark{ width:26px; height:26px; }
+.phone-brand .wordmark{ font-size:21px; }
+
+.menu-btn{
+  width:38px; height:38px;
+  display:grid; place-items:center;
+  border:1px solid rgba(122,74,36,.22);
+  border-radius:10px;
+  background:var(--paper);
+  color:var(--ink);
+  transition:background .18s, border-color .18s;
+}
+.menu-btn:hover{ background:var(--paper-bright); border-color:rgba(122,74,36,.4); }
+.menu-btn svg{ display:block; }
+
+.phone-menu{
+  position:absolute; top:64px; right:16px; z-index:40;
+  min-width:188px;
+  background:var(--paper-bright);
+  border:1px solid rgba(122,74,36,.2);
+  border-radius:12px;
+  box-shadow:var(--shadow-pop);
+  padding:6px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.phone-menu[hidden]{ display:none; }
+.phone-menu .nav-item{ padding:10px 12px; }
+
+.phone-content{ flex:1; min-height:0; display:flex; flex-direction:column; }
+
+.home-pill{
+  flex:none;
+  height:18px;
+  display:grid; place-items:center;
+}
+.home-pill::before{
+  content:"";
+  width:120px; height:4px; border-radius:99px;
+  background:rgba(43,33,24,.28);
+}
+
+/* ---------------- app root & views ---------------- */
+
+#appRoot{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.view{ display:none; }
+body[data-view="session"] .view-session{ display:flex; flex-direction:column; flex:1; min-height:0; }
+body[data-view="manual"]  .view-manual{ display:block; flex:1; min-height:0; overflow-y:auto; }
+
+/* ---------------- session view ---------------- */
+
+.chat-scroll{
+  flex:1; min-height:0;
+  overflow-y:auto;
+  padding:34px 6px 18px;
+}
+body[data-shell="phone"] .chat-scroll{ padding:22px 18px 12px; }
+
+.session-head{ margin-bottom:30px; }
+.kicker{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase;
+  color:var(--walnut);
+}
+.session-head h1{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:34px; line-height:1.1;
+  letter-spacing:-.01em;
+  margin-top:8px;
+}
+body[data-shell="phone"] .session-head h1{ font-size:28px; }
+.session-head::after{
+  content:"";
+  display:block; margin-top:18px;
+  height:1px; background:rgba(122,74,36,.2);
+}
+
+.msg{ margin-bottom:26px; }
+
+/* Jove — typeset prose on the page, not a bubble */
+.msg-jove{ max-width:56ch; }
+.jove-id{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.jove-avatar{
+  width:26px; height:26px; border-radius:50%;
+  background:var(--moss-tint);
+  border:1px solid rgba(63,92,58,.3);
+  display:grid; place-items:center;
+  flex:none;
+}
+.jove-avatar .mark{
+  width:17px; height:17px;
+  --mark-shell:var(--moss-deep);
+  --mark-kernel:var(--moss);
+}
+.jove-name{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--moss);
+}
+.msg-jove p{
+  font-size:16.5px; line-height:1.66;
+  color:var(--moss-ink);
+  padding-left:34px;
+}
+body[data-shell="phone"] .msg-jove p{ font-size:15.5px; padding-left:0; }
+body[data-shell="phone"] .jove-id{ margin-bottom:6px; }
+
+/* user — a held card of warmer paper, right-aligned */
+.msg-user{ display:flex; justify-content:flex-end; }
+.msg-user p{
+  max-width:78%;
+  background:var(--linen-deep);
+  border:1px solid rgba(122,74,36,.18);
+  border-radius:16px 16px 4px 16px;
+  padding:13px 17px;
+  font-size:15.5px; line-height:1.6;
+  color:var(--ink);
+  box-shadow:0 1px 2px rgba(43,33,24,.06);
+}
+
+/* ---------------- checkpoint — a page arriving for the binder ---------------- */
+
+.checkpoint{
+  margin:34px 0 30px;
+  max-width:600px;
+  filter:drop-shadow(0 16px 26px rgba(43,33,24,.18)) drop-shadow(0 2px 4px rgba(43,33,24,.08));
+}
+.cp-sheet{
+  position:relative;
+  background:linear-gradient(173deg, var(--paper-bright), var(--paper));
+  border-top:3px solid var(--ember);
+  padding:26px 28px 26px 42px;
+  transform:rotate(-.5deg);
+  transition:transform .55s var(--ease-settle);
+  /* deckled left edge */
+  clip-path:polygon(
+    1.0% 0%, 100% 0%, 100% 100%, .9% 100%,
+    .1% 96%, 1.1% 90%, .3% 84%, 1.2% 78%, .2% 71%, .9% 65%,
+    .1% 58%, 1.1% 52%, .3% 46%, 1.0% 39%, .2% 33%, 1.2% 27%,
+    .4% 21%, .9% 14%, .1% 8%, .8% 3%
+  );
+}
+body[data-shell="phone"] .cp-sheet{ padding:22px 20px 22px 36px; }
+
+/* stitching channel, waiting for the spine */
+.cp-sheet::before{
+  content:"";
+  position:absolute; left:17px; top:20px; bottom:20px;
+  border-left:2px dashed rgba(122,74,36,.32);
+}
+/* the spine that binds the page in */
+.cp-sheet::after{
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:9px;
+  background:linear-gradient(180deg, var(--walnut), var(--walnut-deep));
+  transform:scaleX(0); transform-origin:left center;
+  transition:transform .45s var(--ease-settle) .1s;
+}
+.checkpoint.is-bound .cp-sheet{ transform:rotate(0deg) translateY(2px); }
+.checkpoint.is-bound .cp-sheet::after{ transform:scaleX(1); }
+
+.cp-top{ display:flex; align-items:center; gap:12px; }
+.cp-top .mark{ width:30px; height:30px; flex:none; }
+.cp-kicker{
+  font-family:var(--sans);
+  font-size:12px; font-weight:600; letter-spacing:.08em;
+  color:var(--walnut);
+}
+.cp-eyebrow{
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ember-deep);
+  margin-top:3px;
+}
+.cp-headline{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:29px; line-height:1.15;
+  letter-spacing:-.01em;
+  margin:18px 0 12px;
+  color:var(--ink);
+}
+body[data-shell="phone"] .cp-headline{ font-size:25px; }
+.cp-body{
+  font-size:15.5px; line-height:1.68;
+  color:var(--ink);
+}
+
+.cp-actions{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin-top:22px;
+  transition:opacity .25s;
+}
+.cp-actions.is-leaving{ opacity:0; }
+.cp-actions[hidden]{ display:none; }
+
+.btn-primary{
+  font-family:var(--sans);
+  font-size:14px; font-weight:700; letter-spacing:.02em;
+  color:#FDFAF2;
+  background:var(--ember-deep);
+  border:0; border-radius:10px;
+  padding:12px 22px;
+  box-shadow:0 2px 6px rgba(160,79,21,.35);
+  transition:background .18s, transform .18s, box-shadow .18s;
+}
+.btn-primary:hover{ background:#8E4511; transform:translateY(-1px); box-shadow:0 4px 12px rgba(160,79,21,.4); }
+.btn-primary:active{ transform:translateY(0); }
+.btn-ghost{
+  font-family:var(--sans);
+  font-size:14px; font-weight:600;
+  color:var(--ink-mute);
+  background:transparent;
+  border:1px solid rgba(122,74,36,.28);
+  border-radius:10px;
+  padding:11px 18px;
+  transition:border-color .18s, color .18s, background .18s;
+}
+.btn-ghost:hover{ border-color:rgba(122,74,36,.55); color:var(--ink); background:rgba(122,74,36,.05); }
+
+.cp-confirmed{
+  display:flex; align-items:center; gap:10px;
+  margin-top:22px;
+  font-family:var(--sans);
+  font-size:13.5px; font-weight:600;
+  color:var(--moss-deep);
+  opacity:0; transform:translateY(4px);
+  transition:opacity .4s var(--ease-settle) .15s, transform .4s var(--ease-settle) .15s;
+}
+.cp-confirmed[hidden]{ display:none; }
+.cp-confirmed.show{ opacity:1; transform:none; }
+.cp-confirmed em{ font-style:normal; color:var(--walnut); }
+.cp-check{ flex:none; }
+.cp-check circle{ fill:var(--ember-tint); stroke:var(--ember); stroke-width:1.5; }
+.cp-check .tick{
+  stroke:var(--ember-deep); stroke-width:2.4;
+  stroke-linecap:round; stroke-linejoin:round; fill:none;
+  stroke-dasharray:20; stroke-dashoffset:20;
+}
+.cp-confirmed.show .tick{ animation:tick-draw .45s var(--ease-settle) .35s forwards; }
+@keyframes tick-draw{ to{ stroke-dashoffset:0; } }
+
+/* ---------------- composer ---------------- */
+
+.composer{
+  flex:none;
+  padding:14px 6px 26px;
+  background:linear-gradient(180deg, rgba(242,235,221,0), var(--linen) 38%);
+}
+body[data-shell="phone"] .composer{ padding:10px 14px 14px; background:linear-gradient(180deg, rgba(242,235,221,0), var(--linen) 45%); }
+.composer-inner{
+  display:flex; align-items:center; gap:10px;
+  background:var(--paper-bright);
+  border:1px solid rgba(122,74,36,.24);
+  border-radius:16px;
+  padding:6px 6px 6px 18px;
+  box-shadow:var(--shadow-card);
+  transition:border-color .2s;
+}
+.composer-inner:focus-within{ border-color:var(--walnut); }
+.composer input{
+  flex:1; min-width:0;
+  border:0; background:transparent;
+  font-family:var(--serif-text);
+  font-size:15.5px;
+  color:var(--ink);
+  padding:10px 0;
+}
+.composer input::placeholder{ color:var(--ink-mute); font-style:italic; opacity:1; }
+.composer input:focus{ outline:none; }
+.send-btn{
+  flex:none;
+  width:42px; height:42px;
+  border:0; border-radius:12px;
+  background:var(--walnut);
+  color:#FDFAF2;
+  display:grid; place-items:center;
+  transition:background .18s, transform .18s;
+}
+.send-btn:hover{ background:var(--walnut-deep); transform:scale(1.05); }
+.send-btn:active{ transform:scale(.97); }
+
+/* ---------------- manual view ---------------- */
+
+.view-manual{ padding:34px 6px 60px; }
+body[data-shell="phone"] .view-manual{ padding:22px 18px 48px; }
+
+.manual-head{ margin-bottom:34px; }
+.manual-head h1{
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:40px; line-height:1.05; letter-spacing:-.01em;
+  margin-top:8px;
+}
+body[data-shell="phone"] .manual-head h1{ font-size:32px; }
+.manual-sub{
+  margin-top:10px;
+  font-size:14.5px; font-style:italic;
+  color:var(--ink-mute);
+}
+.manual-head::after{
+  content:"";
+  display:block; margin-top:20px;
+  height:1px; background:rgba(122,74,36,.2);
+}
+
+.layer{ margin-bottom:34px; }
+.layer-head{
+  display:flex; align-items:baseline; gap:14px;
+  margin-bottom:14px;
+}
+.layer-numeral{
+  font-family:var(--serif-display);
+  font-style:italic;
+  font-size:30px; line-height:1;
+  color:var(--walnut);
+  min-width:34px;
+}
+.layer-name{
+  font-family:var(--sans);
+  font-size:13px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink);
+}
+.layer-head .rule{
+  flex:1; height:1px;
+  background:rgba(122,74,36,.18);
+  transform:translateY(-4px);
+}
+
+.layer-entries{ display:flex; flex-direction:column; gap:10px; padding-left:48px; }
+body[data-shell="phone"] .layer-entries{ padding-left:0; }
+
+.entry{
+  background:var(--paper);
+  border:1px solid rgba(122,74,36,.18);
+  border-radius:12px;
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+}
+.entry-toggle{
+  width:100%;
+  display:flex; align-items:center; gap:12px;
+  text-align:left;
+  background:transparent; border:0;
+  padding:16px 18px;
+  transition:background .18s;
+}
+button.entry-toggle:hover{ background:rgba(122,74,36,.06); }
+.entry-star{ color:var(--walnut); font-size:14px; flex:none; transform:translateY(-1px); }
+.entry-title{
+  flex:1;
+  font-family:var(--serif-display);
+  font-weight:400;
+  font-size:21px; line-height:1.2; letter-spacing:-.005em;
+  color:var(--ink);
+}
+body[data-shell="phone"] .entry-title{ font-size:19px; }
+.chev{ flex:none; color:var(--ink-mute); transition:transform .3s var(--ease-settle); }
+.entry.open .chev{ transform:rotate(180deg); }
+
+.entry-body{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows .35s var(--ease-settle);
+}
+.entry.open .entry-body{ grid-template-rows:1fr; }
+.entry-inner{ overflow:hidden; min-height:0; }
+.entry-inner p{
+  padding:0 18px 18px;
+  font-size:15px; line-height:1.68;
+  color:var(--ink);
+  max-width:62ch;
+}
+
+.layer-empty{
+  font-size:14.5px; font-style:italic;
+  color:var(--ink-mute);
+  padding:6px 2px;
+}
+
+/* just-added state — the ember moment carried into the Manual */
+.entry.just-added{
+  border-color:rgba(196,106,43,.55);
+  box-shadow:inset 3px 0 0 var(--ember), var(--shadow-card);
+  animation:entry-arrive .6s var(--ease-settle);
+}
+@keyframes entry-arrive{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:none; }
+}
+.tag-new{
+  flex:none;
+  font-family:var(--sans);
+  font-size:12px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ember-deep);
+  background:var(--ember-tint);
+  border-radius:99px;
+  padding:4px 10px;
+}
+
+/* ---------------- entrance choreography ---------------- */
+
+.reveal{
+  opacity:0;
+  animation:rise .55s var(--ease-settle) forwards;
+  animation-delay:var(--d, 0s);
+}
+@keyframes rise{
+  from{ opacity:0; transform:translateY(12px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ---------------- reduced motion ---------------- */
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+    transition-duration:.01ms !important;
+  }
+  .chat-scroll{ scroll-behavior:auto; }
+  .cp-sheet{ transform:none; }
+}
+</style>
+</head>
+<body data-shell="desktop" data-view="session">
+
+<!-- ====== the mark: a halved walnut, kernel folded like a quiet labyrinth ====== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="kernel-mark" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- shell -->
+      <path stroke="var(--mark-shell, #2B2118)" stroke-width="2.6"
+        d="M32 5.5 C33 8.6 35.4 9.7 38.6 10.4 C49 12.8 56.5 21.5 56.5 32.3 C56.5 45.6 45.6 56.5 32 56.5 C18.4 56.5 7.5 45.6 7.5 32.3 C7.5 21.5 15 12.8 25.4 10.4 C28.6 9.7 31 8.6 32 5.5 Z"/>
+      <!-- kernel, left lobe -->
+      <g stroke="var(--mark-kernel, #7A4A24)" stroke-width="2.3">
+        <path d="M28.5 14.5 C20 15.5 13.5 23 13.5 32 C13.5 41 19.5 48.5 28.5 49.5"/>
+        <path d="M27 19.5 C22 21 18.5 25 19 29.5 C19.4 33 23 34 23 37.5 C23 41 20.5 42.5 21.5 45.5"/>
+        <path d="M28 25 C25.5 26 24 28.5 24.7 31 C25.4 33.5 27.6 34.6 27.2 38 C26.9 40.4 25.3 41.6 25.8 44.5"/>
+      </g>
+      <!-- kernel, right lobe (mirror) -->
+      <g stroke="var(--mark-kernel, #7A4A24)" stroke-width="2.3" transform="matrix(-1 0 0 1 64 0)">
+        <path d="M28.5 14.5 C20 15.5 13.5 23 13.5 32 C13.5 41 19.5 48.5 28.5 49.5"/>
+        <path d="M27 19.5 C22 21 18.5 25 19 29.5 C19.4 33 23 34 23 37.5 C23 41 20.5 42.5 21.5 45.5"/>
+        <path d="M28 25 C25.5 26 24 28.5 24.7 31 C25.4 33.5 27.6 34.6 27.2 38 C26.9 40.4 25.3 41.6 25.8 44.5"/>
+      </g>
+    </g>
+  </defs>
+</svg>
+
+<!-- ====== demo bar ====== -->
+<div class="demo-bar">
+  <span class="demo-name"><b>01</b> — Kernel</span>
+  <div class="shell-toggle" role="group" aria-label="Shell preview">
+    <button type="button" id="toggleDesktop" aria-pressed="true">Desktop</button>
+    <button type="button" id="togglePhone" aria-pressed="false">Phone</button>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ====== desktop shell ====== -->
+  <div class="shell-desktop">
+    <aside class="sidebar">
+      <div class="brand reveal" style="--d:.05s">
+        <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="mywalnut mark"><use href="#kernel-mark"/></svg>
+        <span class="wordmark">mywalnut<span class="dot">.</span></span>
+      </div>
+      <nav class="side-nav reveal" style="--d:.15s" aria-label="Main">
+        <button type="button" class="nav-item" data-nav="session" aria-current="true">Session</button>
+        <button type="button" class="nav-item" data-nav="manual" aria-current="false">Manual <span class="nav-dot manual-dot" hidden aria-hidden="true"></span></button>
+        <button type="button" class="nav-item is-muted" aria-disabled="true">Settings</button>
+      </nav>
+      <p class="side-foot reveal" style="--d:.25s">Nothing goes in your Manual unless you say so.</p>
+    </aside>
+    <main class="desktop-main">
+      <div class="main-col" id="desktopSlot">
+
+        <!-- ====== app content (moves between shells) ====== -->
+        <div id="appRoot">
+
+          <!-- ——— SESSION ——— -->
+          <section class="view view-session" aria-label="Session">
+            <div class="chat-scroll" id="chatScroll">
+              <header class="session-head reveal" style="--d:.1s">
+                <span class="kicker">Session</span>
+                <h1>Wednesday night</h1>
+              </header>
+
+              <div class="msg msg-user reveal" style="--d:.18s">
+                <p>I told my manager I’d have the deck done by Friday. It’s Wednesday night and I haven’t opened the file. I keep doing this.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.26s">
+                <div class="jove-id">
+                  <span class="jove-avatar"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#kernel-mark"/></svg></span>
+                  <span class="jove-name">Jove</span>
+                </div>
+                <p>Which part keeps happening. The not opening it, or the promising Friday in the first place? Walk me through the moment you said Friday.</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.34s">
+                <p>She asked when I could have it and Friday just came out. It felt generous at the time. Like plenty of room.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.42s">
+                <div class="jove-id">
+                  <span class="jove-avatar"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#kernel-mark"/></svg></span>
+                  <span class="jove-name">Jove</span>
+                </div>
+                <p>Plenty of room for the version of you in that meeting. He wasn’t the one who had to open the file. What does Wednesday-night you know that meeting you didn’t?</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.5s">
+                <p>That it isn’t real yet. A deadline isn’t real until it’s close enough to touch. Then the panic kicks in, and honestly the panic works. The deck will be good. It’s always good.</p>
+              </div>
+
+              <div class="msg msg-jove reveal" style="--d:.58s">
+                <div class="jove-id">
+                  <span class="jove-avatar"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#kernel-mark"/></svg></span>
+                  <span class="jove-name">Jove</span>
+                </div>
+                <p>So the system delivers. The deck is always good. The cost isn’t the quality. It’s the days of dread you pay before the panic shows up to do the work. I think there’s a piece of your Manual in this. Want to see it?</p>
+              </div>
+
+              <div class="msg msg-user reveal" style="--d:.66s">
+                <p>ok show me</p>
+              </div>
+
+              <!-- ——— CHECKPOINT: a page arriving for the binder ——— -->
+              <div class="checkpoint reveal" id="checkpoint" style="--d:.82s">
+                <div class="cp-sheet">
+                  <div class="cp-top">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#kernel-mark"/></svg>
+                    <div>
+                      <div class="cp-kicker">A page for your Manual</div>
+                      <div class="cp-eyebrow">Layer III · How I Process Things</div>
+                    </div>
+                  </div>
+                  <h3 class="cp-headline">Deadlines aren’t real until I can touch them</h3>
+                  <p class="cp-body">You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn’t turn real until it’s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>
+                  <div class="cp-actions" id="cpActions">
+                    <button type="button" class="btn-primary" id="addToManual">Add to Manual</button>
+                    <button type="button" class="btn-ghost">Edit</button>
+                    <button type="button" class="btn-ghost">Not quite</button>
+                  </div>
+                  <div class="cp-confirmed" id="cpConfirmed" hidden>
+                    <svg class="cp-check" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+                      <circle cx="13" cy="13" r="11.5"/>
+                      <path class="tick" d="M8 13.4 L11.6 16.8 L18 9.6"/>
+                    </svg>
+                    <span>In your Manual · <em>Layer III — How I Process Things</em></span>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /chat-scroll -->
+
+            <div class="composer">
+              <div class="composer-inner">
+                <input type="text" id="chatInput" aria-label="Message" placeholder="Say it how it actually happened" autocomplete="off">
+                <button type="button" class="send-btn" id="sendBtn" aria-label="Send">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M9 14.5 V3.5 M9 3.5 L4.2 8.3 M9 3.5 L13.8 8.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ——— MANUAL ——— -->
+          <section class="view view-manual" aria-label="Manual">
+            <header class="manual-head">
+              <span class="kicker">The Manual</span>
+              <h1>Your Manual</h1>
+              <p class="manual-sub">Five layers · <span id="entryCount">five</span> entries · written by you</p>
+            </header>
+
+            <!-- Layer I -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">I.</span>
+                <h2 class="layer-name">My Strengths</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry open">
+                  <button type="button" class="entry-toggle" aria-expanded="true">
+                    <span class="entry-star" aria-hidden="true">★</span><span class="sr-only">Starred entry.</span>
+                    <span class="entry-title">I build the whole thing in my head before I touch it</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>Before you open a file or write a line, the structure assembles itself somewhere behind your eyes. From outside, the stillness reads as not working. The stillness is the work. By the time your hands move, most of the decisions are already made. It’s why the work holds up under pressure that should have sunk it.</p>
+                  </div></div>
+                </article>
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false" disabled style="cursor:default">
+                    <span class="entry-title">I notice the thing everyone else walks past</span>
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer II -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">II.</span>
+                <h2 class="layer-name">Some of My Patterns</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">I say yes at the speed of the room</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>In the moment, the answer people want to hear leaves your mouth before the calendar gets a vote. It isn’t people-pleasing exactly. The room has a rhythm and you match it. The cost arrives later, addressed to a version of you who was never in the meeting.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer III -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">III.</span>
+                <h2 class="layer-name">How I Process Things</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries" id="layer3Entries">
+                <p class="layer-empty" id="layer3Empty">Nothing here yet.</p>
+              </div>
+            </section>
+
+            <!-- Layer IV -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">IV.</span>
+                <h2 class="layer-name">What Helps</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">Another person in the room starts the engine early</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>You can’t start alone at two weeks out. You can start next to someone. It doesn’t matter if they’re working on something else entirely. Their presence makes the work real the way a deadline does, without the dread. The engine turns over early and quietly.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+
+            <!-- Layer V -->
+            <section class="layer">
+              <div class="layer-head">
+                <span class="layer-numeral" aria-hidden="true">V.</span>
+                <h2 class="layer-name">How I Show Up with People</h2>
+                <span class="rule" aria-hidden="true"></span>
+              </div>
+              <div class="layer-entries">
+                <article class="entry">
+                  <button type="button" class="entry-toggle" aria-expanded="false">
+                    <span class="entry-title">Quiet doesn’t mean gone</span>
+                    <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="entry-body"><div class="entry-inner">
+                    <p>In a group your face goes still and your words go short. From outside it can read as checked out. It’s the opposite. Everything is arriving at once and you’re routing it. The people who know you well have learned that the quiet is where you do your part of the conversation.</p>
+                  </div></div>
+                </article>
+              </div>
+            </section>
+          </section>
+
+        </div><!-- /appRoot -->
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ====== phone shell ====== -->
+  <div class="shell-phone">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-top">
+          <div class="phone-brand">
+            <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="mywalnut mark"><use href="#kernel-mark"/></svg>
+            <span class="wordmark">mywalnut<span class="dot">.</span></span>
+          </div>
+          <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 6 H15 M3 12 H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <nav class="phone-menu" id="phoneMenu" hidden aria-label="Main">
+            <button type="button" class="nav-item" data-nav="session" aria-current="true">Session</button>
+            <button type="button" class="nav-item" data-nav="manual" aria-current="false">Manual <span class="nav-dot manual-dot" hidden aria-hidden="true"></span></button>
+            <button type="button" class="nav-item is-muted" aria-disabled="true">Settings</button>
+          </nav>
+        </div>
+        <div class="phone-content" id="phoneSlot"></div>
+        <div class="home-pill" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /stage -->
+
+<script>
+(function(){
+  "use strict";
+  var $  = function(s){ return document.querySelector(s); };
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  var appRoot     = $("#appRoot");
+  var desktopSlot = $("#desktopSlot");
+  var phoneSlot   = $("#phoneSlot");
+  var chatScroll  = $("#chatScroll");
+  var phoneMenu   = $("#phoneMenu");
+  var menuBtn     = $("#menuBtn");
+
+  /* ---------- shell toggle ---------- */
+  function setShell(shell){
+    document.body.dataset.shell = shell;
+    (shell === "phone" ? phoneSlot : desktopSlot).appendChild(appRoot);
+    $("#toggleDesktop").setAttribute("aria-pressed", String(shell === "desktop"));
+    $("#togglePhone").setAttribute("aria-pressed", String(shell === "phone"));
+    closeMenu();
+    scrollChat(false);
+  }
+  $("#toggleDesktop").addEventListener("click", function(){ setShell("desktop"); });
+  $("#togglePhone").addEventListener("click", function(){ setShell("phone"); });
+
+  /* ---------- view switching (both shells) ---------- */
+  function setView(view){
+    document.body.dataset.view = view;
+    $$(".nav-item[data-nav]").forEach(function(btn){
+      btn.setAttribute("aria-current", String(btn.dataset.nav === view));
+    });
+    closeMenu();
+    if (view === "session") scrollChat(false);
+  }
+  $$(".nav-item[data-nav]").forEach(function(btn){
+    btn.addEventListener("click", function(){ setView(btn.dataset.nav); });
+  });
+
+  /* ---------- phone menu ---------- */
+  function closeMenu(){
+    phoneMenu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+  }
+  menuBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    var open = phoneMenu.hidden;
+    phoneMenu.hidden = !open;
+    menuBtn.setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", function(e){
+    if (!phoneMenu.hidden && !phoneMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") closeMenu();
+  });
+
+  /* ---------- manual accordions ---------- */
+  function wireToggle(btn){
+    btn.addEventListener("click", function(){
+      var entry = btn.closest(".entry");
+      var open = entry.classList.toggle("open");
+      btn.setAttribute("aria-expanded", String(open));
+    });
+  }
+  $$(".entry-toggle:not([disabled])").forEach(wireToggle);
+
+  /* ---------- chat scroll ---------- */
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function scrollChat(smooth){
+    requestAnimationFrame(function(){
+      chatScroll.scrollTo({
+        top: chatScroll.scrollHeight,
+        behavior: (smooth && !reduceMotion.matches) ? "smooth" : "auto"
+      });
+    });
+  }
+
+  /* ---------- checkpoint confirm: the page binds in ---------- */
+  var confirmed = false;
+  $("#addToManual").addEventListener("click", function(){
+    if (confirmed) return;
+    confirmed = true;
+
+    var checkpoint = $("#checkpoint");
+    var actions    = $("#cpActions");
+    var confirmRow = $("#cpConfirmed");
+
+    checkpoint.classList.add("is-bound");
+    actions.classList.add("is-leaving");
+
+    setTimeout(function(){
+      actions.hidden = true;
+      confirmRow.hidden = false;
+      requestAnimationFrame(function(){ confirmRow.classList.add("show"); });
+      scrollChat(true);
+    }, 280);
+
+    setTimeout(appendFollowup, 1200);
+    addManualEntry();
+  });
+
+  function appendFollowup(){
+    var msg = document.createElement("div");
+    msg.className = "msg msg-jove reveal";
+    msg.style.setProperty("--d", "0s");
+    msg.innerHTML =
+      '<div class="jove-id">' +
+        '<span class="jove-avatar"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#kernel-mark"/></svg></span>' +
+        '<span class="jove-name">Jove</span>' +
+      '</div>' +
+      '<p>That’s in your Manual now. You said the panic works. Where else does the engine only start when something is close enough to touch?</p>';
+    $("#checkpoint").after(msg);
+    scrollChat(true);
+  }
+
+  function addManualEntry(){
+    var empty = $("#layer3Empty");
+    if (empty) empty.remove();
+
+    var entry = document.createElement("article");
+    entry.className = "entry open just-added";
+    entry.innerHTML =
+      '<button type="button" class="entry-toggle" aria-expanded="true">' +
+        '<span class="entry-title">Deadlines aren’t real until I can touch them</span>' +
+        '<span class="tag-new">Just added</span>' +
+        '<svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 6 L8 10.5 L12.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</button>' +
+      '<div class="entry-body"><div class="entry-inner">' +
+        '<p>You commit to dates in a different timezone than the one you work in. In the meeting, Friday feels like plenty of room, so you say it freely. The date doesn’t turn real until it’s close enough to touch. Then the panic switches on, and the panic is the engine. It works. The deck is always good. What it costs is the stretch in between. The dread, the unopened file, the loop of telling yourself to start. The work was never the problem. The waiting room is.</p>' +
+      '</div></div>';
+    $("#layer3Entries").appendChild(entry);
+    wireToggle(entry.querySelector(".entry-toggle"));
+
+    $("#entryCount").textContent = "six";
+    $$(".manual-dot").forEach(function(d){ d.hidden = false; });
+  }
+
+  /* ---------- entrance: land on the checkpoint ---------- */
+  scrollChat(false);
+  window.addEventListener("load", function(){ scrollChat(false); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ scrollChat(false); });
+  setTimeout(function(){ scrollChat(false); }, 1300); /* after the entrance settles */
+})();
+</script>
+</body>
+</html>
