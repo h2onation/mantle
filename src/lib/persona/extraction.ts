@@ -206,7 +206,7 @@ STANDARD GATE (all must be true):
   DOES NOT count as a distinct context:
   - A category named in passing without a scene ("at dinners," "with friends," "at work") where the user has not walked you through a specific instance.
   - A wish-state or ideal ("what depth feels like," "what a good week looks like," "when I'm in flow") — these describe what the user wants, not a lived scene.
-  - A contrast to the pattern under examination. If the conversation is about social drain and the user mentions junkyard art as the opposite, the junkyard is a contrast — not a second distinct context for the drain.
+  - A contrast to the pattern under examination. If the conversation is about social drain and the user mentions junkyard art as the opposite, the junkyard is a contrast — not a second distinct context for the drain. BUT a contrast is high-value data: an exception is what pins what TYPE of situation or person actually triggers the pattern (what the exception lacks is what the type is). Log the user's contrast language in language_bank and name it in the brief as the exception that defines the type — it just does not advance distinct_contexts.
   - Repeated description of the same lived activity ("I love the smell of grease, I love placing things together, trial and error" — all one activity, one context).
 
   The pattern claim "this is how you operate" requires evidence from at least two distinct narrated scenes. If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 — the gate will hold and the checkpoint should not fire as a recurring-pattern entry.
@@ -688,7 +688,7 @@ export function formatExtractionForPersona(
         "Stay in it. They've named what happens and how it feels. You haven't reached why it fires yet. Go for the mechanism underneath before you reflect anything back.\n";
     }
   } else if (gateReady) {
-    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath.\n`;
+    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath. Before you reflect: if a kind of person or situation keeps setting this off, don't settle what the type is until more instances and an exception have tested it — and check whether this is the same engine as something already in their Manual.\n`;
   } else {
     // Deep enough, but the evidence is still thin. One soft line naming
     // the single most important gap — not the old multi-item checklist.
@@ -705,26 +705,42 @@ export function formatExtractionForPersona(
     }
     context += gap
       ? `The understanding is there. Still thin on ${gap}. Stay with it.\n`
-      : "There's a real piece here you could reflect back when the moment is right.\n";
+      : "There's a real piece here you could reflect back when the moment is right. But you haven't reached what it would cost them to do otherwise — or, if a kind of person or situation keeps setting this off, what the type actually is; don't settle the type until more instances and an exception have tested it. And check: is this the same engine as something already in their Manual?\n";
   }
 
   // First-checkpoint wrapper is no longer delivered inside the reflection —
   // it now rides along with the approaching signal (see Tier 3 PROGRESS
   // SIGNALS). No extra hint needed here.
 
-  // When checkpoint is ready and the target layer already has content,
-  // surface it so the reflection accounts for it.
-  if (gateReady && gate.strongest_layer && manualComponents) {
-    const layerContent = manualComponents.filter(
-      (c) => c.layer === gate.strongest_layer
-    );
+  // Surface prior entries on the active layer DURING exploration, not only
+  // when the gate is ready. Threading is a descent engine — the driver of a
+  // new pattern is often already half-written in an existing entry (the
+  // compounding thesis). This block was previously gated on gateReady, which
+  // deadlocked it: the thread only arrived after descent was over (live
+  // evidence: exchange 4 threaded on the model's own initiative; exchange 5,
+  // with the driver sitting in the Manual, never did). Capped at the 2 most
+  // recent matching entries to bound per-turn token cost.
+  const activeLayer =
+    gate.strongest_layer ||
+    Number(
+      Object.entries(state.layers).find(
+        ([, l]) => l.signal && l.signal !== "none"
+      )?.[0] ?? 0
+    ) ||
+    null;
+  if (activeLayer && manualComponents) {
+    const layerContent = manualComponents
+      .filter((c) => c.layer === activeLayer)
+      .slice(-2);
     if (layerContent.length > 0) {
-      context += `\nWhat's already in the manual on ${LAYER_NAMES[gate.strongest_layer]}:\n`;
+      context += `\nWhat's already in the manual on ${LAYER_NAMES[activeLayer]}:\n`;
       for (const comp of layerContent) {
         context += `Entry${comp.name ? ` — "${comp.name}"` : ""}\n`;
         context += `${comp.content}\n\n`;
       }
-      context += "Your reflection should build on or deepen this. If something new contradicts it, name the tension instead of flattening it.\n";
+      context += gateReady
+        ? "Your reflection should build on or deepen this. If something new contradicts it, name the tension instead of flattening it.\n"
+        : "Test the new material against this: is it the same engine wearing different clothes? If so, the driver may already be written here — thread it. Threading is the discovery, not a duplicate-check.\n";
     }
   }
 
