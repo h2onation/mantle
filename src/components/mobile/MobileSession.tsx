@@ -12,7 +12,6 @@ import { PERSONA_NAME, type CheckpointAction, type ConversationMode } from "@/li
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
-import TabPip from "@/components/mobile/manual/TabPip";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
@@ -451,20 +450,16 @@ export default function MobileSession({
                   : msg.checkpointMeta?.layer;
 
                 // ── Pending checkpoint: trigger card ──
-                // Plate vocabulary borrowed from the Manual page (same
-                // TabPip + cream catch-light rim + 18px radius). Body
-                // uses --session-jove-bg so the card belongs to Jove's
-                // side of the conversation. A four-layer warm-walnut
-                // halo around the frame marks this as a moment, not a
-                // resting Manual card. See .checkpoint-trigger-frame
-                // and .checkpoint-trigger-plate in globals.css for the
-                // halo + shadow stack.
+                // A bright Plate (--session-jove-bg) with a brass layer
+                // eyebrow matching the Manual headers + confirm overlay.
+                // Body uses --session-jove-bg so the card belongs to
+                // Jove's side of the conversation. A soft brass halo
+                // around the frame marks this as a moment, not a resting
+                // Manual card. See .checkpoint-trigger-frame and
+                // .checkpoint-trigger-plate in globals.css for the halo +
+                // shadow stack.
                 if (isPendingCheckpoint) {
                   const cpLayer = activeCheckpoint?.layer;
-                  const cpLayerName =
-                    cpLayer && LAYER_NAMES[cpLayer]
-                      ? LAYER_NAMES[cpLayer]
-                      : null;
                   return (
                     <div
                       key={msg.id || `msg-${i}`}
@@ -478,44 +473,34 @@ export default function MobileSession({
                           setCheckpointOverlayOpen(true);
                         }}
                       >
+                        {/* Brass layer eyebrow — matches the Manual headers
+                            and the confirm overlay (no warm chapter tab). */}
                         {cpLayer && (
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: 2,
-                              left: 18,
-                              transform: "translateY(-100%)",
-                            }}
-                          >
-                            <TabPip layerId={cpLayer} />
-                          </span>
-                        )}
-                        {cpLayerName && (
                           <p
                             style={{
-                              margin: "0 4px 6px",
-                              fontFamily:
-                                "var(--font-spectral), var(--font-serif), serif",
-                              fontStyle: "italic",
-                              fontWeight: 400,
-                              fontSize: 15,
-                              lineHeight: 1.2,
-                              letterSpacing: "-0.005em",
-                              color: "var(--session-ink-mid)",
+                              margin: "0 4px 5px",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 10,
+                              fontWeight: 500,
+                              letterSpacing: "0.22em",
+                              textTransform: "uppercase",
+                              color: "var(--session-walnut-meta-strong)",
                             }}
                           >
-                            {cpLayerName}
+                            {formatLayerEyebrow(cpLayer)}
                           </p>
                         )}
                         <p
                           style={{
                             margin: "0 4px 14px",
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 10,
-                            fontWeight: 500,
-                            letterSpacing: "0.22em",
-                            textTransform: "uppercase",
-                            color: "var(--session-walnut-meta-strong)",
+                            fontFamily:
+                              "var(--font-spectral), var(--font-serif), serif",
+                            fontStyle: "italic",
+                            fontWeight: 400,
+                            fontSize: 13.5,
+                            lineHeight: 1.3,
+                            letterSpacing: "-0.005em",
+                            color: "var(--session-ink-mid)",
                           }}
                         >
                           Potential manual entry

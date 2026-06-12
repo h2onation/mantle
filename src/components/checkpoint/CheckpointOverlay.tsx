@@ -425,7 +425,7 @@ export default function CheckpointOverlay({
                       background: editing
                         ? "var(--session-walnut-highlight)"
                         : "none",
-                      border: `1px solid ${editing ? "rgba(170, 120, 82, 0.30)" : "var(--session-walnut-border)"}`,
+                      border: `1px solid ${editing ? "var(--session-walnut-meta)" : "var(--session-walnut-border)"}`,
                       borderRadius: 6,
                       padding: "6px 12px",
                       cursor: "pointer",

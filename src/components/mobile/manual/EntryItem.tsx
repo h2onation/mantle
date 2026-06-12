@@ -19,7 +19,6 @@ interface EntryItemProps {
     edits: { name?: string | null; content?: string }
   ) => Promise<UpdateEntryResult>;
   readOnly?: boolean;
-  isLast?: boolean;
 }
 
 /**
@@ -60,7 +59,6 @@ export default function EntryItem({
   onExploreWithPersona,
   onUpdateEntry,
   readOnly,
-  isLast,
 }: EntryItemProps) {
   const [expanded, setExpanded] = useState(readOnly ? true : false);
   const [editing, setEditing] = useState(false);
@@ -129,7 +127,21 @@ export default function EntryItem({
   }, [entry.id, entry.name, entry.body, onUpdateEntry, saving]);
 
   return (
-    <div style={{ position: "relative" }}>
+    <article
+      style={{
+        position: "relative",
+        background:
+          expanded || readOnly
+            ? "var(--session-cream-bright)"
+            : "var(--session-cream)",
+        border: "1px solid var(--session-hair)",
+        borderRadius: 10,
+        boxShadow: "var(--session-card-shadow)",
+        overflow: "hidden",
+        transition:
+          "background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+      }}
+    >
       <div
         onClick={toggle}
         role={readOnly || editing ? undefined : "button"}
@@ -146,7 +158,7 @@ export default function EntryItem({
           gridTemplateColumns: "1fr 14px",
           gap: 12,
           alignItems: "baseline",
-          padding: "var(--sp-sm) 0",
+          padding: "16px 18px",
           cursor: readOnly || editing ? "default" : "pointer",
           WebkitTapHighlightColor: "transparent",
         }}
@@ -157,12 +169,12 @@ export default function EntryItem({
           suppressContentEditableWarning
           style={{
             margin: 0,
-            fontFamily: "var(--font-spectral), var(--font-serif), serif",
-            fontStyle: "italic",
+            fontFamily: "var(--font-serif), serif",
+            fontStyle: "normal",
             fontWeight: 400,
-            fontSize: 16,
-            lineHeight: 1.38,
-            letterSpacing: "-0.003em",
+            fontSize: 19,
+            lineHeight: 1.22,
+            letterSpacing: "-0.005em",
             color: "var(--session-ink)",
             fontFeatureSettings: '"liga","dlig","kern"',
             textWrap: "balance" as React.CSSProperties["textWrap"],
@@ -197,7 +209,12 @@ export default function EntryItem({
       </div>
 
       {(expanded || readOnly) && (
-        <div style={{ padding: "0 22px var(--sp-sm) 0" }}>
+        <div
+          style={{
+            padding: "14px 18px 16px",
+            borderTop: "1px solid var(--session-hair-soft)",
+          }}
+        >
           <div
             ref={bodyRef}
             contentEditable={editing}
@@ -339,19 +356,7 @@ export default function EntryItem({
         </div>
       )}
 
-      {/* Dotted walnut hair between entries, indented 22px from the
-          left. Suppressed after the last entry so the Plate closes
-          cleanly. */}
-      {!isLast && (
-        <div
-          aria-hidden="true"
-          style={{
-            marginLeft: 22,
-            borderTop: "1px dotted var(--session-walnut-meta-soft)",
-          }}
-        />
-      )}
-    </div>
+    </article>
   );
 }
 

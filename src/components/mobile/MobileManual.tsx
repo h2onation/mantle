@@ -141,8 +141,8 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: "var(--sp-md)",
-            padding: "var(--sp-lg) 20px 40px",
+            gap: "var(--sp-lg)",
+            padding: "var(--sp-md) 20px 40px",
           }}
         >
           {layers.map((layer) =>

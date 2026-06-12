@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { type Layer } from "./layer-definitions";
 import LayerHeader from "./LayerHeader";
-import TabPip from "./TabPip";
 import { LAYER_EMPTY_STATUS, LAYER_EMPTY_INVITE } from "@/lib/manual/layers";
 import type { ExplorationContext } from "@/lib/types";
 
@@ -14,22 +13,11 @@ interface EmptyLayerProps {
 }
 
 /**
- * Empty Layer Plate — one resting state. The plate is the doorway.
- *
- * Composition (top to bottom):
- *   1. Pip tucked into the top-left edge.
- *   2. Per-layer accent hairline along the top (from LayerHeader).
- *   3. Title band: italic layer name + info chip.
- *   4. Status — italic sentence naming the absence AND what the
- *      layer is for in one breath ("Nothing about X yet").
- *   5. Invite — italic Jove-voiced sentence. The invitation in.
- *   6. "Explore with Jove" text-link — same mono-caps walnut
- *      affordance used inside populated entries.
- *
- * Visual signals of emptiness:
- *   • No entry rows under the title.
- *   • Plate has border + transparent fill, no shadow.
- *   • The prose itself names "Nothing… yet".
+ * Empty layer — the editorial header (numeral + name + rule + info)
+ * followed by a single quiet, tappable card that names the absence and
+ * invites the user in. The card is a doorway: hairline border, no fill,
+ * no shadow, so it reads as not-yet-written next to the solid entry
+ * cards of populated layers.
  */
 export default function EmptyLayer({
   layer,
@@ -51,26 +39,15 @@ export default function EmptyLayer({
     : undefined;
 
   return (
-    <div
+    <section
       style={{
         position: "relative",
         zIndex: popoverOpen ? 50 : "auto",
-        marginTop: 13,
       }}
     >
-      <span
-        style={{
-          display: "inline-block",
-          marginLeft: 16,
-          marginBottom: -2,
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
-        <TabPip layerId={layer.id} />
-      </span>
+      <LayerHeader layer={layer} onPopoverToggle={setPopoverOpen} />
 
-      <section
+      <div
         onClick={handleTap}
         role={canTap ? "button" : undefined}
         aria-label={canTap ? `Explore ${layer.name} with Jove` : undefined}
@@ -86,21 +63,15 @@ export default function EmptyLayer({
             : undefined
         }
         style={{
-          position: "relative",
-          borderRadius: 16,
-          borderTopLeftRadius: 1,
+          borderRadius: 10,
           background: "transparent",
-          border: "1px solid var(--session-walnut-border)",
-          boxShadow: "none",
-          padding: "20px var(--sp-sm) var(--sp-md)",
-          overflow: "visible",
+          border: "1px solid var(--session-hair-soft)",
+          padding: "16px 18px",
           cursor: canTap ? "pointer" : "default",
           WebkitTapHighlightColor: "transparent",
-          transition: "background-color 0.18s ease",
+          transition: "background-color 0.18s ease, border-color 0.18s ease",
         }}
       >
-        <LayerHeader layer={layer} onPopoverToggle={setPopoverOpen} />
-
         <p
           style={{
             margin: 0,
@@ -119,7 +90,7 @@ export default function EmptyLayer({
 
         <p
           style={{
-            margin: "10px 0 18px",
+            margin: "10px 0 16px",
             fontFamily: "var(--font-spectral), var(--font-serif), serif",
             fontStyle: "italic",
             fontWeight: 400,
@@ -150,7 +121,7 @@ export default function EmptyLayer({
           Explore with Jove
           <span aria-hidden="true" style={{ marginLeft: 5 }}>›</span>
         </span>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
