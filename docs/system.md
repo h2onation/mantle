@@ -88,7 +88,7 @@ The extraction layer is a Sonnet call that runs per turn and produces a structur
 
 **Input**: Last 6 messages only (3 exchanges) plus previous extraction state. The cumulative state carries all earlier signals forward.
 
-**First-checkpoint exception**: A lighter quality bar applies when the user has never had a checkpoint confirmed. Requires 1 concrete example (vs 2), mechanism OR behavior-driver link (vs both). This exists because the first checkpoint is a teaching moment that needs to land early while still being substantive.
+**First-checkpoint exception — RETIRED 2026-06-12**: The first checkpoint meets the same quality bar as every other (2 concrete examples, 2 distinct contexts, mechanism AND behavior-driver link, depth at mechanism). The old lighter bar ("teaching moment that needs to land early") reliably produced the user's thinnest entry as their first impression; THE DEAL in the first-message block now does the teaching up front. The `isFirstCheckpoint` parameters survive in signatures (underscore-prefixed) for call-site stability.
 
 ## Extraction State Shape
 
@@ -146,7 +146,7 @@ These are the rules that prevent the highest-severity bugs. Every one represents
 - Crisis text must never appear in manual entries.
 - `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForSage` and the server-side `validateMaterialQuality` gate).
 - Checkpoint gate is quality-based (concrete examples + mechanism + charged language), never turn-based.
-- First-checkpoint gate is intentionally lighter to enable the teaching moment.
+- The first checkpoint meets the same gate as every other (lighter first-checkpoint bar retired 2026-06-12).
 
 ## Manual Entries
 

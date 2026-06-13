@@ -357,8 +357,8 @@ describe("formatExtractionForPersona", () => {
     });
   });
 
-  describe("checkpoint readiness — first checkpoint (deeper everywhere)", () => {
-    it("ready with: 1 example + charged language + mechanism AND depth at mechanism", () => {
+  describe("checkpoint readiness — first checkpoint (same bar as every other; lighter gate retired 2026-06-12)", () => {
+    it("1 example is NOT ready for a first checkpoint — the thin gap names the missing scene", () => {
       const state = makeState({
         depth: "mechanism",
         checkpoint_gate: {
@@ -370,18 +370,37 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const result = formatExtractionForPersona(state, true);
-      expect(result).toContain("a real piece here you could reflect back");
+      expect(result).not.toContain("a real piece here you could reflect back");
+      expect(result).toContain("a concrete scene the user has walked through in detail");
     });
 
-    it("ready with: 1 example + charged language + behavior_driver_link AND depth at mechanism", () => {
+    it("mechanism OR link alone is NOT ready for a first checkpoint — both are required", () => {
       const state = makeState({
         depth: "mechanism",
         checkpoint_gate: {
-          concrete_examples: 1,
+          concrete_examples: 2,
           has_mechanism: false,
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 2,
+        },
+      });
+      const result = formatExtractionForPersona(state, true);
+      // The gateReady hint (names the strongest layer) must NOT render; the
+      // deep-but-thin fallback (cost/type still unreached) renders instead.
+      expect(result).not.toContain("The strongest layer is");
+      expect(result).toContain("you haven't reached what it would cost");
+    });
+
+    it("first checkpoint ready at the full bar: 2 examples + charged + mechanism + link + depth", () => {
+      const state = makeState({
+        depth: "mechanism",
+        checkpoint_gate: {
+          concrete_examples: 2,
+          has_mechanism: true,
+          has_charged_language: true,
+          has_behavior_driver_link: true,
+          strongest_layer: 1,
         },
       });
       const result = formatExtractionForPersona(state, true);
@@ -392,8 +411,8 @@ describe("formatExtractionForPersona", () => {
       const state = makeState({
         depth: "behavior",
         checkpoint_gate: {
-          concrete_examples: 1,
-          has_mechanism: false,
+          concrete_examples: 2,
+          has_mechanism: true,
           has_charged_language: true,
           has_behavior_driver_link: true,
           strongest_layer: 2,
@@ -408,7 +427,7 @@ describe("formatExtractionForPersona", () => {
       const state = makeState({
         depth: "mechanism",
         checkpoint_gate: {
-          concrete_examples: 1,
+          concrete_examples: 2,
           has_mechanism: true,
           has_charged_language: false,
           has_behavior_driver_link: true,

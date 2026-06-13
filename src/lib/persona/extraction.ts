@@ -199,7 +199,7 @@ Where is the conversation in its vertical descent?
 4. CHECKPOINT GATE
 Evaluate whether there is enough material for a meaningful checkpoint. This is purely a quality assessment. Number of turns is irrelevant.
 
-STANDARD GATE (all must be true):
+GATE (all must be true):
 - concrete_examples >= 2: Count of specific, concrete moments the user has walked you through. A concrete example requires: a specific moment in time, what happened, and what the user's body or system did. References to recurring situations ("when she's loud," "at work") do NOT count — the user must have narrated the scene, not just named the topic. Moments WITHIN a single incident still count separately here (a phone call where the user described four distinct beats produces concrete_examples = 4). The pattern-recurrence question is handled by distinct_contexts below.
 - distinct_contexts >= 2: Count of DIFFERENT lived situations the user has WALKED YOU THROUGH AS A SCENE. A scene means the user described what happened, when, with whom, and what they did or felt — narrated, not mentioned. Four moments inside one phone call is ONE distinct context. Two friendships described in two scenes is two distinct contexts.
 
@@ -227,15 +227,6 @@ STANDARD GATE (all must be true):
 - has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
 
 Mechanism per layer: For Layer ${WHAT_HELPS_LAYER} (${LAYER_NAMES[WHAT_HELPS_LAYER]}), "mechanism" means why-this-need-is-non-negotiable, not optional preference. For Layer ${STRENGTHS_LAYER} (${LAYER_NAMES[STRENGTHS_LAYER]}), "mechanism" means the conditions that activate the strength.
-
-FIRST-CHECKPOINT GATE (lighter, when "is_first_checkpoint" is true):
-The first checkpoint is a teaching moment. The user needs to experience the confirm-and-write loop quickly. Lighter bar:
-- concrete_examples >= 1: One vivid, specific moment is enough. The user must have narrated the scene (what happened, what they did or felt), not just referenced a topic or recurring situation.
-- distinct_contexts >= 1: One distinct situation is enough for the first checkpoint.
-- has_charged_language: true
-- has_mechanism OR has_behavior_driver_link: at least one.
-
-The first checkpoint should be accurate enough to confirm and feel like recognition. It does not need to be comprehensive.
 
 When the gate is met, identify strongest_layer: which layer has the most material, examples, and depth. Layers can hold many entries — there's no per-layer cap.
 
@@ -473,7 +464,10 @@ export async function runExtraction(
   conversationHistory: { role: "user" | "assistant"; content: string }[],
   previousState: ExtractionState | null,
   manualComponents: ManualEntry[],
-  isFirstCheckpoint: boolean
+  // Retained for signature stability across call sites; the first-checkpoint
+  // lighter gate was retired 2026-06-12 (one bar for every checkpoint).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _isFirstCheckpoint: boolean
 ): Promise<ExtractionState> {
   const state = previousState || defaultState();
 
@@ -493,8 +487,6 @@ export async function runExtraction(
     user_named_stance: state.user_named_stance,
   });
   userContent += "\n\n";
-
-  userContent += `is_first_checkpoint: ${isFirstCheckpoint}\n\n`;
 
   if (manualComponents.length > 0) {
     userContent += "CONFIRMED MANUAL ENTRIES:\n";
@@ -586,7 +578,10 @@ const SIGNAL_LABEL: Record<string, string> = {
 
 export function formatExtractionForPersona(
   state: ExtractionState,
-  isFirstCheckpoint: boolean,
+  // Retained for signature stability across call sites; the first-checkpoint
+  // lighter gate was retired 2026-06-12 (one bar for every checkpoint).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _isFirstCheckpoint: boolean,
   manualComponents?: { layer: number; name: string | null; content: string }[]
 ): string {
   let context = "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\n";
@@ -647,20 +642,22 @@ export function formatExtractionForPersona(
   // pre-existing behavior.
   const distinctContextsValue =
     typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
-  const minContexts = isFirstCheckpoint ? 1 : 2;
+  // One bar for every checkpoint. The first-checkpoint lighter gate
+  // ("teaching moment... quickly") was retired 2026-06-12: the user's first
+  // entry was reliably their thinnest, and THE DEAL in the first-message
+  // block now does the teaching up front. Fewer, deeper, later — from entry
+  // one.
+  const minContexts = 2;
   const contextsOk =
     distinctContextsValue === null || distinctContextsValue >= minContexts;
 
-  const gateReady = !isCrisis && contextsOk && (
-    isFirstCheckpoint
-      ? gate.concrete_examples >= 1 &&
-        gate.has_charged_language &&
-        (gate.has_mechanism || gate.has_behavior_driver_link)
-      : gate.concrete_examples >= 2 &&
-        gate.has_mechanism &&
-        gate.has_charged_language &&
-        gate.has_behavior_driver_link
-  );
+  const gateReady =
+    !isCrisis &&
+    contextsOk &&
+    gate.concrete_examples >= 2 &&
+    gate.has_mechanism &&
+    gate.has_charged_language &&
+    gate.has_behavior_driver_link;
 
   // Depth gate on the SOFT hint only. The hard checkpoint gate
   // (applyCheckpointGates) is unchanged — this governs what the brief
@@ -689,11 +686,11 @@ export function formatExtractionForPersona(
         "Stay in it. They've named what happens and how it feels. You haven't reached why it fires yet. Go for the mechanism underneath before you reflect anything back.\n";
     }
   } else if (gateReady) {
-    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath. Before you reflect: if a kind of person or situation keeps setting this off, don't settle what the type is until more instances and an exception have tested it — and check whether this is the same engine as something already in their Manual.\n`;
+    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath. Before you reflect: if a kind of person or situation keeps setting this off, don't settle what the type is until more instances and an exception have tested it — a yes to your list doesn't settle it; an exception they name or an instance they bring unasked does. And check whether this is the same engine as something already in their Manual.\n`;
   } else {
     // Deep enough, but the evidence is still thin. One soft line naming
     // the single most important gap — not the old multi-item checklist.
-    const minExamples = isFirstCheckpoint ? 1 : 2;
+    const minExamples = 2;
     let gap: string | null = null;
     if (gate.concrete_examples < minExamples) {
       gap = "a concrete scene the user has walked through in detail";

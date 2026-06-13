@@ -132,35 +132,34 @@ describe("validateMaterialQuality", () => {
     expect(result.reasons.join(" ")).not.toMatch(/charged phrase/);
   });
 
-  it("requires 1 scene for the first-checkpoint gate", () => {
+  // The first-checkpoint lighter bar was retired 2026-06-12: one bar for
+  // every checkpoint. These pins keep the flag from silently regaining
+  // meaning — a first checkpoint must fail and pass exactly like any other.
+  it("first checkpoint requires 2 scenes — 1 is not enough (lighter bar retired)", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(1),
       pattern_engaged: true,
-      depth: "feeling",
+      depth: "mechanism",
       checkpoint_gate: {
         concrete_examples: 1,
         has_mechanism: true,
         has_charged_language: true,
-        has_behavior_driver_link: false,
+        has_behavior_driver_link: true,
         strongest_layer: 1,
       },
     });
     const result = validateMaterialQuality(state, true);
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/concrete scenes 1\/2/);
   });
 
-  it("first-checkpoint gate fails when neither mechanism nor link is present", () => {
-    // Isolated to mechanism/link: engagement, depth, scene count, and charged
-    // material all satisfied so the mechanism-or-link clause is the only
-    // failing variable. The reason assertion makes a regression of that clause
-    // detectable — without it, a gate that stopped checking mechanism/link
-    // would silently let this pass.
+  it("first checkpoint requires mechanism AND behavior-driver link, like every other", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(1),
       pattern_engaged: true,
-      depth: "feeling",
+      depth: "mechanism",
       checkpoint_gate: {
-        concrete_examples: 1,
+        concrete_examples: 2,
         has_mechanism: false,
         has_charged_language: true,
         has_behavior_driver_link: false,
@@ -169,7 +168,8 @@ describe("validateMaterialQuality", () => {
     });
     const result = validateMaterialQuality(state, true);
     expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/mechanism or behavior-driver link/);
+    expect(result.reasons.join(" ")).toMatch(/no mechanism/);
+    expect(result.reasons.join(" ")).toMatch(/no behavior-driver link/);
   });
 
   it("standard gate passes when all four criteria are met", () => {
@@ -218,25 +218,17 @@ describe("validateMaterialQuality", () => {
     expect(result.reasons.join(" ")).toMatch(/need mechanism/);
   });
 
-  // The first-checkpoint depth threshold is "feeling" — one level
-  // lighter than the standard gate. Surface and behavior block; feeling,
-  // mechanism, and origin pass. Teaching-moment design.
-  it("first-checkpoint depth gate blocks at behavior but passes at feeling", () => {
+  // The first-checkpoint depth carve-out ("feeling is enough for a
+  // teaching-moment entry") was retired 2026-06-12. First checkpoints
+  // require mechanism depth like every other.
+  it("first-checkpoint depth gate blocks at feeling and passes at mechanism", () => {
     const baseGate = {
-      concrete_examples: 1,
+      concrete_examples: 2,
       has_mechanism: true,
       has_charged_language: true,
-      has_behavior_driver_link: false,
+      has_behavior_driver_link: true,
       strongest_layer: 1,
     };
-
-    const atBehavior = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "behavior",
-      checkpoint_gate: baseGate,
-    });
-    expect(validateMaterialQuality(atBehavior, true).ok).toBe(false);
 
     const atFeeling = makeExtractionState({
       language_bank: chargedBank(1),
@@ -244,7 +236,15 @@ describe("validateMaterialQuality", () => {
       depth: "feeling",
       checkpoint_gate: baseGate,
     });
-    expect(validateMaterialQuality(atFeeling, true).ok).toBe(true);
+    expect(validateMaterialQuality(atFeeling, true).ok).toBe(false);
+
+    const atMechanism = makeExtractionState({
+      language_bank: chargedBank(1),
+      pattern_engaged: true,
+      depth: "mechanism",
+      checkpoint_gate: baseGate,
+    });
+    expect(validateMaterialQuality(atMechanism, true).ok).toBe(true);
   });
 });
 
@@ -515,7 +515,7 @@ describe("deriveCheckpointApproaching", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(1),
       pattern_engaged: true,
-      depth: "feeling",
+      depth: "mechanism",
       layers: {
         1: { signal: "emerging", material: [], examples: [] },
         2: { signal: "emerging", material: [], examples: [] },
@@ -582,7 +582,7 @@ describe("deriveCheckpointApproaching", () => {
     const richButNotEngaged = makeExtractionState({
       language_bank: chargedBank(1),
       pattern_engaged: false,
-      depth: "feeling",
+      depth: "mechanism",
       layers: {
         1: { signal: "emerging", material: [], examples: [] },
         2: { signal: "none", material: [], examples: [] },
