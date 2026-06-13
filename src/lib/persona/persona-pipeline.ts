@@ -491,7 +491,10 @@ export function handleCrisisDetection(
  */
 export function validateMaterialQuality(
   extractionState: ExtractionState | null,
-  isFirstCheckpoint: boolean,
+  // Retained for signature stability across call sites; the first-checkpoint
+  // lighter bar was retired 2026-06-12 (one bar for every checkpoint).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _isFirstCheckpoint: boolean,
   turnCount?: number
 ): { ok: boolean; reasons: string[] } {
   // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
@@ -536,10 +539,11 @@ export function validateMaterialQuality(
   // happened" / "what they did," not "why this happens to them."
   // Structural backstop on top of has_mechanism — even if extraction's
   // per-flag check is generous, the depth reading catches the case
-  // where the conversation as a whole hasn't gone deep. For first
-  // checkpoint the lighter bar is "feeling" — the user has named
-  // what their body or system was doing, which is enough for a
-  // teaching-moment entry.
+  // where the conversation as a whole hasn't gone deep. The first
+  // checkpoint meets the same bar — the "feeling is enough for a
+  // teaching-moment entry" carve-out was retired 2026-06-12 (the user's
+  // first entry was reliably their thinnest; THE DEAL now teaches the
+  // loop up front).
   const DEPTH_ORDER = [
     "surface",
     "behavior",
@@ -547,7 +551,7 @@ export function validateMaterialQuality(
     "mechanism",
     "origin",
   ] as const;
-  const requiredDepth = isFirstCheckpoint ? "feeling" : "mechanism";
+  const requiredDepth = "mechanism";
   const currentDepthIdx = DEPTH_ORDER.indexOf(extractionState.depth);
   const requiredDepthIdx = DEPTH_ORDER.indexOf(requiredDepth);
   if (currentDepthIdx < requiredDepthIdx) {
@@ -556,7 +560,7 @@ export function validateMaterialQuality(
     );
   }
 
-  const minExamples = isFirstCheckpoint ? 1 : 2;
+  const minExamples = 2;
   if (gate.concrete_examples < minExamples) {
     reasons.push(
       `concrete scenes ${gate.concrete_examples}/${minExamples}`
@@ -569,7 +573,7 @@ export function validateMaterialQuality(
   // Falls back gracefully when the field is missing from extraction
   // states written before this field existed — undefined means "skip
   // this check" rather than failing closed.
-  const minContexts = isFirstCheckpoint ? 1 : 2;
+  const minContexts = 2;
   const distinctContexts =
     typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
   if (distinctContexts !== null && distinctContexts < minContexts) {
@@ -620,14 +624,8 @@ export function validateMaterialQuality(
         : "no high/medium charged phrase in language bank"
     );
   }
-  if (isFirstCheckpoint) {
-    if (!gate.has_mechanism && !gate.has_behavior_driver_link) {
-      reasons.push("no mechanism or behavior-driver link");
-    }
-  } else {
-    if (!gate.has_mechanism) reasons.push("no mechanism");
-    if (!gate.has_behavior_driver_link) reasons.push("no behavior-driver link");
-  }
+  if (!gate.has_mechanism) reasons.push("no mechanism");
+  if (!gate.has_behavior_driver_link) reasons.push("no behavior-driver link");
 
   return { ok: reasons.length === 0, reasons };
 }
