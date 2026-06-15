@@ -27,6 +27,7 @@ import {
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
+import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
   prepareManualContext,
   prepareManualContextBlocks,
@@ -238,6 +239,13 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  the builder default stays legacy so direct callers and tests are
    *  unaffected. */
   voiceVariant?: "legacy" | "rebuilt";
+  /** Admin-editable voice-text overrides (persona_voice_overrides table,
+   *  resolved once per turn in loadConversationContext). Each present field
+   *  replaces its code default at the resolution site (`?? CONSTANT`); absent
+   *  fields fall back to the shipped voice. Only CHARACTER and the operational
+   *  copy (openers, post-confirm line) are overridable — LIMITS, MECHANICS,
+   *  and the crisis/contract surfaces stay code-only. See voice-overrides.ts. */
+  voiceOverrides?: VoiceOverrides;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -321,6 +329,9 @@ export interface Tier3Flags {
    *  Gates the POST-SUPPRESSION block and suppresses the checkpoint-proposal
    *  instructions for that one turn (2026-06-03 loop fix). */
   priorCheckpointSuppressed: boolean;
+  /** Admin-editable voice-text overrides. Threaded so the opener and
+   *  post-confirm render sites can resolve `voiceOverrides?.x ?? CONSTANT`. */
+  voiceOverrides?: VoiceOverrides;
 }
 
 interface Tier3Block {
@@ -365,12 +376,12 @@ export const TIER_3_BLOCKS: readonly Tier3Block[] = [
     // typed message + Jove's reply to it (turnCount 3). After that the
     // base voice carries.
     shouldRender: (f) => f.turnCount <= 3 && f.isNewUser && f.mode === "situation",
-    render: () => `
+    render: (f) => `
 FIRST MESSAGE (new user, situation mode)
 
 OPENER (your first turn, when no user message has been typed yet)
 Deliver the opener below verbatim. Do not introduce yourself separately. Do not paraphrase.
-"${SITUATION_OPENER}"
+"${f.voiceOverrides?.situationOpener ?? SITUATION_OPENER}"
 
 ON THE USER'S FIRST MESSAGE
 The user has read your opener and is telling you what's on their mind. Two postures:
@@ -394,7 +405,7 @@ The user opted into a more directed path. Your job is to find the first piece of
 
 OPENER
 ${f.isReturningUser ? `This is a returning user — deliver the opener below without introducing yourself or greeting them.` : `You may briefly introduce yourself before the opener — one line, no fanfare.`}
-"${GUIDED_INTAKE_OPENER}"
+"${f.voiceOverrides?.guidedIntakeOpener ?? GUIDED_INTAKE_OPENER}"
 
 FALLBACK CHAIN
 If the user says "I don't know who to pick" or equivalent: widen the scope. "Who did you last have a conversation with that wasn't transactional?"
@@ -645,7 +656,7 @@ Your output must follow this exact shape:
 
 Saved.
 
-${POST_CONFIRM_FIRST_ENTRY_SCAFFOLD}
+${f.voiceOverrides?.postConfirmFirstEntry ?? POST_CONFIRM_FIRST_ENTRY_SCAFFOLD}
 
 [continuation-offer]
 
@@ -766,6 +777,7 @@ export interface Tier3FlagInput {
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
   postRejection?: boolean;
   priorCheckpointSuppressed?: boolean;
+  voiceOverrides?: VoiceOverrides;
 }
 
 /** Single source of truth for Tier-3 block gating. BOTH 1:1 builders
@@ -786,6 +798,7 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
     postConfirmMode = null,
     postRejection = false,
     priorCheckpointSuppressed = false,
+    voiceOverrides,
   } = input;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
@@ -815,6 +828,7 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
     postRejection,
     mode,
     priorCheckpointSuppressed,
+    voiceOverrides,
   };
   return flags;
 }
@@ -1037,7 +1051,9 @@ export function buildSystemPromptBlocks(
     }
 
     return {
-      tier1: REBUILT_CHARACTER,
+      // Admin-editable CHARACTER override (voice-overrides.ts); falls back to
+      // the shipped constant when no enabled override exists.
+      tier1: options.voiceOverrides?.character ?? REBUILT_CHARACTER,
       staticContext: rebuiltStatic,
       dynamic: rebuiltDynamic,
     };

@@ -22,6 +22,7 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
 import { getFeatureGates } from "./feature-gates";
+import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
@@ -63,6 +64,11 @@ export interface ConversationContext {
    *  extractionForPersona is also already cleared in this context, so Jove
    *  converses voice-only with no analysis steering it. */
   extractionEnabled: boolean;
+  /** Admin-editable voice-text overrides (persona_voice_overrides table),
+   *  resolved once per turn alongside the feature gates. Empty {} when no
+   *  enabled override exists, in which case every field falls back to its
+   *  code constant at the resolution site. */
+  voiceOverrides: VoiceOverrides;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -113,6 +119,7 @@ export async function loadConversationContext(
     lastCheckpointResult,
     profileResult,
     gates,
+    voiceOverrides,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -145,6 +152,9 @@ export async function loadConversationContext(
     // Global feature gates — folded into this existing parallel batch so
     // the per-turn read adds no extra round-trip. Fails open to all-ON.
     getFeatureGates(admin),
+    // Admin-editable voice-text overrides — same batch, same fail-open
+    // discipline (fails open to {} = all code defaults).
+    getVoiceOverrides(admin),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -314,6 +324,7 @@ export async function loadConversationContext(
     priorCheckpointSuppressed: gates.checkpoints && priorCheckpointSuppressed,
     checkpointsEnabled: gates.checkpoints,
     extractionEnabled: gates.extractionBrief,
+    voiceOverrides,
   };
 }
 
@@ -346,6 +357,9 @@ export function buildPromptOptionsFromContext(
     // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
     // LIVE_VOICE_VARIANT = "legacy" in config.ts.
     voiceVariant: LIVE_VOICE_VARIANT,
+    // Admin-editable voice-text overrides; empty {} falls back to all code
+    // defaults at each resolution site in system-prompt.ts.
+    voiceOverrides: ctx.voiceOverrides,
   };
 }
 

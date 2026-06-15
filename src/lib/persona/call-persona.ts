@@ -371,12 +371,16 @@ export function splitCheckpointLeadIn(
  *  thread from the conversation. Better generic-but-present than dead-end.
  *  The save itself already succeeded by the time this runs. */
 function buildPostConfirmFallback(
-  mode: "first-message-2" | "subsequent-single"
+  mode: "first-message-2" | "subsequent-single",
+  // Admin-editable post-confirm line; falls back to the shipped constant. Kept
+  // in sync with the Tier 3 POST-CONFIRM block, which resolves the same
+  // override (system-prompt.ts), so the fallback and the LLM path agree.
+  postConfirmLine: string = POST_CONFIRM_FIRST_ENTRY_SCAFFOLD,
 ): string {
   if (mode === "first-message-2") {
     return [
       "Saved.",
-      POST_CONFIRM_FIRST_ENTRY_SCAFFOLD,
+      postConfirmLine,
       "We could keep going with what we just touched, or pivot to something else if this is enough for now.",
     ].join("\n\n");
   }
@@ -441,6 +445,11 @@ export function callPersona({
 
   return new ReadableStream({
     async start(controller) {
+      // Hoisted so the post-confirm fallback in the catch block (which runs
+      // outside the try's scope where ctx lives) can use the admin-editable
+      // post-confirm line. Undefined until ctx loads → falls back to the
+      // shipped constant, which is also correct if the catch fires early.
+      let postConfirmLineOverride: string | undefined;
       try {
         // 0. Emit prepended assistant messages (Track A Phase 7-High).
         //    Used by 7e to deliver the first-lifetime Message 1 stamp
@@ -506,6 +515,7 @@ export function callPersona({
           userId,
           personaModesOverride
         );
+        postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
         const {
           messages,
           manualComponents,
@@ -1228,7 +1238,10 @@ export function callPersona({
         // movement. Sonnet wins when it works; the template wins when
         // Sonnet doesn't.
         if (postConfirmMode !== null) {
-          const fallbackText = buildPostConfirmFallback(postConfirmMode);
+          const fallbackText = buildPostConfirmFallback(
+            postConfirmMode,
+            postConfirmLineOverride,
+          );
           if (fallbackText) {
             try {
               const { data: fallbackRow } = await admin

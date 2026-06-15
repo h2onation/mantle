@@ -887,6 +887,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       priorCheckpointSuppressed: false,
       checkpointsEnabled: true,
       extractionEnabled: true,
+      voiceOverrides: {},
       mode,
     };
   }

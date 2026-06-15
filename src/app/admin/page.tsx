@@ -13,6 +13,7 @@ import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
+import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 type Section = "users" | "beta" | "feedback" | "health";
@@ -184,6 +185,7 @@ function AdminPageInner() {
               }}
             >
               <FeatureGatesPanel />
+              <VoiceEditorPanel />
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
               <ActiveUsersPanel />
