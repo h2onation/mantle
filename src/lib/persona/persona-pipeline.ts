@@ -581,20 +581,16 @@ export function validateMaterialQuality(
     );
   }
 
-  // Distinct-contexts gate (two-instance rule, promoted from prose).
-  // A pattern claim "this is how you operate" needs evidence across at
-  // least two contexts, not just multiple moments within one incident.
-  // Falls back gracefully when the field is missing from extraction
-  // states written before this field existed — undefined means "skip
-  // this check" rather than failing closed.
-  const minContexts = 2;
-  const distinctContexts =
-    typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
-  if (distinctContexts !== null && distinctContexts < minContexts) {
-    reasons.push(
-      `distinct contexts ${distinctContexts}/${minContexts}`
-    );
-  }
+  // Distinct-contexts is a STRENGTHENING signal, not a blocking gate
+  // (ADR-043 Decision 3, reaffirmed by ADR-045). A genuine recognition from
+  // a single vivid scene in the user's own charged language is saveable;
+  // requiring two contexts blocks exactly the single-powerful-moment case the
+  // recognition mechanism exists for. distinct_contexts still feeds
+  // validateHeadline's "can"/"sometimes" hedge for single-example entries —
+  // the over-claim is scoped by the title + the user's confirmation, not by a
+  // hard gate. (The code had drifted back to a hard >=2 block; soak iter 12
+  // even removed the first-checkpoint =1 escape. Realigned to the ADR
+  // 2026-06-15.)
 
   // Charged-material gate (Lock 1 — ADR-043). Deterministic check over the
   // real language_bank, replacing the model-reported has_charged_language

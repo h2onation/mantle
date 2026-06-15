@@ -189,6 +189,30 @@ describe("validateMaterialQuality", () => {
     expect(result.ok).toBe(true);
   });
 
+  // ADR-043 Decision 3 (reaffirmed ADR-045): distinct_contexts is a
+  // STRENGTHENING signal, never a blocking gate. A single vivid scene in the
+  // user's own charged language must be saveable. The code had drifted back to
+  // a hard >=2 block (and iter 12 removed the first-checkpoint =1 escape);
+  // realigned 2026-06-15. This pins it so the wall can't silently return.
+  it("does NOT block on a single distinct context (ADR-043 Decision 3)", () => {
+    const state = makeExtractionState({
+      language_bank: chargedBank(1),
+      pattern_engaged: true,
+      depth: "mechanism",
+      checkpoint_gate: {
+        concrete_examples: 2,
+        distinct_contexts: 1, // one deep scene
+        has_mechanism: true,
+        has_charged_language: true,
+        has_behavior_driver_link: true,
+        strongest_layer: 1,
+      },
+    });
+    const result = validateMaterialQuality(state, false);
+    expect(result.ok).toBe(true);
+    expect(result.reasons.join(" ")).not.toMatch(/distinct context/i);
+  });
+
   // Regression: the CP2-shape failure. Even with full checklist (2+
   // examples, distinct contexts, mechanism flag, charged language, driver
   // link), the gate must block when conversation depth has not reached
