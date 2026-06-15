@@ -100,6 +100,19 @@ These apply to every task. No exceptions.
 - **Design tokens**: Admin UI sources colors from CSS variables in `src/app/globals.css` (`--session-walnut-*`, `--session-persona*`, `--session-warning*`, etc.) — never inline `rgba()`/`rgb()` literals. The test in `src/lib/design-tokens.test.ts` enforces this on `src/app/admin/**` and `src/components/admin/**`. To add a real exception (e.g. a layer-identity gradient that no token expresses), update its `ALLOWLIST` with a one-line reason.
 - **Shipping**: Before merging to main, run `/ship` or manually update `docs/state.md` with what changed.
 
+## Code complexity limits (surface-and-pause, do NOT hard-block)
+
+- Targets, not walls: ~40 lines per function, complexity under 10, 3 levels nesting.
+- If a change would exceed a target, do NOT silently proceed and do NOT force an awkward split to stay under it.
+- Instead: stop, tell me which target you'd exceed, explain why you think the complexity is justified or why a split would make it worse, and wait for my decision.
+- The right design sometimes lives above these numbers. I decide that, not you.
+
+## Logic duplication (HARD BLOCK)
+
+- Before adding any conversational rule or decision logic, search for an existing version.
+- If the same decision exists elsewhere, do NOT proceed. Stop and tell me where it lives. We keep one source of truth. There is no approved case for two copies of the same rule.
+- This is the hard-block form of the "consolidate overlapping code" clause in **Removal-first / Complexity Gate** above — that clause covers all overlapping code; this one is the non-negotiable stop for conversational rules and decision logic.
+
 ## Migrations
 
 - For Supabase migrations: check for timestamp collisions with parallel branches and verify prod constraints before shipping. There is no automated migration pipeline — flag migration steps for the user to run by hand.
