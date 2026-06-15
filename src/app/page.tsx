@@ -72,8 +72,9 @@ export default function Landing() {
                   Mywalnut helps neurodivergent adults put words to how they
                   actually work, naming strengths as clearly as friction.
                   Through conversation, what you&apos;ve felt but never named
-                  becomes a working manual: one that sharpens how you understand
-                  yourself, and how the people who matter understand you too.
+                  becomes a working manual of how you operate — one that sharpens
+                  how you understand yourself, and how the people who matter
+                  understand you too.
                 </p>
                 <a className="hero-cta reveal" href="#contact">
                   Request beta access
@@ -99,15 +100,15 @@ export default function Landing() {
               <p className="prose stanza reveal">
                 Your partner thinks you don&apos;t care. Your manager reads your
                 quiet as disengagement. You keep ending up in the same
-                conversation.
+                conversations.
               </p>
               <p className="prose stanza reveal">
-                Masking hides the friction. It hides the strengths just as well.
-                The focus that goes deep. The patterns you catch first. The care
-                that doesn&apos;t always show. All of it goes quiet together.
+                Masking hides the friction as well as the strengths: the focus
+                that goes deep, the patterns you catch first, the care that
+                doesn&apos;t always show. All of it goes quiet together.
               </p>
               <p className="prose stanza reveal">
-                Mywalnut is built for late diagnosed autistic adults, with extra
+                Mywalnut is built for late-diagnosed autistic adults, with extra
                 thoughtfulness for where ADHD and dyslexia overlap. People who
                 have spent years masking and want to understand the more honest
                 layer of themselves.
@@ -129,7 +130,8 @@ export default function Landing() {
                 <p className="step-body">
                   A conflict that keeps repeating. A reaction that surprised you.
                   A strength you can&apos;t quite name. Start the conversation.
-                  Paste in a text thread or journal. Or let Jove guide you.
+                  Paste in a text thread or journal. Or let Jove, Mywalnut&apos;s
+                  AI conversational partner, guide you.
                 </p>
               </div>
               <div className="step reveal">
@@ -163,31 +165,32 @@ export default function Landing() {
               <p className="eyebrow">What you build</p>
               <h2>The Manual</h2>
               <p className="prose">
-                A living document you build over time, in your own voice. It
-                holds your strengths and your friction equally.
+                A living, shareable document you build over time, from your own
+                words. It holds your strengths and your friction equally, and
+                nothing goes in without your say-so.
               </p>
             </div>
             <div className="col-right reveal">
               <ul className="layers">
                 <li>
                   <span className="ln">01</span>
-                  <span>The patterns people misread</span>
+                  <span>Where you&apos;re strong</span>
                 </li>
                 <li>
                   <span className="ln">02</span>
-                  <span>How you process</span>
+                  <span>The patterns people misread in you</span>
                 </li>
                 <li>
                   <span className="ln">03</span>
-                  <span>What helps you function</span>
+                  <span>How you process the world</span>
                 </li>
                 <li>
                   <span className="ln">04</span>
-                  <span>How you show up with people</span>
+                  <span>What helps you function at your best</span>
                 </li>
                 <li>
                   <span className="ln">05</span>
-                  <span>Where you&apos;re strong</span>
+                  <span>How you show up with people</span>
                 </li>
               </ul>
             </div>
@@ -227,6 +230,22 @@ export default function Landing() {
                 <p>
                   Share your Manual as a page you control. The people you choose
                   read it. They finally understand how you work.
+                </p>
+              </div>
+              <div className="card reveal">
+                <h3>Built with guardrails</h3>
+                <p>
+                  A safe place to explore yourself, with care that general AI
+                  chat tools don&apos;t build in. It knows its limits, and when
+                  to point you toward real help.
+                </p>
+              </div>
+              <div className="card reveal">
+                <h3>Grounded, not guesswork</h3>
+                <p>
+                  Mywalnut isn&apos;t therapy. It draws on established approaches
+                  to self-understanding and on research led by neurodivergent
+                  people.
                 </p>
               </div>
               <div className="card card-wide reveal">
@@ -285,9 +304,10 @@ export default function Landing() {
             <a href="mailto:jeff@mywalnut.app">jeff@mywalnut.app</a>
           </p>
           <p className="foot-legal">
-            Mywalnut is a self understanding tool, not a therapy, diagnostic, or
-            clinical service. If you&apos;re in crisis, contact 988 or text HOME
-            to 741741.
+            Mywalnut is a tool for self-understanding and is not therapy, a
+            diagnostic tool, or a clinical service.
+            <br />
+            If you&apos;re in crisis, call 988 or text HOME to 741741.
           </p>
         </div>
       </footer>
