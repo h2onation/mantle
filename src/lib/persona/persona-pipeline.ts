@@ -23,6 +23,12 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
 import { getFeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
+import {
+  getCheckpointTuning,
+  CHECKPOINT_TUNING_DEFAULTS,
+  DEPTH_LEVELS,
+  type CheckpointTuning,
+} from "./checkpoint-tuning";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
@@ -69,6 +75,11 @@ export interface ConversationContext {
    *  enabled override exists, in which case every field falls back to its
    *  code constant at the resolution site. */
   voiceOverrides: VoiceOverrides;
+  /** Admin-editable checkpoint-firing thresholds (checkpoint_tuning table),
+   *  resolved once per turn alongside the feature gates. Read by call-persona
+   *  /persona-bridge to gate a detected checkpoint. Every dial falls back to
+   *  its code default (CHECKPOINT_TUNING_DEFAULTS) on a missing/invalid value. */
+  checkpointTuning: CheckpointTuning;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -120,6 +131,7 @@ export async function loadConversationContext(
     profileResult,
     gates,
     voiceOverrides,
+    checkpointTuning,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -155,6 +167,9 @@ export async function loadConversationContext(
     // Admin-editable voice-text overrides — same batch, same fail-open
     // discipline (fails open to {} = all code defaults).
     getVoiceOverrides(admin),
+    // Admin-editable checkpoint-firing thresholds — same batch, fails open to
+    // CHECKPOINT_TUNING_DEFAULTS (the shipped code values) on any error.
+    getCheckpointTuning(admin),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -300,7 +315,8 @@ export async function loadConversationContext(
   const checkpointApproaching = deriveCheckpointApproaching(
     previousExtraction,
     isFirstCheckpoint,
-    turnCount
+    turnCount,
+    checkpointTuning
   );
 
   return {
@@ -325,6 +341,7 @@ export async function loadConversationContext(
     checkpointsEnabled: gates.checkpoints,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
+    checkpointTuning,
   };
 }
 
@@ -509,7 +526,11 @@ export function validateMaterialQuality(
   // lighter bar was retired 2026-06-12 (one bar for every checkpoint).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _isFirstCheckpoint: boolean,
-  turnCount?: number
+  turnCount?: number,
+  // Admin-tunable firing thresholds. Defaults to the shipped code floor, so
+  // every existing caller and test behaves exactly as before unless the
+  // pipeline passes the DB-loaded values.
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
 ): { ok: boolean; reasons: string[] } {
   // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
   // state means no ripeness condition can be verified, charged material
@@ -530,10 +551,11 @@ export function validateMaterialQuality(
   }
 
   // Phase gate: pattern must be engaged before checkpoint can fire.
-  // Override at turn 12+: if extraction missed the engagement signal
-  // but material quality is otherwise strong, allow the checkpoint.
+  // Override past the failsafe turn (tuning.failsafeTurn, code default 12):
+  // if extraction missed the engagement signal but material quality is
+  // otherwise strong, allow the checkpoint.
   if (!extractionState.pattern_engaged) {
-    if (turnCount === undefined || turnCount < 12) {
+    if (turnCount === undefined || turnCount < tuning.failsafeTurn) {
       return { ok: false, reasons: ["pattern not yet engaged in conversation"] };
     }
     if (process.env.NODE_ENV !== "production") {
@@ -558,23 +580,18 @@ export function validateMaterialQuality(
   // teaching-moment entry" carve-out was retired 2026-06-12 (the user's
   // first entry was reliably their thinnest; THE DEAL now teaches the
   // loop up front).
-  const DEPTH_ORDER = [
-    "surface",
-    "behavior",
-    "feeling",
-    "mechanism",
-    "origin",
-  ] as const;
-  const requiredDepth = "mechanism";
-  const currentDepthIdx = DEPTH_ORDER.indexOf(extractionState.depth);
-  const requiredDepthIdx = DEPTH_ORDER.indexOf(requiredDepth);
+  // DEPTH_LEVELS is the shared shallow→deep ordering (checkpoint-tuning.ts),
+  // also the allowed values for the depth_floor dial.
+  const requiredDepth = tuning.depthFloor;
+  const currentDepthIdx = DEPTH_LEVELS.indexOf(extractionState.depth);
+  const requiredDepthIdx = DEPTH_LEVELS.indexOf(requiredDepth);
   if (currentDepthIdx < requiredDepthIdx) {
     reasons.push(
       `depth at ${extractionState.depth} (need ${requiredDepth} or deeper)`
     );
   }
 
-  const minExamples = 2;
+  const minExamples = tuning.minScenes;
   if (gate.concrete_examples < minExamples) {
     reasons.push(
       `concrete scenes ${gate.concrete_examples}/${minExamples}`
@@ -671,7 +688,8 @@ export function validateMaterialQuality(
 export function deriveCheckpointApproaching(
   previousExtraction: ExtractionState | null | undefined,
   isFirstCheckpoint: boolean,
-  turnCount: number
+  turnCount: number,
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
 ): boolean {
   if (!previousExtraction) return false;
 
@@ -703,7 +721,8 @@ export function deriveCheckpointApproaching(
   return validateMaterialQuality(
     previousExtraction,
     isFirstCheckpoint,
-    turnCount
+    turnCount,
+    tuning
   ).ok;
 }
 
@@ -714,7 +733,8 @@ export function deriveCheckpointApproaching(
  * to compose and discard.
  *
  * Rule 1: Pattern engagement + material quality (validateMaterialQuality).
- * Rule 2: Suppress if fewer than 5 user turns since last checkpoint.
+ * Rule 2: Suppress if fewer than `tuning.cooldownTurns` (code default 5) user
+ *         turns have passed since the last checkpoint.
  *
  * Returns `{ passed: true }` when the checkpoint should proceed, or
  * `{ passed: false, reason }` when one of the gates fired. The reason
@@ -724,14 +744,16 @@ export function applyCheckpointGates(
   turnsSinceCheckpoint: number,
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean,
-  turnCount?: number
+  turnCount?: number,
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
 ): CheckpointGateResult {
   // Rule 1: pattern engagement + material-quality pre-emit gate
   if (extractionState !== undefined) {
     const quality = validateMaterialQuality(
       extractionState ?? null,
       isFirstCheckpoint ?? false,
-      turnCount
+      turnCount,
+      tuning
     );
     if (!quality.ok) {
       const reason = quality.reasons.join("; ");
@@ -746,8 +768,8 @@ export function applyCheckpointGates(
   }
 
   // Rule 2: turn-count suppression
-  if (turnsSinceCheckpoint < 5) {
-    const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum 5)`;
+  if (turnsSinceCheckpoint < tuning.cooldownTurns) {
+    const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum ${tuning.cooldownTurns})`;
     if (process.env.NODE_ENV !== "production") {
       console.log("[persona-pipeline] Checkpoint suppressed: %s", reason);
     }

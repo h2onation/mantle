@@ -191,7 +191,8 @@ export async function processTextMessage(
       ctx.turnsSinceCheckpoint,
       ctx.previousExtraction,
       ctx.isFirstCheckpoint,
-      ctx.turnCount
+      ctx.turnCount,
+      ctx.checkpointTuning
     );
     if (!gateResult.passed) {
       isCheckpoint = false;

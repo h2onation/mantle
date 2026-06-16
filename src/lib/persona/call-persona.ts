@@ -819,7 +819,8 @@ export function callPersona({
           turnsSinceCheckpoint,
           previousExtraction,
           isFirstCheckpoint,
-          turnCount
+          turnCount,
+          ctx.checkpointTuning
         );
 
         // 11b. Save extraction snapshot. The column is guaranteed present in the

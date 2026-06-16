@@ -10,6 +10,7 @@ import {
   type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
+import { CHECKPOINT_TUNING_DEFAULTS } from "@/lib/persona/checkpoint-tuning";
 import type { ExtractionState, LanguageEntry } from "@/lib/persona/extraction";
 
 function makeExtractionState(
@@ -912,6 +913,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       checkpointsEnabled: true,
       extractionEnabled: true,
       voiceOverrides: {},
+      checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
       mode,
     };
   }
