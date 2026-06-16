@@ -246,28 +246,44 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
       ? parsed.acknowledgment.trim()
       : "";
 
-  // Headline validation (log-only). Single-call policy: the title is
-  // composed once, by the main composer, which carries the full headline
-  // rules (subject is "I", observable verb, named trigger, banned
-  // subjects, single-example softener). We do NOT fire a second model
-  // call to rewrite the title — a sloppy title is fixed in the one
-  // prompt, not patched by a follow-up call. This deterministic check
-  // runs once on the result purely for tuning visibility: if a title
-  // still fails structurally, it ships as composed and we log it so the
-  // composer prompt can be sharpened. Never blocks the entry.
+  // Headline enforcement (2026-06-16). The title is the most-missed output:
+  // the in-prompt rules don't bind under load (a real prod entry shipped a
+  // feeling-state, scenario-specific title despite the prompt banning both).
+  // So on a HARD failure — non-"I" subject, feeling-state subject, or a
+  // banned felt-state verb the user never said — fire ONE focused title-only
+  // retry. It fires only on hard failures, so the extra call is bounded to
+  // the miss rate; soft issues (word count, single-example hedge) still ship
+  // as composed and are logged. Delete this block if titles stop hard-failing.
   const isSingleExample =
     typeof distinctContexts === "number" && distinctContexts <= 1;
-  const finalName = parsed.name || "Untitled";
-  // The user's own words. Lets the headline validator honor a "felt-state"
-  // verb (lose myself, fade, etc.) when it is the user's exact phrase.
+  let finalName = parsed.name || "Untitled";
+  // The user's own words. Lets the validator honor a "felt-state" verb
+  // (lose myself, fade, etc.) when it is the user's exact phrase.
   const userMessageText = conversationHistory
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join(" ");
-  const headlineCheck = validateHeadline(finalName, isSingleExample, userMessageText);
+  let headlineCheck = validateHeadline(finalName, isSingleExample, userMessageText);
+  if (headlineCheck.hardFail) {
+    const retried = await recomposeHeadline({
+      failingTitle: finalName,
+      reasons: headlineCheck.reasons,
+      checkpointText,
+      userText: userMessageText,
+      isSingleExample,
+    });
+    if (retried) {
+      const retryCheck = validateHeadline(retried, isSingleExample, userMessageText);
+      if (!retryCheck.hardFail) {
+        finalName = retried;
+        headlineCheck = retryCheck;
+      }
+    }
+  }
   if (!headlineCheck.ok) {
     console.warn(
-      "[composeManualEntry] Headline failed validation (shipping as composed, single-call policy): %s",
+      "[composeManualEntry] Headline failed validation%s: %s",
+      headlineCheck.hardFail ? " (hard, retry unresolved)" : " (soft, shipped)",
       headlineCheck.reasons.join("; ")
     );
   }
@@ -325,46 +341,50 @@ function findUniversalToneViolations(
 // ─── Headline validator + focused retry composer ───────────────────────────
 
 /**
- * Structural validator for composed headlines. Catches the failures the
- * main composition prompt is supposed to prevent but routinely lets
- * through — non-"I" subject, internal/abstract verbs, missing trigger
- * word, missing "can"/"sometimes" softener when the entry came from a
- * single example. Returns `{ok, reasons}` so the caller can decide
- * whether to retry. Word-count check is lenient (4-10) rather than the
- * prompt's stated 4-8 because the composition prompt's own "good"
- * exemplars include headlines up to 11 words — the other axes are the
- * load-bearing ones.
+ * Structural validator for composed headlines. Splits failures into HARD
+ * (unambiguous: non-"I" subject, feeling-state subject, banned felt-state
+ * verb the user never said) and SOFT (word count, single-example hedge). The
+ * caller RETRIES on hardFail and only logs the soft ones. The old "trigger
+ * word required" check was removed 2026-06-16: behavioral titles ("I reach
+ * for more depth than I get back") express the condition without a literal
+ * when/before/after, so that check mis-flagged good titles. Word count is
+ * lenient (4-12) for the same reason.
  */
 export function validateHeadline(
   headline: string,
   isSingleExample: boolean,
   userText: string = ""
-): { ok: boolean; reasons: string[] } {
-  const reasons: string[] = [];
+): { ok: boolean; reasons: string[]; hardFail: boolean } {
+  const hard: string[] = [];
+  const soft: string[] = [];
   const trimmed = headline.trim();
   const words = trimmed.split(/\s+/).filter(Boolean);
 
-  if (words.length < 4 || words.length > 10) {
-    reasons.push(`word count ${words.length} (need 4-10)`);
+  // SOFT: length. Behavioral titles run a little longer than the prompt's
+  // stated 4-8, so the gate is lenient and shipped-with-a-warning, not retried.
+  if (words.length < 4 || words.length > 12) {
+    soft.push(`word count ${words.length} (need 4-12)`);
   }
 
-  // Subject test: first word must be "I". Catches body-part-as-agent
-  // ("Stomach Pushes Me to Fix the Call") and nominalization-as-agent
-  // ("Worst-Case Loop Fills the Processing") in one shot.
+  // HARD: subject must be "I". Catches body-part-as-agent ("Stomach Pushes
+  // Me…"), nominalization-as-agent ("Worst-Case Loop Fills…"), and the
+  // scenario-noun-as-subject failure ("The Decisions About Him Are Ones I…").
   if (!/^I\b/.test(trimmed)) {
-    reasons.push("subject is not 'I'");
+    hard.push("subject is not 'I'");
   }
 
-  // Feeling-state subject (2026-06-16): "I feel/felt/am alone…" or "I'm…" names
-  // a felt state, not an observable behavior — the exact failure class the
-  // behavioral-title rule targets ("I Feel Alone When He Doesn't Reach Back").
-  // Log-only like the rest of this function; the caller does not block on it.
+  // HARD: feeling-state subject ("I feel/felt/am alone…" / "I'm…") names a
+  // state, not the observable behavior the title must name ("I Feel Alone When
+  // He Doesn't Reach Back" — the real prod failure this enforces against).
   if (/^I(?:'m|\s+(?:feel|felt|am))\b/i.test(trimmed)) {
-    reasons.push("feeling-state subject ('I feel/am…') — name the behavior, not the state");
+    hard.push("feeling-state subject ('I feel/am…') — name the behavior, not the state");
   }
 
-  // Banned internal/abstract verbs from confirm-checkpoint composition
-  // prompt. These describe a felt state, not an observable action.
+  // HARD: banned internal/abstract verbs (felt states, not actions) — UNLESS
+  // the user said the exact word themselves, in which case their truest
+  // self-description wins (mirror-exact-language carve-out, 2026-06-03):
+  // "I Lose Myself When the Verdict Isn't In" stands if they said "lose
+  // myself." The ban still fires for any banned verb the user never said.
   const BANNED_VERBS: RegExp[] = [
     /\bdisappear/i,
     /\bvanish/i,
@@ -377,39 +397,67 @@ export function validateHeadline(
     /\bbreak open\b/i,
     /\bshut down inside\b/i,
   ];
-  // Mirror-exact-language carve-out (2026-06-03): a "felt-state" verb is
-  // only banned when it is Jove's word, not the user's. If the user's own
-  // messages contain that exact phrase (they literally said "I lose
-  // myself"), it is their truest self-description and wins over the ban —
-  // this is what lets the title name the pattern in the user's words
-  // ("I Lose Myself When the Verdict Isn't In") instead of a narrowed
-  // observable proxy ("I Scan Before Speaking Around New People"). The ban
-  // still fires for any banned verb the user never said, so vague/poetic
-  // titles ("I Disappear...", body-part-as-agent) are still rejected.
   for (const re of BANNED_VERBS) {
     if (re.test(trimmed) && !re.test(userText)) {
-      reasons.push(`abstract/internal verb matched ${re.source}`);
+      hard.push(`abstract/internal verb matched ${re.source}`);
     }
   }
 
-  // Trigger word required: when/before/after/while/once/if signal the
-  // specific condition that fires the behavior. Without one, the
-  // headline names a what but not a when — exactly the failure mode
-  // the composition prompt's "REQUIRED: name a SPECIFIC TRIGGER"
-  // section is trying to prevent.
-  if (!/\b(when|before|after|while|once|if)\b/i.test(trimmed)) {
-    reasons.push("no trigger word (when/before/after/while/once/if)");
-  }
-
-  // Softener required when the user gave only one example. "Can" or
-  // "sometimes" prevents over-claiming a recurring pattern from a
-  // single data point. "Keep"/"always"/etc. are intensifiers and do
-  // NOT count as softeners.
+  // SOFT: single-example softener. "Can"/"sometimes" prevents over-claiming a
+  // recurring pattern from one data point. Logged, not retried.
   if (isSingleExample && !/\b(can|sometimes)\b/i.test(trimmed)) {
-    reasons.push("single-example headline missing 'can' or 'sometimes' softener");
+    soft.push("single-example headline missing 'can' or 'sometimes' softener");
   }
 
-  return { ok: reasons.length === 0, reasons };
+  const reasons = [...hard, ...soft];
+  return { ok: reasons.length === 0, reasons, hardFail: hard.length > 0 };
+}
+
+/**
+ * Focused title-only retry. Fired by composeManualEntry ONLY when
+ * validateHeadline reports a hard failure — the title rules don't bind in the
+ * main composition prompt under load, so a structurally-broken title gets one
+ * targeted rewrite rather than shipping as-is. One small model call, only on
+ * the miss path. Returns the rewritten title, or null on any failure (caller
+ * keeps the original).
+ */
+async function recomposeHeadline(opts: {
+  failingTitle: string;
+  reasons: string[];
+  checkpointText: string;
+  userText: string;
+  isSingleExample: boolean;
+}): Promise<string | null> {
+  const hedge = opts.isSingleExample
+    ? ` Only one example was given, so hedge: start "I can…" or include "sometimes."`
+    : "";
+  const system = `Rewrite ONE Manual entry title so it names a BEHAVIOR.
+A title is a short first-person sentence the user would say to a friend: what they DO and what sets it off ("I go quiet when someone waits for my answer"). Start with "I" and an observable verb. NEVER a feeling-state ("I feel alone…"), NEVER scenario-specific (no names, no "with him" — that lives in the entry body), NEVER an image.${hedge}
+Return ONLY the rewritten title — no quotes, no surrounding punctuation, no explanation.`;
+  const user = `Current title (rejected — ${opts.reasons.join("; ")}):
+${opts.failingTitle}
+
+The reflection it should title:
+${opts.checkpointText}
+
+The person's own words to draw from:
+${opts.userText}`;
+  try {
+    const response = await anthropicFetch({
+      model: COMPOSITION_MODEL,
+      max_tokens: 64,
+      system,
+      messages: [{ role: "user", content: user }],
+    });
+    const text = extractResponseText(response)
+      .trim()
+      .replace(/^["']|["']$/g, "")
+      .trim();
+    return text.length > 0 ? text : null;
+  } catch (err) {
+    console.error("[recomposeHeadline] retry failed:", err);
+    return null;
+  }
 }
 
 interface ConfirmCheckpointOptions {
