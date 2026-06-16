@@ -127,117 +127,35 @@ export async function composeManualEntry(
     ? `\nWHERE THIS CONVERSATION GOT TO (compose from this understanding, not just the recent messages above):\n${depthBrief}\n`
     : "";
 
-  const system = `You compose manual entries for a self-authored Manual. You receive a checkpoint reflection from a conversationalist called ${PERSONA_NAME} and the recent conversation. Your job is to distill this into a structured entry that reads as the user describing themselves to themselves.
+  const system = `You compose Manual entries for a self-authored Manual. You take a checkpoint reflection from a conversationalist called ${PERSONA_NAME} plus the recent conversation, and turn it into one entry that reads as the user describing themselves to themselves — in their own words.
 
-THE ENTRY (field: "content")
-Statement + passage as continuous prose. The statement is the first sentence: one line, first person, the truest description of the pattern. Hard cap around 20 words. Below that the rhythm carries it.
+THE BAR — what makes an entry land: it names the mechanism running underneath the user's own behavior so exactly that they feel both seen and a little caught off guard — "how did it see that. I never put it together that way." Not a summary they would nod at; a recognition that reorganizes how they see themselves. If they could have written the line before this conversation, it is not deep enough. Go to the part they could not see from inside.
+  Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
+  Deeper: "Half my system answers. The other half monitors how the answer will land, and the monitoring half is louder, so it wins the resources. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop. The one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
-The passage follows immediately. 80+ words. It makes these moves in any order:
-- Specificity in the first half. A concrete situation the user described, not an abstract claim.
-- A reframe somewhere. The pattern is not what it looks like on the surface. Name what it actually is.
-- Conditions or texture. When it fires hardest. What makes it different from the surface read. The user's own noticing.
-- What changes now. If the conversation produced a clear stance ("I need people to X" or "I'm going to stop doing Y"), land it in the passage. If the user sees the pattern but hasn't landed on a stance, use their own words about where they are. If they said nothing about stance, omit. Do not fabricate a takeaway. This is not advice or a treatment plan. It flows naturally in the prose, not as a separate section.
+content — a statement, then a passage, as continuous prose:
+- Statement (the first sentence): the BEHAVIORAL pattern, first person, around 20 words or under. What the user does and what reliably sets it off, as a portable truth about how they operate. Not this one scene. Not a feeling ("I feel alone"). The behavior.
+- Passage (80+ words): ground the pattern in the actual moment they described — the specific person, the situation, what it cost — and name what the pattern protects and what it costs. The specific example lives HERE, never in the statement. If they landed a stance of their own ("I need people to…", "I'm going to stop…"), keep it in their words. If not, leave it out. Never invent a takeaway. This is not advice.
 
-STUDY THESE EXEMPLARS FIRST. They are the bar. Imitate this depth before you worry about the rules below. The rules tell you what to avoid. These show you what to reach for.
+A strength is held to the same bar and gets the same depth. Name the capability and the conditions that bring it out. A strength is allowed to just be a strength — never bend it into a hidden cost the user did not raise.
 
-The single most important move: GO ONE LEVEL DEEPER. A recap replays what the user already said in better words. A real entry names the part they couldn't see from inside. If they could have written the sentence themselves before this conversation, it's a recap. Go past it.
-  Recap: "You avoid hard conversations because they stress you out."
-  Deeper: "I don't avoid the conversation. I avoid the second I'd have to watch it land wrong on someone. The talking was never the hard part. The hard part is the face changing across from me."
+name (the headline): the behavioral pattern as a short sentence the user would say to a friend — what they DO and what triggers it ("I go quiet when someone waits for my answer"). Behavioral, never scenario-specific (no "with him," no names — that is body material), never a feeling-state ("I feel alone when…"), never an image ("…when I reach and he doesn't reach back"). If the evidence is a single instance, hedge with "can" or "sometimes."
 
-Friction example.
-  Recap: "When my manager checks in, my chest gets tight. My mind goes blank even though I know the answer."
-  Right: "Half my system answers. The other half monitors how the answer will land. The monitoring half is louder, so it wins the resources. I hesitate. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop monitoring because the one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
+NON-NEGOTIABLES
+- The user's exact charged words carry in verbatim — their body, sensory, and system words ("buzzing," "too loud," "went offline," "racing," "shut down," "heavy"). Never upgrade their vocabulary into something more elegant, and never into clinical language. No clinical framework names, even to negate one: no "dissociation," "masking," "schema," "attachment style," "dysregulation," "executive dysfunction," "rejection sensitive dysphoria," "sensory overwhelm," "trauma response." Describe the behavior and the body instead.
+- Stay in the user's frame. The entry is about the thing THEY named, not a sharper angle you found. Claim only as wide as their evidence reaches — the body carries the scope.
+- First person. No references to the session or to time. It reads the same six months from now.
 
-Strength example. Strengths get the SAME care and the same depth. Name the capability and the conditions that bring it out. Do not bend it into a hidden cost or a downside the user never raised. A strength is allowed to just be a strength.
-  Recap: "I'm good at focusing on a problem for a long time."
-  Right: "When a problem has a real edge to it, I drop in and the rest of the room goes quiet. Hours pass and I don't clock them. It isn't discipline. It's that the problem is more interesting than anything else competing for me. The same depth that makes me lose track of time is what lets me find the thing everyone else walked past."
+LAYER (field: "layer", 1-5): pick the layer whose dimensions (shown in the input) best describe what the entry IS. Prefer a layer that already holds related entries so this integrates rather than scatters.
 
-Stay in the user's frame. The entry's subject is the thing THEY named as the problem, in their words, not a more interesting angle you found. If they came in about one thing and you write the entry about a different thing, you have substituted your read for theirs. Keep their driver as the spine. A nearby thread can appear, but it does not take over the entry. Pitch the entry at the altitude of the pattern they named, not a narrow single moment of it.
-  Substituted frame (wrong): "I leave the room instead of asking him to turn the music down. I manage the discomfort alone rather than risk his reaction." (The user led with a sensory need. The sound drains them, they want quiet. This makes the entry about conflict-avoidance, a thread they did not lead with.)
-  User's frame (right): "When I'm already tired, the sound takes over my space and I can't get to quiet. It drains me before I can name it. There is a real fear that asking will set him off, so I end up holding the load myself. But the thing I actually need is simple. Quiet I get to choose." (The sensory need stays the spine. The relational fear is present but does not replace it.)
+ACKNOWLEDGMENT (field: "acknowledgment"): one plain sentence, 12-22 words, second person, that quotes the specific moment from the user's last turn(s) and ends with the intent to mark it ("…I want to put that down"). Plain spoken, no therapy voice. If there is no quotable specific, return "".
 
-VOICE RULES:
-- First person. The user is the author. "I" not "You."
-- No phrase a person wouldn't use about themselves out loud, to someone they trust, on a normal day. Read every sentence back and ask: would a person actually say this about themselves? "I turn away before the reach" — no. "I turn away before they can ask me" — yes. Plain spoken language. No nominalizations ("the reach," "the ask," "the pull"). Use verbs, not nouns pretending to be verbs.
-- No session references ("I told ${PERSONA_NAME}," "we talked about," "in this conversation"). The entry reads the same six months from now.
-- Use the user's exact charged phrases verbatim. Their sensory and system words carry into the entry without translation. Freeze-register examples: "buzzing," "too loud," "shut down," "went offline," "full," "tight," "crashed," "too close," "heavy." Activation-register examples: "racing," "surging," "hot," "prickle," "lit up," "pounding," "electric." Do not upgrade their vocabulary.
-- Grounded in their specific examples and moments. Not abstract.
-- Stay within the scope of evidence the user gave you. If they described one example (one person, one situation, one moment), anchor the entry IN that example — name the person, name the context. Do not generalize to "everyone," "every time," "all conversations." Do not use "always," "every," "all," "never" unless the user used those exact words themselves. One example produces a specific claim, not a universal one. Two or three convergent examples can support a wider claim — but only as wide as the examples actually span.
-- AVOID UNIVERSAL TONE THROUGHOUT, not just the explicit "always/every/all/never" words. Phrases like "every low-stakes moment," "every friendship," "in those rooms," "whenever this happens," "any time someone X" read as universal claims even without the exact word. Watch for them. Use qualified framing instead: "sometimes," "often," "I notice," "there are moments when," "I can find myself," "when this happens." The body describes a pattern the user has noticed in their own behavior, not a defining trait that's true 100% of the time.
-  Bad → good rewrites:
-  • "I disappear when nobody needs me." → "Sometimes when nobody needs something from me, I notice I drift out."
-  • "Every friendship that just wants me without a job to do." → "Friendships that just want me without a job can leave me restless."
-  • "In those rooms I'm scanning." → "In moments like that, I notice I'm scanning."
-  • "It costs me every low-stakes moment." → "It can cost me the low-stakes moments."
-- Concrete anchor REQUIRED in the passage: a body sensation OR a specific behavioral or system response (what they did, what their system did, what the input was like). If the user gave a body sensation anywhere in the conversation, prefer it and make it appear. If they did not, a concrete behavioral anchor carries the same evidentiary weight. The anchor is the evidence the mechanism is real.
-- NOT A RECAP. Go one level deeper than what was said. The user should read the entry and think "I knew most of this but I couldn't see THAT part." Never summarize the conversation.
-- No clinical framework names. No "schema," "attachment style," "dysregulation," "sensory processing disorder," "executive dysfunction," "rejection sensitive dysphoria," "avoidance," "trauma response." Describe the behavior and the body instead. "I shut down" not "I dissociate." "A second version of me switches on" not "I mask." "The room got too loud" not "sensory overwhelm."
-- No time references. No "right now," "currently," "at this stage," "these days." The entry describes how I operate, period.
-- BIND REQUIRED in the passage. What the pattern protects AND what it costs. Both.
-- Do not use dashes or hyphens to join clauses. Use periods.
-- Write like a field note, not literature. Flat, honest, direct. If a sentence sounds like it belongs in a poem or an essay, rewrite it plain.
-
-HEADLINE (field: "name"):
-4-8 words. Flatly descriptive. Plain first-person subject-verb. No poetry, no imagery, no literary flair. The subject is ALWAYS "I" — never a body part, a system metaphor, or a nominalization. BANNED as the subject: Loop, Pattern, Response, Reaction, Processing, Stomach, Voice, Body, Mind, System, or anything ending in "-ing" acting as the agent. A title like "Worst-Case Loop Fills the Processing" fails on every axis at once: Loop is not the subject, "fills" is abstract not observable, and there is no trigger. Get the title right here — it is the most visible line in the entry and gets composed once, in this call. No second pass cleans it up.
-
-ALTITUDE FIRST: name the PATTERN the user is actually describing, not a narrow single conclusion. If the user named a broad, recurring way they operate (it shows up across situations, not just the one scene in front of you), the headline names THAT, in their words, even if it is wider than one trigger. Do not shrink a broad pattern down to one of its instances just to make the title concrete. Test: would the user say "yes, that's the thing that runs me" (right altitude), or "yes, that happened once" (too narrow, you captured an instance not the pattern)?
-
-REQUIRED: name a SPECIFIC TRIGGER or CONDITION. Format: "I [verb] when [specific trigger]" or "I [verb] before [specific event]" or "I [verb] after [specific moment]." The trigger names a concrete situation — a person, a moment, a sensation. Not "before I can say it" (vague — what stops me?) but "when guilt hits" or "when someone waits for me to answer" (specific). Not "in real life" (too broad) but "outside the dungeon" or "when there's no contract" (specific). The title should answer "WHEN does this fire?" not just "WHAT happens?" But when the pattern the user named is broad and recurring, keep the condition light ("when the verdict isn't in," "in quiet moments with no task") rather than narrowing the whole pattern to a single instance. Altitude is EARNED by evidence span, never assumed: the pattern's reach comes from what the user actually gave — multiple narrated scenes, or their own explicit assertion that it recurs ("this keeps happening," an unprompted cross-domain list). When they have asserted recurrence but only one scene is narrated, name the pattern at their altitude AND keep the "can"/"sometimes" hedge — never a hedgeless trait claim from a single scene. One narrated scene with no recurrence claim from the user caps the title at the scene's condition ("with Kevin…," "in conversations like that one") — a scoped read beats a hedged trait.
-
-KITCHEN-TABLE TEST: the title must sound like something the user would say out loud to a friend — never a document heading or a tagline. Use the flattest plain verb over any embodied or postural metaphor ("stay seated," "tighten," "swallow," "brace" → "sit through," "go quiet," "hold back," "wait"). If swapping the metaphor for the literal verb keeps the meaning, swap it. If it reads like a label, it's wrong.
-
-One plain clause. If the title needs an "and" or a second comma clause to fit, it is carrying two patterns — split the entry before titling.
-
-DO NOT personify the trigger as an actor doing something to you. "When small talk drains," "when the room scans," "when the gap fires," "while the conversation pulls" — these are imagery, not literal situations. Use the event instead: "at low-stakes dinners," "in surface conversations," "when the talk stays small."
-
-REQUIRED: the verb must describe an OBSERVABLE BEHAVIOR — what a friend watching the scene would see you do. Abstract / internal / metaphorical verbs are not allowed because they describe a felt state, not an action. Forbidden verbs include: "disappear," "vanish," "lose myself," "fade," "go missing," "come undone," "fall apart," "shut down inside," "break open," "dissolve." If the user described feeling like they "disappear," translate that into the observable behavior — what do they actually DO in the moment? Steer the conversation? Get quiet? Scan for problems? Build a topic? Use that verb instead. EXCEPTION — the user's own words win: if one of these forbidden verbs is the user's OWN exact phrase (they literally said "I lose myself" or "I disappear"), use their phrase. Their truest self-description outranks this list. The ban is only for felt-state verbs the user did not say — it stops you from inventing poetic vagueness, not from quoting the user.
-
-If the user gave only ONE example, soften the title with "can" or "sometimes" so it does not over-claim from one data point. "I can freeze when asked what I want" beats "I freeze when asked what I want" if only one freezing moment was described. With two or three convergent examples, drop the hedge.
-
-Good: "I Can Freeze When Asked What I Want," "I Go Quiet When Someone Waits," "I Keep Teaching Him How to Live," "I Steer Toward Problems When Friends Just Want to Chat," "I Get Restless When the Room Has No Job for Me," "I Keep Going to Dinners That Drain Me," "I Stay at Conversations That Stay Surface," "I Say Yes to Plans I Want to Skip," "I Wait to Answer When Someone Watches"
-Bad:
-- Abstract / internal verbs ("I Disappear When Nobody Needs Carrying," "I Vanish in Easy Rooms," "I Lose Myself When the Room Is Quiet"). Disappear / vanish / lose myself are felt states, not actions.
-- Postural / embodied metaphors masquerading as observable ("I Stay Seated While Small Talk Drains" — "stay seated" stands in for "endure"; "small talk drains" personifies the trigger. Plain rewrite: "I Keep Going to Dinners That Drain Me"). Same pattern: "I Tighten Before Hard Questions" → "I Go Quiet Before Hard Questions." "I Swallow the Answer When Guilt Hits" → "I Hold Back When Guilt Hits."
-- Definitive without trigger ("I Swallow the Answer Before I Can Say It" — what triggers it?; "I Spit the Signal Back Before Anyone Hears It").
-- Body-part-as-agent ("Stomach Pushes Me to Fix the Call," "Voice Goes When Pressure Lands").
-- Clinical labels ("The Masking Loop," "Sensory Overwhelm Pattern").
-- Nominalized abstractions that turn a feeling into a noun phrase ("Sitting in Uncertainty," "The Not-Knowing," "Turned Away Before the Ask"). Naming the abstraction is the intellectualizing tell — name what they DO, not the state.
-- Metaphors and poetic titles ("Gaps Open and the Reach Fires").
-- Narrowed to the triggering instance when the user described a broader pattern. "I Can Mistake My Son's Quiet for Wiring" names only the scene that opened the session, but the user also said he read his OWN quiet that way as a kid and still can't talk to people now. The pattern is reading quiet as wiring so he doesn't have to reach. Right altitude (hedge stays, because one scene was narrated): "I Can Read Quiet as Wiring and Stay on My Side of the Door." Name the pattern the user described across their life, not the one situation in front of you.
-If the verb is observable but doing metaphorical work, check whether a plainer verb carries the same meaning — if so, use that.
-
-LAYER (field: "layer", required):
-An integer 1-5 indicating which of the Manual's five layers this entry belongs to. Pick the layer whose dimensions (shown alongside each layer in the input) best describe what the entry IS. If existing entries on a layer already touch the same territory, prefer that layer so the entry integrates rather than scattering.
-
-ACKNOWLEDGMENT (field: "acknowledgment", required):
-A single sentence rendered as a chat bubble RIGHT BEFORE the trigger card. It's how Jove signals "I heard you" before handing the user a structured artifact. Without this beat, the card lands cold — the user gets processed instead of met.
-
-Rules:
-- 12-22 words. One sentence.
-- Second-person. "you" not "I."
-- Quote or name a SPECIFIC moment, image, or phrase from the user's last 1-2 turns. Not a generic feeling word — the actual concrete thing. "The bit where you said you can't stop monitoring" is specific. "What you just shared about your anxiety" is generic — bad.
-- End with the contractual signal in plain language: "I want to mark this," "I want to put this down," "this is the part I want to capture," or a close variant. This is how the user knows the upcoming card is a Manual entry, not just a reflection.
-- Plain spoken. No clinical labels. No therapy voice ("I'm hearing that..."). No "thank you for sharing." Sounds like a friend who was actually listening.
-
-Good:
-- "That last bit. Finding yourself at the monstera, no memory of starting. I want to mark that."
-- "The thing you said about your stomach knowing before your head does, I want to put that down."
-- "What you said about the door locking you in with the danger, not out from it. That's worth capturing."
-
-Bad:
-- "I hear how hard this is for you. Let me put this in your Manual." (therapy voice, generic)
-- "Thank you for sharing that. I want to capture this." (transactional, not specific)
-- "A pattern came through in what you said." (generic, no specifics)
-- "That sounds really painful." (sympathetic but doesn't name anything specific)
-
-If the user's last turns don't have a quotable specific moment, return an empty string and the caller will skip emission. Better silence than a generic acknowledgment.
-
-COMPRESSED REPRESENTATION (for future reference):
-- summary: one sentence, 20-40 words, third-person. Mechanism and bind briefly. User's charged words preserved. If a clear stance emerged, mention it.
-- key_words: 3-6 short words or bigrams the user would use to recognize this entry. Include charged sensory/system words they used. Do not include clinical terms.
+COMPRESSED (for future reference):
+- summary: one sentence, 20-40 words, third person. The mechanism and the bind, the user's charged words kept.
+- key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Statement + passage...", "name": "Headline", "layer": 1, "acknowledgment": "Specific reflective sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Statement + passage...", "name": "Headline", "layer": 1, "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
   const userContent = `${languageSection}${manualSection}${depthSection}
 RECENT CONVERSATION:
@@ -435,6 +353,14 @@ export function validateHeadline(
   // ("Worst-Case Loop Fills the Processing") in one shot.
   if (!/^I\b/.test(trimmed)) {
     reasons.push("subject is not 'I'");
+  }
+
+  // Feeling-state subject (2026-06-16): "I feel/felt/am alone…" or "I'm…" names
+  // a felt state, not an observable behavior — the exact failure class the
+  // behavioral-title rule targets ("I Feel Alone When He Doesn't Reach Back").
+  // Log-only like the rest of this function; the caller does not block on it.
+  if (/^I(?:'m|\s+(?:feel|felt|am))\b/i.test(trimmed)) {
+    reasons.push("feeling-state subject ('I feel/am…') — name the behavior, not the state");
   }
 
   // Banned internal/abstract verbs from confirm-checkpoint composition
