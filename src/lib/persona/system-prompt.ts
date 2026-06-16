@@ -1044,7 +1044,16 @@ export function buildSystemPromptBlocks(
       sessionCount,
       sessionSummary,
     });
-    if (extractionContext) rebuiltDynamic += extractionContext;
+    // Voice/checkpoint decoupling (2026-06-16): the rebuilt voice does NOT
+    // receive the per-turn extraction brief. REBUILT_MECHANICS owns the
+    // "when to propose" decision and the user is the gate; the brief's steering
+    // duplicated that and turned each turn into a deliverable-countdown
+    // (the cadence the founder's A/B ablation isolated). Extraction still runs
+    // and feeds the SAVE-time composer + the safety detectors off the state
+    // object directly — it just stops narrating the live turn. The legacy path
+    // below intentionally still appends the brief (it has no MECHANICS
+    // replacement); the brief computation + formatExtractionForPersona are
+    // removed in the Phase-3b legacy teardown.
     rebuiltDynamic += renderTranscriptContextBlock(transcriptContext);
     if (explorationContext) {
       rebuiltDynamic += "\n" + renderExplorationContextBlock(explorationContext);
