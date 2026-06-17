@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (Material You)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesque:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ── brand roles ── */
+    --ground:#F4F1EA; --paper:#FBF9F4; --page:#E6E0D4;
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    --hair:rgba(26,23,18,0.12);
+
+    /* ── M3 tonal containers, derived from brand BROWN (#6E4527) = the user / primary ── */
+    --brown:#6E4527;             /* primary */
+    --brown-on:#FFFFFF;          /* on-primary */
+    --brown-c:#F1E2D2;           /* primary-container (warm tonal fill) */
+    --brown-on-c:#5A3719;        /* on-primary-container */
+    --brown-c-hi:#E7D2BC;        /* hover state-layer over container */
+    --brown-state:rgba(110,69,39,0.10);
+
+    /* ── M3 tonal containers, derived from brand NAVY (#21436B) = Jove / the Manual / structure ── */
+    --navy:#21436B;              /* secondary / structure */
+    --navy-on:#FFFFFF;
+    --navy-c:#DCE6F2;            /* secondary-container (cool tonal fill) */
+    --navy-on-c:#16314F;         /* on-secondary-container */
+    --navy-state:rgba(33,67,107,0.10);
+
+    --font:'Hanken Grotesque',system-ui,sans-serif;
+    --serif:'Newsreader',Georgia,serif;
+
+    /* M3 corner radii */
+    --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:28px; --r-full:999px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);
+       padding:40px 16px 60px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+
+  .page-head{text-align:center;margin:0 auto 30px;}
+  .page-head h1{font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+       color:var(--mid);margin:0;}
+  .page-head p{font-size:13px;color:var(--faint);margin:6px 0 0;}
+
+  /* ── phone frame ── */
+  .frame{width:404px;max-width:100%;margin:0 auto;background:var(--ground);
+       border-radius:42px;border:1px solid var(--hair);
+       box-shadow:0 30px 80px rgba(40,28,16,0.20),0 4px 14px rgba(40,28,16,0.10);
+       overflow:hidden;position:relative;}
+  .screen{height:872px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .scroll{flex:1;overflow:hidden;position:relative;}
+  .pad{padding:0 18px 28px;}
+
+  /* ── top app bar ── */
+  .bar{display:flex;align-items:center;justify-content:space-between;
+       padding:18px 16px 10px;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand img{width:30px;height:30px;display:block;}
+  .wordmark{font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--ink);}
+  .wordmark b{color:var(--brown);font-weight:700;}
+  .iconbtn{width:44px;height:44px;border-radius:var(--r-full);border:none;background:transparent;
+       display:grid;place-items:center;color:var(--soft);font-size:23px;cursor:pointer;
+       transition:background .18s;}
+  .iconbtn:hover{background:var(--navy-state);}
+
+  /* ── greeting (M3 display) ── */
+  .greet{padding:8px 18px 4px;}
+  .greet h2{font-size:32px;line-height:1.08;font-weight:700;letter-spacing:-.02em;
+       margin:0;color:var(--ink);}
+  .greet .meta{display:flex;align-items:center;gap:7px;margin-top:8px;
+       font-size:13px;font-weight:600;color:var(--mid);letter-spacing:.01em;}
+  .greet .meta i{font-size:16px;color:var(--faint);}
+
+  /* ── M3 labels / eyebrows ── */
+  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+  .eb-brown{color:var(--brown);} .eb-navy{color:var(--navy);}
+
+  /* ── HERO tile (high-emphasis tonal container, brown) ── */
+  .hero{background:var(--brown-c);border-radius:var(--r-xl);
+       padding:22px 22px 20px;margin:18px 0 14px;position:relative;overflow:hidden;}
+  .hero .eyebrow{margin-bottom:12px;color:var(--brown-on-c);opacity:.78;}
+  .hero-line{font-family:var(--serif);font-size:21px;line-height:1.36;font-weight:500;
+       color:var(--brown-on-c);margin:0;letter-spacing:-.005em;}
+  .hero-line .q{color:var(--brown);opacity:.5;font-size:24px;}
+  .hero-actions{display:flex;align-items:center;gap:14px;margin-top:20px;}
+  .btn-filled{display:inline-flex;align-items:center;gap:9px;background:var(--brown);
+       color:var(--brown-on);border:none;border-radius:var(--r-full);
+       padding:14px 22px;font-family:var(--font);font-size:14.5px;font-weight:600;
+       letter-spacing:.005em;cursor:pointer;position:relative;overflow:hidden;
+       transition:transform .12s,box-shadow .18s;box-shadow:0 1px 2px rgba(90,55,25,0.30);}
+  .btn-filled:hover{box-shadow:0 3px 10px rgba(90,55,25,0.34);}
+  .btn-filled:active{transform:scale(.97);}
+  .btn-filled i{font-size:18px;}
+  .btn-text{background:transparent;border:none;color:var(--brown-on-c);
+       font-family:var(--font);font-size:14px;font-weight:600;letter-spacing:.01em;
+       padding:12px 6px;cursor:pointer;border-radius:var(--r-full);
+       transition:background .16s;}
+  .btn-text:hover{background:var(--brown-c-hi);}
+  .hero-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+       margin-top:18px;padding-top:16px;border-top:1px solid rgba(90,55,25,0.16);}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.55);
+       color:var(--brown-on-c);border-radius:var(--r-full);padding:6px 12px;
+       font-size:12px;font-weight:600;letter-spacing:.01em;}
+  .chip i{font-size:14px;opacity:.7;}
+
+  /* ── generic surface card (lower emphasis) ── */
+  .card{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-lg);
+       padding:20px;margin-bottom:14px;}
+  .card-title{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink);margin:0;}
+  .card-body{font-size:14px;line-height:1.5;color:var(--mid);margin:8px 0 0;font-weight:400;}
+
+  /* tonal button (navy-tinted, for explore) */
+  .btn-tonal{display:inline-flex;align-items:center;gap:9px;margin-top:16px;
+       background:var(--navy-c);color:var(--navy-on-c);border:none;border-radius:var(--r-full);
+       padding:13px 20px;font-family:var(--font);font-size:14px;font-weight:600;
+       letter-spacing:.005em;cursor:pointer;transition:filter .16s,transform .12s;}
+  .btn-tonal:hover{filter:brightness(.97);}
+  .btn-tonal:active{transform:scale(.97);}
+  .btn-tonal i{font-size:18px;}
+  /* outlined button (for share) */
+  .btn-outlined{display:inline-flex;align-items:center;gap:9px;margin-top:16px;
+       background:transparent;color:var(--brown);border:1.5px solid rgba(110,69,39,0.40);
+       border-radius:var(--r-full);padding:12px 20px;font-family:var(--font);
+       font-size:14px;font-weight:600;letter-spacing:.005em;cursor:pointer;
+       transition:background .16s,transform .12s;}
+  .btn-outlined:hover{background:var(--brown-state);}
+  .btn-outlined:active{transform:scale(.97);}
+  .btn-outlined i{font-size:18px;}
+
+  /* ── MANUAL tile (largest — navy structure) ── */
+  .manual{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-xl);
+       padding:22px 20px 8px;margin-bottom:14px;overflow:hidden;}
+  .manual-head{display:flex;align-items:baseline;justify-content:space-between;}
+  .manual-head h3{font-size:20px;font-weight:700;letter-spacing:-.015em;color:var(--ink);margin:0;}
+  .manual-count{display:inline-flex;align-items:center;background:var(--navy-c);
+       color:var(--navy-on-c);border-radius:var(--r-full);padding:5px 12px;
+       font-size:12px;font-weight:700;letter-spacing:.01em;}
+  .manual-sub{font-size:13.5px;line-height:1.45;color:var(--mid);margin:8px 0 4px;font-weight:400;}
+
+  .layer{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+       background:transparent;border:none;border-radius:var(--r-md);
+       padding:13px 10px;margin:0 -10px;cursor:pointer;font-family:var(--font);
+       transition:background .16s;position:relative;}
+  .layer + .layer{box-shadow:inset 0 1px 0 var(--hair);}
+  .layer:hover{background:var(--navy-state);}
+  .emblem{width:42px;height:42px;border-radius:var(--r-md);background:var(--navy-c);
+       display:grid;place-items:center;color:var(--navy);font-size:21px;flex-shrink:0;}
+  .layer.empty .emblem{background:var(--brown-c);color:var(--brown);}
+  .layer-tx{flex:1;min-width:0;}
+  .layer-name{font-size:15.5px;font-weight:700;letter-spacing:-.005em;color:var(--ink);
+       line-height:1.2;}
+  .layer.empty .layer-name{color:var(--soft);}
+  .layer-mean{font-size:12.5px;line-height:1.35;color:var(--mid);margin-top:3px;font-weight:400;}
+  .layer-end{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .layer-ct{font-size:12px;font-weight:700;color:var(--navy);letter-spacing:.01em;
+       min-width:fit-content;}
+  .layer-start{display:inline-flex;align-items:center;gap:4px;background:var(--brown);
+       color:var(--brown-on);border-radius:var(--r-full);padding:5px 12px;
+       font-size:11.5px;font-weight:700;letter-spacing:.02em;}
+  .layer-chev{color:var(--faint);font-size:19px;}
+
+  /* ── FAB (Material floating action button) ── */
+  .fab{position:absolute;right:18px;bottom:96px;z-index:6;
+       display:inline-flex;align-items:center;gap:10px;
+       background:var(--brown);color:var(--brown-on);border:none;border-radius:var(--r-md);
+       padding:17px 22px;font-family:var(--font);font-size:15px;font-weight:700;
+       letter-spacing:.005em;cursor:pointer;
+       box-shadow:0 6px 18px rgba(90,55,25,0.34),0 2px 6px rgba(40,28,16,0.18);
+       transition:transform .12s,box-shadow .18s;}
+  .fab:hover{box-shadow:0 9px 24px rgba(90,55,25,0.40),0 3px 8px rgba(40,28,16,0.20);}
+  .fab:active{transform:scale(.96);}
+  .fab i{font-size:22px;}
+
+  /* ── M3 bottom navigation ── */
+  .nav{display:flex;align-items:center;justify-content:space-around;
+       background:var(--paper);border-top:1px solid var(--hair);
+       padding:10px 8px 16px;flex-shrink:0;}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;
+       background:transparent;border:none;cursor:pointer;font-family:var(--font);
+       width:84px;padding:0;}
+  .nav-pill{width:62px;height:32px;border-radius:var(--r-full);display:grid;place-items:center;
+       color:var(--mid);font-size:23px;transition:background .2s,color .2s;}
+  .nav-item.on .nav-pill{background:var(--brown-c);color:var(--brown-on-c);}
+  .nav-label{font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--mid);}
+  .nav-item.on .nav-label{color:var(--brown);font-weight:700;}
+  .nav-item:hover:not(.on) .nav-pill{background:var(--navy-state);}
+
+  /* fade so content reads as scrollable under the FAB */
+  .fade{position:absolute;left:0;right:0;bottom:74px;height:42px;pointer-events:none;z-index:5;
+       background:linear-gradient(to bottom,rgba(244,241,234,0),var(--ground));}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut · home</h1>
+    <p>Material You — tonal containers from brown &amp; navy</p>
+  </div>
+
+  <div class="frame">
+    <div class="screen">
+
+      <!-- top app bar -->
+      <div class="bar">
+        <div class="brand">
+          <img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut">
+          <span class="wordmark">my<b>walnut</b></span>
+        </div>
+        <button class="iconbtn" aria-label="Settings"><i class="ti ti-settings"></i></button>
+      </div>
+
+      <div class="scroll">
+        <!-- greeting -->
+        <div class="greet">
+          <h2>Good evening, Jeff.</h2>
+          <div class="meta"><i class="ti ti-calendar"></i>Tuesday · June 15</div>
+        </div>
+
+        <div class="pad">
+
+          <!-- TILE 1 — hero -->
+          <section class="hero">
+            <div class="eyebrow eb-brown">Pick up where you left off</div>
+            <p class="hero-line"><span class="q">“</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.<span class="q">”</span></p>
+            <div class="hero-actions">
+              <button class="btn-filled"><i class="ti ti-arrow-right"></i>Continue this thread</button>
+              <button class="btn-text">Start fresh</button>
+            </div>
+            <div class="hero-status">
+              <span class="chip"><i class="ti ti-note"></i>14 entries</span>
+              <span class="chip"><i class="ti ti-stack-2"></i>4 of 5 layers touched</span>
+              <span class="chip"><i class="ti ti-clock"></i>3 days ago</span>
+            </div>
+          </section>
+
+          <!-- TILE 2 — explore -->
+          <section class="card">
+            <h3 class="card-title">Bring a situation</h3>
+            <p class="card-body">A conflict that keeps repeating, a reaction that surprised you, a win you can't explain. Talk it through and see what's underneath.</p>
+            <button class="btn-tonal"><i class="ti ti-message-circle"></i>Explore a situation</button>
+          </section>
+
+          <!-- TILE 3 — manual (largest) -->
+          <section class="manual">
+            <div class="manual-head">
+              <h3>Your manual</h3>
+              <span class="manual-count">14 entries</span>
+            </div>
+            <p class="manual-sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+            <button class="layer">
+              <span class="emblem"><i class="ti ti-sparkles"></i></span>
+              <span class="layer-tx">
+                <span class="layer-name">My Strengths</span>
+                <span class="layer-mean">What you're genuinely good at, named plainly.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">3 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="emblem"><i class="ti ti-refresh"></i></span>
+              <span class="layer-tx">
+                <span class="layer-name">Some of My Patterns</span>
+                <span class="layer-mean">Loops you repeat — and what they cost.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">5 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="emblem"><i class="ti ti-bulb"></i></span>
+              <span class="layer-tx">
+                <span class="layer-name">How I Process Things</span>
+                <span class="layer-mean">The way your mind actually works through things.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">2 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="emblem"><i class="ti ti-anchor"></i></span>
+              <span class="layer-tx">
+                <span class="layer-name">What Helps</span>
+                <span class="layer-mean">The conditions and moves that make things easier.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">4 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer empty">
+              <span class="emblem"><i class="ti ti-users"></i></span>
+              <span class="layer-tx">
+                <span class="layer-name">How I Show Up with People</span>
+                <span class="layer-mean">The gap between what you mean and what others see.</span>
+              </span>
+              <span class="layer-end"><span class="layer-start">Start</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+          </section>
+
+          <!-- TILE 4 — share -->
+          <section class="card">
+            <h3 class="card-title">Share how you work</h3>
+            <p class="card-body">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+            <button class="btn-outlined"><i class="ti ti-send"></i>Create a shareable version</button>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- FAB -->
+      <button class="fab"><i class="ti ti-message-plus"></i>Talk to Jove</button>
+      <div class="fade"></div>
+
+      <!-- bottom nav -->
+      <nav class="nav">
+        <button class="nav-item on">
+          <span class="nav-pill"><i class="ti ti-home-2"></i></span>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-item">
+          <span class="nav-pill"><i class="ti ti-book-2"></i></span>
+          <span class="nav-label">Manual</span>
+        </button>
+        <button class="nav-item">
+          <span class="nav-pill"><i class="ti ti-user"></i></span>
+          <span class="nav-label">You</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+</body>
+</html>

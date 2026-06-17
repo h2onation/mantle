@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — front door demo (brown + navy)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --linen:#F4F1EA; --card:#FBF9F4; --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    --hair:rgba(26,23,18,0.13); --hairs:rgba(26,23,18,0.07);
+    --brown:#6E4527; --brown-s:rgba(110,69,39,0.08); --brown-bd:rgba(110,69,39,0.24);
+    --navy:#21436B; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.20);
+    --page:#E6E0D4;
+    --f-display:'Bricolage Grotesque',sans-serif;
+    --f-ui:'DM Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--f-ui);
+       padding:44px 16px 64px;-webkit-font-smoothing:antialiased;}
+  .page-head{max-width:1280px;margin:0 auto 38px;text-align:center;}
+  .page-head h1{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:-1px;margin:0 0 6px;}
+  .page-head p{font-size:14px;color:var(--mid);margin:0;}
+  .page-head .demo-tag{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:2px;
+       text-transform:uppercase;color:var(--brown);border:1px solid var(--brown-bd);border-radius:999px;
+       padding:5px 12px;margin-top:14px;}
+  .stage{display:flex;flex-wrap:wrap;gap:44px;justify-content:center;align-items:flex-start;}
+  .block{width:390px;max-width:100%;}
+  .block-label{font-family:var(--f-mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;
+       color:var(--brown);margin:0 0 12px 4px;}
+  .phone{width:100%;background:var(--linen);border-radius:30px;border:1px solid var(--hair);
+       box-shadow:0 24px 64px rgba(40,28,16,0.16);overflow:hidden;}
+  .ti{font-size:inherit;line-height:1;}
+
+  /* ─────────── FRONT DOOR ─────────── */
+  .fd{padding:26px 21px 0;}
+  .fd-meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);
+       font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);}
+  .fd-h1{font-family:var(--f-display);font-weight:800;font-size:36px;line-height:1;letter-spacing:-1.2px;
+       margin:13px 0 8px;}
+  .fd-lede{font-size:13.5px;line-height:1.5;color:var(--mid);margin:0 0 22px;}
+  .fd-sect{font-size:11px;letter-spacing:1.8px;text-transform:uppercase;font-weight:600;font-family:var(--f-mono);}
+  .fd-brown{color:var(--brown);} .fd-navy{color:var(--navy);}
+  .fd-act{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:var(--card);
+       border:1px solid var(--hair);border-radius:11px;padding:14px 15px;margin-bottom:9px;cursor:pointer;
+       transition:.18s;font-family:var(--f-ui);}
+  .fd-act:first-of-type{margin-top:10px;}
+  .fd-act:hover{border-color:var(--brown);background:var(--brown-s);}
+  .fd-no{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--brown);line-height:1;min-width:24px;}
+  .fd-att{font-weight:600;font-size:16.5px;color:var(--ink);display:block;}
+  .fd-asub{font-size:12.5px;color:var(--mid);margin-top:2px;display:block;line-height:1.35;}
+  .fd-aarr{color:var(--brown);font-size:20px;margin-left:auto;}
+  .fd-sectrow{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 4px;}
+  .fd-hint{font-size:11px;color:var(--faint);font-style:italic;font-family:var(--f-serif);}
+  .fd-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;
+       border:none;border-bottom:1px solid var(--hairs);padding:13px 4px;cursor:pointer;transition:.16s;
+       font-family:var(--f-ui);}
+  .fd-row:hover{background:var(--navy-s);padding-left:8px;}
+  .fd-rn{font-family:var(--f-display);font-weight:600;font-size:12px;color:var(--faint);min-width:18px;}
+  .fd-rnm{font-weight:500;font-size:16px;color:var(--ink);flex:1;}
+  .fd-rnm.dim{color:var(--mid);}
+  .fd-rc{font-size:12.5px;color:var(--navy);font-weight:500;}
+  .fd-rc.empty{color:var(--faint);font-style:italic;font-family:var(--f-serif);}
+  .fd-chev{color:var(--navy);font-size:18px;opacity:.75;}
+  .fd-nav{display:flex;justify-content:space-around;align-items:center;margin:18px -21px 0;padding:11px 0 13px;
+       border-top:1px solid var(--hair);background:var(--card);}
+  .fd-navi{display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--f-mono);font-size:10px;
+       letter-spacing:.5px;text-transform:uppercase;font-weight:500;color:var(--faint);}
+  .fd-navi i{font-size:20px;} .fd-navi.on{color:var(--brown);}
+
+  /* ─────────── CONVERSATION ─────────── */
+  .cv-bar{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--hair);background:var(--card);}
+  .cv-bi{color:var(--brown);font-size:21px;}
+  .cv-bt{flex:1;text-align:center;}
+  .cv-jove{font-family:var(--f-display);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.3px;}
+  .cv-stat{font-family:var(--f-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);margin-top:1px;}
+  .cv-body{padding:18px 16px;display:flex;flex-direction:column;gap:13px;}
+  .cv-j{max-width:86%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:0 0 5px 2px;}
+  .cv-jb{background:var(--card);border:1px solid var(--navy-bd);border-radius:4px 14px 14px 14px;padding:11px 14px;
+       font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);}
+  .cv-u{align-self:flex-end;max-width:82%;}
+  .cv-ub{background:var(--brown-s);border:1px solid var(--brown-bd);border-radius:14px 14px 4px 14px;padding:11px 14px;
+       font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);}
+  .cv-cp{border:1.5px solid var(--brown);border-radius:13px;background:var(--card);padding:15px 16px;margin:4px 0 2px;}
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);}
+  .cv-cpnote{font-size:11.5px;color:var(--faint);margin:10px 0 12px;font-family:var(--f-ui);}
+  .cv-cpb{display:flex;gap:9px;}
+  .cv-btn{flex:1;border-radius:9px;padding:11px;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid;font-family:var(--f-ui);}
+  .cv-fill{background:var(--brown);color:#FBF9F4;border-color:var(--brown);}
+  .cv-ghost{background:transparent;color:var(--mid);border-color:var(--hair);}
+  .cv-in{display:flex;align-items:center;gap:9px;padding:12px 14px;border-top:1px solid var(--hair);background:var(--card);}
+  .cv-field{flex:1;background:var(--linen);border:1px solid var(--hair);border-radius:999px;padding:11px 16px;
+       font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);}
+  .cv-send{width:40px;height:40px;border-radius:50%;background:var(--brown);color:#FBF9F4;display:grid;place-items:center;
+       font-size:18px;flex-shrink:0;border:none;cursor:pointer;}
+
+  /* ─────────── MANUAL ─────────── */
+  .mn-bar{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--hair);background:var(--card);}
+  .mn-bi{font-size:21px;}
+  .mn-bt{flex:1;text-align:center;font-family:var(--f-display);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.3px;}
+  .mn-sum{font-family:var(--f-mono);font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;padding:14px 18px 2px;}
+  .mn-body{padding:2px 16px 18px;}
+  .mn-lh{display:flex;align-items:center;gap:11px;padding:15px 2px 11px;border-bottom:1px solid var(--hair);cursor:pointer;}
+  .mn-lnum{font-family:var(--f-display);font-weight:600;font-size:12px;color:var(--navy);min-width:17px;}
+  .mn-lname{font-family:var(--f-display);font-weight:700;font-size:18px;color:var(--ink);flex:1;letter-spacing:-.3px;}
+  .mn-lct{font-size:12px;color:var(--mid);}
+  .mn-lchev{color:var(--navy);font-size:18px;}
+  .mn-entry{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:13px 15px;margin:10px 0;}
+  .mn-eh{font-family:var(--f-serif);font-style:italic;font-weight:500;font-size:16.5px;line-height:1.3;color:var(--ink);margin-bottom:6px;}
+  .mn-es{font-family:var(--f-serif);font-size:14px;line-height:1.55;color:var(--soft);}
+  .mn-em{font-family:var(--f-mono);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);font-weight:500;margin-top:10px;}
+  .mn-more{font-size:12.5px;color:var(--navy);font-weight:600;padding:4px 2px 2px;cursor:pointer;}
+  .mn-empty{display:flex;align-items:center;gap:8px;padding:15px 2px;border-bottom:1px solid var(--hair);}
+  .mn-ename{font-family:var(--f-display);font-weight:700;font-size:18px;color:var(--faint);letter-spacing:-.3px;}
+  .mn-estart{color:var(--brown);font-weight:600;font-size:12.5px;margin-left:auto;display:flex;align-items:center;gap:4px;font-family:var(--f-ui);}
+  .mn-export{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:13px;
+       border:1px solid var(--brown);border-radius:10px;background:transparent;color:var(--brown);font-weight:600;font-size:14px;cursor:pointer;font-family:var(--f-ui);}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — front door</h1>
+    <p>Warm white · brown (you) + navy (Jove) · Bricolage headings, serif for your words</p>
+    <span class="demo-tag">Standalone demo — not the app</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ───────── FRONT DOOR ───────── -->
+    <div class="block">
+      <p class="block-label">01 · Home / front door</p>
+      <div class="phone">
+        <div class="fd">
+          <div class="fd-meta"><span>mywalnut</span><span>14 entries so far</span></div>
+          <h1 class="fd-h1">Your manual</h1>
+          <p class="fd-lede">A picture of how you operate — built from your conversations with Jove, in your own words. Nothing is saved until you confirm it.</p>
+
+          <span class="fd-sect fd-brown">Start a conversation</span>
+          <button class="fd-act"><span class="fd-no">01</span><span style="flex:1"><span class="fd-att">Explore a situation</span><span class="fd-asub">Bring something that happened — a conflict, a reaction, a win.</span></span><i class="ti ti-arrow-right fd-aarr"></i></button>
+          <button class="fd-act"><span class="fd-no">02</span><span style="flex:1"><span class="fd-att">Explore broadly</span><span class="fd-asub">No topic in mind? Jove leads with a few questions.</span></span><i class="ti ti-arrow-right fd-aarr"></i></button>
+
+          <div class="fd-sectrow"><span class="fd-sect fd-navy">What's inside · 5 layers</span><span class="fd-hint">tap one to open it</span></div>
+          <button class="fd-row"><span class="fd-rn">01</span><span class="fd-rnm">My Strengths</span><span class="fd-rc">3 entries</span><i class="ti ti-chevron-right fd-chev"></i></button>
+          <button class="fd-row"><span class="fd-rn">02</span><span class="fd-rnm">Some of My Patterns</span><span class="fd-rc">5 entries</span><i class="ti ti-chevron-right fd-chev"></i></button>
+          <button class="fd-row"><span class="fd-rn">03</span><span class="fd-rnm">How I Process Things</span><span class="fd-rc">2 entries</span><i class="ti ti-chevron-right fd-chev"></i></button>
+          <button class="fd-row"><span class="fd-rn">04</span><span class="fd-rnm">What Helps</span><span class="fd-rc">4 entries</span><i class="ti ti-chevron-right fd-chev"></i></button>
+          <button class="fd-row"><span class="fd-rn">05</span><span class="fd-rnm dim">How I Show Up with People</span><span class="fd-rc empty">nothing here yet</span><i class="ti ti-chevron-right fd-chev"></i></button>
+
+          <div class="fd-nav">
+            <span class="fd-navi on"><i class="ti ti-home"></i>Home</span>
+            <span class="fd-navi"><i class="ti ti-book-2"></i>Manual</span>
+            <span class="fd-navi"><i class="ti ti-user"></i>You</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── CONVERSATION ───────── -->
+    <div class="block">
+      <p class="block-label">02 · Conversation with Jove</p>
+      <div class="phone">
+        <div class="cv-bar"><i class="ti ti-home cv-bi"></i><div class="cv-bt"><div class="cv-jove">Jove</div><div class="cv-stat">Exploring a situation</div></div><i class="ti ti-dots cv-bi" style="color:var(--faint)"></i></div>
+        <div class="cv-body">
+          <div class="cv-u"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+          <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+          <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn't had a single second to myself all day.</div></div>
+          <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn't really aimed at Sam — it landed on the first quiet moment that had no margin in it.</div></div>
+          <div class="cv-cp">
+            <div class="cv-cph"><span class="cv-cpt">For your manual?</span><span class="cv-cptag">→ Some of My Patterns</span></div>
+            <p class="cv-cptx">There's a version of you that runs on no margin. The people closest to you tend to meet the version that's already past empty.</p>
+            <p class="cv-cpnote">In your words. You can edit it before it's saved.</p>
+            <div class="cv-cpb"><button class="cv-btn cv-fill">Add to manual</button><button class="cv-btn cv-ghost">Not quite</button></div>
+          </div>
+        </div>
+        <div class="cv-in"><span class="cv-field">Tell Jove what happened…</span><button class="cv-send"><i class="ti ti-arrow-up"></i></button></div>
+      </div>
+    </div>
+
+    <!-- ───────── MANUAL ───────── -->
+    <div class="block">
+      <p class="block-label">03 · The Manual</p>
+      <div class="phone">
+        <div class="mn-bar"><i class="ti ti-chevron-left mn-bi" style="color:var(--brown)"></i><div class="mn-bt">Your manual</div><i class="ti ti-share mn-bi" style="color:var(--mid)"></i></div>
+        <div class="mn-sum">14 entries · built with Jove</div>
+        <div class="mn-body">
+          <div class="mn-lh"><span class="mn-lnum">01</span><span class="mn-lname">My Strengths</span><span class="mn-lct">3 entries</span><i class="ti ti-chevron-down mn-lchev"></i></div>
+          <div class="mn-entry"><div class="mn-eh">You think out loud to find the edges of a problem.</div><div class="mn-es">Talking isn't you being unsure. It's how you locate the shape of a thing — by the time you've said it three ways, you know which version is true.</div><div class="mn-em">Added from a conversation</div></div>
+          <div class="mn-entry"><div class="mn-eh">You catch the detail everyone else walked past.</div><div class="mn-es">The thing that felt off in the room, the line in the email that didn't sit right — you notice it early, even before you can say why.</div><div class="mn-em">Added from a conversation</div></div>
+          <div class="mn-more">+ 1 more entry</div>
+
+          <div class="mn-lh"><span class="mn-lnum">02</span><span class="mn-lname">Some of My Patterns</span><span class="mn-lct">5 entries</span><i class="ti ti-chevron-right mn-lchev"></i></div>
+          <div class="mn-lh"><span class="mn-lnum">03</span><span class="mn-lname">How I Process Things</span><span class="mn-lct">2 entries</span><i class="ti ti-chevron-right mn-lchev"></i></div>
+          <div class="mn-lh"><span class="mn-lnum">04</span><span class="mn-lname">What Helps</span><span class="mn-lct">4 entries</span><i class="ti ti-chevron-right mn-lchev"></i></div>
+          <div class="mn-empty"><span class="mn-lnum">05</span><span class="mn-ename">How I Show Up with People</span><span class="mn-estart">Start this <i class="ti ti-arrow-right"></i></span></div>
+
+          <button class="mn-export"><i class="ti ti-download"></i>Export your manual</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

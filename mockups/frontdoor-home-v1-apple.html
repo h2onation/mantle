@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (Apple HIG)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* brand */
+    --linen:#F4F1EA; --card:#FBF9F4; --page:#E6E0D4;
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    --hair:rgba(26,23,18,0.12); --hair-soft:rgba(26,23,18,0.07);
+    --brown:#6E4527; --brown-deep:#5A3820;
+    --brown-tint:rgba(110,69,39,0.10); --brown-bd:rgba(110,69,39,0.22);
+    --navy:#21436B; --navy-tint:rgba(33,67,107,0.09); --navy-bd:rgba(33,67,107,0.18);
+    /* iOS system grouped background — warmed to brand */
+    --grouped-bg:#EDE8DD;
+    --f-ui:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;background:var(--page);color:var(--ink);font-family:var(--f-ui);
+    padding:40px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+
+  /* page chrome */
+  .page-head{text-align:center;margin:0 auto 28px;}
+  .page-head h1{font-weight:700;font-size:21px;letter-spacing:-.5px;margin:0;color:var(--soft);}
+  .page-head .tag{display:inline-block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:1.6px;
+    text-transform:uppercase;color:var(--mid);border:1px solid var(--hair);border-radius:999px;
+    padding:4px 11px;margin-top:9px;background:var(--card);}
+
+  /* phone */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;background:var(--grouped-bg);
+    border-radius:44px;border:1px solid rgba(26,23,18,0.10);position:relative;overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,0.5) inset, 0 30px 80px -20px rgba(40,28,16,0.32),
+               0 8px 24px -8px rgba(40,28,16,0.18);
+  }
+  .ti{font-size:inherit;line-height:1;display:inline-block;}
+
+  /* ---- iOS status bar ---- */
+  .statusbar{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 26px 0;font-weight:700;font-size:15px;letter-spacing:-.2px;color:var(--ink);}
+  .statusbar .icons{display:flex;align-items:center;gap:7px;font-size:15px;color:var(--ink);}
+  .statusbar .icons i{font-size:16px;}
+
+  /* ---- large-title nav bar (iOS) ---- */
+  .navbar{padding:8px 22px 4px;}
+  .nav-toprow{display:flex;align-items:center;justify-content:space-between;height:34px;}
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand .mark{width:24px;height:24px;display:block;}
+  .brand .wm{font-weight:700;font-size:16px;letter-spacing:-.3px;color:var(--soft);}
+  .nav-action{
+    width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--brown-tint);color:var(--brown);display:grid;place-items:center;font-size:19px;
+    transition:background .18s ease;
+  }
+  .nav-action:hover{background:rgba(110,69,39,0.16);}
+
+  .largetitle{padding:6px 22px 2px;}
+  .largetitle .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:1.8px;
+    text-transform:uppercase;color:var(--faint);margin:0 0 4px;}
+  .largetitle h2{font-weight:800;font-size:32px;letter-spacing:-1.1px;line-height:1.04;margin:0;color:var(--ink);}
+
+  /* ---- scroll body ---- */
+  .scroll{padding:18px 16px 16px;}
+
+  /* section label (iOS grouped header) */
+  .sec-label{font-family:var(--f-mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;
+    color:var(--faint);margin:22px 8px 9px;font-weight:500;}
+  .sec-label:first-child{margin-top:2px;}
+  .sec-label.navy{color:var(--navy);}
+
+  /* generic inset card */
+  .card{background:var(--card);border-radius:18px;border:0.5px solid var(--hair);
+    box-shadow:0 1px 2px rgba(40,28,16,0.04), 0 6px 16px -10px rgba(40,28,16,0.16);}
+
+  /* ---- HERO (continue thread) ---- */
+  .hero{position:relative;overflow:hidden;padding:18px 18px 16px;
+    background:linear-gradient(158deg,#FBF7F0 0%,#F3E9D9 100%);border:0.5px solid var(--brown-bd);}
+  .hero-mark{position:absolute;right:-22px;bottom:-30px;width:134px;height:134px;opacity:.06;pointer-events:none;}
+  .hero .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;
+    color:var(--brown);font-weight:500;margin:0 0 9px;position:relative;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:18.5px;line-height:1.38;
+    color:var(--ink);margin:0 0 16px;position:relative;letter-spacing:-.1px;}
+  .hero-actions{display:flex;align-items:center;gap:14px;position:relative;}
+  .btn{font-family:var(--f-ui);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;
+    justify-content:center;gap:7px;transition:transform .12s ease, box-shadow .18s ease, background .18s ease;}
+  .btn:active{transform:scale(.975);}
+  .btn-fill{background:var(--brown);color:#FBF9F4;border:none;border-radius:13px;padding:13px 18px;
+    font-size:15px;letter-spacing:-.1px;box-shadow:0 1px 1px rgba(40,28,16,0.18),0 4px 12px -4px rgba(110,69,39,0.5);}
+  .btn-fill:hover{background:var(--brown-deep);}
+  .btn-text{background:none;border:none;color:var(--brown);font-size:14.5px;font-weight:600;padding:6px 2px;}
+  .btn-text:hover{color:var(--brown-deep);}
+  .hero-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;position:relative;
+    margin-top:16px;padding-top:13px;border-top:0.5px solid var(--brown-bd);
+    font-size:12px;color:var(--mid);letter-spacing:-.1px;}
+  .hero-status b{font-weight:600;color:var(--soft);}
+  .hero-status .sep{color:var(--brown-bd);font-weight:600;}
+
+  /* ---- explore + share (full-width tappable cards) ---- */
+  .feature{position:relative;padding:18px;cursor:pointer;transition:transform .12s ease;}
+  .feature:active{transform:scale(.99);}
+  .feature .emblem{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+    font-size:22px;margin-bottom:13px;}
+  .emblem.brown{background:var(--brown-tint);color:var(--brown);}
+  .feature h3{font-weight:700;font-size:19px;letter-spacing:-.4px;margin:0 0 5px;color:var(--ink);}
+  .feature p{font-size:13.5px;line-height:1.46;color:var(--mid);margin:0 0 15px;letter-spacing:-.05px;}
+  .feature .go{display:inline-flex;align-items:center;gap:7px;color:var(--brown);
+    font-weight:600;font-size:14.5px;}
+  .feature .go i{font-size:16px;transition:transform .18s ease;}
+  .feature:hover .go i{transform:translateX(3px);}
+  .feature.share-card{background:linear-gradient(158deg,#FBF7F0 0%,#F4ECDE 100%);border:0.5px solid var(--brown-bd);}
+
+  /* ---- MANUAL: iOS inset grouped list ---- */
+  .manual-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 8px 9px;}
+  .manual-head .sec-label{margin:0;}
+  .manual-head .count{font-family:var(--f-mono);font-size:11px;letter-spacing:.4px;color:var(--navy);font-weight:500;}
+  .manual-sub{font-size:12.5px;line-height:1.45;color:var(--mid);margin:0 8px 11px;letter-spacing:-.05px;}
+  .grouped{background:var(--card);border-radius:18px;border:0.5px solid var(--hair);overflow:hidden;
+    box-shadow:0 1px 2px rgba(40,28,16,0.04),0 6px 16px -10px rgba(40,28,16,0.16);}
+  .lrow{display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;position:relative;
+    background:var(--card);transition:background .15s ease;}
+  .lrow:hover{background:#F6F1E7;}
+  .lrow:active{background:#F1EBDD;}
+  /* hairline separator inset from text, iOS-style */
+  .lrow:not(:last-child)::after{content:"";position:absolute;left:62px;right:0;bottom:0;
+    height:0.5px;background:var(--hair);}
+  .lemblem{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+    font-size:18px;background:var(--navy-tint);color:var(--navy);}
+  .lcol{flex:1;min-width:0;}
+  .lname{font-weight:600;font-size:15.5px;letter-spacing:-.3px;color:var(--ink);line-height:1.2;}
+  .lmean{font-size:12px;color:var(--mid);margin-top:2px;line-height:1.3;letter-spacing:-.05px;}
+  .ltrail{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+  .lcount{font-size:13px;color:var(--mid);letter-spacing:-.1px;font-variant-numeric:tabular-nums;}
+  .lcount.start{color:var(--brown);font-weight:600;}
+  .lchev{color:var(--faint);font-size:17px;}
+
+  /* ---- iOS frosted tab bar ---- */
+  .tabbar{position:relative;display:flex;justify-content:space-around;align-items:flex-start;
+    padding:9px 0 calc(9px + 18px);
+    background:rgba(251,249,244,0.78);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-top:0.5px solid var(--hair);}
+  .home-indicator{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;
+    width:134px;height:5px;border-radius:3px;background:rgba(26,23,18,0.30);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+    color:var(--faint);transition:color .15s ease;}
+  .tab i{font-size:25px;line-height:1;}
+  .tab span{font-size:10.5px;font-weight:600;letter-spacing:-.1px;}
+  .tab.on{color:var(--brown);}
+  .tab:not(.on):hover{color:var(--mid);}
+
+  /* subtle staged entrance */
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .scroll > *{animation:rise .5s cubic-bezier(.2,.7,.3,1) both;}
+  .scroll > *:nth-child(2){animation-delay:.04s;}
+  .scroll > *:nth-child(3){animation-delay:.08s;}
+  .scroll > *:nth-child(4){animation-delay:.12s;}
+  .scroll > *:nth-child(5){animation-delay:.16s;}
+  .scroll > *:nth-child(6){animation-delay:.20s;}
+  @media (prefers-reduced-motion:reduce){.scroll > *{animation:none;}}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — home</h1>
+    <span class="tag">iOS Human Interface — standalone demo</span>
+  </div>
+
+  <div class="phone">
+
+    <!-- iOS status bar -->
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="icons"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span>
+    </div>
+
+    <!-- nav bar: brand row + settings -->
+    <div class="navbar">
+      <div class="nav-toprow">
+        <div class="brand">
+          <img class="mark" src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut">
+          <span class="wm">mywalnut</span>
+        </div>
+        <button class="nav-action" aria-label="Settings"><i class="ti ti-settings"></i></button>
+      </div>
+    </div>
+
+    <!-- large title -->
+    <div class="largetitle">
+      <p class="eyebrow">Tuesday · June 15</p>
+      <h2>Good evening, Jeff.</h2>
+    </div>
+
+    <div class="scroll">
+
+      <!-- HERO — pick up where you left off -->
+      <section class="card hero">
+        <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="">
+        <p class="eyebrow">Pick up where you left off</p>
+        <p class="hero-line">Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+        <div class="hero-actions">
+          <button class="btn btn-fill">Continue this thread <i class="ti ti-arrow-right"></i></button>
+          <button class="btn btn-text">Start fresh</button>
+        </div>
+        <div class="hero-status">
+          <b>14 entries</b><span class="sep">·</span>
+          <span>4 of 5 layers touched</span><span class="sep">·</span>
+          <span>last session 3 days ago</span>
+        </div>
+      </section>
+
+      <!-- EXPLORE -->
+      <p class="sec-label">Start something</p>
+      <section class="card feature" role="button" tabindex="0">
+        <div class="emblem brown"><i class="ti ti-message-2"></i></div>
+        <h3>Bring a situation</h3>
+        <p>A conflict that keeps repeating, a reaction that surprised you, a win you can't explain. Talk it through and see what's underneath.</p>
+        <span class="go">Explore a situation <i class="ti ti-arrow-right"></i></span>
+      </section>
+
+      <!-- MANUAL — inset grouped list -->
+      <div class="manual-head">
+        <span class="sec-label navy">Your manual</span>
+        <span class="count">14 entries</span>
+      </div>
+      <p class="manual-sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+      <div class="grouped">
+        <div class="lrow" role="button" tabindex="0">
+          <div class="lemblem"><i class="ti ti-sparkles"></i></div>
+          <div class="lcol"><div class="lname">My Strengths</div><div class="lmean">What you're genuinely good at, named plainly.</div></div>
+          <div class="ltrail"><span class="lcount">3</span><i class="ti ti-chevron-right lchev"></i></div>
+        </div>
+        <div class="lrow" role="button" tabindex="0">
+          <div class="lemblem"><i class="ti ti-refresh"></i></div>
+          <div class="lcol"><div class="lname">Some of My Patterns</div><div class="lmean">Loops you repeat — and what they cost.</div></div>
+          <div class="ltrail"><span class="lcount">5</span><i class="ti ti-chevron-right lchev"></i></div>
+        </div>
+        <div class="lrow" role="button" tabindex="0">
+          <div class="lemblem"><i class="ti ti-bulb"></i></div>
+          <div class="lcol"><div class="lname">How I Process Things</div><div class="lmean">The way your mind actually works through things.</div></div>
+          <div class="ltrail"><span class="lcount">2</span><i class="ti ti-chevron-right lchev"></i></div>
+        </div>
+        <div class="lrow" role="button" tabindex="0">
+          <div class="lemblem"><i class="ti ti-anchor"></i></div>
+          <div class="lcol"><div class="lname">What Helps</div><div class="lmean">The conditions and moves that make things easier.</div></div>
+          <div class="ltrail"><span class="lcount">4</span><i class="ti ti-chevron-right lchev"></i></div>
+        </div>
+        <div class="lrow" role="button" tabindex="0">
+          <div class="lemblem"><i class="ti ti-users"></i></div>
+          <div class="lcol"><div class="lname">How I Show Up with People</div><div class="lmean">The gap between what you mean and what others see.</div></div>
+          <div class="ltrail"><span class="lcount start">Start</span><i class="ti ti-chevron-right lchev"></i></div>
+        </div>
+      </div>
+
+      <!-- SHARE -->
+      <p class="sec-label">Share</p>
+      <section class="card feature share-card" role="button" tabindex="0">
+        <div class="emblem brown"><i class="ti ti-send"></i></div>
+        <h3>Share how you work</h3>
+        <p>Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+        <span class="go">Create a shareable version <i class="ti ti-arrow-right"></i></span>
+      </section>
+
+    </div>
+
+    <!-- iOS frosted tab bar -->
+    <nav class="tabbar">
+      <div class="tab on"><i class="ti ti-home-filled"></i><span>Home</span></div>
+      <div class="tab"><i class="ti ti-book-2"></i><span>Manual</span></div>
+      <div class="tab"><i class="ti ti-user"></i><span>You</span></div>
+      <div class="home-indicator"></div>
+    </nav>
+
+  </div>
+</body>
+</html>

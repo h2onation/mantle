@@ -232,7 +232,7 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - **Mobile-first.** The primary interface is a mobile shell (430px max-width centered). The product will also be accessible via text (MMS) and web. Design for mobile first, other surfaces adapt.
 - **Inline styles only.** Never add `className` to components. Use `style={{}}` with CSS custom properties from `globals.css`. Prefer size tokens (`--size-meta`, `--size-body`, `--size-prose`, `--size-heading`) over raw pixel values.
 - **Linen palette.** Warm linen surface is the design system. The dark void palette (`#0C0B0A`) is deprecated. All new work uses the linen tokens (`--session-linen`, `--session-ink`, `--session-ink-ghost`, `--session-ink-faded`, `--session-ink-hairline`).
-- **Two themes ship.** Hearth (dark, default) and Bloom (light) — both bind the same `--session-*` token names to per-theme values. Switch via `data-theme="light"` on `<html>`. Every new component must work in both.
+- **Light is the default theme; the front door is light-first.** Bloom (light) is the shipped default (`data-theme="light"` on `<html>`, set in `layout.tsx` / `useTheme.ts`). Hearth (dark) also exists and binds the same `--session-*` token names to per-theme values. **The front-door redesign tunes the new palette (warm-white · brown=you · navy=Jove) in light only; dark gets a later, dedicated pass** — so the "every new component must work in both themes" expectation is relaxed for front-door surfaces during that window. Font variables are shared across themes, so font changes apply to both. See `docs/redesign-migration-plan.md`.
 
 ### Typography Roles
 | Font | Role | Sizing |

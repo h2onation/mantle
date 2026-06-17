@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — new-user entry flow (companion)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    --focus:rgba(33,67,107,0.55);
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  :focus{outline:none;}
+  [data-goto]:focus-visible,
+  button:focus-visible,
+  .chip:focus-visible,
+  .how-link:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+  .page-sub{font-family:var(--f-serif);font-style:italic;font-size:13.5px;color:var(--mid);margin:14px auto 0;max-width:30em;line-height:1.5;}
+
+  /* ---- phone shell ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;flex-direction:column;}
+  .screen.active{display:flex;animation:fade .3s cubic-bezier(.22,.61,.36,1);}
+  @keyframes fade{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
+
+  /* ---- app header — consistent walnut logo ---- */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:16px 18px 8px;flex-shrink:0;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:36px;height:36px;border-radius:12px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:24px;height:24px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:18px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-spacer{flex:1;}
+  /* the one-tap escape hatch — quiet, top-right */
+  .how-link{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:none;
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;font-weight:500;
+    color:var(--faint);background:transparent;padding:9px 10px;min-height:38px;border-radius:11px;
+    transition:color .14s ease, background .14s ease;
+  }
+  .how-link i{font-size:14px;}
+  .how-link:hover{color:var(--navy);background:rgba(33,67,107,0.05);}
+
+  /* small back affordance reused on later screens */
+  .chathdr-back{
+    width:40px;height:40px;border-radius:12px;border:none;cursor:pointer;color:var(--brown);font-size:19px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .chathdr-back:hover{box-shadow:var(--lift-2), var(--inset-hi);}
+  .chathdr-back:active{transform:translateY(1px);box-shadow:var(--lift-1), var(--inset-hi);}
+
+  /* ════════════════════════════════════════════ */
+  /* SCREEN 1 — THE LANDING IS THE OPENER          */
+  /* ════════════════════════════════════════════ */
+  .land{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px;overflow-y:auto;}
+  .land::-webkit-scrollbar{width:0;}
+
+  /* a warm, present greeting from Jove — the whole screen IS the conversation */
+  .land-greet{margin:0 2px 0;}
+  .land-mark{
+    width:54px;height:54px;border-radius:17px;display:grid;place-items:center;margin:0 0 20px;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F2E9D8 100%);
+    box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.06);
+  }
+  .land-mark img{width:38px;height:38px;display:block;}
+  .land-kick{font-family:var(--f-mono);font-size:9.5px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:0 0 14px;}
+  /* the ONE-LINE opener — warmth + a little character, literary not bubbly */
+  .land-line{
+    font-family:var(--f-display);font-weight:500;font-size:25px;line-height:1.24;letter-spacing:-.5px;
+    color:var(--ink);margin:0;font-optical-sizing:auto;max-width:15.5em;
+  }
+  .land-line em{font-style:italic;color:var(--brown);font-weight:500;}
+  .land-warm{
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.55;color:var(--mid);margin:15px 2px 0;max-width:24em;
+  }
+
+  /* example-situation chips — gentle invitations, not a menu; all lead to the same place */
+  .chips{display:flex;flex-direction:column;gap:9px;margin:24px 0 4px;}
+  .chips-cue{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 3px 2px;}
+  .chip{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    min-height:44px;padding:13px 16px;border-radius:16px;
+    font-family:var(--f-serif);font-size:15px;line-height:1.4;color:var(--soft);
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 0 0 1px rgba(26,23,18,0.035);
+    transition:transform .12s ease, box-shadow .14s ease, color .14s ease;
+  }
+  .chip i{font-size:17px;color:var(--brown-bright);opacity:.78;flex-shrink:0;transition:opacity .14s ease, transform .14s ease;}
+  .chip .ch-arr{margin-left:auto;font-size:15px;color:var(--faint);opacity:0;transform:translateX(-3px);transition:opacity .14s ease, transform .14s ease, color .14s ease;}
+  .chip:hover{color:var(--ink);box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);}
+  .chip:hover i{opacity:1;transform:scale(1.04);}
+  .chip:hover .ch-arr{opacity:1;transform:translateX(0);color:var(--brown);}
+  .chip:active{transform:translateY(1px);}
+
+  /* live input on the landing — already inviting, focused-looking */
+  .land-in{padding:14px 0 8px;flex-shrink:0;}
+  .land-field-wrap{display:flex;align-items:center;gap:10px;}
+  .land-field{
+    flex:1;border-radius:999px;padding:13px 19px;min-height:46px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1.5px solid var(--brown-bd);
+    font-family:var(--f-serif);font-size:15px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05), 0 0 0 4px rgba(110,69,39,0.05);
+  }
+  .land-caret{display:inline-block;width:1.5px;height:17px;background:var(--brown);margin-left:1px;animation:blink 1.1s step-end infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .cv-send{
+    width:46px;height:46px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:20px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .cv-send:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .cv-send:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+
+  /* the quiet, always-present privacy line under the input */
+  .privacy-line{
+    display:flex;align-items:center;justify-content:center;gap:7px;margin:11px 0 16px;
+    font-family:var(--f-ui);font-size:11.5px;font-weight:500;color:var(--faint);
+  }
+  .privacy-line i{font-size:13px;color:var(--navy);opacity:.65;}
+
+  /* ════════════════════════════════════════════ */
+  /* SCREEN 2 & 3 — CONVERSATION (v6 chat styling)  */
+  /* ════════════════════════════════════════════ */
+  .chathdr{display:flex;align-items:center;gap:11px;padding:14px 18px 8px;flex-shrink:0;}
+  .chat-ctx{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  .cv-body{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 18px;display:flex;flex-direction:column;gap:13px;-webkit-overflow-scrolling:touch;}
+  .cv-body::-webkit-scrollbar{width:0;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* checkpoint card — the Manual + the gate are introduced HERE, in context */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  /* the "nothing's saved unless you confirm" gate line — shown in context, at the checkpoint */
+  .cv-cpnote{display:flex;align-items:flex-start;gap:7px;font-size:11.5px;line-height:1.45;color:var(--mid);margin:12px 0 14px;font-family:var(--f-ui);}
+  .cv-cpnote i{font-size:13px;color:var(--navy);opacity:.7;flex-shrink:0;margin-top:1px;}
+  .cv-cpb{display:flex;gap:9px;}
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:14px;
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .cv-cpb .btn{flex:1;}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:13px 16px;font-size:14px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:hover{filter:brightness(1.04);}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 14px;font-size:13.5px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+  .cv-ghost:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--hair);}
+  .cv-refine{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--brown);
+    padding:13px 14px;font-size:13.5px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .cv-refine:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);}
+
+  /* a small confirmed-acknowledgement so the gate's payoff is felt (Screen 3 → confirm) */
+  .cv-saved{
+    align-self:center;display:inline-flex;align-items:center;gap:8px;margin:2px 0;
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;font-weight:500;color:var(--navy);
+    background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:7px 14px;
+    animation:fade .3s ease;
+  }
+  .cv-saved i{font-size:13px;}
+
+  /* live input bar — same on screens 2 & 3 */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-privacy{
+    display:flex;align-items:center;justify-content:center;gap:7px;padding:0 16px 14px;flex-shrink:0;
+    font-family:var(--f-ui);font-size:11px;font-weight:500;color:var(--faint);
+  }
+  .cv-privacy i{font-size:12px;color:var(--navy);opacity:.6;}
+
+  /* typing indicator (between user send and Jove's reply, screen 2) */
+  .cv-typing{align-self:flex-start;display:flex;align-items:center;gap:5px;padding:13px 16px;border-radius:5px 16px 16px 16px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);border:1px solid var(--hair);box-shadow:var(--lift-1);}
+  .cv-typing span{width:6px;height:6px;border-radius:50%;background:var(--faint);opacity:.6;animation:bob 1.2s infinite ease-in-out;}
+  .cv-typing span:nth-child(2){animation-delay:.18s;}
+  .cv-typing span:nth-child(3){animation-delay:.36s;}
+  @keyframes bob{0%,60%,100%{transform:translateY(0);opacity:.45;}30%{transform:translateY(-4px);opacity:.9;}}
+
+  /* ---- step controls (demo-only walkthrough nav) ---- */
+  .stepbar{
+    display:flex;align-items:center;justify-content:center;gap:14px;margin:22px auto 0;
+    flex-wrap:wrap;max-width:404px;
+  }
+  .stepbtn{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:none;min-height:44px;
+    font-family:var(--f-ui);font-weight:600;font-size:13px;color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F1E9DC 100%);padding:11px 18px;border-radius:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  .stepbtn:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);}
+  .stepbtn:active{transform:translateY(1px);}
+  .stepbtn:disabled{opacity:.4;cursor:default;box-shadow:var(--lift-1), inset 0 0 0 1px var(--hair);color:var(--faint);}
+  .stepbtn i{font-size:15px;}
+  .stepdots{display:flex;align-items:center;gap:8px;}
+  .stepdot{width:7px;height:7px;border-radius:50%;background:rgba(110,69,39,0.22);transition:transform .2s ease, background .2s ease;}
+  .stepdot.on{background:var(--brown);transform:scale(1.35);}
+  .step-cap{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);text-align:center;margin:13px auto 0;}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .screen.active{animation:none;}
+    .land-caret{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — new-user entry flow</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+    <p class="page-sub">First open for an invited user — direction: conversational companion. The landing is a conversation, not a setup.</p>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+      <div class="viewport">
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 1 — THE LANDING IS JOVE'S OPENER        -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen active" id="screen-1" role="region" aria-label="Welcome">
+          <header class="apphdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <span class="hdr-spacer"></span>
+            <!-- one-tap escape hatch — for the minority who want to read first -->
+            <button class="how-link" aria-label="How this works"><i class="ti ti-help-circle" aria-hidden="true"></i>How this works</button>
+          </header>
+
+          <div class="land">
+            <div class="land-greet">
+              <span class="land-mark"><img src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true"></span>
+              <p class="land-kick">Jove</p>
+              <!-- the ONE-LINE opener: warm, glad-you're-here, a little character -->
+              <h2 class="land-line">Hi — I&rsquo;m Jove. I&rsquo;m here to get to know <em>how you actually work.</em></h2>
+              <p class="land-warm">No right answers, nothing to fill out. Just tell me about something that&rsquo;s been on your mind, and we&rsquo;ll take it from there.</p>
+            </div>
+
+            <!-- example-situation chips: gentle invitations, all lead to the same conversation -->
+            <div class="chips" role="group" aria-label="A few places we could start">
+              <p class="chips-cue">Or start with one of these</p>
+              <button class="chip" data-goto="2" aria-label="Start: a reaction that surprised me">
+                <i class="ti ti-bolt" aria-hidden="true"></i>
+                A reaction that surprised me
+                <span class="ch-arr" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>
+              </button>
+              <button class="chip" data-goto="2" aria-label="Start: a conflict that keeps repeating">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+                A conflict that keeps repeating
+                <span class="ch-arr" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>
+              </button>
+              <button class="chip" data-goto="2" aria-label="Start: a win I can't quite explain">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>
+                A win I can&rsquo;t quite explain
+                <span class="ch-arr" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>
+              </button>
+            </div>
+
+            <div class="land-in">
+              <div class="land-field-wrap">
+                <span class="land-field" data-goto="2" role="textbox" aria-label="Tell Jove what's on your mind">Tell me what&rsquo;s on your mind<span class="land-caret" aria-hidden="true"></span></span>
+                <button class="cv-send" data-goto="2" aria-label="Send"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+              </div>
+              <!-- quiet, always-present privacy reassurance, woven in Jove's calm voice -->
+              <div class="privacy-line">
+                <i class="ti ti-lock" aria-hidden="true"></i>
+                Private. Nothing&rsquo;s saved unless you say so.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 2 — JOVE REFLECTS SOMETHING SPECIFIC   -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen" id="screen-2" role="region" aria-label="Conversation with Jove">
+          <header class="chathdr">
+            <button class="chathdr-back" data-goto="1" aria-label="Back"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+            <span class="chat-ctx">Talking with Jove</span>
+          </header>
+
+          <div class="cv-body" id="body-2">
+            <!-- the user has sent a real, small, human message -->
+            <div class="cv-u"><div class="cv-ub">I snapped at my partner tonight over the dishwasher, of all things. It came out of nowhere and I felt awful after.</div></div>
+
+            <!-- Jove reflects something SPECIFIC back — their words, one deepening move; no advice, no label -->
+            <div class="cv-j">
+              <p class="cv-jl">Jove</p>
+              <div class="cv-jb">&ldquo;Out of nowhere,&rdquo; and then awful right after — that quick turn is worth sitting with. The dishwasher is rarely about the dishwasher. What was the hour <em>before</em> you walked into that kitchen like?</div>
+            </div>
+
+            <!-- live input proves the conversation is open -->
+          </div>
+
+          <div class="cv-in">
+            <span class="cv-field" data-goto="3">Reply to Jove&hellip;</span>
+            <button class="cv-send" data-goto="3" aria-label="Send"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          </div>
+          <div class="cv-privacy"><i class="ti ti-lock" aria-hidden="true"></i>Private. Nothing&rsquo;s saved unless you say so.</div>
+        </section>
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 3 — FIRST CHECKPOINT: MANUAL + THE GATE -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen" id="screen-3" role="region" aria-label="Conversation with Jove">
+          <header class="chathdr">
+            <button class="chathdr-back" data-goto="2" aria-label="Back"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+            <span class="chat-ctx">Talking with Jove</span>
+          </header>
+
+          <div class="cv-body" id="body-3">
+            <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a single second to myself all day before I walked in.</div></div>
+            <div class="cv-j">
+              <div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn&rsquo;t really aimed at your partner — it landed on the first quiet moment that had no margin left in it.</div>
+            </div>
+            <div class="cv-u"><div class="cv-ub">Yeah. That&rsquo;s exactly it, actually. They get whatever&rsquo;s left, and most days there isn&rsquo;t much.</div></div>
+
+            <!-- the FIRST CHECKPOINT — recognizable one-line articulation; the Manual + gate are introduced here -->
+            <div class="cv-j">
+              <div class="cv-jb">Then here&rsquo;s something I&rsquo;d hold onto. I&rsquo;d start a Manual for you with it — a running picture of how you operate, built only from things you and I agree are true.</div>
+            </div>
+
+            <div class="cv-cp" id="cp" role="group" aria-label="Proposed entry for your manual">
+              <div class="cv-cph">
+                <span class="cv-cpt"><i class="ti ti-notebook" aria-hidden="true"></i>For your manual?</span>
+                <span class="cv-cptag">&rarr; Some of My Patterns</span>
+              </div>
+              <p class="cv-cptx">You run on no margin — so the people closest to you tend to meet the version of you that&rsquo;s already past empty.</p>
+              <p class="cv-cpnote"><i class="ti ti-lock" aria-hidden="true"></i><span>Nothing&rsquo;s saved unless you confirm it. This is your Manual — you decide what&rsquo;s true.</span></p>
+              <div class="cv-cpb">
+                <button class="btn btn-primary" id="cp-confirm">Confirm</button>
+                <button class="btn cv-refine" id="cp-refine">Refine</button>
+                <button class="btn cv-ghost" id="cp-no">Not quite</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="cv-in">
+            <span class="cv-field">Reply to Jove&hellip;</span>
+            <button class="cv-send" aria-label="Send"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          </div>
+          <div class="cv-privacy"><i class="ti ti-lock" aria-hidden="true"></i>Private. Nothing&rsquo;s saved unless you say so.</div>
+        </section>
+
+      </div><!-- /.viewport -->
+    </div>
+  </div>
+
+  <!-- demo walkthrough controls (not part of the app) -->
+  <div class="stepbar">
+    <button class="stepbtn" id="prev" aria-label="Previous screen" disabled><i class="ti ti-arrow-left" aria-hidden="true"></i>Back</button>
+    <div class="stepdots" aria-hidden="true">
+      <span class="stepdot on"></span><span class="stepdot"></span><span class="stepdot"></span>
+    </div>
+    <button class="stepbtn" id="next" aria-label="Next screen">Next<i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  </div>
+  <p class="step-cap" id="stepcap">1 of 3 · The landing is the conversation</p>
+
+  <script>
+    (function(){
+      var screens = [
+        document.getElementById('screen-1'),
+        document.getElementById('screen-2'),
+        document.getElementById('screen-3')
+      ];
+      var caps = [
+        '1 of 3 · The landing is the conversation',
+        '2 of 3 · Jove reflects something specific back',
+        '3 of 3 · The first checkpoint — the Manual + the gate'
+      ];
+      var dots = document.querySelectorAll('.stepdot');
+      var prev = document.getElementById('prev');
+      var next = document.getElementById('next');
+      var cap  = document.getElementById('stepcap');
+      var cur = 0;
+
+      function show(i){
+        i = Math.max(0, Math.min(screens.length - 1, i));
+        cur = i;
+        screens.forEach(function(s, n){ s.classList.toggle('active', n === i); });
+        dots.forEach(function(d, n){ d.classList.toggle('on', n === i); });
+        prev.disabled = (i === 0);
+        next.disabled = (i === screens.length - 1);
+        cap.textContent = caps[i];
+        // reset checkpoint state when leaving / re-entering screen 3
+        if(i !== 2) resetCheckpoint();
+        var body = screens[i].querySelector('.cv-body');
+        if(body) body.scrollTop = body.scrollHeight;
+      }
+
+      prev.addEventListener('click', function(){ show(cur - 1); });
+      next.addEventListener('click', function(){ show(cur + 1); });
+
+      // every [data-goto] jumps to a numbered screen (chips, send, field, back)
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          show(parseInt(el.getAttribute('data-goto'), 10) - 1);
+        });
+      });
+
+      // ---- checkpoint interactions (screen 3) ----
+      var cp = document.getElementById('cp');
+      var body3 = document.getElementById('body-3');
+      var savedChip = null;
+
+      function resetCheckpoint(){
+        if(cp) cp.style.display = '';
+        if(savedChip){ savedChip.remove(); savedChip = null; }
+      }
+
+      function confirmEntry(){
+        if(!cp || cp.style.display === 'none') return;
+        cp.style.display = 'none';
+        savedChip = document.createElement('div');
+        savedChip.className = 'cv-saved';
+        savedChip.setAttribute('role','status');
+        savedChip.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>Saved to your Manual';
+        body3.appendChild(savedChip);
+        // a brief, warm acknowledgement, then back to the conversation (no fork)
+        var ack = document.createElement('div');
+        ack.className = 'cv-j';
+        ack.innerHTML = '<div class="cv-jb">There it is — the first piece of your Manual. We&rsquo;ll keep adding, a piece at a time. So: what does a day with a little margin in it actually look like for you?</div>';
+        body3.appendChild(ack);
+        body3.scrollTop = body3.scrollHeight;
+      }
+
+      var cpConfirm = document.getElementById('cp-confirm');
+      var cpRefine  = document.getElementById('cp-refine');
+      var cpNo      = document.getElementById('cp-no');
+      if(cpConfirm) cpConfirm.addEventListener('click', confirmEntry);
+      if(cpRefine)  cpRefine.addEventListener('click', function(){
+        var tx = cp.querySelector('.cv-cptx');
+        if(tx) tx.textContent = 'You give the work everything, and the people closest to you get whatever’s left — most days, that isn’t much.';
+        cpRefine.textContent = 'Refined';
+        setTimeout(function(){ cpRefine.textContent = 'Refine'; }, 1400);
+      });
+      if(cpNo) cpNo.addEventListener('click', function(){
+        cp.style.display = 'none';
+        var ack = document.createElement('div');
+        ack.className = 'cv-j';
+        ack.innerHTML = '<div class="cv-jb">No problem — it stays out. Nothing goes in unless it lands as true for you. Say more about what felt off, and we’ll find the words that fit.</div>';
+        body3.appendChild(ack);
+        body3.scrollTop = body3.scrollHeight;
+      });
+
+      show(0);
+    })();
+  </script>
+</body>
+</html>

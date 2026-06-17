@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (modern minimal)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* surfaces */
+    --ground:#F4F1EA; --paper:#FBF9F4; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* accents */
+    --brown:#6E4527; --brown-700:#5B3920; --brown-tint:rgba(110,69,39,0.06);
+    --navy:#21436B; --navy-700:#1A3656; --navy-tint:rgba(33,67,107,0.055);
+    /* hairlines — precise, the load-bearing element */
+    --hair:rgba(26,23,18,0.10);
+    --hair-strong:rgba(26,23,18,0.16);
+    --hair-faint:rgba(26,23,18,0.055);
+    /* type */
+    --f-display:'Inter Tight',sans-serif;
+    --f-ui:'Inter',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--page);color:var(--ink);
+    font-family:var(--f-ui);
+    padding:40px 16px 72px;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-feature-settings:"cv05","ss01";
+  }
+
+  /* page chrome */
+  .page-title{
+    max-width:404px;margin:0 auto 18px;text-align:center;
+    font-family:var(--f-ui);font-size:11px;font-weight:500;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--mid);
+  }
+  .page-title b{color:var(--ink);font-weight:600;}
+
+  /* phone frame — tight radius, hairline lift not shadow */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;
+    background:var(--ground);
+    border:1px solid var(--hair-strong);
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,0.5) inset, 0 18px 50px -28px rgba(40,28,16,0.30);
+  }
+  .screen{display:flex;flex-direction:column;min-height:872px;}
+  .ti{font-size:inherit;line-height:1;display:inline-block;}
+
+  /* ─── header ─── */
+  .hd{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:15px 20px 14px;
+    border-bottom:1px solid var(--hair);
+  }
+  .hd-brand{display:flex;align-items:center;gap:8px;}
+  .hd-brand img{width:24px;height:24px;display:block;}
+  .hd-wm{
+    font-family:var(--f-display);font-weight:600;font-size:16px;
+    letter-spacing:-.02em;color:var(--ink);
+  }
+  .hd-set{
+    width:34px;height:34px;border-radius:9px;
+    display:grid;place-items:center;
+    color:var(--mid);font-size:18px;
+    border:1px solid transparent;
+    background:transparent;cursor:pointer;transition:.15s;
+  }
+  .hd-set:hover{border-color:var(--hair);color:var(--soft);background:var(--paper);}
+
+  /* scroll content */
+  .content{flex:1;padding:22px 20px 18px;}
+
+  /* greeting */
+  .greet{margin:0 0 22px;}
+  .greet h1{
+    font-family:var(--f-display);font-weight:600;
+    font-size:25px;line-height:1.08;letter-spacing:-.025em;
+    color:var(--ink);margin:0 0 5px;
+  }
+  .greet .meta{
+    font-size:12px;font-weight:450;color:var(--faint);
+    letter-spacing:.01em;
+  }
+
+  /* ─── shared tile base ─── */
+  .tile{
+    background:var(--paper);
+    border:1px solid var(--hair);
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:12px;
+  }
+  .eyebrow{
+    font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px;
+  }
+  .eyebrow.brown{color:var(--brown);}
+  .eyebrow.navy{color:var(--navy);}
+  .eyebrow::before{
+    content:"";width:5px;height:5px;border-radius:1px;
+    background:currentColor;transform:rotate(45deg);flex:none;
+  }
+  .tile-title{
+    font-family:var(--f-display);font-weight:600;font-size:18px;
+    letter-spacing:-.02em;color:var(--ink);margin:0;
+  }
+  .tile-body{
+    font-size:13.5px;line-height:1.5;color:var(--soft);
+    margin:7px 0 0;font-weight:400;
+  }
+
+  /* ─── TILE 1 — hero ─── */
+  .hero{padding:19px 19px 17px;}
+  .hero .eyebrow{margin-bottom:13px;}
+  .hero-line{
+    font-family:var(--f-serif);font-weight:400;
+    font-size:20px;line-height:1.34;letter-spacing:-.01em;
+    color:var(--ink);margin:0;
+  }
+  .hero-actions{
+    display:flex;align-items:center;gap:14px;
+    margin-top:18px;
+  }
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--brown);color:var(--paper);
+    font-family:var(--f-ui);font-weight:500;font-size:13.5px;letter-spacing:.005em;
+    border:1px solid var(--brown);
+    border-radius:9px;padding:11px 16px;cursor:pointer;
+    transition:.15s;
+    box-shadow:0 1px 0 rgba(255,255,255,0.14) inset;
+  }
+  .btn-primary:hover{background:var(--brown-700);border-color:var(--brown-700);}
+  .btn-primary .ti{font-size:16px;margin-right:-1px;}
+  .link-action{
+    font-family:var(--f-ui);font-weight:500;font-size:13px;
+    color:var(--mid);background:none;border:none;cursor:pointer;
+    padding:4px 2px;transition:.15s;
+  }
+  .link-action:hover{color:var(--brown);}
+  .status{
+    display:flex;align-items:center;flex-wrap:wrap;gap:0 9px;
+    margin-top:16px;padding-top:14px;
+    border-top:1px solid var(--hair-faint);
+    font-size:11.5px;font-weight:450;color:var(--faint);letter-spacing:.005em;
+  }
+  .status .dot{width:3px;height:3px;border-radius:50%;background:var(--faint);opacity:.7;}
+  .status b{color:var(--mid);font-weight:500;}
+
+  /* ─── TILE 2 — explore ─── */
+  .tile-foot{margin-top:15px;}
+  .btn-outline{
+    display:inline-flex;align-items:center;gap:7px;
+    background:transparent;color:var(--brown);
+    font-family:var(--f-ui);font-weight:500;font-size:13px;letter-spacing:.005em;
+    border:1px solid var(--brown-tint);
+    border-radius:9px;padding:10px 14px;cursor:pointer;transition:.15s;
+  }
+  .btn-outline{border-color:rgba(110,69,39,0.22);}
+  .btn-outline:hover{background:var(--brown-tint);border-color:var(--brown);}
+  .btn-outline .ti{font-size:15px;}
+
+  /* ─── TILE 3 — Manual ─── */
+  .manual{padding:18px 18px 8px;}
+  .manual-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:3px;
+  }
+  .manual-head h2{
+    font-family:var(--f-display);font-weight:600;font-size:18px;
+    letter-spacing:-.02em;color:var(--ink);margin:0;
+  }
+  .manual-count{
+    font-size:11px;font-weight:500;color:var(--navy);
+    letter-spacing:.01em;
+    background:var(--navy-tint);border:1px solid rgba(33,67,107,0.14);
+    border-radius:6px;padding:3px 8px;
+  }
+  .manual-sub{
+    font-size:12.5px;line-height:1.45;color:var(--mid);
+    margin:0 0 6px;font-weight:400;
+  }
+  .layers{margin:0 -18px;}
+  .layer{
+    display:flex;align-items:center;gap:13px;
+    width:100%;text-align:left;
+    background:transparent;border:none;cursor:pointer;
+    padding:13px 18px;
+    border-top:1px solid var(--hair-faint);
+    font-family:var(--f-ui);transition:.13s;
+  }
+  .layer:hover{background:var(--navy-tint);}
+  .layer-emb{
+    width:32px;height:32px;flex:none;
+    border-radius:8px;
+    display:grid;place-items:center;
+    color:var(--navy);font-size:17px;
+    background:var(--navy-tint);
+    border:1px solid rgba(33,67,107,0.13);
+  }
+  .layer-txt{flex:1;min-width:0;}
+  .layer-name{
+    font-family:var(--f-display);font-weight:600;font-size:14.5px;
+    letter-spacing:-.012em;color:var(--ink);
+    line-height:1.2;
+  }
+  .layer-mean{
+    font-size:11.5px;line-height:1.35;color:var(--faint);
+    margin-top:2px;font-weight:400;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  .layer-end{display:flex;align-items:center;gap:9px;flex:none;}
+  .layer-ct{
+    font-size:11px;font-weight:500;color:var(--mid);
+    letter-spacing:.01em;font-variant-numeric:tabular-nums;
+  }
+  .layer-start{
+    font-size:11px;font-weight:600;color:var(--brown);
+    letter-spacing:.02em;text-transform:uppercase;
+  }
+  .layer-chev{color:var(--faint);font-size:16px;opacity:.85;}
+  .layer.empty .layer-name{color:var(--mid);}
+  .layer.empty .layer-emb{color:var(--mid);background:transparent;border-style:dashed;border-color:var(--hair-strong);}
+
+  /* ─── TILE 4 — share ─── */
+  .share .tile-title{display:flex;align-items:center;gap:8px;}
+  .share .tile-title .ti{font-size:17px;color:var(--navy);}
+
+  /* ─── bottom nav ─── */
+  .nav{
+    display:flex;align-items:stretch;
+    border-top:1px solid var(--hair);
+    background:var(--ground);
+  }
+  .nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:11px 0 13px;
+    background:none;border:none;cursor:pointer;
+    color:var(--faint);font-family:var(--f-ui);
+    font-size:10.5px;font-weight:500;letter-spacing:.02em;
+    position:relative;transition:.15s;
+  }
+  .nav-item .ti{font-size:21px;}
+  .nav-item:hover{color:var(--mid);}
+  .nav-item.on{color:var(--brown);}
+  .nav-item.on::before{
+    content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+    width:26px;height:2px;border-radius:0 0 2px 2px;background:var(--brown);
+  }
+</style>
+</head>
+<body>
+  <p class="page-title">mywalnut · <b>home</b> — modern minimal</p>
+
+  <div class="phone">
+    <div class="screen">
+
+      <!-- header -->
+      <header class="hd">
+        <div class="hd-brand">
+          <img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut">
+          <span class="hd-wm">mywalnut</span>
+        </div>
+        <button class="hd-set" aria-label="Settings"><i class="ti ti-settings"></i></button>
+      </header>
+
+      <div class="content">
+
+        <!-- greeting -->
+        <div class="greet">
+          <h1>Good evening, Jeff.</h1>
+          <div class="meta">Tuesday · June 15</div>
+        </div>
+
+        <!-- TILE 1 — hero -->
+        <section class="tile hero">
+          <div class="eyebrow brown">Pick up where you left off</div>
+          <p class="hero-line">Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+          <div class="hero-actions">
+            <button class="btn-primary">Continue this thread <i class="ti ti-arrow-right"></i></button>
+            <button class="link-action">Start fresh</button>
+          </div>
+          <div class="status">
+            <b>14 entries</b><span class="dot"></span>
+            <span>4 of 5 layers touched</span><span class="dot"></span>
+            <span>last session 3 days ago</span>
+          </div>
+        </section>
+
+        <!-- TILE 2 — explore -->
+        <section class="tile">
+          <div class="eyebrow brown" style="margin-bottom:10px">Bring a situation</div>
+          <p class="tile-body">A conflict that keeps repeating, a reaction that surprised you, a win you can't explain. Talk it through and see what's underneath.</p>
+          <div class="tile-foot">
+            <button class="btn-outline"><i class="ti ti-message-circle"></i> Explore a situation</button>
+          </div>
+        </section>
+
+        <!-- TILE 3 — Manual -->
+        <section class="tile manual">
+          <div class="manual-head">
+            <h2>Your manual</h2>
+            <span class="manual-count">14 entries</span>
+          </div>
+          <p class="manual-sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+          <div class="layers">
+            <button class="layer">
+              <span class="layer-emb"><i class="ti ti-sparkles"></i></span>
+              <span class="layer-txt">
+                <span class="layer-name">My Strengths</span>
+                <span class="layer-mean">What you're genuinely good at, named plainly.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">3 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="layer-emb"><i class="ti ti-refresh"></i></span>
+              <span class="layer-txt">
+                <span class="layer-name">Some of My Patterns</span>
+                <span class="layer-mean">Loops you repeat — and what they cost.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">5 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="layer-emb"><i class="ti ti-bulb"></i></span>
+              <span class="layer-txt">
+                <span class="layer-name">How I Process Things</span>
+                <span class="layer-mean">The way your mind actually works through things.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">2 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer">
+              <span class="layer-emb"><i class="ti ti-anchor"></i></span>
+              <span class="layer-txt">
+                <span class="layer-name">What Helps</span>
+                <span class="layer-mean">The conditions and moves that make things easier.</span>
+              </span>
+              <span class="layer-end"><span class="layer-ct">4 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+
+            <button class="layer empty">
+              <span class="layer-emb"><i class="ti ti-users"></i></span>
+              <span class="layer-txt">
+                <span class="layer-name">How I Show Up with People</span>
+                <span class="layer-mean">The gap between what you mean and what others see.</span>
+              </span>
+              <span class="layer-end"><span class="layer-start">Start</span><i class="ti ti-chevron-right layer-chev"></i></span>
+            </button>
+          </div>
+        </section>
+
+        <!-- TILE 4 — share -->
+        <section class="tile share">
+          <div class="eyebrow navy" style="margin-bottom:10px">Share how you work</div>
+          <p class="tile-body">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+          <div class="tile-foot">
+            <button class="btn-outline" style="color:var(--navy);border-color:rgba(33,67,107,0.22)" onmouseover="this.style.background='var(--navy-tint)';this.style.borderColor='var(--navy)'" onmouseout="this.style.background='transparent';this.style.borderColor='rgba(33,67,107,0.22)'"><i class="ti ti-share-2"></i> Create a shareable version</button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- bottom nav -->
+      <nav class="nav">
+        <button class="nav-item on"><i class="ti ti-home"></i>Home</button>
+        <button class="nav-item"><i class="ti ti-book-2"></i>Manual</button>
+        <button class="nav-item"><i class="ti ti-user"></i>You</button>
+      </nav>
+
+    </div>
+  </div>
+</body>
+</html>

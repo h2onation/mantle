@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — manual · C (layer tabs)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{--bg:#E6E0D4;--paper:#FBF9F4;--linen:#F4F1EA;--ink:#1A1712;--soft:#463E32;--mid:#6E6557;--faint:#9C9486;--hair:rgba(26,23,18,0.12);--hairs:rgba(26,23,18,0.07);--brown:#6E4527;--brown-s:rgba(110,69,39,0.08);--navy:#21436B;--navy-s:rgba(33,67,107,0.07);
+    --f-d:'Fraunces',serif;--f-s:'Newsreader',Georgia,serif;--f-u:'Plus Jakarta Sans',system-ui,sans-serif;--f-m:'JetBrains Mono',monospace;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-u);-webkit-font-smoothing:antialiased;padding:40px 16px 60px;}
+  .page-head{text-align:center;margin:0 auto 24px;}
+  .page-head h1{font-family:var(--f-d);font-weight:600;font-size:23px;letter-spacing:-.3px;margin:0 0 8px;}
+  .page-head .tag{font-family:var(--f-m);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);border:1px solid rgba(110,69,39,0.24);border-radius:999px;padding:5px 12px;}
+  .phone{width:404px;max-width:100%;margin:0 auto;background:var(--linen);border-radius:34px;border:1px solid var(--hair);box-shadow:0 28px 70px rgba(40,28,16,0.18);overflow:hidden;display:flex;flex-direction:column;height:880px;}
+  .hdr{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex-shrink:0;}
+  .hbtn{all:unset;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;cursor:pointer;color:var(--ink);background:var(--paper);box-shadow:0 1px 2px rgba(40,28,16,0.06), inset 0 0 0 1px var(--hairs);font-size:18px;}
+  .hbtn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .hlogo{display:flex;align-items:center;gap:9px;}.hlogo img{width:26px;height:26px;display:block;}
+  .hwm{font-family:var(--f-d);font-weight:600;font-size:18px;letter-spacing:-.3px;}.hsp{flex:1;}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .m-title{padding:16px 18px 4px;}
+  .m-eyebrow{font-family:var(--f-m);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);margin:0 0 8px;}
+  .m-h1{font-family:var(--f-d);font-weight:600;font-size:25px;letter-spacing:-.4px;margin:0;line-height:1.05;}
+  .tabs-wrap{position:sticky;top:0;z-index:2;background:linear-gradient(180deg,var(--linen) 72%, rgba(244,241,234,0));padding:12px 0 10px;}
+  .tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 18px;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{all:unset;flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 15px;border-radius:999px;cursor:pointer;font-family:var(--f-u);font-weight:600;font-size:13px;color:var(--mid);background:var(--paper);box-shadow:inset 0 0 0 1px var(--hairs);white-space:nowrap;transition:background .16s ease,color .16s ease;}
+  .tab[aria-selected="true"]{background:var(--navy);color:#F2EEE4;box-shadow:none;}
+  .tab .dot{width:6px;height:6px;border-radius:50%;background:var(--brown);}
+  .tab[aria-selected="true"] .dot{background:#E9C9A4;}
+  .tab:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .panel{padding:8px 18px 12px;display:none;}
+  .panel.on{display:block;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .panel-name{font-family:var(--f-d);font-weight:600;font-size:24px;letter-spacing:-.4px;margin:6px 0 3px;line-height:1.08;}
+  .panel-mean{font-family:var(--f-s);font-style:italic;font-size:13.5px;line-height:1.45;color:var(--mid);margin:0 0 20px;}
+  .t-entry{padding:0 0 18px;}
+  .t-entry + .t-entry{border-top:1px solid var(--hairs);padding-top:18px;}
+  .t-entry-h{font-family:var(--f-u);font-weight:700;font-size:15px;line-height:1.32;color:var(--ink);margin:0 0 7px;letter-spacing:-.1px;}
+  .t-entry-b{font-family:var(--f-s);font-size:15px;line-height:1.6;color:var(--soft);margin:0;}
+  .t-entry-m{font-family:var(--f-m);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin:10px 0 0;display:flex;align-items:center;gap:6px;}
+  .t-entry-m i{font-size:11px;color:var(--navy);opacity:.7;}
+  .t-empty{text-align:center;padding:14px 6px 6px;}
+  .t-empty p{font-family:var(--f-s);font-size:15px;line-height:1.6;color:var(--mid);margin:0 auto 14px;max-width:28em;}
+  .start-btn{all:unset;display:inline-flex;align-items:center;gap:7px;background:var(--brown);color:#FCF6EE;font-family:var(--f-u);font-weight:600;font-size:13px;padding:0 16px;height:44px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(110,69,39,0.24), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .start-btn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .t-foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--hairs);display:flex;gap:9px;}
+  .t-foot button{all:unset;flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:44px;border-radius:12px;font-family:var(--f-u);font-weight:600;font-size:13px;cursor:pointer;}
+  .t-foot .pri{background:var(--brown);color:#FCF6EE;}
+  .t-foot .gho{background:transparent;color:var(--navy);border:1px solid var(--hair);}
+  .t-foot button:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .nav{flex-shrink:0;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:6px 10px 9px;border-top:1px solid var(--hair);background:var(--paper);}
+  .nav button{all:unset;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 12px;border-radius:9px;cursor:pointer;font-family:var(--f-m);font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);}
+  .nav button i{font-size:16px;}.nav button.on{color:var(--brown);background:var(--brown-s);}
+  .nav button:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){.panel.on{animation:none;}.tab{transition:none;}}
+</style>
+</head>
+<body>
+  <div class="page-head"><h1>mywalnut — manual · C</h1><span class="tag">Layer tabs</span></div>
+
+  <div class="phone">
+    <header class="hdr">
+      <button class="hbtn" aria-label="Back to home"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <span class="hlogo"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"><span class="hwm">mywalnut</span></span>
+      <span class="hsp"></span>
+      <button class="hbtn" aria-label="Share your manual"><i class="ti ti-share" aria-hidden="true"></i></button>
+    </header>
+
+    <main class="scroll">
+      <div class="m-title">
+        <p class="m-eyebrow">Your manual</p>
+        <h1 class="m-h1">How I operate</h1>
+      </div>
+
+      <div class="tabs-wrap">
+        <div class="tabs" role="tablist" aria-label="Manual layers">
+          <button class="tab" role="tab" aria-selected="true" data-panel="p1">My Strengths</button>
+          <button class="tab" role="tab" aria-selected="false" data-panel="p2">Patterns</button>
+          <button class="tab" role="tab" aria-selected="false" data-panel="p3">Processing</button>
+          <button class="tab" role="tab" aria-selected="false" data-panel="p4">What Helps</button>
+          <button class="tab" role="tab" aria-selected="false" data-panel="p5"><span class="dot" aria-hidden="true"></span>With People</button>
+        </div>
+      </div>
+
+      <section class="panel on" id="p1" role="tabpanel">
+        <h2 class="panel-name">My Strengths</h2>
+        <p class="panel-mean">What I&rsquo;m genuinely good at, named plainly.</p>
+        <div class="t-entry"><p class="t-entry-h">I think out loud to find the edges of a problem.</p><p class="t-entry-b">Talking isn&rsquo;t me being unsure. It&rsquo;s how I locate the shape of a thing — by the time I&rsquo;ve said it three ways, I know which version is true.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p></div>
+        <div class="t-entry"><p class="t-entry-h">I catch the detail everyone else walked past.</p><p class="t-entry-b">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — I notice it early, often before I can say why.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p></div>
+        <div class="t-entry"><p class="t-entry-h">I stay with things long after others call them good enough.</p><p class="t-entry-b">That stubbornness reads as intensity from the outside. From the inside it&rsquo;s just that I can feel when a thing isn&rsquo;t finished, and I&rsquo;d rather sit in the discomfort than hand over something half-true.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+        <div class="t-foot"><button class="pri"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</button><button class="gho"><i class="ti ti-share" aria-hidden="true"></i>Share</button></div>
+      </section>
+
+      <section class="panel" id="p2" role="tabpanel" hidden>
+        <h2 class="panel-name">Some of My Patterns</h2>
+        <p class="panel-mean">Loops I repeat — and what each one quietly costs.</p>
+        <div class="t-entry"><p class="t-entry-h">I run on no margin.</p><p class="t-entry-b">I&rsquo;ll pour the whole day into the work and leave nothing in reserve — so the people closest to me tend to meet the version that&rsquo;s already past empty, not the one I&rsquo;d actually choose to give them.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p></div>
+        <div class="t-entry"><p class="t-entry-h">When I feel cornered, I get precise instead of soft.</p><p class="t-entry-b">The sentences get shorter and more exact, and to the other person it can land as cold — even when what I&rsquo;m really doing is trying not to lose the thread.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+        <div class="t-foot"><button class="pri"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</button><button class="gho"><i class="ti ti-share" aria-hidden="true"></i>Share</button></div>
+      </section>
+
+      <section class="panel" id="p3" role="tabpanel" hidden>
+        <h2 class="panel-name">How I Process Things</h2>
+        <p class="panel-mean">The way my mind actually moves through a thing.</p>
+        <div class="t-entry"><p class="t-entry-h">I need the long way round before I can take the short one.</p><p class="t-entry-b">A decision that looks impulsive from the outside has usually been turning over in the back of my mind for days — I just don&rsquo;t say it out loud until the shape has settled.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+        <div class="t-entry"><p class="t-entry-h">Once something is named clearly, I move fast.</p><p class="t-entry-b">The slow part is never the doing. It&rsquo;s the wait for the words to land in a way I trust.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p></div>
+        <div class="t-foot"><button class="pri"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</button><button class="gho"><i class="ti ti-share" aria-hidden="true"></i>Share</button></div>
+      </section>
+
+      <section class="panel" id="p4" role="tabpanel" hidden>
+        <h2 class="panel-name">What Helps</h2>
+        <p class="panel-mean">The conditions and small moves that make things easier.</p>
+        <div class="t-entry"><p class="t-entry-h">A little margin before people changes everything.</p><p class="t-entry-b">Ten quiet minutes between the last thing and the first person, and I arrive as myself instead of as the residue of the work.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p></div>
+        <div class="t-entry"><p class="t-entry-h">Tell me the real thing directly.</p><p class="t-entry-b">Indirectness reads to me as a puzzle I&rsquo;m failing, and I&rsquo;ll spend energy decoding tone that I could have spent on the thing itself. Plain and early beats gentle and late, every time.</p><p class="t-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p></div>
+        <div class="t-foot"><button class="pri"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</button><button class="gho"><i class="ti ti-share" aria-hidden="true"></i>Share</button></div>
+      </section>
+
+      <section class="panel" id="p5" role="tabpanel" hidden>
+        <h2 class="panel-name">How I Show Up with People</h2>
+        <p class="panel-mean">The gap between what I mean and what others see.</p>
+        <div class="t-empty">
+          <p>Nothing here yet. This is the one about the distance between my intent and how I land — usually the hardest to see from the inside, and the one worth the most once it&rsquo;s on the page.</p>
+          <button class="start-btn"><i class="ti ti-message-circle" aria-hidden="true"></i>Start this with Jove</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="nav" aria-label="Primary">
+      <button aria-label="Home"><i class="ti ti-home" aria-hidden="true"></i>Home</button>
+      <button class="on" aria-current="page" aria-label="Manual"><i class="ti ti-book-2" aria-hidden="true"></i>Manual</button>
+      <button aria-label="Talk"><i class="ti ti-message-2" aria-hidden="true"></i>Talk</button>
+      <button aria-label="You"><i class="ti ti-user" aria-hidden="true"></i>You</button>
+    </nav>
+  </div>
+
+<script>
+  (function(){
+    var tabs = document.querySelectorAll('.tab');
+    var panels = document.querySelectorAll('.panel');
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){
+        tabs.forEach(function(x){ x.setAttribute('aria-selected','false'); });
+        t.setAttribute('aria-selected','true');
+        var id = t.getAttribute('data-panel');
+        panels.forEach(function(p){
+          var on = p.id === id;
+          p.classList.toggle('on', on);
+          if(on){ p.removeAttribute('hidden'); } else { p.setAttribute('hidden',''); }
+        });
+        document.querySelector('.scroll').scrollTop = 0;
+      });
+    });
+  })();
+</script>
+</body>
+</html>

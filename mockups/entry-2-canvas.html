@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — entry flow · clean canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  :focus{outline:none;}
+  [data-goto]:focus-visible,
+  button:focus-visible,
+  .chip:focus-visible,
+  .how-link:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+  .step-hint{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);margin:14px 0 0;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .step-hint .dot{width:5px;height:5px;border-radius:50%;background:rgba(140,132,117,0.4);}
+  .step-hint .dot.on{background:var(--brown);box-shadow:0 0 0 3px rgba(110,69,39,0.12);}
+
+  /* ---- phone shell ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- swappable viewport ---- */
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;flex-direction:column;}
+  .screen.active{display:flex;animation:fade .3s cubic-bezier(.22,.61,.36,1);}
+  @keyframes fade{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
+  .screen::-webkit-scrollbar{width:0;}
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- minimal top bar: just the mark, centered, quiet ---- */
+  .canvas-top{display:flex;align-items:center;justify-content:center;gap:9px;padding:20px 22px 4px;flex-shrink:0;}
+  .mark-chip{
+    width:34px;height:34px;border-radius:12px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:23px;height:23px;display:block;}
+  .canvas-top .wm{font-family:var(--f-display);font-weight:600;font-size:17px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+
+  /* =======================================================
+     SCREEN 1 — THE CANVAS
+     A focused input front-and-center, one-line opener above,
+     2–3 suggestion pills beneath, a quiet privacy line.
+     The signature is restraint: nothing competes with "type here."
+     ======================================================= */
+  .canvas{
+    flex:1;min-height:0;display:flex;flex-direction:column;
+    padding:0 22px 14px;
+  }
+  /* the opener sits in the vertical sweet spot, with the field directly beneath */
+  .canvas-stage{flex:1;display:flex;flex-direction:column;justify-content:center;gap:0;}
+
+  /* one warm sentence from Jove — the only thing above the field */
+  .opener{
+    font-family:var(--f-display);font-weight:500;font-size:25px;line-height:1.26;
+    letter-spacing:-.5px;color:var(--ink);margin:0 2px 22px;font-optical-sizing:auto;
+    max-width:15.5em;
+  }
+  .opener em{font-style:italic;color:var(--brown);font-weight:500;}
+
+  /* the focused input — clearly the one thing to do, gently "live" */
+  .field-wrap{position:relative;}
+  .field{
+    width:100%;border-radius:22px;padding:17px 56px 17px 19px;min-height:60px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F7F2E9 100%);
+    border:1.5px solid var(--brown-bd);
+    font-family:var(--f-serif);font-size:16px;line-height:1.4;color:var(--faint);font-style:italic;
+    box-shadow:
+      0 1px 2px rgba(74,46,20,0.05),
+      0 8px 22px -10px rgba(110,69,39,0.30),
+      inset 0 1px 0 rgba(255,255,255,0.7);
+    display:flex;align-items:center;
+    transition:border-color .18s ease, box-shadow .18s ease;
+  }
+  /* a soft pulse on the field draws the eye to "type here" — calmed for reduced-motion */
+  .field-wrap::after{
+    content:"";position:absolute;inset:-3px;border-radius:25px;pointer-events:none;
+    box-shadow:0 0 0 0 rgba(110,69,39,0.0);
+    animation:fieldpulse 3.4s ease-in-out infinite;
+  }
+  @keyframes fieldpulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(110,69,39,0.0);}
+    50%{box-shadow:0 0 0 4px rgba(110,69,39,0.06);}
+  }
+  /* blinking caret cue inside the otherwise-empty field */
+  .caret{
+    display:inline-block;width:2px;height:19px;margin-right:1px;border-radius:1px;
+    background:var(--brown);vertical-align:middle;animation:blink 1.1s step-end infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+  .field-send{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;color:#FCF6EE;font-size:18px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .field-send:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .field-send:active{transform:translateY(calc(-50% + 1px));box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+
+  /* 2–3 suggestion pills — scaffolding, not a menu. all lead to the same conversation. */
+  .chips{display:flex;flex-direction:column;gap:9px;margin:16px 0 0;}
+  .chip{
+    display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
+    min-height:44px;padding:12px 15px;border-radius:15px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F6F1E8 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;line-height:1.35;color:var(--soft);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition:transform .12s ease, box-shadow .12s ease, border-color .14s ease;
+  }
+  .chip:hover{box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.6);border-color:var(--brown-bd);transform:translateY(-1px);}
+  .chip:active{transform:translateY(0);box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.6);}
+  .chip i{font-size:17px;color:var(--brown);opacity:.75;flex-shrink:0;}
+  .chip .arr{margin-left:auto;font-size:15px;color:var(--faint);opacity:.6;transition:transform .14s ease;flex-shrink:0;}
+  .chip:hover .arr{transform:translateX(2px);opacity:.9;}
+
+  /* quiet privacy line + escape hatch — present but never competing */
+  .canvas-foot{flex-shrink:0;padding:18px 2px 4px;text-align:center;}
+  .privacy{
+    font-family:var(--f-ui);font-size:12px;line-height:1.5;color:var(--faint);
+    margin:0 auto 14px;display:inline-flex;align-items:center;gap:7px;max-width:30em;
+  }
+  .privacy i{font-size:13px;color:var(--navy);opacity:.7;}
+  .how-link{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:none;background:transparent;
+    font-family:var(--f-ui);font-size:12.5px;font-weight:600;color:var(--navy);
+    min-height:36px;padding:6px 10px;border-radius:10px;
+    transition:color .14s ease;
+  }
+  .how-link i{font-size:14px;opacity:.8;}
+  .how-link:hover{color:var(--navy-deep);}
+
+  /* =======================================================
+     SCREENS 2 & 3 — THE CONVERSATION (v6 chat styling)
+     clean paper Jove bubbles, brown user bubbles, no "Jove" title bar,
+     no colored rule. The canvas's input bar persists at the bottom.
+     ======================================================= */
+  .chat-top{display:flex;align-items:center;gap:11px;padding:14px 18px 8px;flex-shrink:0;}
+  .chat-back{
+    width:42px;height:42px;border-radius:13px;border:none;cursor:pointer;color:var(--brown);font-size:20px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .chat-back:hover{box-shadow:var(--lift-2), var(--inset-hi);}
+  .chat-back:active{transform:translateY(1px);box-shadow:var(--lift-1), var(--inset-hi);}
+  .chat-mark{width:30px;height:30px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);box-shadow:var(--lift-1), var(--inset-hi);}
+  .chat-mark img{width:20px;height:20px;display:block;}
+  .chat-wm{font-family:var(--f-display);font-weight:600;font-size:16px;letter-spacing:-.3px;color:var(--ink);}
+
+  .cv-body{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 16px;display:flex;flex-direction:column;gap:13px;}
+  .cv-body::-webkit-scrollbar{width:0;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .cv-jb strong{font-weight:600;color:var(--brown-deep);font-style:normal;}
+
+  /* a freshly-entered bubble slides in so the flow feels alive */
+  .pop{animation:pop .34s cubic-bezier(.22,.61,.36,1);}
+  @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  /* typing indicator (Jove "thinking") */
+  .cv-typing{align-self:flex-start;}
+  .cv-typing .cv-jb{display:inline-flex;align-items:center;gap:5px;padding:14px 16px;}
+  .cv-typing .d{width:6px;height:6px;border-radius:50%;background:var(--faint);opacity:.5;animation:td 1.2s infinite;}
+  .cv-typing .d:nth-child(2){animation-delay:.18s;}
+  .cv-typing .d:nth-child(3){animation-delay:.36s;}
+  @keyframes td{0%,60%,100%{opacity:.35;transform:translateY(0);}30%{opacity:.9;transform:translateY(-3px);}}
+
+  /* =======================================================
+     SCREEN 3 — THE FIRST CHECKPOINT
+     The Manual + confirmation gate, introduced IN CONTEXT.
+     "Nothing's saved unless you confirm" lives HERE, where it's true.
+     ======================================================= */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  .cv-cpnote{font-size:11.5px;line-height:1.5;color:var(--faint);margin:11px 0 13px;font-family:var(--f-ui);display:flex;align-items:flex-start;gap:6px;}
+  .cv-cpnote i{font-size:13px;color:var(--navy);opacity:.7;margin-top:1px;flex-shrink:0;}
+  .cv-cpb{display:flex;gap:9px;}
+  .cv-cpb .btn{flex:1;justify-content:center;}
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:14px;
+    min-height:44px;display:inline-flex;align-items:center;gap:8px;
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:13px 14px;font-size:13.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:hover{filter:brightness(1.04);}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 14px;font-size:13.5px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+  .cv-ghost:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--hair);}
+
+  /* confirmed state — the entry "lands" */
+  .cv-saved{
+    align-self:stretch;display:flex;align-items:center;gap:11px;
+    background:linear-gradient(168deg, #F3F6F2 0%, #EAF0EE 100%);
+    border:1px solid var(--navy-bd);border-radius:18px;padding:15px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .cv-saved i{font-size:22px;color:var(--navy);flex-shrink:0;}
+  .cv-saved-tx{font-family:var(--f-serif);font-size:14.5px;line-height:1.45;color:var(--soft);}
+  .cv-saved-tx strong{font-weight:600;color:var(--navy);font-style:normal;}
+
+  /* ---- chat input bar (persists, mirrors the canvas field) ---- */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:9px 16px 12px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .cv-send:hover{filter:brightness(1.04);}
+  .cv-send:active{transform:translateY(1px);}
+
+  /* =======================================================
+     "HOW THIS WORKS" — the one-tap escape hatch (overlay sheet)
+     Progressive disclosure for the minority who want it first.
+     ======================================================= */
+  .sheet-scrim{
+    position:absolute;inset:0;z-index:20;display:none;
+    background:rgba(26,23,18,0.34);backdrop-filter:blur(3px);
+    align-items:flex-end;
+    animation:scrimin .24s ease;
+  }
+  .sheet-scrim.open{display:flex;}
+  @keyframes scrimin{from{opacity:0;}to{opacity:1;}}
+  .sheet{
+    width:100%;border-radius:28px 28px 0 0;padding:10px 22px 24px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:0 -10px 40px rgba(54,38,20,0.22), inset 0 1px 0 rgba(255,255,255,0.7);
+    animation:sheetup .3s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes sheetup{from{transform:translateY(100%);}to{transform:none;}}
+  .sheet-grab{width:38px;height:4px;border-radius:2px;background:var(--hair);margin:0 auto 18px;}
+  .sheet-h{font-family:var(--f-display);font-weight:500;font-size:21px;letter-spacing:-.3px;color:var(--ink);margin:0 2px 16px;font-optical-sizing:auto;}
+  .sheet-row{display:flex;gap:13px;align-items:flex-start;margin:0 2px 16px;}
+  .sheet-ico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;font-size:17px;color:var(--navy);background:rgba(33,67,107,0.07);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.10);}
+  .sheet-rt{flex:1;}
+  .sheet-rh{font-family:var(--f-ui);font-weight:600;font-size:14px;color:var(--ink);margin:0 0 3px;}
+  .sheet-rp{font-family:var(--f-serif);font-size:13.5px;line-height:1.5;color:var(--mid);margin:0;}
+  .sheet-close{
+    width:100%;justify-content:center;margin-top:6px;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px;font-size:14px;border-radius:15px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+
+  /* ---- honor reduced-motion ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .field-wrap::after,.caret{animation:none;}
+    .screen.active{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — new-user entry · clean canvas</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+    <div class="step-hint" id="step-hint" aria-hidden="true">
+      <span class="dot on"></span><span>The opener</span>
+      <span class="dot"></span><span>It listens</span>
+      <span class="dot"></span><span>First entry</span>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <div class="viewport">
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN 1 — THE CANVAS (the landing IS the opener) -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen active" id="screen-canvas" role="region" aria-label="Start a conversation with Jove">
+
+        <header class="canvas-top">
+          <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+          <span class="wm">mywalnut</span>
+        </header>
+
+        <div class="canvas">
+          <div class="canvas-stage">
+            <!-- one warm sentence from Jove — the only thing above the field -->
+            <p class="opener">What&rsquo;s a moment from this week that&rsquo;s still <em>turning over</em> in your head?</p>
+
+            <!-- the focused input, front and center -->
+            <div class="field-wrap">
+              <div class="field" id="canvas-field" data-goto="listen" role="button" tabindex="0" aria-label="Type what happened">
+                <span class="caret" aria-hidden="true"></span>Tell me what happened&hellip;
+              </div>
+              <button class="field-send" data-goto="listen" aria-label="Send"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+            </div>
+
+            <!-- 2–3 suggestion pills: scaffolding, not a menu. all lead to the same conversation. -->
+            <div class="chips" role="group" aria-label="Examples, if you'd rather start from one">
+              <button class="chip" data-goto="listen" data-seed="reaction">
+                <i class="ti ti-bolt" aria-hidden="true"></i>
+                A reaction that surprised me
+                <span class="arr" aria-hidden="true">&rarr;</span>
+              </button>
+              <button class="chip" data-goto="listen" data-seed="conflict">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+                A conflict that keeps repeating
+                <span class="arr" aria-hidden="true">&rarr;</span>
+              </button>
+              <button class="chip" data-goto="listen" data-seed="win">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>
+                A win I can&rsquo;t quite explain
+                <span class="arr" aria-hidden="true">&rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- quiet privacy line + escape hatch -->
+          <div class="canvas-foot">
+            <p class="privacy"><i class="ti ti-lock" aria-hidden="true"></i>Private. Nothing&rsquo;s saved unless you say so.</p>
+            <br>
+            <button class="how-link" id="open-how"><i class="ti ti-help-circle" aria-hidden="true"></i>How this works</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN 2 — IT LISTENS (Jove reflects something specific) -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-listen" role="region" aria-label="Conversation with Jove">
+
+        <header class="chat-top">
+          <button class="chat-back" data-goto="canvas" aria-label="Back"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+          <span class="chat-mark"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+          <span class="chat-wm">mywalnut</span>
+        </header>
+
+        <div class="cv-body" id="listen-body">
+          <!-- the user's first message (seeded from the canvas) -->
+          <div class="cv-u"><div class="cv-ub" id="listen-user">I snapped at my partner over something tiny and I&rsquo;ve been replaying it all day.</div></div>
+          <!-- Jove reflects something SPECIFIC back — proves it listened, no advice, no label -->
+          <div class="cv-j"><div class="cv-jb" id="listen-jove">You said <strong>tiny</strong>, but you&rsquo;ve been replaying it all day. That gap usually means the thing that snapped wasn&rsquo;t small to you. What was the hour before it like?</div></div>
+        </div>
+
+        <div class="cv-in">
+          <span class="cv-field">Reply to Jove&hellip;</span>
+          <button class="cv-send" data-goto="checkpoint" aria-label="Send message"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN 3 — THE FIRST CHECKPOINT (Manual + gate, in context) -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-checkpoint" role="region" aria-label="Your first manual entry">
+
+        <header class="chat-top">
+          <button class="chat-back" data-goto="listen" aria-label="Back"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+          <span class="chat-mark"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+          <span class="chat-wm">mywalnut</span>
+        </header>
+
+        <div class="cv-body" id="cp-body">
+          <div class="cv-u"><div class="cv-ub">Work ran over. I hadn&rsquo;t had one second to myself all day.</div></div>
+          <div class="cv-j"><div class="cv-jb">So you walked into that kitchen with nothing left in reserve. The snap didn&rsquo;t really land on them — it landed on the first quiet moment that had no margin in it.</div></div>
+
+          <!-- the FIRST checkpoint: a one-line entry the user recognizes -->
+          <div class="cv-cp" id="cp-card">
+            <div class="cv-cph">
+              <span class="cv-cpt"><i class="ti ti-notebook" aria-hidden="true"></i>For your manual?</span>
+              <span class="cv-cptag">&rarr; A pattern</span>
+            </div>
+            <p class="cv-cptx">When I run on no margin, the people closest to me meet the version of me that&rsquo;s already past empty.</p>
+            <!-- "nothing's saved unless you confirm" — shown HERE, where it first becomes true -->
+            <p class="cv-cpnote"><i class="ti ti-lock" aria-hidden="true"></i>This is the first thing in your manual. Nothing&rsquo;s saved unless you confirm it &mdash; and it&rsquo;s yours to reword.</p>
+            <div class="cv-cpb">
+              <button class="btn btn-primary" data-confirm>Add to my manual</button>
+              <button class="btn cv-ghost" data-refine>Reword</button>
+              <button class="btn cv-ghost" data-decline>Not quite</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cv-in">
+          <span class="cv-field">Reply to Jove&hellip;</span>
+          <button class="cv-send" aria-label="Send message"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </section>
+
+      </div><!-- /.viewport -->
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- "HOW THIS WORKS" — one-tap escape hatch overlay -->
+      <!-- ──────────────────────────────────────────── -->
+      <div class="sheet-scrim" id="how-sheet" role="dialog" aria-modal="true" aria-label="How this works">
+        <div class="sheet">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <h2 class="sheet-h">How this works</h2>
+          <div class="sheet-row">
+            <span class="sheet-ico"><i class="ti ti-message-2" aria-hidden="true"></i></span>
+            <div class="sheet-rt">
+              <p class="sheet-rh">You talk. It listens.</p>
+              <p class="sheet-rp">Bring a real moment. Jove asks about it the way a sharp friend would &mdash; no forms, no quiz, no advice you didn&rsquo;t ask for.</p>
+            </div>
+          </div>
+          <div class="sheet-row">
+            <span class="sheet-ico"><i class="ti ti-notebook" aria-hidden="true"></i></span>
+            <div class="sheet-rt">
+              <p class="sheet-rh">It builds a manual of how you operate.</p>
+              <p class="sheet-rp">Over time, the through-lines become a short document about how you actually work &mdash; in your own words.</p>
+            </div>
+          </div>
+          <div class="sheet-row">
+            <span class="sheet-ico"><i class="ti ti-lock" aria-hidden="true"></i></span>
+            <div class="sheet-rt">
+              <p class="sheet-rh">Nothing&rsquo;s saved unless you say so.</p>
+              <p class="sheet-rp">Jove only proposes. You confirm what&rsquo;s true, reword what&rsquo;s close, and drop what isn&rsquo;t you. It&rsquo;s not therapy and it won&rsquo;t diagnose you.</p>
+            </div>
+          </div>
+          <button class="btn sheet-close" id="close-how">Got it &mdash; let&rsquo;s start</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var screens = {
+        canvas:     document.getElementById('screen-canvas'),
+        listen:     document.getElementById('screen-listen'),
+        checkpoint: document.getElementById('screen-checkpoint')
+      };
+      var stepIndex = { canvas:0, listen:1, checkpoint:2 };
+      var hintDots = document.querySelectorAll('#step-hint .dot');
+
+      // seeded openers: each example pill writes a different first user message,
+      // but every path lands in the SAME conversation (scaffolding, not branches).
+      var seeds = {
+        reaction: {
+          user: 'I snapped at my partner over something tiny and I’ve been replaying it all day.',
+          jove: 'You said <strong>tiny</strong>, but you’ve been replaying it all day. That gap usually means the thing that snapped wasn’t small to you. What was the hour before it like?'
+        },
+        conflict: {
+          user: 'There’s a fight my partner and I keep having. Different words, same fight.',
+          jove: 'Same fight, new costume. The part that <strong>repeats</strong> is usually the real subject — not whatever set it off this time. When it last happened, what were you actually asking them for?'
+        },
+        win: {
+          user: 'Something went really well at work and I genuinely can’t explain why.',
+          jove: 'The wins you can’t explain are often the ones running on something you do <strong>without noticing</strong>. Walk me through it — not the result, the part where it started clicking.'
+        }
+      };
+
+      var listenUser = document.getElementById('listen-user');
+      var listenJove = document.getElementById('listen-jove');
+
+      function setHint(name){
+        var idx = stepIndex[name];
+        hintDots.forEach(function(d,i){ d.classList.toggle('on', i === idx); });
+      }
+
+      function go(name, seed){
+        var target = screens[name];
+        if(!target) return;
+
+        // seed the "it listens" screen from whichever pill (or the field) was tapped
+        if(name === 'listen' && seed && seeds[seed]){
+          listenUser.textContent = seeds[seed].user;
+          listenJove.innerHTML  = seeds[seed].jove;
+        }
+
+        Object.keys(screens).forEach(function(k){ screens[k].classList.remove('active'); });
+        target.classList.add('active');
+        target.scrollTop = 0;
+        setHint(name);
+      }
+
+      // wire every [data-goto] (field, send, pills, back buttons)
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          go(el.getAttribute('data-goto'), el.getAttribute('data-seed'));
+        });
+      });
+      // keyboard: Enter/Space on the focusable field acts as a tap
+      document.getElementById('canvas-field').addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go('listen'); }
+      });
+
+      // ---- "how this works" sheet ----
+      var sheet = document.getElementById('how-sheet');
+      function openSheet(){ sheet.classList.add('open'); }
+      function closeSheet(){ sheet.classList.remove('open'); }
+      document.getElementById('open-how').addEventListener('click', openSheet);
+      document.getElementById('close-how').addEventListener('click', closeSheet);
+      sheet.addEventListener('click', function(e){ if(e.target === sheet) closeSheet(); });
+
+      // ---- checkpoint: confirm / reword / not-quite ----
+      var cpCard = document.getElementById('cp-card');
+      var cpBody = document.getElementById('cp-body');
+
+      function confirmEntry(){
+        // the entry "lands" — gate honored, then Jove returns cleanly to the conversation (no fork)
+        cpCard.outerHTML =
+          '<div class="cv-saved pop"><i class="ti ti-circle-check" aria-hidden="true"></i>' +
+          '<div class="cv-saved-tx">Added to <strong>your manual</strong>, in your words. You can reword or remove it anytime.</div></div>';
+        var ack = document.createElement('div');
+        ack.className = 'cv-j pop';
+        ack.innerHTML = '<div class="cv-jb">That’s the first line of how you operate. So — what does “margin” actually look like, on a day you get it right?</div>';
+        cpBody.appendChild(ack);
+        cpBody.scrollTop = cpBody.scrollHeight;
+      }
+
+      function refineEntry(){
+        // "reword" — Jove hands it back to the user to edit, gate still intact
+        cpCard.querySelector('.cv-cptx').innerHTML =
+          'Tell me what’s off and I’ll redraft it. <em style="color:var(--brown);">Your words win — nothing’s saved until it reads true.</em>';
+        cpCard.querySelector('.cv-cpb').innerHTML =
+          '<button class="btn btn-primary" data-confirm>Looks right now</button>' +
+          '<button class="btn cv-ghost" data-decline>Drop it</button>';
+        wireCp();
+      }
+
+      function declineEntry(){
+        // "not quite" — nothing saves, conversation simply continues
+        cpCard.outerHTML =
+          '<div class="cv-j pop"><div class="cv-jb">No problem — nothing saved. We’ll leave that one. What part of it <strong>did</strong> feel true, even a little?</div></div>';
+        cpBody.scrollTop = cpBody.scrollHeight;
+      }
+
+      function wireCp(){
+        var c = cpBody.querySelector('[data-confirm]');
+        var r = cpBody.querySelector('[data-refine]');
+        var d = cpBody.querySelector('[data-decline]');
+        if(c) c.addEventListener('click', confirmEntry);
+        if(r) r.addEventListener('click', refineEntry);
+        if(d) d.addEventListener('click', declineEntry);
+      }
+      wireCp();
+    })();
+  </script>
+</body>
+</html>

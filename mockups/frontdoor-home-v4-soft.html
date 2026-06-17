@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (soft · spatial · premium-cozy)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .screen{
+    border-radius:36px;overflow:hidden;position:relative;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  /* scrollable body so the long screen reads like a real device */
+  .scroll{max-height:none;}
+  .ti{font-size:inherit;line-height:1;}
+
+  /* ---- header ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-ico{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+
+  /* ---- greeting ---- */
+  .home{padding:8px 18px 16px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  /* ---- tile base: rounded physical card ---- */
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .t-h3{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;margin:0 0 7px;font-optical-sizing:auto;}
+  .t-p{font-size:13.5px;line-height:1.55;color:var(--mid);margin:0 0 18px;}
+
+  /* ---- tactile buttons ---- */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    display:inline-flex;align-items:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:active{box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-soft{
+    background:linear-gradient(180deg, #FFFDF8 0%, #F4EEE3 100%);
+    color:var(--brown);padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .btn-soft.navy{color:var(--navy);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* ---- hero tile ---- */
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 20px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 18px;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+  .hero-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+  .hero-new{font-size:13.5px;color:var(--brown);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .hero-new i{font-size:15px;}
+  .hero-status{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:center;font-size:11.5px;color:var(--mid);margin-top:18px;padding-top:15px;border-top:1px solid rgba(110,69,39,0.16);position:relative;}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,253,248,0.66);border:1px solid rgba(110,69,39,0.14);border-radius:999px;padding:5px 11px;color:var(--soft);box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);}
+  .pill i{font-size:12px;color:var(--brown);}
+  .pill b{font-weight:600;color:var(--brown-deep);}
+
+  /* ---- emblem chip (explore / share) ---- */
+  .t-emblem{
+    width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:22px;margin-bottom:15px;
+    color:var(--brown);
+    background:linear-gradient(160deg,#FFFDF8 0%, #F2E9DB 100%);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- manual tile (largest) ---- */
+  .manual{
+    background:
+      radial-gradient(100% 70% at 0% 0%, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0) 52%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.05);
+    padding:24px 20px 14px;
+  }
+  .manual .t-headrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;padding:0 2px;}
+  .manual .t-headrow .t-h3{margin:0;}
+  .count-chip{font-family:var(--f-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:5px 11px;}
+  .manual .sub{font-size:13px;line-height:1.5;color:var(--mid);margin:0 2px 6px;}
+
+  .lrow{
+    display:flex;align-items:center;gap:14px;padding:13px 12px;margin-top:9px;border-radius:18px;cursor:pointer;
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.04);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .lrow:active{transform:translateY(1px);box-shadow:0 1px 3px rgba(54,38,20,0.08), inset 0 0 0 1px rgba(26,23,18,0.05);}
+  .lemblem{
+    width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:var(--navy);
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 2px 5px rgba(33,67,107,0.12), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .lrow.empty .lemblem{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 2px 5px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .lcol{flex:1;min-width:0;}
+  .lname{font-family:var(--f-display);font-weight:500;font-size:15.5px;color:var(--ink);letter-spacing:-.15px;line-height:1.18;font-optical-sizing:auto;}
+  .lmean{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.34;}
+  .lcount{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .lstart{font-size:11px;font-weight:600;color:#FCF6EE;background:linear-gradient(180deg,var(--brown-bright),var(--brown));border-radius:999px;padding:5px 12px;white-space:nowrap;box-shadow:0 2px 6px rgba(110,69,39,0.25), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .lchev{color:var(--faint);font-size:18px;margin-left:2px;}
+
+  /* ---- share tile ---- */
+  .share{
+    background:
+      radial-gradient(120% 90% at 12% -10%, rgba(138,90,53,0.13) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF7EF 0%, #F5EADB 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.06);
+  }
+
+  /* ---- bottom nav: floating glass bar ---- */
+  .botwrap{padding:8px 18px 20px;}
+  .botnav{
+    display:flex;justify-content:space-around;align-items:center;padding:11px 8px 10px;border-radius:24px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.92) 0%, rgba(246,241,233,0.92) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.8);
+    backdrop-filter:blur(8px);
+  }
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--f-ui);font-size:10.5px;font-weight:600;letter-spacing:.2px;color:var(--faint);cursor:pointer;padding:5px 14px;border-radius:15px;}
+  .nav-i i{font-size:22px;}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F3ECDE 100%);
+    box-shadow:0 2px 6px rgba(110,69,39,0.14), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — home</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="scroll">
+
+        <header class="hdr">
+          <div class="hdr-logo">
+            <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+            <span class="wm">mywalnut</span>
+          </div>
+          <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings"></i></button>
+        </header>
+
+        <div class="home">
+          <h2 class="greet">Good evening, Jeff.</h2>
+          <p class="greet-date">Tuesday · June 15</p>
+
+          <!-- TILE 1 — hero -->
+          <section class="tile hero">
+            <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+            <span class="eyebrow e-brown"><i class="ti ti-bookmark"></i>Pick up where you left off</span>
+            <p class="hero-line"><span class="q">&ldquo;</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+            <div class="hero-row">
+              <button class="btn btn-primary">Continue this thread <i class="ti ti-arrow-right"></i></button>
+              <span class="hero-new"><i class="ti ti-plus"></i>Start fresh</span>
+            </div>
+            <div class="hero-status">
+              <span class="pill"><i class="ti ti-notebook"></i><b>14</b> entries</span>
+              <span class="pill"><i class="ti ti-stack-2"></i><b>4 of 5</b> layers touched</span>
+              <span class="pill"><i class="ti ti-clock"></i>last session 3 days ago</span>
+            </div>
+          </section>
+
+          <!-- TILE 2 — explore -->
+          <section class="tile">
+            <div class="t-emblem"><i class="ti ti-message-2"></i></div>
+            <h3 class="t-h3">Bring a situation</h3>
+            <p class="t-p">A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain. Talk it through and see what&rsquo;s underneath.</p>
+            <button class="btn btn-soft">Explore a situation <i class="ti ti-arrow-right"></i></button>
+          </section>
+
+          <!-- TILE 3 — the Manual (largest) -->
+          <section class="tile manual">
+            <div class="t-headrow">
+              <h3 class="t-h3">Your manual</h3>
+              <span class="count-chip">14 entries</span>
+            </div>
+            <p class="sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+            <div class="lrow">
+              <span class="lemblem"><i class="ti ti-sparkles"></i></span>
+              <div class="lcol"><div class="lname">My Strengths</div><div class="lmean">What you&rsquo;re genuinely good at, named plainly.</div></div>
+              <span class="lcount">3 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow">
+              <span class="lemblem"><i class="ti ti-refresh"></i></span>
+              <div class="lcol"><div class="lname">Some of My Patterns</div><div class="lmean">Loops you repeat — and what they cost.</div></div>
+              <span class="lcount">5 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow">
+              <span class="lemblem"><i class="ti ti-bulb"></i></span>
+              <div class="lcol"><div class="lname">How I Process Things</div><div class="lmean">The way your mind actually works through things.</div></div>
+              <span class="lcount">2 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow">
+              <span class="lemblem"><i class="ti ti-anchor"></i></span>
+              <div class="lcol"><div class="lname">What Helps</div><div class="lmean">The conditions and moves that make things easier.</div></div>
+              <span class="lcount">4 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow empty">
+              <span class="lemblem"><i class="ti ti-users"></i></span>
+              <div class="lcol"><div class="lname">How I Show Up with People</div><div class="lmean">The gap between what you mean and what others see.</div></div>
+              <span class="lstart">Start</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+          </section>
+
+          <!-- TILE 4 — share -->
+          <section class="tile share">
+            <div class="t-emblem"><i class="ti ti-send"></i></div>
+            <h3 class="t-h3">Share how you work</h3>
+            <p class="t-p">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+            <button class="btn btn-soft navy btn-full">Create a shareable version <i class="ti ti-arrow-right"></i></button>
+          </section>
+        </div>
+
+        <div class="botwrap">
+          <nav class="botnav">
+            <span class="nav-i on"><i class="ti ti-home"></i>Home</span>
+            <span class="nav-i"><i class="ti ti-book-2"></i>Manual</span>
+            <span class="nav-i"><i class="ti ti-user"></i>You</span>
+          </nav>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

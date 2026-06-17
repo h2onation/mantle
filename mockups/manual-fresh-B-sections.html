@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — manual · B (collapsible sections)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{--bg:#E6E0D4;--paper:#FBF9F4;--linen:#F4F1EA;--ink:#1A1712;--soft:#463E32;--mid:#6E6557;--faint:#9C9486;--hair:rgba(26,23,18,0.12);--hairs:rgba(26,23,18,0.07);--brown:#6E4527;--brown-s:rgba(110,69,39,0.08);--navy:#21436B;--navy-s:rgba(33,67,107,0.07);
+    --f-d:'Fraunces',serif;--f-s:'Newsreader',Georgia,serif;--f-u:'Plus Jakarta Sans',system-ui,sans-serif;--f-m:'JetBrains Mono',monospace;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-u);-webkit-font-smoothing:antialiased;padding:40px 16px 60px;}
+  .page-head{text-align:center;margin:0 auto 24px;}
+  .page-head h1{font-family:var(--f-d);font-weight:600;font-size:23px;letter-spacing:-.3px;margin:0 0 8px;}
+  .page-head .tag{font-family:var(--f-m);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);border:1px solid rgba(110,69,39,0.24);border-radius:999px;padding:5px 12px;}
+  .phone{width:404px;max-width:100%;margin:0 auto;background:var(--linen);border-radius:34px;border:1px solid var(--hair);box-shadow:0 28px 70px rgba(40,28,16,0.18);overflow:hidden;display:flex;flex-direction:column;height:880px;}
+  .hdr{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex-shrink:0;}
+  .hbtn{all:unset;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;cursor:pointer;color:var(--ink);background:var(--paper);box-shadow:0 1px 2px rgba(40,28,16,0.06), inset 0 0 0 1px var(--hairs);font-size:18px;}
+  .hbtn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .hlogo{display:flex;align-items:center;gap:9px;}.hlogo img{width:26px;height:26px;display:block;}
+  .hwm{font-family:var(--f-d);font-weight:600;font-size:18px;letter-spacing:-.3px;}.hsp{flex:1;}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .m-title{padding:18px 22px 12px;}
+  .m-eyebrow{font-family:var(--f-m);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);margin:0 0 9px;}
+  .m-h1{font-family:var(--f-d);font-weight:600;font-size:27px;letter-spacing:-.4px;margin:0;line-height:1.05;}
+  .m-by{font-family:var(--f-s);font-size:14.5px;line-height:1.55;color:var(--mid);margin:11px 0 0;max-width:33em;}
+  .acc{padding:4px 18px 8px;}
+  .acc-item{border-top:1px solid var(--hairs);}
+  .acc-item:last-child{border-bottom:1px solid var(--hairs);}
+  .acc-head{all:unset;display:flex;align-items:center;gap:13px;width:100%;box-sizing:border-box;padding:15px 2px;cursor:pointer;}
+  .acc-head:focus-visible{outline:2px solid var(--navy);outline-offset:2px;border-radius:8px;}
+  .acc-emblem{width:36px;height:36px;border-radius:10px;background:var(--navy-s);color:var(--navy);display:grid;place-items:center;font-size:18px;flex-shrink:0;}
+  .acc-item.fresh .acc-emblem{background:var(--brown-s);color:var(--brown);}
+  .acc-col{flex:1;min-width:0;}
+  .acc-name{display:block;font-family:var(--f-d);font-weight:600;font-size:17px;letter-spacing:-.2px;color:var(--ink);line-height:1.18;}
+  .acc-mean{display:block;font-family:var(--f-s);font-style:italic;font-size:12.5px;color:var(--mid);margin-top:3px;line-height:1.35;}
+  .acc-count{font-family:var(--f-m);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);white-space:nowrap;}
+  .acc-count.empty{color:var(--brown);}
+  .acc-chev{color:var(--navy);font-size:18px;transition:transform .22s ease;flex-shrink:0;}
+  .acc-head[aria-expanded="true"] .acc-chev{transform:rotate(90deg);}
+  .acc-panel{overflow:hidden;max-height:0;transition:max-height .28s ease;}
+  .acc-inner{padding:2px 2px 14px 49px;}
+  .acc-entry + .acc-entry{margin-top:15px;padding-top:15px;border-top:1px solid var(--hairs);}
+  .acc-entry-h{font-family:var(--f-u);font-weight:700;font-size:14.5px;line-height:1.3;color:var(--ink);margin:0 0 6px;letter-spacing:-.1px;}
+  .acc-entry-b{font-family:var(--f-s);font-size:14.5px;line-height:1.58;color:var(--soft);margin:0;}
+  .acc-entry-m{font-family:var(--f-m);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin:9px 0 0;display:flex;align-items:center;gap:6px;}
+  .acc-entry-m i{font-size:11px;color:var(--navy);opacity:.7;}
+  .acc-empty p{font-family:var(--f-s);font-size:14px;line-height:1.55;color:var(--mid);margin:0 0 12px;}
+  .start-btn{all:unset;display:inline-flex;align-items:center;gap:7px;background:var(--brown);color:#FCF6EE;font-family:var(--f-u);font-weight:600;font-size:13px;padding:0 16px;height:42px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(110,69,39,0.24), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .start-btn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .m-foot{padding:20px 18px 26px;}
+  .foot-btn{all:unset;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:13px;font-family:var(--f-u);font-weight:600;font-size:14px;cursor:pointer;margin-bottom:10px;}
+  .foot-primary{background:var(--brown);color:#FCF6EE;box-shadow:0 2px 8px rgba(110,69,39,0.22), inset 0 1px 0 rgba(255,255,255,0.2);}
+  .foot-ghost{background:transparent;color:var(--navy);border:1px solid var(--hair);}
+  .foot-btn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .nav{flex-shrink:0;display:flex;justify-content:space-around;align-items:center;gap:4px;padding:6px 10px 9px;border-top:1px solid var(--hair);background:var(--paper);}
+  .nav button{all:unset;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 12px;border-radius:9px;cursor:pointer;font-family:var(--f-m);font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);}
+  .nav button i{font-size:16px;}.nav button.on{color:var(--brown);background:var(--brown-s);}
+  .nav button:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){.acc-panel{transition:none;}.acc-chev{transition:none;}}
+</style>
+</head>
+<body>
+  <div class="page-head"><h1>mywalnut — manual · B</h1><span class="tag">Collapsible sections</span></div>
+
+  <div class="phone">
+    <header class="hdr">
+      <button class="hbtn" aria-label="Back to home"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <span class="hlogo"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"><span class="hwm">mywalnut</span></span>
+      <span class="hsp"></span>
+      <button class="hbtn" aria-label="Share your manual"><i class="ti ti-share" aria-hidden="true"></i></button>
+    </header>
+
+    <main class="scroll">
+      <div class="m-title">
+        <p class="m-eyebrow">Your manual</p>
+        <h1 class="m-h1">How I operate</h1>
+        <p class="m-by">Five layers. Open one to read it.</p>
+      </div>
+
+      <div class="acc">
+        <div class="acc-item">
+          <button class="acc-head" aria-expanded="true"><span class="acc-emblem"><i class="ti ti-sparkles" aria-hidden="true"></i></span><span class="acc-col"><span class="acc-name">My Strengths</span><span class="acc-mean">What I&rsquo;m genuinely good at, named plainly.</span></span><span class="acc-count">3 entries</span><i class="ti ti-chevron-right acc-chev" aria-hidden="true"></i></button>
+          <div class="acc-panel"><div class="acc-inner">
+            <div class="acc-entry"><p class="acc-entry-h">I think out loud to find the edges of a problem.</p><p class="acc-entry-b">Talking isn&rsquo;t me being unsure. It&rsquo;s how I locate the shape of a thing — by the time I&rsquo;ve said it three ways, I know which version is true.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p></div>
+            <div class="acc-entry"><p class="acc-entry-h">I catch the detail everyone else walked past.</p><p class="acc-entry-b">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — I notice it early, often before I can say why.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p></div>
+            <div class="acc-entry"><p class="acc-entry-h">I stay with things long after others call them good enough.</p><p class="acc-entry-b">That stubbornness reads as intensity from the outside. From the inside it&rsquo;s just that I can feel when a thing isn&rsquo;t finished, and I&rsquo;d rather sit in the discomfort than hand over something half-true.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-head" aria-expanded="false"><span class="acc-emblem"><i class="ti ti-refresh" aria-hidden="true"></i></span><span class="acc-col"><span class="acc-name">Some of My Patterns</span><span class="acc-mean">Loops I repeat — and what each one quietly costs.</span></span><span class="acc-count">2 entries</span><i class="ti ti-chevron-right acc-chev" aria-hidden="true"></i></button>
+          <div class="acc-panel"><div class="acc-inner">
+            <div class="acc-entry"><p class="acc-entry-h">I run on no margin.</p><p class="acc-entry-b">I&rsquo;ll pour the whole day into the work and leave nothing in reserve — so the people closest to me tend to meet the version that&rsquo;s already past empty, not the one I&rsquo;d actually choose to give them.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p></div>
+            <div class="acc-entry"><p class="acc-entry-h">When I feel cornered, I get precise instead of soft.</p><p class="acc-entry-b">The sentences get shorter and more exact, and to the other person it can land as cold — even when what I&rsquo;m really doing is trying not to lose the thread.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-head" aria-expanded="false"><span class="acc-emblem"><i class="ti ti-bulb" aria-hidden="true"></i></span><span class="acc-col"><span class="acc-name">How I Process Things</span><span class="acc-mean">The way my mind actually moves through a thing.</span></span><span class="acc-count">2 entries</span><i class="ti ti-chevron-right acc-chev" aria-hidden="true"></i></button>
+          <div class="acc-panel"><div class="acc-inner">
+            <div class="acc-entry"><p class="acc-entry-h">I need the long way round before I can take the short one.</p><p class="acc-entry-b">A decision that looks impulsive from the outside has usually been turning over in the back of my mind for days — I just don&rsquo;t say it out loud until the shape has settled.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p></div>
+            <div class="acc-entry"><p class="acc-entry-h">Once something is named clearly, I move fast.</p><p class="acc-entry-b">The slow part is never the doing. It&rsquo;s the wait for the words to land in a way I trust.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p></div>
+          </div></div>
+        </div>
+        <div class="acc-item">
+          <button class="acc-head" aria-expanded="false"><span class="acc-emblem"><i class="ti ti-anchor" aria-hidden="true"></i></span><span class="acc-col"><span class="acc-name">What Helps</span><span class="acc-mean">The conditions and small moves that make things easier.</span></span><span class="acc-count">2 entries</span><i class="ti ti-chevron-right acc-chev" aria-hidden="true"></i></button>
+          <div class="acc-panel"><div class="acc-inner">
+            <div class="acc-entry"><p class="acc-entry-h">A little margin before people changes everything.</p><p class="acc-entry-b">Ten quiet minutes between the last thing and the first person, and I arrive as myself instead of as the residue of the work.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p></div>
+            <div class="acc-entry"><p class="acc-entry-h">Tell me the real thing directly.</p><p class="acc-entry-b">Indirectness reads to me as a puzzle I&rsquo;m failing, and I&rsquo;ll spend energy decoding tone that I could have spent on the thing itself. Plain and early beats gentle and late, every time.</p><p class="acc-entry-m"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p></div>
+          </div></div>
+        </div>
+        <div class="acc-item fresh">
+          <button class="acc-head" aria-expanded="false"><span class="acc-emblem"><i class="ti ti-users" aria-hidden="true"></i></span><span class="acc-col"><span class="acc-name">How I Show Up with People</span><span class="acc-mean">The gap between what I mean and what others see.</span></span><span class="acc-count empty">Not started</span><i class="ti ti-chevron-right acc-chev" aria-hidden="true"></i></button>
+          <div class="acc-panel"><div class="acc-inner acc-empty">
+            <p>Nothing here yet — the one about the distance between my intent and how I land, usually the hardest to see from the inside.</p>
+            <button class="start-btn"><i class="ti ti-message-circle" aria-hidden="true"></i>Start this with Jove</button>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="m-foot">
+        <button class="foot-btn foot-primary"><i class="ti ti-send" aria-hidden="true"></i>Share this version</button>
+        <button class="foot-btn foot-ghost"><i class="ti ti-download" aria-hidden="true"></i>Export as a document</button>
+      </div>
+    </main>
+
+    <nav class="nav" aria-label="Primary">
+      <button aria-label="Home"><i class="ti ti-home" aria-hidden="true"></i>Home</button>
+      <button class="on" aria-current="page" aria-label="Manual"><i class="ti ti-book-2" aria-hidden="true"></i>Manual</button>
+      <button aria-label="Talk"><i class="ti ti-message-2" aria-hidden="true"></i>Talk</button>
+      <button aria-label="You"><i class="ti ti-user" aria-hidden="true"></i>You</button>
+    </nav>
+  </div>
+
+<script>
+  (function(){
+    var heads = document.querySelectorAll('.acc-head');
+    function setOpen(h, open){
+      h.setAttribute('aria-expanded', String(open));
+      var panel = h.nextElementSibling;
+      panel.style.maxHeight = open ? (panel.firstElementChild.offsetHeight + 4) + 'px' : '0px';
+    }
+    heads.forEach(function(h){
+      h.addEventListener('click', function(){ setOpen(h, h.getAttribute('aria-expanded') !== 'true'); });
+    });
+    // open the first section by default
+    setOpen(heads[0], true);
+  })();
+</script>
+</body>
+</html>

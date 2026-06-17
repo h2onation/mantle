@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — new-user entry · guided first exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  :focus{outline:none;}
+  [data-goto]:focus-visible,
+  button:focus-visible,
+  .chip:focus-visible,
+  .read-link:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- swappable viewport ---- */
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;flex-direction:column;}
+  .screen.active{display:flex;animation:fade .3s cubic-bezier(.22,.61,.36,1);}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .screen::-webkit-scrollbar{width:0;}
+
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- unified app header (just the mark — no "Jove" title bar) ---- */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:16px 18px 10px;flex-shrink:0;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-spacer{flex:1;}
+  /* quiet "how this works" escape hatch — one tap, low gravity */
+  .how-link{
+    display:inline-flex;align-items:center;gap:6px;min-height:36px;cursor:pointer;border:none;
+    font-family:var(--f-ui);font-weight:600;font-size:12px;color:var(--navy);
+    background:linear-gradient(180deg, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0.02) 100%);
+    border-radius:999px;padding:7px 13px;
+    box-shadow:var(--inset-hi), inset 0 0 0 1px var(--navy-bd);
+    transition:box-shadow .12s ease, transform .12s ease, background .12s ease;
+  }
+  .how-link:hover{background:linear-gradient(180deg, rgba(33,67,107,0.09) 0%, rgba(33,67,107,0.04) 100%);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .how-link:active{transform:translateY(1px);}
+  .how-link i{font-size:14px;}
+
+  /* ════════════════════════════════════════════ */
+  /* SCREEN 1 — THE LANDING (Jove's opener IS the screen) */
+  /* ════════════════════════════════════════════ */
+  .land{flex:1;display:flex;flex-direction:column;padding:6px 22px 0;min-height:0;}
+  /* the opener sits in the upper-middle; the input + chips anchor the bottom */
+  .land-top{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14px 0 8px;}
+  .land-mark{width:52px;height:52px;margin:0 0 22px;opacity:.92;}
+  /* one warm sentence — Jove's whole opener, set in the literary serif as a paper bubble, no "Jove" label clutter */
+  .land-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 9px 2px;}
+  .land-opener{
+    font-family:var(--f-display);font-weight:400;font-size:25px;line-height:1.32;letter-spacing:-.4px;
+    color:var(--ink);margin:0;max-width:18em;font-optical-sizing:auto;
+  }
+  .land-opener .soft{color:var(--mid);}
+
+  /* the seed chips — friendly emotional framings, NOT a taxonomy. All seed the SAME conversation. */
+  .land-chips{margin:4px 0 16px;}
+  .chips-lead{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 11px 2px;}
+  .chip-row{display:flex;flex-direction:column;gap:9px;}
+  .chip{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    min-height:52px;border:none;border-radius:18px;padding:12px 15px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    transition:transform .13s ease, box-shadow .13s ease;
+  }
+  .chip:hover{transform:translateY(-1px);box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px var(--brown-bd);}
+  .chip:active{transform:translateY(0);box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);}
+  .chip-emblem{
+    width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;font-size:17px;color:var(--brown);
+    background:rgba(110,69,39,0.07);box-shadow:inset 0 0 0 1px rgba(110,69,39,0.10);
+  }
+  .chip-col{flex:1;min-width:0;}
+  .chip-name{display:block;font-family:var(--f-serif);font-weight:500;font-size:16px;color:var(--ink);line-height:1.25;letter-spacing:-.1px;}
+  .chip-sub{display:block;font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.35;}
+  .chip-arr{color:var(--brown-bright);font-size:16px;flex-shrink:0;opacity:.5;transition:transform .13s ease, opacity .13s ease;}
+  .chip:hover .chip-arr{opacity:1;transform:translateX(2px);}
+
+  /* the input — already-focused field that anchors the screen as a real chat composer */
+  .land-input{padding:2px 0 8px;flex-shrink:0;}
+  .composer{
+    display:flex;align-items:center;gap:10px;
+  }
+  .composer-field{
+    flex:1;border-radius:999px;padding:13px 18px;min-height:48px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--brown-bd);
+    font-family:var(--f-serif);font-size:15px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05), 0 0 0 4px rgba(110,69,39,0.06);
+  }
+  .composer-field.seeded{color:var(--ink);font-style:normal;}
+  .composer-send{
+    width:48px;height:48px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:20px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .composer-send:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .composer-send:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  /* the quiet privacy line — always under the input, never pre-stated as a lesson */
+  .privacy-line{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:.6px;color:var(--faint);font-weight:500;
+    margin:12px 0 16px;text-align:center;
+  }
+  .privacy-line i{font-size:12px;color:var(--navy);opacity:.7;}
+
+  /* ════════════════════════════════════════════ */
+  /* SCREENS 2 + 3 — the conversation (v6 chat)     */
+  /* ════════════════════════════════════════════ */
+  .chat-sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;padding:0 20px 9px;flex-shrink:0;}
+  .cv-body{padding:6px 16px 18px;display:flex;flex-direction:column;gap:13px;flex:1;min-height:0;overflow-y:auto;}
+  .cv-body::-webkit-scrollbar{width:0;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .cv-jb .em{font-style:italic;color:var(--brown-deep);}
+
+  /* typing shimmer — used for the "Jove is listening" beat */
+  .cv-typing{display:inline-flex;align-items:center;gap:5px;padding:14px 16px;}
+  .cv-typing span{width:7px;height:7px;border-radius:50%;background:var(--faint);opacity:.55;animation:blink 1.3s infinite ease-in-out;}
+  .cv-typing span:nth-child(2){animation-delay:.18s;}
+  .cv-typing span:nth-child(3){animation-delay:.36s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:.8;transform:translateY(-2px);}}
+
+  /* entrance for each newly-appended bubble */
+  .pop{animation:pop .34s cubic-bezier(.22,.61,.36,1);}
+  @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  /* ---- checkpoint card (v6) ---- */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  /* "nothing's saved unless you confirm" — shown HERE, in context, at the moment it becomes true */
+  .cv-cpnote{font-size:11.5px;color:var(--mid);margin:12px 0 14px;font-family:var(--f-ui);display:flex;align-items:center;gap:7px;line-height:1.4;}
+  .cv-cpnote i{font-size:14px;color:var(--navy);opacity:.8;flex-shrink:0;}
+  .cv-cpb{display:flex;gap:9px;}
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .cv-cpb .btn{flex:1;padding:0 4px;font-size:13.5px;}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+  .cv-ghost:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--hair);}
+  .cv-soft{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--brown);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .cv-soft:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);}
+
+  /* confirmed banner after a checkpoint is accepted */
+  .cv-saved{
+    align-self:stretch;display:flex;align-items:center;gap:11px;
+    background:linear-gradient(168deg, #F2F6FB 0%, #EAF1F8 100%);
+    border:1px solid var(--navy-bd);border-radius:16px;padding:14px 16px;margin:4px 0 0;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-saved-ico{width:34px;height:34px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;font-size:18px;color:var(--navy);background:rgba(33,67,107,0.08);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.12);}
+  .cv-saved-tx{font-family:var(--f-serif);font-size:14px;line-height:1.45;color:var(--soft);}
+  .cv-saved-tx b{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.3px;color:var(--navy);display:block;text-transform:uppercase;margin-bottom:2px;}
+
+  /* chat composer pinned at the bottom of the conversation screens */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .cv-send:hover{filter:brightness(1.04);}
+  .cv-send:active{transform:translateY(1px);}
+  /* the privacy line stays present under the conversation composer too — just-in-time, never gone */
+  .cv-priv{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    font-family:var(--f-mono);font-size:9px;letter-spacing:.6px;color:var(--faint);font-weight:500;
+    padding:0 0 12px;flex-shrink:0;
+  }
+  .cv-priv i{font-size:11px;color:var(--navy);opacity:.7;}
+
+  /* ════════════════════════════════════════════ */
+  /* "HOW THIS WORKS" — the one-tap escape-hatch sheet */
+  /* ════════════════════════════════════════════ */
+  .sheet-scrim{
+    position:absolute;inset:0;z-index:30;display:none;
+    background:rgba(26,23,18,0.34);backdrop-filter:blur(2px);
+    align-items:flex-end;
+  }
+  .sheet-scrim.open{display:flex;animation:fade .22s ease;}
+  .sheet{
+    width:100%;border-radius:26px 26px 36px 36px;padding:8px 22px 26px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:0 -8px 30px rgba(54,38,20,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+    animation:rise .3s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes rise{from{transform:translateY(40px);opacity:.4;}to{transform:none;opacity:1;}}
+  .sheet-grip{width:38px;height:4px;border-radius:999px;background:var(--hair);margin:6px auto 18px;}
+  .sheet-kick{font-family:var(--f-mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:0 0 9px;}
+  .sheet-h{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;color:var(--ink);margin:0 0 16px;font-optical-sizing:auto;}
+  .sheet-pt{display:flex;gap:13px;margin:0 0 15px;}
+  .sheet-pt-ico{width:34px;height:34px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;font-size:17px;color:var(--navy);background:rgba(33,67,107,0.07);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.10);}
+  .sheet-pt-tx{flex:1;}
+  .sheet-pt-h{font-family:var(--f-ui);font-weight:700;font-size:14px;color:var(--ink);margin:0 0 3px;}
+  .sheet-pt-b{font-family:var(--f-serif);font-size:13.5px;line-height:1.5;color:var(--mid);margin:0;}
+  .sheet-close{
+    width:100%;justify-content:center;margin-top:8px;padding:14px 18px;font-size:14.5px;
+  }
+
+  /* ---- reduced motion ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .screen.active{animation:none;}
+    .cv-typing span{animation:none;opacity:.5;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — new-user entry · guided first exchange</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+      <div class="viewport">
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 1 — THE LANDING (opener · input · chips) -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen active" id="screen-land" role="region" aria-label="Welcome">
+          <header class="apphdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <span class="hdr-spacer"></span>
+            <button class="how-link" data-how="open" aria-label="How this works">
+              <i class="ti ti-help-circle" aria-hidden="true"></i> How this works
+            </button>
+          </header>
+
+          <main class="land">
+            <div class="land-top">
+              <img class="land-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+              <p class="land-jl">Jove</p>
+              <!-- ONE warm sentence — the whole opener -->
+              <p class="land-opener">Hi, I&rsquo;m Jove. <span class="soft">No right way to start &mdash; just tell me about a moment that&rsquo;s been on your mind.</span></p>
+            </div>
+
+            <!-- 2–3 emotional-framing chips. NOT a taxonomy. Each seeds the SAME conversation. -->
+            <div class="land-chips">
+              <p class="chips-lead">Or start from a feeling</p>
+              <div class="chip-row">
+                <button class="chip" data-seed="good" aria-label="Something good — start here">
+                  <span class="chip-emblem"><i class="ti ti-sun-high" aria-hidden="true"></i></span>
+                  <span class="chip-col">
+                    <span class="chip-name">Something good</span>
+                    <span class="chip-sub">A moment that landed right, even a small one.</span>
+                  </span>
+                  <i class="ti ti-arrow-right chip-arr" aria-hidden="true"></i>
+                </button>
+                <button class="chip" data-seed="hard" aria-label="Something hard — start here">
+                  <span class="chip-emblem"><i class="ti ti-cloud" aria-hidden="true"></i></span>
+                  <span class="chip-col">
+                    <span class="chip-name">Something hard</span>
+                    <span class="chip-sub">A moment that sat heavier than you expected.</span>
+                  </span>
+                  <i class="ti ti-arrow-right chip-arr" aria-hidden="true"></i>
+                </button>
+                <button class="chip" data-seed="replay" aria-label="Something I keep replaying — start here">
+                  <span class="chip-emblem"><i class="ti ti-rotate-2" aria-hidden="true"></i></span>
+                  <span class="chip-col">
+                    <span class="chip-name">Something I keep replaying</span>
+                    <span class="chip-sub">A moment your mind keeps circling back to.</span>
+                  </span>
+                  <i class="ti ti-arrow-right chip-arr" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="land-input">
+              <div class="composer">
+                <span class="composer-field" id="land-field">Tell Jove what&rsquo;s on your mind&hellip;</span>
+                <button class="composer-send" id="land-send" aria-label="Send to Jove"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+              </div>
+              <p class="privacy-line">
+                <i class="ti ti-lock" aria-hidden="true"></i> Private. Nothing&rsquo;s saved unless you say so.
+              </p>
+            </div>
+          </main>
+        </section>
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 2 — JOVE REFLECTS (proves it listens)   -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen" id="screen-reflect" role="region" aria-label="Conversation with Jove">
+          <header class="apphdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <span class="hdr-spacer"></span>
+            <button class="how-link" data-how="open" aria-label="How this works">
+              <i class="ti ti-help-circle" aria-hidden="true"></i> How this works
+            </button>
+          </header>
+          <div class="chat-sub">A conversation with Jove</div>
+
+          <div class="cv-body" id="reflect-body"><!-- filled by JS --></div>
+
+          <div class="cv-in">
+            <span class="cv-field">Reply to Jove&hellip;</span>
+            <button class="cv-send" id="reflect-send" aria-label="Send reply"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          </div>
+          <p class="cv-priv"><i class="ti ti-lock" aria-hidden="true"></i> Private. Nothing&rsquo;s saved unless you say so.</p>
+        </section>
+
+        <!-- ──────────────────────────────────────────── -->
+        <!-- SCREEN 3 — THE FIRST CHECKPOINT                -->
+        <!-- ──────────────────────────────────────────── -->
+        <section class="screen" id="screen-checkpoint" role="region" aria-label="Conversation with Jove">
+          <header class="apphdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <span class="hdr-spacer"></span>
+            <button class="how-link" data-how="open" aria-label="How this works">
+              <i class="ti ti-help-circle" aria-hidden="true"></i> How this works
+            </button>
+          </header>
+          <div class="chat-sub">A conversation with Jove</div>
+
+          <div class="cv-body" id="checkpoint-body"><!-- filled by JS --></div>
+
+          <div class="cv-in">
+            <span class="cv-field" id="checkpoint-field">Reply to Jove&hellip;</span>
+            <button class="cv-send" aria-label="Send reply"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          </div>
+          <p class="cv-priv"><i class="ti ti-lock" aria-hidden="true"></i> Private. Nothing&rsquo;s saved unless you say so.</p>
+        </section>
+
+      </div><!-- /.viewport -->
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- "HOW THIS WORKS" SHEET (escape hatch)           -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="sheet-scrim" id="how-scrim" role="dialog" aria-modal="true" aria-label="How this works">
+        <div class="sheet">
+          <div class="sheet-grip" aria-hidden="true"></div>
+          <p class="sheet-kick">How this works</p>
+          <h2 class="sheet-h">You talk. Jove listens, and writes back what it heard.</h2>
+
+          <div class="sheet-pt">
+            <span class="sheet-pt-ico"><i class="ti ti-message-circle" aria-hidden="true"></i></span>
+            <div class="sheet-pt-tx">
+              <p class="sheet-pt-h">It&rsquo;s a conversation, not a form</p>
+              <p class="sheet-pt-b">No quiz, no test, no profile to fill out. You bring a moment; Jove asks about it.</p>
+            </div>
+          </div>
+          <div class="sheet-pt">
+            <span class="sheet-pt-ico"><i class="ti ti-checks" aria-hidden="true"></i></span>
+            <div class="sheet-pt-tx">
+              <p class="sheet-pt-h">Nothing&rsquo;s saved unless you confirm it</p>
+              <p class="sheet-pt-b">When Jove finds something worth keeping, it asks first. You decide what becomes yours.</p>
+            </div>
+          </div>
+          <div class="sheet-pt">
+            <span class="sheet-pt-ico"><i class="ti ti-heart-handshake" aria-hidden="true"></i></span>
+            <div class="sheet-pt-tx">
+              <p class="sheet-pt-h">It&rsquo;s not therapy</p>
+              <p class="sheet-pt-b">Jove won&rsquo;t diagnose you or tell you what to do. It helps you put words to how you already work.</p>
+            </div>
+          </div>
+
+          <button class="btn btn-primary sheet-close" data-how="close">Got it</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var ids = ['land','reflect','checkpoint'];
+      var screens = {};
+      ids.forEach(function(id){ screens[id] = document.getElementById('screen-' + id); });
+
+      // ---- seed text: each chip / the open field all funnel to ONE conversation ----
+      // The seed only changes the user's opening message; Jove's reflection adapts to it.
+      var seeds = {
+        good:{
+          field:'Something good happened, and I want to hold onto it…',
+          user:'Something good happened today. A meeting I was dreading went well — I said the hard thing and the room actually relaxed.',
+          reflect:'You walked in braced for it to go badly, and instead <span class="em">saying the hard thing</span> is what settled the room. That&rsquo;s worth slowing down on &mdash; what made you decide to say it out loud, when the easier move was to let it sit?'
+        },
+        hard:{
+          field:'Something hard has been sitting with me…',
+          user:'Something hard. I snapped at someone close to me over something small, and I&rsquo;ve felt off about it since.',
+          reflect:'The thing that snapped was small, but the feeling afterward isn&rsquo;t &mdash; it&rsquo;s been <span class="em">sitting with you</span> all day. Often the snap isn&rsquo;t about the small thing at all. What was the hour before it like?'
+        },
+        replay:{
+          field:'There&rsquo;s a moment I keep replaying…',
+          user:'There&rsquo;s a moment I keep replaying. A conversation where I went quiet instead of saying what I meant, and now I can&rsquo;t stop turning it over.',
+          reflect:'You keep returning to the version where you <span class="em">went quiet</span> &mdash; not the words you said, the ones you held back. That replaying usually means something in it still feels unfinished. What did you most want them to hear?'
+        },
+        /* the open field, when typed freely */
+        open:{
+          field:'Tell Jove what&rsquo;s on your mind…',
+          user:'I&rsquo;ve been off all week and I can&rsquo;t totally tell why. Little things keep getting under my skin.',
+          reflect:'&ldquo;Off all week&rdquo; and <span class="em">little things getting under your skin</span> &mdash; those usually travel together. When something small lands hard, it&rsquo;s often carrying the weight of something bigger underneath. When did the week start tipping?'
+        }
+      };
+
+      var reflectBody    = document.getElementById('reflect-body');
+      var checkpointBody = document.getElementById('checkpoint-body');
+
+      function show(id){
+        ids.forEach(function(k){ screens[k].classList.remove('active'); });
+        screens[id].classList.add('active');
+        screens[id].scrollTop = 0;
+      }
+
+      function scrollChat(el){
+        // keep the latest bubble in view
+        requestAnimationFrame(function(){ el.scrollTop = el.scrollHeight; });
+      }
+
+      // ---- SCREEN 2: build the reflection thread from the chosen seed ----
+      function buildReflect(seedKey){
+        var s = seeds[seedKey] || seeds.open;
+        reflectBody.innerHTML =
+          '<div class="cv-u pop"><div class="cv-ub">' + s.user + '</div></div>' +
+          '<div class="cv-j pop"><p class="cv-jl">Jove</p>' +
+          '<div class="cv-jb cv-typing" id="reflect-typing"><span></span><span></span><span></span></div></div>';
+        show('reflect');
+        scrollChat(reflectBody);
+
+        // after a beat, swap the typing shimmer for the specific reflection (proves it listens)
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var delay = reduce ? 120 : 1150;
+        setTimeout(function(){
+          var t = document.getElementById('reflect-typing');
+          if(!t) return;
+          t.classList.remove('cv-typing');
+          t.innerHTML = s.reflect;
+          scrollChat(reflectBody);
+        }, delay);
+      }
+
+      // ---- SCREEN 3: the first checkpoint ----
+      // Reached when the user "replies" — the conversation deepens, then Jove proposes the first entry.
+      function buildCheckpoint(seedKey){
+        var s = seeds[seedKey] || seeds.open;
+        checkpointBody.innerHTML =
+          '<div class="cv-u"><div class="cv-ub">' + s.user + '</div></div>' +
+          '<div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">' + s.reflect + '</div></div>' +
+          '<div class="cv-u pop"><div class="cv-ub">Yeah. I think I just never leave myself any room — by the time I get to the people I care about, I&rsquo;m already running on empty.</div></div>' +
+          '<div class="cv-j pop"><p class="cv-jl">Jove</p><div class="cv-jb">There it is. The people closest to you keep meeting the version of you that&rsquo;s <span class="em">already past empty</span> &mdash; not because they&rsquo;re the problem, but because they&rsquo;re who&rsquo;s there when the margin runs out.</div></div>' +
+          // the FIRST checkpoint — Manual + confirmation gate introduced IN CONTEXT
+          '<div class="cv-cp pop" id="cp-card">' +
+            '<div class="cv-cph">' +
+              '<span class="cv-cpt"><i class="ti ti-notebook" aria-hidden="true"></i>For your manual?</span>' +
+              '<span class="cv-cptag">&rarr; A pattern</span>' +
+            '</div>' +
+            '<p class="cv-cptx">I run on no margin &mdash; so the people closest to me tend to meet the version of me that&rsquo;s already past empty.</p>' +
+            '<p class="cv-cpnote"><i class="ti ti-lock" aria-hidden="true"></i>This is the first thing for your manual. Nothing&rsquo;s saved unless you confirm it &mdash; in your words, and you can edit it first.</p>' +
+            '<div class="cv-cpb">' +
+              '<button class="btn btn-primary" id="cp-confirm">Confirm</button>' +
+              '<button class="btn cv-soft" id="cp-refine">Refine</button>' +
+              '<button class="btn cv-ghost" id="cp-decline">Not quite</button>' +
+            '</div>' +
+          '</div>';
+        show('checkpoint');
+        scrollChat(checkpointBody);
+        wireCheckpoint();
+      }
+
+      function wireCheckpoint(){
+        var confirm = document.getElementById('cp-confirm');
+        var refine  = document.getElementById('cp-refine');
+        var decline = document.getElementById('cp-decline');
+        var card    = document.getElementById('cp-card');
+        if(!confirm) return;
+
+        confirm.addEventListener('click', function(){
+          card.outerHTML =
+            '<div class="cv-saved pop">' +
+              '<span class="cv-saved-ico"><i class="ti ti-check" aria-hidden="true"></i></span>' +
+              '<span class="cv-saved-tx"><b>Added to your manual</b>The first line of how you operate. We can keep going from here.</span>' +
+            '</div>' +
+            '<div class="cv-j pop"><p class="cv-jl">Jove</p><div class="cv-jb">That&rsquo;s yours now. We can leave it there for today, or stay with what running-on-empty actually costs you. Either way &mdash; no rush.</div></div>';
+          scrollChat(checkpointBody);
+        });
+
+        refine.addEventListener('click', function(){
+          var note = card.querySelector('.cv-cptx');
+          note.innerHTML = 'I run on no margin &mdash; and the people I love end up meeting whatever&rsquo;s left, which by then is usually not much.';
+          var hint = card.querySelector('.cv-cpnote');
+          hint.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>Reworded in your words. Still nothing&rsquo;s saved until you confirm.';
+        });
+
+        decline.addEventListener('click', function(){
+          card.outerHTML =
+            '<div class="cv-j pop"><p class="cv-jl">Jove</p><div class="cv-jb">No problem &mdash; that one stays off the page. Tell me what didn&rsquo;t fit, and we&rsquo;ll find the version that&rsquo;s actually true.</div></div>';
+          scrollChat(checkpointBody);
+        });
+      }
+
+      // ---- WIRING ----
+      var seedKey = 'open';
+
+      // chips: tap → seed the field (warm it up), then advance to the reflection
+      document.querySelectorAll('[data-seed]').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          seedKey = chip.getAttribute('data-seed');
+          var field = document.getElementById('land-field');
+          field.textContent = seeds[seedKey].field;
+          field.classList.add('seeded');
+          buildReflect(seedKey);
+        });
+      });
+
+      // the open field / send → use the free-form seed
+      document.getElementById('land-send').addEventListener('click', function(){
+        seedKey = 'open';
+        buildReflect(seedKey);
+      });
+      document.getElementById('land-field').addEventListener('click', function(){
+        seedKey = 'open';
+        buildReflect(seedKey);
+      });
+
+      // reply on the reflection screen → deepen + reach the first checkpoint
+      document.getElementById('reflect-send').addEventListener('click', function(){
+        buildCheckpoint(seedKey);
+      });
+
+      // ---- "How this works" escape-hatch sheet ----
+      var scrim = document.getElementById('how-scrim');
+      document.querySelectorAll('[data-how="open"]').forEach(function(b){
+        b.addEventListener('click', function(){ scrim.classList.add('open'); });
+      });
+      document.querySelectorAll('[data-how="close"]').forEach(function(b){
+        b.addEventListener('click', function(){ scrim.classList.remove('open'); });
+      });
+      scrim.addEventListener('click', function(e){
+        if(e.target === scrim) scrim.classList.remove('open');
+      });
+    })();
+  </script>
+</body>
+</html>

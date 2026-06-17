@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (editorial premium)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* surfaces */
+    --ground:#F4F1EA; --paper:#FBF9F4; --page:#E6E0D4;
+    /* ink scale */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.12); --hair-2:rgba(26,23,18,0.07); --hair-3:rgba(26,23,18,0.045);
+    /* brown — you / warmth / primary */
+    --brown:#6E4527; --brown-deep:#5A3820; --brown-tint:rgba(110,69,39,0.06); --brown-bd:rgba(110,69,39,0.22);
+    /* navy — Jove / the Manual / structure */
+    --navy:#21436B; --navy-deep:#193552; --navy-tint:rgba(33,67,107,0.055); --navy-bd:rgba(33,67,107,0.18);
+    /* type */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-words:'Newsreader',Georgia,serif;
+    --f-ui:'Inter','Inter Tight',system-ui,sans-serif;
+    --f-uit:'Inter Tight','Inter',system-ui,sans-serif;
+    --f-meta:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--f-ui);
+       padding:40px 16px 60px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+
+  .page-head{max-width:520px;margin:0 auto 30px;text-align:center;}
+  .page-head .kicker{font-family:var(--f-meta);font-size:10.5px;letter-spacing:2.4px;text-transform:uppercase;
+       color:var(--brown);margin:0 0 9px;}
+  .page-head h1{font-family:var(--f-display);font-optical-sizing:auto;font-weight:500;font-size:25px;
+       letter-spacing:-0.4px;margin:0 0 7px;color:var(--ink);}
+  .page-head p{font-size:13px;line-height:1.5;color:var(--mid);margin:0;}
+
+  /* ─────────── PHONE FRAME ─────────── */
+  .stage{display:flex;justify-content:center;}
+  .phone{width:404px;max-width:100%;background:var(--ground);border-radius:36px;
+       border:1px solid var(--hair);box-shadow:0 1px 0 rgba(255,255,255,0.5) inset, 0 30px 70px -20px rgba(40,28,16,0.30), 0 8px 24px -12px rgba(40,28,16,0.18);
+       overflow:hidden;position:relative;}
+  .screen{height:856px;overflow-y:auto;scrollbar-width:none;}
+  .screen::-webkit-scrollbar{display:none;}
+  .pad{padding:0 22px;}
+
+  /* ─────────── HEADER ─────────── */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand img{width:26px;height:26px;display:block;}
+  .brand .word{font-family:var(--f-uit);font-weight:600;font-size:17px;letter-spacing:-0.3px;color:var(--ink);}
+  .brand .word b{font-weight:600;color:var(--brown);}
+  .hdr .gear{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+       color:var(--mid);font-size:20px;border:1px solid var(--hair-2);background:var(--paper);}
+
+  /* ─────────── GREETING ─────────── */
+  .greet{padding:6px 0 22px;}
+  .greet h2{font-family:var(--f-display);font-optical-sizing:auto;font-weight:400;font-size:30px;
+       line-height:1.04;letter-spacing:-0.7px;color:var(--ink);margin:0;}
+  .greet h2 .nm{font-style:italic;font-weight:500;}
+  .greet .date{font-family:var(--f-meta);font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;
+       color:var(--faint);margin:11px 0 0;}
+
+  /* shared eyebrow */
+  .eyebrow{font-family:var(--f-meta);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:500;}
+  .eb-brown{color:var(--brown);} .eb-navy{color:var(--navy);} .eb-faint{color:var(--faint);}
+
+  /* ─────────── TILE 1 · HERO ─────────── */
+  .hero{position:relative;background:var(--paper);border:1px solid var(--hair);border-radius:20px;
+       padding:20px 20px 18px;margin-bottom:14px;
+       box-shadow:0 1px 2px rgba(40,28,16,0.04);overflow:hidden;}
+  .hero::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;
+       background:var(--brown);opacity:.85;}
+  .hero .eyebrow{margin:0 0 13px;}
+  .hero-line{font-family:var(--f-words);font-weight:400;font-size:21px;line-height:1.34;letter-spacing:-0.1px;
+       color:var(--ink);margin:0 0 18px;}
+  .hero-line .q{color:var(--brown);font-style:italic;}
+  .hero-cta{display:flex;align-items:center;gap:12px;}
+  .btn-primary{display:inline-flex;align-items:center;gap:9px;background:var(--brown);color:#FBF7F0;
+       font-family:var(--f-uit);font-weight:500;font-size:14.5px;letter-spacing:-0.1px;
+       border:1px solid var(--brown-deep);border-radius:11px;padding:12px 17px;cursor:pointer;
+       box-shadow:0 1px 1.5px rgba(60,34,14,0.22);transition:.16s;}
+  .btn-primary:hover{background:var(--brown-deep);}
+  .btn-primary i{font-size:17px;}
+  .btn-text{font-family:var(--f-uit);font-weight:500;font-size:14px;color:var(--mid);background:none;border:none;
+       cursor:pointer;padding:6px 4px;letter-spacing:-0.1px;border-bottom:1px solid transparent;transition:.16s;}
+  .btn-text:hover{color:var(--ink);border-bottom-color:var(--hair);}
+  .hero-status{display:flex;align-items:center;flex-wrap:wrap;gap:0 9px;margin-top:17px;padding-top:14px;
+       border-top:1px solid var(--hair-2);font-family:var(--f-meta);font-size:10.5px;letter-spacing:0.4px;
+       color:var(--faint);}
+  .hero-status b{color:var(--mid);font-weight:500;}
+  .hero-status .sep{color:var(--hair);}
+
+  /* ─────────── TILE 2 · EXPLORE ─────────── */
+  .explore{background:var(--paper);border:1px solid var(--hair);border-radius:20px;padding:20px 20px 19px;
+       margin-bottom:14px;box-shadow:0 1px 2px rgba(40,28,16,0.04);}
+  .explore .eyebrow{margin:0 0 8px;}
+  .explore h3{font-family:var(--f-display);font-optical-sizing:auto;font-weight:500;font-size:20px;
+       letter-spacing:-0.3px;color:var(--ink);margin:0 0 8px;}
+  .explore p{font-size:14px;line-height:1.55;color:var(--mid);margin:0 0 17px;letter-spacing:-0.05px;}
+  .btn-outline{display:inline-flex;align-items:center;gap:9px;background:transparent;color:var(--brown);
+       font-family:var(--f-uit);font-weight:500;font-size:14px;letter-spacing:-0.1px;
+       border:1px solid var(--brown-bd);border-radius:11px;padding:11px 16px;cursor:pointer;transition:.16s;}
+  .btn-outline:hover{background:var(--brown-tint);border-color:var(--brown);}
+  .btn-outline i{font-size:16px;}
+
+  /* ─────────── TILE 3 · MANUAL (table of contents) ─────────── */
+  .manual{background:var(--paper);border:1px solid var(--hair);border-radius:20px;padding:21px 6px 8px;
+       margin-bottom:14px;box-shadow:0 1px 2px rgba(40,28,16,0.04);}
+  .manual-head{display:flex;align-items:flex-start;justify-content:space-between;padding:0 16px;margin-bottom:3px;}
+  .manual-head h3{font-family:var(--f-display);font-optical-sizing:auto;font-weight:500;font-size:21px;
+       letter-spacing:-0.4px;color:var(--ink);margin:0;}
+  .manual-count{font-family:var(--f-meta);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
+       color:var(--navy);font-weight:500;white-space:nowrap;margin-top:5px;}
+  .manual-sub{font-family:var(--f-words);font-style:italic;font-size:14.5px;line-height:1.5;color:var(--mid);
+       padding:0 16px;margin:5px 0 6px;}
+  .toc{margin-top:6px;}
+  .layer{display:flex;align-items:center;gap:14px;padding:14px 16px;border-top:1px solid var(--hair-2);
+       cursor:pointer;transition:.16s;position:relative;}
+  .layer:hover{background:var(--navy-tint);}
+  .layer-no{font-family:var(--f-display);font-weight:500;font-size:13px;color:var(--navy);width:18px;
+       text-align:center;flex-shrink:0;font-feature-settings:"tnum" 1;font-variant-numeric:tabular-nums;}
+  .layer-emblem{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+       background:var(--navy-tint);color:var(--navy);font-size:18px;border:1px solid var(--navy-bd);}
+  .layer-txt{flex:1;min-width:0;}
+  .layer-name{font-family:var(--f-uit);font-weight:600;font-size:14.5px;letter-spacing:-0.15px;color:var(--ink);
+       line-height:1.2;}
+  .layer-mean{font-size:12px;line-height:1.4;color:var(--faint);margin-top:2px;letter-spacing:-0.05px;}
+  .layer-end{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+  .layer-ct{font-family:var(--f-meta);font-size:11px;color:var(--mid);letter-spacing:0.3px;
+       font-feature-settings:"tnum" 1;font-variant-numeric:tabular-nums;}
+  .layer-chev{color:var(--navy);font-size:17px;opacity:.55;}
+  /* empty layer */
+  .layer.is-empty .layer-emblem{background:var(--brown-tint);color:var(--brown);border-color:var(--brown-bd);}
+  .layer.is-empty .layer-name{color:var(--mid);}
+  .layer-start{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-uit);font-weight:600;
+       font-size:12px;color:var(--brown);letter-spacing:-0.1px;}
+  .layer-start i{font-size:14px;}
+
+  /* ─────────── TILE 4 · SHARE ─────────── */
+  .share{background:var(--navy);border-radius:20px;padding:21px 20px 20px;margin-bottom:6px;
+       position:relative;overflow:hidden;box-shadow:0 8px 22px -12px rgba(25,53,82,0.6);}
+  .share::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;
+       border:1px solid rgba(255,255,255,0.08);}
+  .share .eyebrow{color:#A9C0DC;margin:0 0 8px;position:relative;}
+  .share h3{font-family:var(--f-display);font-optical-sizing:auto;font-weight:500;font-size:20px;
+       letter-spacing:-0.3px;color:#FBF9F4;margin:0 0 8px;position:relative;}
+  .share p{font-size:13.5px;line-height:1.55;color:#C7D4E2;margin:0 0 17px;letter-spacing:-0.05px;position:relative;}
+  .btn-onnavy{display:inline-flex;align-items:center;gap:9px;background:#FBF7F0;color:var(--navy-deep);
+       font-family:var(--f-uit);font-weight:600;font-size:14px;letter-spacing:-0.1px;
+       border:none;border-radius:11px;padding:11px 17px;cursor:pointer;position:relative;transition:.16s;}
+  .btn-onnavy:hover{background:#fff;}
+  .btn-onnavy i{font-size:16px;}
+
+  /* ─────────── BOTTOM NAV ─────────── */
+  .nav{position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;
+       padding:11px 0 14px;border-top:1px solid var(--hair);
+       background:rgba(244,241,234,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+  .navi{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--f-uit);font-size:10.5px;
+       font-weight:500;letter-spacing:0.1px;color:var(--faint);cursor:pointer;}
+  .navi i{font-size:21px;}
+  .navi.on{color:var(--brown);}
+  .navi.on .dot{width:4px;height:4px;border-radius:50%;background:var(--brown);margin-top:1px;}
+  .navi .dot{width:4px;height:4px;margin-top:1px;}
+
+  .tail{height:8px;}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <p class="kicker">mywalnut · mobile</p>
+    <h1>Home</h1>
+    <p>Editorial-premium direction — type-led, the Manual set as a quietly perfect table of contents.</p>
+  </div>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="screen">
+
+        <!-- HEADER -->
+        <header class="hdr">
+          <div class="brand">
+            <img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut">
+            <span class="word">my<b>walnut</b></span>
+          </div>
+          <button class="gear" aria-label="Settings"><i class="ti ti-settings"></i></button>
+        </header>
+
+        <div class="pad">
+
+          <!-- GREETING -->
+          <div class="greet">
+            <h2>Good evening, <span class="nm">Jeff.</span></h2>
+            <p class="date">Tuesday · June 15</p>
+          </div>
+
+          <!-- TILE 1 · HERO -->
+          <section class="hero">
+            <p class="eyebrow eb-brown">Pick up where you left off</p>
+            <p class="hero-line">Last time, you were sitting with the moment you <span class="q">snapped at Sam over the dishwasher.</span></p>
+            <div class="hero-cta">
+              <button class="btn-primary">Continue this thread <i class="ti ti-arrow-right"></i></button>
+              <button class="btn-text">Start fresh</button>
+            </div>
+            <div class="hero-status">
+              <b>14 entries</b><span class="sep">·</span><b>4 of 5 layers</b> touched<span class="sep">·</span>last session 3 days ago
+            </div>
+          </section>
+
+          <!-- TILE 2 · EXPLORE -->
+          <section class="explore">
+            <p class="eyebrow eb-brown">Bring a situation</p>
+            <h3>Talk something through</h3>
+            <p>A conflict that keeps repeating, a reaction that surprised you, a win you can't explain. Talk it through and see what's underneath.</p>
+            <button class="btn-outline"><i class="ti ti-message-2"></i> Explore a situation</button>
+          </section>
+
+          <!-- TILE 3 · MANUAL -->
+          <section class="manual">
+            <div class="manual-head">
+              <h3>Your manual</h3>
+              <span class="manual-count">14 entries</span>
+            </div>
+            <p class="manual-sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+            <div class="toc">
+              <div class="layer">
+                <span class="layer-no">1</span>
+                <span class="layer-emblem"><i class="ti ti-sparkles"></i></span>
+                <span class="layer-txt">
+                  <span class="layer-name">My Strengths</span>
+                  <span class="layer-mean">What you're genuinely good at, named plainly.</span>
+                </span>
+                <span class="layer-end"><span class="layer-ct">3 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+              </div>
+
+              <div class="layer">
+                <span class="layer-no">2</span>
+                <span class="layer-emblem"><i class="ti ti-refresh"></i></span>
+                <span class="layer-txt">
+                  <span class="layer-name">Some of My Patterns</span>
+                  <span class="layer-mean">Loops you repeat — and what they cost.</span>
+                </span>
+                <span class="layer-end"><span class="layer-ct">5 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+              </div>
+
+              <div class="layer">
+                <span class="layer-no">3</span>
+                <span class="layer-emblem"><i class="ti ti-bulb"></i></span>
+                <span class="layer-txt">
+                  <span class="layer-name">How I Process Things</span>
+                  <span class="layer-mean">The way your mind actually works through things.</span>
+                </span>
+                <span class="layer-end"><span class="layer-ct">2 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+              </div>
+
+              <div class="layer">
+                <span class="layer-no">4</span>
+                <span class="layer-emblem"><i class="ti ti-anchor"></i></span>
+                <span class="layer-txt">
+                  <span class="layer-name">What Helps</span>
+                  <span class="layer-mean">The conditions and moves that make things easier.</span>
+                </span>
+                <span class="layer-end"><span class="layer-ct">4 entries</span><i class="ti ti-chevron-right layer-chev"></i></span>
+              </div>
+
+              <div class="layer is-empty">
+                <span class="layer-no">5</span>
+                <span class="layer-emblem"><i class="ti ti-users"></i></span>
+                <span class="layer-txt">
+                  <span class="layer-name">How I Show Up with People</span>
+                  <span class="layer-mean">The gap between what you mean and what others see.</span>
+                </span>
+                <span class="layer-end"><span class="layer-start">Start <i class="ti ti-arrow-right"></i></span></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- TILE 4 · SHARE -->
+          <section class="share">
+            <p class="eyebrow">Share how you work</p>
+            <h3>Hand it to someone</h3>
+            <p>Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+            <button class="btn-onnavy"><i class="ti ti-send"></i> Create a shareable version</button>
+          </section>
+
+          <div class="tail"></div>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <nav class="nav">
+          <span class="navi on"><i class="ti ti-home"></i>Home<span class="dot"></span></span>
+          <span class="navi"><i class="ti ti-book-2"></i>Manual<span class="dot"></span></span>
+          <span class="navi"><i class="ti ti-user"></i>You<span class="dot"></span></span>
+        </nav>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — first run · the single question</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- shared focus-visible ring for keyboard users ---- */
+  :focus{outline:none;}
+  button:focus-visible,
+  textarea:focus-visible,
+  .chip:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 55% at 85% -5%, rgba(110,69,39,0.06) 0%, rgba(110,69,39,0) 50%),
+      radial-gradient(120% 48% at 5% 104%, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0) 48%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- the first-run canvas: one calm column, vertically composed ---- */
+  .firstrun{
+    flex:1;min-height:0;display:flex;flex-direction:column;
+    padding:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  .firstrun::-webkit-scrollbar{width:0;}
+
+  /* small, quiet identity at the very top — not a heavy app header */
+  .fr-top{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    padding:22px 22px 4px;
+  }
+  .fr-mark{
+    width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .fr-mark img{width:20px;height:20px;display:block;}
+  .fr-wm{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:-.2px;color:var(--soft);font-optical-sizing:auto;}
+
+  /* the body of the screen — the question lives here, generously centered */
+  .fr-stage{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    padding:8px 26px 4px;
+  }
+
+  /* Jove's quiet attribution above the question — this is a voice, not a form */
+  .fr-from{
+    display:flex;align-items:center;gap:8px;margin:0 2px 16px;
+    opacity:0;animation:rise .7s cubic-bezier(.22,.61,.36,1) .15s forwards;
+  }
+  .fr-from .av{
+    width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;
+    background:rgba(33,67,107,0.07);color:var(--navy);font-size:14px;
+    box-shadow:inset 0 0 0 1px rgba(33,67,107,0.12);
+  }
+  .fr-from .lbl{font-family:var(--f-mono);font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+  .fr-from .lbl b{color:var(--navy);font-weight:500;}
+
+  /* THE QUESTION — the whole point of the screen */
+  .fr-q{
+    font-family:var(--f-serif);font-weight:400;
+    font-size:29px;line-height:1.28;letter-spacing:-.2px;color:var(--ink);
+    margin:0 1px 6px;text-wrap:balance;
+    opacity:0;animation:rise .85s cubic-bezier(.22,.61,.36,1) .32s forwards;
+  }
+  .fr-q .lead-q{
+    font-family:var(--f-display);font-style:normal;font-weight:500;
+    color:var(--brown-bright);opacity:.5;font-size:34px;line-height:0;
+    vertical-align:-8px;margin-right:4px;
+  }
+  /* the operative phrase carries a soft warm emphasis — draws the eye, sets the register */
+  .fr-q em{font-style:italic;color:var(--brown);font-weight:500;}
+
+  /* a single quiet line of orientation under the question */
+  .fr-sub{
+    font-family:var(--f-serif);font-style:italic;font-size:15px;line-height:1.55;
+    color:var(--mid);margin:14px 1px 0;max-width:30em;
+    opacity:0;animation:rise .85s cubic-bezier(.22,.61,.36,1) .52s forwards;
+  }
+
+  /* ---- the answer field: present, inviting, right there ---- */
+  .fr-answer{
+    padding:6px 22px 0;
+    opacity:0;animation:rise .85s cubic-bezier(.22,.61,.36,1) .7s forwards;
+  }
+  .fr-fieldwrap{
+    position:relative;border-radius:22px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.06);
+    transition:box-shadow .2s ease, border-color .2s ease;
+  }
+  .fr-fieldwrap.is-focused{
+    box-shadow:var(--lift-2), 0 0 0 3px rgba(110,69,39,0.12), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px var(--brown-bd);
+  }
+  .fr-field{
+    width:100%;border:none;background:transparent;resize:none;display:block;
+    font-family:var(--f-serif);font-size:16.5px;line-height:1.5;color:var(--ink);
+    padding:17px 18px 8px;min-height:84px;
+  }
+  .fr-field:focus{outline:none;}
+  .fr-field::placeholder{color:var(--faint);font-style:italic;opacity:1;}
+
+  /* footer row inside the field: reassurance on the left, send on the right */
+  .fr-fieldfoot{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:6px 12px 12px 18px;
+  }
+  .fr-safe{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--f-ui);font-size:11.5px;font-weight:500;color:var(--faint);line-height:1.3;
+  }
+  .fr-safe i{font-size:14px;color:var(--navy);opacity:.65;}
+  .fr-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;
+    color:#FCF6EE;font-size:19px;display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease, opacity .2s ease;
+  }
+  .fr-send:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .fr-send:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+
+  /* ---- two gentle starter chips: a ramp for anyone who freezes at a blank field ---- */
+  .fr-chips{
+    display:flex;flex-wrap:wrap;gap:9px;padding:14px 22px 0;
+    opacity:0;animation:rise .85s cubic-bezier(.22,.61,.36,1) .88s forwards;
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    min-height:36px;padding:8px 14px;border-radius:999px;
+    font-family:var(--f-ui);font-size:12.5px;font-weight:500;color:var(--soft);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);
+    border:none;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+    transition:transform .12s ease, box-shadow .12s ease, color .12s ease;
+  }
+  .chip i{font-size:14px;color:var(--brown-bright);opacity:.8;}
+  .chip:hover{color:var(--brown);box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);}
+  .chip:active{transform:translateY(1px);}
+
+  /* ---- the quiet footer: what this is, in one breath ---- */
+  .fr-foot{
+    padding:24px 26px 26px;
+    opacity:0;animation:rise .85s cubic-bezier(.22,.61,.36,1) 1.04s forwards;
+  }
+  .fr-foot-orn{display:flex;align-items:center;gap:11px;margin:0 2px 14px;}
+  .fr-foot-orn .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hairs) 50%, rgba(26,23,18,0) 100%);}
+  .fr-foot-orn i{color:var(--brown-bright);opacity:.55;font-size:12px;}
+  .fr-foot-line{
+    font-family:var(--f-ui);font-size:12px;line-height:1.6;color:var(--faint);
+    text-align:center;margin:0 auto;max-width:32em;
+  }
+  .fr-foot-line b{color:var(--mid);font-weight:600;}
+
+  /* the entrance motion */
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+  /* ---- honor reduced-motion ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .fr-from,.fr-q,.fr-sub,.fr-answer,.fr-chips,.fr-foot{opacity:1 !important;transform:none !important;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — first run · the single question</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <main class="firstrun" role="region" aria-label="Your first conversation with Jove">
+
+        <!-- quiet identity, top-centered -->
+        <div class="fr-top">
+          <span class="fr-mark"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+          <span class="fr-wm">mywalnut</span>
+        </div>
+
+        <!-- the stage: the question, beautifully set -->
+        <div class="fr-stage">
+          <div class="fr-from">
+            <span class="av"><i class="ti ti-message-circle" aria-hidden="true"></i></span>
+            <span class="lbl"><b>Jove</b> &nbsp;·&nbsp; to begin</span>
+          </div>
+
+          <h1 class="fr-q">
+            <span class="lead-q" aria-hidden="true">&ldquo;</span>What&rsquo;s a reaction you had recently that <em>surprised you</em> &mdash; one that felt bigger, or smaller, than the moment seemed to call for?
+          </h1>
+
+          <p class="fr-sub">No right answer. Start anywhere &mdash; a single moment is plenty.</p>
+        </div>
+
+        <!-- the answer field, right here -->
+        <div class="fr-answer">
+          <div class="fr-fieldwrap" id="fieldwrap">
+            <label for="answer" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Your answer to Jove</label>
+            <textarea class="fr-field" id="answer" rows="3" placeholder="It caught me off guard when…" autocomplete="off"></textarea>
+            <div class="fr-fieldfoot">
+              <span class="fr-safe"><i class="ti ti-lock" aria-hidden="true"></i>Nothing&rsquo;s saved unless you say so</span>
+              <button class="fr-send" id="send" aria-label="Send to Jove"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- gentle starters for anyone who freezes at a blank field -->
+        <div class="fr-chips" role="group" aria-label="Or start from one of these">
+          <button class="chip" type="button" data-seed="Someone said something small and I reacted way more strongly than I expected. ">
+            <i class="ti ti-flame" aria-hidden="true"></i>I overreacted to something small
+          </button>
+          <button class="chip" type="button" data-seed="Something happened that should have bothered me, and I felt almost nothing. ">
+            <i class="ti ti-wind" aria-hidden="true"></i>I felt nothing when I expected to
+          </button>
+        </div>
+
+        <!-- what this is, in one breath -->
+        <div class="fr-foot">
+          <div class="fr-foot-orn" aria-hidden="true"><span class="ln"></span><i class="ti ti-asterisk"></i><span class="ln"></span></div>
+          <p class="fr-foot-line">
+            This is the first line of your <b>Manual</b> &mdash; five layers of how you actually operate, built one conversation at a time. It&rsquo;s often easier to see someone else&rsquo;s patterns than your own. Jove helps you see yours.
+          </p>
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var wrap   = document.getElementById('fieldwrap');
+      var field  = document.getElementById('answer');
+      var send   = document.getElementById('send');
+
+      // focus state ring on the whole field card
+      field.addEventListener('focus', function(){ wrap.classList.add('is-focused'); });
+      field.addEventListener('blur',  function(){ wrap.classList.remove('is-focused'); });
+
+      // gentle auto-grow so the field never feels cramped as you write
+      function grow(){ field.style.height = 'auto'; field.style.height = Math.max(84, field.scrollHeight) + 'px'; }
+      field.addEventListener('input', grow);
+
+      // starter chips seed the field and hand focus straight to it
+      document.querySelectorAll('.chip').forEach(function(c){
+        c.addEventListener('click', function(){
+          var seed = c.getAttribute('data-seed') || '';
+          field.value = seed;
+          grow();
+          field.focus();
+          // place caret at the end
+          var len = field.value.length;
+          field.setSelectionRange(len, len);
+        });
+      });
+
+      // demo-only send: a small acknowledgement, no real navigation
+      send.addEventListener('click', function(){
+        var v = field.value.trim();
+        if(!v){ field.focus(); return; }
+        send.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+        send.setAttribute('aria-label', 'Sent — demo only');
+      });
+    })();
+  </script>
+</body>
+</html>

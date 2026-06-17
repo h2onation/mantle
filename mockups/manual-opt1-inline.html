@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — inline manual (opt 1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    /* fixed device height so the persistent nav can dock at the bottom */
+    height:812px;
+    display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- screen switcher ---- */
+  /* scroll region fills the device above the docked nav */
+  .stage{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .screen.active{display:block;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  /* tidy scrollbar so the long home reads clean */
+  .screen::-webkit-scrollbar{width:0;height:0;}
+  .screen{scrollbar-width:none;}
+
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- header ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-ico{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+
+  /* ---- greeting ---- */
+  .home{padding:8px 18px 28px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  /* ---- tile base: rounded physical card ---- */
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .t-h3{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;margin:0 0 7px;font-optical-sizing:auto;}
+  .t-p{font-size:13.5px;line-height:1.55;color:var(--mid);margin:0 0 18px;}
+
+  /* ---- tactile buttons ---- */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    display:inline-flex;align-items:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:active{box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-soft{
+    background:linear-gradient(180deg, #FFFDF8 0%, #F4EEE3 100%);
+    color:var(--brown);padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .btn-soft.navy{color:var(--navy);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* ---- hero tile ---- */
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 22px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 18px;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+  .hero-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+  .hero-new{font-size:13.5px;color:var(--brown);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .hero-new i{font-size:15px;}
+
+  /* ---- emblem chip (explore / share) ---- */
+  .t-emblem{
+    width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:22px;margin-bottom:15px;
+    color:var(--brown);
+    background:linear-gradient(160deg,#FFFDF8 0%, #F2E9DB 100%);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- section lead-in for the inline manual ---- */
+  .home-section-lead{margin:30px 4px 14px;}
+  .home-section-lead .eyebrow{margin-bottom:9px;}
+  .home-section-lead h3{font-family:var(--f-display);font-weight:500;font-size:23px;letter-spacing:-.3px;margin:0 0 6px;font-optical-sizing:auto;}
+  .home-section-lead .lead-sub{font-size:13px;line-height:1.5;color:var(--mid);margin:0;max-width:33ch;}
+  .home-section-lead .lead-meta{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:11px 0 0;}
+
+  /* ======================================================= */
+  /* INLINE MANUAL — five layers, accordion in place          */
+  /* ======================================================= */
+  .mn-layer{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:22px;padding:15px 18px;margin-bottom:13px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+    transition:box-shadow .18s ease;
+  }
+  .mn-layer.open{box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.06);}
+  .mn-lh{display:flex;align-items:center;gap:13px;cursor:pointer;}
+  .mn-lemb{
+    width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:var(--navy);
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 2px 5px rgba(33,67,107,0.12), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .mn-lcol{flex:1;min-width:0;}
+  .mn-lname{font-family:var(--f-display);font-weight:500;font-size:17px;color:var(--ink);letter-spacing:-.25px;line-height:1.18;font-optical-sizing:auto;}
+  .mn-lmean{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.34;}
+  .mn-layer.open .mn-lmean{color:var(--faint);}
+  .mn-lct{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .mn-lchev{color:var(--faint);font-size:19px;margin-left:2px;transition:transform .2s ease;}
+  .mn-layer.open .mn-lchev{transform:rotate(90deg);}
+
+  /* the in-place expand: animate max-height + opacity */
+  .mn-entries{
+    max-height:0;opacity:0;overflow:hidden;
+    transition:max-height .34s cubic-bezier(.22,.61,.36,1), opacity .26s ease, margin-top .34s ease;
+    margin-top:0;
+  }
+  .mn-layer.open .mn-entries{max-height:1400px;opacity:1;margin-top:6px;}
+
+  .mn-entry{
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    border-radius:16px;padding:15px 16px;margin-top:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.045);
+  }
+  .mn-eh{font-family:var(--f-serif);font-style:italic;font-weight:500;font-size:16.5px;line-height:1.3;color:var(--ink);margin-bottom:7px;}
+  .mn-es{font-family:var(--f-serif);font-size:14px;line-height:1.55;color:var(--soft);}
+  .mn-em{font-family:var(--f-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);font-weight:500;margin-top:11px;}
+  .mn-more{font-size:12.5px;color:var(--navy);font-weight:600;padding:12px 4px 2px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+
+  /* placeholder copy for layers whose prose lives behind a deeper read */
+  .mn-ph{font-family:var(--f-serif);font-size:13.5px;line-height:1.5;color:var(--mid);font-style:italic;padding:13px 4px 4px;}
+
+  /* empty layer — brown invite to start */
+  .mn-layer.empty .mn-lemb{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 2px 5px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .mn-layer.empty .mn-lname{color:var(--mid);}
+  .mn-estart{font-size:11px;font-weight:600;color:#FCF6EE;background:linear-gradient(180deg,var(--brown-bright),var(--brown));border-radius:999px;padding:6px 13px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(110,69,39,0.25), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .mn-estart i{font-size:13px;}
+
+  /* export affordance at the end of the manual section */
+  .mn-export-wrap{margin-top:18px;}
+  .mn-export-note{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;text-align:center;margin:11px 0 0;}
+
+  /* ---- share tile (navy filled) ---- */
+  .share-navy{
+    background:
+      radial-gradient(120% 90% at 88% -20%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%),
+      linear-gradient(168deg, #2A4E7A 0%, var(--navy) 48%, var(--navy-deep) 100%);
+    border:1px solid rgba(255,255,255,0.10);
+    box-shadow:0 1px 2px rgba(17,40,70,0.35), 0 10px 26px -12px rgba(23,48,80,0.6), inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  .share-navy::after{content:"";position:absolute;right:-34px;top:-34px;width:140px;height:140px;border-radius:50%;border:1px solid rgba(255,255,255,0.10);pointer-events:none;}
+  .share-navy .eyebrow{color:#A9C0DC;position:relative;}
+  .share-navy .t-h3{color:#FBF9F4;position:relative;}
+  .share-navy .t-p{color:#C7D4E2;position:relative;}
+  .btn-onnavy{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F1E9DC 100%);color:var(--navy-deep);
+    padding:13px 18px;font-size:14px;position:relative;
+    box-shadow:0 2px 8px rgba(17,40,70,0.28), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  /* hairline divider between front-door blocks */
+  .home-rule{height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, rgba(26,23,18,0.10) 50%, rgba(26,23,18,0) 100%);margin:28px 6px;}
+
+  /* ======================================================= */
+  /* PERSISTENT LOW-PROFILE BOTTOM NAV (docked, on every screen)*/
+  /* ======================================================= */
+  .botnav{
+    flex-shrink:0;
+    display:flex;justify-content:space-around;align-items:center;
+    padding:7px 10px;margin:8px 14px 14px;border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.94) 0%, rgba(246,241,233,0.94) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:0 1px 1px rgba(54,38,20,0.04), 0 4px 12px rgba(54,38,20,0.07), inset 0 1px 0 rgba(255,255,255,0.8);
+    backdrop-filter:blur(8px);
+  }
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--f-ui);font-size:9px;font-weight:600;letter-spacing:.2px;color:var(--faint);cursor:pointer;padding:4px 16px;border-radius:12px;transition:color .14s ease;}
+  .nav-i i{font-size:17px;}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F3ECDE 100%);
+    box-shadow:0 1px 4px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ======================================================= */
+  /* CHAT                                                     */
+  /* ======================================================= */
+  /* slim back affordance — no Jove branding at top */
+  .cv-top{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;}
+  .cv-back{
+    width:34px;height:34px;border-radius:12px;border:none;cursor:pointer;color:var(--brown);font-size:18px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .cv-context{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  .cv-body{padding:10px 16px 18px;display:flex;flex-direction:column;gap:13px;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  /* FIX 1 — clean paper bubble for Jove: left-aligned, surface only, NO colored rule/border-left */
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(26,23,18,0.06);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* checkpoint card */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  .cv-cpnote{font-size:11.5px;color:var(--faint);margin:11px 0 13px;font-family:var(--f-ui);}
+  .cv-cpb{display:flex;gap:10px;}
+  .cv-cpb .btn{flex:1;justify-content:center;}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+
+  /* chat input bar — sits directly above the persistent nav */
+  .cv-in{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 16px 4px;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  /* chat lays out as a column: scrolling body, then pinned input */
+  #screen-chat{display:none;flex-direction:column;}
+  #screen-chat.active{display:flex;}
+  #screen-chat .cv-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+  #screen-chat .cv-scroll::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — inline manual</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <div class="stage">
+
+        <!-- ════════════════════════════════════════════ -->
+        <!-- HOME — front door WITH the manual inline       -->
+        <!-- ════════════════════════════════════════════ -->
+        <section class="screen active" id="screen-home">
+
+          <header class="hdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings"></i></button>
+          </header>
+
+          <div class="home">
+            <h2 class="greet">Good evening, Jeff.</h2>
+            <p class="greet-date">Tuesday · June 15</p>
+
+            <!-- TILE 1 — hero / opener -->
+            <section class="tile hero">
+              <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+              <span class="eyebrow e-brown"><i class="ti ti-bookmark"></i>Pick up where you left off</span>
+              <p class="hero-line"><span class="q">&ldquo;</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+              <div class="hero-row">
+                <button class="btn btn-primary" data-goto="chat">Continue this thread <i class="ti ti-arrow-right"></i></button>
+                <span class="hero-new" data-goto="chat"><i class="ti ti-plus"></i>Start fresh</span>
+              </div>
+            </section>
+
+            <!-- TILE 2 — explore -->
+            <section class="tile">
+              <div class="t-emblem"><i class="ti ti-message-2"></i></div>
+              <h3 class="t-h3">Bring a situation</h3>
+              <p class="t-p">A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain. Talk it through and see what&rsquo;s underneath.</p>
+              <button class="btn btn-soft" data-goto="chat">Explore a situation <i class="ti ti-arrow-right"></i></button>
+            </section>
+
+            <div class="home-rule"></div>
+
+            <!-- ───────────────────────────────────────── -->
+            <!-- THE MANUAL — inline, accordion in place    -->
+            <!-- ───────────────────────────────────────── -->
+            <div class="home-section-lead" id="manual-anchor">
+              <span class="eyebrow e-navy"><i class="ti ti-book-2"></i>Your manual</span>
+              <h3>How you operate, in your own words.</h3>
+              <p class="lead-sub">Open a layer to read it — or to build it. It all lives right here.</p>
+              <p class="lead-meta">14 entries · built with Jove</p>
+            </div>
+
+            <!-- LAYER 1 — My Strengths (starts expanded) -->
+            <section class="mn-layer open" data-layer>
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-sparkles"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-lname">My Strengths</div>
+                  <div class="mn-lmean">What you&rsquo;re genuinely good at, named plainly.</div>
+                </div>
+                <span class="mn-lct">3 entries</span><i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries">
+                <div class="mn-entry">
+                  <div class="mn-eh">You think out loud to find the edges of a problem.</div>
+                  <div class="mn-es">Talking isn&rsquo;t you being unsure. It&rsquo;s how you locate the shape of a thing — by the time you&rsquo;ve said it three ways, you know which version is true.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-entry">
+                  <div class="mn-eh">You catch the detail everyone else walked past.</div>
+                  <div class="mn-es">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — you notice it early, even before you can say why.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 1 more entry</div>
+              </div>
+            </section>
+
+            <!-- LAYER 2 — Some of My Patterns -->
+            <section class="mn-layer" data-layer>
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-refresh"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-lname">Some of My Patterns</div>
+                  <div class="mn-lmean">Loops you repeat — and what they cost.</div>
+                </div>
+                <span class="mn-lct">5 entries</span><i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries">
+                <div class="mn-entry">
+                  <div class="mn-eh">There&rsquo;s a version of you that runs on no margin.</div>
+                  <div class="mn-es">The people closest to you tend to meet the version that&rsquo;s already past empty. The snap was never really about the dishwasher.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 4 more entries</div>
+              </div>
+            </section>
+
+            <!-- LAYER 3 — How I Process Things -->
+            <section class="mn-layer" data-layer>
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-bulb"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-lname">How I Process Things</div>
+                  <div class="mn-lmean">The way your mind actually works through things.</div>
+                </div>
+                <span class="mn-lct">2 entries</span><i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries">
+                <div class="mn-entry">
+                  <div class="mn-eh">You need the whole picture before you&rsquo;ll commit to a piece of it.</div>
+                  <div class="mn-es">Asking you to decide one part in isolation feels backwards. You&rsquo;re not stalling — you&rsquo;re waiting for the shape to resolve.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 1 more entry</div>
+              </div>
+            </section>
+
+            <!-- LAYER 4 — What Helps -->
+            <section class="mn-layer" data-layer>
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-anchor"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-lname">What Helps</div>
+                  <div class="mn-lmean">The conditions and moves that make things easier.</div>
+                </div>
+                <span class="mn-lct">4 entries</span><i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries">
+                <div class="mn-entry">
+                  <div class="mn-eh">A few minutes of nothing before you walk into the house.</div>
+                  <div class="mn-es">Not more time — a seam between the day and the people in it. The margin you protect is the one that protects everyone else.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 3 more entries</div>
+              </div>
+            </section>
+
+            <!-- LAYER 5 — How I Show Up with People (empty) -->
+            <section class="mn-layer empty" data-layer>
+              <div class="mn-lh" data-goto="chat">
+                <span class="mn-lemb"><i class="ti ti-users"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-lname">How I Show Up with People</div>
+                  <div class="mn-lmean">The gap between what you mean and what others see.</div>
+                </div>
+                <span class="mn-estart">Start <i class="ti ti-arrow-right"></i></span>
+              </div>
+            </section>
+
+            <!-- EXPORT — end of the manual section -->
+            <div class="mn-export-wrap">
+              <button class="btn btn-soft navy btn-full"><i class="ti ti-download"></i> Export your manual</button>
+              <p class="mn-export-note">A clean copy you can keep or print</p>
+            </div>
+
+            <div class="home-rule"></div>
+
+            <!-- SHARE — navy filled -->
+            <section class="tile share-navy">
+              <span class="eyebrow e-navy"><i class="ti ti-send"></i>Share how you work</span>
+              <h3 class="t-h3" style="margin-top:13px">Hand it to someone</h3>
+              <p class="t-p">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+              <button class="btn btn-onnavy btn-full"><i class="ti ti-send"></i> Create a shareable version</button>
+            </section>
+
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════ -->
+        <!-- CHAT — opens straight into conversation         -->
+        <!-- ════════════════════════════════════════════ -->
+        <section class="screen" id="screen-chat">
+
+          <!-- FIX 2 — slim back affordance, no Jove title/branding -->
+          <div class="cv-top">
+            <button class="cv-back" data-goto="home" aria-label="Back"><i class="ti ti-chevron-left"></i></button>
+            <span class="cv-context">Exploring a situation</span>
+          </div>
+
+          <div class="cv-scroll">
+            <div class="cv-body">
+              <div class="cv-u"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+
+              <!-- one quiet Jove label on the first message only -->
+              <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+
+              <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a single second to myself all day.</div></div>
+
+              <div class="cv-j"><div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn&rsquo;t really aimed at Sam — it landed on the first quiet moment that had no margin in it.</div></div>
+
+              <!-- checkpoint -->
+              <div class="cv-cp">
+                <div class="cv-cph">
+                  <span class="cv-cpt"><i class="ti ti-notebook"></i>For your manual?</span>
+                  <span class="cv-cptag">&rarr; Some of My Patterns</span>
+                </div>
+                <p class="cv-cptx">There&rsquo;s a version of you that runs on no margin. The people closest to you tend to meet the version that&rsquo;s already past empty.</p>
+                <p class="cv-cpnote">In your words. You can edit it before it&rsquo;s saved.</p>
+                <div class="cv-cpb">
+                  <button class="btn btn-primary">Add to manual</button>
+                  <button class="btn cv-ghost">Not quite</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- input bar sits directly above the persistent nav -->
+          <div class="cv-in">
+            <span class="cv-field">Tell Jove what happened…</span>
+            <button class="cv-send" aria-label="Send"><i class="ti ti-arrow-up"></i></button>
+          </div>
+
+        </section>
+
+      </div><!-- /.stage -->
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- FIX 3 — PERSISTENT LOW-PROFILE NAV (every screen)-->
+      <!-- ════════════════════════════════════════════ -->
+      <nav class="botnav" id="botnav">
+        <span class="nav-i on" data-nav="home" data-goto="home"><i class="ti ti-home"></i>Home</span>
+        <span class="nav-i" data-nav="manual" data-goto="manual"><i class="ti ti-book-2"></i>Manual</span>
+        <span class="nav-i" data-nav="you"><i class="ti ti-user"></i>You</span>
+      </nav>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var screens = {
+        home: document.getElementById('screen-home'),
+        chat: document.getElementById('screen-chat')
+      };
+      var navItems = document.querySelectorAll('#botnav .nav-i');
+
+      function setNav(active){
+        navItems.forEach(function(el){
+          el.classList.toggle('on', el.getAttribute('data-nav') === active);
+        });
+      }
+
+      function show(name){
+        var target = screens[name];
+        if(!target) return;
+        Object.keys(screens).forEach(function(k){ screens[k].classList.remove('active'); });
+        target.classList.add('active');
+        target.scrollTop = 0;
+      }
+
+      // navigate to a screen (home or chat)
+      function go(name){
+        if(name === 'manual'){
+          // Manual is inline on home — focus the manual section, expand everything
+          show('home');
+          setNav('manual');
+          var anchor = document.getElementById('manual-anchor');
+          document.querySelectorAll('#screen-home [data-layer]:not(.empty)').forEach(function(l){
+            l.classList.add('open');
+          });
+          // smooth scroll within the home scroll region
+          requestAnimationFrame(function(){
+            if(anchor) anchor.scrollIntoView({ behavior:'smooth', block:'start' });
+          });
+          return;
+        }
+        show(name);
+        setNav(name === 'home' ? 'home' : 'home'); // chat keeps Home lit (chat is launched from home)
+        if(name === 'home') setNav('home');
+      }
+
+      // wire every [data-goto]
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          go(el.getAttribute('data-goto'));
+        });
+      });
+
+      // "You" tab — inert in the demo, just light it
+      document.querySelector('[data-nav="you"]').addEventListener('click', function(){
+        setNav('you');
+      });
+
+      // accordion: expand/collapse each manual layer in place
+      document.querySelectorAll('#screen-home .js-toggle').forEach(function(head){
+        head.addEventListener('click', function(){
+          head.closest('.mn-layer').classList.toggle('open');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

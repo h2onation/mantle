@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — front door prototype v2 (combined)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    /* fixed height so the persistent nav can pin to the bottom of the frame */
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- the swappable viewport (everything above the persistent nav) ---- */
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .screen.active{display:block;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  /* tidy, near-invisible scrollbar so the cozy surface stays clean */
+  .screen::-webkit-scrollbar{width:0;}
+
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- header ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-ico{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+
+  /* ---- back-style header (per-layer + document read) ---- */
+  .navhdr{display:flex;align-items:center;gap:6px;padding:16px 18px 10px;}
+  .navhdr-back{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--brown);font-size:21px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .navhdr-title{flex:1;text-align:center;}
+  .navhdr-title .nm{font-family:var(--f-display);font-weight:600;font-size:18px;color:var(--ink);letter-spacing:-.3px;font-optical-sizing:auto;line-height:1.1;}
+  .navhdr-title .sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--navy);margin-top:3px;}
+
+  /* ---- slim chat top: just a back affordance + very quiet context line ---- */
+  .chathdr{display:flex;align-items:center;gap:10px;padding:13px 18px 9px;}
+  .chathdr-back{
+    width:34px;height:34px;border-radius:12px;border:none;cursor:pointer;color:var(--brown);font-size:19px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .chathdr-ctx{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  /* ---- greeting ---- */
+  .home{padding:8px 18px 16px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  /* ---- tile base: rounded physical card ---- */
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .t-h3{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;margin:0 0 7px;font-optical-sizing:auto;}
+  .t-p{font-size:13.5px;line-height:1.55;color:var(--mid);margin:0 0 18px;}
+
+  /* ---- tactile buttons ---- */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    display:inline-flex;align-items:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:active{box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-soft{
+    background:linear-gradient(180deg, #FFFDF8 0%, #F4EEE3 100%);
+    color:var(--brown);padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .btn-soft.navy{color:var(--navy);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* ---- hero tile ---- */
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 22px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 18px;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+  .hero-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+  .hero-new{font-size:13.5px;color:var(--brown);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .hero-new i{font-size:15px;}
+
+  /* ---- emblem chip (explore / share) ---- */
+  .t-emblem{
+    width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:22px;margin-bottom:15px;
+    color:var(--brown);
+    background:linear-gradient(160deg,#FFFDF8 0%, #F2E9DB 100%);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- manual tee-up tile (largest) — now framed as an INDEX ---- */
+  .manual{
+    background:
+      radial-gradient(100% 70% at 0% 0%, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0) 52%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.05);
+    padding:24px 20px 18px;
+  }
+  .manual .t-headrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;padding:0 2px;}
+  .manual .t-headrow .t-h3{margin:0;}
+  .count-chip{font-family:var(--f-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:5px 11px;}
+  .manual .sub{font-size:13px;line-height:1.5;color:var(--mid);margin:0 2px 8px;}
+
+  .lrow{
+    display:flex;align-items:center;gap:14px;padding:13px 12px;margin-top:9px;border-radius:18px;cursor:pointer;
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.04);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .lrow:active{transform:translateY(1px);box-shadow:0 1px 3px rgba(54,38,20,0.08), inset 0 0 0 1px rgba(26,23,18,0.05);}
+  .lemblem{
+    width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:var(--navy);
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 2px 5px rgba(33,67,107,0.12), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .lrow.empty .lemblem{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 2px 5px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .lcol{flex:1;min-width:0;}
+  .lname{font-family:var(--f-display);font-weight:500;font-size:15.5px;color:var(--ink);letter-spacing:-.15px;line-height:1.18;font-optical-sizing:auto;}
+  .lmean{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.34;}
+  .lcount{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .lstart{font-size:11px;font-weight:600;color:#FCF6EE;background:linear-gradient(180deg,var(--brown-bright),var(--brown));border-radius:999px;padding:5px 12px;white-space:nowrap;box-shadow:0 2px 6px rgba(110,69,39,0.25), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .lchev{color:var(--faint);font-size:18px;margin-left:2px;}
+
+  /* ---- "Read your manual" affordance: distinct full-width link at the bottom of the index ---- */
+  .read-link{
+    display:flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    margin-top:16px;border-radius:16px;padding:14px 16px;
+    font-family:var(--f-ui);font-weight:600;font-size:14px;color:var(--navy);
+    background:linear-gradient(180deg, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0.025) 100%);
+    box-shadow:var(--inset-hi), inset 0 0 0 1px var(--navy-bd);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .read-link:active{transform:translateY(1px);}
+  .read-link i{font-size:17px;}
+  .read-link .arr{font-size:16px;margin-left:1px;}
+
+  /* ======================================================= */
+  /* PER-LAYER SCREEN — focused reading page                 */
+  /* ======================================================= */
+  .lp-body{padding:2px 18px 26px;}
+
+  /* layer hero header: emblem + name + meaning + count */
+  .lp-head{
+    position:relative;overflow:hidden;border-radius:24px;padding:22px 20px 20px;margin-bottom:18px;
+    background:
+      radial-gradient(110% 80% at 0% 0%, rgba(33,67,107,0.07) 0%, rgba(33,67,107,0) 56%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.05);
+  }
+  .lp-head.warm{
+    background:
+      radial-gradient(110% 80% at 0% 0%, rgba(110,69,39,0.08) 0%, rgba(110,69,39,0) 56%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.06);
+  }
+  .lp-emb{
+    width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:26px;color:var(--navy);margin-bottom:14px;
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 3px 8px rgba(33,67,107,0.14), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.12);
+  }
+  .lp-head.warm .lp-emb{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 3px 8px rgba(110,69,39,0.14), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .lp-name{font-family:var(--f-display);font-weight:500;font-size:26px;letter-spacing:-.5px;line-height:1.1;color:var(--ink);font-optical-sizing:auto;margin:0 0 8px;}
+  .lp-mean{font-family:var(--f-serif);font-style:italic;font-size:15px;line-height:1.5;color:var(--soft);margin:0 0 14px;max-width:90%;}
+  .lp-count{font-family:var(--f-mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;}
+  .lp-head.warm .lp-count{color:var(--brown);background:var(--brown-s);border-color:var(--brown-bd);}
+
+  /* section label above the entries */
+  .lp-section{font-family:var(--f-mono);font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:2px 4px 12px;}
+
+  /* the entry card — the main content */
+  .lp-entry{
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:20px;padding:20px 19px;margin-bottom:14px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.045);
+  }
+  .lp-eh{font-family:var(--f-serif);font-style:italic;font-weight:500;font-size:18.5px;line-height:1.32;color:var(--ink);margin:0 0 9px;}
+  .lp-es{font-family:var(--f-serif);font-size:14.5px;line-height:1.6;color:var(--soft);margin:0;}
+  .lp-em{font-family:var(--f-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);font-weight:500;margin-top:14px;display:inline-flex;align-items:center;gap:6px;}
+  .lp-em i{font-size:11px;}
+
+  /* "1 more entry" reveal affordance */
+  .lp-more{
+    display:flex;align-items:center;gap:9px;width:100%;cursor:pointer;
+    border-radius:18px;padding:15px 18px;margin-bottom:14px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);
+    transition:transform .12s ease;
+  }
+  .lp-more:active{transform:translateY(1px);}
+  .lp-more .txt{font-size:13px;font-weight:600;color:var(--navy);flex:1;text-align:left;}
+  .lp-more i{font-size:17px;color:var(--navy);}
+  .lp-more.spent{display:none;}
+
+  /* empty-layer gentle state */
+  .lp-empty{
+    text-align:center;padding:18px 18px 24px;border-radius:22px;margin-top:2px;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.05);
+  }
+  .lp-empty-line{font-family:var(--f-serif);font-style:italic;font-size:16px;line-height:1.5;color:var(--mid);margin:6px auto 18px;max-width:88%;}
+
+  /* footer action under entries — continue building this layer */
+  .lp-foot{margin-top:6px;}
+
+  /* ======================================================= */
+  /* READ / DOCUMENT SCREEN — the full manual as one read    */
+  /* ======================================================= */
+  .doc-wrap{
+    padding:0 0 4px;
+    background:
+      radial-gradient(100% 30% at 50% 0%, rgba(33,67,107,0.04) 0%, rgba(33,67,107,0) 60%),
+      linear-gradient(180deg, var(--paper-hi) 0%, #FBF7F0 100%);
+  }
+
+  /* title block — the opening of the letter */
+  .doc-title{
+    text-align:center;padding:30px 30px 22px;position:relative;
+  }
+  .doc-kick{
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:2.6px;text-transform:uppercase;
+    color:var(--navy);font-weight:500;margin:0 0 16px;
+  }
+  .doc-h1{
+    font-family:var(--f-display);font-weight:500;font-size:38px;line-height:1.04;letter-spacing:-1px;
+    color:var(--ink);margin:0;font-optical-sizing:auto;
+  }
+  .doc-h1 em{font-style:italic;color:var(--brown);font-weight:500;}
+  .doc-byline{
+    font-family:var(--f-serif);font-style:italic;font-size:15px;color:var(--mid);
+    margin:14px 0 0;line-height:1.5;
+  }
+  .doc-meta{
+    font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;
+    color:var(--faint);font-weight:500;margin:18px 0 0;
+    display:inline-flex;align-items:center;gap:9px;
+  }
+  .doc-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--faint);display:inline-block;}
+
+  /* ornamental rule under the title block */
+  .doc-orn{
+    display:flex;align-items:center;justify-content:center;gap:11px;margin:24px 36px 6px;
+  }
+  .doc-orn .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hair) 50%, rgba(26,23,18,0) 100%);}
+  .doc-orn i{color:var(--brown-bright);opacity:.7;font-size:13px;}
+
+  /* the reading column — generous measure + leading */
+  .doc-col{padding:8px 34px 6px;}
+
+  /* section heading — a layer name as an editorial chapter head */
+  .sec{margin:34px 0 0;}
+  .sec:first-of-type{margin-top:18px;}
+  .sec-num{
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:2.4px;text-transform:uppercase;
+    color:var(--navy);font-weight:500;margin:0 0 9px;display:flex;align-items:center;gap:9px;
+  }
+  .sec-num .rule{flex:0 0 22px;height:1px;background:var(--navy-bd);}
+  .sec-h{
+    font-family:var(--f-display);font-weight:500;font-size:25px;line-height:1.12;letter-spacing:-.5px;
+    color:var(--ink);margin:0 0 4px;font-optical-sizing:auto;
+  }
+  .sec-lede{
+    font-family:var(--f-serif);font-style:italic;font-size:14px;line-height:1.5;color:var(--mid);
+    margin:0 0 17px;
+  }
+
+  /* a passage — long-form serif body, the heart of the read */
+  .pass{
+    font-family:var(--f-serif);font-size:17.5px;line-height:1.62;color:var(--soft);
+    margin:0 0 17px;letter-spacing:.1px;
+  }
+  /* lead-in: first passage of a section gets a refined drop-cap */
+  .pass.lead{color:var(--ink);}
+  .pass.lead::first-letter{
+    font-family:var(--f-display);font-weight:500;font-size:54px;line-height:0.78;
+    float:left;margin:5px 9px 0 0;color:var(--brown);font-optical-sizing:auto;
+  }
+  .pass strong{font-weight:600;color:var(--ink);font-style:normal;}
+
+  /* a pulled fragment — the user's own phrasing, set apart */
+  .pull{
+    font-family:var(--f-display);font-weight:500;font-style:italic;font-size:20px;line-height:1.34;
+    letter-spacing:-.3px;color:var(--brown-deep);
+    margin:22px 4px 22px;padding:0 0 0 18px;
+    border-left:2px solid var(--brown-bd);
+    font-optical-sizing:auto;
+  }
+
+  /* a gentle marginal annotation — where an entry came from */
+  .anno{
+    font-family:var(--f-mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--faint);font-weight:500;margin:-6px 0 20px;
+    display:flex;align-items:center;gap:7px;
+  }
+  .anno i{font-size:11px;color:var(--navy);opacity:.8;}
+
+  /* empty fifth layer — a gentle "not yet written" line */
+  .sec.unwritten .sec-h{color:var(--mid);}
+  .unwritten-note{
+    font-family:var(--f-serif);font-style:italic;font-size:16px;line-height:1.55;color:var(--faint);
+    margin:0 0 16px;
+  }
+  .unwritten-start{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--f-ui);font-weight:600;font-size:13px;color:#FCF6EE;
+    background:linear-gradient(180deg,var(--brown-bright),var(--brown));
+    border-radius:999px;padding:9px 16px;cursor:pointer;
+    box-shadow:0 2px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .unwritten-start i{font-size:14px;}
+
+  /* section divider between chapters */
+  .sec-div{
+    display:flex;align-items:center;justify-content:center;gap:14px;margin:32px 8px 0;
+  }
+  .sec-div .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hairs) 50%, rgba(26,23,18,0) 100%);}
+  .sec-div .pip{width:4px;height:4px;border-radius:50%;background:var(--navy);opacity:.45;}
+
+  /* closing colophon + share/export affordance */
+  .doc-foot{
+    margin:30px 0 0;padding:26px 30px 30px;text-align:center;
+    border-top:1px solid var(--hairs);
+    background:linear-gradient(180deg, rgba(33,67,107,0.02) 0%, rgba(33,67,107,0) 100%);
+  }
+  .foot-orn{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 30px 18px;}
+  .foot-orn .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hair) 50%, rgba(26,23,18,0) 100%);}
+  .foot-orn i{color:var(--brown-bright);opacity:.6;font-size:12px;}
+  .foot-line{
+    font-family:var(--f-serif);font-style:italic;font-size:15px;line-height:1.55;color:var(--mid);
+    margin:0 0 20px;
+  }
+  .foot-btns{display:flex;flex-direction:column;gap:10px;}
+
+  /* ---- bottom nav: PERSISTENT, low-profile glass bar ---- */
+  .botbar{
+    flex-shrink:0;padding:7px 16px 12px;
+    background:linear-gradient(0deg, rgba(246,242,234,0.96) 30%, rgba(246,242,234,0) 100%);
+  }
+  .botnav{
+    display:flex;justify-content:space-around;align-items:center;padding:6px 6px;border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.9) 0%, rgba(246,241,233,0.9) 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:0 1px 2px rgba(54,38,20,0.05), 0 5px 14px -8px rgba(54,38,20,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+    backdrop-filter:blur(8px);
+  }
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--f-ui);font-size:9px;font-weight:600;letter-spacing:.2px;color:var(--faint);cursor:pointer;padding:4px 16px;border-radius:12px;}
+  .nav-i i{font-size:17px;}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F3ECDE 100%);
+    box-shadow:0 1px 4px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- chat input bar — sits directly above the persistent nav ---- */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+
+  /* ======================================================= */
+  /* CHAT — clean paper bubbles, no blue rule                */
+  /* ======================================================= */
+  .cv-body{padding:6px 16px 18px;display:flex;flex-direction:column;gap:13px;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  /* Jove: clean paper bubble — left-aligned, no colored line, no left border */
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* checkpoint card */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  .cv-cpnote{font-size:11.5px;color:var(--faint);margin:11px 0 13px;font-family:var(--f-ui);}
+  .cv-cpb{display:flex;gap:10px;}
+  .cv-cpb .btn{flex:1;justify-content:center;}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — front door prototype v2</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- THE SWAPPABLE VIEWPORT                          -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="viewport">
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN — HOME                                  -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen active" id="screen-home">
+
+        <header class="hdr">
+          <div class="hdr-logo">
+            <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+            <span class="wm">mywalnut</span>
+          </div>
+          <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings"></i></button>
+        </header>
+
+        <div class="home">
+          <h2 class="greet">Good evening, Jeff.</h2>
+          <p class="greet-date">Tuesday · June 15</p>
+
+          <!-- TILE 1 — hero / opener (no status row) -->
+          <section class="tile hero">
+            <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+            <span class="eyebrow e-brown"><i class="ti ti-bookmark"></i>Pick up where you left off</span>
+            <p class="hero-line"><span class="q">&ldquo;</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+            <div class="hero-row">
+              <button class="btn btn-primary" data-goto="chat">Continue this thread <i class="ti ti-arrow-right"></i></button>
+              <span class="hero-new" data-goto="chat"><i class="ti ti-plus"></i>Start fresh</span>
+            </div>
+          </section>
+
+          <!-- TILE 2 — bring a situation -->
+          <section class="tile">
+            <div class="t-emblem"><i class="ti ti-message-2"></i></div>
+            <h3 class="t-h3">Bring a situation</h3>
+            <p class="t-p">A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain. Talk it through and see what&rsquo;s underneath.</p>
+            <button class="btn btn-soft" data-goto="chat">Explore a situation <i class="ti ti-arrow-right"></i></button>
+          </section>
+
+          <!-- TILE 3 — the Manual INDEX (rows drill into per-layer screens; link opens the read) -->
+          <section class="tile manual">
+            <div class="t-headrow">
+              <h3 class="t-h3">Your manual</h3>
+              <span class="count-chip">14 entries</span>
+            </div>
+            <p class="sub">Five layers of how you operate. Open one to explore it — or read the whole thing.</p>
+
+            <div class="lrow" data-goto="layer-strengths">
+              <span class="lemblem"><i class="ti ti-sparkles"></i></span>
+              <div class="lcol"><div class="lname">My Strengths</div><div class="lmean">What you&rsquo;re genuinely good at, named plainly.</div></div>
+              <span class="lcount">3 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow" data-goto="layer-patterns">
+              <span class="lemblem"><i class="ti ti-refresh"></i></span>
+              <div class="lcol"><div class="lname">Some of My Patterns</div><div class="lmean">Loops you repeat — and what they cost.</div></div>
+              <span class="lcount">5 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow" data-goto="layer-process">
+              <span class="lemblem"><i class="ti ti-bulb"></i></span>
+              <div class="lcol"><div class="lname">How I Process Things</div><div class="lmean">The way your mind actually works through things.</div></div>
+              <span class="lcount">2 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow" data-goto="layer-helps">
+              <span class="lemblem"><i class="ti ti-anchor"></i></span>
+              <div class="lcol"><div class="lname">What Helps</div><div class="lmean">The conditions and moves that make things easier.</div></div>
+              <span class="lcount">4 entries</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+            <div class="lrow empty" data-goto="layer-people">
+              <span class="lemblem"><i class="ti ti-users"></i></span>
+              <div class="lcol"><div class="lname">How I Show Up with People</div><div class="lmean">The gap between what you mean and what others see.</div></div>
+              <span class="lstart">Start</span><i class="ti ti-chevron-right lchev"></i>
+            </div>
+
+            <!-- distinct affordance: open the full document read -->
+            <button class="read-link" data-goto="read">
+              <i class="ti ti-book-2"></i> Read your manual <span class="arr">&rarr;</span>
+            </button>
+          </section>
+
+          <!-- TILE 4 — share (navy filled) -->
+          <section class="tile share-navy" style="
+            background:
+              radial-gradient(120% 90% at 88% -20%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%),
+              linear-gradient(168deg, #2A4E7A 0%, #21436B 48%, #173050 100%);
+            border:1px solid rgba(255,255,255,0.10);
+            box-shadow:0 1px 2px rgba(17,40,70,0.35), 0 10px 26px -12px rgba(23,48,80,0.6), inset 0 1px 0 rgba(255,255,255,0.10);">
+            <span class="eyebrow e-navy" style="color:#A9C0DC;position:relative;"><i class="ti ti-send"></i>Share how you work</span>
+            <h3 class="t-h3" style="margin-top:13px;color:#FBF9F4;position:relative;">Hand it to someone</h3>
+            <p class="t-p" style="color:#C7D4E2;position:relative;">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+            <button class="btn btn-full" style="
+              background:linear-gradient(180deg,#FFFDF8 0%, #F1E9DC 100%);color:#173050;
+              padding:13px 18px;font-size:14px;position:relative;
+              box-shadow:0 2px 8px rgba(17,40,70,0.28), inset 0 1px 0 rgba(255,255,255,0.6);">
+              <i class="ti ti-send"></i> Create a shareable version</button>
+          </section>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- PER-LAYER — MY STRENGTHS (built fully)         -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-layer-strengths">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub">Your manual</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <div class="lp-body">
+          <div class="lp-head">
+            <div class="lp-emb"><i class="ti ti-sparkles"></i></div>
+            <h2 class="lp-name">My Strengths</h2>
+            <p class="lp-mean">What you&rsquo;re genuinely good at, named plainly.</p>
+            <span class="lp-count">3 entries</span>
+          </div>
+
+          <p class="lp-section">In your words</p>
+
+          <div class="lp-entry">
+            <div class="lp-eh">You think out loud to find the edges of a problem.</div>
+            <div class="lp-es">Talking isn&rsquo;t you being unsure. It&rsquo;s how you locate the shape of a thing — by the time you&rsquo;ve said it three ways, you know which version is true.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-entry">
+            <div class="lp-eh">You catch the detail everyone else walked past.</div>
+            <div class="lp-es">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — you notice it early, even before you can say why.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <button class="lp-more" id="strengths-more">
+            <span class="txt">1 more entry</span>
+            <i class="ti ti-chevron-down"></i>
+          </button>
+
+          <div class="lp-entry" id="strengths-third" hidden>
+            <div class="lp-eh">You stay steady when other people are losing the thread.</div>
+            <div class="lp-es">When a plan falls apart, you&rsquo;re the one who keeps a flat voice and asks the next useful question. People reach for you in those moments without saying so.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-foot">
+            <button class="btn btn-soft btn-full" data-goto="chat"><i class="ti ti-plus"></i> Keep building this layer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- PER-LAYER — SOME OF MY PATTERNS                -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-layer-patterns">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub">Your manual</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <div class="lp-body">
+          <div class="lp-head">
+            <div class="lp-emb"><i class="ti ti-refresh"></i></div>
+            <h2 class="lp-name">Some of My Patterns</h2>
+            <p class="lp-mean">Loops you repeat — and what they cost.</p>
+            <span class="lp-count">5 entries</span>
+          </div>
+
+          <p class="lp-section">In your words</p>
+
+          <div class="lp-entry">
+            <div class="lp-eh">There&rsquo;s a version of you that runs on no margin.</div>
+            <div class="lp-es">The people closest to you tend to meet the version that&rsquo;s already past empty. The snap isn&rsquo;t aimed at them — it lands on the first quiet moment that has no room left in it.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-entry">
+            <div class="lp-eh">You say yes early, then quietly resent the room you gave away.</div>
+            <div class="lp-es">Agreeing feels easier than the pause. By the time you notice the cost, you&rsquo;re already committed — and the person who asked has no idea anything was spent.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-foot">
+            <button class="btn btn-soft btn-full" data-goto="chat"><i class="ti ti-plus"></i> Keep building this layer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- PER-LAYER — HOW I PROCESS THINGS               -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-layer-process">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub">Your manual</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <div class="lp-body">
+          <div class="lp-head">
+            <div class="lp-emb"><i class="ti ti-bulb"></i></div>
+            <h2 class="lp-name">How I Process Things</h2>
+            <p class="lp-mean">The way your mind actually works through things.</p>
+            <span class="lp-count">2 entries</span>
+          </div>
+
+          <p class="lp-section">In your words</p>
+
+          <div class="lp-entry">
+            <div class="lp-eh">You need the whole shape before you can trust the first step.</div>
+            <div class="lp-es">Diving in mid-problem feels like guessing. Once you can see how the pieces sit together, the order to do them in becomes obvious — and fast.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-entry">
+            <div class="lp-eh">A decision feels unfinished until you&rsquo;ve said it to someone.</div>
+            <div class="lp-es">Thinking it through alone gets you most of the way. Hearing your own words land in another person is the part that tells you it&rsquo;s actually settled.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-foot">
+            <button class="btn btn-soft btn-full" data-goto="chat"><i class="ti ti-plus"></i> Keep building this layer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- PER-LAYER — WHAT HELPS                         -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-layer-helps">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub">Your manual</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <div class="lp-body">
+          <div class="lp-head">
+            <div class="lp-emb"><i class="ti ti-anchor"></i></div>
+            <h2 class="lp-name">What Helps</h2>
+            <p class="lp-mean">The conditions and moves that make things easier.</p>
+            <span class="lp-count">4 entries</span>
+          </div>
+
+          <p class="lp-section">In your words</p>
+
+          <div class="lp-entry">
+            <div class="lp-eh">A few minutes of nothing before people, not after.</div>
+            <div class="lp-es">The quiet you take on the way home is worth more than the quiet you take once you&rsquo;re already short. Protected on the front end, it changes who walks through the door.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-entry">
+            <div class="lp-eh">Naming the cost out loud before you say yes.</div>
+            <div class="lp-es">When you let yourself say &ldquo;that would mean giving up my evening,&rdquo; the answer gets honest. The pause isn&rsquo;t rude — it&rsquo;s the part that keeps the yes real.</div>
+            <div class="lp-em"><i class="ti ti-message-2"></i>Added from a conversation</div>
+          </div>
+
+          <div class="lp-foot">
+            <button class="btn btn-soft btn-full" data-goto="chat"><i class="ti ti-plus"></i> Keep building this layer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- PER-LAYER — HOW I SHOW UP WITH PEOPLE (empty)  -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-layer-people">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub">Your manual</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <div class="lp-body">
+          <div class="lp-head warm">
+            <div class="lp-emb"><i class="ti ti-users"></i></div>
+            <h2 class="lp-name">How I Show Up with People</h2>
+            <p class="lp-mean">The gap between what you mean and what others see.</p>
+            <span class="lp-count">Nothing here yet</span>
+          </div>
+
+          <div class="lp-empty">
+            <p class="lp-empty-line">This layer is still blank. It fills in when you talk through a moment with someone — and Jove notices the gap between what you meant and what landed.</p>
+            <button class="btn btn-primary btn-full" data-goto="chat">Start this layer <i class="ti ti-arrow-right"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- READ / DOCUMENT — the full manual as one read  -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-read">
+
+        <header class="navhdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left"></i></button>
+          <div class="navhdr-title"><div class="sub" style="color:var(--faint)">A document about how you operate</div></div>
+          <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+        </header>
+
+        <article class="doc-wrap">
+
+          <!-- TITLE BLOCK -->
+          <div class="doc-title">
+            <p class="doc-kick">The user manual for</p>
+            <h1 class="doc-h1">Jeff,<br><em>in his own words</em></h1>
+            <p class="doc-byline">How I operate — what I&rsquo;m good at, where I loop, and what helps. Written a piece at a time, only when I agreed it was true.</p>
+            <p class="doc-meta">Built with Jove <span class="dot"></span> 14 entries <span class="dot"></span> Five layers</p>
+          </div>
+
+          <div class="doc-orn"><span class="ln"></span><i class="ti ti-asterisk"></i><span class="ln"></span></div>
+
+          <div class="doc-col">
+
+            <!-- SECTION I — My Strengths -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer One</p>
+              <h2 class="sec-h">My Strengths</h2>
+              <p class="sec-lede">What I&rsquo;m genuinely good at, named plainly.</p>
+
+              <p class="pass lead">There&rsquo;s a thing I do where I think out loud to find the edges of a problem. Talking isn&rsquo;t me being unsure. It&rsquo;s how I locate the shape of a thing — by the time I&rsquo;ve said it three ways, I know which version is true.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · April</p>
+
+              <p class="pass">I also catch the detail everyone else walked past. The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — I notice it early, often before I can say why.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · April</p>
+
+              <p class="pull">When something matters, I&rsquo;ll stay with it long after other people have called it good enough.</p>
+              <p class="pass">That stubbornness reads as intensity from the outside. From the inside it&rsquo;s just that I can feel when a thing isn&rsquo;t finished, and I&rsquo;d rather sit in the discomfort than hand over something half-true.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · May</p>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION II — Some of My Patterns -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Two</p>
+              <h2 class="sec-h">Some of My Patterns</h2>
+              <p class="sec-lede">Loops I repeat — and what each one quietly costs.</p>
+
+              <p class="pass lead">There&rsquo;s a version of me that runs on no margin. I&rsquo;ll pour the whole day into the work and leave nothing in reserve — so the people closest to me tend to meet the version that&rsquo;s already past empty, not the one I&rsquo;d actually choose to give them.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from the dishwasher conversation</p>
+
+              <p class="pass">When I feel cornered, I get precise instead of soft. The sentences get shorter and more exact, and to the other person it can land as cold — even when what I&rsquo;m really doing is trying not to lose the thread.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · May</p>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION III — How I Process Things -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Three</p>
+              <h2 class="sec-h">How I Process Things</h2>
+              <p class="sec-lede">The way my mind actually moves through a thing.</p>
+
+              <p class="pass lead">I need the long way round before I can take the short one. A decision that looks impulsive from the outside has usually been turning over in the back of my mind for days — I just don&rsquo;t say it out loud until the shape has settled.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · May</p>
+
+              <p class="pass">Once something is named clearly, I move fast on it. The slow part is never the doing. It&rsquo;s the wait for the words to land in a way I trust.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · June</p>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION IV — What Helps -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Four</p>
+              <h2 class="sec-h">What Helps</h2>
+              <p class="sec-lede">The conditions and small moves that make things easier.</p>
+
+              <p class="pass lead">A little margin before the people part of the day changes everything. Ten quiet minutes between the last thing and the first person, and I arrive as myself instead of as the residue of the work.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from the dishwasher conversation</p>
+
+              <p class="pull">Tell me the real thing directly. I can take it — what I can&rsquo;t do is guess.</p>
+              <p class="pass">Indirectness reads to me as a puzzle I&rsquo;m failing, and I&rsquo;ll spend energy decoding tone that I could have spent on the thing itself. Plain and early beats gentle and late, every time.</p>
+              <p class="anno"><i class="ti ti-message-circle"></i>Added from a conversation · June</p>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION V — How I Show Up with People (empty / unwritten) -->
+            <section class="sec unwritten">
+              <p class="sec-num"><span class="rule"></span>Layer Five</p>
+              <h2 class="sec-h">How I Show Up with People</h2>
+              <p class="sec-lede">The gap between what I mean and what others see.</p>
+
+              <p class="unwritten-note">This chapter isn&rsquo;t written yet. It&rsquo;s the one about the distance between my intent and how I land — the part that&rsquo;s hardest to see from the inside, and usually worth the most once it&rsquo;s on the page.</p>
+              <span class="unwritten-start" data-goto="chat">Begin this layer with Jove <i class="ti ti-arrow-right"></i></span>
+            </section>
+
+          </div>
+
+          <!-- CLOSING / SHARE -->
+          <footer class="doc-foot">
+            <div class="foot-orn"><span class="ln"></span><i class="ti ti-asterisk"></i><span class="ln"></span></div>
+            <p class="foot-line">Four chapters written, one still open. This is the version of you that you&rsquo;d actually want someone to read.</p>
+            <div class="foot-btns">
+              <button class="btn btn-primary btn-full"><i class="ti ti-send"></i> Share this version</button>
+              <button class="btn btn-soft navy btn-full"><i class="ti ti-download"></i> Export as a document</button>
+            </div>
+          </footer>
+
+        </article>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN — CHAT (slim top, clean Jove bubbles)   -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-chat">
+
+        <header class="chathdr">
+          <button class="chathdr-back" data-goto="home" aria-label="Back"><i class="ti ti-chevron-left"></i></button>
+          <span class="chathdr-ctx">Exploring a situation</span>
+        </header>
+
+        <div class="cv-body">
+          <div class="cv-u"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+
+          <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+
+          <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a single second to myself all day.</div></div>
+
+          <div class="cv-j"><div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn&rsquo;t really aimed at Sam — it landed on the first quiet moment that had no margin in it.</div></div>
+
+          <!-- checkpoint -->
+          <div class="cv-cp">
+            <div class="cv-cph">
+              <span class="cv-cpt"><i class="ti ti-notebook"></i>For your manual?</span>
+              <span class="cv-cptag">&rarr; Some of My Patterns</span>
+            </div>
+            <p class="cv-cptx">There&rsquo;s a version of you that runs on no margin. The people closest to you tend to meet the version that&rsquo;s already past empty.</p>
+            <p class="cv-cpnote">In your words. You can edit it before it&rsquo;s saved.</p>
+            <div class="cv-cpb">
+              <button class="btn btn-primary" data-goto="layer-patterns">Add to manual</button>
+              <button class="btn cv-ghost">Not quite</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cv-in">
+          <span class="cv-field">Tell Jove what happened…</span>
+          <button class="cv-send" aria-label="Send"><i class="ti ti-arrow-up"></i></button>
+        </div>
+      </section>
+
+      </div><!-- /.viewport -->
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- PERSISTENT LOW-PROFILE NAV (every screen)       -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="botbar">
+        <nav class="botnav">
+          <span class="nav-i on" data-nav="home" data-goto="home"><i class="ti ti-home"></i>Home</span>
+          <span class="nav-i" data-nav="manual" data-goto="read"><i class="ti ti-book-2"></i>Manual</span>
+          <span class="nav-i" data-nav="chat" data-goto="chat"><i class="ti ti-message-2"></i>Talk</span>
+          <span class="nav-i" data-nav="you"><i class="ti ti-user"></i>You</span>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var ids = ['home','read','chat',
+                 'layer-strengths','layer-patterns','layer-process','layer-helps','layer-people'];
+      var screens = {};
+      ids.forEach(function(id){ screens[id] = document.getElementById('screen-' + id); });
+
+      // which nav tab lights up for a given screen — every Manual surface (read + sections) lights "manual"
+      var navFor = {
+        home:'home',
+        read:'manual',
+        'layer-strengths':'manual', 'layer-patterns':'manual',
+        'layer-process':'manual', 'layer-helps':'manual', 'layer-people':'manual',
+        chat:'chat'
+      };
+
+      function go(name){
+        var target = screens[name];
+        if(!target) return;
+        ids.forEach(function(id){ screens[id].classList.remove('active'); });
+        target.classList.add('active');
+        target.scrollTop = 0;
+
+        // reflect current screen in the persistent nav
+        var active = navFor[name] || null;
+        document.querySelectorAll('.nav-i').forEach(function(el){
+          el.classList.toggle('on', el.getAttribute('data-nav') === active);
+        });
+      }
+
+      // wire every [data-goto] element
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          go(el.getAttribute('data-goto'));
+        });
+      });
+
+      // reveal the held-back "1 more entry" on the Strengths layer
+      var moreBtn = document.getElementById('strengths-more');
+      if(moreBtn){
+        moreBtn.addEventListener('click', function(){
+          var third = document.getElementById('strengths-third');
+          if(third) third.hidden = false;
+          moreBtn.classList.add('spent');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

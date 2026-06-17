@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — re-engagement &amp; notifications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- shared focus-visible ring for keyboard users ---- */
+  :focus{outline:none;}
+  button:focus-visible,
+  .nav-i:focus-visible,
+  .toggle:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+  .page-intro{max-width:560px;margin:18px auto 0;font-family:var(--f-serif);font-size:15px;line-height:1.6;color:var(--mid);text-align:center;}
+
+  /* ---- the row of three phones ---- */
+  .stage{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:40px;margin-top:40px;}
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;}
+  .frame-label{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;max-width:404px;}
+  .frame-num{font-family:var(--f-mono);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);font-weight:500;}
+  .frame-title{font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .frame-sub{font-size:12.5px;line-height:1.5;color:var(--faint);max-width:34ch;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ======================================================= */
+  /* SCREEN 1 — PERMISSION PRIMER                            */
+  /* a normal-flow faux viewport (NOT position:fixed) so the */
+  /* dim + sheet composite stays inside the device frame     */
+  /* ======================================================= */
+  .vp{position:relative;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* the dimmed app behind the sheet */
+  .behind{position:absolute;inset:0;overflow:hidden;}
+  .scrim{position:absolute;inset:0;background:rgba(26,23,18,0.42);backdrop-filter:blur(1.5px);z-index:1;}
+
+  /* unified app header — consistent walnut logo */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-spacer{flex:1;}
+  .hdr-ico{
+    width:44px;height:44px;border-radius:14px;border:none;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+
+  .home{padding:8px 18px 16px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);}
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 22px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 0;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+
+  /* a freshly-saved confirmation card behind the sheet — "first value moment" */
+  .saved{
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:22px;padding:18px 20px;position:relative;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .saved-h{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;margin-bottom:11px;}
+  .saved-h i{font-size:13px;}
+  .saved-tx{font-family:var(--f-serif);font-size:16px;line-height:1.5;color:var(--ink);margin:0;}
+
+  /* ---- the bottom sheet, risen over the dim ---- */
+  .sheet-zone{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;}
+  .sheet{
+    pointer-events:auto;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border-top-left-radius:30px;border-top-right-radius:30px;
+    border:1px solid rgba(255,255,255,0.6);border-bottom:none;
+    padding:12px 24px 26px;position:relative;overflow:hidden;
+    box-shadow:0 -2px 10px rgba(54,38,20,0.08), 0 -18px 50px rgba(54,38,20,0.22), inset 0 1.5px 0 rgba(255,255,255,0.8);
+    animation:sheet-rise .42s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes sheet-rise{from{transform:translateY(40px);opacity:.4;}to{transform:none;opacity:1;}}
+  .sheet-grab{width:42px;height:5px;border-radius:3px;background:rgba(26,23,18,0.12);margin:0 auto 18px;}
+  .sheet-mark{position:absolute;right:-22px;top:-26px;width:120px;height:120px;opacity:.07;pointer-events:none;}
+  .sheet-eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--navy);font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .sheet-eyebrow i{font-size:12px;}
+  .sheet-title{font-family:var(--f-display);font-weight:500;font-size:24px;line-height:1.16;letter-spacing:-.4px;color:var(--ink);margin:13px 0 0;font-optical-sizing:auto;max-width:18ch;position:relative;}
+  .sheet-body{font-family:var(--f-serif);font-size:15.5px;line-height:1.6;color:var(--soft);margin:14px 0 0;position:relative;}
+  .sheet-actions{display:flex;flex-direction:column;gap:11px;margin-top:22px;position:relative;}
+
+  .btn{
+    border:none;cursor:default;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-text{
+    background:transparent;color:var(--mid);padding:11px 18px;font-size:14px;font-weight:600;
+    min-height:44px;
+  }
+  .sheet-foot{font-family:var(--f-ui);font-size:11.5px;line-height:1.5;color:var(--faint);text-align:center;margin:14px 0 0;display:flex;align-items:center;justify-content:center;gap:6px;position:relative;}
+  .sheet-foot i{font-size:13px;color:var(--navy);opacity:.7;}
+
+  /* ======================================================= */
+  /* SCREEN 2 — LOCK SCREEN with notification banners        */
+  /* ======================================================= */
+  .lock{
+    flex:1;min-height:0;position:relative;display:flex;flex-direction:column;overflow:hidden;
+    background:
+      radial-gradient(120% 70% at 50% 4%, rgba(58,74,98,0.55) 0%, rgba(58,74,98,0) 55%),
+      linear-gradient(180deg, #2C3645 0%, #232C39 48%, #1B222C 100%);
+  }
+  .lock-top{text-align:center;color:#EAE6DD;padding:54px 0 0;flex-shrink:0;}
+  .lock-date{font-family:var(--f-ui);font-size:14px;font-weight:600;letter-spacing:.4px;color:rgba(234,230,221,0.78);}
+  .lock-time{font-family:var(--f-display);font-weight:400;font-size:68px;line-height:1;letter-spacing:-1px;margin-top:2px;color:#F4F1EA;font-optical-sizing:auto;}
+  .lock-stack{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:11px;padding:0 13px 26px;}
+  .lock-context{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:rgba(234,230,221,0.5);text-align:center;margin-bottom:2px;}
+
+  /* a single iOS-style banner */
+  .notif{
+    display:flex;gap:12px;align-items:flex-start;
+    background:rgba(247,244,238,0.86);
+    backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid rgba(255,255,255,0.4);
+    border-radius:20px;padding:13px 14px;
+    box-shadow:0 1px 2px rgba(10,16,24,0.18), 0 12px 28px rgba(10,16,24,0.28);
+    animation:notif-in .5s cubic-bezier(.22,.61,.36,1) both;
+  }
+  .notif.second{animation-delay:.14s;}
+  @keyframes notif-in{from{transform:translateY(10px) scale(.985);opacity:0;}to{transform:none;opacity:1;}}
+  .notif-icon{
+    width:40px;height:40px;border-radius:11px;flex-shrink:0;overflow:hidden;
+    background:linear-gradient(160deg,#FBF6EC 0%, #F3E9D7 100%);
+    box-shadow:inset 0 0 0 1px rgba(110,69,39,0.14), 0 1px 2px rgba(54,38,20,0.12);
+    display:grid;place-items:center;
+  }
+  .notif-icon img{width:40px;height:40px;display:block;}
+  .notif-body{flex:1;min-width:0;}
+  .notif-meta{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+  .notif-app{font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--brown);}
+  .notif-dot{width:2.5px;height:2.5px;border-radius:50%;background:var(--faint);}
+  .notif-time{font-family:var(--f-mono);font-size:10px;letter-spacing:.4px;color:var(--faint);margin-left:auto;}
+  .notif-tx{font-family:var(--f-serif);font-size:14.5px;line-height:1.42;color:var(--ink);margin:0;}
+
+  /* ======================================================= */
+  /* SCREEN 3 — NOTIFICATIONS CONTROL (in You)               */
+  /* ======================================================= */
+  .you{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;}
+  .you::-webkit-scrollbar{width:0;}
+  .you-body{padding:6px 18px 22px;}
+  .set-h{font-family:var(--f-mono);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:16px 4px 12px;}
+  .set-group{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);border-radius:22px;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .set-row{display:flex;align-items:center;gap:14px;padding:16px 18px;min-height:60px;}
+  .set-row + .set-row{border-top:1px solid var(--hairs);}
+  .set-icon{
+    width:36px;height:36px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;font-size:18px;color:var(--navy);
+    background:rgba(33,67,107,0.07);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .set-icon.brown{color:var(--brown);background:rgba(110,69,39,0.07);box-shadow:inset 0 0 0 1px rgba(110,69,39,0.12);}
+  .set-col{flex:1;min-width:0;}
+  .set-name{font-family:var(--f-ui);font-weight:600;font-size:14.5px;color:var(--ink);letter-spacing:-.1px;}
+  .set-sub{font-size:11.5px;line-height:1.45;color:var(--faint);margin-top:4px;}
+  .set-val{font-family:var(--f-serif);font-size:14px;color:var(--mid);white-space:nowrap;flex-shrink:0;}
+
+  /* on/off toggle — brown when on (the "you" color) */
+  .toggle{
+    flex-shrink:0;width:50px;height:30px;border-radius:999px;border:none;position:relative;cursor:default;
+    background:linear-gradient(180deg, var(--brown-bright), var(--brown));
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.28), 0 1px 2px rgba(110,69,39,0.2);
+    transition:background .18s ease;
+  }
+  .toggle .knob{
+    position:absolute;top:3px;left:23px;width:24px;height:24px;border-radius:50%;
+    background:linear-gradient(180deg,#FFFFFF 0%, #F6F0E6 100%);
+    box-shadow:0 1px 3px rgba(54,38,20,0.3), inset 0 1px 0 rgba(255,255,255,0.8);
+    transition:left .18s cubic-bezier(.22,.61,.36,1);
+  }
+  .toggle.off{background:linear-gradient(180deg,#D9D2C5,#CcC4B5);}
+  .toggle.off .knob{left:3px;}
+
+  /* read-only trigger chips */
+  .trigger-row{flex-direction:column;align-items:stretch;gap:0;}
+  .trigger-top{display:flex;align-items:center;gap:14px;width:100%;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0 0 50px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--f-mono);font-size:10px;letter-spacing:.6px;text-transform:uppercase;font-weight:500;color:var(--navy);
+    background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:6px 12px;
+  }
+  .chip i{font-size:12px;opacity:.8;}
+
+  .reassure{
+    margin:16px 4px 0;font-family:var(--f-serif);font-size:13px;line-height:1.55;color:var(--faint);
+    display:flex;align-items:flex-start;gap:9px;
+  }
+  .reassure i{font-size:15px;color:var(--navy);opacity:.65;flex-shrink:0;margin-top:1px;}
+
+  /* ---- bottom nav: PERSISTENT, slim low-profile glass strip ---- */
+  .botbar{
+    flex-shrink:0;padding:4px 12px 7px;
+    background:linear-gradient(0deg, rgba(246,242,234,0.96) 40%, rgba(246,242,234,0) 100%);
+  }
+  .botnav{
+    display:flex;justify-content:space-around;align-items:center;padding:3px 5px;border-radius:15px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.9) 0%, rgba(246,241,233,0.9) 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:0 1px 2px rgba(54,38,20,0.05), 0 5px 14px -8px rgba(54,38,20,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+    backdrop-filter:blur(8px);
+  }
+  .nav-i{
+    display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;
+    font-family:var(--f-ui);font-size:11px;font-weight:600;letter-spacing:.1px;color:var(--faint);
+    cursor:default;padding:7px 12px;min-height:38px;min-width:60px;border-radius:11px;border:none;background:transparent;
+  }
+  .nav-i i{font-size:16px;}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F3ECDE 100%);
+    box-shadow:0 1px 4px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* a slim "You" header for screen 3 */
+  .you-head{padding:8px 18px 0;}
+  .you-greet{font-family:var(--f-display);font-weight:500;font-size:26px;letter-spacing:-.5px;margin:8px 3px 4px;color:var(--ink);font-optical-sizing:auto;}
+  .you-kick{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 6px;}
+
+  /* ---- honor reduced-motion across the whole prototype ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
+
+  @media (max-width:520px){
+    .lock-time{font-size:58px;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — re-engagement &amp; notifications</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+    <p class="page-intro">Nudges are asked for after the first real value moment, explained before the OS dialog, and kept rare — specific cues tied to your manual, never streaks or open-rate nags.</p>
+  </div>
+
+  <div class="stage">
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- SCREEN 1 — PERMISSION PRIMER (after first entry) -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="frame-num">Screen 1</span>
+        <span class="frame-title">Permission primer (after first entry)</span>
+        <span class="frame-sub">Fires only after the first confirmed manual entry — the why comes before the OS dialog.</span>
+      </div>
+
+      <div class="phone">
+        <div class="device">
+
+          <!-- normal-flow faux viewport: dim + sheet composite (NOT position:fixed) -->
+          <div class="vp">
+
+            <!-- the dimmed app behind -->
+            <div class="behind" aria-hidden="true">
+              <header class="apphdr">
+                <div class="hdr-logo">
+                  <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt=""></span>
+                  <span class="wm">mywalnut</span>
+                </div>
+                <span class="hdr-spacer"></span>
+                <button class="hdr-ico" tabindex="-1"><i class="ti ti-settings"></i></button>
+              </header>
+              <main class="home">
+                <h2 class="greet">Good evening, Jeff.</h2>
+                <p class="greet-date">Tuesday · June 15</p>
+
+                <section class="saved">
+                  <span class="saved-h"><i class="ti ti-circle-check"></i>Saved to your manual</span>
+                  <p class="saved-tx">There&rsquo;s a version of you that runs on no margin. The people closest to you tend to meet the one that&rsquo;s already past empty.</p>
+                </section>
+
+                <section class="tile hero" style="margin-top:16px;">
+                  <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="">
+                  <span class="eyebrow e-brown"><i class="ti ti-bookmark"></i>Your first entry</span>
+                  <p class="hero-line"><span class="q">&ldquo;</span>That&rsquo;s the first real thing in your manual. There&rsquo;s more underneath it.</p>
+                </section>
+              </main>
+            </div>
+
+            <div class="scrim" aria-hidden="true"></div>
+
+            <!-- the sheet, risen over the dim -->
+            <div class="sheet-zone">
+              <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="primer-title">
+                <div class="sheet-grab" aria-hidden="true"></div>
+                <img class="sheet-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+                <span class="sheet-eyebrow"><i class="ti ti-bell"></i>Stay in the loop</span>
+                <h2 class="sheet-title" id="primer-title">Want a nudge when it&rsquo;s worth coming back?</h2>
+                <p class="sheet-body">Jove remembers the threads you leave open, and only reaches out when there&rsquo;s a real reason — a conversation worth finishing, a pattern that connects. Never to nag, never daily.</p>
+                <div class="sheet-actions">
+                  <button class="btn btn-primary"><i class="ti ti-bell"></i> Turn on nudges</button>
+                  <button class="btn btn-text">Not now</button>
+                </div>
+                <p class="sheet-foot"><i class="ti ti-settings"></i> Change this any time in You &rarr; Notifications.</p>
+              </div>
+            </div>
+
+          </div><!-- /.vp -->
+
+          <!-- persistent nav (dimmed behind sheet) -->
+          <div class="botbar" aria-hidden="true">
+            <nav class="botnav">
+              <button class="nav-i on" tabindex="-1"><i class="ti ti-home"></i>Home</button>
+              <button class="nav-i" tabindex="-1"><i class="ti ti-book-2"></i>Manual</button>
+              <button class="nav-i" tabindex="-1"><i class="ti ti-message-2"></i>Talk</button>
+              <button class="nav-i" tabindex="-1"><i class="ti ti-user"></i>You</button>
+            </nav>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- SCREEN 2 — WHAT A NUDGE LOOKS LIKE             -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="frame-num">Screen 2</span>
+        <span class="frame-title">What a nudge looks like</span>
+        <span class="frame-sub">Specific and human — tied to a thread or a pattern, never &ldquo;you haven&rsquo;t opened the app.&rdquo;</span>
+      </div>
+
+      <div class="phone">
+        <div class="device">
+          <div class="lock">
+            <div class="lock-top">
+              <p class="lock-date">Thursday, June 17</p>
+              <p class="lock-time">9:24</p>
+            </div>
+            <div class="lock-stack">
+              <p class="lock-context">Notification Center</p>
+
+              <div class="notif">
+                <span class="notif-icon"><img src="walnut-icon/icon-standalone.svg" alt="mywalnut"></span>
+                <div class="notif-body">
+                  <div class="notif-meta">
+                    <span class="notif-app">mywalnut</span>
+                    <span class="notif-dot" aria-hidden="true"></span>
+                    <span class="notif-time">now</span>
+                  </div>
+                  <p class="notif-tx">You left a thread open — the dishwasher moment. Want to pick it back up?</p>
+                </div>
+              </div>
+
+              <div class="notif second">
+                <span class="notif-icon"><img src="walnut-icon/icon-standalone.svg" alt="mywalnut"></span>
+                <div class="notif-body">
+                  <div class="notif-meta">
+                    <span class="notif-app">mywalnut</span>
+                    <span class="notif-dot" aria-hidden="true"></span>
+                    <span class="notif-time">Tue</span>
+                  </div>
+                  <p class="notif-tx">Something you named today connects to a pattern in your manual.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- SCREEN 3 — NOTIFICATIONS CONTROL (in You)      -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="frame-num">Screen 3</span>
+        <span class="frame-title">Notifications control (in You)</span>
+        <span class="frame-sub">Light and reassuring — what triggers a nudge is visible, and quiet hours are respected.</span>
+      </div>
+
+      <div class="phone">
+        <div class="device">
+
+          <div class="you">
+            <header class="apphdr">
+              <div class="hdr-logo">
+                <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+                <span class="wm">mywalnut</span>
+              </div>
+              <span class="hdr-spacer"></span>
+            </header>
+
+            <div class="you-head">
+              <p class="you-kick">You</p>
+              <h2 class="you-greet">Settings</h2>
+            </div>
+
+            <div class="you-body">
+              <p class="set-h">Notifications</p>
+
+              <div class="set-group">
+                <!-- the master nudge toggle, ON -->
+                <div class="set-row">
+                  <span class="set-icon brown"><i class="ti ti-bell"></i></span>
+                  <div class="set-col">
+                    <div class="set-name">Nudges from Jove</div>
+                    <div class="set-sub">At most a couple times a week, only when there&rsquo;s a real reason.</div>
+                  </div>
+                  <button class="toggle" role="switch" aria-checked="true" aria-label="Nudges from Jove, on">
+                    <span class="knob" aria-hidden="true"></span>
+                  </button>
+                </div>
+
+                <!-- quiet hours -->
+                <div class="set-row">
+                  <span class="set-icon"><i class="ti ti-moon"></i></span>
+                  <div class="set-col">
+                    <div class="set-name">Quiet hours</div>
+                  </div>
+                  <span class="set-val">10pm – 8am</span>
+                </div>
+
+                <!-- what triggers a nudge — read-only chips -->
+                <div class="set-row trigger-row">
+                  <div class="trigger-top">
+                    <span class="set-icon"><i class="ti ti-sparkles"></i></span>
+                    <div class="set-col">
+                      <div class="set-name">What triggers a nudge</div>
+                    </div>
+                  </div>
+                  <div class="chips" role="list">
+                    <span class="chip" role="listitem"><i class="ti ti-bookmark"></i>Unfinished threads</span>
+                    <span class="chip" role="listitem"><i class="ti ti-affiliate"></i>New pattern connections</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="reassure"><i class="ti ti-shield-check"></i> Fewer, better. Jove would rather stay quiet than become noise — and you can turn this off any time.</p>
+            </div>
+          </div>
+
+          <!-- persistent nav, You active -->
+          <div class="botbar">
+            <nav class="botnav" aria-label="Primary">
+              <button class="nav-i"><i class="ti ti-home"></i>Home</button>
+              <button class="nav-i"><i class="ti ti-book-2"></i>Manual</button>
+              <button class="nav-i"><i class="ti ti-message-2"></i>Talk</button>
+              <button class="nav-i on" aria-current="page"><i class="ti ti-user"></i>You</button>
+            </nav>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

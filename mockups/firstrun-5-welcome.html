@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — first run · the warm welcome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- shared focus-visible ring for keyboard users ---- */
+  :focus{outline:none;}
+  button:focus-visible,
+  [data-goto]:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:3px;
+    border-radius:16px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- the stage: two frames side by side on the neutral ground ---- */
+  .stage{display:flex;flex-wrap:wrap;gap:46px 52px;justify-content:center;align-items:flex-start;}
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .frame-label{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);font-weight:500;display:inline-flex;align-items:center;gap:8px;}
+  .frame-label .pip{width:5px;height:5px;border-radius:50%;background:var(--brown-bright);opacity:.6;}
+  .frame-label.secondary .pip{background:var(--navy);}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .device.secondary{transform:scale(0.9);transform-origin:top center;}
+
+  /* the welcome screen is one calm column — no nav, no tabs, no chrome to parse */
+  .welcome{
+    flex:1;min-height:0;display:flex;flex-direction:column;
+    padding:0;position:relative;overflow:hidden;
+  }
+  /* a soft warm aura at the top, like daylight on paper */
+  .welcome::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(115% 55% at 50% -12%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 58%),
+      radial-gradient(90% 40% at 50% 112%, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0) 60%);
+  }
+
+  /* the top: just the mark, breathing, centered — a held hand, not a logo bar */
+  .w-top{display:flex;flex-direction:column;align-items:center;padding:46px 30px 0;position:relative;}
+  .w-mark{
+    width:62px;height:62px;border-radius:20px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-2), var(--inset-hi);
+    animation:rise .9s cubic-bezier(.22,.61,.36,1) both;
+  }
+  .w-mark img{width:42px;height:42px;display:block;}
+  .w-from{
+    font-family:var(--f-mono);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--faint);font-weight:500;
+    margin:18px 0 0;display:inline-flex;align-items:center;gap:8px;
+    animation:rise .9s cubic-bezier(.22,.61,.36,1) .08s both;
+  }
+  .w-from .ln{width:22px;height:1px;background:var(--hair);}
+
+  /* the letter — the heart of the screen, in Jove's serif voice */
+  .letter{
+    flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:26px 32px 14px;position:relative;
+    animation:rise .9s cubic-bezier(.22,.61,.36,1) .16s both;
+  }
+  .letter::-webkit-scrollbar{width:0;}
+
+  .greet{
+    font-family:var(--f-display);font-weight:500;font-size:30px;line-height:1.12;letter-spacing:-.6px;
+    color:var(--ink);margin:0 0 20px;font-optical-sizing:auto;text-align:center;
+  }
+  .greet em{font-style:italic;color:var(--brown);font-weight:500;}
+
+  .note{
+    font-family:var(--f-serif);font-size:18px;line-height:1.62;color:var(--soft);
+    margin:0 0 16px;letter-spacing:.1px;
+  }
+  .note:first-of-type::first-letter{
+    font-family:var(--f-display);font-weight:500;font-size:50px;line-height:0.82;float:left;
+    margin:7px 11px 0 0;color:var(--brown);font-optical-sizing:auto;
+  }
+  .note strong{font-weight:600;color:var(--ink);font-style:normal;}
+  /* the recognition line — the magic-moment sentence, set apart and warm */
+  .note.lift{
+    font-family:var(--f-display);font-style:italic;font-weight:500;font-size:19.5px;line-height:1.42;
+    letter-spacing:-.2px;color:var(--brown-deep);
+    margin:22px 2px 22px;padding:2px 0 2px 18px;border-left:2px solid var(--brown-bd);
+    font-optical-sizing:auto;
+  }
+
+  /* the four small reassurances — quiet, not a feature grid */
+  .promises{
+    list-style:none;margin:6px 0 4px;padding:18px 18px 16px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.7) 0%, rgba(250,243,232,0.55) 100%);
+    border:1px solid rgba(255,255,255,0.6);border-radius:20px;
+    box-shadow:var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.05);
+  }
+  .promises li{
+    display:flex;align-items:center;gap:12px;
+    font-family:var(--f-serif);font-size:15px;line-height:1.4;color:var(--soft);
+    padding:8px 4px;
+  }
+  .promises li + li{border-top:1px solid var(--hairs);}
+  .promises .pi{
+    width:30px;height:30px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;
+    color:var(--brown);font-size:16px;
+    background:rgba(110,69,39,0.07);
+    box-shadow:inset 0 0 0 1px rgba(110,69,39,0.10);
+  }
+  .promises .pi.navy{color:var(--navy);background:rgba(33,67,107,0.06);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.10);}
+
+  .sign{
+    font-family:var(--f-serif);font-size:16px;line-height:1.5;color:var(--mid);
+    margin:22px 0 4px;
+  }
+  .sign .name{
+    display:block;font-family:var(--f-display);font-style:italic;font-weight:500;font-size:21px;
+    color:var(--brown);letter-spacing:-.2px;margin-top:2px;font-optical-sizing:auto;
+  }
+
+  /* the footer: one inviting CTA, no pressure, pinned warm at the base */
+  .w-foot{
+    flex-shrink:0;padding:14px 26px 26px;position:relative;
+    background:linear-gradient(0deg, var(--linen) 52%, rgba(244,241,234,0) 100%);
+    animation:rise .9s cubic-bezier(.22,.61,.36,1) .24s both;
+  }
+  .start-btn{
+    width:100%;border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:18px;
+    min-height:56px;display:inline-flex;align-items:center;justify-content:center;gap:11px;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;font-size:16px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 6px 16px rgba(110,69,39,0.30), 0 14px 30px rgba(110,69,39,0.20), inset 0 1px 0 rgba(255,255,255,0.30);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .start-btn i{font-size:18px;}
+  .start-btn:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 8px 20px rgba(110,69,39,0.34), 0 18px 38px rgba(110,69,39,0.22), inset 0 1px 0 rgba(255,255,255,0.32);}
+  .start-btn:active{transform:translateY(1px);filter:none;box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 4px 10px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.24);}
+  .foot-quiet{
+    text-align:center;font-family:var(--f-serif);font-style:italic;font-size:13.5px;color:var(--faint);
+    margin:13px 0 0;line-height:1.45;
+  }
+
+  /* gentle breathing glow behind the mark on the welcome screen */
+  .w-halo{
+    position:absolute;top:30px;left:50%;transform:translateX(-50%);
+    width:200px;height:200px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle, rgba(138,90,53,0.12) 0%, rgba(138,90,53,0) 70%);
+    animation:breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  @keyframes breathe{0%,100%{opacity:.55;transform:translateX(-50%) scale(1);}50%{opacity:1;transform:translateX(-50%) scale(1.08);}}
+
+  /* ======================================================= */
+  /* SECONDARY FRAME — the conversation the welcome opens into */
+  /* ======================================================= */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-spacer{flex:1;}
+  .chat-sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;padding:0 20px 9px;}
+
+  .cv-body{flex:1;min-height:0;overflow-y:auto;padding:6px 16px 18px;display:flex;flex-direction:column;gap:13px;}
+  .cv-body::-webkit-scrollbar{width:0;}
+  .cv-j{align-self:flex-start;max-width:90%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:13px 16px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.54;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 18px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+
+  /* ---- honor reduced-motion across the whole prototype ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
+
+  @media (max-width:920px){
+    .device.secondary{transform:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — first run · the warm welcome</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- FRAME 1 — THE WARM WELCOME (the deliverable)    -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <span class="frame-label"><span class="pip"></span>Screen 1 — first thing a new person sees</span>
+      <div class="phone">
+        <div class="device">
+          <section class="welcome" role="region" aria-label="A welcome from Jove">
+
+            <div class="w-top">
+              <span class="w-halo" aria-hidden="true"></span>
+              <span class="w-mark"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+              <span class="w-from"><span class="ln" aria-hidden="true"></span>A note from Jove<span class="ln" aria-hidden="true"></span></span>
+            </div>
+
+            <div class="letter">
+              <h2 class="greet">You don&rsquo;t have to<br><em>arrive ready.</em></h2>
+
+              <p class="note">I&rsquo;m Jove. There&rsquo;s nothing to set up here, and no right way to begin. We just talk — about whatever&rsquo;s real for you — and slowly a picture comes together of how you actually work.</p>
+
+              <p class="note lift">It&rsquo;s easier to see someone else&rsquo;s patterns than your own. I&rsquo;ll be the outside view — the strengths you&rsquo;ve stopped noticing, the loops you keep landing in. You decide what&rsquo;s true.</p>
+
+              <ul class="promises">
+                <li><span class="pi" aria-hidden="true"><i class="ti ti-message-2"></i></span>No forms, no questionnaires &mdash; only conversation.</li>
+                <li><span class="pi" aria-hidden="true"><i class="ti ti-clock-pause"></i></span>Your pace. Stop, drift, come back whenever.</li>
+                <li><span class="pi navy" aria-hidden="true"><i class="ti ti-lock"></i></span>Nothing is saved unless you say yes to it.</li>
+                <li><span class="pi navy" aria-hidden="true"><i class="ti ti-feather"></i></span>No judgment, no fixing. Just being seen clearly.</li>
+              </ul>
+
+              <p class="sign">Whenever you&rsquo;re ready, I&rsquo;ll be here.
+                <span class="name">&mdash; Jove</span>
+              </p>
+            </div>
+
+            <div class="w-foot">
+              <button class="start-btn" data-goto="open" aria-label="Start a conversation with Jove when you're ready">
+                Start when you&rsquo;re ready <i class="ti ti-arrow-right" aria-hidden="true"></i>
+              </button>
+              <p class="foot-quiet">One message. We&rsquo;ll take it from there.</p>
+            </div>
+
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- FRAME 2 — the conversation it opens into        -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <span class="frame-label secondary"><span class="pip"></span>What &ldquo;Start&rdquo; opens into</span>
+      <div class="phone">
+        <div class="device secondary">
+
+          <header class="apphdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <span class="hdr-spacer"></span>
+          </header>
+          <div class="chat-sub">Your first conversation</div>
+
+          <div class="cv-body">
+            <div class="cv-j">
+              <p class="cv-jl">Jove</p>
+              <div class="cv-jb">No big opening question. Just tell me about something on your mind lately &mdash; a moment that stuck with you, a reaction that surprised you, a good day or a hard one. Wherever you start is right.</div>
+            </div>
+            <div class="cv-u"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+            <div class="cv-j">
+              <div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div>
+            </div>
+          </div>
+
+          <div class="cv-in">
+            <span class="cv-field">Tell Jove what happened&hellip;</span>
+            <button class="cv-send" aria-label="Send message"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function(){
+      // demo-only: tapping "Start when you're ready" softly scrolls to the conversation frame
+      var btn = document.querySelector('[data-goto="open"]');
+      var dest = document.querySelectorAll('.frame-wrap')[1];
+      if(btn && dest){
+        btn.addEventListener('click', function(){
+          var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          dest.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'center', inline:'center'});
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

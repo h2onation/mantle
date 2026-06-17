@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — prototype (Manual: dedicated overview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- screen switcher ---- */
+  /* Each screen is a flex column so a persistent nav can pin to the bottom. */
+  .screen{display:none;flex-direction:column;min-height:712px;}
+  .screen.active{display:flex;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .scroll{flex:1;overflow:hidden;}
+
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- header ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-ico{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+
+  /* ---- back-style header (manual) ---- */
+  .navhdr{display:flex;align-items:center;gap:6px;padding:16px 18px 10px;}
+  .navhdr-back{
+    width:40px;height:40px;border-radius:14px;border:none;cursor:pointer;color:var(--brown);font-size:21px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .navhdr-title{flex:1;text-align:center;}
+  .navhdr-title .nm{font-family:var(--f-display);font-weight:600;font-size:18px;color:var(--ink);letter-spacing:-.3px;font-optical-sizing:auto;line-height:1.1;}
+  .navhdr-title .sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--navy);margin-top:3px;}
+
+  /* ---- slim chat top: back only, no Jove branding ---- */
+  .cv-top{display:flex;align-items:center;gap:11px;padding:14px 18px 6px;}
+  .cv-back{
+    width:34px;height:34px;border-radius:12px;border:none;cursor:pointer;color:var(--brown);font-size:19px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .cv-ctx{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  /* ---- greeting ---- */
+  .home{padding:8px 18px 16px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  /* ---- tile base: rounded physical card ---- */
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .t-h3{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;margin:0 0 7px;font-optical-sizing:auto;}
+  .t-p{font-size:13.5px;line-height:1.55;color:var(--mid);margin:0 0 18px;}
+
+  /* ---- tactile buttons ---- */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    display:inline-flex;align-items:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:active{box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-soft{
+    background:linear-gradient(180deg, #FFFDF8 0%, #F4EEE3 100%);
+    color:var(--brown);padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .btn-soft.navy{color:var(--navy);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* ---- hero tile ---- */
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 22px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 18px;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+  .hero-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+  .hero-new{font-size:13.5px;color:var(--brown);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .hero-new i{font-size:15px;}
+
+  /* ---- emblem chip (explore / share) ---- */
+  .t-emblem{
+    width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:22px;margin-bottom:15px;
+    color:var(--brown);
+    background:linear-gradient(160deg,#FFFDF8 0%, #F2E9DB 100%);
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- manual tee-up tile (largest) ---- */
+  .manual{
+    background:
+      radial-gradient(100% 70% at 0% 0%, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0) 52%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.05);
+    padding:24px 20px 14px;
+  }
+  .manual .t-headrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;padding:0 2px;cursor:pointer;}
+  .manual .t-headrow .t-h3{margin:0;}
+  .count-chip{font-family:var(--f-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:5px 11px;}
+  .manual .sub{font-size:13px;line-height:1.5;color:var(--mid);margin:0 2px 6px;}
+
+  .lrow{
+    display:flex;align-items:center;gap:14px;padding:13px 12px;margin-top:9px;border-radius:18px;cursor:pointer;
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.04);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .lrow:active{transform:translateY(1px);box-shadow:0 1px 3px rgba(54,38,20,0.08), inset 0 0 0 1px rgba(26,23,18,0.05);}
+  .lemblem{
+    width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:var(--navy);
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 2px 5px rgba(33,67,107,0.12), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .lrow.empty .lemblem{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 2px 5px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .lcol{flex:1;min-width:0;}
+  .lname{font-family:var(--f-display);font-weight:500;font-size:15.5px;color:var(--ink);letter-spacing:-.15px;line-height:1.18;font-optical-sizing:auto;}
+  .lmean{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.34;}
+  .lcount{font-size:11px;font-weight:600;color:var(--navy);background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .lstart{font-size:11px;font-weight:600;color:#FCF6EE;background:linear-gradient(180deg,var(--brown-bright),var(--brown));border-radius:999px;padding:5px 12px;white-space:nowrap;box-shadow:0 2px 6px rgba(110,69,39,0.25), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .lchev{color:var(--faint);font-size:18px;margin-left:2px;}
+
+  /* ---- share tile (navy filled) ---- */
+  .share-navy{
+    background:
+      radial-gradient(120% 90% at 88% -20%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%),
+      linear-gradient(168deg, #2A4E7A 0%, var(--navy) 48%, var(--navy-deep) 100%);
+    border:1px solid rgba(255,255,255,0.10);
+    box-shadow:0 1px 2px rgba(17,40,70,0.35), 0 10px 26px -12px rgba(23,48,80,0.6), inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  .share-navy::after{content:"";position:absolute;right:-34px;top:-34px;width:140px;height:140px;border-radius:50%;border:1px solid rgba(255,255,255,0.10);pointer-events:none;}
+  .share-navy .eyebrow{color:#A9C0DC;position:relative;}
+  .share-navy .t-h3{color:#FBF9F4;position:relative;}
+  .share-navy .t-p{color:#C7D4E2;position:relative;}
+  .btn-onnavy{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F1E9DC 100%);color:var(--navy-deep);
+    padding:13px 18px;font-size:14px;position:relative;
+    box-shadow:0 2px 8px rgba(17,40,70,0.28), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  /* =======================================================
+     PERSISTENT BOTTOM NAV — low-profile (thinner + lighter)
+     Sits on every screen. On chat, the input bar sits directly above it.
+     ======================================================= */
+  .botwrap{padding:6px 22px 14px;}
+  .botnav{
+    display:flex;justify-content:space-around;align-items:center;padding:6px 6px;border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.86) 0%, rgba(246,241,233,0.86) 100%);
+    border:1px solid rgba(255,255,255,0.5);
+    box-shadow:0 1px 2px rgba(54,38,20,0.05), 0 6px 16px -8px rgba(54,38,20,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+    backdrop-filter:blur(8px);
+  }
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--f-ui);font-size:9px;font-weight:600;letter-spacing:.2px;color:var(--faint);cursor:pointer;padding:5px 16px;border-radius:13px;}
+  .nav-i i{font-size:17px;}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE2 100%);
+    box-shadow:0 1px 4px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* =======================================================
+     SCREEN — MANUAL (dedicated overview: all five layers, read-in-place)
+     ======================================================= */
+  .mn-body{padding:6px 18px 4px;}
+  .mn-intro{margin:4px 4px 14px;}
+  .mn-intro-h{font-family:var(--f-display);font-weight:500;font-size:26px;letter-spacing:-.4px;line-height:1.12;color:var(--ink);font-optical-sizing:auto;margin:0 0 6px;}
+  .mn-intro-p{font-size:13px;line-height:1.5;color:var(--mid);margin:0;}
+  .mn-sum{font-family:var(--f-mono);font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:9px 0 0;}
+
+  .mn-layer{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:22px;padding:15px 17px;margin-bottom:13px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+    transition:box-shadow .18s ease;
+  }
+  .mn-layer.open{box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.07);}
+  .mn-lh{display:flex;align-items:flex-start;gap:13px;cursor:pointer;}
+  .mn-lemb{
+    width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-size:19px;flex-shrink:0;color:var(--navy);margin-top:1px;
+    background:linear-gradient(160deg,#FFFFFF 0%, #EAF0F7 100%);
+    box-shadow:0 2px 5px rgba(33,67,107,0.12), var(--inset-hi), inset 0 0 0 1px rgba(33,67,107,0.10);
+  }
+  .mn-lcol{flex:1;min-width:0;}
+  .mn-ltop{display:flex;align-items:center;gap:9px;}
+  .mn-lname{font-family:var(--f-display);font-weight:500;font-size:17px;color:var(--ink);letter-spacing:-.3px;line-height:1.15;font-optical-sizing:auto;flex:1;min-width:0;}
+  .mn-lct{font-size:10.5px;font-weight:600;color:var(--navy);background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:3px 9px;white-space:nowrap;}
+  .mn-lmean{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.34;}
+  /* one-line preview of the first entry's headline — hidden once expanded */
+  .mn-prev{
+    font-family:var(--f-serif);font-style:italic;font-size:13px;line-height:1.34;color:var(--soft);
+    margin-top:8px;display:flex;align-items:baseline;gap:7px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .mn-prev .pq{color:var(--navy);opacity:.5;font-family:var(--f-display);font-style:normal;font-size:15px;line-height:0;vertical-align:-3px;flex-shrink:0;}
+  .mn-layer.open .mn-prev{display:none;}
+  .mn-lchev{color:var(--faint);font-size:19px;flex-shrink:0;align-self:center;transition:transform .2s ease;}
+  .mn-layer.open .mn-lchev{transform:rotate(90deg);}
+
+  .mn-entries{margin-top:6px;}
+  .mn-entry{
+    background:linear-gradient(180deg,#FFFDF9 0%, #FAF6EE 100%);
+    border-radius:16px;padding:15px 16px;margin-top:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.045);
+  }
+  .mn-eh{font-family:var(--f-serif);font-style:italic;font-weight:500;font-size:16.5px;line-height:1.3;color:var(--ink);margin-bottom:7px;}
+  .mn-es{font-family:var(--f-serif);font-size:14px;line-height:1.55;color:var(--soft);}
+  .mn-em{font-family:var(--f-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);font-weight:500;margin-top:11px;}
+  .mn-more{font-size:12.5px;color:var(--navy);font-weight:600;padding:13px 4px 2px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+
+  .mn-layer.empty .mn-lemb{color:var(--brown);background:linear-gradient(160deg,#FFFDF8 0%, #F4ECDF 100%);box-shadow:0 2px 5px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px rgba(110,69,39,0.14);}
+  .mn-layer.empty .mn-lname{color:var(--mid);}
+  .mn-estart{font-size:10.5px;font-weight:600;color:#FCF6EE;background:linear-gradient(180deg,var(--brown-bright),var(--brown));border-radius:999px;padding:5px 12px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(110,69,39,0.25), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .mn-estart i{font-size:12px;}
+  .mn-empty-prev{font-size:11.5px;color:var(--mid);margin-top:7px;line-height:1.4;}
+
+  /* placeholder entries for layers without verbatim content */
+  .mn-ph{font-family:var(--f-serif);font-size:13.5px;line-height:1.5;color:var(--mid);font-style:italic;padding:13px 4px 2px;}
+
+  .mn-export{margin:8px 18px 6px;}
+
+  /* =======================================================
+     SCREEN — CHAT (clean paper bubbles, no blue rule, no Jove title)
+     ======================================================= */
+  .cv-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:13px;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  /* Jove bubble: clean paper, left-aligned, distinguished by surface only — no colored rule, no left border */
+  .cv-j{max-width:88%;align-self:flex-start;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(26,23,18,0.06);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* checkpoint card */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  .cv-cpnote{font-size:11.5px;color:var(--faint);margin:11px 0 13px;font-family:var(--f-ui);}
+  .cv-cpb{display:flex;gap:10px;}
+  .cv-cpb .btn{flex:1;justify-content:center;}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+
+  /* chat input bar — sits directly above the persistent nav */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — prototype</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Manual · dedicated overview</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- SCREEN 1 — HOME                                -->
+      <!-- ════════════════════════════════════════════ -->
+      <section class="screen active" id="screen-home">
+
+        <div class="scroll">
+          <header class="hdr">
+            <div class="hdr-logo">
+              <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"></span>
+              <span class="wm">mywalnut</span>
+            </div>
+            <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings"></i></button>
+          </header>
+
+          <div class="home">
+            <h2 class="greet">Good evening, Jeff.</h2>
+            <p class="greet-date">Tuesday · June 15</p>
+
+            <!-- TILE 1 — hero / opener -->
+            <section class="tile hero">
+              <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+              <span class="eyebrow e-brown"><i class="ti ti-bookmark"></i>Pick up where you left off</span>
+              <p class="hero-line"><span class="q">&ldquo;</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+              <div class="hero-row">
+                <button class="btn btn-primary" data-goto="chat">Continue this thread <i class="ti ti-arrow-right"></i></button>
+                <span class="hero-new" data-goto="chat"><i class="ti ti-plus"></i>Start fresh</span>
+              </div>
+            </section>
+
+            <!-- TILE 2 — explore -->
+            <section class="tile">
+              <div class="t-emblem"><i class="ti ti-message-2"></i></div>
+              <h3 class="t-h3">Bring a situation</h3>
+              <p class="t-p">A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain. Talk it through and see what&rsquo;s underneath.</p>
+              <button class="btn btn-soft" data-goto="chat">Explore a situation <i class="ti ti-arrow-right"></i></button>
+            </section>
+
+            <!-- TILE 3 — the Manual tee-up -->
+            <section class="tile manual">
+              <div class="t-headrow" data-goto="manual">
+                <h3 class="t-h3">Your manual</h3>
+                <span class="count-chip">14 entries</span>
+              </div>
+              <p class="sub">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+              <div class="lrow" data-goto="manual">
+                <span class="lemblem"><i class="ti ti-sparkles"></i></span>
+                <div class="lcol"><div class="lname">My Strengths</div><div class="lmean">What you&rsquo;re genuinely good at, named plainly.</div></div>
+                <span class="lcount">3 entries</span><i class="ti ti-chevron-right lchev"></i>
+              </div>
+              <div class="lrow" data-goto="manual">
+                <span class="lemblem"><i class="ti ti-refresh"></i></span>
+                <div class="lcol"><div class="lname">Some of My Patterns</div><div class="lmean">Loops you repeat — and what they cost.</div></div>
+                <span class="lcount">5 entries</span><i class="ti ti-chevron-right lchev"></i>
+              </div>
+              <div class="lrow" data-goto="manual">
+                <span class="lemblem"><i class="ti ti-bulb"></i></span>
+                <div class="lcol"><div class="lname">How I Process Things</div><div class="lmean">The way your mind actually works through things.</div></div>
+                <span class="lcount">2 entries</span><i class="ti ti-chevron-right lchev"></i>
+              </div>
+              <div class="lrow" data-goto="manual">
+                <span class="lemblem"><i class="ti ti-anchor"></i></span>
+                <div class="lcol"><div class="lname">What Helps</div><div class="lmean">The conditions and moves that make things easier.</div></div>
+                <span class="lcount">4 entries</span><i class="ti ti-chevron-right lchev"></i>
+              </div>
+              <div class="lrow empty" data-goto="manual">
+                <span class="lemblem"><i class="ti ti-users"></i></span>
+                <div class="lcol"><div class="lname">How I Show Up with People</div><div class="lmean">The gap between what you mean and what others see.</div></div>
+                <span class="lstart">Start</span><i class="ti ti-chevron-right lchev"></i>
+              </div>
+            </section>
+
+            <!-- TILE 4 — share (navy filled) -->
+            <section class="tile share-navy">
+              <span class="eyebrow e-navy"><i class="ti ti-send"></i>Share how you work</span>
+              <h3 class="t-h3" style="margin-top:13px">Hand it to someone</h3>
+              <p class="t-p">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+              <button class="btn btn-onnavy btn-full"><i class="ti ti-send"></i> Create a shareable version</button>
+            </section>
+          </div>
+        </div>
+
+        <div class="botwrap">
+          <nav class="botnav">
+            <span class="nav-i on" data-goto="home"><i class="ti ti-home"></i>Home</span>
+            <span class="nav-i" data-goto="manual"><i class="ti ti-book-2"></i>Manual</span>
+            <span class="nav-i" data-goto="chat"><i class="ti ti-message-2"></i>Talk</span>
+            <span class="nav-i"><i class="ti ti-user"></i>You</span>
+          </nav>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- SCREEN 2 — MANUAL (dedicated overview)         -->
+      <!-- ════════════════════════════════════════════ -->
+      <section class="screen" id="screen-manual">
+
+        <div class="scroll">
+          <header class="navhdr">
+            <button class="navhdr-back" data-goto="home" aria-label="Back"><i class="ti ti-chevron-left"></i></button>
+            <div class="navhdr-title"><div class="nm">Your manual</div></div>
+            <button class="hdr-ico" aria-label="Share"><i class="ti ti-share"></i></button>
+          </header>
+
+          <div class="mn-body">
+            <div class="mn-intro">
+              <h2 class="mn-intro-h">How you operate, in your own words.</h2>
+              <p class="mn-intro-p">Five layers. Tap any one to read it in place.</p>
+              <p class="mn-sum">14 entries · built with Jove</p>
+            </div>
+
+            <!-- My Strengths — expanded by default -->
+            <section class="mn-layer open">
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-sparkles"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-ltop">
+                    <div class="mn-lname">My Strengths</div>
+                    <span class="mn-lct">3 entries</span>
+                  </div>
+                  <div class="mn-lmean">What you&rsquo;re genuinely good at, named plainly.</div>
+                  <div class="mn-prev"><span class="pq">&ldquo;</span>You think out loud to find the edges of a problem.</div>
+                </div>
+                <i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries">
+                <div class="mn-entry">
+                  <div class="mn-eh">You think out loud to find the edges of a problem.</div>
+                  <div class="mn-es">Talking isn&rsquo;t you being unsure. It&rsquo;s how you locate the shape of a thing — by the time you&rsquo;ve said it three ways, you know which version is true.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-entry">
+                  <div class="mn-eh">You catch the detail everyone else walked past.</div>
+                  <div class="mn-es">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — you notice it early, even before you can say why.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 1 more entry</div>
+              </div>
+            </section>
+
+            <!-- Some of My Patterns — collapsed, preview line -->
+            <section class="mn-layer">
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-refresh"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-ltop">
+                    <div class="mn-lname">Some of My Patterns</div>
+                    <span class="mn-lct">5 entries</span>
+                  </div>
+                  <div class="mn-lmean">Loops you repeat — and what they cost.</div>
+                  <div class="mn-prev"><span class="pq">&ldquo;</span>There&rsquo;s a version of you that runs on no margin.</div>
+                </div>
+                <i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries" hidden>
+                <div class="mn-entry">
+                  <div class="mn-eh">There&rsquo;s a version of you that runs on no margin.</div>
+                  <div class="mn-es">The people closest to you tend to meet the version that&rsquo;s already past empty — the snap lands on the first quiet moment that had no room left in it.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 4 more entries</div>
+              </div>
+            </section>
+
+            <!-- How I Process Things — collapsed, preview line -->
+            <section class="mn-layer">
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-bulb"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-ltop">
+                    <div class="mn-lname">How I Process Things</div>
+                    <span class="mn-lct">2 entries</span>
+                  </div>
+                  <div class="mn-lmean">The way your mind actually works through things.</div>
+                  <div class="mn-prev"><span class="pq">&ldquo;</span>You need the full picture before you&rsquo;ll commit to a first step.</div>
+                </div>
+                <i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries" hidden>
+                <div class="mn-entry">
+                  <div class="mn-eh">You need the full picture before you&rsquo;ll commit to a first step.</div>
+                  <div class="mn-es">It can read as hesitation. It isn&rsquo;t — you&rsquo;re refusing to move on a map you don&rsquo;t trust yet. Once the picture lands, you move fast.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 1 more entry</div>
+              </div>
+            </section>
+
+            <!-- What Helps — collapsed, preview line -->
+            <section class="mn-layer">
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-anchor"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-ltop">
+                    <div class="mn-lname">What Helps</div>
+                    <span class="mn-lct">4 entries</span>
+                  </div>
+                  <div class="mn-lmean">The conditions and moves that make things easier.</div>
+                  <div class="mn-prev"><span class="pq">&ldquo;</span>A buffer before the hard thing is worth more than effort during it.</div>
+                </div>
+                <i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries" hidden>
+                <div class="mn-entry">
+                  <div class="mn-eh">A buffer before the hard thing is worth more than effort during it.</div>
+                  <div class="mn-es">Ten minutes of nothing before a draining moment does more for you than any amount of pushing through once you&rsquo;re inside it.</div>
+                  <div class="mn-em">Added from a conversation</div>
+                </div>
+                <div class="mn-more">+ 3 more entries</div>
+              </div>
+            </section>
+
+            <!-- How I Show Up with People — empty, invites Start -->
+            <section class="mn-layer empty">
+              <div class="mn-lh js-toggle">
+                <span class="mn-lemb"><i class="ti ti-users"></i></span>
+                <div class="mn-lcol">
+                  <div class="mn-ltop">
+                    <div class="mn-lname">How I Show Up with People</div>
+                    <span class="mn-estart" data-goto="chat">Start <i class="ti ti-arrow-right"></i></span>
+                  </div>
+                  <div class="mn-lmean">The gap between what you mean and what others see.</div>
+                  <div class="mn-prev mn-empty-prev">Nothing here yet. Talk it through with Jove and the first entry will land here.</div>
+                </div>
+                <i class="ti ti-chevron-right mn-lchev"></i>
+              </div>
+              <div class="mn-entries" hidden>
+                <p class="mn-ph">This layer is still empty. Bring a moment where what you meant and what someone else saw didn&rsquo;t match — that&rsquo;s where it begins.</p>
+                <div class="mn-more" data-goto="chat">Start this layer <i class="ti ti-arrow-right"></i></div>
+              </div>
+            </section>
+
+            <button class="btn btn-soft navy btn-full mn-export"><i class="ti ti-download"></i> Export your manual</button>
+          </div>
+        </div>
+
+        <div class="botwrap">
+          <nav class="botnav">
+            <span class="nav-i" data-goto="home"><i class="ti ti-home"></i>Home</span>
+            <span class="nav-i on" data-goto="manual"><i class="ti ti-book-2"></i>Manual</span>
+            <span class="nav-i" data-goto="chat"><i class="ti ti-message-2"></i>Talk</span>
+            <span class="nav-i"><i class="ti ti-user"></i>You</span>
+          </nav>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- SCREEN 3 — CHAT                                -->
+      <!-- ════════════════════════════════════════════ -->
+      <section class="screen" id="screen-chat">
+
+        <!-- slim top: back affordance + quiet context line, NO Jove branding -->
+        <header class="cv-top">
+          <button class="cv-back" data-goto="home" aria-label="Back"><i class="ti ti-chevron-left"></i></button>
+          <span class="cv-ctx">Exploring a situation</span>
+        </header>
+
+        <div class="scroll">
+          <div class="cv-body">
+            <div class="cv-u"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+
+            <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+
+            <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a single second to myself all day.</div></div>
+
+            <div class="cv-j"><div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn&rsquo;t really aimed at Sam — it landed on the first quiet moment that had no margin in it.</div></div>
+
+            <!-- checkpoint -->
+            <div class="cv-cp">
+              <div class="cv-cph">
+                <span class="cv-cpt"><i class="ti ti-notebook"></i>For your manual?</span>
+                <span class="cv-cptag">&rarr; Some of My Patterns</span>
+              </div>
+              <p class="cv-cptx">There&rsquo;s a version of you that runs on no margin. The people closest to you tend to meet the version that&rsquo;s already past empty.</p>
+              <p class="cv-cpnote">In your words. You can edit it before it&rsquo;s saved.</p>
+              <div class="cv-cpb">
+                <button class="btn btn-primary">Add to manual</button>
+                <button class="btn cv-ghost">Not quite</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cv-in">
+          <span class="cv-field">Tell Jove what happened…</span>
+          <button class="cv-send" aria-label="Send"><i class="ti ti-arrow-up"></i></button>
+        </div>
+
+        <div class="botwrap">
+          <nav class="botnav">
+            <span class="nav-i" data-goto="home"><i class="ti ti-home"></i>Home</span>
+            <span class="nav-i" data-goto="manual"><i class="ti ti-book-2"></i>Manual</span>
+            <span class="nav-i on" data-goto="chat"><i class="ti ti-message-2"></i>Talk</span>
+            <span class="nav-i"><i class="ti ti-user"></i>You</span>
+          </nav>
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var screens = {
+        home:   document.getElementById('screen-home'),
+        manual: document.getElementById('screen-manual'),
+        chat:   document.getElementById('screen-chat')
+      };
+
+      function go(name){
+        var target = screens[name];
+        if(!target) return;
+        Object.keys(screens).forEach(function(k){ screens[k].classList.remove('active'); });
+        target.classList.add('active');
+        var sc = target.querySelector('.scroll');
+        if(sc) sc.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // wire every [data-goto] element
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          go(el.getAttribute('data-goto'));
+        });
+      });
+
+      // expand/collapse Manual layers in place (accordion read-in-place)
+      document.querySelectorAll('#screen-manual .js-toggle').forEach(function(head){
+        head.addEventListener('click', function(e){
+          // let the in-row Start button navigate without toggling
+          if(e.target.closest('[data-goto]')) return;
+          var layer = head.closest('.mn-layer');
+          var body  = layer.querySelector('.mn-entries');
+          var open  = layer.classList.toggle('open');
+          if(body) body.hidden = !open;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

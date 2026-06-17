@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — first run · the recognition mirror</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    --focus:rgba(33,67,107,0.55);
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  :focus{outline:none;}
+  [data-goto]:focus-visible,
+  button:focus-visible,
+  .mirror-card:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:18px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- stage: two frames side by side, primary first ---- */
+  .stage{display:flex;flex-wrap:wrap;gap:40px 48px;justify-content:center;align-items:flex-start;}
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;}
+  .frame-label{font-family:var(--f-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mid);display:inline-flex;align-items:center;gap:8px;}
+  .frame-label .dot{width:5px;height:5px;border-radius:50%;background:var(--brown);display:inline-block;}
+  .frame-label.secondary .dot{background:var(--navy);}
+
+  /* ---- phone shell: a physical object (v6) ---- */
+  .phone{
+    width:404px;max-width:100%;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .screen::-webkit-scrollbar{width:0;}
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- header (v6 apphdr) ---- */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:18px 20px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-spacer{flex:1;}
+  .hdr-quiet{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  /* ======================================================= */
+  /* FIRST-RUN — THE RECOGNITION MIRROR                       */
+  /* ======================================================= */
+  .first{padding:6px 20px 26px;}
+
+  /* the hook line — the product's core idea, set as editorial display */
+  .hook{margin:18px 2px 6px;}
+  .hook-kick{font-family:var(--f-mono);font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--brown);font-weight:500;margin:0 0 14px;display:inline-flex;align-items:center;gap:8px;}
+  .hook-kick i{font-size:13px;}
+  .hook-h1{font-family:var(--f-display);font-weight:500;font-size:29px;line-height:1.16;letter-spacing:-.6px;color:var(--ink);margin:0;font-optical-sizing:auto;}
+  .hook-h1 em{font-style:italic;color:var(--brown);font-weight:500;}
+  .hook-sub{font-family:var(--f-serif);font-size:15.5px;line-height:1.55;color:var(--mid);margin:13px 2px 0;max-width:30em;}
+
+  /* small framing line above the cards */
+  .others-label{
+    display:flex;align-items:center;gap:11px;margin:26px 2px 14px;
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;
+  }
+  .others-label .ln{flex:1;height:1px;background:linear-gradient(90deg, var(--hairs) 0%, var(--hair) 50%, rgba(26,23,18,0) 100%);}
+
+  /* ---- the mirror cards: real entry-style one-liners ---- */
+  .mirror-stack{display:flex;flex-direction:column;gap:13px;}
+  .mirror-card{
+    position:relative;text-align:left;width:100%;display:block;cursor:pointer;
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:22px;padding:18px 20px 16px;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+    transition:transform .14s ease, box-shadow .14s ease;
+  }
+  .mirror-card:hover{transform:translateY(-2px);box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.04);}
+  .mirror-card:active{transform:translateY(0);box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);}
+  /* faint quotation glyph anchoring each card as a found line */
+  .mirror-card .mark{position:absolute;top:8px;right:16px;font-family:var(--f-display);font-style:italic;font-size:46px;line-height:0;color:var(--brown-bright);opacity:.12;pointer-events:none;}
+  /* tiny layer tag — quietly tells you this is "someone's", and which layer */
+  .mirror-tag{
+    display:inline-flex;align-items:center;gap:6px;margin:0 0 11px;
+    font-family:var(--f-mono);font-size:8.5px;letter-spacing:1.4px;text-transform:uppercase;font-weight:500;color:var(--navy);
+    background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;
+  }
+  .mirror-tag i{font-size:11px;opacity:.8;}
+  .mirror-line{
+    font-family:var(--f-serif);font-size:16.5px;line-height:1.5;color:var(--ink);margin:0;letter-spacing:.1px;
+    position:relative;z-index:1;
+  }
+  .mirror-line .em{color:var(--brown-deep);font-style:italic;}
+  /* attribution: makes the "not you yet" status quiet but unmistakable */
+  .mirror-by{
+    font-family:var(--f-mono);font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);font-weight:500;
+    margin:12px 0 0;display:flex;align-items:center;gap:6px;
+  }
+  .mirror-by i{font-size:11px;color:var(--brown);opacity:.6;}
+
+  /* ---- the turn: from their lines to yours ---- */
+  .turn{
+    margin:24px 0 0;padding:22px;border-radius:24px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+  }
+  .turn-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .turn-line{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.3;letter-spacing:-.3px;color:var(--ink);margin:0 0 6px;position:relative;font-optical-sizing:auto;}
+  .turn-line em{font-style:italic;color:var(--brown);}
+  .turn-sub{font-family:var(--f-serif);font-size:14.5px;line-height:1.55;color:var(--soft);margin:0 0 18px;position:relative;max-width:28em;}
+
+  /* tactile primary button (v6) */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:15px 22px;font-size:15px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), 0 13px 30px rgba(110,69,39,0.2), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .btn-primary:active{filter:none;box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-full{width:100%;}
+  .turn .reassure{
+    font-family:var(--f-mono);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--brown);opacity:.7;font-weight:500;
+    margin:13px 0 0;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;position:relative;
+  }
+  .turn .reassure i{font-size:12px;}
+
+  /* a single quiet line for people who aren't ready to bring a situation */
+  .soft-out{
+    display:flex;align-items:center;justify-content:center;gap:7px;width:100%;cursor:pointer;
+    min-height:44px;margin-top:14px;border-radius:14px;padding:11px 16px;
+    font-family:var(--f-ui);font-weight:600;font-size:13px;color:var(--navy);
+    background:transparent;border:none;
+    transition:color .12s ease, transform .12s ease;
+  }
+  .soft-out i{font-size:15px;}
+  .soft-out:hover{color:var(--navy-deep);}
+  .soft-out:active{transform:translateY(1px);}
+
+  /* ======================================================= */
+  /* SECONDARY FRAME — the conversation it opens into         */
+  /* ======================================================= */
+  .chat-sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;padding:2px 22px 9px;}
+  .cv-body{padding:6px 18px 18px;display:flex;flex-direction:column;gap:13px;}
+  .cv-j{align-self:flex-start;max-width:90%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:13px 16px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
+  @media (max-width:920px){
+    .stage{gap:32px;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — first run · the recognition mirror</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- FRAME 1 — THE FIRST SCREEN (deliverable)        -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <span class="frame-label"><span class="dot"></span>Screen 1 — the first thing you see</span>
+      <div class="phone">
+        <div class="device">
+          <div class="viewport">
+            <section class="screen" role="region" aria-label="Welcome to mywalnut">
+
+              <header class="apphdr">
+                <div class="hdr-logo">
+                  <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+                  <span class="wm">mywalnut</span>
+                </div>
+                <span class="hdr-spacer"></span>
+                <span class="hdr-quiet">New here</span>
+              </header>
+
+              <main class="first">
+
+                <div class="hook">
+                  <p class="hook-kick"><i class="ti ti-eye" aria-hidden="true"></i>The whole idea</p>
+                  <h1 class="hook-h1">It&rsquo;s easier to see someone else&rsquo;s patterns <em>than your own.</em></h1>
+                  <p class="hook-sub">Jove is the outside view. You talk, it notices &mdash; and hands the words back until something lands as <em>that&rsquo;s me.</em></p>
+                </div>
+
+                <div class="others-label"><span class="ln"></span>What others have found in themselves</div>
+
+                <div class="mirror-stack">
+
+                  <button class="mirror-card" data-goto="chat" aria-label="Example insight from someone else's manual. Tap to start your own.">
+                    <span class="mark" aria-hidden="true">&rdquo;</span>
+                    <span class="mirror-tag"><i class="ti ti-refresh" aria-hidden="true"></i>Some of my patterns</span>
+                    <p class="mirror-line">There&rsquo;s a version of you that runs on <span class="em">no margin</span> &mdash; and the people closest to you meet the one that&rsquo;s already past empty.</p>
+                    <p class="mirror-by"><i class="ti ti-user" aria-hidden="true"></i>Someone else&rsquo;s line</p>
+                  </button>
+
+                  <button class="mirror-card" data-goto="chat" aria-label="Example insight from someone else's manual. Tap to start your own.">
+                    <span class="mark" aria-hidden="true">&rdquo;</span>
+                    <span class="mirror-tag"><i class="ti ti-sparkles" aria-hidden="true"></i>My strengths</span>
+                    <p class="mirror-line">You think out loud to find the <span class="em">edges of a problem</span> &mdash; by the time you&rsquo;ve said it three ways, you know which version is true.</p>
+                    <p class="mirror-by"><i class="ti ti-user" aria-hidden="true"></i>Someone else&rsquo;s line</p>
+                  </button>
+
+                  <button class="mirror-card" data-goto="chat" aria-label="Example insight from someone else's manual. Tap to start your own.">
+                    <span class="mark" aria-hidden="true">&rdquo;</span>
+                    <span class="mirror-tag"><i class="ti ti-users" aria-hidden="true"></i>How I show up with people</span>
+                    <p class="mirror-line">When you feel cornered, you get <span class="em">precise instead of soft</span> &mdash; and it can land as cold.</p>
+                    <p class="mirror-by"><i class="ti ti-user" aria-hidden="true"></i>Someone else&rsquo;s line</p>
+                  </button>
+
+                </div>
+
+                <section class="turn" aria-label="Start your own manual">
+                  <img class="turn-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+                  <p class="turn-line">These are other people&rsquo;s. <em>What would yours say?</em></p>
+                  <p class="turn-sub">No forms, no setup. Just tell Jove about one real moment &mdash; and see what it notices.</p>
+                  <button class="btn btn-primary btn-full" data-goto="chat">Start with one moment <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+                  <p class="reassure"><i class="ti ti-lock" aria-hidden="true"></i>Nothing is saved unless you say yes</p>
+                </section>
+
+                <button class="soft-out" data-goto="chat">
+                  <i class="ti ti-help-circle" aria-hidden="true"></i> Not sure where to start? Jove can begin.
+                </button>
+
+              </main>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- FRAME 2 — the conversation it opens into        -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="frame-wrap">
+      <span class="frame-label secondary"><span class="dot"></span>Opens into &mdash; your first conversation</span>
+      <div class="phone">
+        <div class="device">
+          <div class="viewport">
+            <section class="screen" id="screen-chat" role="region" aria-label="Conversation with Jove">
+
+              <header class="apphdr">
+                <div class="hdr-logo">
+                  <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+                  <span class="wm">mywalnut</span>
+                </div>
+                <span class="hdr-spacer"></span>
+              </header>
+              <div class="chat-sub">Your first conversation</div>
+
+              <div class="cv-body">
+                <div class="cv-j"><p class="cv-jl">Jove</p><div class="cv-jb">No manual yet &mdash; that&rsquo;s the point. We&rsquo;ll build it from real moments, one at a time. Tell me about something that happened recently that you&rsquo;ve kept turning over.</div></div>
+                <div class="cv-u"><div class="cv-ub">I snapped at Sam over the dishwasher. It was such a small thing.</div></div>
+                <div class="cv-j"><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+                <div class="cv-u"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a second to myself all day.</div></div>
+                <div class="cv-j"><div class="cv-jb">So you hit the kitchen with nothing in reserve. The snap wasn&rsquo;t really aimed at Sam &mdash; it landed on the first quiet moment that had no margin in it. Does that sound like a line that could be yours?</div></div>
+              </div>
+
+              <div class="cv-in">
+                <span class="cv-field">Reply to Jove&hellip;</span>
+                <button class="cv-send" aria-label="Send message"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function(){
+      var chat = document.getElementById('screen-chat');
+      document.querySelectorAll('[data-goto="chat"]').forEach(function(el){
+        el.addEventListener('click', function(){
+          if(chat) chat.scrollIntoView({behavior:'smooth', block:'center'});
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — front door prototype v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    /* ground + paper */
+    --linen:#F4F1EA; --card:#FBF9F4; --paper-hi:#FFFDF8; --page:#E6E0D4;
+    /* ink ramp */
+    --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#8C8475;
+    /* hairlines */
+    --hair:rgba(26,23,18,0.10); --hairs:rgba(26,23,18,0.06);
+    /* brown = you / warm / primary */
+    --brown:#6E4527; --brown-deep:#583619; --brown-bright:#8A5A35;
+    --brown-s:rgba(110,69,39,0.07); --brown-bd:rgba(110,69,39,0.20);
+    /* navy = Jove / structure / manual */
+    --navy:#21436B; --navy-deep:#173050; --navy-s:rgba(33,67,107,0.07); --navy-bd:rgba(33,67,107,0.18);
+    /* focus ring — keyboard accessibility */
+    --focus:rgba(33,67,107,0.55);
+    /* fonts */
+    --f-display:'Fraunces',Georgia,serif;
+    --f-ui:'Plus Jakarta Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+    /* 8pt spacing rhythm */
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    /* soft multi-layer elevation — the signature material system */
+    --lift-1:0 1px 1px rgba(54,38,20,0.04), 0 2px 4px rgba(54,38,20,0.05), 0 6px 14px rgba(54,38,20,0.05);
+    --lift-2:0 1px 1.5px rgba(54,38,20,0.05), 0 4px 10px rgba(54,38,20,0.07), 0 14px 30px rgba(54,38,20,0.08);
+    --lift-hero:0 1px 2px rgba(74,46,20,0.06), 0 8px 20px rgba(74,46,20,0.09), 0 26px 50px rgba(74,46,20,0.11);
+    --inset-hi:inset 0 1.5px 0 rgba(255,255,255,0.75);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--f-ui);
+    padding:42px 16px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #EFEADD 0%, rgba(239,234,221,0) 60%),
+      var(--page);
+  }
+
+  /* ---- shared focus-visible ring for keyboard users ---- */
+  :focus{outline:none;}
+  [data-goto]:focus-visible,
+  button:focus-visible,
+  .lrow:focus-visible,
+  .read-link:focus-visible,
+  .nav-i:focus-visible{
+    outline:2.5px solid var(--focus);
+    outline-offset:2px;
+    border-radius:14px;
+  }
+
+  /* ---- page chrome ---- */
+  .page-head{text-align:center;margin:0 auto 26px;}
+  .page-head h1{font-family:var(--f-display);font-weight:500;font-size:25px;letter-spacing:-.4px;margin:0 0 9px;font-optical-sizing:auto;}
+  .demo-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);background:rgba(255,253,248,0.7);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 13px;}
+  .demo-tag i{font-size:12px;}
+
+  /* ---- phone shell: a physical object ---- */
+  .phone{
+    width:404px;max-width:100%;margin:0 auto;position:relative;
+    background:linear-gradient(180deg,#F7F3EB 0%, var(--linen) 22%, #F1EDE4 100%);
+    border-radius:42px;
+    border:1px solid rgba(255,255,255,0.55);
+    padding:7px;
+    box-shadow:
+      0 2px 4px rgba(54,38,20,0.06),
+      0 18px 40px rgba(54,38,20,0.16),
+      0 44px 90px rgba(54,38,20,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .device{
+    border-radius:36px;overflow:hidden;position:relative;
+    /* fixed height so the persistent nav can pin to the bottom of the frame */
+    height:812px;display:flex;flex-direction:column;
+    background:
+      radial-gradient(140% 60% at 85% -5%, rgba(110,69,39,0.05) 0%, rgba(110,69,39,0) 48%),
+      radial-gradient(120% 50% at 0% 102%, rgba(33,67,107,0.045) 0%, rgba(33,67,107,0) 46%),
+      linear-gradient(180deg, #F6F2EA 0%, #F2EEE5 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+
+  /* ---- the swappable viewport (everything above the persistent nav) ---- */
+  .viewport{flex:1;min-height:0;position:relative;overflow:hidden;}
+  .screen{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .screen.active{display:block;animation:fade .26s cubic-bezier(.22,.61,.36,1);}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  /* tidy, near-invisible scrollbar so the cozy surface stays clean */
+  .screen::-webkit-scrollbar{width:0;}
+
+  .ti{font-size:inherit;line-height:1;}
+  [data-goto]{cursor:pointer;}
+
+  /* ---- header ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;}
+  .hdr-logo{display:flex;align-items:center;gap:10px;}
+  .mark-chip{
+    width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F3ECDD 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+  }
+  .mark-chip img{width:26px;height:26px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.3px;color:var(--ink);font-optical-sizing:auto;}
+  .hdr-ico{
+    width:44px;height:44px;border-radius:14px;border:none;cursor:pointer;color:var(--soft);font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+    transition:transform .12s ease, box-shadow .12s ease, color .12s ease;
+  }
+  .hdr-ico:hover{color:var(--brown);box-shadow:var(--lift-2), var(--inset-hi);}
+  .hdr-ico:active{transform:translateY(1px);box-shadow:var(--lift-1), var(--inset-hi);}
+
+  /* ---- back-style header (document read) ---- */
+  .navhdr{display:flex;align-items:center;gap:6px;padding:16px 18px 10px;}
+  .navhdr-back{
+    width:44px;height:44px;border-radius:14px;border:none;cursor:pointer;color:var(--brown);font-size:21px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .navhdr-back:hover{box-shadow:var(--lift-2), var(--inset-hi);}
+  .navhdr-back:active{transform:translateY(1px);box-shadow:var(--lift-1), var(--inset-hi);}
+  .navhdr-title{flex:1;text-align:center;}
+  .navhdr-title .nm{font-family:var(--f-display);font-weight:600;font-size:18px;color:var(--ink);letter-spacing:-.3px;font-optical-sizing:auto;line-height:1.1;}
+  .navhdr-title .sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--navy);margin-top:3px;}
+
+  /* ---- slim chat top: just a back affordance + very quiet context line ---- */
+  .chathdr{display:flex;align-items:center;gap:10px;padding:13px 18px 9px;}
+  .chathdr-back{
+    width:44px;height:44px;border-radius:13px;border:none;cursor:pointer;color:var(--brown);font-size:20px;
+    display:grid;place-items:center;flex-shrink:0;
+    background:linear-gradient(160deg,#FFFDF8 0%, #F0EADC 100%);
+    box-shadow:var(--lift-1), var(--inset-hi);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .chathdr-back:hover{box-shadow:var(--lift-2), var(--inset-hi);}
+  .chathdr-back:active{transform:translateY(1px);box-shadow:var(--lift-1), var(--inset-hi);}
+  .chathdr-ctx{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+
+  /* unified app header — consistent walnut logo across home, chat, document */
+  .apphdr{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;}
+  .apphdr .hdr-spacer{flex:1;}
+  .chat-sub{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;padding:0 20px 9px;}
+  /* document entries — each titled, with a clean separation between them */
+  .entry{margin:0;}
+  .entry + .entry{margin-top:17px;padding-top:17px;border-top:1px solid var(--hairs);}
+  .entry-h{font-family:var(--f-serif);font-style:normal;font-weight:600;font-size:17.5px;line-height:1.32;color:var(--ink);margin:0 0 6px;letter-spacing:0;}
+
+  /* ---- greeting ---- */
+  .home{padding:8px 18px 16px;}
+  .greet{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.12;letter-spacing:-.5px;margin:10px 3px 4px;font-optical-sizing:auto;}
+  .greet-date{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 3px 20px;}
+
+  /* ---- tile base: rounded physical card ---- */
+  .tile{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:26px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,23,18,0.035);
+  }
+  .eyebrow{font-family:var(--f-mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:500;display:inline-flex;align-items:center;gap:7px;}
+  .eyebrow i{font-size:12px;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .t-h3{font-family:var(--f-display);font-weight:500;font-size:22px;letter-spacing:-.3px;margin:0 0 7px;font-optical-sizing:auto;}
+  .t-p{font-size:13.5px;line-height:1.55;color:var(--mid);margin:0 0 18px;}
+
+  /* ---- tactile buttons ---- */
+  .btn{
+    border:none;cursor:pointer;font-family:var(--f-ui);font-weight:600;border-radius:15px;
+    min-height:44px;
+    display:inline-flex;align-items:center;gap:9px;transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    color:#FCF6EE;padding:14px 20px;font-size:14.5px;letter-spacing:.1px;
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), 0 10px 24px rgba(110,69,39,0.18), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-primary:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), 0 13px 30px rgba(110,69,39,0.2), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .btn-primary:active{filter:none;box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+  .btn-soft{
+    background:linear-gradient(180deg, #FFFDF8 0%, #F4EEE3 100%);
+    color:var(--brown);padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+  .btn-soft:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);}
+  .btn-soft.navy{color:var(--navy);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-soft.navy:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* ---- hero tile ---- */
+  .hero{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.16) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FCF6EC 0%, #F4E7D2 58%, #EFDFC6 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:var(--lift-hero), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.07);
+    padding:24px 22px 22px;
+  }
+  .hero-mark{position:absolute;right:-30px;bottom:-34px;width:150px;height:150px;opacity:.10;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-style:italic;font-size:19px;line-height:1.46;color:var(--ink);margin:12px 0 18px;position:relative;}
+  .hero-line .q{font-family:var(--f-display);font-style:normal;color:var(--brown-bright);opacity:.55;font-size:24px;line-height:0;vertical-align:-6px;margin-right:3px;}
+  .hero-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+
+  /* ======================================================= */
+  /* TWO WAYS TO BEGIN — matched card family                 */
+  /* hero (primary, warmer) + situation (sibling, lighter)   */
+  /* ======================================================= */
+  /* the sibling "begin" card: same family as hero, but the */
+  /* secondary member — lighter ground, lighter elevation   */
+  .begin{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(138,90,53,0.07) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(165deg, #FFFDF8 0%, #FAF3E8 60%, #F6EEDF 100%);
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.06);
+    padding:22px;
+  }
+  .begin-line{font-family:var(--f-serif);font-style:italic;font-size:16.5px;line-height:1.5;color:var(--soft);margin:12px 0 18px;position:relative;}
+  .begin-row{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+
+  /* ======================================================= */
+  /* MANUAL INDEX TILE — a QUIET menu of explore actions     */
+  /* (deliberately calmer / more secondary than the CTAs)    */
+  /* ======================================================= */
+  .manual{
+    background:
+      radial-gradient(100% 70% at 0% 0%, rgba(33,67,107,0.04) 0%, rgba(33,67,107,0) 52%),
+      linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    /* lighter elevation than hero/situation tiles — reads secondary */
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(33,67,107,0.045);
+    padding:22px 20px 16px;
+  }
+  /* header row: title/sub on the left, quiet progress marker on the right */
+  .manual .m-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:0 2px 6px;}
+  .manual .m-head-text{min-width:0;}
+  /* quieter, smaller heading than the loud tiles above */
+  .manual .m-title{font-family:var(--f-display);font-weight:500;font-size:19px;letter-spacing:-.2px;margin:0 0 6px;color:var(--ink);font-optical-sizing:auto;}
+  .manual .m-sub{font-size:12.5px;line-height:1.5;color:var(--mid);margin:0;}
+
+  /* quiet 5-segment progress marker — understated metadata, not a gauge */
+  .m-progress{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;padding-top:3px;}
+  .m-segs{display:flex;gap:4px;}
+  .m-seg{width:13px;height:5px;border-radius:3px;background:rgba(33,67,107,0.12);box-shadow:inset 0 0 0 1px rgba(33,67,107,0.08);}
+  .m-seg.done{background:linear-gradient(180deg, #2A4E7A 0%, var(--navy) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18);}
+  .m-prog-label{font-family:var(--f-mono);font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);font-weight:500;white-space:nowrap;}
+
+  /* the layer list — calm, hairline-separated menu (NOT five loud buttons) */
+  .lmenu{margin:10px 2px 0;border-top:1px solid var(--hairs);}
+  .lrow{
+    display:flex;align-items:center;gap:13px;padding:14px 6px;width:100%;text-align:left;
+    background:transparent;border:none;border-bottom:1px solid var(--hairs);
+    cursor:pointer;border-radius:12px;
+    transition:background .14s ease, transform .12s ease;
+  }
+  .lrow:last-of-type{border-bottom:none;}
+  .lrow:hover{background:linear-gradient(90deg, rgba(33,67,107,0.04) 0%, rgba(33,67,107,0.015) 100%);}
+  .lrow:active{transform:translateY(0.5px);background:rgba(33,67,107,0.06);}
+  /* small, low-contrast emblem — a quiet dot of identity, not a tappable chip */
+  .lemblem{
+    width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex-shrink:0;color:var(--navy);align-self:flex-start;margin-top:1px;
+    background:rgba(33,67,107,0.06);
+    box-shadow:inset 0 0 0 1px rgba(33,67,107,0.10);
+    transition:background .14s ease, color .14s ease;
+  }
+  .lrow:hover .lemblem{background:rgba(33,67,107,0.10);}
+  .lcol{flex:1;min-width:0;}
+  /* name on its own line (bold), meaning on the line below (smaller, muted) */
+  .lname{display:block;font-family:var(--f-display);font-weight:600;font-size:15.5px;color:var(--soft);letter-spacing:-.1px;line-height:1.25;font-optical-sizing:auto;transition:color .14s ease;}
+  .lrow:hover .lname{color:var(--ink);}
+  .lmean{display:block;font-size:11.5px;color:var(--faint);margin-top:4px;line-height:1.4;}
+  /* quiet per-row entry count — understated metadata below the meaning, NOT a chip */
+  .lcount{display:block;font-family:var(--f-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);opacity:.85;margin-top:6px;}
+  .lcount.empty{color:var(--mid);opacity:.7;}
+  /* right side: a clear "explore with Jove" cue so the row reads as a button into chat */
+  .lcue{display:flex;flex-direction:column;align-items:flex-end;gap:0;flex-shrink:0;align-self:center;}
+  .lexplore{
+    display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+    font-family:var(--f-mono);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-weight:500;
+    color:var(--faint);opacity:.85;transition:color .14s ease, opacity .14s ease, transform .14s ease;
+  }
+  .lexplore i{font-size:13px;color:var(--navy);opacity:.7;}
+  .lrow:hover .lexplore{color:var(--navy);opacity:1;transform:translateX(1px);}
+  .lrow:hover .lexplore i{opacity:1;}
+  /* the only "not started yet" signal: layer five gets a brighter Start affordance that pulls the eye */
+  .lstart{
+    display:inline-flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap;
+    font-family:var(--f-ui);font-size:11px;font-weight:600;letter-spacing:.1px;color:#FCF6EE;
+    background:linear-gradient(180deg,var(--brown-bright),var(--brown));
+    border-radius:999px;padding:6px 13px;
+    box-shadow:0 2px 7px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition:filter .12s ease, box-shadow .12s ease, transform .12s ease;
+  }
+  .lstart i{font-size:12px;}
+  .lrow.fresh:hover .lstart{filter:brightness(1.05);box-shadow:0 3px 10px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .lrow.fresh:active .lstart{transform:translateY(1px);}
+  .lrow.fresh .lname{color:var(--ink);}
+
+  /* ---- "Read your manual" affordance: distinct full-width link at the bottom of the index ---- */
+  .read-link{
+    display:flex;align-items:center;justify-content:center;gap:9px;width:100%;cursor:pointer;
+    min-height:44px;margin-top:16px;border-radius:16px;padding:13px 16px;
+    font-family:var(--f-ui);font-weight:600;font-size:13.5px;color:var(--navy);
+    background:linear-gradient(180deg, rgba(33,67,107,0.05) 0%, rgba(33,67,107,0.025) 100%);
+    border:none;
+    box-shadow:var(--inset-hi), inset 0 0 0 1px var(--navy-bd);
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .read-link:hover{background:linear-gradient(180deg, rgba(33,67,107,0.08) 0%, rgba(33,67,107,0.04) 100%);box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--navy-bd);}
+  .read-link:active{transform:translateY(1px);}
+  .read-link i{font-size:16px;}
+  .read-link .arr{font-size:16px;margin-left:1px;transition:transform .14s ease;}
+  .read-link:hover .arr{transform:translateX(3px);}
+
+  /* ======================================================= */
+  /* READ / DOCUMENT SCREEN — the full manual as one read    */
+  /* (the ONLY surface where entries are read)               */
+  /* ======================================================= */
+  .doc-wrap{
+    padding:0 0 4px;
+    background:
+      radial-gradient(100% 30% at 50% 0%, rgba(33,67,107,0.04) 0%, rgba(33,67,107,0) 60%),
+      linear-gradient(180deg, var(--paper-hi) 0%, #FBF7F0 100%);
+  }
+  .doc-title{text-align:center;padding:30px 30px 22px;position:relative;}
+  .doc-kick{font-family:var(--f-mono);font-size:9.5px;letter-spacing:2.6px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:0 0 16px;}
+  .doc-h1{font-family:var(--f-display);font-weight:500;font-size:29px;line-height:1.1;letter-spacing:-.4px;color:var(--ink);margin:0;font-optical-sizing:auto;}
+  .doc-h1 em{font-style:italic;color:var(--brown);font-weight:500;}
+  .doc-byline{font-family:var(--f-serif);font-style:italic;font-size:15px;color:var(--mid);margin:16px auto 0;line-height:1.55;max-width:30em;}
+  .doc-meta{font-family:var(--f-mono);font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:18px 0 0;display:inline-flex;align-items:center;gap:9px;}
+  .doc-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--faint);display:inline-block;}
+  .doc-orn{display:flex;align-items:center;justify-content:center;gap:11px;margin:24px 36px 6px;}
+  .doc-orn .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hair) 50%, rgba(26,23,18,0) 100%);}
+  .doc-orn i{color:var(--brown-bright);opacity:.7;font-size:13px;}
+  .doc-col{padding:8px 34px 6px;}
+  .sec{margin:36px 0 0;}
+  .sec:first-of-type{margin-top:18px;}
+  .sec-num{font-family:var(--f-mono);font-size:9.5px;letter-spacing:2.4px;text-transform:uppercase;color:var(--navy);font-weight:500;margin:0 0 10px;display:flex;align-items:center;gap:9px;}
+  .sec-num .rule{flex:0 0 22px;height:1px;background:var(--navy-bd);}
+  .sec-h{font-family:var(--f-display);font-weight:500;font-size:25px;line-height:1.14;letter-spacing:-.5px;color:var(--ink);margin:0 0 5px;font-optical-sizing:auto;}
+  .sec-lede{font-family:var(--f-serif);font-style:italic;font-size:14px;line-height:1.5;color:var(--mid);margin:0 0 18px;}
+  .pass{font-family:var(--f-serif);font-size:17px;line-height:1.65;color:var(--soft);margin:0 0 16px;letter-spacing:.1px;max-width:34em;}
+  .pass.lead{color:var(--ink);}
+  .pass.lead::first-letter{font-family:var(--f-display);font-weight:500;font-size:52px;line-height:0.8;float:left;margin:6px 9px 0 0;color:var(--brown);font-optical-sizing:auto;}
+  .pass strong{font-weight:600;color:var(--ink);font-style:normal;}
+  .pull{font-family:var(--f-display);font-weight:500;font-style:italic;font-size:20px;line-height:1.36;letter-spacing:-.3px;color:var(--brown-deep);margin:24px 4px 22px;padding:2px 0 2px 18px;border-left:2px solid var(--brown-bd);font-optical-sizing:auto;max-width:30em;}
+  .anno{font-family:var(--f-mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:-4px 0 20px;display:flex;align-items:center;gap:7px;}
+  .anno i{font-size:11px;color:var(--navy);opacity:.8;}
+  .sec.unwritten .sec-h{color:var(--mid);}
+  .unwritten-note{font-family:var(--f-serif);font-style:italic;font-size:16px;line-height:1.6;color:var(--faint);margin:0 0 18px;max-width:32em;}
+  .unwritten-start{
+    display:inline-flex;align-items:center;gap:8px;min-height:44px;
+    font-family:var(--f-ui);font-weight:600;font-size:13px;color:#FCF6EE;
+    background:linear-gradient(180deg,var(--brown-bright),var(--brown));
+    border:none;border-radius:999px;padding:9px 16px;cursor:pointer;
+    box-shadow:0 2px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition:filter .12s ease, box-shadow .12s ease, transform .12s ease;
+  }
+  .unwritten-start:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(110,69,39,0.3), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .unwritten-start:active{transform:translateY(1px);}
+  .unwritten-start i{font-size:14px;}
+  .sec-div{display:flex;align-items:center;justify-content:center;gap:14px;margin:34px 8px 0;}
+  .sec-div .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hairs) 50%, rgba(26,23,18,0) 100%);}
+  .sec-div .pip{width:4px;height:4px;border-radius:50%;background:var(--navy);opacity:.45;}
+  .doc-foot{margin:32px 0 0;padding:28px 30px 30px;text-align:center;border-top:1px solid var(--hairs);background:linear-gradient(180deg, rgba(33,67,107,0.02) 0%, rgba(33,67,107,0) 100%);}
+  .foot-orn{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 30px 18px;}
+  .foot-orn .ln{flex:1;height:1px;background:linear-gradient(90deg, rgba(26,23,18,0) 0%, var(--hair) 50%, rgba(26,23,18,0) 100%);}
+  .foot-orn i{color:var(--brown-bright);opacity:.6;font-size:12px;}
+  .foot-line{font-family:var(--f-serif);font-style:italic;font-size:15px;line-height:1.6;color:var(--mid);margin:0 auto 20px;max-width:30em;}
+  .foot-btns{display:flex;flex-direction:column;gap:10px;}
+
+  /* ---- bottom nav: PERSISTENT, slim low-profile glass strip ---- */
+  .botbar{
+    flex-shrink:0;padding:4px 12px 7px;
+    background:linear-gradient(0deg, rgba(246,242,234,0.96) 40%, rgba(246,242,234,0) 100%);
+  }
+  .botnav{
+    display:flex;justify-content:space-around;align-items:center;padding:3px 5px;border-radius:15px;
+    background:linear-gradient(180deg, rgba(255,253,248,0.9) 0%, rgba(246,241,233,0.9) 100%);
+    border:1px solid rgba(255,255,255,0.55);
+    box-shadow:0 1px 2px rgba(54,38,20,0.05), 0 5px 14px -8px rgba(54,38,20,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+    backdrop-filter:blur(8px);
+  }
+  /* slim: tight padding + a comfortable 44px tap target preserved via min-width and the bar's own height */
+  .nav-i{
+    display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;
+    font-family:var(--f-ui);font-size:11px;font-weight:600;letter-spacing:.1px;color:var(--faint);
+    cursor:pointer;padding:7px 12px;min-height:38px;min-width:60px;border-radius:11px;border:none;background:transparent;
+    transition:color .14s ease, background .14s ease, box-shadow .14s ease, transform .12s ease;
+  }
+  .nav-i i{font-size:16px;}
+  .nav-i:hover{color:var(--brown);}
+  .nav-i:active{transform:translateY(1px);}
+  .nav-i.on{
+    color:var(--brown);
+    background:linear-gradient(180deg,#FFFDF8 0%, #F3ECDE 100%);
+    box-shadow:0 1px 4px rgba(110,69,39,0.12), var(--inset-hi), inset 0 0 0 1px var(--brown-bd);
+  }
+
+  /* ---- chat input bar — sits directly above the persistent nav ---- */
+  .cv-in{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex-shrink:0;}
+  .cv-field{
+    flex:1;border-radius:999px;padding:12px 18px;min-height:44px;display:flex;align-items:center;
+    background:linear-gradient(180deg,#FFFDF8 0%, #F5F0E7 100%);
+    border:1px solid var(--hair);
+    font-family:var(--f-serif);font-size:14.5px;font-style:italic;color:var(--faint);
+    box-shadow:inset 0 1px 3px rgba(54,38,20,0.05);
+  }
+  .cv-send{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;color:#FCF6EE;font-size:19px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg, var(--brown-bright) 0%, var(--brown) 52%, var(--brown-deep) 100%);
+    box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 5px 14px rgba(110,69,39,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .cv-send:hover{filter:brightness(1.04);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 7px 18px rgba(110,69,39,0.32), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .cv-send:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(74,46,20,0.2), 0 3px 8px rgba(110,69,39,0.26), inset 0 1px 0 rgba(255,255,255,0.22);}
+
+  /* ======================================================= */
+  /* CHAT — clean paper bubbles, no blue rule                */
+  /* ======================================================= */
+  .cv-body{padding:6px 16px 18px;display:flex;flex-direction:column;gap:13px;}
+  .cv-u{align-self:flex-end;max-width:84%;}
+  .cv-ub{
+    background:linear-gradient(180deg, #F6ECDF 0%, #F1E3D0 100%);
+    border:1px solid var(--brown-bd);border-radius:16px 16px 5px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.5;color:var(--ink);
+    box-shadow:0 2px 6px rgba(110,69,39,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  /* Jove: clean paper bubble — left-aligned, no colored line, no left border */
+  .cv-j{align-self:flex-start;max-width:88%;}
+  .cv-jl{font-family:var(--f-mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 5px 3px;}
+  .cv-jb{
+    background:linear-gradient(180deg, var(--paper-hi) 0%, var(--card) 100%);
+    border:1px solid var(--hair);border-radius:5px 16px 16px 16px;padding:12px 15px;
+    font-family:var(--f-serif);font-size:15.5px;line-height:1.52;color:var(--ink);
+    box-shadow:var(--lift-1), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  /* checkpoint card */
+  .cv-cp{
+    align-self:stretch;
+    background:
+      radial-gradient(120% 90% at 90% -20%, rgba(138,90,53,0.10) 0%, rgba(138,90,53,0) 55%),
+      linear-gradient(168deg, #FCF7EF 0%, #F7EEE1 100%);
+    border:1px solid var(--brown-bd);border-radius:20px;padding:18px 18px 16px;margin:6px 0 2px;
+    box-shadow:var(--lift-2), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(110,69,39,0.08);
+  }
+  .cv-cph{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .cv-cpt{font-family:var(--f-mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--brown);font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .cv-cpt i{font-size:12px;}
+  .cv-cptag{font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;color:var(--navy);font-weight:500;background:var(--navy-s);border:1px solid var(--navy-bd);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .cv-cptx{font-family:var(--f-serif);font-size:17px;line-height:1.5;color:var(--ink);margin:0;}
+  .cv-cpnote{font-size:11.5px;color:var(--faint);margin:11px 0 13px;font-family:var(--f-ui);}
+  .cv-cpb{display:flex;gap:10px;}
+  .cv-cpb .btn{flex:1;justify-content:center;}
+  .cv-ghost{
+    background:linear-gradient(180deg,#FFFDF8 0%, #F4EEE3 100%);color:var(--mid);
+    padding:13px 18px;font-size:14px;
+    box-shadow:var(--lift-1), var(--inset-hi), inset 0 0 0 1px var(--hair);
+  }
+  .cv-ghost:hover{box-shadow:var(--lift-2), var(--inset-hi), inset 0 0 0 1px var(--hair);}
+
+  /* the layer-scoped chat hides the dishwasher thread + checkpoint, shows the scoped opener instead */
+  .cv-body[data-mode="layer"] .situation-only{display:none;}
+  .cv-body[data-mode="situation"] .layer-only{display:none;}
+
+  /* ---- honor reduced-motion across the whole prototype ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .screen.active{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — front door prototype v5</h1>
+    <span class="demo-tag"><i class="ti ti-device-mobile"></i>Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <div class="device">
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- THE SWAPPABLE VIEWPORT                          -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="viewport">
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN — HOME                                  -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen active" id="screen-home" role="region" aria-label="Home">
+
+        <header class="apphdr">
+          <div class="hdr-logo">
+            <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+            <span class="wm">mywalnut</span>
+          </div>
+          <span class="hdr-spacer"></span>
+          <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
+        </header>
+
+        <main class="home">
+          <h2 class="greet">Good evening, Jeff.</h2>
+          <p class="greet-date">Tuesday · June 15</p>
+
+          <!-- TILE 1 — hero / opener (primary "way to begin") -->
+          <section class="tile hero" aria-label="Pick up where you left off">
+            <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="" aria-hidden="true">
+            <span class="eyebrow e-brown"><i class="ti ti-bookmark" aria-hidden="true"></i>Pick up where you left off</span>
+            <p class="hero-line"><span class="q" aria-hidden="true">&ldquo;</span>Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+            <div class="hero-row">
+              <button class="btn btn-primary" data-goto="chat" data-chat="situation">Continue this thread <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+            </div>
+          </section>
+
+          <!-- TILE 2 — bring a situation (sibling "way to begin": same card family, lighter) -->
+          <section class="tile begin" aria-label="Bring a situation">
+            <span class="eyebrow e-brown"><i class="ti ti-message-2" aria-hidden="true"></i>Something on your mind</span>
+            <p class="begin-line">A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain.</p>
+            <div class="begin-row">
+              <button class="btn btn-soft" data-goto="chat" data-chat="situation">Bring a situation <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+            </div>
+          </section>
+
+          <!-- TILE 3 — the Manual INDEX: a QUIET menu of explore-with-Jove actions -->
+          <section class="tile manual" aria-label="Your manual">
+            <div class="m-head">
+              <div class="m-head-text">
+                <h3 class="m-title">Your manual</h3>
+                <p class="m-sub">Five layers of how you operate. Tap one to go deeper with Jove — or read the whole thing.</p>
+              </div>
+              <!-- quiet 5-segment progress marker -->
+              <div class="m-progress" role="img" aria-label="4 of 5 sections started">
+                <div class="m-segs" aria-hidden="true">
+                  <span class="m-seg done"></span>
+                  <span class="m-seg done"></span>
+                  <span class="m-seg done"></span>
+                  <span class="m-seg done"></span>
+                  <span class="m-seg"></span>
+                </div>
+                <span class="m-prog-label" aria-hidden="true">4 of 5 started</span>
+              </div>
+            </div>
+
+            <div class="lmenu" role="list">
+              <button class="lrow" role="listitem" data-goto="chat" data-chat="strengths" aria-label="My Strengths, 3 entries — go deeper with Jove">
+                <span class="lemblem"><i class="ti ti-sparkles" aria-hidden="true"></i></span>
+                <span class="lcol">
+                  <span class="lname">My Strengths</span>
+                  <span class="lmean">What you&rsquo;re genuinely good at, named plainly.</span>
+                  <span class="lcount">3 entries</span>
+                </span>
+                <span class="lcue"><span class="lexplore"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</span></span>
+              </button>
+              <button class="lrow" role="listitem" data-goto="chat" data-chat="patterns" aria-label="Some of My Patterns, 5 entries — go deeper with Jove">
+                <span class="lemblem"><i class="ti ti-refresh" aria-hidden="true"></i></span>
+                <span class="lcol">
+                  <span class="lname">Some of My Patterns</span>
+                  <span class="lmean">Loops you repeat — and what they cost.</span>
+                  <span class="lcount">5 entries</span>
+                </span>
+                <span class="lcue"><span class="lexplore"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</span></span>
+              </button>
+              <button class="lrow" role="listitem" data-goto="chat" data-chat="process" aria-label="How I Process Things, 2 entries — go deeper with Jove">
+                <span class="lemblem"><i class="ti ti-bulb" aria-hidden="true"></i></span>
+                <span class="lcol">
+                  <span class="lname">How I Process Things</span>
+                  <span class="lmean">The way your mind actually works through things.</span>
+                  <span class="lcount">2 entries</span>
+                </span>
+                <span class="lcue"><span class="lexplore"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</span></span>
+              </button>
+              <button class="lrow" role="listitem" data-goto="chat" data-chat="helps" aria-label="What Helps, 4 entries — go deeper with Jove">
+                <span class="lemblem"><i class="ti ti-anchor" aria-hidden="true"></i></span>
+                <span class="lcol">
+                  <span class="lname">What Helps</span>
+                  <span class="lmean">The conditions and moves that make things easier.</span>
+                  <span class="lcount">4 entries</span>
+                </span>
+                <span class="lcue"><span class="lexplore"><i class="ti ti-message-circle" aria-hidden="true"></i>Go deeper</span></span>
+              </button>
+              <button class="lrow fresh" role="listitem" data-goto="chat" data-chat="people" aria-label="How I Show Up with People, no entries yet — start with Jove">
+                <span class="lemblem"><i class="ti ti-users" aria-hidden="true"></i></span>
+                <span class="lcol">
+                  <span class="lname">How I Show Up with People</span>
+                  <span class="lmean">The gap between what you mean and what others see.</span>
+                  <span class="lcount empty">No entries</span>
+                </span>
+                <span class="lcue"><span class="lstart"><i class="ti ti-message-circle" aria-hidden="true"></i>Start</span></span>
+              </button>
+            </div>
+
+            <!-- distinct affordance: open the full document read -->
+            <button class="read-link" data-goto="read">
+              <i class="ti ti-book-2" aria-hidden="true"></i> Read your manual <span class="arr" aria-hidden="true">&rarr;</span>
+            </button>
+          </section>
+
+          <!-- TILE 4 — share (navy filled) -->
+          <section class="tile share-navy" aria-label="Share how you work" style="
+            background:
+              radial-gradient(120% 90% at 88% -20%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%),
+              linear-gradient(168deg, #2A4E7A 0%, #21436B 48%, #173050 100%);
+            border:1px solid rgba(255,255,255,0.10);
+            box-shadow:0 1px 2px rgba(17,40,70,0.35), 0 10px 26px -12px rgba(23,48,80,0.6), inset 0 1px 0 rgba(255,255,255,0.10);">
+            <span class="eyebrow e-navy" style="color:#B7CBE2;position:relative;"><i class="ti ti-send" aria-hidden="true"></i>Share how you work</span>
+            <h3 class="t-h3" style="margin-top:13px;color:#FBF9F4;position:relative;">Hand it to someone</h3>
+            <p class="t-p" style="color:#CDD9E6;position:relative;">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+            <button class="btn btn-full" style="
+              background:linear-gradient(180deg,#FFFDF8 0%, #F1E9DC 100%);color:#173050;
+              padding:13px 18px;font-size:14px;position:relative;
+              box-shadow:0 2px 8px rgba(17,40,70,0.28), inset 0 1px 0 rgba(255,255,255,0.6);">
+              <i class="ti ti-send" aria-hidden="true"></i> Create a shareable version</button>
+          </section>
+        </main>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- READ / DOCUMENT — the full manual as one read  -->
+      <!-- (the ONLY place entries are read)              -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-read" role="region" aria-label="Your manual, as a document">
+
+        <header class="apphdr">
+          <button class="navhdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+          <div class="hdr-logo">
+            <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+            <span class="wm">mywalnut</span>
+          </div>
+          <span class="hdr-spacer"></span>
+          <button class="hdr-ico" aria-label="Share your manual"><i class="ti ti-share" aria-hidden="true"></i></button>
+        </header>
+
+        <article class="doc-wrap">
+
+          <!-- TITLE BLOCK -->
+          <div class="doc-title">
+            <p class="doc-kick">Your manual</p>
+            <h1 class="doc-h1">How I operate</h1>
+            <p class="doc-byline">What I&rsquo;m good at, where I loop, and what helps. Written a piece at a time — only the parts I agreed were true.</p>
+          </div>
+
+          <div class="doc-orn"><span class="ln"></span><i class="ti ti-asterisk" aria-hidden="true"></i><span class="ln"></span></div>
+
+          <div class="doc-col">
+
+            <!-- SECTION I — My Strengths -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer One</p>
+              <h2 class="sec-h">My Strengths</h2>
+              <p class="sec-lede">What I&rsquo;m genuinely good at, named plainly.</p>
+
+              <div class="entry">
+                <h3 class="entry-h">I think out loud to find the edges of a problem.</h3>
+                <p class="pass">Talking isn&rsquo;t me being unsure. It&rsquo;s how I locate the shape of a thing — by the time I&rsquo;ve said it three ways, I know which version is true.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p>
+              </div>
+              <div class="entry">
+                <h3 class="entry-h">I catch the detail everyone else walked past.</h3>
+                <p class="pass">The thing that felt off in the room, the line in the email that didn&rsquo;t sit right — I notice it early, often before I can say why.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · April</p>
+              </div>
+              <div class="entry">
+                <h3 class="entry-h">I stay with things long after others call them good enough.</h3>
+                <p class="pass">That stubbornness reads as intensity from the outside. From the inside it&rsquo;s just that I can feel when a thing isn&rsquo;t finished, and I&rsquo;d rather sit in the discomfort than hand over something half-true.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p>
+              </div>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION II — Some of My Patterns -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Two</p>
+              <h2 class="sec-h">Some of My Patterns</h2>
+              <p class="sec-lede">Loops I repeat — and what each one quietly costs.</p>
+
+              <div class="entry">
+                <h3 class="entry-h">I run on no margin.</h3>
+                <p class="pass">I&rsquo;ll pour the whole day into the work and leave nothing in reserve — so the people closest to me tend to meet the version that&rsquo;s already past empty, not the one I&rsquo;d actually choose to give them.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p>
+              </div>
+              <div class="entry">
+                <h3 class="entry-h">When I feel cornered, I get precise instead of soft.</h3>
+                <p class="pass">The sentences get shorter and more exact, and to the other person it can land as cold — even when what I&rsquo;m really doing is trying not to lose the thread.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p>
+              </div>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION III — How I Process Things -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Three</p>
+              <h2 class="sec-h">How I Process Things</h2>
+              <p class="sec-lede">The way my mind actually moves through a thing.</p>
+
+              <div class="entry">
+                <h3 class="entry-h">I need the long way round before I can take the short one.</h3>
+                <p class="pass">A decision that looks impulsive from the outside has usually been turning over in the back of my mind for days — I just don&rsquo;t say it out loud until the shape has settled.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · May</p>
+              </div>
+              <div class="entry">
+                <h3 class="entry-h">Once something is named clearly, I move fast.</h3>
+                <p class="pass">The slow part is never the doing. It&rsquo;s the wait for the words to land in a way I trust.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p>
+              </div>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION IV — What Helps -->
+            <section class="sec">
+              <p class="sec-num"><span class="rule"></span>Layer Four</p>
+              <h2 class="sec-h">What Helps</h2>
+              <p class="sec-lede">The conditions and small moves that make things easier.</p>
+
+              <div class="entry">
+                <h3 class="entry-h">A little margin before people changes everything.</h3>
+                <p class="pass">Ten quiet minutes between the last thing and the first person, and I arrive as myself instead of as the residue of the work.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from the dishwasher conversation</p>
+              </div>
+              <div class="entry">
+                <h3 class="entry-h">Tell me the real thing directly.</h3>
+                <p class="pass">Indirectness reads to me as a puzzle I&rsquo;m failing, and I&rsquo;ll spend energy decoding tone that I could have spent on the thing itself. Plain and early beats gentle and late, every time.</p>
+                <p class="anno"><i class="ti ti-message-circle" aria-hidden="true"></i>Added from a conversation · June</p>
+              </div>
+            </section>
+
+            <div class="sec-div"><span class="ln"></span><span class="pip"></span><span class="ln"></span></div>
+
+            <!-- SECTION V — How I Show Up with People (empty / unwritten) -->
+            <section class="sec unwritten">
+              <p class="sec-num"><span class="rule"></span>Layer Five</p>
+              <h2 class="sec-h">How I Show Up with People</h2>
+              <p class="sec-lede">The gap between what I mean and what others see.</p>
+
+              <p class="unwritten-note">This chapter isn&rsquo;t written yet. It&rsquo;s the one about the distance between my intent and how I land — the part that&rsquo;s hardest to see from the inside, and usually worth the most once it&rsquo;s on the page.</p>
+              <button class="unwritten-start" data-goto="chat" data-chat="people">Begin this layer with Jove <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+            </section>
+
+          </div>
+
+          <!-- CLOSING / SHARE -->
+          <footer class="doc-foot">
+            <div class="foot-orn"><span class="ln"></span><i class="ti ti-asterisk" aria-hidden="true"></i><span class="ln"></span></div>
+            <p class="foot-line">Four chapters written, one still open. This is the version of you that you&rsquo;d actually want someone to read.</p>
+            <div class="foot-btns">
+              <button class="btn btn-primary btn-full"><i class="ti ti-send" aria-hidden="true"></i> Share this version</button>
+              <button class="btn btn-soft navy btn-full"><i class="ti ti-download" aria-hidden="true"></i> Export as a document</button>
+            </div>
+          </footer>
+
+        </article>
+      </section>
+
+      <!-- ──────────────────────────────────────────── -->
+      <!-- SCREEN — CHAT (context-swappable opening)      -->
+      <!-- ──────────────────────────────────────────── -->
+      <section class="screen" id="screen-chat" role="region" aria-label="Conversation with Jove">
+
+        <header class="apphdr">
+          <button class="chathdr-back" data-goto="home" aria-label="Back to home"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+          <div class="hdr-logo">
+            <span class="mark-chip"><img src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut logo"></span>
+            <span class="wm">mywalnut</span>
+          </div>
+          <span class="hdr-spacer"></span>
+        </header>
+        <div class="chat-sub" id="chat-ctx">Exploring a situation</div>
+
+        <div class="cv-body" id="chat-body" data-mode="situation">
+
+          <!-- SITUATION THREAD — shown from opener / Bring a situation -->
+          <div class="cv-u situation-only"><div class="cv-ub">I snapped at Sam again over something tiny. The dishwasher, of all things.</div></div>
+          <div class="cv-j situation-only"><p class="cv-jl">Jove</p><div class="cv-jb">The dishwasher is rarely about the dishwasher. What was the hour before you walked into that kitchen like?</div></div>
+          <div class="cv-u situation-only"><div class="cv-ub">Work ran way over. I hadn&rsquo;t had a single second to myself all day.</div></div>
+          <div class="cv-j situation-only"><div class="cv-jb">So you hit the kitchen with nothing left in reserve. The snap wasn&rsquo;t really aimed at Sam — it landed on the first quiet moment that had no margin in it.</div></div>
+
+          <!-- checkpoint (situation thread only) -->
+          <div class="cv-cp situation-only">
+            <div class="cv-cph">
+              <span class="cv-cpt"><i class="ti ti-notebook" aria-hidden="true"></i>For your manual?</span>
+              <span class="cv-cptag">&rarr; Some of My Patterns</span>
+            </div>
+            <p class="cv-cptx">There&rsquo;s a version of you that runs on no margin. The people closest to you tend to meet the version that&rsquo;s already past empty.</p>
+            <p class="cv-cpnote">In your words. You can edit it before it&rsquo;s saved.</p>
+            <div class="cv-cpb">
+              <button class="btn btn-primary" data-goto="read">Add to manual</button>
+              <button class="btn cv-ghost">Not quite</button>
+            </div>
+          </div>
+
+          <!-- LAYER-SCOPED OPENER — single Jove message, then awaits the user -->
+          <div class="cv-j layer-only"><p class="cv-jl">Jove</p><div class="cv-jb" id="chat-opener"></div></div>
+
+        </div>
+
+        <div class="cv-in">
+          <span class="cv-field" id="chat-field">Tell Jove what happened…</span>
+          <button class="cv-send" aria-label="Send message"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </section>
+
+      </div><!-- /.viewport -->
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- PERSISTENT LOW-PROFILE NAV (every screen)       -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="botbar">
+        <nav class="botnav" aria-label="Primary">
+          <button class="nav-i on" data-nav="home" data-goto="home" aria-label="Home"><i class="ti ti-home" aria-hidden="true"></i>Home</button>
+          <button class="nav-i" data-nav="manual" data-goto="read" aria-label="Manual"><i class="ti ti-book-2" aria-hidden="true"></i>Manual</button>
+          <button class="nav-i" data-nav="chat" data-goto="chat" data-chat="situation" aria-label="Talk"><i class="ti ti-message-2" aria-hidden="true"></i>Talk</button>
+          <button class="nav-i" data-nav="you" aria-label="You"><i class="ti ti-user" aria-hidden="true"></i>You</button>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var ids = ['home','read','chat'];
+      var screens = {};
+      ids.forEach(function(id){ screens[id] = document.getElementById('screen-' + id); });
+
+      // which nav tab lights up for a given screen
+      var navFor = { home:'home', read:'manual', chat:'chat' };
+
+      // layer-scoped Jove openers + context labels (verbatim copy)
+      var layers = {
+        strengths:{
+          ctx:'Your strengths',
+          opener:'Let’s add to your strengths. Tell me about a recent moment when something came easily to you that others seemed to find harder. What were you actually doing?'
+        },
+        patterns:{
+          ctx:'Your patterns',
+          opener:'Let’s look at a pattern. Think of something you’ve caught yourself doing more than once lately, even though it costs you. When did it last fire?'
+        },
+        process:{
+          ctx:'How you process things',
+          opener:'Let’s go deeper on how you process things. Walk me through how you worked out a recent decision — not the decision itself, the working-out.'
+        },
+        helps:{
+          ctx:'What helps you',
+          opener:'Let’s name what helps. Think of a recent day that went well. What was in place that day that often isn’t?'
+        },
+        people:{
+          ctx:'How you show up with people',
+          opener:'We haven’t looked at how you show up with people yet. Tell me about a recent interaction you kept turning over afterward. What happened?'
+        }
+      };
+
+      var chatBody   = document.getElementById('chat-body');
+      var chatCtx    = document.getElementById('chat-ctx');
+      var chatOpener = document.getElementById('chat-opener');
+      var chatField  = document.getElementById('chat-field');
+
+      // set the chat screen's opening content from context before showing it
+      function prepChat(mode){
+        if(mode && layers[mode]){
+          var L = layers[mode];
+          chatBody.setAttribute('data-mode','layer');
+          chatCtx.textContent = L.ctx;
+          chatOpener.textContent = L.opener;
+          chatField.textContent = 'Reply to Jove…';
+        } else {
+          // situation thread (opener / Bring a situation / Talk tab)
+          chatBody.setAttribute('data-mode','situation');
+          chatCtx.textContent = 'Exploring a situation';
+          chatField.textContent = 'Tell Jove what happened…';
+        }
+      }
+
+      function go(name, chatMode){
+        var target = screens[name];
+        if(!target) return;
+        if(name === 'chat') prepChat(chatMode);
+        ids.forEach(function(id){ screens[id].classList.remove('active'); });
+        target.classList.add('active');
+        target.scrollTop = 0;
+
+        // reflect current screen in the persistent nav
+        var active = navFor[name] || null;
+        document.querySelectorAll('.nav-i').forEach(function(el){
+          var isOn = el.getAttribute('data-nav') === active;
+          el.classList.toggle('on', isOn);
+          el.setAttribute('aria-current', isOn ? 'page' : 'false');
+        });
+      }
+
+      // wire every [data-goto] element
+      document.querySelectorAll('[data-goto]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          go(el.getAttribute('data-goto'), el.getAttribute('data-chat'));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

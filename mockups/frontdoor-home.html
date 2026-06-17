@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mywalnut — home (Calm-style)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --linen:#F4F1EA; --card:#FBF9F4; --ink:#1A1712; --soft:#463E32; --mid:#6E6557; --faint:#9C9486;
+    --hair:rgba(26,23,18,0.13); --hairs:rgba(26,23,18,0.07);
+    --brown:#6E4527; --brown-s:rgba(110,69,39,0.08); --brown-bd:rgba(110,69,39,0.24);
+    --navy:#21436B; --navy-s:rgba(33,67,107,0.08); --navy-bd:rgba(33,67,107,0.20);
+    --page:#E6E0D4;
+    --f-display:'Bricolage Grotesque',sans-serif;
+    --f-ui:'DM Sans',sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--f-ui);padding:40px 16px 60px;-webkit-font-smoothing:antialiased;}
+  .page-head{text-align:center;margin:0 auto 30px;}
+  .page-head h1{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:-.8px;margin:0 0 6px;}
+  .page-head .demo-tag{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--brown);border:1px solid var(--brown-bd);border-radius:999px;padding:5px 12px;margin-top:6px;}
+
+  .phone{width:404px;max-width:100%;margin:0 auto;background:var(--linen);border-radius:34px;border:1px solid var(--hair);box-shadow:0 28px 70px rgba(40,28,16,0.18);overflow:hidden;}
+  .ti{font-size:inherit;line-height:1;}
+
+  /* Header */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;}
+  .hdr-logo{display:flex;align-items:center;gap:9px;}
+  .hdr-logo .mark{width:27px;height:27px;display:block;}
+  .wm{font-family:var(--f-display);font-weight:800;font-size:18px;letter-spacing:-.4px;color:var(--ink);}
+  .hdr-ico{background:var(--brown-s);border:none;width:36px;height:36px;border-radius:50%;color:var(--brown);display:grid;place-items:center;font-size:18px;cursor:pointer;}
+
+  .home{padding:6px 16px 14px;}
+  .greet{font-family:var(--f-display);font-weight:700;font-size:25px;letter-spacing:-.6px;margin:8px 2px 2px;}
+  .greet-date{font-family:var(--f-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:0 2px 18px;}
+
+  /* Tiles */
+  .tile{background:var(--card);border:1px solid var(--hair);border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 6px 18px rgba(40,28,16,0.05);}
+  .eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:1.8px;text-transform:uppercase;font-weight:500;}
+  .e-brown{color:var(--brown);} .e-navy{color:var(--navy);}
+  .btn-primary{background:var(--brown);color:#FBF9F4;border:none;border-radius:12px;padding:13px 18px;font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--f-ui);}
+  .btn-ghost{background:transparent;border:1px solid var(--brown-bd);color:var(--brown);border-radius:12px;padding:12px 16px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--f-ui);}
+  .t-h3{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:-.4px;margin:0 0 6px;}
+  .t-p{font-size:13.5px;line-height:1.5;color:var(--mid);margin:0 0 16px;}
+
+  /* Hero tile */
+  .hero{position:relative;overflow:hidden;background:linear-gradient(152deg,#FBF6ED 0%,#F2E8D6 100%);border:1px solid var(--brown-bd);}
+  .hero-mark{position:absolute;right:-20px;bottom:-26px;width:130px;height:130px;opacity:.07;pointer-events:none;}
+  .hero-line{font-family:var(--f-serif);font-size:18px;line-height:1.4;color:var(--ink);margin:10px 0 16px;position:relative;}
+  .hero-row{display:flex;align-items:center;gap:14px;position:relative;}
+  .hero-new{font-size:13px;color:var(--brown);font-weight:600;cursor:pointer;}
+  .hero-status{display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:11.5px;color:var(--mid);margin-top:16px;padding-top:14px;border-top:1px solid var(--brown-bd);position:relative;}
+  .hero-status b{font-weight:600;color:var(--soft);}
+  .dot{color:var(--faint);}
+
+  /* Explore tile head */
+  .t-emblem{width:40px;height:40px;border-radius:12px;background:var(--brown-s);color:var(--brown);display:grid;place-items:center;font-size:20px;margin-bottom:13px;}
+
+  /* Manual tile */
+  .manual .t-headrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;}
+  .manual .link{font-family:var(--f-mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--navy);font-weight:500;}
+  .lrow{display:flex;align-items:center;gap:13px;padding:13px 0;border-top:1px solid var(--hairs);cursor:pointer;}
+  .lrow:first-of-type{border-top:1px solid var(--hair);margin-top:12px;}
+  .lemblem{width:38px;height:38px;border-radius:11px;background:var(--navy-s);color:var(--navy);display:grid;place-items:center;font-size:19px;flex-shrink:0;}
+  .lcol{flex:1;min-width:0;}
+  .lname{font-family:var(--f-display);font-weight:700;font-size:15.5px;color:var(--ink);letter-spacing:-.2px;line-height:1.15;}
+  .lmean{font-size:11.5px;color:var(--mid);margin-top:2px;line-height:1.3;}
+  .lcount{font-size:11.5px;color:var(--navy);font-weight:500;white-space:nowrap;}
+  .lcount.empty{color:var(--brown);}
+  .lchev{color:var(--faint);font-size:17px;}
+
+  /* Share tile */
+  .share{background:linear-gradient(152deg,#FBF7F0 0%,#F4ECDE 100%);border:1px solid var(--brown-bd);}
+
+  /* Bottom nav */
+  .botnav{display:flex;justify-content:space-around;align-items:center;padding:12px 0 15px;border-top:1px solid var(--hair);background:var(--card);}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--f-mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:500;}
+  .nav-i i{font-size:22px;} .nav-i.on{color:var(--brown);}
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>mywalnut — home</h1>
+    <span class="demo-tag">Standalone demo — not the app</span>
+  </div>
+
+  <div class="phone">
+    <!-- Header (logo) -->
+    <header class="hdr">
+      <div class="hdr-logo"><img class="mark" src="walnut-icon/walnut-brain-mark.svg" alt="mywalnut"><span class="wm">mywalnut</span></div>
+      <button class="hdr-ico" aria-label="Settings"><i class="ti ti-settings"></i></button>
+    </header>
+
+    <div class="home">
+      <p class="greet">Good evening, Jeff.</p>
+      <p class="greet-date">Tuesday · June 15</p>
+
+      <!-- Tile 1 — suggested CTA + where you're at -->
+      <section class="tile hero">
+        <img class="hero-mark" src="walnut-icon/walnut-brain-mark.svg" alt="">
+        <span class="eyebrow e-brown">Pick up where you left off</span>
+        <p class="hero-line">Last time, you were sitting with the moment you snapped at Sam over the dishwasher.</p>
+        <div class="hero-row">
+          <button class="btn-primary">Continue this thread <i class="ti ti-arrow-right"></i></button>
+          <span class="hero-new">Start fresh</span>
+        </div>
+        <div class="hero-status"><b>14 entries</b><span class="dot">·</span><span>4 of 5 layers touched</span><span class="dot">·</span><span>last session 3 days ago</span></div>
+      </section>
+
+      <!-- Tile 2 — explore a situation -->
+      <section class="tile">
+        <div class="t-emblem"><i class="ti ti-message-2"></i></div>
+        <h3 class="t-h3">Bring a situation</h3>
+        <p class="t-p">A conflict that keeps repeating, a reaction that surprised you, a win you can't explain. Talk it through and see what's underneath.</p>
+        <button class="btn-ghost">Explore a situation <i class="ti ti-arrow-right"></i></button>
+      </section>
+
+      <!-- Tile 3 — the Manual -->
+      <section class="tile manual">
+        <div class="t-headrow"><h3 class="t-h3">Your manual</h3><span class="link">14 entries</span></div>
+        <p class="t-p" style="margin-bottom:0">How you operate, in your own words. Open a layer to read it — or to build it.</p>
+
+        <div class="lrow"><div class="lemblem"><i class="ti ti-sparkles"></i></div><div class="lcol"><div class="lname">My Strengths</div><div class="lmean">What you're genuinely good at, named plainly.</div></div><span class="lcount">3 entries</span><i class="ti ti-chevron-right lchev"></i></div>
+        <div class="lrow"><div class="lemblem"><i class="ti ti-refresh"></i></div><div class="lcol"><div class="lname">Some of My Patterns</div><div class="lmean">Loops you repeat — and what they cost.</div></div><span class="lcount">5 entries</span><i class="ti ti-chevron-right lchev"></i></div>
+        <div class="lrow"><div class="lemblem"><i class="ti ti-bulb"></i></div><div class="lcol"><div class="lname">How I Process Things</div><div class="lmean">The way your mind actually works through things.</div></div><span class="lcount">2 entries</span><i class="ti ti-chevron-right lchev"></i></div>
+        <div class="lrow"><div class="lemblem"><i class="ti ti-anchor"></i></div><div class="lcol"><div class="lname">What Helps</div><div class="lmean">The conditions and moves that make things easier.</div></div><span class="lcount">4 entries</span><i class="ti ti-chevron-right lchev"></i></div>
+        <div class="lrow"><div class="lemblem"><i class="ti ti-users"></i></div><div class="lcol"><div class="lname">How I Show Up with People</div><div class="lmean">The gap between what you mean and what others see.</div></div><span class="lcount empty">Start</span><i class="ti ti-chevron-right lchev"></i></div>
+      </section>
+
+      <!-- Tile 4 — share -->
+      <section class="tile share">
+        <div class="t-emblem"><i class="ti ti-send"></i></div>
+        <h3 class="t-h3">Share how you work</h3>
+        <p class="t-p">Turn your manual into something you can hand to a partner, a friend, or a therapist — in words they can actually use.</p>
+        <button class="btn-ghost">Create a shareable version <i class="ti ti-arrow-right"></i></button>
+      </section>
+    </div>
+
+    <!-- Bottom navigation -->
+    <nav class="botnav">
+      <span class="nav-i on"><i class="ti ti-home"></i>Home</span>
+      <span class="nav-i"><i class="ti ti-book-2"></i>Manual</span>
+      <span class="nav-i"><i class="ti ti-user"></i>You</span>
+    </nav>
+  </div>
+</body>
+</html>
