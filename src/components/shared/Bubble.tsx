@@ -37,8 +37,9 @@ export default function Bubble({ speaker, children, showLabel = false }: BubbleP
         padding: "12px 20px 14px",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
-        // Jove carries a thin brass top-rule in light (--session-jove-rule
-        // is transparent in dark, so dark is unchanged).
+        // Jove bubble top-rule: --session-jove-rule is transparent in BOTH
+        // themes since the front-door redesign, so this inset renders nothing.
+        // Kept as a no-op seam in case a rule is ever reintroduced.
         boxShadow: isJove
           ? "inset 0 2px 0 var(--session-jove-rule), var(--session-bubble-shadow)"
           : "var(--session-bubble-shadow)",

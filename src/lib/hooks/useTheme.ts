@@ -40,7 +40,7 @@ function systemPrefersLight(): boolean {
 function applyTheme(resolved: ResolvedTheme) {
   if (typeof document === "undefined") return;
   document.documentElement.setAttribute("data-theme", resolved);
-  const color = resolved === "light" ? "#E8E6DF" : "#0A0B10";
+  const color = resolved === "light" ? "#E6E0D4" : "#0A0B10";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     meta.setAttribute("content", color);

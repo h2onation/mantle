@@ -100,7 +100,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
         <div style={{ padding: "var(--sp-lg) 20px 0" }}>
           <h1
             style={{
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontFamily: "var(--font-display), var(--font-serif), serif",
               fontSize: 30,
               fontWeight: 500,
               color: "var(--session-ink)",

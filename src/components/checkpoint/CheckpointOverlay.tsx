@@ -283,7 +283,7 @@ export default function CheckpointOverlay({
               style={{
                 margin: "16px auto 0",
                 maxWidth: "20ch",
-                fontFamily: "var(--font-serif), Georgia, serif",
+                fontFamily: "var(--font-display), var(--font-serif), Georgia, serif",
                 fontSize: 30,
                 fontWeight: 400,
                 lineHeight: 1.12,
@@ -577,7 +577,7 @@ export default function CheckpointOverlay({
         >
           <span
             style={{
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
+              fontFamily: "var(--font-display), var(--font-serif), serif",
               fontSize: 28,
               color: "var(--session-walnut)",
               marginBottom: 14,

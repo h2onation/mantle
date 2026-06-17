@@ -69,7 +69,7 @@ export default function TopBar({ onBack, onMenu }: TopBarProps) {
       <span
         className="mw-topbar-wordmark"
         style={{
-          fontFamily: "var(--font-serif)",
+          fontFamily: "var(--font-display), var(--font-serif)",
           fontSize: "16px",
           fontWeight: 400,
           letterSpacing: "-0.3px",

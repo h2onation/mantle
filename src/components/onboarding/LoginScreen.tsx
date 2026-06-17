@@ -203,7 +203,7 @@ export default function LoginScreen({ onBack, initialMode = "login", showTopBar 
               <h1
                 style={{
                   margin: "8px 0 0",
-                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontFamily: "var(--font-display), var(--font-serif), serif",
                   fontSize: 32,
                   fontWeight: 500,
                   letterSpacing: "-0.5px",

@@ -48,7 +48,7 @@ export default function MobileCrisis({ onNavigateToSession, onOpenDrawer, showTo
         <h1
           style={{
             margin: "10px 0 0",
-            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontFamily: "var(--font-display), var(--font-serif), serif",
             fontSize: 32,
             fontWeight: 400,
             color: "var(--session-ink)",
