@@ -10,67 +10,45 @@ describe("PR3 onboarding copy pass", () => {
   // EntryScreen was deleted 2026-06-10: /login now renders LoginScreen
   // directly. The marketing landing at / owns the brand moment.
 
-  // ─── InfoScreens ─────────────────────────────────────────────────────────
-  describe("InfoScreens", () => {
-    const src = read("src/components/onboarding/InfoScreens.tsx");
-
-    it("contains the disclaimer prose", () => {
-      expect(src).toContain("{PERSONA_NAME} is a careful, direct companion.");
-      expect(src).toContain("helps you notice patterns in how you work");
-      expect(src).toContain("the things you confirm become entries in your Manual");
-      expect(src).toContain("isn&rsquo;t therapy");
-      expect(src).toContain("Crisis Support");
-    });
-
-    it("uses 'Before you begin' eyebrow", () => {
-      expect(src).toContain("Before you begin");
-    });
-
-    it("uses 'What this is, and isn't' heading with walnut period", () => {
-      expect(src).toContain("What this is, and isn&rsquo;t");
-      expect(src).toContain("var(--session-walnut)");
-    });
-
-    it("does NOT contain the old 'finds the pattern underneath' headline", () => {
-      expect(src).not.toContain("finds the pattern underneath");
-    });
-
-    it("does NOT contain the old 4-paragraph body copy", () => {
-      expect(src).not.toContain("You&rsquo;ll build a manual.");
-      expect(src).not.toContain("You build it by talking to {PERSONA_NAME}.");
-      expect(src).not.toContain("Your manual is yours.");
-    });
-  });
-
-  // ─── SeedScreen ──────────────────────────────────────────────────────────
+  // ─── SeedScreen (merged consent screen) ──────────────────────────────────
+  // 2026-06-17: InfoScreens + PersonaModeScreen were folded away (onboarding
+  // collapsed to one post-login screen). SeedScreen now carries the
+  // proposition, affirmative provenance, the single clinical boundary, the
+  // crisis pointer, and the age gate.
   describe("SeedScreen", () => {
     const src = read("src/components/onboarding/SeedScreen.tsx");
 
-    it("contains the affirmative trust + provenance beats", () => {
+    it("contains the merged trust + proposition beats", () => {
       expect(src).toContain("{PERSONA_NAME} is AI.");
-      expect(src).toContain("You&rsquo;re the authority on how you work.");
-      expect(src).toContain("It works from what you actually say, in your own words");
-      expect(src).toContain("It&rsquo;s not here to fix you.");
+      expect(src).toContain("notice patterns in how you work");
+      expect(src).toContain("from what you actually say, in your own words");
+      expect(src).toContain("things you confirm become entries in your Manual");
+      expect(src).toContain("You&rsquo;re the authority on how you work");
+      expect(src).toContain("isn&rsquo;t here to fix you");
       expect(src).toContain("Short answers are fine.");
       expect(src).toContain("Leave and come back whenever.");
     });
 
-    it("does NOT contain the old framework-pointer or the no-diagnosis negation in the trust paragraph", () => {
+    it("uses the 'What this is, and isn't' heading with walnut period", () => {
+      expect(src).toContain("What this is, and isn&rsquo;t");
+      expect(src).toContain("var(--session-walnut)");
+    });
+
+    it("states the clinical boundary once, with the crisis pointer", () => {
+      expect(src).toContain("This isn&rsquo;t therapy, and {PERSONA_NAME} isn&rsquo;t a clinician.");
+      expect(src).toContain("not a replacement");
+      expect(src).toContain("Crisis Support is one tap away");
+    });
+
+    it("does NOT contain the old framework-pointer, standalone no-diagnosis line, or negation", () => {
       expect(src).not.toContain("surfaces patterns using psychological frameworks");
+      expect(src).not.toContain("doesn&rsquo;t diagnose or treat");
       expect(src).not.toContain("It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work.");
-      expect(src).not.toContain("identifies patterns using published frameworks");
-      expect(src).not.toContain("You can leave and come back whenever.");
     });
 
     it("uses 'I'm 18 or older' (not 'I am')", () => {
       expect(src).toContain("I&rsquo;m 18 or older");
       expect(src).not.toContain("I am 18 or older");
-    });
-
-    it("states the no-diagnosis disclaimer in the compliance paragraph", () => {
-      expect(src).toContain("{PERSONA_NAME} doesn&rsquo;t diagnose or treat.");
-      expect(src).toContain("complement to therapy");
-      expect(src).toContain("not a replacement for professional support");
     });
 
     it("does NOT set dead localStorage keys", () => {
@@ -81,10 +59,6 @@ describe("PR3 onboarding copy pass", () => {
     it("clears first-session flags before creating a fresh anonymous user", () => {
       expect(src).toContain('removeItem("mw_first_session_completed")');
       expect(src).toContain('removeItem("mw_signin_banner_dismissed")');
-    });
-
-    it("does NOT contain old 'works best when' headline", () => {
-      expect(src).not.toContain("works best when you");
     });
   });
 
