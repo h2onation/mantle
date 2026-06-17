@@ -119,7 +119,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
           }}
         >
           <p style={{ margin: "0 0 14px 0" }}>
-            {PERSONA_NAME} is AI. It surfaces patterns using psychological frameworks. It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work. You&rsquo;re the authority on your own experience.
+            {PERSONA_NAME} is AI. You&rsquo;re the authority on how you work. It works from what you actually say, in your own words, and helps you put it into language. It&rsquo;s not here to fix you.
           </p>
           <p style={{ margin: 0 }}>
             Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. Leave and come back whenever.
@@ -193,7 +193,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             margin: "0 0 18px 0",
           }}
         >
-          {PERSONA_NAME} is a great complement to therapy, coaching, or any work you&rsquo;re already doing on yourself. It&rsquo;s not a replacement for professional support.
+          {PERSONA_NAME} doesn&rsquo;t diagnose or treat. It&rsquo;s a complement to therapy, coaching, or any work you&rsquo;re already doing, not a replacement for professional support.
         </p>
 
         {/* Error message */}

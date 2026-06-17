@@ -46,15 +46,18 @@ describe("PR3 onboarding copy pass", () => {
   describe("SeedScreen", () => {
     const src = read("src/components/onboarding/SeedScreen.tsx");
 
-    it("contains the 2 new body beats", () => {
-      expect(src).toContain("{PERSONA_NAME} is AI. It surfaces patterns using psychological frameworks.");
-      expect(src).toContain("It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work.");
-      expect(src).toContain("You&rsquo;re the authority on your own experience.");
+    it("contains the affirmative trust + provenance beats", () => {
+      expect(src).toContain("{PERSONA_NAME} is AI.");
+      expect(src).toContain("You&rsquo;re the authority on how you work.");
+      expect(src).toContain("It works from what you actually say, in your own words");
+      expect(src).toContain("It&rsquo;s not here to fix you.");
       expect(src).toContain("Short answers are fine.");
       expect(src).toContain("Leave and come back whenever.");
     });
 
-    it("does NOT contain the old 3-paragraph body copy", () => {
+    it("does NOT contain the old framework-pointer or the no-diagnosis negation in the trust paragraph", () => {
+      expect(src).not.toContain("surfaces patterns using psychological frameworks");
+      expect(src).not.toContain("It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work.");
       expect(src).not.toContain("identifies patterns using published frameworks");
       expect(src).not.toContain("You can leave and come back whenever.");
     });
@@ -64,8 +67,10 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("I am 18 or older");
     });
 
-    it("uses new disclaimer about complement to therapy", () => {
-      expect(src).toContain("{PERSONA_NAME} is a great complement to therapy");
+    it("states the no-diagnosis disclaimer in the compliance paragraph", () => {
+      expect(src).toContain("{PERSONA_NAME} doesn&rsquo;t diagnose or treat.");
+      expect(src).toContain("complement to therapy");
+      expect(src).toContain("not a replacement for professional support");
     });
 
     it("does NOT set dead localStorage keys", () => {
