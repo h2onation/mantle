@@ -20,6 +20,12 @@ import { trackManualViewed } from "@/lib/analytics/events";
 
 const MANUAL_LAST_VIEW_KEY = "mw_last_manual_view";
 
+// Phase 3 landing flag. true = returning users land on Home; false restores
+// the pre-redesign behavior of auto-resuming into the conversation on open.
+// The one-line revert for the migration's riskiest change (the landing
+// control-flow inversion).
+const LAND_ON_HOME = true;
+
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
 type OnboardingStatus = "loading" | "needed" | "complete";
 
@@ -165,6 +171,7 @@ export default function MainApp() {
     confirmedEntries,
     firstName,
     initialized,
+    isNewUser,
     userEmail,
     errorMessage,
     draftToRestore,
@@ -195,6 +202,30 @@ export default function MainApp() {
   useEffect(() => {
     if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
+
+  // Landing decision (Phase 3). Returning users land on Home; first-run
+  // users, anyone with a pending checkpoint, and anyone whose restored
+  // thread is still streaming its opener drop straight into the conversation
+  // (activeView stays "session"). Runs once, after useChat finishes init.
+  const landingDecided = useRef(false);
+  useEffect(() => {
+    if (!initialized || landingDecided.current) return;
+    landingDecided.current = true;
+    if (!LAND_ON_HOME) return;
+    // First-run = the account has no prior conversations (isNewUser). We do
+    // NOT gate on firstSessionCompleted — that's a browser-local localStorage
+    // flag, so a returning user on a fresh browser would be misread as new.
+    // The "started a thread but never replied" case is caught by the
+    // opener-streaming guard below, not here.
+    const firstRun = isNewUser;
+    const midCheckpoint = activeCheckpoint !== null;
+    const openerStreaming = conversationId !== null && messages.length === 0;
+    if (!firstRun && !midCheckpoint && !openerStreaming) {
+      setActiveView("home");
+    }
+    // One-shot snapshot at init; deps intentionally minimal so it never re-fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized]);
 
   // Fire manual_viewed when the user lands on the manual tab. Days-since
   // is a rough retention signal computed from a localStorage timestamp —
@@ -454,8 +485,10 @@ export default function MainApp() {
       firstName={firstName}
       conversations={conversations}
       activeConversationId={conversationId}
+      entries={confirmedEntries}
       onSelectSession={handleSelectSession}
       onBringSituation={handleBringSituation}
+      onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       showTopBar={!isDesktop}
     />

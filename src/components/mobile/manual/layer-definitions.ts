@@ -13,6 +13,7 @@ export interface Layer {
   id: number;
   name: string;
   about: string;
+  tagline: string;
   entries: Entry[];
   isNew?: boolean;
 }
@@ -24,6 +25,7 @@ const LAYER_DEFINITIONS: Omit<Layer, "entries">[] = LAYERS.map((l) => ({
   id: l.id,
   name: l.name,
   about: l.description,
+  tagline: l.tagline,
 }));
 
 export function buildLayers(entries: ManualEntry[]): Layer[] {

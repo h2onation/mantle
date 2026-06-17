@@ -21,6 +21,9 @@ export interface LayerDefinition {
   name: string;
   /** Short description for UI tiles and prompt context. */
   description: string;
+  /** One-line gloss for compact UI (e.g. the Home layer index). Second
+   *  person, punchier than `description`. */
+  tagline: string;
   /** Dimensions the extraction layer tracks for this section. */
   dimensions: string[];
   /** One illustrative phrase per section, used in extraction prompt examples. */
@@ -34,6 +37,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     name: "My Strengths",
     description:
       "Understand the traits that make you exceptional and the environments that bring them out.",
+    tagline: "What you're genuinely good at, named plainly.",
     dimensions: [
       "hyperfocus",
       "pattern recognition",
@@ -51,6 +55,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     name: "Some of My Patterns",
     description:
       "What behavior means when you can't explain it in the moment. Silence, freezing, shutdown, masking — the signals other people misread.",
+    tagline: "Loops you repeat — and what they cost.",
     dimensions: [
       "masking signals",
       "shutdown triggers",
@@ -66,6 +71,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     name: "How I Process Things",
     description:
       "Sensory experience, how change lands, how information gets taken in, what overload looks and feels like.",
+    tagline: "The way your mind actually works through things.",
     dimensions: [
       "sensory sensitivities",
       "processing speed",
@@ -82,6 +88,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     name: "What Helps",
     description:
       "What you need to function. Alone time, routine, environment, recovery, structure. Why these are non-negotiable, not preferences.",
+    tagline: "The conditions and moves that make things easier.",
     dimensions: [
       "non-negotiable needs",
       "environment requirements",
@@ -97,6 +104,7 @@ export const LAYERS: readonly LayerDefinition[] = [
     name: "How I Show Up with People",
     description:
       "How you connect, handle conflict, show care. What withdrawal and closeness actually look like from your side.",
+    tagline: "The gap between what you mean and what others see.",
     dimensions: [
       "connection style",
       "conflict processing",
