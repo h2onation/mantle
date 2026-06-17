@@ -820,7 +820,10 @@ export function validateComposedEntry(
   const warnings: string[] = [];
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
-  if (wordCount < 80) warnings.push(`entry too short: ${wordCount}/80`);
+  // Floor removed 2026-06-16: the body is now title-earns-depth, focus-bounded,
+  // not length-bounded — a good lean entry can land under 80 words, so the old
+  // "too short" floor would log false warnings. Keep the ceiling to flag genuine
+  // sprawl (the 190-word wall) and act as the body's drift-detector in soak.
   if (wordCount > 150) warnings.push(`entry too long: ${wordCount}/150`);
 
   const hasSomaticAnchor = SOMATIC_WORD_PATTERNS.some((re) => re.test(content));

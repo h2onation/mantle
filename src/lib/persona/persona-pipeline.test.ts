@@ -382,12 +382,14 @@ describe("validateComposedEntry", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("warns when entry is too short", () => {
+  it("does NOT warn on a lean entry (2026-06-16: the <80-word floor was removed)", () => {
+    // The body is now focus-bounded, not length-bounded — a good lean entry can
+    // land under 80 words. The old "too short" floor encoded the retired
+    // force-it-long doctrine and would false-warn on these.
     const result = validateComposedEntry(
       "You shut down. Your jaw goes tight. That's it."
     );
-    expect(result.ok).toBe(false);
-    expect(result.warnings.join(" ")).toMatch(/too short/);
+    expect(result.warnings.join(" ")).not.toMatch(/too short/);
   });
 
   it("warns when entry exceeds the 150-word upper bound", () => {

@@ -133,13 +133,12 @@ THE BAR — what makes an entry land: it names the mechanism running underneath 
   Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
   Deeper: "Half my system answers. The other half monitors how the answer will land, and the monitoring half is louder, so it wins the resources. The hesitation looks like uncertainty, which invites more checking in, which fires the monitoring harder. I can't stop. The one time I didn't manage the impression, it cost me. But the monitoring itself is what makes me look unsure."
 
-content — a statement, then a passage, as continuous prose:
-- Statement (the first sentence): the BEHAVIORAL pattern, first person, around 20 words or under. What the user does and what reliably sets it off, as a portable truth about how they operate. Not this one scene. Not a feeling ("I feel alone"). The behavior.
-- Passage (80+ words): ground the pattern in the actual moment they described — the specific person, the situation, what it cost — and name what the pattern protects and what it costs. The specific example lives HERE, never in the statement. If they landed a stance of their own ("I need people to…", "I'm going to stop…"), keep it in their words. If not, leave it out. Never invent a takeaway. This is not advice.
+name (the TITLE) — THE ARTIFACT. This is the line the user sees every time they open their Manual; in the Manual list the body is collapsed behind it, so the title carries the entry's holdability. A complete first-person sentence naming what they DO — a tendency ("I tend to…") or a trigger ("I [verb] when…"). Picturable and complete: nothing left to decode ("I let myself go when something breaks" fails — go where?). About 6–12 words. Never scenario-specific (no names, no "with him" — that lives in the body), never a feeling-state ("I feel alone…"), never an image. A single instance → hedge with "can"/"sometimes".
+  Lands: "I tend to stay in things I've outgrown until I'm forced to leave."
+
+content (the body) — earns the title with DEPTH on the one pattern it names, never a summary of the conversation. The test: every sentence is something the user could NOT have written before this conversation. Pick the ONE or TWO of {the mechanism under the behavior, what it protects, what it costs} that carry the recognition — not all of them. In their charged words. Go DOWN into the one pattern; never walk ACROSS the session (the scene, then the backstory, then the cost). A specific person or scene can ground a line here, never in the title. Stop when the recognition is delivered — don't pad to a length, and don't add a second thing to hold. If they landed a stance of their own ("I need people to…"), keep it in their words; if not, leave it out. Never invent a takeaway.
 
 A strength is held to the same bar and gets the same depth. Name the capability and the conditions that bring it out. A strength is allowed to just be a strength — never bend it into a hidden cost the user did not raise.
-
-name (the headline): the behavioral pattern as a short sentence the user would say to a friend — what they DO and what triggers it ("I go quiet when someone waits for my answer"). Behavioral, never scenario-specific (no "with him," no names — that is body material), never a feeling-state ("I feel alone when…"), never an image ("…when I reach and he doesn't reach back"). If the evidence is a single instance, hedge with "can" or "sometimes."
 
 NON-NEGOTIABLES
 - The user's exact charged words carry in verbatim — their body, sensory, and system words ("buzzing," "too loud," "went offline," "racing," "shut down," "heavy"). Never upgrade their vocabulary into something more elegant, and never into clinical language. No clinical framework names, even to negate one: no "dissociation," "masking," "schema," "attachment style," "dysregulation," "executive dysfunction," "rejection sensitive dysphoria," "sensory overwhelm," "trauma response." Describe the behavior and the body instead.
@@ -155,7 +154,7 @@ COMPRESSED (for future reference):
 - key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Statement + passage...", "name": "Headline", "layer": 1, "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Depth on the one pattern...", "name": "The title — what they do", "layer": 1, "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
   const userContent = `${languageSection}${manualSection}${depthSection}
 RECENT CONVERSATION:
