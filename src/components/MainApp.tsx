@@ -12,7 +12,7 @@ import MobileSession from "@/components/mobile/MobileSession";
 import MobileManual from "@/components/mobile/MobileManual";
 import MobileSettings from "@/components/mobile/MobileSettings";
 import MobileCrisis from "@/components/mobile/MobileCrisis";
-import SessionDrawer from "@/components/mobile/SessionDrawer";
+import MobileHome from "@/components/mobile/MobileHome";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
@@ -30,7 +30,6 @@ function sleep(ms: number) {
 export default function MainApp() {
   const isDesktop = useIsDesktop();
   const [activeView, setActiveView] = useState<MobileView>("session");
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
@@ -294,53 +293,26 @@ export default function MainApp() {
     };
   }, [loadManual, handleSimulationEvent]);
 
-  const handleOpenDrawer = useCallback(async () => {
-    setDrawerOpen(true);
-    await refreshConversations();
-  }, [refreshConversations]);
+  // Bottom-nav navigation. Landing on Home refreshes the conversation
+  // list the way opening the drawer used to.
+  const handleNavigate = useCallback(
+    (view: MobileView) => {
+      setActiveView(view);
+      if (view === "home") void refreshConversations();
+    },
+    // refreshConversations gets a fresh identity each render (see the
+    // desktop refresh effect below); depending on it would rebuild this
+    // every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
-  // Swipe-from-left-edge to open the drawer. Standard mobile gesture —
-  // touchstart within 24px of the left edge, then a horizontal swipe of
-  // 60px+ that's clearly horizontal (dx > 1.5 * dy) opens the drawer.
-  // Only active when the drawer is closed; doesn't fight scrolling.
-  useEffect(() => {
-    if (drawerOpen || isDesktop) return;
-    let startX = 0;
-    let startY = 0;
-    let armed = false;
-    function onStart(e: TouchEvent) {
-      const t = e.touches[0];
-      if (!t || t.clientX > 24) return;
-      startX = t.clientX;
-      startY = t.clientY;
-      armed = true;
-    }
-    function onMove(e: TouchEvent) {
-      if (!armed) return;
-      const t = e.touches[0];
-      if (!t) return;
-      const dx = t.clientX - startX;
-      const dy = Math.abs(t.clientY - startY);
-      if (dx > 60 && dx > dy * 1.5) {
-        armed = false;
-        handleOpenDrawer();
-      } else if (dy > 30) {
-        // Vertical scroll wins — disarm so we don't fire mid-scroll.
-        armed = false;
-      }
-    }
-    function onEnd() {
-      armed = false;
-    }
-    document.addEventListener("touchstart", onStart, { passive: true });
-    document.addEventListener("touchmove", onMove, { passive: true });
-    document.addEventListener("touchend", onEnd, { passive: true });
-    return () => {
-      document.removeEventListener("touchstart", onStart);
-      document.removeEventListener("touchmove", onMove);
-      document.removeEventListener("touchend", onEnd);
-    };
-  }, [drawerOpen, handleOpenDrawer, isDesktop]);
+  // Home's "Bring a situation" — start a fresh situation conversation
+  // and drop the user into it.
+  const handleBringSituation = useCallback(() => {
+    setActiveView("session");
+    void startConversation("situation");
+  }, [startConversation]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
@@ -352,10 +324,10 @@ export default function MainApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop]);
 
-  // Desktop: picking a session always lands on the conversation view;
-  // picking the already-active session is "back to the conversation"
-  // and shouldn't reload anything.
-  const handleSelectSessionDesktop = useCallback(
+  // Picking a session (from Home's recent list or the desktop sidebar)
+  // lands on the conversation view; re-picking the active session is
+  // "back to the conversation" and shouldn't reload anything.
+  const handleSelectSession = useCallback(
     (id: string) => {
       setActiveView("session");
       if (id !== conversationId) switchConversation(id);
@@ -447,7 +419,6 @@ export default function MainApp() {
       hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
       concreteExamples={concreteExamples}
       firstName={firstName}
-      onOpenDrawer={handleOpenDrawer}
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
       showTopBar={!isDesktop}
@@ -459,8 +430,6 @@ export default function MainApp() {
       firstName={firstName}
       onExploreWithPersona={handleExploreWithPersona}
       onUpdateEntry={updateEntry}
-      onNavigateToSession={() => setActiveView("session")}
-      onOpenDrawer={handleOpenDrawer}
       showTopBar={!isDesktop}
     />
   );
@@ -470,15 +439,24 @@ export default function MainApp() {
       isActive={activeView === "settings"}
       onSimulationEvent={handleSimulationEvent}
       onPopulateComplete={loadManual}
-      onOpenDrawer={handleOpenDrawer}
-      onNavigateToSession={() => setActiveView("session")}
+      onNavigateToCrisis={handleNavigateToCrisis}
       showTopBar={!isDesktop}
     />
   );
   const crisisContent = (
     <MobileCrisis
       onNavigateToSession={() => setActiveView("session")}
-      onOpenDrawer={handleOpenDrawer}
+      showTopBar={!isDesktop}
+    />
+  );
+  const homeContent = (
+    <MobileHome
+      firstName={firstName}
+      conversations={conversations}
+      activeConversationId={conversationId}
+      onSelectSession={handleSelectSession}
+      onBringSituation={handleBringSituation}
+      onNavigateToManual={handleNavigateToManual}
       showTopBar={!isDesktop}
     />
   );
@@ -495,7 +473,7 @@ export default function MainApp() {
     <>
       {isDesktop ? (
         <DesktopShell
-          activeView={activeView}
+          activeView={activeView === "home" ? "session" : activeView}
           hasActiveCheckpoint={activeCheckpoint !== null}
           sessionContent={sessionContent}
           manualContent={manualContent}
@@ -506,7 +484,7 @@ export default function MainApp() {
           conversations={conversations}
           activeConversationId={conversationId}
           manualEntryCount={confirmedEntries.length}
-          onSelectSession={handleSelectSessionDesktop}
+          onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
           onNavigateToSession={() => setActiveView("session")}
           onNavigateToManual={handleNavigateToManual}
@@ -517,27 +495,13 @@ export default function MainApp() {
       ) : (
         <MobileLayout
           activeView={activeView}
+          onNavigate={handleNavigate}
           hasActiveCheckpoint={activeCheckpoint !== null}
+          homeContent={homeContent}
           sessionContent={sessionContent}
           manualContent={manualContent}
           settingsContent={settingsContent}
           crisisContent={crisisContent}
-          overlay={
-            <SessionDrawer
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              conversations={conversations}
-              activeConversationId={conversationId}
-              activeView={activeView}
-              manualEntryCount={confirmedEntries.length}
-              onSelectSession={switchConversation}
-              onNewSession={handleNewSession}
-              onNavigateToManual={handleNavigateToManual}
-              onNavigateToSettings={handleNavigateToSettings}
-              onNavigateToCrisis={handleNavigateToCrisis}
-              onLogout={handleLogout}
-            />
-          }
         />
       )}
 

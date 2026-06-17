@@ -2,7 +2,6 @@
 
 interface TopBarProps {
   onBack?: () => void;
-  onMenu?: () => void;
 }
 
 const CIRCLE_BTN_STYLE: React.CSSProperties = {
@@ -26,33 +25,21 @@ const CIRCLE_BTN_STYLE: React.CSSProperties = {
 
 const SPACER_STYLE: React.CSSProperties = { width: 38, height: 38, flexShrink: 0 };
 
-// Left slot hosts the back chevron when present (returning to chat from
-// a sub-view), right slot hosts the menu glyph. When only one is passed,
-// it occupies the left slot — preserves the chat surface's single-button
-// layout. When both are passed, back goes left + menu goes right, the
-// standard iOS sub-view pattern.
-export default function TopBar({ onBack, onMenu }: TopBarProps) {
-  const showBoth = !!onBack && !!onMenu;
-
+// Left slot hosts the back chevron when present (returning from a true
+// drill-down, e.g. Crisis). Primary tabs pass nothing — the persistent
+// bottom nav is the way around — so both slots are spacers and the
+// wordmark sits centered. (The slide-out drawer + its menu glyph were
+// retired with the bottom nav.)
+export default function TopBar({ onBack }: TopBarProps) {
   const leftButton = onBack ? (
-    <button onClick={onBack} aria-label="Back to chat" style={CIRCLE_BTN_STYLE}>
+    <button onClick={onBack} aria-label="Back" style={CIRCLE_BTN_STYLE}>
       ‹
     </button>
-  ) : onMenu ? (
-    <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
-      ⋯
-    </button>
   ) : (
     <span aria-hidden="true" style={SPACER_STYLE} />
   );
 
-  const rightButton = showBoth ? (
-    <button onClick={onMenu} aria-label="Open menu" style={CIRCLE_BTN_STYLE}>
-      ⋯
-    </button>
-  ) : (
-    <span aria-hidden="true" style={SPACER_STYLE} />
-  );
+  const rightButton = <span aria-hidden="true" style={SPACER_STYLE} />;
 
   return (
     <div

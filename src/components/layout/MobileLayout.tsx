@@ -2,25 +2,22 @@
 
 import DesktopVitrine from "./DesktopVitrine";
 import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
+import BottomNav from "@/components/shared/BottomNav";
 
-export type MobileView = "session" | "manual" | "settings" | "crisis";
+export type MobileView = "session" | "manual" | "settings" | "crisis" | "home";
 
 interface MobileLayoutProps {
+  homeContent: React.ReactNode;
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
   settingsContent: React.ReactNode;
   crisisContent: React.ReactNode;
   activeView: MobileView;
+  onNavigate: (view: MobileView) => void;
   // When true and the active view is "session", swap the panel gradient
   // from --session-bg-chat to --session-bg-checkpoint. The checkpoint
-  // stack centers walnut warmth at the top instead of the bottom-right,
-  // matching the demo's "3 · Checkpoint" surface.
+  // stack centers warmth at the top instead of the bottom-right.
   hasActiveCheckpoint?: boolean;
-  // Overlays that should be scoped to the phone frame on desktop (e.g.
-  // SessionDrawer). Rendered as a sibling of the view panels inside the
-  // DesktopVitrine so position: absolute children are clipped by the
-  // phone frame's rounded corners and overflow: hidden.
-  overlay?: React.ReactNode;
 }
 
 // Shared with DesktopShell so both shells light the room identically.
@@ -30,6 +27,9 @@ export function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): st
       ? "var(--session-bg-checkpoint)"
       : "var(--session-bg-chat)";
   }
+  if (view === "home") {
+    return "var(--session-bg-welcome)";
+  }
   if (view === "manual" || view === "settings" || view === "crisis") {
     return "var(--session-bg-manual)";
   }
@@ -37,13 +37,14 @@ export function gradientFor(view: MobileView, hasActiveCheckpoint?: boolean): st
 }
 
 export default function MobileLayout({
+  homeContent,
   sessionContent,
   manualContent,
   settingsContent,
   crisisContent,
   activeView,
+  onNavigate,
   hasActiveCheckpoint,
-  overlay,
 }: MobileLayoutProps) {
   return (
     <DesktopVitrine>
@@ -51,37 +52,41 @@ export default function MobileLayout({
         style={{
           position: "absolute",
           inset: 0,
+          display: "flex",
+          flexDirection: "column",
           backgroundColor: "var(--session-linen)",
         }}
       >
-        {([
-          ["session", sessionContent, "session-panel"],
-          ["manual", manualContent, "manual-panel"],
-          ["settings", settingsContent, "settings-panel"],
-          ["crisis", crisisContent, "crisis-panel"],
-        ] as const).map(([view, content, panelId]) => (
-          <div
-            key={view}
-            id={panelId}
-            hidden={activeView !== view}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              overflowX: "hidden",
-              display: activeView === view ? "block" : "none",
-              backgroundColor: "var(--session-linen)",
-              backgroundImage: gradientFor(view, hasActiveCheckpoint),
-              transition: "background-image 0.3s ease",
-            }}
-          >
-            {content}
-          </div>
-        ))}
-        {activeView === "session" && <BetaFeedbackButton />}
-        {overlay}
+        {/* View panels fill the space above the persistent bottom nav. */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          {([
+            ["home", homeContent, "home-panel"],
+            ["session", sessionContent, "session-panel"],
+            ["manual", manualContent, "manual-panel"],
+            ["settings", settingsContent, "settings-panel"],
+            ["crisis", crisisContent, "crisis-panel"],
+          ] as const).map(([view, content, panelId]) => (
+            <div
+              key={view}
+              id={panelId}
+              hidden={activeView !== view}
+              style={{
+                position: "absolute",
+                inset: 0,
+                overflowX: "hidden",
+                display: activeView === view ? "block" : "none",
+                backgroundColor: "var(--session-linen)",
+                backgroundImage: gradientFor(view, hasActiveCheckpoint),
+                transition: "background-image 0.3s ease",
+              }}
+            >
+              {content}
+            </div>
+          ))}
+          {activeView === "session" && <BetaFeedbackButton />}
+        </div>
+
+        <BottomNav activeView={activeView} onNavigate={onNavigate} />
       </div>
     </DesktopVitrine>
   );

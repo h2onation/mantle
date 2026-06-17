@@ -23,10 +23,9 @@ interface MobileSettingsProps {
   isActive?: boolean;
   onSimulationEvent?: (type: "start" | "turn" | "checkpoint", conversationId: string) => void;
   onPopulateComplete?: () => void;
-  onOpenDrawer?: () => void;
+  onNavigateToCrisis?: () => void;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
-  onNavigateToSession?: () => void;
 }
 
 function SectionHeader({
@@ -66,9 +65,8 @@ export default function MobileSettings({
   isActive = false,
   onSimulationEvent,
   onPopulateComplete,
-  onOpenDrawer,
+  onNavigateToCrisis,
   showTopBar = true,
-  onNavigateToSession,
 }: MobileSettingsProps) {
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
@@ -344,7 +342,7 @@ export default function MobileSettings({
         flexDirection: "column",
       }}
     >
-      {showTopBar && <TopBar onBack={onNavigateToSession} onMenu={onOpenDrawer} />}
+      {showTopBar && <TopBar />}
 
       <div
         className="mw-scroll"
@@ -444,9 +442,25 @@ export default function MobileSettings({
         </SettingsRow>
       </div>
 
-      {/* Crisis Support moved to its own surface — drawer footer row
-          navigates to MobileCrisis. Keeps Settings about settings,
-          gives Crisis a real destination rather than an anchored section. */}
+      {/* ─── Support ─────────────────────────────────────────────── */}
+      {/* Crisis lives here under "You" (a row that opens the dedicated
+          MobileCrisis surface), not on Home and not in the header. The
+          real-time safety net is Jove's in-conversation crisis protocol;
+          this static link is the passive backstop. */}
+      {onNavigateToCrisis && (
+        <>
+          <SectionHeader label="SUPPORT" sectionId="settings-support" />
+          <div id="settings-support">
+            <SettingsRow
+              title="Crisis support"
+              titleColor="var(--session-error-text)"
+              subtitle="988 Lifeline · Crisis Text Line · staffed 24/7"
+              onClick={onNavigateToCrisis}
+              noBorder
+            />
+          </div>
+        </>
+      )}
 
       {/* ─── Text Jove ─────────────────────────────────────────── */}
       <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage" />

@@ -77,7 +77,6 @@ interface MobileSessionProps {
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
   firstName?: string | null;
-  onOpenDrawer: () => void;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
   // Server-rejected paste recovery: when /api/chat returns a 400 with an
@@ -113,7 +112,6 @@ export default function MobileSession({
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
   firstName = null,
-  onOpenDrawer,
   showTopBar = true,
   draftToRestore = null,
   onDraftRestored,
@@ -348,7 +346,7 @@ export default function MobileSession({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {showTopBar && <TopBar onMenu={onOpenDrawer} />}
+      {showTopBar && <TopBar />}
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (
