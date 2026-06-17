@@ -335,6 +335,19 @@ export default function MobileSession({
           </svg>
         }
       />
+      <p
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "12px",
+          lineHeight: 1.5,
+          color: "var(--session-ink-mid)",
+          textAlign: "center",
+          margin: "18px 4px 0",
+        }}
+      >
+        Nothing&rsquo;s saved unless you say so. You decide what goes in your
+        Manual.
+      </p>
     </div>
   ) : null;
 
