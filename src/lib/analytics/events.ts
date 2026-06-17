@@ -14,11 +14,14 @@ import type { GuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy
 // Web for MainApp, sms for the Linq incoming-webhook path.
 export type Channel = "web" | "sms";
 
-// EntryPoint and ConversationMode are aliases of the canonical
-// ConversationMode in @/lib/persona/config until they diverge.
+// ConversationMode is the canonical conversation-mode union in
+// @/lib/persona/config. EntryPoint extends it with "explore" — the
+// layer-scoped "go deeper" entry, which is not a conversation mode and
+// must not leak into /api/chat mode validation (hence the union, not a
+// widening of ConversationMode itself).
 import type { ConversationMode } from "@/lib/persona/config";
 export type { ConversationMode };
-export type EntryPoint = ConversationMode;
+export type EntryPoint = ConversationMode | "explore";
 
 // GuidedIntakeOpenerVariant is defined alongside the canonical phrases
 // in src/lib/persona/guided-intake-copy.ts and re-exported here for

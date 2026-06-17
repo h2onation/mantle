@@ -975,6 +975,11 @@ function renderExplorationContextBlock(
     explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
     explorationBlock += "Frame what this layer covers conversationally. ";
     explorationBlock += "Ask a concrete entry question. Reference what you know from their other confirmed layers.\n";
+  } else if (explorationContext.type === "started_layer") {
+    explorationBlock += `They want to go deeper on Layer ${explorationContext.layerId} (${explorationContext.layerName}), which they've already started building.\n`;
+    explorationBlock += `Layer description: ${explorationContext.content}\n\n`;
+    explorationBlock += "Their confirmed entries for this and other layers are already above. Open from what's there. ";
+    explorationBlock += "Pull them into a recent, concrete moment that adds to this layer. Don't summarize their entries back to them.\n";
   }
 
   explorationBlock += "\nDo NOT run entry sequences. Go straight into the exploration.\n";

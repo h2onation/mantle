@@ -796,6 +796,27 @@ describe("buildSystemPrompt", () => {
       );
     });
 
+    it("contains the layer description and 'already started' framing for type 'started_layer', and does NOT claim the layer is empty", () => {
+      const result = build({
+        explorationContext: {
+          type: "started_layer",
+          layerId: 4,
+          layerName: LAYER_NAMES[4],
+          content:
+            "This layer covers your working patterns and decision-making style.",
+        },
+      });
+      expect(result).toContain("EXPLORATION FOCUS");
+      expect(result).toContain(
+        "This layer covers your working patterns and decision-making style."
+      );
+      expect(result).toContain("already started building");
+      // Regression guard: the populated-layer opener must NOT reuse the
+      // empty-layer framing ("which is empty"), which would contradict the
+      // user's own confirmed Manual.
+      expect(result).not.toContain("which is empty");
+    });
+
     it("contains 'Do NOT run entry sequences' (exploration early return)", () => {
       const result = build({
         explorationContext: {

@@ -50,7 +50,7 @@ export interface ActiveCheckpoint {
 export interface ExplorationContext {
   layerId: number;
   layerName: string;
-  type: "entry" | "empty_layer";
+  type: "entry" | "empty_layer" | "started_layer";
   name?: string;
   content: string;
 }

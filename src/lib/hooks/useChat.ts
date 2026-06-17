@@ -124,6 +124,9 @@ export function pendingCheckpointFromMessages(
       composed_content?: string | null;
       status?: string | null;
     } | null;
+    // Tolerate extra columns (e.g. `channel`) on drawer-switch rows; the
+    // helper reads only the fields above and ignores the rest.
+    [key: string]: unknown;
   }>
 ): ActiveCheckpoint | null {
   const lastMsg = dbMessages[dbMessages.length - 1];
@@ -1272,7 +1275,7 @@ export function useChat() {
             conversationStartedAt.current = Date.now();
             trackConversationStarted({
               conversation_id: completeEvent.conversationId,
-              entry_point: "situation",
+              entry_point: "explore",
               channel: "web",
             });
             trackMessageSent({
