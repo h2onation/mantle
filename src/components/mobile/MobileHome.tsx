@@ -4,8 +4,8 @@ import { useState } from "react";
 import TopBar from "@/components/shared/TopBar";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
-import { buildLayers } from "@/components/mobile/manual/layer-definitions";
-import LayerIcon from "@/components/mobile/manual/LayerIcon";
+import { useHomeModel } from "@/components/home/useHomeModel";
+import LayerIndex from "@/components/home/LayerIndex";
 import { formatShortDate } from "@/lib/utils/format";
 
 interface MobileHomeProps {
@@ -22,19 +22,6 @@ interface MobileHomeProps {
 }
 
 const RECENT_LIMIT = 5;
-
-function greeting(name: string | null): string {
-  const h = new Date().getHours();
-  const tod = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
-  return `Good ${tod}${name ? `, ${name}` : ""}.`;
-}
-
-function dateLine(): string {
-  const now = new Date();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  const monthDay = now.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  return `${weekday} · ${monthDay}`;
-}
 
 const EYEBROW: React.CSSProperties = {
   margin: 0,
@@ -60,23 +47,12 @@ export default function MobileHome({
   showTopBar = true,
 }: MobileHomeProps) {
   const [showAll, setShowAll] = useState(false);
-  const realName = firstName && firstName !== "User" ? firstName : null;
-
-  const restorable = conversations.filter((c) => !c.is_text_channel);
-  const heroConv =
-    restorable.find((c) => c.id === activeConversationId) ?? restorable[0] ?? null;
-  // The conversation title is a short, user-facing label. We deliberately do
-  // NOT use sessionSummary here — that's a verbose, third-person internal
-  // summary ("The user brought a pattern of…") meant for prompt context.
-  const heroSnippet =
-    heroConv?.title || heroConv?.preview || "Pick up where you left off.";
+  const { greeting, dateLine, heroConv, heroSnippet, layers, startedCount } =
+    useHomeModel({ firstName, conversations, activeConversationId, entries });
 
   const others = conversations.filter((c) => c.id !== heroConv?.id);
   const recent = showAll ? others : others.slice(0, RECENT_LIMIT);
   const hiddenCount = others.length - RECENT_LIMIT;
-
-  const layers = buildLayers(entries);
-  const started = layers.filter((l) => l.entries.length > 0).length;
 
   return (
     <main style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -101,7 +77,7 @@ export default function MobileHome({
             lineHeight: 1.1,
           }}
         >
-          {greeting(realName)}
+          {greeting}
         </h1>
         <p
           style={{
@@ -113,7 +89,7 @@ export default function MobileHome({
             color: "var(--session-ink-faded)",
           }}
         >
-          {dateLine()}
+          {dateLine}
         </p>
 
         {/* Resume hero — only when there's a thread to pick up. */}
@@ -218,201 +194,13 @@ export default function MobileHome({
         </section>
 
         {/* Manual index — quiet menu of go-deeper actions. */}
-        <section aria-label="Your manual" style={{ marginTop: 28 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 16,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontFamily: "var(--font-display), var(--font-serif), serif",
-                  fontSize: 22,
-                  fontWeight: 400,
-                  letterSpacing: "-0.3px",
-                  color: "var(--session-ink)",
-                }}
-              >
-                Your manual
-              </h2>
-              <p
-                style={{
-                  margin: "4px 0 0",
-                  fontFamily: "var(--font-serif), serif",
-                  fontSize: 14,
-                  lineHeight: 1.4,
-                  color: "var(--session-ink-mid)",
-                }}
-              >
-                Five layers of how you operate. Tap one to go deeper with Jove.
-              </p>
-            </div>
-            <div style={{ flexShrink: 0, textAlign: "right", paddingTop: 4 }}>
-              <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }} aria-hidden="true">
-                {layers.map((l) => (
-                  <span
-                    key={l.id}
-                    style={{
-                      width: 14,
-                      height: 4,
-                      borderRadius: 2,
-                      background:
-                        l.entries.length > 0
-                          ? "var(--session-walnut)"
-                          : "var(--session-hair)",
-                    }}
-                  />
-                ))}
-              </div>
-              <p
-                style={{
-                  margin: "6px 0 0",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 9,
-                  letterSpacing: "1.2px",
-                  textTransform: "uppercase",
-                  color: "var(--session-ink-faded)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {started} of 5 started
-              </p>
-            </div>
-          </div>
-
-          <div role="list" style={{ marginTop: 14 }}>
-            {layers.map((layer) => {
-              const count = layer.entries.length;
-              const cue = count > 0 ? "Go deeper" : "Start";
-              const countLabel =
-                count > 0 ? `${count} ${count === 1 ? "entry" : "entries"}` : "No entries";
-              return (
-                <button
-                  key={layer.id}
-                  role="listitem"
-                  onClick={() =>
-                    onExploreWithPersona({
-                      layerId: layer.id,
-                      layerName: layer.name,
-                      type: count > 0 ? "started_layer" : "empty_layer",
-                      content: layer.about,
-                    })
-                  }
-                  aria-label={`${layer.name}, ${countLabel} — ${cue.toLowerCase()} with Jove`}
-                  style={{
-                    all: "unset",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    width: "100%",
-                    boxSizing: "border-box",
-                    padding: "14px 4px",
-                    borderBottom: "1px solid var(--session-hair-soft)",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      flexShrink: 0,
-                      width: 34,
-                      height: 34,
-                      borderRadius: 9,
-                      display: "grid",
-                      placeItems: "center",
-                      background:
-                        count > 0
-                          ? "var(--session-persona-tint)"
-                          : "var(--session-walnut-tint)",
-                      color:
-                        count > 0
-                          ? "var(--session-persona)"
-                          : "var(--session-walnut)",
-                    }}
-                  >
-                    <LayerIcon layerId={layer.id} size={18} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontFamily: "var(--font-serif), serif",
-                        fontSize: 16,
-                        color: "var(--session-ink)",
-                        lineHeight: 1.25,
-                      }}
-                    >
-                      {layer.name}
-                    </span>
-                    <span
-                      style={{
-                        display: "block",
-                        marginTop: 2,
-                        fontFamily: "var(--font-serif), serif",
-                        fontSize: 13,
-                        color: "var(--session-ink-mid)",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {layer.tagline}
-                    </span>
-                    <span
-                      style={{
-                        display: "block",
-                        marginTop: 5,
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 9,
-                        letterSpacing: "1.4px",
-                        textTransform: "uppercase",
-                        color: count > 0 ? "var(--session-ink-faded)" : "var(--session-ink-ghost)",
-                      }}
-                    >
-                      {countLabel}
-                    </span>
-                  </span>
-                  <span
-                    style={{
-                      flexShrink: 0,
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      letterSpacing: "1px",
-                      textTransform: "uppercase",
-                      color: "var(--session-walnut)",
-                    }}
-                  >
-                    {cue} →
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={onNavigateToManual}
-            style={{
-              all: "unset",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 16,
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "1.6px",
-              textTransform: "uppercase",
-              color: "var(--session-walnut-meta)",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            Read your manual <span aria-hidden="true">→</span>
-          </button>
-        </section>
+        <LayerIndex
+          variant="mobile"
+          layers={layers}
+          startedCount={startedCount}
+          onExploreWithPersona={onExploreWithPersona}
+          onNavigateToManual={onNavigateToManual}
+        />
 
         {/* Recent conversations — reachability for older threads. */}
         {recent.length > 0 && (
