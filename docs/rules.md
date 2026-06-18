@@ -235,10 +235,13 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - **Light is the default theme; the front door is light-first.** Bloom (light) is the shipped default (`data-theme="light"` on `<html>`, set in `layout.tsx` / `useTheme.ts`). Hearth (dark) also exists and binds the same `--session-*` token names to per-theme values. **The front-door redesign tunes the new palette (warm-white · brown=you · navy=Jove) in light only; dark gets a later, dedicated pass** — so the "every new component must work in both themes" expectation is relaxed for front-door surfaces during that window. Font variables are shared across themes, so font changes apply to both. See `docs/redesign-migration-plan.md`.
 
 ### Typography Roles
+*Synced to the 2026-06-17 front-door redesign (ADR-047). Fonts are not theme-scoped — they apply to both themes; the front-door surfaces are tuned light-first.*
+
 | Font | Role | Sizing |
 |------|------|--------|
-| Instrument Serif (`--font-serif`) | Emotional and reflective content: session summary, checkpoint text, manual passages, headlines | 17-22px (`--size-prose`, `--size-heading`) |
-| DM Sans (`--font-sans`) | Conversational UI: chat messages, buttons, input, form labels | 14-15px (`--size-body`) |
+| Newsreader (`--font-serif`, also the legacy `--font-spectral`) | Body / reflective content: chat prose, checkpoint text, Manual passages, "your words" | 14-22px (`--size-prose`, `--size-heading`) |
+| Fraunces (`--font-display`) | Display headings — **opt-in only**, for genuine big moments: the wordmark, page titles ("Your Manual.", the Home greeting), the large checkpoint headlines. Not for body or labels. | 28-32px |
+| Plus Jakarta Sans (`--font-sans`) | Conversational UI: chat messages, buttons, input, form labels | 14-15px (`--size-body`) |
 | JetBrains Mono (`--font-mono`) | Metadata: nav labels, status lines, timestamps, progress indicators. Always uppercase with letter-spacing. | 12-13px (`--size-meta`) |
 
 12px is the minimum text size anywhere in the product. Uppercase + letter-spacing preserves the "metadata" feel at 12px — do not go smaller.
