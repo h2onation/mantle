@@ -393,7 +393,7 @@ Abstract (vague claim, meta question about you, framework mention, "I don't know
 Don't assume the user's gender. Use "you" and "they" until the user uses gendered language about themselves.
 
 THE DEAL (once, early)
-Once they've shared something real and you've said what you think they're after, give them the deal in one line: "as we talk, when something true about how you operate shows up, I'll flag it — if it holds, it can go in your Manual. You decide what goes in." Once, plainly, then back to the work. Don't explain layers or mechanics beyond that — the rest they learn by experiencing it.
+Once they've shared something real and you've said what you think they're after, give them the deal in one line: "as we talk, when something true about how you operate shows up, I'll flag it. If it holds, it can go in your Manual." Once, plainly, then back to the work. Don't explain layers or mechanics beyond that — the rest they learn by experiencing it.
 `,
   },
   {
@@ -1049,7 +1049,16 @@ export function buildSystemPromptBlocks(
       sessionCount,
       sessionSummary,
     });
-    if (extractionContext) rebuiltDynamic += extractionContext;
+    // Voice/checkpoint decoupling (2026-06-16): the rebuilt voice does NOT
+    // receive the per-turn extraction brief. REBUILT_MECHANICS owns the
+    // "when to propose" decision and the user is the gate; the brief's steering
+    // duplicated that and turned each turn into a deliverable-countdown
+    // (the cadence the founder's A/B ablation isolated). Extraction still runs
+    // and feeds the SAVE-time composer + the safety detectors off the state
+    // object directly — it just stops narrating the live turn. The legacy path
+    // below intentionally still appends the brief (it has no MECHANICS
+    // replacement); the brief computation + formatExtractionForPersona are
+    // removed in the Phase-3b legacy teardown.
     rebuiltDynamic += renderTranscriptContextBlock(transcriptContext);
     if (explorationContext) {
       rebuiltDynamic += "\n" + renderExplorationContextBlock(explorationContext);

@@ -96,7 +96,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
       >
         <p
           style={{
-            margin: "0 0 16px 0",
+            margin: "0 0 14px 0",
             fontFamily: "var(--font-mono)",
             fontSize: 11,
             fontWeight: 500,
@@ -105,8 +105,22 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             color: "var(--session-walnut-meta)",
           }}
         >
-          Before you start
+          Before you begin
         </p>
+
+        <h2
+          style={{
+            margin: "0 0 16px",
+            fontFamily: "var(--font-spectral), var(--font-serif), serif",
+            fontSize: 24,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: "-0.3px",
+            color: "var(--session-ink)",
+          }}
+        >
+          What this is, and isn&rsquo;t<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+        </h2>
 
         <div
           style={{
@@ -114,12 +128,15 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             fontSize: 16,
             fontWeight: 400,
             lineHeight: 1.62,
-            color: "var(--session-ink-mid)",
+            color: "var(--session-ink)",
             marginBottom: 24,
           }}
         >
           <p style={{ margin: "0 0 14px 0" }}>
-            {PERSONA_NAME} is AI. It surfaces patterns using psychological frameworks. It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work. You&rsquo;re the authority on your own experience.
+            {PERSONA_NAME} is AI. It helps you notice patterns in how you work, from what you actually say, in your own words. The things you confirm become entries in your Manual. You&rsquo;re the authority on how you work, and {PERSONA_NAME} isn&rsquo;t here to fix you.
+          </p>
+          <p style={{ margin: "0 0 14px 0", color: "var(--session-ink-soft)" }}>
+            This isn&rsquo;t therapy, and {PERSONA_NAME} isn&rsquo;t a clinician. It&rsquo;s a complement to other support, not a replacement. If something serious comes up, Crisis Support is one tap away in the menu.
           </p>
           <p style={{ margin: 0 }}>
             Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. Leave and come back whenever.
@@ -181,20 +198,6 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             I&rsquo;m 18 or older
           </span>
         </label>
-
-        {/* Disclosure */}
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 12,
-            fontWeight: 400,
-            lineHeight: 1.6,
-            color: "var(--session-ink-mid)",
-            margin: "0 0 18px 0",
-          }}
-        >
-          {PERSONA_NAME} is a great complement to therapy, coaching, or any work you&rsquo;re already doing on yourself. It&rsquo;s not a replacement for professional support.
-        </p>
 
         {/* Error message */}
         {error && (

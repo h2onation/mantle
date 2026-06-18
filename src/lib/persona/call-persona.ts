@@ -819,7 +819,8 @@ export function callPersona({
           turnsSinceCheckpoint,
           previousExtraction,
           isFirstCheckpoint,
-          turnCount
+          turnCount,
+          ctx.checkpointTuning
         );
 
         // 11b. Save extraction snapshot. The column is guaranteed present in the
@@ -1070,6 +1071,20 @@ export function callPersona({
                   .eq("id", messageId);
               }
             }
+          } else if (messageId) {
+            // Composition SUCCEEDED. The card (checkpoint_meta) is the entry's
+            // surface, so this message's own text must NOT also carry the raw
+            // transition line ("I want to put something in your Manual") — left
+            // un-stripped it renders inside the card, between title and body.
+            // The failure branch above already clears it; the success branch
+            // used to skip this, which was the leak.
+            conversationalText = leadInEmitted
+              ? "" // lead-in already shipped as its own row; the card is the entry
+              : stripCheckpointFromText(conversationalText);
+            await admin
+              .from("messages")
+              .update({ content: conversationalText })
+              .eq("id", messageId);
           }
         }
 

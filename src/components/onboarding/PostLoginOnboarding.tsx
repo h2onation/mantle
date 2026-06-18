@@ -1,57 +1,27 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import InfoScreens from "./InfoScreens";
-import PersonaModeScreen from "./PersonaModeScreen";
 import SeedScreen from "./SeedScreen";
 
-// Renders the InfoScreens → PersonaModeScreen → SeedScreen sequence
-// for an already-authenticated user finishing first-time onboarding.
-// Skips the login screen entirely. SeedScreen runs in
-// post-login mode (writes profiles.onboarding_completed_at instead
-// of creating an anonymous account) and calls onComplete when done,
-// which lets MainApp re-render into the normal app without a route
-// push.
+// Single post-login consent screen (SeedScreen) for an already-authenticated
+// user finishing first-time onboarding. SeedScreen runs in post-login mode
+// (writes profiles.onboarding_completed_at instead of creating an anonymous
+// account) and calls onComplete when done, which lets MainApp re-render into
+// the normal app without a route push.
+//
+// Collapsed 2026-06-17 from the old InfoScreens -> PersonaModeScreen ->
+// SeedScreen sequence: the "what this is, and isn't" prose merged into
+// SeedScreen, and the persona-mode pick was dropped. The rebuilt voice does
+// not render persona deltas, so the pick had no live effect; the pipeline
+// defaults a null persona_modes to ["general"] (persona-pipeline.ts), and
+// persona modes stay settable in Settings for when the ND layer returns.
 
 interface PostLoginOnboardingProps {
   onComplete: () => void;
 }
 
-type View = "info" | "persona" | "seed";
-
 export default function PostLoginOnboarding({
   onComplete,
 }: PostLoginOnboardingProps) {
-  const [currentView, setCurrentView] = useState<View>("info");
-  const [viewOpacity, setViewOpacity] = useState(1);
-
-  const fadeToView = useCallback((view: View, duration = 400) => {
-    setViewOpacity(0);
-    setTimeout(() => {
-      setCurrentView(view);
-      setViewOpacity(1);
-    }, duration);
-  }, []);
-
-  function handleNavigateToPersona() {
-    fadeToView("persona");
-  }
-
-  function handleNavigateToSeed() {
-    fadeToView("seed");
-  }
-
-  function handleBack() {
-    if (currentView === "seed") {
-      fadeToView("persona");
-    } else if (currentView === "persona") {
-      fadeToView("info");
-    } else {
-      setCurrentView("info");
-      setViewOpacity(1);
-    }
-  }
-
   return (
     <div
       style={{
@@ -68,31 +38,7 @@ export default function PostLoginOnboarding({
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <div
-        style={{
-          height: "100%",
-          opacity: viewOpacity,
-          transition: "opacity 400ms ease",
-        }}
-      >
-        {currentView === "info" && (
-          <InfoScreens
-            onContinue={handleNavigateToPersona}
-            onBack={handleBack}
-          />
-        )}
-
-        {currentView === "persona" && (
-          <PersonaModeScreen
-            onContinue={handleNavigateToSeed}
-            onBack={handleBack}
-          />
-        )}
-
-        {currentView === "seed" && (
-          <SeedScreen onComplete={onComplete} onBack={handleBack} />
-        )}
-      </div>
+      <SeedScreen onComplete={onComplete} />
     </div>
   );
 }

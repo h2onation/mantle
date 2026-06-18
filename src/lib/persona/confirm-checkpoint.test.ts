@@ -388,10 +388,31 @@ describe("validateHeadline", () => {
     expect(r.reasons.join(" ")).toContain("subject is not 'I'");
   });
 
-  it("fails when there is no trigger/condition word", () => {
-    const r = validateHeadline("I Keep Following the Script", false);
+  it("now PASSES a behavioral title with no when/before/after trigger (2026-06-16: trigger check removed)", () => {
+    const r = validateHeadline("I Reach for More Depth Than I Get Back", false);
+    expect(r.ok).toBe(true);
+    expect(r.hardFail).toBe(false);
+  });
+
+  it("hard-fails a feeling-state subject", () => {
+    const r = validateHeadline("I Feel Alone When He Doesn't Reach Back", false);
     expect(r.ok).toBe(false);
-    expect(r.reasons.join(" ")).toContain("no trigger word");
+    expect(r.hardFail).toBe(true);
+    expect(r.reasons.join(" ")).toContain("feeling-state subject");
+  });
+
+  it("hard-fails a non-'I' scenario-noun subject (the prod-failure shape)", () => {
+    const r = validateHeadline("The Decisions About Him Are Ones I Make Alone", false);
+    expect(r.ok).toBe(false);
+    expect(r.hardFail).toBe(true);
+    expect(r.reasons.join(" ")).toContain("subject is not 'I'");
+  });
+
+  it("treats a missing single-example softener as SOFT, not hard (won't trigger a retry)", () => {
+    const r = validateHeadline("I Steer Toward Problems When Friends Want to Chat", true);
+    expect(r.ok).toBe(false);
+    expect(r.hardFail).toBe(false);
+    expect(r.reasons.join(" ")).toContain("softener");
   });
 
   it("fails a banned felt-state verb the user never said", () => {

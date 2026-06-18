@@ -77,14 +77,14 @@ export default function MainApp() {
   }, []);
 
   // Onboarding gate. Fresh beta signups must pass through the
-  // InfoScreens + SeedScreen disclaimers once before reaching the
-  // app. Fail CLOSED on error — SeedScreen carries the age-gate
-  // + legal acknowledgement, so silently skipping it on a transient
-  // API hiccup would let a fresh signup bypass the compliance
+  // SeedScreen consent screen once before reaching the app. Fail
+  // CLOSED on error — SeedScreen carries the age-gate + legal
+  // acknowledgement, so silently skipping it on a transient API
+  // hiccup would let a fresh signup bypass the compliance
   // disclaimers entirely and we'd have no record of consent. A
   // returning user caught in the rare case where the API errors
-  // mid-session will see one extra Continue / Begin click — minor
-  // friction vs. a real compliance hole.
+  // mid-session will see one extra Begin click — minor friction
+  // vs. a real compliance hole.
   useEffect(() => {
     let cancelled = false;
     (async () => {

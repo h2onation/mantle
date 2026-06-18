@@ -14,14 +14,16 @@ import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
+import CheckpointTuningPanel from "@/components/admin/CheckpointTuningPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
-type Section = "users" | "beta" | "feedback" | "health";
+type Section = "users" | "beta" | "feedback" | "tuning" | "health";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "users", label: "Users" },
   { id: "beta", label: "Beta" },
   { id: "feedback", label: "Feedback" },
+  { id: "tuning", label: "Tuning" },
   { id: "health", label: "Health" },
 ];
 
@@ -176,7 +178,7 @@ function AdminPageInner() {
             </div>
           )}
 
-          {section === "health" && (
+          {section === "tuning" && (
             <div
               style={{
                 flex: 1,
@@ -186,6 +188,18 @@ function AdminPageInner() {
             >
               <FeatureGatesPanel />
               <VoiceEditorPanel />
+              <CheckpointTuningPanel />
+            </div>
+          )}
+
+          {section === "health" && (
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "18px 24px 40px",
+              }}
+            >
               <ConfirmHealthPanel />
               <ApiErrorsPanel />
               <ActiveUsersPanel />

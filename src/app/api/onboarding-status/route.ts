@@ -1,8 +1,9 @@
 import { requireUser } from "@/lib/auth/require-user";
 
 // Returns whether the authenticated user has completed onboarding.
-// Used by MainApp on mount to gate the app behind the InfoScreens +
-// SeedScreen disclaimers for fresh beta signups. The client fails
+// Used by MainApp on mount to gate the app behind the SeedScreen consent
+// screen (the merged "what this is, and isn't" prose + age gate) for fresh
+// beta signups. The client fails
 // open on error — a transient API failure must not lock a logged-in
 // beta user out of the app.
 

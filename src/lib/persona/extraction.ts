@@ -635,25 +635,15 @@ export function formatExtractionForPersona(
   // Checkpoint readiness — phrased as a hint, not a gate
   const gate = state.checkpoint_gate;
   const isCrisis = cf && cf.active && cf.level === "crisis";
-
-  // Distinct-contexts read with soft fallback: extraction states written
-  // before this field existed will not carry it. When the field is
-  // missing, treat the contexts check as a pass so we don't regress
-  // pre-existing behavior.
-  const distinctContextsValue =
-    typeof gate.distinct_contexts === "number" ? gate.distinct_contexts : null;
-  // One bar for every checkpoint. The first-checkpoint lighter gate
-  // ("teaching moment... quickly") was retired 2026-06-12: the user's first
-  // entry was reliably their thinnest, and THE DEAL in the first-message
-  // block now does the teaching up front. Fewer, deeper, later — from entry
-  // one.
-  const minContexts = 2;
-  const contextsOk =
-    distinctContextsValue === null || distinctContextsValue >= minContexts;
-
+  // distinct_contexts is a strengthening signal, not a gate (ADR-043
+  // Decision 3 / ADR-045): a single vivid scene in the user's own charged
+  // language is reflectable; cross-context repetition deepens but is not
+  // required. So the soft "there's a piece here" hint no longer waits on a
+  // second situation — it fires once the mechanism + charged language are
+  // present. (One bar for every checkpoint otherwise: the first-checkpoint
+  // lighter gate was retired 2026-06-12 — THE DEAL teaches the loop up front.)
   const gateReady =
     !isCrisis &&
-    contextsOk &&
     gate.concrete_examples >= 2 &&
     gate.has_mechanism &&
     gate.has_charged_language &&
@@ -690,14 +680,15 @@ export function formatExtractionForPersona(
   } else {
     // Deep enough, but the evidence is still thin. One soft line naming
     // the single most important gap — not the old multi-item checklist.
+    // distinct_contexts is no longer a gap to flag (ADR-043 Decision 3) — a
+    // single vivid scene is reflectable; a second situation strengthens but
+    // is never the thing holding the entry back.
     const minExamples = 2;
     let gap: string | null = null;
     if (gate.concrete_examples < minExamples) {
       gap = "a concrete scene the user has walked through in detail";
     } else if (!gate.has_charged_language) {
       gap = "a phrase from the user that carries real weight";
-    } else if (distinctContextsValue !== null && distinctContextsValue < minContexts) {
-      gap = "a second situation where this shows up, not more moments inside the same one";
     } else if (!gate.has_behavior_driver_link) {
       gap = "the link between what they do and what's driving it";
     }
