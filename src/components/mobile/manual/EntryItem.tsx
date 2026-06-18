@@ -2,8 +2,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import type { Entry } from "./layer-definitions";
-import type { ExplorationContext, ManualEntry } from "@/lib/types";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import type { ManualEntry } from "@/lib/types";
 
 type UpdateEntryResult =
   | { ok: true; entry: ManualEntry }
@@ -11,81 +10,56 @@ type UpdateEntryResult =
 
 interface EntryItemProps {
   entry: Entry;
-  layerId: number;
-  layerName: string;
-  onExploreWithPersona?: (context: ExplorationContext) => void;
   onUpdateEntry?: (
     entryId: string,
     edits: { name?: string | null; content?: string }
   ) => Promise<UpdateEntryResult>;
   readOnly?: boolean;
+  /** Render the body open with no per-entry chevron — used when the parent
+   *  layer accordion owns the collapse. Edit still works. */
+  alwaysOpen?: boolean;
 }
 
 /**
- * One Manual entry inside a PopulatedLayer Plate.
+ * One Manual entry inside a PopulatedLayer. The layer accordion owns
+ * collapse (alwaysOpen), so each entry reads as an open card: italic
+ * serif title, body in the reading register, a provenance line, and an
+ * explicit Edit control. "Go deeper with Jove" lives on Home now — the
+ * read view stays a clean read + edit.
  *
- * Title: italic Spectral 18px regular — the thread headline. Sized
- * between the Layer header (22px on the tab pip) and the body (16px),
- * so the hierarchy reads Layer > Pattern > Body. Regular weight (not
- * medium) — italic alone carries the title differentiation; adding
- * weight on top reads as a UI label rather than a literary section
- * title. Line-height 1.4 (loose for italic) so titles like "I Spit
- * the Signal Back Before Anyone Hears It" can wrap to two lines
- * without cramping. No size jitter between collapsed and expanded —
- * the chevron rotation carries state.
- *
- * Body: Spectral 16px / 1.65 / ink-soft — comfortable long-form
- * reading register (Apple Books / Substack scale). Ink-soft softens
- * the contrast so the cream doesn't read as bold against the walnut
- * Plate background.
- *
- * Between siblings (not before the first entry, not after the last),
- * a dotted walnut hairline indented 22px from the left anchors as an
- * editorial section break, not a row separator.
- *
- * Edit mode mirrors the CheckpointOverlay pattern: title + body
- * become `contentEditable`, framed with a walnut border, and an
- * action row swaps from [Edit · Explore further] to [Cancel · Save
- * changes]. Save calls onUpdateEntry (PATCH /api/manual/[id]);
- * on success the optimistic patch in useChat refreshes entry props
- * so the read mode shows the new text. Cancel discards typed
- * changes by simply rendering the read-mode JSX, which re-reads
- * entry.name and entry.body from props.
+ * Edit mode mirrors the CheckpointOverlay pattern: title + body become
+ * `contentEditable`, framed with a walnut border, and the action row swaps
+ * to [Cancel · Save changes]. Save calls onUpdateEntry (PATCH /api/manual/[id]);
+ * on success the optimistic patch in useChat refreshes entry props so read
+ * mode shows the new text. Cancel restores the original text imperatively
+ * (React won't reconcile a contentEditable whose source prop is unchanged).
  */
 export default function EntryItem({
   entry,
-  layerId,
-  layerName,
-  onExploreWithPersona,
   onUpdateEntry,
   readOnly,
+  alwaysOpen,
 }: EntryItemProps) {
-  const [expanded, setExpanded] = useState(readOnly ? true : false);
+  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const toggle = readOnly || editing ? undefined : () => setExpanded((v) => !v);
-
+  const togglable = !readOnly && !editing && !alwaysOpen;
+  const showBody = expanded || readOnly || alwaysOpen;
+  const toggle = togglable ? () => setExpanded((v) => !v) : undefined;
   const canEdit = !readOnly && !!onUpdateEntry;
+  const provenance = provenanceLine(entry.createdAt);
 
   const handleEnterEdit = useCallback(() => {
     setEditing(true);
     setEditError(null);
-    // Defer focus so the contentEditable element is in the DOM before
-    // we try to focus it.
     setTimeout(() => titleRef.current?.focus(), 50);
   }, []);
 
   const handleCancelEdit = useCallback(() => {
-    // React won't reconcile a contentEditable element's children
-    // unless the source prop (entry.name / entry.body) changes — and
-    // on Cancel those props are unchanged. Without an imperative
-    // reset, the user's typed-but-canceled text would persist in the
-    // DOM after the contentEditable attribute is removed. Restore the
-    // original text from props before flipping edit off.
     if (titleRef.current) titleRef.current.innerText = entry.name;
     if (bodyRef.current) bodyRef.current.innerText = entry.body;
     setEditing(false);
@@ -110,7 +84,6 @@ export default function EntryItem({
       edits.content = nextBody;
     }
     if (Object.keys(edits).length === 0) {
-      // Nothing actually changed — just exit edit mode.
       setEditing(false);
       return;
     }
@@ -130,10 +103,9 @@ export default function EntryItem({
     <article
       style={{
         position: "relative",
-        background:
-          expanded || readOnly
-            ? "var(--session-cream-bright)"
-            : "var(--session-cream)",
+        background: showBody
+          ? "var(--session-cream-bright)"
+          : "var(--session-cream)",
         border: "1px solid var(--session-hair)",
         borderRadius: 10,
         boxShadow: "var(--session-card-shadow)",
@@ -144,22 +116,22 @@ export default function EntryItem({
     >
       <div
         onClick={toggle}
-        role={readOnly || editing ? undefined : "button"}
-        aria-expanded={readOnly || editing ? undefined : expanded}
+        role={togglable ? "button" : undefined}
+        aria-expanded={togglable ? expanded : undefined}
         aria-label={
-          readOnly || editing
-            ? undefined
-            : expanded
+          togglable
+            ? expanded
               ? `Collapse ${entry.name}`
               : `Expand ${entry.name}`
+            : undefined
         }
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 14px",
+          gridTemplateColumns: togglable ? "1fr 14px" : "1fr",
           gap: 12,
           alignItems: "baseline",
           padding: "16px 18px",
-          cursor: readOnly || editing ? "default" : "pointer",
+          cursor: togglable ? "pointer" : "default",
           WebkitTapHighlightColor: "transparent",
         }}
       >
@@ -188,7 +160,7 @@ export default function EntryItem({
         >
           {entry.name}
         </h3>
-        {!readOnly && !editing && (
+        {togglable && (
           <span
             aria-hidden="true"
             style={{
@@ -208,7 +180,7 @@ export default function EntryItem({
         )}
       </div>
 
-      {(expanded || readOnly) && (
+      {showBody && (
         <div
           style={{
             padding: "14px 18px 16px",
@@ -295,76 +267,64 @@ export default function EntryItem({
               </div>
             </>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                marginTop: "var(--sp-sm)",
-              }}
-            >
-              {canEdit && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEnterEdit();
+            (provenance || canEdit) && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 14,
+                  marginTop: "var(--sp-sm)",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 9,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--session-ink-ghost)",
                   }}
-                  style={textBtnStyle("var(--session-walnut)", false)}
-                  aria-label={`Edit ${entry.name}`}
                 >
-                  Edit
-                </button>
-              )}
-              {!readOnly && onExploreWithPersona && (
-                <>
-                  {canEdit && (
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        color: "var(--session-walnut-meta-soft)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                        lineHeight: 1,
-                      }}
-                    >
-                      ·
-                    </span>
-                  )}
+                  {provenance ?? ""}
+                </span>
+                {canEdit && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onExploreWithPersona({
-                        layerId,
-                        layerName,
-                        type: "entry",
-                        name: entry.name,
-                        content: entry.body,
-                      });
+                      handleEnterEdit();
                     }}
                     style={textBtnStyle("var(--session-walnut)", false)}
-                    aria-label={`Explore further with ${PERSONA_NAME}`}
+                    aria-label={`Edit ${entry.name}`}
                   >
-                    Explore further
-                    <span aria-hidden="true" style={{ marginLeft: 4 }}>
-                      ›
-                    </span>
+                    Edit
                   </button>
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )
           )}
         </div>
       )}
-
     </article>
   );
 }
 
+function provenanceLine(createdAt?: string): string | null {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return null;
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const month = d.toLocaleDateString(
+    "en-US",
+    sameYear ? { month: "long" } : { month: "long", year: "numeric" }
+  );
+  return `Added from a conversation · ${month}`;
+}
+
 /**
- * Mono-caps text-button used for Edit · Explore further (read mode)
- * and Cancel · Save changes (edit mode). Walnut underline matches the
- * earlier "Explore further" pattern; disabled state dims to 0.5
- * opacity for the duration of a network call.
+ * Mono-caps text-button used for Edit (read mode) and Cancel · Save changes
+ * (edit mode). Walnut underline; disabled state dims to 0.5 opacity for the
+ * duration of a network call.
  */
 function textBtnStyle(color: string, disabled: boolean): React.CSSProperties {
   return {

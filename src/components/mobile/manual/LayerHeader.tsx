@@ -10,6 +10,10 @@ interface LayerHeaderProps {
    *  use this to elevate the layer's stacking context so the popover
    *  paints above sibling layers that come after in document order. */
   onPopoverToggle?: (open: boolean) => void;
+  /** When provided, the header shows an entry count + a collapse chevron
+   *  (the populated-layer accordion). Omitted on empty layers. */
+  count?: number;
+  collapsed?: boolean;
 }
 
 /**
@@ -19,7 +23,7 @@ interface LayerHeaderProps {
  * the far right. No plate, no chapter tab — the header sits directly
  * on the page and the entries hang beneath it as individual cards.
  */
-export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps) {
+export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }: LayerHeaderProps) {
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -106,6 +110,45 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
         }}
       />
 
+      {/* Entry count + collapse chevron (populated layers only). */}
+      {count !== undefined && (
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+            transform: "translateY(-2px)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--session-ink-faded)",
+            }}
+          >
+            {count} {count === 1 ? "entry" : "entries"}
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              lineHeight: 1,
+              color: "var(--session-walnut)",
+              display: "inline-block",
+              transform: collapsed ? "rotate(90deg)" : "rotate(-90deg)",
+              transition: "transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            ›
+          </span>
+        </span>
+      )}
+
       {/* Info chip + description popover. */}
       <span style={{ position: "relative", flexShrink: 0, transform: "translateY(-2px)" }}>
         <button
@@ -149,6 +192,9 @@ export default function LayerHeader({ layer, onPopoverToggle }: LayerHeaderProps
           role="dialog"
           aria-label={`Layer ${layer.id} description`}
           aria-hidden={!open}
+          // Don't let a tap on the popover body bubble to the layer's
+          // collapse toggle (which wraps this header).
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: "absolute",
             top: 36,

@@ -7,6 +7,9 @@ export interface Entry {
   id: string;
   name: string;
   body: string;
+  /** ISO timestamp the entry was confirmed. Drives the read-view
+   *  provenance line ("Added from a conversation · {month}"). */
+  createdAt?: string;
 }
 
 export interface Layer {
@@ -36,6 +39,7 @@ export function buildLayers(entries: ManualEntry[]): Layer[] {
         id: e.id || `entry-${def.id}-${e.name ?? e.content.slice(0, 20)}`,
         name: e.name || "Untitled",
         body: e.content,
+        createdAt: e.created_at,
       }));
 
     return {

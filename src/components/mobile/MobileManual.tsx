@@ -148,7 +148,6 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
               <PopulatedLayer
                 key={layer.id}
                 layer={layer}
-                onExploreWithPersona={onExploreWithPersona}
                 onUpdateEntry={onUpdateEntry}
               />
             ) : (

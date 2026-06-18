@@ -4,7 +4,7 @@ import { useState } from "react";
 import { type Layer } from "./layer-definitions";
 import EntryItem from "./EntryItem";
 import LayerHeader from "./LayerHeader";
-import type { ExplorationContext, ManualEntry } from "@/lib/types";
+import type { ManualEntry } from "@/lib/types";
 
 type UpdateEntryResult =
   | { ok: true; entry: ManualEntry }
@@ -12,7 +12,6 @@ type UpdateEntryResult =
 
 interface PopulatedLayerProps {
   layer: Layer;
-  onExploreWithPersona?: (context: ExplorationContext) => void;
   onUpdateEntry?: (
     entryId: string,
     edits: { name?: string | null; content?: string }
@@ -21,21 +20,21 @@ interface PopulatedLayerProps {
 }
 
 /**
- * A layer in the Manual: an editorial header (brass Roman numeral +
- * caps name + hairline rule + info chip) followed by a stack of entry
- * cards. Each entry is its own card (see EntryItem) rather than a row
- * inside a plate — the page reads as a sequence of titled sections.
- *
- * When the header's info popover opens the host gets z-index 50 so the
- * popover paints above sibling layers that come after in document order.
+ * A layer in the Manual: an editorial header (Roman numeral + caps name +
+ * hairline rule + entry count + collapse chevron) that toggles a stack of
+ * entry cards. Collapsed by default so the Manual reads as an overview
+ * first; tap a layer to read its entries. "Go deeper with Jove" lives on
+ * Home now, so the read view stays a clean read + edit. The admin/PDF
+ * (readOnly) path renders everything open and non-collapsible.
  */
 export default function PopulatedLayer({
   layer,
-  onExploreWithPersona,
   onUpdateEntry,
   readOnly,
 }: PopulatedLayerProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(!readOnly);
+  const open = readOnly || !collapsed;
 
   return (
     <section
@@ -45,27 +44,49 @@ export default function PopulatedLayer({
         ...(layer.isNew ? { animation: "layerFadeUp 0.5s ease-out both" } : {}),
       }}
     >
-      <LayerHeader layer={layer} onPopoverToggle={setPopoverOpen} />
-
       <div
+        role={readOnly ? undefined : "button"}
+        aria-expanded={readOnly ? undefined : open}
+        aria-label={
+          readOnly
+            ? undefined
+            : `${open ? "Collapse" : "Expand"} ${layer.name}, ${layer.entries.length} ${
+                layer.entries.length === 1 ? "entry" : "entries"
+              }`
+        }
+        onClick={readOnly ? undefined : () => setCollapsed((c) => !c)}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
+          cursor: readOnly ? "default" : "pointer",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
-        {layer.entries.map((entry) => (
-          <EntryItem
-            key={entry.id}
-            entry={entry}
-            layerId={layer.id}
-            layerName={layer.name}
-            onExploreWithPersona={onExploreWithPersona}
-            onUpdateEntry={onUpdateEntry}
-            readOnly={readOnly}
-          />
-        ))}
+        <LayerHeader
+          layer={layer}
+          onPopoverToggle={setPopoverOpen}
+          count={readOnly ? undefined : layer.entries.length}
+          collapsed={collapsed}
+        />
       </div>
+
+      {open && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          {layer.entries.map((entry) => (
+            <EntryItem
+              key={entry.id}
+              entry={entry}
+              onUpdateEntry={onUpdateEntry}
+              readOnly={readOnly}
+              alwaysOpen
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
