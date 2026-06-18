@@ -79,6 +79,9 @@ interface MobileSessionProps {
   firstName?: string | null;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
+  // When this conversation was opened via "go deeper" on a Manual layer,
+  // the layer name — shown as a context line under the header.
+  scopedLabel?: string | null;
   // Server-rejected paste recovery: when /api/chat returns a 400 with an
   // `error` message (e.g. MAX_UPLOAD_LENGTH), useChat surfaces the
   // rejected text here so ChatInput can rehydrate the textarea. Cleared
@@ -113,6 +116,7 @@ export default function MobileSession({
   concreteExamples = 0,
   firstName = null,
   showTopBar = true,
+  scopedLabel = null,
   draftToRestore = null,
   onDraftRestored,
 }: MobileSessionProps) {
@@ -347,6 +351,45 @@ export default function MobileSession({
       }}
     >
       {showTopBar && <TopBar />}
+
+      {scopedLabel && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "7px 16px",
+            borderBottom: "1px solid var(--session-hair-soft)",
+            background: "var(--session-walnut-tint)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              letterSpacing: "1.8px",
+              textTransform: "uppercase",
+              color: "var(--session-walnut-meta)",
+            }}
+          >
+            Going deeper
+          </span>
+          <span aria-hidden="true" style={{ color: "var(--session-ink-faded)" }}>
+            ·
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-serif), serif",
+              fontStyle: "italic",
+              fontSize: 14,
+              color: "var(--session-ink)",
+            }}
+          >
+            {scopedLabel}
+          </span>
+        </div>
+      )}
 
       {/* Sign-in nudge for anonymous users — below header */}
       {isGuest && !signInBannerDismissed && messages.length >= 5 && onSignInPrompt && (

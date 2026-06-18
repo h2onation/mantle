@@ -172,6 +172,7 @@ export default function MainApp() {
     firstName,
     initialized,
     isNewUser,
+    sessionOrigin,
     userEmail,
     errorMessage,
     draftToRestore,
@@ -450,6 +451,7 @@ export default function MainApp() {
       hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
       concreteExamples={concreteExamples}
       firstName={firstName}
+      scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
       showTopBar={!isDesktop}
