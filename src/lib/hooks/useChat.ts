@@ -1177,6 +1177,23 @@ export function useChat() {
     }
   }
 
+  // Clears the active conversation's client state so a fresh start — a new
+  // session, a layer exploration, or a mode bootstrap — doesn't surface (or
+  // get blocked by) the previously loaded thread. `origin` tags how the next
+  // conversation began, for the scoped-label and analytics paths. Single
+  // source of truth for the reset that startNewSession / startExploration /
+  // startConversation all share.
+  function resetConversationState(origin: "new" | "explore") {
+    setSessionOrigin(origin);
+    setConversationId(null);
+    setMessages([]);
+    setSessionSummary(null);
+    setLastSessionDate(null);
+    setActiveCheckpoint(null);
+    setErrorMessage(null);
+    setCheckpointError(null);
+  }
+
   async function startNewSession() {
     if (isLoading || isStreaming) return;
 
@@ -1203,14 +1220,7 @@ export function useChat() {
     }
 
     // Reset state for new session
-    setSessionOrigin("new");
-    setConversationId(null);
-    setMessages([]);
-    setSessionSummary(null);
-    setLastSessionDate(null);
-    setActiveCheckpoint(null);
-    setErrorMessage(null);
-    setCheckpointError(null);
+    resetConversationState("new");
 
     // Persist intent so a page refresh stays on the new-session screen
     // instead of reloading the most recent conversation.
@@ -1232,15 +1242,8 @@ export function useChat() {
       }).catch(() => {});
     }
 
-    // Reset state for new session
-    setSessionOrigin("explore");
-    setConversationId(null);
-    setMessages([]);
-    setSessionSummary(null);
-    setLastSessionDate(null);
-    setActiveCheckpoint(null);
-    setErrorMessage(null);
-    setCheckpointError(null);
+    // Reset state for the fresh exploration
+    resetConversationState("explore");
 
     // Send chat request with exploration context (message=null triggers Jove opener)
     setIsLoading(true);
@@ -1315,7 +1318,23 @@ export function useChat() {
    */
   async function startConversation(mode: ConversationMode): Promise<boolean> {
     if (isLoading || isStreaming) return false;
-    if (messages.length > 0) return false;
+
+    // Complete the current conversation fire-and-forget (don't block on it),
+    // then reset — the same reset-then-start shape startExploration uses.
+    // This lets a returning user begin a fresh situation / guided-intake /
+    // upload conversation straight from Home, over an auto-resumed thread.
+    // The old `messages.length > 0` early-return made every Home start a
+    // silent no-op for anyone with a loaded conversation; the in-flight
+    // guard above already covers double-taps on the empty entry-cards screen.
+    if (conversationId) {
+      fetch("/api/conversations/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      }).catch(() => {});
+    }
+
+    resetConversationState("new");
 
     if (!firstSessionCompleted) {
       setFirstSessionCompleted(true);
@@ -1323,7 +1342,6 @@ export function useChat() {
     }
 
     setIsLoading(true);
-    setErrorMessage(null);
 
     try {
       const res = await fetch("/api/chat", {

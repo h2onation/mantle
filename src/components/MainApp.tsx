@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
+import type { ConversationMode } from "@/lib/persona/config";
 import MobileLayout, { type MobileView } from "@/components/layout/MobileLayout";
 import DesktopShell from "@/components/desktop/DesktopShell";
 import DesktopHome from "@/components/desktop/DesktopHome";
@@ -340,24 +341,19 @@ export default function MainApp() {
     []
   );
 
-  // Home's "Bring a situation" — start a fresh situation conversation
-  // and drop the user into it.
-  const handleBringSituation = useCallback(() => {
-    setActiveView("session");
-    void startConversation("situation");
-  }, [startConversation]);
-
-  // Home's other "ways to begin" — guided intake and upload. Same pattern as
-  // bring-a-situation: start the mode's conversation and drop into the session.
-  const handleStartGuided = useCallback(() => {
-    setActiveView("session");
-    void startConversation("guided-intake");
-  }, [startConversation]);
-
-  const handleStartUpload = useCallback(() => {
-    setActiveView("session");
-    void startConversation("upload");
-  }, [startConversation]);
+  // Home's conversation starters — "Bring a situation" (primary) plus the
+  // secondary Guided intake / Upload links. Starts a fresh conversation in
+  // the chosen mode and drops the user into it. Generalizes the old
+  // situation-only handler so all three entry modes stay reachable from
+  // Home: Guided + Upload were otherwise orphaned for returning users once
+  // the drawer's entry-cards path was retired in the front-door redesign.
+  const handleStartConversation = useCallback(
+    (mode: ConversationMode) => {
+      setActiveView("session");
+      void startConversation(mode);
+    },
+    [startConversation]
+  );
 
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
@@ -512,7 +508,7 @@ export default function MainApp() {
       activeConversationId={conversationId}
       entries={confirmedEntries}
       onSelectSession={handleSelectSession}
-      onBringSituation={handleBringSituation}
+      onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       showTopBar={!isDesktop}
@@ -525,9 +521,7 @@ export default function MainApp() {
       activeConversationId={conversationId}
       entries={confirmedEntries}
       onSelectSession={handleSelectSession}
-      onBringSituation={handleBringSituation}
-      onStartGuided={handleStartGuided}
-      onStartUpload={handleStartUpload}
+      onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
     />

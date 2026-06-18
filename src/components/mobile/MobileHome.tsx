@@ -4,6 +4,7 @@ import { useState } from "react";
 import TopBar from "@/components/shared/TopBar";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
+import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
 import { formatShortDate } from "@/lib/utils/format";
@@ -14,7 +15,7 @@ interface MobileHomeProps {
   activeConversationId: string | null;
   entries: ManualEntry[];
   onSelectSession: (id: string) => void;
-  onBringSituation: () => void;
+  onStartConversation: (mode: ConversationMode) => void;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
   // false when the desktop shell provides its own header. Default true.
@@ -22,6 +23,15 @@ interface MobileHomeProps {
 }
 
 const RECENT_LIMIT = 5;
+
+// Secondary ways to begin, kept reachable from Home. "situation" is the
+// primary button above these; Guided intake + Upload would otherwise be
+// orphaned for returning users (they used to live only in the session
+// entry-cards, which returning users never see).
+const SECONDARY_STARTS: { mode: ConversationMode; label: string }[] = [
+  { mode: "guided-intake", label: "Let Jove lead with questions" },
+  { mode: "upload", label: "Bring something you’ve written" },
+];
 
 const EYEBROW: React.CSSProperties = {
   margin: 0,
@@ -41,7 +51,7 @@ export default function MobileHome({
   activeConversationId,
   entries,
   onSelectSession,
-  onBringSituation,
+  onStartConversation,
   onExploreWithPersona,
   onNavigateToManual,
   showTopBar = true,
@@ -146,9 +156,10 @@ export default function MobileHome({
           </section>
         )}
 
-        {/* Bring a situation — sibling way to begin. */}
+        {/* Begin a new conversation — "Bring a situation" is primary; Guided
+            intake + Upload are quiet secondary links below it. */}
         <section
-          aria-label="Bring a situation"
+          aria-label="Start a conversation"
           style={{
             marginTop: 12,
             padding: "18px 20px 20px",
@@ -170,7 +181,7 @@ export default function MobileHome({
             A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain.
           </p>
           <button
-            onClick={onBringSituation}
+            onClick={() => onStartConversation("situation")}
             style={{
               all: "unset",
               cursor: "pointer",
@@ -191,6 +202,56 @@ export default function MobileHome({
           >
             Bring a situation <span aria-hidden="true">→</span>
           </button>
+
+          {/* Secondary starts — Guided intake + Upload. */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 6,
+              borderTop: "1px solid var(--session-hair-soft)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {SECONDARY_STARTS.map((opt) => (
+              <button
+                key={opt.mode}
+                onClick={() => onStartConversation(opt.mode)}
+                style={{
+                  all: "unset",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "11px 0",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-serif), serif",
+                    fontSize: 14,
+                    color: "var(--session-ink-mid)",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {opt.label}
+                </span>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    color: "var(--session-walnut)",
+                    flexShrink: 0,
+                  }}
+                >
+                  →
+                </span>
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Manual index — quiet menu of go-deeper actions. */}

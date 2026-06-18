@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
+import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
 
@@ -18,9 +19,7 @@ interface DesktopHomeProps {
   activeConversationId: string | null;
   entries: ManualEntry[];
   onSelectSession: (id: string) => void;
-  onBringSituation: () => void;
-  onStartGuided: () => void;
-  onStartUpload: () => void;
+  onStartConversation: (mode: ConversationMode) => void;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
 }
@@ -67,9 +66,7 @@ export default function DesktopHome({
   activeConversationId,
   entries,
   onSelectSession,
-  onBringSituation,
-  onStartGuided,
-  onStartUpload,
+  onStartConversation,
   onExploreWithPersona,
   onNavigateToManual,
 }: DesktopHomeProps) {
@@ -84,7 +81,7 @@ export default function DesktopHome({
       title: "Bring a situation",
       desc: "A reaction that surprised you, a conflict that keeps repeating.",
       cue: "Start",
-      onClick: onBringSituation,
+      onClick: () => onStartConversation("situation"),
     },
     {
       key: "guided",
@@ -92,7 +89,7 @@ export default function DesktopHome({
       title: "Guided",
       desc: "Walk through it step by step with Jove.",
       cue: "Begin",
-      onClick: onStartGuided,
+      onClick: () => onStartConversation("guided-intake"),
     },
     {
       key: "upload",
@@ -100,7 +97,7 @@ export default function DesktopHome({
       title: "Upload",
       desc: "Bring something you’ve already written.",
       cue: "Add",
-      onClick: onStartUpload,
+      onClick: () => onStartConversation("upload"),
     },
   ];
 

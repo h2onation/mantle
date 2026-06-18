@@ -92,8 +92,15 @@ describe("guided intake UI wiring", () => {
     expect(useChat).toContain("mode,");
   });
 
-  it("startConversation guards against double-call when messages exist", () => {
-    expect(useChat).toContain("if (messages.length > 0) return false");
+  it("startConversation guards re-entry by in-flight state, then resets before starting", () => {
+    // Double-fire protection is the in-flight guard (set synchronously on the
+    // first call). The old `messages.length > 0` guard was REMOVED — it
+    // silently no-op'd every Home start for returning users (who always have
+    // an auto-resumed thread). startConversation now resets-then-starts like
+    // startExploration, so a returning user can begin fresh from Home.
+    expect(useChat).toContain("if (isLoading || isStreaming) return false");
+    expect(useChat).not.toContain("if (messages.length > 0) return false");
+    expect(useChat).toContain('resetConversationState("new")');
   });
 
   it("entry card titles avoid clinical terminology", () => {
