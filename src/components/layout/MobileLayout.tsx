@@ -1,6 +1,5 @@
 "use client";
 
-import DesktopVitrine from "./DesktopVitrine";
 import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
 import BottomNav from "@/components/shared/BottomNav";
 
@@ -47,47 +46,72 @@ export default function MobileLayout({
   hasActiveCheckpoint,
 }: MobileLayoutProps) {
   return (
-    <DesktopVitrine>
+    // The authed app as a centered phone-width column. At <=430px it fills the
+    // viewport (phone, unchanged); at mid-width (431-1029px) it sits centered
+    // on the warm ground with calm margins — no decorative frame, no paratext.
+    // Login keeps the full DesktopVitrine; this is the signed-in app only.
+    // (ADR-048 Phase D — replaced the phone-frame vitrine for authed users.)
+    <div
+      style={{
+        width: "100%",
+        height: "100dvh",
+        display: "flex",
+        justifyContent: "center",
+        overflow: "hidden",
+        backgroundColor: "var(--session-linen)",
+      }}
+    >
       <div
         style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "var(--session-linen)",
+          position: "relative",
+          width: "100%",
+          maxWidth: 430,
+          height: "100%",
+          overflow: "hidden",
+          boxShadow: "var(--session-card-shadow, none)",
         }}
       >
-        {/* View panels fill the space above the persistent bottom nav. */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {([
-            ["home", homeContent, "home-panel"],
-            ["session", sessionContent, "session-panel"],
-            ["manual", manualContent, "manual-panel"],
-            ["settings", settingsContent, "settings-panel"],
-            ["crisis", crisisContent, "crisis-panel"],
-          ] as const).map(([view, content, panelId]) => (
-            <div
-              key={view}
-              id={panelId}
-              hidden={activeView !== view}
-              style={{
-                position: "absolute",
-                inset: 0,
-                overflowX: "hidden",
-                display: activeView === view ? "block" : "none",
-                backgroundColor: "var(--session-linen)",
-                backgroundImage: gradientFor(view, hasActiveCheckpoint),
-                transition: "background-image 0.3s ease",
-              }}
-            >
-              {content}
-            </div>
-          ))}
-          {activeView === "session" && <BetaFeedbackButton />}
-        </div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "var(--session-linen)",
+          }}
+        >
+          {/* View panels fill the space above the persistent bottom nav. */}
+          <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+            {([
+              ["home", homeContent, "home-panel"],
+              ["session", sessionContent, "session-panel"],
+              ["manual", manualContent, "manual-panel"],
+              ["settings", settingsContent, "settings-panel"],
+              ["crisis", crisisContent, "crisis-panel"],
+            ] as const).map(([view, content, panelId]) => (
+              <div
+                key={view}
+                id={panelId}
+                hidden={activeView !== view}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  overflowX: "hidden",
+                  display: activeView === view ? "block" : "none",
+                  backgroundColor: "var(--session-linen)",
+                  backgroundImage: gradientFor(view, hasActiveCheckpoint),
+                  transition: "background-image 0.3s ease",
+                }}
+              >
+                {content}
+              </div>
+            ))}
+            {activeView === "session" && <BetaFeedbackButton />}
+          </div>
 
-        <BottomNav activeView={activeView} onNavigate={onNavigate} />
+          <BottomNav activeView={activeView} onNavigate={onNavigate} />
+        </div>
       </div>
-    </DesktopVitrine>
+    </div>
   );
 }

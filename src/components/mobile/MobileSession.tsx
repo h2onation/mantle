@@ -365,7 +365,10 @@ export default function MobileSession({
     >
       {showTopBar && <TopBar />}
 
-      {scopedLabel && (
+      {/* In-body scoped context. On desktop (showTopBar=false) the RoomHeader
+          carries the "Going deeper · {layer}" context instead, so suppress
+          this bar there to avoid a doubled header. */}
+      {scopedLabel && showTopBar && (
         <div
           style={{
             display: "flex",

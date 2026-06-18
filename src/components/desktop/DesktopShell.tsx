@@ -22,6 +22,7 @@ interface DesktopShellProps {
   crisisContent: React.ReactNode;
   sessionTitle: string;
   sessionDate: string;
+  scopedLabel?: string | null;
   conversations: ConversationSummaryItem[];
   activeConversationId: string | null;
   manualEntryCount: number;
@@ -50,6 +51,7 @@ export default function DesktopShell({
   crisisContent,
   sessionTitle,
   sessionDate,
+  scopedLabel,
   conversations,
   activeConversationId,
   manualEntryCount,
@@ -99,6 +101,7 @@ export default function DesktopShell({
           sessionTitle={sessionTitle}
           sessionDate={sessionDate}
           manualEntryCount={manualEntryCount}
+          scopedLabel={scopedLabel}
         />
 
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>

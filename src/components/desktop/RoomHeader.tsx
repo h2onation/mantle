@@ -8,6 +8,10 @@ interface RoomHeaderProps {
   sessionTitle: string;
   sessionDate: string;
   manualEntryCount: number;
+  // When set on the session view, the header center shows the scoped
+  // "Going deeper · {layer}" context. The in-body bar that MobileSession
+  // would otherwise render is suppressed on desktop, so this is its home.
+  scopedLabel?: string | null;
 }
 
 // The persistent header over the desktop room. The wordmark lives here
@@ -18,7 +22,9 @@ export default function RoomHeader({
   sessionTitle,
   sessionDate,
   manualEntryCount,
+  scopedLabel = null,
 }: RoomHeaderProps) {
+  const isScopedSession = activeView === "session" && !!scopedLabel;
   let title: string;
   let meta: string;
   switch (activeView) {
@@ -77,18 +83,59 @@ export default function RoomHeader({
         style={{
           flex: 1,
           minWidth: 0,
-          textAlign: "center",
           padding: "0 12px",
-          fontFamily: "var(--font-serif)",
-          fontStyle: "italic",
-          fontSize: "16px",
-          color: "var(--session-ink-mid)",
-          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
           overflow: "hidden",
-          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
       >
-        {title}
+        {isScopedSession ? (
+          <>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "1.8px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
+                flexShrink: 0,
+              }}
+            >
+              Going deeper
+            </span>
+            <span aria-hidden="true" style={{ color: "var(--session-ink-faded)" }}>
+              ·
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontStyle: "italic",
+                fontSize: "16px",
+                color: "var(--session-ink)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {scopedLabel}
+            </span>
+          </>
+        ) : (
+          <span
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontStyle: "italic",
+              fontSize: "16px",
+              color: "var(--session-ink-mid)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {title}
+          </span>
+        )}
       </span>
 
       <span

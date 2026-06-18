@@ -548,6 +548,7 @@ export default function MainApp() {
           crisisContent={crisisContent}
           sessionTitle={sessionTitle}
           sessionDate={sessionDate}
+          scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
           conversations={conversations}
           activeConversationId={conversationId}
           manualEntryCount={confirmedEntries.length}
