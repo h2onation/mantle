@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { type Layer } from "./layer-definitions";
-import { LAYER_ROMAN } from "./layer-definitions";
+import LayerIcon from "./LayerIcon";
 
 interface LayerHeaderProps {
   layer: Layer;
@@ -25,6 +25,7 @@ interface LayerHeaderProps {
  */
 export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }: LayerHeaderProps) {
   const [open, setOpen] = useState(false);
+  const isEmpty = layer.entries.length === 0;
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -59,26 +60,29 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
     <header
       style={{
         display: "flex",
-        alignItems: "baseline",
-        gap: 14,
+        alignItems: "center",
+        gap: 13,
         marginBottom: 14,
       }}
     >
-      {/* Brass Roman numeral — the chapter mark, set in the display serif. */}
+      {/* Layer emblem — a rounded-square icon (navy for started layers,
+          brown for empty), matching the v6 read view. */}
       <span
         aria-hidden="true"
         style={{
-          fontFamily: "var(--font-serif), serif",
-          fontStyle: "italic",
-          fontSize: 30,
-          lineHeight: 1,
-          color: "var(--session-walnut)",
-          minWidth: 34,
+          width: 34,
+          height: 34,
+          borderRadius: 9,
           flexShrink: 0,
-          fontFeatureSettings: '"lnum"',
+          display: "grid",
+          placeItems: "center",
+          background: isEmpty
+            ? "var(--session-walnut-tint)"
+            : "var(--session-persona-tint)",
+          color: isEmpty ? "var(--session-walnut)" : "var(--session-persona)",
         }}
       >
-        {LAYER_ROMAN[layer.id]}.
+        <LayerIcon layerId={layer.id} />
       </span>
 
       {/* Layer name — caps, the section label. */}
@@ -92,7 +96,6 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
           textTransform: "uppercase",
           color: "var(--session-ink)",
           flexShrink: 0,
-          transform: "translateY(-1px)",
         }}
       >
         {layer.name}
@@ -106,7 +109,6 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
           height: 1,
           minWidth: 12,
           background: "var(--session-hair-soft)",
-          transform: "translateY(-4px)",
         }}
       />
 
@@ -119,7 +121,6 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
             alignItems: "center",
             gap: 8,
             flexShrink: 0,
-            transform: "translateY(-2px)",
           }}
         >
           <span
@@ -150,7 +151,7 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
       )}
 
       {/* Info chip + description popover. */}
-      <span style={{ position: "relative", flexShrink: 0, transform: "translateY(-2px)" }}>
+      <span style={{ position: "relative", flexShrink: 0 }}>
         <button
           ref={buttonRef}
           type="button"

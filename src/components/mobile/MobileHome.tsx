@@ -4,7 +4,8 @@ import { useState } from "react";
 import TopBar from "@/components/shared/TopBar";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
-import { buildLayers, LAYER_ROMAN } from "@/components/mobile/manual/layer-definitions";
+import { buildLayers } from "@/components/mobile/manual/layer-definitions";
+import LayerIcon from "@/components/mobile/manual/LayerIcon";
 import { formatShortDate } from "@/lib/utils/format";
 
 interface MobileHomeProps {
@@ -320,15 +321,22 @@ export default function MobileHome({
                     aria-hidden="true"
                     style={{
                       flexShrink: 0,
-                      width: 30,
-                      fontFamily: "var(--font-display), var(--font-serif), serif",
-                      fontStyle: "italic",
-                      fontSize: 18,
-                      color: "var(--session-walnut)",
-                      textAlign: "center",
+                      width: 34,
+                      height: 34,
+                      borderRadius: 9,
+                      display: "grid",
+                      placeItems: "center",
+                      background:
+                        count > 0
+                          ? "var(--session-persona-tint)"
+                          : "var(--session-walnut-tint)",
+                      color:
+                        count > 0
+                          ? "var(--session-persona)"
+                          : "var(--session-walnut)",
                     }}
                   >
-                    {LAYER_ROMAN[layer.id]}
+                    <LayerIcon layerId={layer.id} size={18} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span
