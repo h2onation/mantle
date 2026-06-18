@@ -486,6 +486,7 @@ export default function MainApp() {
       onExploreWithPersona={handleExploreWithPersona}
       onUpdateEntry={updateEntry}
       showTopBar={!isDesktop}
+      isDesktop={!!isDesktop}
     />
   );
   const settingsContent = (

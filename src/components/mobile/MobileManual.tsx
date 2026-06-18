@@ -26,9 +26,12 @@ interface MobileManualProps {
   ) => Promise<UpdateEntryResult>;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
+  // true on desktop: the share sheet renders as a centered modal instead of a
+  // bottom half-sheet pinned to the viewport. Defaults to the mobile sheet.
+  isDesktop?: boolean;
 }
 
-export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, showTopBar = true }: MobileManualProps) {
+export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, showTopBar = true, isDesktop = false }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const layers = useMemo(() => buildLayers(entries), [entries]);
   const isEmpty = layers.every((l) => l.entries.length === 0);
@@ -253,7 +256,10 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
             zIndex: 200,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "flex-end",
+            justifyContent: isDesktop ? "center" : "flex-end",
+            alignItems: isDesktop ? "center" : "stretch",
+            padding: isDesktop ? 24 : 0,
+            boxSizing: "border-box",
           }}
         >
           {/* Backdrop */}
@@ -272,28 +278,41 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           <div
             style={{
               position: "relative",
+              width: "100%",
+              maxWidth: isDesktop ? 440 : undefined,
               background: "var(--session-walnut-surface)",
               border: "1px solid var(--session-bubble-border)",
-              borderBottom: "none",
-              borderRadius: "22px 22px 0 0",
-              padding: "20px 24px calc(28px + env(safe-area-inset-bottom, 0px))",
-              animation: "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
+              borderBottom: isDesktop
+                ? "1px solid var(--session-bubble-border)"
+                : "none",
+              borderRadius: isDesktop ? 22 : "22px 22px 0 0",
+              padding: isDesktop
+                ? "24px 26px 26px"
+                : "20px 24px calc(28px + env(safe-area-inset-bottom, 0px))",
+              animation: isDesktop
+                ? "checkpointFadeIn 0.25s ease-out both"
+                : "sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
-              boxShadow: "var(--session-sheet-shadow)",
+              boxShadow: isDesktop
+                ? "var(--session-plate-shadow)"
+                : "var(--session-sheet-shadow)",
             }}
           >
-            {/* Drag handle */}
-            <div
-              aria-hidden="true"
-              style={{
-                width: 40,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: "var(--session-walnut-border)",
-                margin: "0 auto 18px",
-              }}
-            />
+            {/* Drag handle — a bottom-sheet affordance; omitted on the
+                centered desktop modal. */}
+            {!isDesktop && (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: "var(--session-walnut-border)",
+                  margin: "0 auto 18px",
+                }}
+              />
+            )}
 
             <p
               style={{
