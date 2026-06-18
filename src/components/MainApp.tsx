@@ -5,6 +5,7 @@ import { useChat } from "@/lib/hooks/useChat";
 import type { ExplorationContext } from "@/lib/types";
 import MobileLayout, { type MobileView } from "@/components/layout/MobileLayout";
 import DesktopShell from "@/components/desktop/DesktopShell";
+import DesktopHome from "@/components/desktop/DesktopHome";
 import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 import { formatShortDate } from "@/lib/utils/format";
 import AuthPromptModal from "@/components/onboarding/AuthPromptModal";
@@ -346,6 +347,18 @@ export default function MainApp() {
     void startConversation("situation");
   }, [startConversation]);
 
+  // Home's other "ways to begin" — guided intake and upload. Same pattern as
+  // bring-a-situation: start the mode's conversation and drop into the session.
+  const handleStartGuided = useCallback(() => {
+    setActiveView("session");
+    void startConversation("guided-intake");
+  }, [startConversation]);
+
+  const handleStartUpload = useCallback(() => {
+    setActiveView("session");
+    void startConversation("upload");
+  }, [startConversation]);
+
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
   // a plain function from useChat (new identity every render) — keeping
@@ -374,6 +387,15 @@ export default function MainApp() {
 
   const handleNavigateToManual = useCallback(() => {
     setActiveView("manual");
+  }, []);
+
+  // Desktop Home destination. Refresh the session list on arrival, the way
+  // the mobile bottom-nav home tap does (handleNavigate's home branch).
+  const handleNavigateToHome = useCallback(() => {
+    setActiveView("home");
+    void refreshConversations();
+    // refreshConversations has a fresh identity each render; keep it out of deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNavigateToSettings = useCallback(() => {
@@ -495,6 +517,20 @@ export default function MainApp() {
       showTopBar={!isDesktop}
     />
   );
+  const desktopHomeContent = (
+    <DesktopHome
+      firstName={firstName}
+      conversations={conversations}
+      activeConversationId={conversationId}
+      entries={confirmedEntries}
+      onSelectSession={handleSelectSession}
+      onBringSituation={handleBringSituation}
+      onStartGuided={handleStartGuided}
+      onStartUpload={handleStartUpload}
+      onExploreWithPersona={handleExploreWithPersona}
+      onNavigateToManual={handleNavigateToManual}
+    />
+  );
 
   const activeConversation =
     conversations.find((c) => c.id === conversationId) ?? null;
@@ -508,8 +544,9 @@ export default function MainApp() {
     <>
       {isDesktop ? (
         <DesktopShell
-          activeView={activeView === "home" ? "session" : activeView}
+          activeView={activeView}
           hasActiveCheckpoint={activeCheckpoint !== null}
+          homeContent={desktopHomeContent}
           sessionContent={sessionContent}
           manualContent={manualContent}
           settingsContent={settingsContent}
@@ -521,6 +558,7 @@ export default function MainApp() {
           manualEntryCount={confirmedEntries.length}
           onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
+          onNavigateToHome={handleNavigateToHome}
           onNavigateToSession={() => setActiveView("session")}
           onNavigateToManual={handleNavigateToManual}
           onNavigateToSettings={handleNavigateToSettings}

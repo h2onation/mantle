@@ -536,11 +536,6 @@ textarea:focus-visible {
   color: var(--session-ink);
 }
 
-.mw-dsk-manual-card:hover,
-.mw-dsk-manual-card[data-active="true"] {
-  border-color: var(--session-walnut-meta) !important;
-}
-
 .mw-dsk-railbtn {
   all: unset;
   cursor: pointer;

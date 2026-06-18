@@ -34,6 +34,11 @@ export default function RoomHeader({
       title = "If you need someone now";
       meta = "";
       break;
+    case "home":
+      // The Home view carries its own greeting + date; keep the header quiet.
+      title = "";
+      meta = "";
+      break;
     default:
       title = sessionTitle;
       meta = `Session · ${sessionDate}`;

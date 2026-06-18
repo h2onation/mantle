@@ -15,6 +15,7 @@ const CONTENT_MAX_WIDTH = 720;
 interface DesktopShellProps {
   activeView: MobileView;
   hasActiveCheckpoint?: boolean;
+  homeContent: React.ReactNode;
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
   settingsContent: React.ReactNode;
@@ -26,6 +27,7 @@ interface DesktopShellProps {
   manualEntryCount: number;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
+  onNavigateToHome: () => void;
   onNavigateToSession: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
@@ -41,6 +43,7 @@ interface DesktopShellProps {
 export default function DesktopShell({
   activeView,
   hasActiveCheckpoint,
+  homeContent,
   sessionContent,
   manualContent,
   settingsContent,
@@ -52,6 +55,7 @@ export default function DesktopShell({
   manualEntryCount,
   onSelectSession,
   onNewSession,
+  onNavigateToHome,
   onNavigateToSession,
   onNavigateToManual,
   onNavigateToSettings,
@@ -73,6 +77,7 @@ export default function DesktopShell({
         manualEntryCount={manualEntryCount}
         onSelectSession={onSelectSession}
         onNewSession={onNewSession}
+        onNavigateToHome={onNavigateToHome}
         onNavigateToSession={onNavigateToSession}
         onNavigateToManual={onNavigateToManual}
         onNavigateToSettings={onNavigateToSettings}
@@ -99,6 +104,7 @@ export default function DesktopShell({
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
           {(
             [
+              ["home", homeContent],
               ["session", sessionContent],
               ["manual", manualContent],
               ["settings", settingsContent],

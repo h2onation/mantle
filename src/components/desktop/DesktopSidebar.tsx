@@ -24,6 +24,7 @@ interface DesktopSidebarProps {
   manualEntryCount: number;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
+  onNavigateToHome: () => void;
   onNavigateToSession: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
@@ -54,6 +55,7 @@ function Icon({ d, size = 18 }: { d: string; size?: number }) {
 }
 
 const IC_PLUS = "M9 3v12M3 9h12";
+const IC_HOME = "M3 8.5L9 3l6 5.5M4.5 7.5V15h9V7.5";
 const IC_BOOK =
   "M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z";
 const IC_CLOCK = "M9 2.5a6.5 6.5 0 110 13 6.5 6.5 0 010-13zM9 5.5V9l2.3 1.8";
@@ -110,6 +112,7 @@ export default function DesktopSidebar({
   manualEntryCount,
   onSelectSession,
   onNewSession,
+  onNavigateToHome,
   onNavigateToSession,
   onNavigateToManual,
   onNavigateToSettings,
@@ -185,80 +188,64 @@ export default function DesktopSidebar({
           </button>
         </div>
 
-        <button className="mw-dsk-item" style={ITEM_STYLE} onClick={onNewSession}>
-          <span style={{ color: "var(--session-walnut-meta)", display: "inline-flex" }}>
-            <Icon d={IC_PLUS} />
-          </span>
-          New session
-        </button>
-
-        {/* The Manual card — the artifact gets a shelf of its own. */}
+        {/* Primary destinations. Home owns the resume + 5-layer index; the
+            sidebar is the persistent nav + session history, so the Manual is
+            a quiet nav row with its count, not a competing card. */}
         <button
-          className="mw-dsk-manual-card"
-          data-active={activeView === "manual"}
-          onClick={onNavigateToManual}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 13,
-            margin: "10px 12px 6px",
-            padding: "14px 14px 13px",
-            width: "calc(100% - 24px)",
-            textAlign: "left",
-            cursor: "pointer",
-            background: "var(--session-walnut-surface-soft)",
-            border: "1px solid var(--session-walnut-border)",
-            borderRadius: 12,
-            boxShadow: "inset 0 1px 0 var(--session-walnut-highlight)",
-          }}
+          className="mw-dsk-item"
+          data-active={activeView === "home"}
+          style={ITEM_STYLE}
+          onClick={onNavigateToHome}
         >
-          <span
-            style={{
-              color: "var(--session-walnut-meta-strong)",
-              display: "inline-flex",
-            }}
-          >
-            <Icon d={IC_BOOK} size={21} />
+          <span style={{ color: "var(--session-walnut-meta)", display: "inline-flex" }}>
+            <Icon d={IC_HOME} />
           </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span
-              style={{
-                display: "block",
-                fontFamily: "var(--font-serif)",
-                fontSize: "18px",
-                lineHeight: 1.15,
-                color: "var(--session-ink)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Your Manual
-              <span style={{ color: "var(--session-walnut)" }}>.</span>
-            </span>
-            <span
-              style={{
-                display: "block",
-                marginTop: 4,
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "1.6px",
-                textTransform: "uppercase",
-                color: "var(--session-walnut-meta-strong)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {manualEntryCount} {manualEntryCount === 1 ? "entry" : "entries"}
-            </span>
+          Home
+        </button>
+        <button
+          className="mw-dsk-item"
+          data-active={activeView === "session"}
+          style={ITEM_STYLE}
+          onClick={onNavigateToSession}
+        >
+          <span style={{ color: "var(--session-walnut-meta)", display: "inline-flex" }}>
+            <Icon d={IC_CHAT} />
           </span>
+          Conversation
+        </button>
+        <button
+          className="mw-dsk-item"
+          data-active={activeView === "manual"}
+          style={ITEM_STYLE}
+          onClick={onNavigateToManual}
+        >
+          <span style={{ color: "var(--session-walnut-meta-strong)", display: "inline-flex" }}>
+            <Icon d={IC_BOOK} />
+          </span>
+          Your Manual
           <span
             aria-hidden="true"
             style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 16,
-              color: "var(--session-walnut-meta)",
+              marginLeft: "auto",
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "1.4px",
+              color: "var(--session-walnut-meta-strong)",
             }}
           >
-            ›
+            {manualEntryCount}
           </span>
+        </button>
+
+        <button
+          className="mw-dsk-item"
+          style={{ ...ITEM_STYLE, margin: "12px 12px 4px", color: "var(--session-walnut)" }}
+          onClick={onNewSession}
+        >
+          <span style={{ color: "var(--session-walnut)", display: "inline-flex" }}>
+            <Icon d={IC_PLUS} />
+          </span>
+          New session
         </button>
 
         <p style={{ ...EYEBROW_STYLE, margin: "16px 24px 8px" }}>Sessions</p>
@@ -491,6 +478,15 @@ export default function DesktopSidebar({
         >
           <Icon d={IC_EXPAND} size={16} />
           <span className="mw-dsk-tip">Open sidebar</span>
+        </button>
+        <button
+          className="mw-dsk-railbtn"
+          data-active={activeView === "home"}
+          onClick={onNavigateToHome}
+          aria-label="Home"
+        >
+          <Icon d={IC_HOME} />
+          <span className="mw-dsk-tip">Home</span>
         </button>
         <button className="mw-dsk-railbtn" onClick={onNewSession} aria-label="New session">
           <Icon d={IC_PLUS} />
