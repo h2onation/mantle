@@ -67,6 +67,10 @@ export const chatAnonDay = makeLimiter(30, "1 d", "rl:chat:anon:day");
 // Secondary routes
 export const sessionSummaryHour = makeLimiter(10, "1 h", "rl:session-summary");
 export const checkpointConfirmHour = makeLimiter(20, "1 h", "rl:checkpoint-confirm");
+// User-pulled Reflection composition (Opus call on demand). Separate budget
+// from confirm so the two halves of one pull (compose → confirm) don't
+// compete; 20/h matches confirm and bounds the Opus spend per user.
+export const reflectionComposeHour = makeLimiter(20, "1 h", "rl:reflection-compose");
 // Manual entry edits — generous enough for normal polishing (rename a few
 // entries in a sitting, fix typos) but tight enough that a runaway client
 // can't flood the table with rewrites.

@@ -6,8 +6,17 @@ import { deriveSummaryFromContent } from "./manual-context";
 
 // ─── Manual entry composition (Opus) ───────────────────────────────────────
 
+// How many trailing transcript messages the composer reads literally. See the
+// recentHistory comment below — widened for the user-pulled Reflection model.
+const COMPOSE_TRANSCRIPT_WINDOW = 50;
+
 interface ComposeManualEntryOptions {
-  checkpointText: string;
+  /** Jove's checkpoint message in the auto-pushed path — the transition line
+   *  plus the entry-shaped prose Jove drafted, which the composer polishes.
+   *  ABSENT in the user-pulled (Reflection) path: there is no pre-drafted
+   *  reflection, so the composer is told to compose from the conversation +
+   *  accumulated understanding instead (see the userContent assembly). */
+  checkpointText?: string;
   conversationHistory: { role: "user" | "assistant"; content: string }[];
   languageBank: { phrase: string; context: string; charge: string }[];
   /** The user's full Manual so far. Opus uses this for two things: layer
@@ -105,8 +114,13 @@ export async function composeManualEntry(
 
   const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the layer this entry belongs to based on what the entry IS (the dimensions above), and how it relates to entries already on that layer. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
 
-  // Last 8 messages for context
-  const recentHistory = conversationHistory.slice(-8);
+  // Trailing transcript the composer reads literally. Widened from 8 → 50
+  // for the user-pulled Reflection model: a reflection can be pulled long
+  // after the scenes that earned it, so those scenes must still be in the
+  // literal window (depth-meter-spec.md §13). Bounded so a marathon thread
+  // can't bloat the compose call toward the edge timeout. The rest of the
+  // session's depth still rides in through depthSection + the language bank.
+  const recentHistory = conversationHistory.slice(-COMPOSE_TRANSCRIPT_WINDOW);
   const historyText = recentHistory
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n\n");
@@ -156,12 +170,19 @@ COMPRESSED (for future reference):
 Respond with ONLY valid JSON. No markdown. No backticks.
 {"content": "Depth on the one pattern...", "name": "The title — what they do", "layer": 1, "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
 
+  // The auto-pushed path seeds the composer with Jove's drafted reflection.
+  // The user-pulled path has none — tell the composer the truth (compose from
+  // the conversation + the accumulated understanding above) rather than
+  // fabricating a fake reflection, which composes better than a stale seed.
+  const reflectionBlock = checkpointText
+    ? `${PERSONA_NAME.toUpperCase()}'S CHECKPOINT REFLECTION:\n${checkpointText}`
+    : `The user chose to capture a reflection from this conversation. Compose the entry from the conversation above and the accumulated understanding — there is no pre-drafted reflection to polish.`;
+
   const userContent = `${languageSection}${manualSection}${depthSection}
 RECENT CONVERSATION:
 ${historyText}
 
-${PERSONA_NAME.toUpperCase()}'S CHECKPOINT REFLECTION:
-${checkpointText}
+${reflectionBlock}
 
 Compose the manual entry. Pick the layer, the headline, the prose. Return the JSON.`;
 
@@ -267,7 +288,11 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     const retried = await recomposeHeadline({
       failingTitle: finalName,
       reasons: headlineCheck.reasons,
-      checkpointText,
+      // No drafted reflection in the user-pulled path — seed the title retry
+      // with the accumulated understanding (or the user's own words) so a
+      // user-pulled entry that hard-fails its headline still retries on real
+      // material rather than an empty string.
+      checkpointText: checkpointText || depthBrief || userMessageText,
       userText: userMessageText,
       isSingleExample,
     });

@@ -199,6 +199,13 @@ export function useChat() {
   const [hasLayerEmergingOrBeyond, setHasLayerEmergingOrBeyond] =
     useState(false);
   const [concreteExamples, setConcreteExamples] = useState(0);
+  // Reflection meter (user-pulled model, `reflection_meter` gate). depth
+  // drives the meter fill; reflectionReady is a LATCH — once the server
+  // reports the conversation is ripe it stays true (the option persists, even
+  // if the user keeps talking) until a confirmed save clears it. Both are
+  // refreshed on every message_complete; null/false when the gate is off.
+  const [reflectionDepth, setReflectionDepth] = useState<string | null>(null);
+  const [reflectionReady, setReflectionReady] = useState(false);
 
   const initStarted = useRef(false);
   const lastUserMessage = useRef<string | null>(null);
@@ -361,6 +368,21 @@ export function useChat() {
       completeEvent.hasLayerEmergingOrBeyond ?? false
     );
     setConcreteExamples(completeEvent.concreteExamples ?? 0);
+
+    // Reflection meter signals. The server sends one nullable field:
+    //   undefined → gate off; leave state untouched.
+    //   null      → crisis: hide the meter AND clear the readiness latch.
+    //   { depth, ready } → depth tracks the latest reading; ready latches UP
+    //     only (never down from the server), so the pulled-reflection option
+    //     persists once earned — a confirmed save is the only thing that
+    //     clears it (see confirmCheckpoint).
+    if (completeEvent.reflectionMeter === null) {
+      setReflectionDepth(null);
+      setReflectionReady(false);
+    } else if (completeEvent.reflectionMeter) {
+      setReflectionDepth(completeEvent.reflectionMeter.depth);
+      if (completeEvent.reflectionMeter.ready) setReflectionReady(true);
+    }
 
     // Track the conversation's mode locally so checkpoint and
     // conversation_ended events can attach it. Server is authoritative;
@@ -981,6 +1003,13 @@ export function useChat() {
               : m
           )
         );
+
+        // Reflection meter "starts over" on a confirmed save — clear the
+        // readiness latch so the bloom/strip resets. The fill follows the
+        // live depth (which recedes naturally as the conversation moves to
+        // the next thread), and the post-checkpoint cooldown keeps readiness
+        // from re-latching immediately.
+        setReflectionReady(false);
       }
 
       // Report time to decision for the checkpoint event.
@@ -1038,6 +1067,60 @@ export function useChat() {
     }
   }
 
+  /**
+   * User-pulled Reflection. Composes the entry on demand via
+   * /api/checkpoint/compose, then sets it as the active checkpoint so the
+   * existing review overlay opens on it — there is no in-chat trigger card in
+   * this path (the overlay is the only pending surface). Confirm/discard go
+   * through the existing confirmCheckpoint flow unchanged. Returns a status
+   * the caller (MobileSession) uses to open the overlay / surface an error.
+   */
+  async function composeReflection(): Promise<
+    | { status: "ok"; checkpoint: ActiveCheckpoint }
+    | { status: "blocked" }
+    | { status: "error" }
+  > {
+    if (!conversationId) return { status: "error" };
+    setCheckpointError(null);
+    try {
+      const res = await fetch("/api/checkpoint/compose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+      if (res.status === 401) {
+        router.push("/login");
+        return { status: "error" };
+      }
+      const body = await res.json().catch(() => null);
+      // Anonymous conversion gate — same shape as /api/chat.
+      if (body?.blocked && body?.reason === "signup_required") {
+        setPromptAuth(true);
+        return { status: "blocked" };
+      }
+      if (!res.ok || !body?.checkpoint || !body?.messageId) {
+        setCheckpointError("Couldn't build that reflection. Try again.");
+        return { status: "error" };
+      }
+      const checkpoint: ActiveCheckpoint = {
+        messageId: body.messageId,
+        layer: body.checkpoint.layer,
+        name: body.checkpoint.name,
+        content: body.checkpoint.composed_content,
+        composedContent: body.checkpoint.composed_content,
+      };
+      // Also set it as the active checkpoint so the overlay's confirm-status
+      // wiring and reload-resume see it; the caller uses the returned value to
+      // open the overlay immediately without waiting for state to propagate.
+      setActiveCheckpoint(checkpoint);
+      checkpointProposedAt.current = Date.now();
+      return { status: "ok", checkpoint };
+    } catch {
+      setCheckpointError("Couldn't reach the server. Try again.");
+      return { status: "error" };
+    }
+  }
+
   async function refreshConversations() {
     try {
       const res = await fetch("/api/conversations");
@@ -1060,6 +1143,8 @@ export function useChat() {
     setActiveCheckpoint(null);
     setErrorMessage(null);
     setCheckpointError(null);
+    setReflectionReady(false);
+    setReflectionDepth(null);
 
     if (targetConversationId === "text-channel") {
       // Load all text channel messages across all 1:1 conversations.
@@ -1150,8 +1235,10 @@ export function useChat() {
       setCheckpointError(null);
     }
 
-    // Reset checkpoint before reloading
+    // Reset checkpoint + reflection meter before reloading
     setActiveCheckpoint(null);
+    setReflectionReady(false);
+    setReflectionDepth(null);
 
     const { data: dbMessages } = await supabase
       .from("messages")
@@ -1192,6 +1279,8 @@ export function useChat() {
     setActiveCheckpoint(null);
     setErrorMessage(null);
     setCheckpointError(null);
+    setReflectionReady(false);
+    setReflectionDepth(null);
   }
 
   async function startNewSession() {
@@ -1438,5 +1527,11 @@ export function useChat() {
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
+    // Reflection meter (user-pulled model). depth drives fill; reflectionReady
+    // is the latched completion; composeReflection builds the entry on demand
+    // and opens the review overlay.
+    reflectionDepth,
+    reflectionReady,
+    composeReflection,
   };
 }

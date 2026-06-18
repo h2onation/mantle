@@ -36,6 +36,17 @@ function formatWelcomeDate(): string {
   }).toUpperCase();
 }
 
+// Reflection meter fill — maps the extraction depth rung to a fill percent.
+// Completion (100%) is driven by reflectionReady, not by depth (see the meter
+// render). Unknown/origin sit just under full so only true readiness completes.
+const REFLECTION_DEPTH_PCT: Record<string, number> = {
+  surface: 6,
+  behavior: 30,
+  feeling: 58,
+  mechanism: 85,
+  origin: 92,
+};
+
 interface MobileSessionProps {
   messages: ChatMessage[];
   conversationId: string | null;
@@ -76,6 +87,17 @@ interface MobileSessionProps {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
+  // Reflection meter (user-pulled model, `reflection_meter` gate). depth
+  // drives the meter fill; reflectionReady is the latched completion;
+  // composeReflection builds the entry on demand and returns it so the review
+  // overlay can open immediately. All absent/no-op when the gate is off.
+  reflectionDepth?: string | null;
+  reflectionReady?: boolean;
+  composeReflection?: () => Promise<
+    | { status: "ok"; checkpoint: ActiveCheckpoint }
+    | { status: "blocked" }
+    | { status: "error" }
+  >;
   firstName?: string | null;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
@@ -114,6 +136,9 @@ export default function MobileSession({
   emergingPatternSnippet = null,
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
+  reflectionDepth = null,
+  reflectionReady = false,
+  composeReflection,
   firstName = null,
   showTopBar = true,
   scopedLabel = null,
@@ -148,6 +173,42 @@ export default function MobileSession({
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
+
+  // Reflection meter (user-pulled model). `deferred` = the bloom has collapsed
+  // to the persistent top strip (after "Not yet" or sending another message);
+  // `composing` = a compose request is in flight after a tap.
+  const [reflectionDeferred, setReflectionDeferred] = useState(false);
+  const [reflectionComposing, setReflectionComposing] = useState(false);
+  // When readiness clears (a confirmed save, a new conversation, or crisis),
+  // drop the deferred flag so the NEXT ready shows the bloom again, not the
+  // collapsed strip.
+  useEffect(() => {
+    if (!reflectionReady) setReflectionDeferred(false);
+  }, [reflectionReady]);
+
+  const reflectionMeterVisible = reflectionDepth !== null;
+  const reflectionFill = reflectionReady
+    ? 100
+    : REFLECTION_DEPTH_PCT[reflectionDepth ?? ""] ?? 0;
+
+  // Shared handler for the bloom button AND the deferred strip — both go
+  // STRAIGHT to the composed output (compose on demand, then open the existing
+  // review overlay). There is no path back to the bloom from the strip.
+  const handleBuildReflection = async () => {
+    if (!composeReflection || reflectionComposing || isLoading || isStreaming) {
+      return;
+    }
+    setReflectionComposing(true);
+    const result = await composeReflection();
+    setReflectionComposing(false);
+    if (result.status === "ok") {
+      overlayCheckpointRef.current = result.checkpoint;
+      setCheckpointActionState(null);
+      setCheckpointOverlayOpen(true);
+    }
+    // "blocked" → the hook set promptAuth (the conversion modal handles it).
+    // "error"   → the hook set checkpointError, surfaced under the affordance.
+  };
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -461,6 +522,100 @@ export default function MobileSession({
             Later
           </button>
         </div>
+      )}
+
+      {/* Reflection meter (Tide — a hairline under the header). Fills as the
+          conversation deepens; at full it blooms above the composer. Hidden
+          entirely (reflectionDepth null) when the gate is off or in crisis. */}
+      {reflectionMeterVisible && (
+        <div
+          role="progressbar"
+          aria-label="Understanding depth"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(reflectionFill)}
+          style={{
+            position: "relative",
+            height: 2,
+            background: "var(--session-hair)",
+            flexShrink: 0,
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${reflectionFill}%`,
+              background:
+                "linear-gradient(90deg, var(--session-walnut-light), var(--session-walnut))",
+              boxShadow: reflectionReady
+                ? "0 0 7px var(--session-walnut-light)"
+                : "none",
+              transition: "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Deferred strip — the persistent "a reflection's ready" handle that
+          appears after "Not yet". Tapping it goes STRAIGHT to the output. */}
+      {reflectionReady && reflectionDeferred && (
+        <button
+          type="button"
+          onClick={handleBuildReflection}
+          disabled={reflectionComposing}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            width: "100%",
+            padding: "10px 16px",
+            flexShrink: 0,
+            cursor: reflectionComposing ? "default" : "pointer",
+            background: "var(--session-walnut-surface-soft)",
+            border: "none",
+            borderBottom: "1px solid var(--session-walnut-border)",
+            animation: "checkpointFadeIn 0.4s ease both",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: 15,
+              color: "var(--session-walnut)",
+              lineHeight: 1,
+            }}
+          >
+            ❦
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              color: "var(--session-ink-soft)",
+            }}
+          >
+            {reflectionComposing
+              ? "Building your reflection…"
+              : "A reflection's ready"}
+          </span>
+          {!reflectionComposing && (
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--session-walnut-meta-strong)",
+              }}
+            >
+              Tap to build it &rarr;
+            </span>
+          )}
+        </button>
       )}
 
       {/* Messages area wrapper. The mask on the scroll child below feathers
@@ -820,8 +975,108 @@ export default function MobileSession({
         </div>
       </div>
 
+      {/* Reflection bloom — the first offer, above the composer. Collapses to
+          the top strip on "Not yet" or when the user sends another message. */}
+      {reflectionReady && !reflectionDeferred && (
+        <div
+          style={{
+            flexShrink: 0,
+            textAlign: "center",
+            padding: "16px 26px 10px",
+            animation: "checkpointFadeIn 0.5s ease both",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: 21,
+              color: "var(--session-walnut)",
+              lineHeight: 1,
+              marginBottom: 9,
+            }}
+          >
+            ❦
+          </div>
+          <p
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontStyle: "italic",
+              fontSize: 20,
+              lineHeight: 1.3,
+              color: "var(--session-ink)",
+              margin: "0 0 16px",
+            }}
+          >
+            There&rsquo;s something here worth keeping.
+          </p>
+          <button
+            type="button"
+            onClick={handleBuildReflection}
+            disabled={reflectionComposing}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontFamily: "var(--font-sans)",
+              fontSize: 15,
+              fontWeight: 500,
+              color: "var(--session-ink)",
+              background: "var(--session-walnut-border)",
+              border: "1px solid var(--session-walnut)",
+              borderRadius: 13,
+              padding: "13px 26px",
+              cursor: reflectionComposing ? "default" : "pointer",
+              letterSpacing: "0.01em",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {reflectionComposing
+              ? "Building your reflection…"
+              : "Build this reflection"}
+            {!reflectionComposing && <span aria-hidden="true">&rarr;</span>}
+          </button>
+          <button
+            type="button"
+            onClick={() => setReflectionDeferred(true)}
+            disabled={reflectionComposing}
+            style={{
+              display: "block",
+              margin: "14px auto 0",
+              fontFamily: "var(--font-sans)",
+              fontSize: 13.5,
+              color: "var(--session-ink-faded)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Not yet
+          </button>
+          {checkpointError && (
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                letterSpacing: "1.5px",
+                textTransform: "uppercase",
+                color: "var(--session-ink-ghost)",
+                margin: "12px 0 0",
+              }}
+            >
+              {checkpointError}
+            </p>
+          )}
+        </div>
+      )}
+
       <ChatInput
-        onSend={sendMessage}
+        onSend={(text) => {
+          // Sending another message while the bloom is up is an implicit
+          // "not yet" — collapse it to the persistent strip so it never
+          // blocks the composer.
+          if (reflectionReady && !reflectionDeferred) setReflectionDeferred(true);
+          sendMessage(text);
+        }}
         disabled={isLoading || isStreaming || conversationId === "text-channel"}
         draftToRestore={draftToRestore}
         onDraftRestored={onDraftRestored}
@@ -887,6 +1142,12 @@ export default function MobileSession({
             if (checkpointActionState === "confirmed" && checkpointError) {
               setCheckpointActionState(null);
             }
+            // Reflection model: closing the overlay without a confirmed save
+            // (discard, rework, or tap-away) tucks the still-ripe reflection
+            // back into the persistent top strip rather than re-blooming. On a
+            // confirmed save, reflectionReady clears and the effect drops the
+            // deferred flag, so this is a no-op there.
+            if (reflectionReady) setReflectionDeferred(true);
           }}
         />
       )}

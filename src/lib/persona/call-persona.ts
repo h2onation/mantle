@@ -785,6 +785,18 @@ export function callPersona({
           conversationalText = crisis.responseText;
         }
 
+        // 10c. Reflection-meter backstop. Under the user-pulled model Jove's
+        //      proposal instructions are suppressed (checkpointsEnabled is
+        //      false), so a transition line should never appear. But detection
+        //      is also off, so if the model drifts and writes "I want to put
+        //      something in your Manual" anyway, nothing downstream would strip
+        //      it — it would ship as dangling text with no card. Strip it here
+        //      so the user never sees a proposal Jove can't act on. No-op when
+        //      no transition line is present.
+        if (ctx.reflectionMeterEnabled) {
+          conversationalText = stripCheckpointFromText(conversationalText);
+        }
+
         // 11. Save Jove's response (conversational part only).
         //     created_at is selected back so the split-delivery lead-in
         //     (12b2) and the acknowledgment bubble (13b) can backdate
@@ -1228,6 +1240,27 @@ export function callPersona({
               concreteExamples:
                 previousExtraction?.checkpoint_gate.concrete_examples ?? 0,
               mode: conversationMode,
+              // Reflection meter (user-pulled model). One nullable field:
+              // { depth, ready } drives the meter, or null to HIDE it entirely
+              // (crisis — spec §9; also clears any latched readiness on the
+              // client). `ready` reuses gateResult.passed — the SAME gate the
+              // Jove-pushed path uses, computed once at the top of this turn —
+              // so the meter and the dormant auto-trigger can't diverge, and
+              // the post-checkpoint cooldown folded into the gate gives the
+              // "starts over after save" reset for free. Absent when the flag
+              // is off; older clients ignore it.
+              ...(ctx.reflectionMeterEnabled
+                ? {
+                    reflectionMeter:
+                      previousExtraction?.clinical_flag?.active &&
+                      previousExtraction.clinical_flag.level === "crisis"
+                        ? null
+                        : {
+                            depth: previousExtraction?.depth ?? "surface",
+                            ready: gateResult.passed,
+                          },
+                  }
+                : {}),
               ...(parsedChips.length > 0 ? { chips: parsedChips } : {}),
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`

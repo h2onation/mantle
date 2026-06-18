@@ -199,6 +199,9 @@ export default function MainApp() {
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
+    reflectionDepth,
+    reflectionReady,
+    composeReflection,
   } = useChat();
 
   // When promptAuth fires, clear any previous dismiss so modal shows
@@ -468,6 +471,9 @@ export default function MainApp() {
       emergingPatternSnippet={emergingPatternSnippet}
       hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
       concreteExamples={concreteExamples}
+      reflectionDepth={reflectionDepth}
+      reflectionReady={reflectionReady}
+      composeReflection={composeReflection}
       firstName={firstName}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}

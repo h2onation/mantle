@@ -36,6 +36,12 @@ const GATE_META: {
     label: "Extraction analysis",
     off: "OFF → voice-only. The background analysis call is skipped and Jove gets no brief steering it. Checkpoints can't fire either (they depend on it).",
   },
+  {
+    key: "reflection_meter",
+    field: "reflectionMeter",
+    label: "Reflection meter",
+    off: "ON → user-pulled Reflections: a depth meter fills as the conversation deepens and the user taps to build the entry on demand; Jove stops auto-proposing. OFF (default) → the current Jove-pushed checkpoint flow, unchanged.",
+  },
 ];
 
 export default function FeatureGatesPanel() {

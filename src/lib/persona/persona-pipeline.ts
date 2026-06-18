@@ -65,6 +65,12 @@ export interface ConversationContext {
    *  priorCheckpointSuppressed) are already zeroed in this context when
    *  the gate is OFF, so one boolean fully neutralizes the pipeline. */
   checkpointsEnabled: boolean;
+  /** True when the `reflection_meter` feature gate is ON — the user-pulled
+   *  Reflection model. When true, `checkpointsEnabled` is forced false (Jove
+   *  stops auto-proposing) while the standalone composer + confirm route stay
+   *  callable for the on-demand /api/checkpoint/compose endpoint. Read by
+   *  call-persona.ts to surface the depth + readiness signals to the client. */
+  reflectionMeterEnabled: boolean;
   /** False when the `extraction_brief` feature gate is OFF. Read by
    *  call-persona.ts to skip the background extraction call. When false,
    *  extractionForPersona is also already cleared in this context, so Jove
@@ -319,6 +325,14 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
+  // When the reflection meter is ON, Jove never auto-proposes — the user
+  // pulls the reflection instead. Collapsing the proposal capability into
+  // the existing `checkpoints`-OFF path zeroes the same prompt flags and
+  // skips detection, so we reuse one tested branch instead of adding a new
+  // suppression path. The standalone composer + confirm route are unaffected
+  // (they don't read this), so on-demand compose still works.
+  const proposalsEnabled = gates.checkpoints && !gates.reflectionMeter;
+
   return {
     messages,
     manualComponents,
@@ -334,11 +348,12 @@ export async function loadConversationContext(
     // checkpoints gate OFF → zero every checkpoint-derived prompt flag so
     // the CHECKPOINTS and POST-SUPPRESSION Tier 3 blocks never render, and
     // expose checkpointsEnabled so call-persona.ts skips detection entirely.
-    checkpointApproaching: gates.checkpoints && checkpointApproaching,
+    checkpointApproaching: proposalsEnabled && checkpointApproaching,
     personaModes,
     mode: conversationMode,
-    priorCheckpointSuppressed: gates.checkpoints && priorCheckpointSuppressed,
-    checkpointsEnabled: gates.checkpoints,
+    priorCheckpointSuppressed: proposalsEnabled && priorCheckpointSuppressed,
+    checkpointsEnabled: proposalsEnabled,
+    reflectionMeterEnabled: gates.reflectionMeter,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
     checkpointTuning,

@@ -913,6 +913,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       personaModes: ["autistic"],
       priorCheckpointSuppressed: false,
       checkpointsEnabled: true,
+      reflectionMeterEnabled: false,
       extractionEnabled: true,
       voiceOverrides: {},
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,

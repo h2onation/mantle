@@ -14,11 +14,10 @@ import {
   rateLimitedResponse,
 } from "@/lib/rate-limit";
 import { checkDailyMessageLimit } from "@/lib/usage";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { checkAnonCheckpointGate } from "@/lib/auth/anon-checkpoint-gate";
 
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_UPLOAD_LENGTH = 16000;
-const ANON_CHECKPOINT_LIMIT = 2;
 
 export async function POST(request: Request) {
   let capturedUserId: string | null = null;
@@ -94,23 +93,11 @@ export async function POST(request: Request) {
     }
     const isAnonymous = user.is_anonymous === true;
 
-    // 1b. Anonymous checkpoint conversion gate (Gate B). Runs before any
-    // rate limiter or Anthropic call so a converted-out anonymous user
-    // never burns Upstash quota or API tokens.
-    if (isAnonymous) {
-      const { count } = await admin
-        .from("manual_entries")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      if ((count ?? 0) >= ANON_CHECKPOINT_LIMIT) {
-        return Response.json({
-          blocked: true,
-          reason: "signup_required",
-          message: `You've started building your manual. Create an account to keep what you've built and continue with ${PERSONA_NAME}.`,
-        });
-      }
-    }
+    // 1b. Anonymous conversion gate (Gate B) — shared with the compose route.
+    // Runs before any rate limiter or Anthropic call so a converted-out
+    // anonymous user never burns Upstash quota or API tokens.
+    const anonBlock = await checkAnonCheckpointGate(admin, user);
+    if (anonBlock) return Response.json(anonBlock);
 
     // 1c. Rate limit check (Upstash). Per-minute + per-day; both must pass.
     const limiters = isAnonymous

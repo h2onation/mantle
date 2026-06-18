@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>mywalnut — depth meter mockup (Bloom · Tide)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=DM+Mono:wght@400;500&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#e7e5de;font-family:'DM Sans',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:30px 14px 54px}
+.legend{max-width:382px;text-align:center;color:#5a564d;font-size:13px;line-height:1.6}
+.legend h1{font-family:'Instrument Serif',serif;font-size:25px;font-weight:400;color:#26241f;margin:0 0 6px}
+.legend b{color:#a6803c;font-weight:400}
+#mwctl{width:100%;max-width:382px;border:1px dashed rgba(120,118,110,.45);border-radius:12px;padding:9px 11px;display:flex;align-items:center;gap:8px;background:rgba(120,116,108,.045)}
+#mwctl button{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border-radius:8px;border:1px solid rgba(120,118,110,.45);background:transparent;color:#5a564d;cursor:pointer}
+#mwctl .prim{background:#785b1e;color:#fff;border-color:#785b1e}
+#mwctl .st{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:#7a5a1e;letter-spacing:.08em;text-transform:uppercase}
+
+.mw-stage{width:100%;max-width:382px;border-radius:34px;padding:10px;background:#d8d5cc;box-shadow:0 16px 44px rgba(0,0,0,.22);
+--ink:#1C1B18;--ink-soft:#3A3833;--ink-mid:rgba(28,27,24,.64);--ink-faded:#54524A;--ink-whisper:rgba(28,27,24,.22);--persona:#7A5A1E;--walnut:#A6803C;--walnut-light:rgba(166,128,60,.5);--walnut-surface:rgba(248,247,243,.92);--walnut-ssoft:rgba(250,249,245,.94);--walnut-border:rgba(122,90,30,.3);--walnut-bsoft:rgba(122,90,30,.2);--wmeta:#644A18;--jove-bg:rgba(252,251,247,.93);--jove-border:rgba(40,38,33,.16);--jove-rule:#A6803C;--user-bg:linear-gradient(160deg,#ECE9E0,#E4E0D5);--user-border:rgba(28,27,24,.22);--ink-user:#1C1B18;--bub-border:rgba(122,90,30,.3);--bub-shadow:0 8px 24px rgba(28,27,24,.1),0 2px 5px rgba(28,27,24,.08);--hair:rgba(28,27,24,.1);--btn-inset:rgba(28,27,24,.07);--backdrop:rgba(28,27,24,.5);--plate-shadow:0 22px 56px rgba(28,27,24,.14),0 6px 14px rgba(28,27,24,.09),inset 0 1px 0 rgba(255,254,250,.5);--meniscus:rgba(180,140,70,.95);--glow:rgba(166,128,60,.32);--build:#7A5A1E;--cream:#F2F1EB;
+--bg:radial-gradient(150% 90% at 50% -18%,rgba(252,251,246,.8),rgba(252,251,246,0) 70%),radial-gradient(150% 95% at 50% 120%,rgba(166,128,60,.1),rgba(166,128,60,0) 72%),#E8E6DF}
+
+.mw-phone{position:relative;height:600px;border-radius:26px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;color:var(--ink)}
+.mw-top{display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid var(--walnut-border);flex-shrink:0;z-index:2}
+.mw-top .gl{width:36px;height:36px;border-radius:50%;border:1px solid var(--walnut-bsoft);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:15px;background:var(--btn-inset)}
+.mw-mark{font-family:'Instrument Serif',serif;font-size:16px;color:var(--ink);letter-spacing:-.2px}
+.mw-mark b{color:var(--walnut);font-weight:400}
+
+.mw-meter{position:relative;height:2px;background:var(--hair);flex-shrink:0;z-index:2}
+.mw-fill{position:absolute;left:0;top:0;height:100%;width:5%;overflow:hidden;background:linear-gradient(90deg,var(--walnut-light),var(--walnut));transition:width 1s cubic-bezier(.22,1,.36,1)}
+.mw-fill::after{content:"";position:absolute;right:0;top:0;height:100%;width:1.5px;background:var(--meniscus)}
+.mw-stage[data-fill=ready] .mw-fill{box-shadow:0 0 7px var(--glow)}
+.mw-sheen{position:absolute;top:0;height:100%;width:38%;background:linear-gradient(90deg,transparent,rgba(255,246,228,.6),transparent);transform:translateX(-130%);opacity:0}
+.mw-stage[data-fill=ready] .mw-sheen{animation:mwsheen 1.15s cubic-bezier(.3,.7,.4,1) .18s 1 forwards}
+
+.mw-thandle{display:none;align-items:center;justify-content:center;gap:9px;padding:9px 16px;flex-shrink:0;cursor:pointer;background:var(--walnut-ssoft);border-bottom:1px solid var(--walnut-border);transition:background .2s ease}
+.mw-stage[data-fill=ready][data-armed=no] .mw-thandle{display:flex;animation:mwslide .42s cubic-bezier(.22,1,.36,1) both}
+.mw-thandle:hover{background:rgba(122,90,30,.08)}
+.mw-thandle .fl{font-family:'Instrument Serif',serif;font-size:15px;color:var(--walnut);line-height:1}
+.mw-thandle .t1{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-soft)}
+.mw-thandle .t2{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--persona)}
+
+.mw-scroll{flex:1;overflow-y:auto;padding:18px 16px 10px;display:flex;flex-direction:column;gap:14px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 16px,#000 calc(100% - 16px),transparent 100%)}
+.mw-scroll::-webkit-scrollbar{display:none}
+.mw-sp{flex-grow:1;min-height:8px}
+.mw-row{display:flex;flex-direction:column}
+.mw-spk{margin:0 0 6px 2px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--persona);line-height:1}
+.mw-bub{padding:12px 19px 13px;font-family:'Spectral',Georgia,serif;font-size:15px;line-height:1.6;letter-spacing:-.03px;box-shadow:var(--bub-shadow)}
+.mw-jove{align-self:flex-start;max-width:92%;background:var(--jove-bg);border:1px solid var(--jove-border);color:var(--ink);border-radius:10px;border-top-left-radius:5px;box-shadow:inset 0 2px 0 var(--jove-rule),var(--bub-shadow)}
+.mw-user{align-self:flex-end;max-width:88%;background:var(--user-bg);border:1px solid var(--user-border);color:var(--ink-user);border-radius:10px;border-top-right-radius:5px}
+.mw-receipt{align-self:center;display:inline-flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--walnut);margin-top:2px}
+.mw-receipt b{font-family:'Instrument Serif',serif;font-size:14px;font-weight:400}
+
+.mw-bloom{flex-shrink:0;max-height:0;opacity:0;overflow:hidden;transition:max-height .55s cubic-bezier(.22,1,.36,1),opacity .4s ease}
+.mw-stage[data-fill=ready][data-armed=yes] .mw-bloom{max-height:230px;opacity:1}
+.mw-bin{padding:16px 26px 8px;text-align:center}
+.mw-el{opacity:0;transform:translateY(9px);transition:opacity .55s ease,transform .55s cubic-bezier(.22,1,.36,1)}
+.mw-stage[data-armed=yes] .mw-el{opacity:1;transform:none}
+.mw-fleur{font-family:'Instrument Serif',serif;font-size:21px;color:var(--walnut);line-height:1;margin-bottom:9px}
+.mw-stage[data-armed=yes] .mw-fleur{transition-delay:.04s}
+.mw-shape{font-family:'Instrument Serif',serif;font-style:italic;font-size:21px;line-height:1.28;color:var(--ink);margin:0 0 18px}
+.mw-stage[data-armed=yes] .mw-shape{transition-delay:.14s}
+.mw-build{display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;color:#fff;background:var(--build);border:none;border-radius:13px;padding:14px 28px;cursor:pointer;letter-spacing:.01em;box-shadow:0 4px 14px rgba(120,90,30,.34),inset 0 1px 0 rgba(255,255,255,.16);transition:filter .2s ease,transform .14s ease}
+.mw-build:hover{filter:brightness(1.09)}.mw-build:active{transform:scale(.98)}
+.mw-stage[data-armed=yes] .mw-build{transition-delay:.26s}
+.mw-build svg{stroke:#fff}
+.mw-notyet{display:block;margin:14px auto 0;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--ink-faded);background:none;border:none;cursor:pointer;transition:color .2s ease}
+.mw-notyet:hover{color:var(--ink-soft)}
+.mw-stage[data-armed=yes] .mw-notyet{transition-delay:.34s}
+
+.mw-composer{flex-shrink:0;padding:12px 16px 14px}
+.mw-inbar{display:flex;align-items:flex-end;gap:4px;background:var(--walnut-surface);border:1px solid var(--bub-border);border-radius:21px;padding:12px 8px 12px 16px;min-height:56px;box-shadow:var(--bub-shadow)}
+.mw-ph{flex:1;align-self:center;font-family:'Spectral',Georgia,serif;font-style:italic;font-size:14.5px;line-height:1.6;color:var(--ink-faded)}
+.mw-send{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:13px;margin:-13px -4px -13px 0;color:var(--ink);flex-shrink:0}
+
+.mw-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .32s ease}
+.mw-overlay.on{opacity:1;pointer-events:auto}
+.mw-overlay::before{content:"";position:absolute;inset:0;background:var(--backdrop);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.mw-plate{position:relative;width:100%;max-width:342px;border-radius:20px;background:var(--walnut-surface);border:1px solid var(--bub-border);box-shadow:var(--plate-shadow);overflow:hidden;transform:scale(.97);transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.mw-overlay.on .mw-plate{transform:scale(1)}
+.mw-frame{position:absolute;inset:11px;border:1px solid var(--walnut-bsoft);border-radius:12px;pointer-events:none}
+.mw-pbody{padding:25px 24px 19px;text-align:center}
+.mw-peye{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--wmeta)}
+.mw-phead{font-family:'Instrument Serif',serif;font-size:29px;font-weight:400;line-height:1.12;color:var(--ink);margin:14px auto 0;max-width:19ch}
+.mw-prule{width:66px;height:2px;background:var(--walnut-border);margin:16px auto 13px;position:relative;overflow:hidden}
+.mw-prule i{position:absolute;inset:0;background:var(--walnut);transform:scaleX(0);transform-origin:center;transition:transform .6s ease .1s}
+.mw-overlay.on .mw-prule i{transform:scaleX(1)}
+.mw-ptext{font-family:'Spectral',Georgia,serif;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:left}
+.mw-pact{padding:15px 24px 23px;border-top:1px solid var(--walnut-bsoft);background:var(--walnut-ssoft)}
+.mw-padd{width:100%;padding:14px;font-family:'DM Sans',sans-serif;font-size:14.5px;font-weight:500;color:#fff;background:var(--build);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(120,90,30,.34);transition:filter .2s}
+.mw-padd:hover{filter:brightness(1.09)}
+.mw-plinks{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:13px}
+.mw-plinks button{font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--ink-faded);background:none;border:none;cursor:pointer}
+.mw-plinks .edit{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--walnut-border);border-radius:6px;padding:5px 11px;color:var(--wmeta)}
+.mw-plinks s{color:var(--ink-whisper);text-decoration:none}
+.mw-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;background:var(--cream);border-radius:20px;opacity:0;pointer-events:none;transition:opacity .5s ease;z-index:3}
+.mw-overlay[data-phase=done] .mw-cover{opacity:1}
+.mw-cover .fl{font-family:'Instrument Serif',serif;font-size:30px;color:var(--walnut)}
+.mw-cover .cl{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--walnut)}
+.mw-cover .nm{font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;color:var(--ink-mid)}
+
+@keyframes mwsheen{0%{transform:translateX(-130%);opacity:0}28%{opacity:1}100%{transform:translateX(360%);opacity:0}}
+@keyframes mwslide{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.mw-fill{transition:none}.mw-sheen{display:none}.mw-el{transition:none;opacity:1;transform:none}.mw-prule i{transition:none;transform:scaleX(1)}}
+</style>
+</head>
+<body>
+<div class="legend">
+  <h1>Depth meter<b>.</b></h1>
+  Bloom · Tide. A brass hairline at the top fills as the conversation deepens. At full, one reflection blooms above the composer. Tap <b>Deepen ▸</b> four times, then <b>Build this reflection</b> — or <b>Not yet</b> to watch it tuck into the narrow strip at the top.
+</div>
+
+<div id="mwctl">
+  <button class="prim" id="mwdeep">Deepen ▸</button>
+  <button id="mwreset">↺ Reset</button>
+  <span class="st" id="mwstate">Surface</span>
+</div>
+
+<div class="mw-stage" id="mwstage" data-fill="low" data-armed="yes">
+  <div class="mw-phone">
+    <div class="mw-top">
+      <span class="gl">⋯</span>
+      <span class="mw-mark">mywalnut<b>.</b></span>
+      <span class="gl" style="border:none;background:none"></span>
+    </div>
+
+    <div class="mw-meter" role="progressbar" aria-label="Understanding depth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="5"><div class="mw-fill"><span class="mw-sheen"></span></div></div>
+
+    <div class="mw-thandle" id="mwthandle"><span class="fl">❦</span><span class="t1">A reflection's ready</span><span class="t2">Tap to build it →</span></div>
+
+    <div class="mw-scroll" id="mwscroll">
+      <div class="mw-sp"></div>
+      <div class="mw-row"><div class="mw-spk">Jove</div><div class="mw-bub mw-jove">What's been with you?</div></div>
+      <div class="mw-row"><div class="mw-bub mw-user">I went quiet in the standup again. Just checked out.</div></div>
+    </div>
+
+    <div class="mw-bloom" id="mwbloom">
+      <div class="mw-bin">
+        <div class="mw-fleur mw-el">❦</div>
+        <p class="mw-shape mw-el">There's something here worth keeping.</p>
+        <button class="mw-build mw-el" id="mwbuild" style="background:#7a5a1e;color:#fff;border:none">Build this reflection <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></button>
+        <button class="mw-notyet mw-el" id="mwnotyet">Not yet</button>
+      </div>
+    </div>
+
+    <div class="mw-composer">
+      <div class="mw-inbar">
+        <span class="mw-ph">Write back to Jove…</span>
+        <button class="mw-send" aria-label="Start voice recording"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11.5 C 6 14.8, 8.7 17.5, 12 17.5 C 15.3 17.5, 18 14.8, 18 11.5"/><path d="M12 17.5 L 12 21"/></svg></button>
+      </div>
+    </div>
+
+    <div class="mw-overlay" id="mwoverlay" data-phase="act" aria-hidden="true">
+      <div class="mw-plate">
+        <div class="mw-frame"></div>
+        <div class="mw-pbody">
+          <div class="mw-peye">Layer Three — How I Process Things</div>
+          <h3 class="mw-phead">The static before going dark</h3>
+          <div class="mw-prule"><i></i></div>
+          <p class="mw-ptext">In a fast room the words stop landing one at a time and start piling up. Pressure builds behind your eyes, a static that grows until you can't catch what anyone is saying. It looks like you've checked out. What's happening is the input is coming in faster than you can clear it, and your system drops into low-power mode to protect itself. By the time someone turns to you, there's nothing left to pull from.</p>
+        </div>
+        <div class="mw-pact">
+          <button class="mw-padd" id="mwadd">Add to my Manual</button>
+          <div class="mw-plinks"><button class="edit">Edit</button><s>·</s><button>Jove, let's rework</button><s>·</s><button id="mwdiscard">Discard</button></div>
+        </div>
+        <div class="mw-cover">
+          <span class="fl">❦</span>
+          <span class="cl">Added to Layer Three</span>
+          <span class="nm">How I Process Things</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var stage=document.getElementById('mwstage'),scroll=document.getElementById('mwscroll'),stateOut=document.getElementById('mwstate'),overlay=document.getElementById('mwoverlay');
+  var FILL=[5,28,56,86,100],NAMES=['Surface','Behavior','Feeling','Mechanism','Ready'];
+  var beats=[
+    {j:"Quiet how — did you stop talking, or stop tracking what they were saying?",u:"Stopped tracking. The words were coming at me and I couldn't catch them."},
+    {j:"Where did you feel that. When the words stopped landing.",u:"Behind my eyes. A pressure, like static building up."},
+    {j:"So you didn't check out. The input piled up faster than you could clear it, and the system dropped into low-power mode.",u:"Yeah. By the time anyone asked me something I had nothing left."},
+    {j:"It happened in the all-hands last month too. Same static, same going dark.",u:"Exactly the same. I thought I was just bad at meetings."}
+  ];
+  var depth=0,armed=true,INITIAL=scroll.innerHTML;
+  function rowEl(role,text){var r=document.createElement('div');r.className='mw-row';if(role==='jove'){var s=document.createElement('div');s.className='mw-spk';s.textContent='Jove';r.appendChild(s);}var b=document.createElement('div');b.className='mw-bub '+(role==='jove'?'mw-jove':'mw-user');b.textContent=text;r.appendChild(b);scroll.appendChild(r);scroll.scrollTop=scroll.scrollHeight;}
+  function render(){var p=FILL[depth];stage.querySelector('.mw-fill').style.width=p+'%';stage.querySelector('.mw-meter').setAttribute('aria-valuenow',p);stage.dataset.fill=depth>=4?'ready':'low';stage.dataset.armed=armed?'yes':'no';stateOut.textContent=NAMES[depth];}
+  document.getElementById('mwdeep').onclick=function(){if(depth>=4)return;var b=beats[depth];rowEl('jove',b.j);setTimeout(function(){rowEl('user',b.u);},360);depth++;armed=true;render();};
+  document.getElementById('mwreset').onclick=function(){depth=0;armed=true;scroll.innerHTML=INITIAL;overlay.classList.remove('on');overlay.dataset.phase='act';render();};
+  function openOutput(){overlay.dataset.phase='act';overlay.classList.add('on');}
+  function dismissOutput(){overlay.classList.remove('on');armed=false;render();}
+  document.getElementById('mwbuild').onclick=openOutput;
+  document.getElementById('mwnotyet').onclick=function(){armed=false;render();};
+  document.getElementById('mwthandle').onclick=openOutput;
+  stage.querySelector('.mw-meter').onclick=function(){if(depth>=4&&!armed)openOutput();};
+  overlay.onclick=function(e){if(e.target===overlay)dismissOutput();};
+  document.getElementById('mwdiscard').onclick=dismissOutput;
+  document.getElementById('mwadd').onclick=function(){overlay.dataset.phase='done';setTimeout(function(){overlay.classList.remove('on');overlay.dataset.phase='act';depth=0;armed=true;render();var r=document.createElement('div');r.className='mw-receipt';r.innerHTML='❦ Saved to <b>How I Process Things</b>';scroll.appendChild(r);scroll.scrollTop=scroll.scrollHeight;},1550);};
+  render();
+})();
+</script>
+</body>
+</html>
