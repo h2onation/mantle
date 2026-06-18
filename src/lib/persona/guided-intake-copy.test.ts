@@ -62,24 +62,31 @@ describe("GUIDED_INTAKE_OPENER constant", () => {
 });
 
 describe("guided intake UI wiring", () => {
-  const session = read("src/components/mobile/MobileSession.tsx");
+  // The three conversation modes (situation / guided-intake / upload) launch
+  // from Home's "ways to begin" — mobile via SECONDARY_STARTS, desktop via the
+  // triptych. The old in-session 3-card entry screen was retired (ADR-048
+  // follow-up); Home is now the single launchpad and MobileSession no longer
+  // starts conversations itself.
+  const mobileHome = read("src/components/mobile/MobileHome.tsx");
+  const desktopHome = read("src/components/desktop/DesktopHome.tsx");
   const mainApp = read("src/components/MainApp.tsx");
   const useChat = read("src/lib/hooks/useChat.ts");
 
-  it("MobileSession accepts startConversation prop", () => {
-    expect(session).toContain("startConversation");
+  it("MobileHome surfaces the guided-intake mode", () => {
+    expect(mobileHome).toContain('"guided-intake"');
   });
 
-  it("MobileSession renders the guided intake affordance", () => {
-    expect(session).toContain("Guided intake");
+  it("MobileHome launches modes via onStartConversation", () => {
+    expect(mobileHome).toContain("onStartConversation");
+    expect(mobileHome).toContain('onStartConversation("situation")');
   });
 
-  it("MobileSession wires Guided to startConversation('guided-intake')", () => {
-    expect(session).toContain('startConversation("guided-intake")');
+  it("DesktopHome wires Guided to onStartConversation('guided-intake')", () => {
+    expect(desktopHome).toContain('onStartConversation("guided-intake")');
   });
 
-  it("MainApp passes startConversation to MobileSession", () => {
-    expect(mainApp).toContain("startConversation={startConversation}");
+  it("MainApp passes onStartConversation to the Home views", () => {
+    expect(mainApp).toContain("onStartConversation={handleStartConversation}");
   });
 
   it("useChat exports startConversation", () => {
@@ -103,9 +110,9 @@ describe("guided intake UI wiring", () => {
     expect(useChat).toContain('resetConversationState("new")');
   });
 
-  it("entry card titles avoid clinical terminology", () => {
-    expect("Navigate a situation").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
-    expect("Guided intake").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
+  it("home conversation-starter labels avoid clinical terminology", () => {
+    expect("Bring a situation").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
+    expect("Let Jove lead with questions").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
   });
 });
 

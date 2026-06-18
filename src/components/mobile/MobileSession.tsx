@@ -5,36 +5,16 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
 import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
-import type { ChatMessage, ManualEntry, ActiveCheckpoint } from "@/lib/types";
+import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
-import { PERSONA_NAME, type CheckpointAction, type ConversationMode } from "@/lib/persona/config";
+import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
-import EntryCard from "./EntryCard";
-
-const RETURNING_GREETINGS: ((name?: string | null) => string)[] = [
-  (name) => name ? `Welcome back, ${name}.` : "Welcome back.",
-  (name) => name ? `Good to see you, ${name}.` : "Good to see you.",
-  () => "What's been with you?",
-  (name) => name ? `Hey, ${name}.` : "Hey.",
-  () => "Ready when you are.",
-  () => "What brings you here today?",
-];
-
-
-function formatWelcomeDate(): string {
-  const now = new Date();
-  return now.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).toUpperCase();
-}
 
 // Reflection meter fill — maps the extraction depth rung to a fill percent.
 // Completion (100%) is driven by reflectionReady, not by depth (see the meter
@@ -57,7 +37,6 @@ interface MobileSessionProps {
   // indicator visible even though the last message is a fresh assistant
   // bubble. Optional so older callers default to today's behavior.
   composingCheckpoint?: boolean;
-  confirmedEntries: ManualEntry[];
   activeCheckpoint: ActiveCheckpoint | null;
   checkpointError: string | null;
   errorMessage: string | null;
@@ -68,7 +47,6 @@ interface MobileSessionProps {
     action: CheckpointAction,
     edits?: { editedContent?: string | null; editedName?: string | null }
   ) => void;
-  startConversation: (mode: ConversationMode) => Promise<boolean>;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
   // Onboarding modal state. modalProgress=null means MainApp hasn't
@@ -98,7 +76,6 @@ interface MobileSessionProps {
     | { status: "blocked" }
     | { status: "error" }
   >;
-  firstName?: string | null;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
   // When this conversation was opened via "go deeper" on a Manual layer,
@@ -118,7 +95,6 @@ export default function MobileSession({
   isLoading,
   isStreaming,
   composingCheckpoint = false,
-  confirmedEntries,
   activeCheckpoint,
   checkpointError,
   errorMessage,
@@ -126,7 +102,6 @@ export default function MobileSession({
   sendChipResponse,
   retryLastMessage,
   confirmCheckpoint,
-  startConversation,
   isGuest,
   onSignInPrompt,
   modalProgress = null,
@@ -139,7 +114,6 @@ export default function MobileSession({
   reflectionDepth = null,
   reflectionReady = false,
   composeReflection,
-  firstName = null,
   showTopBar = true,
   scopedLabel = null,
   draftToRestore = null,
@@ -168,8 +142,6 @@ export default function MobileSession({
       }).catch(() => {});
     }
   }, [modalProgress, isAnonymous, activeCheckpoint, onModalProgressAdvance]);
-  const [chipsVisible, setChipsVisible] = useState(true);
-  useEffect(() => { setChipsVisible(true); }, [conversationId]);
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -252,8 +224,6 @@ export default function MobileSession({
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
 
-  const hasMessages = messages.length > 0;
-  const isReturning = confirmedEntries.length > 0;
   const refinementCeilingActive = useMemo(
     () =>
       activeCheckpoint !== null &&
@@ -264,155 +234,6 @@ export default function MobileSession({
       ),
     [activeCheckpoint, messages]
   );
-  const hasRealName =
-    !!firstName &&
-    firstName !== "User" &&
-    firstName !== firstName.toLowerCase();
-  const greetingIndex = useMemo(
-    () => Math.floor(Math.random() * RETURNING_GREETINGS.length),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [conversationId]
-  );
-  const greeting = isReturning
-    ? RETURNING_GREETINGS[greetingIndex](hasRealName ? firstName : null)
-    : `Hello,\nI’m ${PERSONA_NAME}.`;
-
-  const showEntryCards = chipsVisible && !hasMessages && !isLoading;
-  const entryCards = showEntryCards ? (
-    <div
-      key="entry-cards"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-        animation: "mwFadeIn 0.6s ease-out",
-      }}
-    >
-      {/* Welcome header */}
-      <div style={{
-        padding: "0 4px 36px",
-      }}>
-        <div style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "11px",
-          fontWeight: 500,
-          letterSpacing: "1.8px",
-          color: "var(--session-walnut-meta)",
-          marginBottom: "16px",
-        }}>
-          {formatWelcomeDate()}
-        </div>
-        <h1 style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "30px",
-          fontWeight: 400,
-          color: "var(--session-ink)",
-          lineHeight: 1.1,
-          margin: 0,
-          letterSpacing: "-0.5px",
-          whiteSpace: "pre-line",
-        }}>
-          {greeting.endsWith(".") ? (
-            <>
-              {greeting.slice(0, -1)}
-              <span style={{ color: "var(--session-walnut)" }}>.</span>
-            </>
-          ) : greeting}
-        </h1>
-        <p style={{
-          fontFamily: "var(--font-serif)",
-          fontStyle: "italic",
-          fontSize: "13.5px",
-          color: "var(--session-ink-persona)",
-          margin: "10px 0 0",
-          lineHeight: 1.4,
-        }}>
-          What&apos;s on your mind today?
-        </p>
-      </div>
-      <EntryCard
-        title="Navigate a situation"
-        subtitle="Something on your mind right now"
-        disabled={isLoading || isStreaming}
-        onClick={() => {
-          setChipsVisible(false);
-          startConversation("situation");
-        }}
-        icon={
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M3 3.5h12a.5.5 0 01.5.5v8a.5.5 0 01-.5.5h-5l-3.5 3V12.5H3a.5.5 0 01-.5-.5V4a.5.5 0 01.5-.5z"
-              stroke="var(--session-persona)"
-              strokeWidth="1.2"
-              fill="none"
-            />
-          </svg>
-        }
-      />
-
-      <EntryCard
-        title="Guided intake"
-        subtitle={`Let ${PERSONA_NAME} lead with questions`}
-        disabled={isLoading || isStreaming}
-        onClick={() => {
-          setChipsVisible(false);
-          startConversation("guided-intake");
-        }}
-        icon={
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <circle cx="4" cy="4.5" r="1.5" fill="var(--session-persona)" />
-            <line x1="8" y1="4.5" x2="15" y2="4.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
-            <circle cx="4" cy="9" r="1.5" fill="var(--session-persona)" />
-            <line x1="8" y1="9" x2="15" y2="9" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
-            <circle cx="4" cy="13.5" r="1.5" fill="var(--session-persona)" />
-            <line x1="8" y1="13.5" x2="15" y2="13.5" stroke="var(--session-persona)" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        }
-      />
-
-      <EntryCard
-        title="Upload"
-        subtitle="Share something that&apos;s been with you"
-        disabled={isLoading || isStreaming}
-        onClick={() => {
-          setChipsVisible(false);
-          startConversation("upload");
-        }}
-        icon={
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M3 11.5v3a1 1 0 001 1h10a1 1 0 001-1v-3"
-              stroke="var(--session-persona)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            <path
-              d="M9 3v8M5.5 6.5L9 3l3.5 3.5"
-              stroke="var(--session-persona)"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        }
-      />
-      <p
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "12px",
-          lineHeight: 1.5,
-          color: "var(--session-ink-mid)",
-          textAlign: "center",
-          margin: "18px 4px 0",
-        }}
-      >
-        Nothing&rsquo;s saved unless you say so. You decide what goes in your
-        Manual.
-      </p>
-    </div>
-  ) : null;
 
   return (
     <main
@@ -648,8 +469,6 @@ export default function MobileSession({
         >
           {/* Spacer pushes messages to bottom of viewport */}
           <div style={{ flexGrow: 1, minHeight: "24px" }} />
-
-          {entryCards}
 
             {messages.map((msg, i) => {
               if (msg.role === "system") return null;

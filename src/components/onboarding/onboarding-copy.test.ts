@@ -83,19 +83,23 @@ describe("PR3 onboarding copy pass", () => {
   // ─── MobileSession welcome block and chips ──────────────────────────────
   describe("MobileSession", () => {
     const src = read("src/components/mobile/MobileSession.tsx");
+    const mobileHome = read("src/components/mobile/MobileHome.tsx");
+    const desktopHome = read("src/components/desktop/DesktopHome.tsx");
 
-    it("uses entry card labels instead of old welcome chips", () => {
-      expect(src).toContain("Navigate a situation");
-      expect(src).toContain("Guided intake");
-      expect(src).toContain("Upload");
-      expect(src).not.toContain("I just need to think out loud");
+    it("Home surfaces the three ways to begin (the retired entry-cards' modes)", () => {
+      expect(mobileHome).toContain("Bring a situation");
+      expect(mobileHome).toContain("Let Jove lead with questions");
+      expect(mobileHome).toContain("Bring something you");
+      expect(desktopHome).toContain("Bring a situation");
+      expect(desktopHome).toContain("Guided");
+      expect(desktopHome).toContain("Upload");
     });
 
-    it("uses bootstrap (Jove speaks first) when Navigate a situation is tapped", () => {
-      expect(src).toContain('startConversation("situation")');
+    it("Home starts a situation via the bootstrap (Jove speaks first)", () => {
+      expect(mobileHome).toContain('onStartConversation("situation")');
       // The canned message string from before the bootstrap pattern must
       // be gone — no more inverse-engineered intent on turn 1.
-      expect(src).not.toContain("I have a situation I want to work through");
+      expect(mobileHome).not.toContain("I have a situation I want to work through");
     });
 
     it("does NOT contain the old welcome-prose block", () => {
@@ -110,10 +114,11 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("start small and see where you");
     });
 
-    it("uses entry cards for empty-state welcome", () => {
-      expect(src).toContain("Navigate a situation");
-      expect(src).toContain("Guided intake");
-      expect(src).not.toContain("What&apos;s on your mind? Or if it helps");
+    it("MobileSession no longer hosts the retired 3-card entry screen", () => {
+      // The 3-card launcher moved to Home (ADR-048 follow-up); MobileSession
+      // is now only the active conversation.
+      expect(src).not.toContain("Navigate a situation");
+      expect(src).not.toContain("Guided intake");
     });
 
     it("uses new sign-in nudge copy", () => {

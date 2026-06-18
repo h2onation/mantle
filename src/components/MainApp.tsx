@@ -173,7 +173,6 @@ export default function MainApp() {
     confirmedEntries,
     firstName,
     initialized,
-    isNewUser,
     sessionOrigin,
     userEmail,
     errorMessage,
@@ -209,24 +208,25 @@ export default function MainApp() {
     if (promptAuth) setAuthDismissed(false);
   }, [promptAuth]);
 
-  // Landing decision (Phase 3). Returning users land on Home; first-run
-  // users, anyone with a pending checkpoint, and anyone whose restored
-  // thread is still streaming its opener drop straight into the conversation
-  // (activeView stays "session"). Runs once, after useChat finishes init.
+  // Landing decision. Everyone lands on Home — new and returning — except
+  // anyone with a pending checkpoint or whose restored thread is still
+  // streaming its opener (they drop straight into the conversation). Runs
+  // once, after useChat finishes init.
+  //
+  // New users land on Home too (ADR-048 follow-up): Home is now the single
+  // front-door launchpad — greeting + "ways to begin" + the empty Manual
+  // index — replacing the retired in-session 3-card entry screen. This
+  // updates ADR-047's original "first-run drops into a conversation" call;
+  // the richer Jove-opener-with-chips first-run screen (first-run-plan.md)
+  // stays the deferred replacement.
   const landingDecided = useRef(false);
   useEffect(() => {
     if (!initialized || landingDecided.current) return;
     landingDecided.current = true;
     if (!LAND_ON_HOME) return;
-    // First-run = the account has no prior conversations (isNewUser). We do
-    // NOT gate on firstSessionCompleted — that's a browser-local localStorage
-    // flag, so a returning user on a fresh browser would be misread as new.
-    // The "started a thread but never replied" case is caught by the
-    // opener-streaming guard below, not here.
-    const firstRun = isNewUser;
     const midCheckpoint = activeCheckpoint !== null;
     const openerStreaming = conversationId !== null && messages.length === 0;
-    if (!firstRun && !midCheckpoint && !openerStreaming) {
+    if (!midCheckpoint && !openerStreaming) {
       setActiveView("home");
     }
     // One-shot snapshot at init; deps intentionally minimal so it never re-fires.
@@ -405,12 +405,11 @@ export default function MainApp() {
     setActiveView("crisis");
   }, []);
 
-  // Wraps the chat-state reset so the user always lands on the session
-  // view after starting fresh. Without the view switch, tapping
-  // "+ New session" from Manual or Settings reset state but stranded
-  // the user on the wrong panel — they thought the button was broken.
+  // "+ New session" now lands on Home — the front-door launchpad with the
+  // "ways to begin" — instead of the retired in-session 3-card entry screen.
+  // Still resets chat state so the prior thread isn't left loaded underneath.
   const handleNewSession = useCallback(() => {
-    setActiveView("session");
+    setActiveView("home");
     startNewSession();
   }, [startNewSession]);
 
@@ -453,7 +452,6 @@ export default function MainApp() {
       isLoading={isLoading}
       isStreaming={isStreaming}
       composingCheckpoint={composingCheckpoint}
-      confirmedEntries={confirmedEntries}
       activeCheckpoint={activeCheckpoint}
       checkpointError={checkpointError}
       errorMessage={errorMessage}
@@ -461,7 +459,6 @@ export default function MainApp() {
       sendChipResponse={sendChipResponse}
       retryLastMessage={retryLastMessage}
       confirmCheckpoint={confirmCheckpoint}
-      startConversation={startConversation}
       isGuest={isGuest}
       onSignInPrompt={handleSignInPrompt}
       modalProgress={modalState?.modalProgress ?? null}
@@ -474,7 +471,6 @@ export default function MainApp() {
       reflectionDepth={reflectionDepth}
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}
-      firstName={firstName}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
