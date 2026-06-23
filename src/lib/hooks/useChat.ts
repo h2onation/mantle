@@ -607,6 +607,9 @@ export function useChat() {
         if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
       }
 
+      // Restore the reflection meter from this conversation's saved state.
+      restoreReflectionMeter(convId);
+
       // Load manual components (determines returning user status)
       await loadManual();
 
@@ -1121,6 +1124,40 @@ export function useChat() {
     }
   }
 
+  /**
+   * Rehydrate the reflection meter from a conversation's persisted state when
+   * it opens. The meter is otherwise live-turn-only, so it starts blank on a
+   * refresh, a drawer switch, or a simulator-generated conversation (those
+   * land via DB reload, not a live stream). The server derives the same
+   * { depth, ready } the live path emits. Best-effort and fire-and-forget —
+   * the next live turn repopulates it regardless.
+   */
+  async function restoreReflectionMeter(targetConversationId: string) {
+    try {
+      const res = await fetch(
+        `/api/checkpoint/meter?conversationId=${encodeURIComponent(targetConversationId)}`
+      );
+      if (!res.ok) return;
+      const body = (await res.json()) as {
+        reflectionMeter?: { depth: string; ready: boolean } | null;
+      };
+      // undefined → gate off; leave state as-is (the caller already reset it).
+      if (body.reflectionMeter === undefined) return;
+      if (body.reflectionMeter === null) {
+        setReflectionDepth(null);
+        setReflectionReady(false);
+        return;
+      }
+      // Restore SETS ready to the server's current value (true or false) —
+      // unlike the live path's latch-up-only — so a post-save "starts over"
+      // state restores correctly on reload.
+      setReflectionDepth(body.reflectionMeter.depth);
+      setReflectionReady(body.reflectionMeter.ready === true);
+    } catch {
+      // Best-effort; the next live message_complete will populate it.
+    }
+  }
+
   async function refreshConversations() {
     try {
       const res = await fetch("/api/conversations");
@@ -1216,6 +1253,9 @@ export function useChat() {
 
     setConversationId(targetConversationId);
 
+    // Restore the reflection meter from this conversation's saved state.
+    restoreReflectionMeter(targetConversationId);
+
     // Update summary context from conversations list
     const targetConv = conversations.find((c) => c.id === targetConversationId);
     if (targetConv) {
@@ -1262,6 +1302,10 @@ export function useChat() {
       const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
       if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
     }
+
+    // Restore the reflection meter from saved state on (re)load — this is the
+    // path the dev simulator triggers per turn, so the meter tracks it there.
+    restoreReflectionMeter(targetConversationId);
   }
 
   // Clears the active conversation's client state so a fresh start — a new
