@@ -2470,7 +2470,8 @@ describe("buildSystemPrompt", () => {
     it("renders GUIDED INTAKE block when mode is 'guided-intake'", () => {
       const result = build({ mode: "guided-intake" });
       expect(result).toContain("GUIDED INTAKE");
-      expect(result).toContain("The user opted into a more directed path");
+      expect(result).toContain("The user opened this mode to be led");
+      expect(result).toContain("TEE-UP");
     });
 
     it("does NOT render GUIDED INTAKE when mode is omitted, undefined, or 'situation'", () => {

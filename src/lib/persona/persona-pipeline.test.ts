@@ -931,7 +931,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     const opts = buildPromptOptionsFromContext(makeCtx("guided-intake"));
     const prompt = buildSystemPrompt(opts);
     expect(prompt).toContain("GUIDED INTAKE");
-    expect(prompt).toContain("The user opted into a more directed path");
+    expect(prompt).toContain("The user opened this mode to be led");
   });
 
   it("situation context produces a prompt WITHOUT GUIDED INTAKE block", () => {

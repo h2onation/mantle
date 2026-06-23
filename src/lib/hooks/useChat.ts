@@ -16,10 +16,8 @@ import {
   trackCheckpointRejected,
   trackCheckpointDeferred,
   trackCheckpointRefined,
-  trackGuidedIntakeOpenerFired,
   type ConversationMode,
 } from "@/lib/analytics/events";
-import { detectGuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
 export interface ConversationSummaryItem {
   id: string;
@@ -396,21 +394,6 @@ export function useChat() {
 
     // Use clean content (without manual entry block) when available
     const displayContent = completeEvent.cleanContent || fullText;
-
-    // Guided-intake opener-flow detection. Fires per assistant turn that
-    // matches one of the four canonical phrases. Multiple events per
-    // session are expected (e.g. default on turn 1, widen_scope later).
-    // The dashboard derives "deepest variant per conversation" downstream.
-    if (eventMode === "guided-intake" && displayContent) {
-      const variant = detectGuidedIntakeOpenerVariant(displayContent);
-      const convIdForOpener = completeEvent.conversationId || conversationId;
-      if (variant && convIdForOpener) {
-        trackGuidedIntakeOpenerFired({
-          conversation_id: convIdForOpener,
-          variant,
-        });
-      }
-    }
 
     if (completeEvent.checkpoint) {
       // Set active checkpoint with clean text

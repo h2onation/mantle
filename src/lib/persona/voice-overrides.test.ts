@@ -75,13 +75,12 @@ describe("getVoiceOverrides — resolver contract", () => {
     expect(out).toEqual({});
   });
 
-  it("maps all four known keys to their fields", async () => {
+  it("maps all three known keys to their fields", async () => {
     const out = await getVoiceOverrides(
       adminStub({
         data: [
           { key: "rebuilt_character", text_override: "C", enabled: true },
           { key: "situation_opener", text_override: "S", enabled: true },
-          { key: "guided_intake_opener", text_override: "G", enabled: true },
           { key: "post_confirm_first_entry", text_override: "P", enabled: true },
         ],
       }),
@@ -89,7 +88,6 @@ describe("getVoiceOverrides — resolver contract", () => {
     expect(out).toEqual({
       character: "C",
       situationOpener: "S",
-      guidedIntakeOpener: "G",
       postConfirmFirstEntry: "P",
     });
   });

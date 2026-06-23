@@ -1,33 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import {
-  GUIDED_INTAKE_OPENER,
-  detectGuidedIntakeOpenerVariant,
-} from "@/lib/persona/guided-intake-copy";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf-8");
 
-describe("GUIDED_INTAKE_OPENER constant", () => {
-  it("starts with the expected opening phrase", () => {
-    expect(GUIDED_INTAKE_OPENER).toMatch(/^Pick someone of note/);
-  });
-
-  it("ends with the expected closing phrase", () => {
-    expect(GUIDED_INTAKE_OPENER).toMatch(/Just someone worth naming\.$/);
-  });
-
-  it("is used in system-prompt.ts (not hardcoded)", () => {
-    const src = read("src/lib/persona/system-prompt.ts");
-    expect(src).toContain("GUIDED_INTAKE_OPENER");
-    expect(src).toContain('import { GUIDED_INTAKE_OPENER }');
-  });
-
-  it("appears verbatim in the rendered guided-intake prompt", () => {
-    const prompt = buildSystemPrompt({
+describe("guided-intake block (area-anchored)", () => {
+  const build = (mode: "guided-intake" | "situation") =>
+    buildSystemPrompt({
       kind: "oneOnOne",
-      mode: "guided-intake",
+      mode,
       personaModes: ["autistic"],
       manualComponents: [],
       sessionSummary: null,
@@ -39,25 +21,23 @@ describe("GUIDED_INTAKE_OPENER constant", () => {
       turnCount: 1,
       checkpointApproaching: false,
     });
-    expect(prompt).toContain(GUIDED_INTAKE_OPENER);
+
+  it("renders the tee-up with the mandatory 'one thing worth keeping' endpoint", () => {
+    const prompt = build("guided-intake");
+    expect(prompt).toContain("TEE-UP");
+    expect(prompt).toContain("one thing worth keeping");
   });
 
-  it("does NOT appear in the situation-mode prompt", () => {
-    const prompt = buildSystemPrompt({
-      kind: "oneOnOne",
-      mode: "situation",
-      personaModes: ["autistic"],
-      manualComponents: [],
-      sessionSummary: null,
-      isReturningUser: false,
-      isFirstCheckpoint: true,
-      sessionCount: 1,
-      currentConversationId: "test",
-      extractionContext: "",
-      turnCount: 1,
-      checkpointApproaching: false,
-    });
-    expect(prompt).not.toContain(GUIDED_INTAKE_OPENER);
+  it("is section-anchored, not person-anchored (old opener retired)", () => {
+    const prompt = build("guided-intake");
+    expect(prompt).toContain("OPEN THE SECTION");
+    expect(prompt).not.toContain("Pick someone of note");
+  });
+
+  it("does NOT leak guided-intake markers into situation mode", () => {
+    const prompt = build("situation");
+    expect(prompt).not.toContain("TEE-UP");
+    expect(prompt).not.toContain("OPEN THE SECTION");
   });
 });
 
@@ -180,75 +160,12 @@ describe("guided intake chip wiring", () => {
   });
 });
 
-describe("detectGuidedIntakeOpenerVariant", () => {
-  it("returns 'default' for the literal opener constant", () => {
-    expect(detectGuidedIntakeOpenerVariant(GUIDED_INTAKE_OPENER)).toBe("default");
-  });
-
-  it("returns 'default' when the default-anchor substring is embedded in a longer turn", () => {
-    const msg =
-      "Pick someone of note in your life. " +
-      "Don't worry about getting it right.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("default");
-  });
-
-  it("returns 'widen_scope' when the widen-scope phrase appears", () => {
-    const msg =
-      "Who did you last have a conversation with that wasn't transactional?";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("widen_scope");
-  });
-
-  it("returns 'relationship_to_pattern' when the relationship-to-pattern phrase appears", () => {
-    const msg = "Skip the person. What's a relationship where you show up differently?";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("relationship_to_pattern");
-  });
-
-  it("returns 'gentle_end' when the gentle-end phrase appears", () => {
-    const msg =
-      "Doesn't have to happen today. Come back when something surfaces.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("gentle_end");
-  });
-
-  it("returns null for a normal deepening turn that has no canonical phrase", () => {
-    const msg = "What was happening right before? What set it off?";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBeNull();
-  });
-
-  it("returns null for an empty string", () => {
-    expect(detectGuidedIntakeOpenerVariant("")).toBeNull();
-  });
-
-  it("normalizes smart quotes — apostrophe variants still match gentle_end", () => {
-    const msg = "Doesn’t have to happen today.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("gentle_end");
-  });
-
-  it("ignores leading and trailing whitespace", () => {
-    expect(detectGuidedIntakeOpenerVariant("   Skip the person.   ")).toBe(
-      "relationship_to_pattern"
-    );
-  });
-
-  it("is case-insensitive (defensive — model usually preserves case)", () => {
-    expect(detectGuidedIntakeOpenerVariant("who did you last have a conversation with that wasn't transactional?")).toBe(
-      "widen_scope"
-    );
-  });
-
-  it("returns the deepest variant when multiple phrases coexist (defensive)", () => {
-    const msg =
-      "Who did you last have a conversation with that wasn't transactional? Skip the person. Doesn't have to happen today.";
-    expect(detectGuidedIntakeOpenerVariant(msg)).toBe("gentle_end");
-  });
-});
-
 describe("guided intake instrumentation wiring", () => {
   const events = read("src/lib/analytics/events.ts");
   const useChat = read("src/lib/hooks/useChat.ts");
   const callPersona = read("src/lib/persona/call-persona.ts");
   const sseParser = read("src/lib/utils/sse-parser.ts");
   const personaConfig = read("src/lib/persona/config.ts");
-  const eventsTest = read("src/lib/analytics/events.test.ts");
 
   it("EntryPoint type accepts 'guided-intake'", () => {
     // EntryPoint aliases ConversationMode; ConversationMode lives in config.ts
@@ -259,11 +176,6 @@ describe("guided intake instrumentation wiring", () => {
 
   it("ConversationMode type is exported from events.ts", () => {
     expect(events).toMatch(/export type \{[^}]*ConversationMode/);
-  });
-
-  it("trackGuidedIntakeOpenerFired is exported from events.ts", () => {
-    expect(events).toContain("export function trackGuidedIntakeOpenerFired");
-    expect(events).toContain('"guided_intake_opener_fired"');
   });
 
   it("trackCheckpointProposed signature requires mode", () => {
@@ -323,16 +235,6 @@ describe("guided intake instrumentation wiring", () => {
     expect(callPersona).toMatch(/mode:\s*conversationMode/);
   });
 
-  it("useChat imports the variant detector from guided-intake-copy", () => {
-    expect(useChat).toContain(
-      'import { detectGuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy"'
-    );
-  });
-
-  it("useChat imports trackGuidedIntakeOpenerFired", () => {
-    expect(useChat).toContain("trackGuidedIntakeOpenerFired");
-  });
-
   it("useChat tracks conversationMode in a ref (server is authoritative)", () => {
     expect(useChat).toMatch(
       /conversationMode\s*=\s*useRef<ConversationMode>\("situation"\)/
@@ -341,10 +243,6 @@ describe("guided intake instrumentation wiring", () => {
 
   it("useChat updates conversationMode from message_complete events", () => {
     expect(useChat).toMatch(/conversationMode\.current\s*=\s*eventMode/);
-  });
-
-  it("useChat fires opener variant only when mode is guided-intake", () => {
-    expect(useChat).toMatch(/eventMode === "guided-intake"/);
   });
 
   it("useChat passes mode to checkpoint decision events via cpProps", () => {
@@ -395,7 +293,4 @@ describe("guided intake instrumentation wiring", () => {
     expect(block).toContain("entry_point: mode");
   });
 
-  it("PII guard test covers the new opener event", () => {
-    expect(eventsTest).toContain('event: "guided_intake_opener_fired"');
-  });
 });

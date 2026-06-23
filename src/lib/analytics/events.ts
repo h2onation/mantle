@@ -5,7 +5,6 @@
 // did, not WHAT they said.
 
 import { posthog } from "./posthog-client";
-import type { GuidedIntakeOpenerVariant } from "@/lib/persona/guided-intake-copy";
 
 // ──────────────────────────────────────────────
 // Stage 1 events — core loop
@@ -22,11 +21,6 @@ export type Channel = "web" | "sms";
 import type { ConversationMode } from "@/lib/persona/config";
 export type { ConversationMode };
 export type EntryPoint = ConversationMode | "explore";
-
-// GuidedIntakeOpenerVariant is defined alongside the canonical phrases
-// in src/lib/persona/guided-intake-copy.ts and re-exported here for
-// callers who only import from analytics.
-export type { GuidedIntakeOpenerVariant };
 
 export function trackConversationStarted(props: {
   conversation_id: string;
@@ -117,19 +111,6 @@ export function trackCheckpointDeferred(props: {
   mode: ConversationMode;
 }) {
   posthog.capture("checkpoint_deferred", props);
-}
-
-// Fires once per guided-intake conversation, on the assistant turn where
-// the variant becomes detectable. "default" fires on turn 1 (the literal
-// opener); the three fallback variants fire on later turns when the
-// corresponding phrase is detected. Multiple variants per session are
-// possible (e.g. default + recency_drop) — PostHog can compute "deepest
-// variant per conversation" downstream.
-export function trackGuidedIntakeOpenerFired(props: {
-  conversation_id: string;
-  variant: GuidedIntakeOpenerVariant;
-}) {
-  posthog.capture("guided_intake_opener_fired", props);
 }
 
 export function trackManualViewed(props: {

@@ -130,15 +130,6 @@ const CASES: Case[] = [
     expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
   },
   {
-    event: "guided_intake_opener_fired",
-    call: () =>
-      events.trackGuidedIntakeOpenerFired({
-        conversation_id: "c1",
-        variant: "default",
-      }),
-    expectedKeys: ["conversation_id", "variant"],
-  },
-  {
     event: "manual_viewed",
     call: () =>
       events.trackManualViewed({ entry_count: 5, days_since_last_view: 2 }),

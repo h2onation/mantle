@@ -2,7 +2,6 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { REBUILT_CHARACTER } from "@/lib/persona/voice-scaffold";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
-import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 
 /**
  * Voice overrides — admin-editable replacements for a small, fixed set of
@@ -30,7 +29,6 @@ import { GUIDED_INTAKE_OPENER } from "@/lib/persona/guided-intake-copy";
 export interface VoiceOverrides {
   character?: string;
   situationOpener?: string;
-  guidedIntakeOpener?: string;
   postConfirmFirstEntry?: string;
 }
 
@@ -53,11 +51,6 @@ export const VOICE_OVERRIDE_FIELDS: Record<
     field: "situationOpener",
     label: "Situation opener",
     getDefault: () => SITUATION_OPENER,
-  },
-  guided_intake_opener: {
-    field: "guidedIntakeOpener",
-    label: "Guided-intake opener",
-    getDefault: () => GUIDED_INTAKE_OPENER,
   },
   post_confirm_first_entry: {
     field: "postConfirmFirstEntry",

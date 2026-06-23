@@ -273,7 +273,7 @@ const SECTION_DEFS: SectionDef[] = [
     label: "Guided Intake",
     tier: "3",
     pattern: /^GUIDED INTAKE$/m,
-    source: { file: "system-prompt.ts + guided-intake-copy.ts", symbol: "buildTier3 → GUIDED INTAKE" },
+    source: { file: "system-prompt.ts", symbol: "buildTier3 → GUIDED INTAKE" },
     conditionFn: () => ({ type: "conv-mode", label: "Conv mode: Guided Intake" }),
     alternativesFn: (_, convMode) => convModeAlternatives(convMode),
   },

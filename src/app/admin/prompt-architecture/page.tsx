@@ -1464,7 +1464,7 @@ function ConvModeDetail({
   const [showSource, setShowSource] = useState(false);
   const sourceFile: Record<ConversationMode, string> = {
     situation: "system-prompt.ts (default opener path)",
-    "guided-intake": "system-prompt.ts + guided-intake-copy.ts",
+    "guided-intake": "system-prompt.ts (tee-up generated inline)",
     upload: "system-prompt.ts + upload-copy.ts",
   };
   const modeSections = useMemo(
