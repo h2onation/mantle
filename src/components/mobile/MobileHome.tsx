@@ -7,6 +7,7 @@ import type { ManualEntry, ExplorationContext } from "@/lib/types";
 import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
+import WaysToBegin from "@/components/home/WaysToBegin";
 import { formatShortDate } from "@/lib/utils/format";
 
 interface MobileHomeProps {
@@ -24,15 +25,6 @@ interface MobileHomeProps {
 
 const RECENT_LIMIT = 5;
 
-// Secondary ways to begin, kept reachable from Home. "situation" is the
-// primary button above these; Guided intake + Upload would otherwise be
-// orphaned for returning users (they used to live only in the session
-// entry-cards, which returning users never see).
-const SECONDARY_STARTS: { mode: ConversationMode; label: string }[] = [
-  { mode: "guided-intake", label: "Let Jove lead with questions" },
-  { mode: "upload", label: "Bring something you’ve written" },
-];
-
 const EYEBROW: React.CSSProperties = {
   margin: 0,
   fontFamily: "var(--font-mono)",
@@ -42,9 +34,10 @@ const EYEBROW: React.CSSProperties = {
   color: "var(--session-walnut-meta)",
 };
 
-// Home (Phase 3). Greeting → resume hero → bring a situation → the 5-layer
-// Manual index (tap a layer to go deeper with Jove) → recent conversations
-// (reachability) → read the manual. The landing decision lives in MainApp.
+// Home (Phase 3). Greeting → resume hero → ways to begin (the three doors,
+// shared with desktop) → the 5-layer Manual index (tap a layer to go deeper
+// with Jove) → recent conversations (reachability) → read the manual. The
+// landing decision lives in MainApp.
 export default function MobileHome({
   firstName,
   conversations,
@@ -184,103 +177,9 @@ export default function MobileHome({
           </section>
         ) : null}
 
-        {/* Begin a new conversation — "Bring a situation" is primary; Guided
-            intake + Upload are quiet secondary links below it. */}
-        <section
-          aria-label="Start a conversation"
-          style={{
-            marginTop: 12,
-            padding: "18px 20px 20px",
-            borderRadius: 16,
-            background: "var(--session-cream)",
-            border: "1px solid var(--session-hair-soft)",
-          }}
-        >
-          <p style={EYEBROW}>Something on your mind</p>
-          <p
-            style={{
-              margin: "10px 0 16px",
-              fontFamily: "var(--font-serif), serif",
-              fontSize: 16,
-              lineHeight: 1.45,
-              color: "var(--session-ink-soft)",
-            }}
-          >
-            A conflict that keeps repeating, a reaction that surprised you, a win you can&rsquo;t explain.
-          </p>
-          <button
-            onClick={() => onStartConversation("situation")}
-            style={{
-              all: "unset",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "11px 16px",
-              borderRadius: 12,
-              background: "var(--session-cream-bright)",
-              border: "1px solid var(--session-walnut-border)",
-              color: "var(--session-walnut)",
-              fontFamily: "var(--font-sans)",
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: "-0.2px",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            Bring a situation <span aria-hidden="true">→</span>
-          </button>
-
-          {/* Secondary starts — Guided intake + Upload. */}
-          <div
-            style={{
-              marginTop: 16,
-              paddingTop: 6,
-              borderTop: "1px solid var(--session-hair-soft)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {SECONDARY_STARTS.map((opt) => (
-              <button
-                key={opt.mode}
-                onClick={() => onStartConversation(opt.mode)}
-                style={{
-                  all: "unset",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  padding: "11px 0",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-serif), serif",
-                    fontSize: 14,
-                    color: "var(--session-ink-mid)",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {opt.label}
-                </span>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 12,
-                    color: "var(--session-walnut)",
-                    flexShrink: 0,
-                  }}
-                >
-                  →
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+        {/* Begin a new conversation — the same three doors desktop shows,
+            stacked into one column (shared WaysToBegin). */}
+        <WaysToBegin variant="mobile" onStartConversation={onStartConversation} />
 
         {/* Manual index — quiet menu of go-deeper actions. */}
         <LayerIndex

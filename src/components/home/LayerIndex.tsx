@@ -19,11 +19,13 @@ interface LayerIndexProps {
 const DENSITY = {
   mobile: {
     sectionMt: 28,
+    radius: 16,
+    cardPad: "18px 20px 20px",
     h2: 22,
     sub: 14,
     subCopy: "Five layers of how you operate. Tap one to go deeper with Jove.",
     pipW: 14,
-    rowPad: "14px 4px",
+    rowPad: "14px 0",
     emblem: 34,
     emblemR: 9,
     icon: 18,
@@ -32,12 +34,14 @@ const DENSITY = {
   },
   desktop: {
     sectionMt: 34,
+    radius: 14,
+    cardPad: "20px 22px 22px",
     h2: 24,
     sub: 14.5,
     subCopy:
       "Five layers of how you operate. Open one to go deeper with Jove — or read the whole thing.",
     pipW: 16,
-    rowPad: "15px 6px",
+    rowPad: "15px 0",
     emblem: 38,
     emblemR: 10,
     icon: 20,
@@ -56,7 +60,17 @@ export default function LayerIndex({
   const d = DENSITY[variant];
 
   return (
-    <section aria-label="Your manual" style={{ marginTop: d.sectionMt }}>
+    <section
+      aria-label="Your manual"
+      style={{
+        marginTop: d.sectionMt,
+        padding: d.cardPad,
+        borderRadius: d.radius,
+        background: "var(--session-cream-bright)",
+        border: "1px solid var(--session-hair)",
+        boxShadow: "var(--session-card-shadow, none)",
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -127,8 +141,9 @@ export default function LayerIndex({
       </div>
 
       <div role="list" style={{ marginTop: 14 }}>
-        {layers.map((layer) => {
+        {layers.map((layer, i) => {
           const count = layer.entries.length;
+          const isLast = i === layers.length - 1;
           const cue = count > 0 ? "Go deeper" : "Start";
           const countLabel =
             count > 0
@@ -156,7 +171,9 @@ export default function LayerIndex({
                 width: "100%",
                 boxSizing: "border-box",
                 padding: d.rowPad,
-                borderBottom: "1px solid var(--session-hair-soft)",
+                borderBottom: isLast
+                  ? "none"
+                  : "1px solid var(--session-hair-soft)",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
@@ -239,25 +256,27 @@ export default function LayerIndex({
         })}
       </div>
 
-      <button
-        onClick={onNavigateToManual}
-        style={{
-          all: "unset",
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          marginTop: 16,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          letterSpacing: "1.6px",
-          textTransform: "uppercase",
-          color: "var(--session-walnut-meta)",
-          WebkitTapHighlightColor: "transparent",
-        }}
-      >
-        Read your manual <span aria-hidden="true">→</span>
-      </button>
+      {startedCount > 0 && (
+        <button
+          onClick={onNavigateToManual}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 16,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.6px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta)",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          Read your manual <span aria-hidden="true">→</span>
+        </button>
+      )}
     </section>
   );
 }

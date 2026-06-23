@@ -63,26 +63,29 @@ describe("GUIDED_INTAKE_OPENER constant", () => {
 
 describe("guided intake UI wiring", () => {
   // The three conversation modes (situation / guided-intake / upload) launch
-  // from Home's "ways to begin" — mobile via SECONDARY_STARTS, desktop via the
-  // triptych. The old in-session 3-card entry screen was retired (ADR-048
-  // follow-up); Home is now the single launchpad and MobileSession no longer
-  // starts conversations itself.
+  // from Home's "ways to begin", which lives once in the shared WaysToBegin
+  // component (rendered by both MobileHome and DesktopHome). The old in-session
+  // 3-card entry screen was retired (ADR-048 follow-up); Home is now the single
+  // launchpad and MobileSession no longer starts conversations itself.
+  const waysToBegin = read("src/components/home/WaysToBegin.tsx");
   const mobileHome = read("src/components/mobile/MobileHome.tsx");
   const desktopHome = read("src/components/desktop/DesktopHome.tsx");
   const mainApp = read("src/components/MainApp.tsx");
   const useChat = read("src/lib/hooks/useChat.ts");
 
-  it("MobileHome surfaces the guided-intake mode", () => {
-    expect(mobileHome).toContain('"guided-intake"');
+  it("WaysToBegin surfaces the guided-intake mode", () => {
+    expect(waysToBegin).toContain('"guided-intake"');
   });
 
-  it("MobileHome launches modes via onStartConversation", () => {
-    expect(mobileHome).toContain("onStartConversation");
-    expect(mobileHome).toContain('onStartConversation("situation")');
+  it("WaysToBegin launches every door via onStartConversation(w.mode)", () => {
+    expect(waysToBegin).toContain("onStartConversation(w.mode)");
+    expect(waysToBegin).toContain('"situation"');
+    expect(waysToBegin).toContain('"upload"');
   });
 
-  it("DesktopHome wires Guided to onStartConversation('guided-intake')", () => {
-    expect(desktopHome).toContain('onStartConversation("guided-intake")');
+  it("both Home views render the shared WaysToBegin doors", () => {
+    expect(mobileHome).toContain("<WaysToBegin");
+    expect(desktopHome).toContain("<WaysToBegin");
   });
 
   it("MainApp passes onStartConversation to the Home views", () => {
@@ -112,7 +115,7 @@ describe("guided intake UI wiring", () => {
 
   it("home conversation-starter labels avoid clinical terminology", () => {
     expect("Bring a situation").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
-    expect("Let Jove lead with questions").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
+    expect("Walk through it step by step with Jove").not.toMatch(/\btherapy\b|\bdiagnos|\bassessment\b/i);
   });
 });
 

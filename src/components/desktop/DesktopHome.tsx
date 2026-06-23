@@ -6,6 +6,8 @@ import type { ManualEntry, ExplorationContext } from "@/lib/types";
 import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
+import WaysToBegin from "@/components/home/WaysToBegin";
+import { LineIcon, IC_BOOKMARK } from "@/components/home/LineIcon";
 
 // Desktop Home (≥1030px). Same shared substance as MobileHome — the
 // useHomeModel hook and the LayerIndex component — arranged for the wider
@@ -23,30 +25,6 @@ interface DesktopHomeProps {
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
 }
-
-function Icon({ d, size = 18 }: { d: string; size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 18 18"
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path d={d} />
-    </svg>
-  );
-}
-
-const IC_BOOKMARK = "M4.5 2.5h9v13l-4.5-3-4.5 3z";
-const IC_CHAT = "M3 4.5h12v8H8l-3.5 2.8V12.5H3z";
-const IC_LIST = "M6.5 5h8M6.5 9h8M6.5 13h8M3.5 5h.01M3.5 9h.01M3.5 13h.01";
-const IC_UPLOAD = "M9 11.5V3M6 6l3-3 3 3M4 14.5h10";
 
 const EYEBROW: React.CSSProperties = {
   margin: 0,
@@ -73,33 +51,6 @@ export default function DesktopHome({
   const { greeting, dateLine, heroConv, heroSnippet, layers, startedCount } =
     useHomeModel({ firstName, conversations, activeConversationId, entries });
   const [hovered, setHovered] = useState<string | null>(null);
-
-  const ways = [
-    {
-      key: "situation",
-      icon: IC_CHAT,
-      title: "Bring a situation",
-      desc: "A reaction that surprised you, a conflict that keeps repeating.",
-      cue: "Start",
-      onClick: () => onStartConversation("situation"),
-    },
-    {
-      key: "guided",
-      icon: IC_LIST,
-      title: "Guided",
-      desc: "Walk through it step by step with Jove.",
-      cue: "Begin",
-      onClick: () => onStartConversation("guided-intake"),
-    },
-    {
-      key: "upload",
-      icon: IC_UPLOAD,
-      title: "Upload",
-      desc: "Bring something you’ve already written.",
-      cue: "Add",
-      onClick: () => onStartConversation("upload"),
-    },
-  ];
 
   return (
     <main style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -152,7 +103,7 @@ export default function DesktopHome({
           >
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={EYEBROW}>
-                <Icon d={IC_BOOKMARK} size={13} />
+                <LineIcon d={IC_BOOKMARK} size={13} />
                 Pick up where you left off
               </span>
               <span
@@ -228,94 +179,10 @@ export default function DesktopHome({
           </section>
         ) : null}
 
-        {/* Ways to begin — three equal entry points. */}
-        <p style={{ ...EYEBROW, marginTop: 26 }}>Ways to begin</p>
-        <div
-          style={{
-            marginTop: 12,
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 12,
-          }}
-        >
-          {ways.map((w) => (
-            <button
-              key={w.key}
-              onClick={w.onClick}
-              onMouseEnter={() => setHovered(w.key)}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                all: "unset",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                boxSizing: "border-box",
-                padding: "18px 18px 15px",
-                borderRadius: 14,
-                background:
-                  hovered === w.key
-                    ? "var(--session-cream-bright)"
-                    : "var(--session-cream)",
-                border: `1px solid ${
-                  hovered === w.key
-                    ? "var(--session-walnut-border-soft)"
-                    : "var(--session-hair-soft)"
-                }`,
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 9,
-                  display: "grid",
-                  placeItems: "center",
-                  background: "var(--session-walnut-tint)",
-                  color: "var(--session-walnut)",
-                }}
-              >
-                <Icon d={w.icon} size={18} />
-              </span>
-              <span
-                style={{
-                  marginTop: 12,
-                  fontFamily: "var(--font-serif), serif",
-                  fontSize: 16,
-                  color: "var(--session-ink)",
-                  lineHeight: 1.2,
-                }}
-              >
-                {w.title}
-              </span>
-              <span
-                style={{
-                  flex: 1,
-                  marginTop: 4,
-                  fontFamily: "var(--font-serif), serif",
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  color: "var(--session-ink-mid)",
-                }}
-              >
-                {w.desc}
-              </span>
-              <span
-                style={{
-                  marginTop: 13,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 9.5,
-                  letterSpacing: "1px",
-                  textTransform: "uppercase",
-                  color: "var(--session-walnut)",
-                }}
-              >
-                {w.cue} →
-              </span>
-            </button>
-          ))}
-        </div>
+        <WaysToBegin
+          variant="desktop"
+          onStartConversation={onStartConversation}
+        />
 
         <LayerIndex
           variant="desktop"

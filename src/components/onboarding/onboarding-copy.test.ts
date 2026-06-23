@@ -85,21 +85,25 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/mobile/MobileSession.tsx");
     const mobileHome = read("src/components/mobile/MobileHome.tsx");
     const desktopHome = read("src/components/desktop/DesktopHome.tsx");
+    // The three "ways to begin" doors (copy + launch wiring) live once in the
+    // shared WaysToBegin; both Home views render it.
+    const waysToBegin = read("src/components/home/WaysToBegin.tsx");
 
     it("Home surfaces the three ways to begin (the retired entry-cards' modes)", () => {
-      expect(mobileHome).toContain("Bring a situation");
-      expect(mobileHome).toContain("Let Jove lead with questions");
-      expect(mobileHome).toContain("Bring something you");
-      expect(desktopHome).toContain("Bring a situation");
-      expect(desktopHome).toContain("Guided");
-      expect(desktopHome).toContain("Upload");
+      expect(waysToBegin).toContain("Bring a situation");
+      expect(waysToBegin).toContain("Guided");
+      expect(waysToBegin).toContain("Upload");
+      expect(waysToBegin).toContain("Bring something you");
+      expect(mobileHome).toContain("<WaysToBegin");
+      expect(desktopHome).toContain("<WaysToBegin");
     });
 
     it("Home starts a situation via the bootstrap (Jove speaks first)", () => {
-      expect(mobileHome).toContain('onStartConversation("situation")');
+      expect(waysToBegin).toContain('"situation"');
+      expect(waysToBegin).toContain("onStartConversation(w.mode)");
       // The canned message string from before the bootstrap pattern must
       // be gone — no more inverse-engineered intent on turn 1.
-      expect(mobileHome).not.toContain("I have a situation I want to work through");
+      expect(waysToBegin).not.toContain("I have a situation I want to work through");
     });
 
     it("does NOT contain the old welcome-prose block", () => {
