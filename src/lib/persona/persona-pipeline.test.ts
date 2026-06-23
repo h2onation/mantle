@@ -3,6 +3,7 @@ import {
   validateMaterialQuality,
   validateComposedEntry,
   applyCheckpointGates,
+  reflectionMeterFill,
   deriveCheckpointApproaching,
   computeInheritedRefinementCount,
   buildEntriesSummary,
@@ -937,5 +938,42 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     const opts = buildPromptOptionsFromContext(makeCtx("situation"));
     const prompt = buildSystemPrompt(opts);
     expect(prompt).not.toContain("GUIDED INTAKE");
+  });
+});
+
+describe("reflectionMeterFill (capture-progress)", () => {
+  const COOLDOWN = 5;
+
+  it("is full when the gate has passed (capturable)", () => {
+    expect(reflectionMeterFill("mechanism", 10, true, COOLDOWN)).toBe(100);
+    // gate passed wins even with 0 turns / shallow depth
+    expect(reflectionMeterFill("surface", 0, true, COOLDOWN)).toBe(100);
+  });
+
+  it("RESETS to 0 right after a save (turnsSinceCheckpoint 0), even when deep", () => {
+    expect(reflectionMeterFill("mechanism", 0, false, COOLDOWN)).toBe(0);
+  });
+
+  it("ramps back up over the cooldown, capped by depth", () => {
+    // deep thread, mechanism depth = 85; cooldown cap rises 20/40/60/80/100
+    expect(reflectionMeterFill("mechanism", 1, false, COOLDOWN)).toBe(20);
+    expect(reflectionMeterFill("mechanism", 3, false, COOLDOWN)).toBe(60);
+    // once the cooldown has fully elapsed, the depth cap (85) takes over
+    expect(reflectionMeterFill("mechanism", 5, false, COOLDOWN)).toBe(85);
+    expect(reflectionMeterFill("mechanism", 9, false, COOLDOWN)).toBe(85);
+  });
+
+  it("stays low for a new shallow thread regardless of cooldown", () => {
+    expect(reflectionMeterFill("surface", 9, false, COOLDOWN)).toBe(6);
+  });
+
+  it("has no cooldown cap when there is no prior checkpoint (Infinity)", () => {
+    expect(reflectionMeterFill("mechanism", Infinity, false, COOLDOWN)).toBe(85);
+    expect(reflectionMeterFill("surface", Infinity, false, COOLDOWN)).toBe(6);
+  });
+
+  it("returns 0 for unknown/empty depth when not ready", () => {
+    expect(reflectionMeterFill(null, Infinity, false, COOLDOWN)).toBe(0);
+    expect(reflectionMeterFill(undefined, Infinity, false, COOLDOWN)).toBe(0);
   });
 });

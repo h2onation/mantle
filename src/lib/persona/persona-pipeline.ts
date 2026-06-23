@@ -1041,3 +1041,47 @@ export function buildCheckpointMeta(
     refinement_count: inheritedRefinementCount,
   };
 }
+
+// ── Reflection meter fill ────────────────────────────────────────────────────
+
+/** Depth rung → base fill percent. The deepest rung sits just under full so
+ *  only true readiness (the gate) completes the bar. */
+const REFLECTION_DEPTH_PCT: Record<string, number> = {
+  surface: 6,
+  behavior: 30,
+  feeling: 58,
+  mechanism: 85,
+  origin: 92,
+};
+
+/**
+ * Reflection meter fill (0–100) for the user-pulled model. The bar is a
+ * CAPTURE-PROGRESS meter, not a raw depth gauge: "full" means "you can capture
+ * a reflection right now." So it must RESET after a save and rebuild.
+ *
+ * That reset is automatic: the fill is capped by the post-checkpoint cooldown
+ * (`turnsSinceCheckpoint / cooldownTurns`), and `turnsSinceCheckpoint` is 0
+ * right after a save → fill 0 → it ramps back up over the next few turns. It is
+ * ALSO capped by how deep the conversation actually is (the depth rung), so a
+ * new shallow thread stays low. When the gate passes (capturable) it is full.
+ *
+ * Computed server-side because that is the only place with all three inputs
+ * (depth, turns-since-checkpoint, the gate). The same value backs the live SSE
+ * signal and the on-load restore endpoint, so they can't drift.
+ */
+export function reflectionMeterFill(
+  depth: string | null | undefined,
+  turnsSinceCheckpoint: number,
+  gatePassed: boolean,
+  cooldownTurns: number
+): number {
+  if (gatePassed) return 100;
+  const depthPct = REFLECTION_DEPTH_PCT[depth ?? ""] ?? 0;
+  if (!Number.isFinite(turnsSinceCheckpoint) || cooldownTurns <= 0) {
+    // No prior checkpoint (Infinity) or no cooldown configured → no recharge
+    // cap; the bar is purely depth-driven.
+    return depthPct;
+  }
+  const cooldownCap = Math.min(1, turnsSinceCheckpoint / cooldownTurns) * 100;
+  return Math.round(Math.min(depthPct, cooldownCap));
+}

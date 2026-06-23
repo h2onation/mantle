@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   loadConversationContext,
   applyCheckpointGates,
+  reflectionMeterFill,
 } from "@/lib/persona/persona-pipeline";
 import { getFeatureGates } from "@/lib/persona/feature-gates";
 
@@ -60,19 +61,27 @@ export async function GET(request: Request) {
   const crisis =
     ext?.clinical_flag?.active === true && ext.clinical_flag.level === "crisis";
 
-  const reflectionMeter =
-    !ext || crisis
-      ? null
-      : {
-          depth: ext.depth ?? "surface",
-          ready: applyCheckpointGates(
-            ctx.turnsSinceCheckpoint,
-            ext,
-            ctx.isFirstCheckpoint,
-            ctx.turnCount,
-            ctx.checkpointTuning
-          ).passed,
-        };
+  let reflectionMeter: { fill: number; ready: boolean } | null;
+  if (!ext || crisis) {
+    reflectionMeter = null;
+  } else {
+    const ready = applyCheckpointGates(
+      ctx.turnsSinceCheckpoint,
+      ext,
+      ctx.isFirstCheckpoint,
+      ctx.turnCount,
+      ctx.checkpointTuning
+    ).passed;
+    reflectionMeter = {
+      fill: reflectionMeterFill(
+        ext.depth,
+        ctx.turnsSinceCheckpoint,
+        ready,
+        ctx.checkpointTuning.cooldownTurns
+      ),
+      ready,
+    };
+  }
 
   return Response.json({ reflectionMeter });
 }

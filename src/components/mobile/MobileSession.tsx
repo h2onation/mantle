@@ -16,17 +16,6 @@ import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
 
-// Reflection meter fill — maps the extraction depth rung to a fill percent.
-// Completion (100%) is driven by reflectionReady, not by depth (see the meter
-// render). Unknown/origin sit just under full so only true readiness completes.
-const REFLECTION_DEPTH_PCT: Record<string, number> = {
-  surface: 6,
-  behavior: 30,
-  feeling: 58,
-  mechanism: 85,
-  origin: 92,
-};
-
 interface MobileSessionProps {
   messages: ChatMessage[];
   conversationId: string | null;
@@ -65,11 +54,12 @@ interface MobileSessionProps {
   emergingPatternSnippet?: string | null;
   hasLayerEmergingOrBeyond?: boolean;
   concreteExamples?: number;
-  // Reflection meter (user-pulled model, `reflection_meter` gate). depth
-  // drives the meter fill; reflectionReady is the latched completion;
-  // composeReflection builds the entry on demand and returns it so the review
-  // overlay can open immediately. All absent/no-op when the gate is off.
-  reflectionDepth?: string | null;
+  // Reflection meter (user-pulled model, `reflection_meter` gate).
+  // reflectionFill (0–100) is the server-computed capture-progress bar (null =
+  // hide); reflectionReady is the latched completion; composeReflection builds
+  // the entry on demand and returns it so the review overlay can open
+  // immediately. All absent/no-op when the gate is off.
+  reflectionFill?: number | null;
   reflectionReady?: boolean;
   composeReflection?: () => Promise<
     | { status: "ok"; checkpoint: ActiveCheckpoint }
@@ -111,7 +101,7 @@ export default function MobileSession({
   emergingPatternSnippet = null,
   hasLayerEmergingOrBeyond = false,
   concreteExamples = 0,
-  reflectionDepth = null,
+  reflectionFill = null,
   reflectionReady = false,
   composeReflection,
   showTopBar = true,
@@ -158,10 +148,11 @@ export default function MobileSession({
     if (!reflectionReady) setReflectionDeferred(false);
   }, [reflectionReady]);
 
-  const reflectionMeterVisible = reflectionDepth !== null;
-  const reflectionFill = reflectionReady
-    ? 100
-    : REFLECTION_DEPTH_PCT[reflectionDepth ?? ""] ?? 0;
+  // The server computes the capture-progress fill (resets on save, rebuilds).
+  // A latched-ready state always shows full, so the bar and the bloom can't
+  // disagree (ready ⟺ full) even if a later turn's live fill dips.
+  const reflectionMeterVisible = reflectionFill !== null;
+  const displayFill = reflectionReady ? 100 : reflectionFill ?? 0;
 
   // Shared handler for the bloom button AND the deferred strip — both go
   // STRAIGHT to the composed output (compose on demand, then open the existing
@@ -347,14 +338,14 @@ export default function MobileSession({
 
       {/* Reflection meter (Tide — a hairline under the header). Fills as the
           conversation deepens; at full it blooms above the composer. Hidden
-          entirely (reflectionDepth null) when the gate is off or in crisis. */}
+          entirely (reflectionFill null) when the gate is off or in crisis. */}
       {reflectionMeterVisible && (
         <div
           role="progressbar"
           aria-label="Understanding depth"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={Math.round(reflectionFill)}
+          aria-valuenow={Math.round(displayFill)}
           style={{
             position: "relative",
             height: 2,
@@ -369,7 +360,7 @@ export default function MobileSession({
               left: 0,
               top: 0,
               height: "100%",
-              width: `${reflectionFill}%`,
+              width: `${displayFill}%`,
               background:
                 "linear-gradient(90deg, var(--session-walnut-light), var(--session-walnut))",
               boxShadow: reflectionReady

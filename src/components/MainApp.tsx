@@ -198,7 +198,7 @@ export default function MainApp() {
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
-    reflectionDepth,
+    reflectionFill,
     reflectionReady,
     composeReflection,
   } = useChat();
@@ -468,7 +468,7 @@ export default function MainApp() {
       emergingPatternSnippet={emergingPatternSnippet}
       hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
       concreteExamples={concreteExamples}
-      reflectionDepth={reflectionDepth}
+      reflectionFill={reflectionFill}
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}

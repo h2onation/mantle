@@ -32,12 +32,12 @@ export interface MessageCompleteEvent {
   // (treated as "situation" when missing).
   mode?: ConversationMode;
   chips?: string[];
-  // Reflection meter (user-pulled model). One nullable field: { depth, ready }
-  // drives the meter (depth = fill: surface → behavior → feeling → mechanism →
-  // origin; ready = completion). null HIDES the meter entirely and clears any
-  // latched readiness (crisis). Absent (undefined) when the reflection_meter
-  // gate is off; older clients ignore it.
-  reflectionMeter?: { depth: string; ready: boolean } | null;
+  // Reflection meter (user-pulled model). One nullable field: { fill, ready }
+  // drives the meter. fill (0–100) is a CAPTURE-PROGRESS value computed
+  // server-side — it resets after a save (the cooldown) and rebuilds, capped by
+  // depth. ready = completion. null HIDES the meter and clears any latched
+  // readiness (crisis). Absent (undefined) when the gate is off.
+  reflectionMeter?: { fill: number; ready: boolean } | null;
   // Split delivery: true on the checkpoint lead-in event — the entry is
   // still composing server-side and more events follow on this stream.
   // The client keeps the typing indicator up until the next

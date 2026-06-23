@@ -23,6 +23,7 @@ import {
   fireBackgroundExtraction,
   handleCrisisDetection,
   applyCheckpointGates,
+  reflectionMeterFill,
   buildCheckpointMeta,
   computeInheritedRefinementCount,
   validateComposedEntry,
@@ -1256,7 +1257,15 @@ export function callPersona({
                       previousExtraction.clinical_flag.level === "crisis"
                         ? null
                         : {
-                            depth: previousExtraction?.depth ?? "surface",
+                            // Capture-progress fill: resets after a save (via
+                            // the cooldown) and rebuilds. Same helper the
+                            // restore endpoint uses, so they can't drift.
+                            fill: reflectionMeterFill(
+                              previousExtraction?.depth,
+                              turnsSinceCheckpoint,
+                              gateResult.passed,
+                              ctx.checkpointTuning.cooldownTurns
+                            ),
                             ready: gateResult.passed,
                           },
                   }

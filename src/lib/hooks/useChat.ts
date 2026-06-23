@@ -204,7 +204,11 @@ export function useChat() {
   // reports the conversation is ripe it stays true (the option persists, even
   // if the user keeps talking) until a confirmed save clears it. Both are
   // refreshed on every message_complete; null/false when the gate is off.
-  const [reflectionDepth, setReflectionDepth] = useState<string | null>(null);
+  // Reflection meter. fill (0–100) is the server-computed capture-progress
+  // value (resets after a save, rebuilds, capped by depth); null = no signal /
+  // gate off / crisis. reflectionReady is a LATCH — once ready it persists
+  // until a confirmed save clears it.
+  const [reflectionFill, setReflectionFill] = useState<number | null>(null);
   const [reflectionReady, setReflectionReady] = useState(false);
 
   const initStarted = useRef(false);
@@ -377,10 +381,10 @@ export function useChat() {
     //     persists once earned — a confirmed save is the only thing that
     //     clears it (see confirmCheckpoint).
     if (completeEvent.reflectionMeter === null) {
-      setReflectionDepth(null);
+      setReflectionFill(null);
       setReflectionReady(false);
     } else if (completeEvent.reflectionMeter) {
-      setReflectionDepth(completeEvent.reflectionMeter.depth);
+      setReflectionFill(completeEvent.reflectionMeter.fill);
       if (completeEvent.reflectionMeter.ready) setReflectionReady(true);
     }
 
@@ -1007,11 +1011,11 @@ export function useChat() {
           )
         );
 
-        // Reflection meter "starts over" on a confirmed save — clear the
-        // readiness latch so the bloom/strip resets. The fill follows the
-        // live depth (which recedes naturally as the conversation moves to
-        // the next thread), and the post-checkpoint cooldown keeps readiness
-        // from re-latching immediately.
+        // Reflection meter "starts over" on a confirmed save: empty the fill
+        // immediately (snappy) and clear the readiness latch. The server then
+        // keeps it reset — turnsSinceCheckpoint is 0 after a save → fill 0 —
+        // and ramps it back up over the cooldown as the next thread builds.
+        setReflectionFill(0);
         setReflectionReady(false);
       }
 
@@ -1139,19 +1143,19 @@ export function useChat() {
       );
       if (!res.ok) return;
       const body = (await res.json()) as {
-        reflectionMeter?: { depth: string; ready: boolean } | null;
+        reflectionMeter?: { fill: number; ready: boolean } | null;
       };
       // undefined → gate off; leave state as-is (the caller already reset it).
       if (body.reflectionMeter === undefined) return;
       if (body.reflectionMeter === null) {
-        setReflectionDepth(null);
+        setReflectionFill(null);
         setReflectionReady(false);
         return;
       }
       // Restore SETS ready to the server's current value (true or false) —
       // unlike the live path's latch-up-only — so a post-save "starts over"
       // state restores correctly on reload.
-      setReflectionDepth(body.reflectionMeter.depth);
+      setReflectionFill(body.reflectionMeter.fill);
       setReflectionReady(body.reflectionMeter.ready === true);
     } catch {
       // Best-effort; the next live message_complete will populate it.
@@ -1181,7 +1185,7 @@ export function useChat() {
     setErrorMessage(null);
     setCheckpointError(null);
     setReflectionReady(false);
-    setReflectionDepth(null);
+    setReflectionFill(null);
 
     if (targetConversationId === "text-channel") {
       // Load all text channel messages across all 1:1 conversations.
@@ -1278,7 +1282,7 @@ export function useChat() {
     // Reset checkpoint + reflection meter before reloading
     setActiveCheckpoint(null);
     setReflectionReady(false);
-    setReflectionDepth(null);
+    setReflectionFill(null);
 
     const { data: dbMessages } = await supabase
       .from("messages")
@@ -1324,7 +1328,7 @@ export function useChat() {
     setErrorMessage(null);
     setCheckpointError(null);
     setReflectionReady(false);
-    setReflectionDepth(null);
+    setReflectionFill(null);
   }
 
   async function startNewSession() {
@@ -1571,10 +1575,10 @@ export function useChat() {
     emergingPatternSnippet,
     hasLayerEmergingOrBeyond,
     concreteExamples,
-    // Reflection meter (user-pulled model). depth drives fill; reflectionReady
-    // is the latched completion; composeReflection builds the entry on demand
-    // and opens the review overlay.
-    reflectionDepth,
+    // Reflection meter (user-pulled model). reflectionFill (0–100) is the
+    // capture-progress bar; reflectionReady is the latched completion;
+    // composeReflection builds the entry on demand and opens the review overlay.
+    reflectionFill,
     reflectionReady,
     composeReflection,
   };
