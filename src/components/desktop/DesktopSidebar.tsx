@@ -121,6 +121,7 @@ export default function DesktopSidebar({
 }: DesktopSidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed);
   const [showAllSessions, setShowAllSessions] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const isAdmin = useIsAdmin();
 
@@ -399,33 +400,68 @@ export default function DesktopSidebar({
 
           {isAdmin && (
             <div style={{ margin: "12px 0 0" }}>
-              <DevToolsPanel />
-              <p
+              <button
+                type="button"
+                onClick={() => setAdminOpen((v) => !v)}
+                aria-expanded={adminOpen}
                 style={{
                   ...EYEBROW_STYLE,
                   fontSize: "9px",
                   letterSpacing: "1.2px",
                   margin: "10px 12px 0",
+                  padding: 0,
                   display: "flex",
-                  flexWrap: "wrap",
-                  gap: "4px 8px",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
-                <a href="/admin" style={{ color: "inherit", textDecoration: "none" }}>
-                  Admin
-                </a>
-                <span aria-hidden="true">·</span>
-                <a
-                  href="/admin/prompt-architecture"
-                  style={{ color: "inherit", textDecoration: "none" }}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: "inline-block",
+                    transform: adminOpen ? "rotate(90deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
                 >
-                  {PERSONA_NAME}&apos;s prompt architecture
-                </a>
-                <span aria-hidden="true">·</span>
-                <a href="/admin/docs" style={{ color: "inherit", textDecoration: "none" }}>
-                  Docs
-                </a>
-              </p>
+                  ›
+                </span>
+                Admin tools
+              </button>
+
+              {adminOpen && (
+                <>
+                  <DevToolsPanel />
+                  <p
+                    style={{
+                      ...EYEBROW_STYLE,
+                      fontSize: "9px",
+                      letterSpacing: "1.2px",
+                      margin: "10px 12px 0",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "4px 8px",
+                    }}
+                  >
+                    <a href="/admin" style={{ color: "inherit", textDecoration: "none" }}>
+                      Admin
+                    </a>
+                    <span aria-hidden="true">·</span>
+                    <a
+                      href="/admin/prompt-architecture"
+                      style={{ color: "inherit", textDecoration: "none" }}
+                    >
+                      {PERSONA_NAME}&apos;s prompt architecture
+                    </a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/admin/docs" style={{ color: "inherit", textDecoration: "none" }}>
+                      Docs
+                    </a>
+                  </p>
+                </>
+              )}
             </div>
           )}
 
