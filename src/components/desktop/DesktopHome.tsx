@@ -133,8 +133,9 @@ export default function DesktopHome({
           {dateLine}
         </p>
 
-        {/* Resume ribbon — slim, secondary to the greeting. */}
-        {heroConv && (
+        {/* Top slot: resume ribbon for returning users; an orienting tile for
+            a brand-new user (nothing to resume, no entries yet). */}
+        {heroConv ? (
           <section
             aria-label="Pick up where you left off"
             style={{
@@ -198,7 +199,34 @@ export default function DesktopHome({
               Continue <span aria-hidden="true">→</span>
             </button>
           </section>
-        )}
+        ) : startedCount === 0 ? (
+          <section
+            aria-label="Welcome"
+            style={{
+              marginTop: 26,
+              padding: "16px 20px",
+              borderRadius: 14,
+              background: "var(--session-cream-bright)",
+              border: "1px solid var(--session-hair)",
+              boxShadow: "var(--session-card-shadow, none)",
+            }}
+          >
+            <span style={EYEBROW}>Welcome</span>
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontFamily: "var(--font-serif), serif",
+                fontSize: 15.5,
+                lineHeight: 1.5,
+                color: "var(--session-ink-soft)",
+              }}
+            >
+              Start a conversation below — what you confirm becomes your Manual,
+              the five layers of how you operate. Nothing&rsquo;s saved unless
+              you say so.
+            </p>
+          </section>
+        ) : null}
 
         {/* Ways to begin — three equal entry points. */}
         <p style={{ ...EYEBROW, marginTop: 26 }}>Ways to begin</p>

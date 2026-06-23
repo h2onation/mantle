@@ -102,8 +102,9 @@ export default function MobileHome({
           {dateLine}
         </p>
 
-        {/* Resume hero — only when there's a thread to pick up. */}
-        {heroConv && (
+        {/* Top slot: resume for returning users; an orienting tile for a
+            brand-new user (nothing to resume, no entries yet). */}
+        {heroConv ? (
           <section
             aria-label="Pick up where you left off"
             style={{
@@ -154,7 +155,34 @@ export default function MobileHome({
               Continue this thread <span aria-hidden="true">→</span>
             </button>
           </section>
-        )}
+        ) : startedCount === 0 ? (
+          <section
+            aria-label="Welcome"
+            style={{
+              marginTop: 24,
+              padding: "18px 20px 20px",
+              borderRadius: 16,
+              background: "var(--session-cream-bright)",
+              border: "1px solid var(--session-hair)",
+              boxShadow: "var(--session-card-shadow, none)",
+            }}
+          >
+            <p style={EYEBROW}>Welcome</p>
+            <p
+              style={{
+                margin: "10px 0 0",
+                fontFamily: "var(--font-serif), serif",
+                fontSize: 16,
+                lineHeight: 1.5,
+                color: "var(--session-ink-soft)",
+              }}
+            >
+              Start a conversation below — what you confirm becomes your Manual,
+              the five layers of how you operate. Nothing&rsquo;s saved unless
+              you say so.
+            </p>
+          </section>
+        ) : null}
 
         {/* Begin a new conversation — "Bring a situation" is primary; Guided
             intake + Upload are quiet secondary links below it. */}
