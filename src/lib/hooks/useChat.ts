@@ -454,6 +454,21 @@ export function useChat() {
       );
     }
 
+    // Attach guided-intake UI flags (section picker / situation-handoff action).
+    if (completeEvent.sections || completeEvent.startSituationOffer) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === completeEvent!.messageId
+            ? {
+                ...m,
+                showSections: completeEvent!.sections,
+                offerStartSituation: completeEvent!.startSituationOffer,
+              }
+            : m
+        )
+      );
+    }
+
     if (completeEvent.processingText) {
       setProcessingText(completeEvent.processingText);
     }
@@ -645,10 +660,20 @@ export function useChat() {
   async function sendMessage(text: string, options?: { isChipResponse?: boolean }) {
     if (!text.trim() || isLoading || isStreaming) return;
 
-    // Clear chips from all messages whenever a new user message is sent
+    // Clear chips + guided-intake UI flags from all messages whenever a new
+    // user message is sent — the picker/action belong to a single turn.
     setMessages((prev) =>
-      prev.some((m) => m.chips)
-        ? prev.map((m) => (m.chips ? { ...m, chips: undefined } : m))
+      prev.some((m) => m.chips || m.showSections || m.offerStartSituation)
+        ? prev.map((m) =>
+            m.chips || m.showSections || m.offerStartSituation
+              ? {
+                  ...m,
+                  chips: undefined,
+                  showSections: undefined,
+                  offerStartSituation: undefined,
+                }
+              : m
+          )
         : prev
     );
 

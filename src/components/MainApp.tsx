@@ -457,6 +457,7 @@ export default function MainApp() {
       errorMessage={errorMessage}
       sendMessage={sendMessage}
       sendChipResponse={sendChipResponse}
+      onStartSituation={() => handleStartConversation("situation")}
       retryLastMessage={retryLastMessage}
       confirmCheckpoint={confirmCheckpoint}
       isGuest={isGuest}

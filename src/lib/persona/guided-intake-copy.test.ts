@@ -39,6 +39,13 @@ describe("guided-intake block (area-anchored)", () => {
     expect(prompt).not.toContain("TEE-UP");
     expect(prompt).not.toContain("OPEN THE SECTION");
   });
+
+  it("tee-up emits ---sections---, live-situation can emit ---start-situation---", () => {
+    const prompt = build("guided-intake");
+    expect(prompt).toContain("---sections---");
+    expect(prompt).toContain("---start-situation---");
+    expect(prompt).toContain("TAPPABLE AFFORDANCES");
+  });
 });
 
 describe("guided intake UI wiring", () => {
@@ -293,4 +300,57 @@ describe("guided intake instrumentation wiring", () => {
     expect(block).toContain("entry_point: mode");
   });
 
+});
+
+describe("guided intake section picker + situation handoff wiring", () => {
+  const sectionPicker = read("src/components/mobile/SectionPicker.tsx");
+  const callPersona = read("src/lib/persona/call-persona.ts");
+  const sseParser = read("src/lib/utils/sse-parser.ts");
+  const types = read("src/lib/types.ts");
+  const useChat = read("src/lib/hooks/useChat.ts");
+  const session = read("src/components/mobile/MobileSession.tsx");
+  const mainApp = read("src/components/MainApp.tsx");
+
+  it("SectionPicker renders the canonical 5 sections from layers.ts", () => {
+    expect(sectionPicker).toContain('from "@/lib/manual/layers"');
+    expect(sectionPicker).toContain("LAYERS.map");
+    expect(sectionPicker).toContain("onSelect(layer.name)");
+    expect(sectionPicker).toContain("layer.tagline");
+  });
+
+  it("call-persona parses both UI markers and emits their flags", () => {
+    expect(callPersona).toContain("---sections---");
+    expect(callPersona).toContain("---start-situation---");
+    expect(callPersona).toContain("sections: true");
+    expect(callPersona).toContain("startSituationOffer: true");
+  });
+
+  it("SSE event + ChatMessage carry the new flags", () => {
+    expect(sseParser).toContain("sections?: boolean");
+    expect(sseParser).toContain("startSituationOffer?: boolean");
+    expect(types).toContain("showSections?: boolean");
+    expect(types).toContain("offerStartSituation?: boolean");
+  });
+
+  it("useChat attaches the flags from the event and clears them on send", () => {
+    expect(useChat).toContain("completeEvent.sections");
+    expect(useChat).toContain("completeEvent.startSituationOffer");
+    expect(useChat).toContain("showSections: undefined");
+    expect(useChat).toContain("offerStartSituation: undefined");
+  });
+
+  it("MobileSession renders the picker + the handoff action", () => {
+    expect(session).toContain("import SectionPicker");
+    expect(session).toContain("<SectionPicker");
+    expect(session).toContain("msg.showSections");
+    expect(session).toContain("msg.offerStartSituation");
+    expect(session).toContain("onStartSituation");
+    expect(session).toContain("Take this to its own conversation");
+  });
+
+  it("MainApp wires onStartSituation to a fresh situation conversation", () => {
+    expect(mainApp).toContain(
+      'onStartSituation={() => handleStartConversation("situation")}'
+    );
+  });
 });

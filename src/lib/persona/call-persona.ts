@@ -7,6 +7,7 @@ import { parseAnthropicStream } from "@/lib/anthropic-sse";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD, type PersonaMode } from "@/lib/persona/system-prompt";
+import { stripTrailingMarker } from "@/lib/persona/ui-markers";
 import { logEvent } from "@/lib/observability/log";
 import {
   detectCheckpointInResponse,
@@ -769,6 +770,34 @@ export function callPersona({
           conversationalText = conversationalText.slice(0, chipIdx);
         }
 
+        // 10a-ii. Boolean UI markers (guided intake): the section picker
+        // (tee-up turn) and the live-situation handoff action. Each is its own
+        // line at the END of a message and carries no payload — presence is the
+        // signal. Tail-anchored via stripTrailingMarker (NOT a bare indexOf) so
+        // a token the model writes in prose can't truncate the message; looped
+        // so stacked markers strip regardless of order. Stripped here so
+        // cleanContent / DB storage stay text-only and the flag rides the SSE.
+        let showSections = false;
+        let offerStartSituation = false;
+        for (let stripped = true; stripped; ) {
+          stripped = false;
+          const sec = stripTrailingMarker(conversationalText, "---sections---");
+          if (sec.present) {
+            showSections = true;
+            conversationalText = sec.text;
+            stripped = true;
+          }
+          const sit = stripTrailingMarker(
+            conversationalText,
+            "---start-situation---"
+          );
+          if (sit.present) {
+            offerStartSituation = true;
+            conversationalText = sit.text;
+            stripped = true;
+          }
+        }
+
         // 10b. Crisis detection — output validation + logging
         if (message !== null) {
           const crisis = handleCrisisDetection(
@@ -1271,6 +1300,8 @@ export function callPersona({
                   }
                 : {}),
               ...(parsedChips.length > 0 ? { chips: parsedChips } : {}),
+              ...(showSections ? { sections: true } : {}),
+              ...(offerStartSituation ? { startSituationOffer: true } : {}),
               ...(promptAuth ? { promptAuth: true } : {}),
             })}\n\n`
           )

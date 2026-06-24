@@ -15,6 +15,7 @@ import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
 import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
+import SectionPicker from "./SectionPicker";
 
 interface MobileSessionProps {
   messages: ChatMessage[];
@@ -31,6 +32,9 @@ interface MobileSessionProps {
   errorMessage: string | null;
   sendMessage: (text: string) => void;
   sendChipResponse: (text: string) => void;
+  // Guided-intake live-situation handoff: start a fresh situation conversation.
+  // Wired to startConversation("situation") in MainApp.
+  onStartSituation: () => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
     action: CheckpointAction,
@@ -90,6 +94,7 @@ export default function MobileSession({
   errorMessage,
   sendMessage,
   sendChipResponse,
+  onStartSituation,
   retryLastMessage,
   confirmCheckpoint,
   isGuest,
@@ -710,6 +715,39 @@ export default function MobileSession({
                         disabled={isLoading || isStreaming}
                       />
                     )}
+                    {msg.showSections &&
+                      i === messages.length - 1 &&
+                      !isStreaming &&
+                      !isLoading && (
+                        <SectionPicker
+                          onSelect={sendChipResponse}
+                          disabled={isLoading || isStreaming}
+                        />
+                      )}
+                    {msg.offerStartSituation &&
+                      i === messages.length - 1 &&
+                      !isStreaming &&
+                      !isLoading && (
+                        <button
+                          onClick={onStartSituation}
+                          disabled={isLoading || isStreaming}
+                          style={{
+                            marginTop: "12px",
+                            fontFamily: "var(--font-serif)",
+                            fontSize: "15px",
+                            fontStyle: "italic",
+                            color: "var(--session-cream-bright)",
+                            backgroundColor: "var(--session-persona)",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "10px 16px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          Take this to its own conversation
+                        </button>
+                      )}
                   </div>
                 );
               }

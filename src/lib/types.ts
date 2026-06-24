@@ -5,6 +5,13 @@ export interface ChatMessage {
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
   chips?: string[];
+  // Guided-intake: render the canonical section picker under this (tee-up)
+  // message. The sections come from layers.ts (client-canonical), not stored
+  // here — this is only the "show it" flag.
+  showSections?: boolean;
+  // Guided-intake: render the one-tap "take this to its own conversation"
+  // action under this message (set only after the user accepts the handoff).
+  offerStartSituation?: boolean;
   checkpointMeta?: {
     layer: number;
     name: string | null;
