@@ -318,6 +318,20 @@ describe("guided intake section picker + situation handoff wiring", () => {
     expect(sectionPicker).toContain("layer.tagline");
   });
 
+  it("both pickers render the shared SelectionTile (unified, .mw-seltile)", () => {
+    // The first-order section pick and the second-order focus pick must be the
+    // SAME control — both render SelectionTile, styled by one .mw-seltile class
+    // whose radius tracks the Jove bubble.
+    const tile = read("src/components/mobile/SelectionTile.tsx");
+    const chips = read("src/components/mobile/QuickReplyChips.tsx");
+    const css = read("src/app/globals.css");
+    expect(sectionPicker).toContain("SelectionTile");
+    expect(chips).toContain("SelectionTile");
+    expect(tile).toContain("mw-seltile");
+    expect(css).toContain(".mw-seltile");
+    expect(css).toContain("border-radius: var(--session-bubble-radius)");
+  });
+
   it("call-persona parses both UI markers and emits their flags", () => {
     expect(callPersona).toContain("---sections---");
     expect(callPersona).toContain("---start-situation---");

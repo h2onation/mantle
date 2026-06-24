@@ -1,6 +1,7 @@
 "use client";
 
 import { LAYERS } from "@/lib/manual/layers";
+import SelectionTile from "./SelectionTile";
 
 interface SectionPickerProps {
   onSelect: (sectionName: string) => void;
@@ -10,66 +11,25 @@ interface SectionPickerProps {
 /**
  * The guided-intake section picker. Renders the five canonical Manual sections
  * (from layers.ts — the single source of truth, so the names can't drift) as
- * navy accent cards. Shown under the tee-up turn when the prompt emits the
- * ---sections--- marker.
+ * SelectionTiles (title + tagline). Shown under the tee-up turn when the prompt
+ * emits the ---sections--- marker.
  *
  * A tap routes through `sendChipResponse`, so the selection reaches the prompt
  * as a marked `[selected from options] <section name>` message — exactly like a
- * chip, no separate selection pathway. The CATEGORY OPEN block then orients
- * that section and drills to a focus.
+ * focus pick, no separate selection pathway. Both pickers render the same
+ * SelectionTile, so the first- and second-order moments are one control.
  */
 export default function SectionPicker({ onSelect, disabled }: SectionPickerProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px",
-        marginTop: "12px",
-        animation: "mwFadeIn 0.3s ease-out both",
-      }}
-    >
+    <div className="mw-seltile-group">
       {LAYERS.map((layer) => (
-        <button
+        <SelectionTile
           key={layer.slug}
-          onClick={() => onSelect(layer.name)}
+          title={layer.name}
+          subtitle={layer.tagline}
+          onSelect={() => onSelect(layer.name)}
           disabled={disabled}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "3px",
-            textAlign: "left",
-            width: "100%",
-            cursor: disabled ? "default" : "pointer",
-            opacity: disabled ? 0.5 : 1,
-            backgroundColor: "var(--session-cream-bright)",
-            border: "1px solid var(--session-persona-border)",
-            borderLeft: "3px solid var(--session-persona)",
-            borderRadius: "8px",
-            padding: "12px 14px",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "16px",
-              fontWeight: 500,
-              lineHeight: 1.3,
-              color: "var(--session-persona)",
-            }}
-          >
-            {layer.name}
-          </span>
-          <span
-            style={{
-              fontSize: "13px",
-              lineHeight: 1.4,
-              color: "var(--session-ink-soft)",
-            }}
-          >
-            {layer.tagline}
-          </span>
-        </button>
+        />
       ))}
     </div>
   );

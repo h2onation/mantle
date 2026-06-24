@@ -851,6 +851,96 @@ textarea:focus-visible {
   100% { transform: rotate(360deg); }
 }
 
+/* ─── Guided-intake selection tiles ───
+   The single, single-tap picker affordance shared by SectionPicker
+   (first-order: title + tagline) and QuickReplyChips (second-order: title
+   only), so the two selection moments are the same control. Lives as a class
+   rather than inline styles (cf. ADR-009) because the affordance needs
+   :hover / :active / :focus-visible, which inline styles can't express — the
+   same reason the desktop mw-dsk-* controls are class-based. Radius tracks the
+   Jove bubble; the title rides --font-serif so the dyslexic accommodation
+   applies. Single action: a tap selects AND advances, so there is NO selected
+   state — :active is only the "go" feedback as it fires. */
+.mw-seltile-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  animation: mwFadeIn 0.3s ease-out both;
+}
+.mw-seltile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--session-cream-bright);
+  border: 1px solid var(--session-persona-border);
+  border-radius: var(--session-bubble-radius);
+  padding: 13px 16px;
+  min-height: 48px;
+  font-family: var(--font-serif);
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+}
+.mw-seltile-body { flex: 1; min-width: 0; }
+.mw-seltile-title {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--session-persona);
+}
+.mw-seltile--focus .mw-seltile-title {
+  font-weight: 400;
+  color: var(--session-ink);
+}
+.mw-seltile-tagline {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--session-ink-mid);
+  margin-top: 2px;
+}
+.mw-seltile-chev {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--session-persona-soft);
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.mw-seltile:hover {
+  background: var(--session-persona-tint);
+  border-color: var(--session-persona-soft);
+}
+.mw-seltile:hover .mw-seltile-chev {
+  color: var(--session-persona);
+  transform: translateX(2px);
+}
+.mw-seltile:focus-visible {
+  outline: none;
+  border-color: var(--session-persona);
+  box-shadow: 0 0 0 3px var(--session-persona-muted);
+}
+.mw-seltile:active {
+  background: var(--session-persona);
+  border-color: var(--session-persona);
+  transform: translateY(1px);
+}
+.mw-seltile:active .mw-seltile-title,
+.mw-seltile:active .mw-seltile-tagline,
+.mw-seltile:active .mw-seltile-chev {
+  color: var(--session-cream-bright);
+}
+.mw-seltile:disabled { opacity: 0.5; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .mw-seltile, .mw-seltile-chev { transition: none; }
+  .mw-seltile:active { transform: none; }
+}
+
 /* Loading fade-in */
 @keyframes mwFadeIn {
   from { opacity: 0; transform: translateY(4px); }
