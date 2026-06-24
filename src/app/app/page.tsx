@@ -1,8 +1,5 @@
 import MainApp from "@/components/MainApp";
 import AdminSignupsBadge from "@/components/admin/AdminSignupsBadge";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getFeatureGates } from "@/lib/persona/feature-gates";
-import type { ConversationMode } from "@/lib/persona/config";
 
 // Force dynamic rendering. Without this, Next.js prerenders this route as
 // a static HTML file at build time, and Vercel serves it straight from the
@@ -13,25 +10,17 @@ import type { ConversationMode } from "@/lib/persona/config";
 // Auth is still enforced by middleware — if the user reaches this page, they
 // are authenticated. A redundant getUser() here caused Google OAuth login
 // failures in the past, so we deliberately do not re-check auth here.
+//
+// Note: per-mode entry-door availability (the conversation-mode feature gates)
+// is NOT read here. It's fetched client-side on mount via /api/onboarding-status
+// so it reflects live admin gate flips — a value read at server-render time gets
+// frozen by the browser/Router cache and never updates (see MainApp).
 export const dynamic = "force-dynamic";
 
-export default async function App() {
-  // Read the per-mode gates server-side and hand the client which entry doors
-  // are live. Reuses the same getFeatureGates the chat pipeline uses (fails open
-  // to all-ON), so a missing/unreachable table just shows every door. All three
-  // modes are gate-backed; situation also stays the engine's hard floor (see
-  // resolveConversationMode), so turning its door off enables a guided-solo
-  // config without ever leaving a conversation mode-less. One indexed read/render.
-  const gates = await getFeatureGates(createAdminClient());
-  const enabledModes: Record<ConversationMode, boolean> = {
-    situation: gates.situation,
-    "guided-intake": gates.guidedIntake,
-    upload: gates.upload,
-  };
-
+export default function App() {
   return (
     <>
-      <MainApp enabledModes={enabledModes} />
+      <MainApp />
       <AdminSignupsBadge />
     </>
   );

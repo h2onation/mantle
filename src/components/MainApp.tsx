@@ -44,13 +44,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export default function MainApp({
-  enabledModes = ALL_MODES_ENABLED,
-}: {
-  enabledModes?: Record<ConversationMode, boolean>;
-}) {
+export default function MainApp() {
   const isDesktop = useIsDesktop();
   const [activeView, setActiveView] = useState<MobileView>("session");
+  // Which entry doors are live (per-mode conversation gates). Fetched on mount
+  // from /api/onboarding-status (NOT read at server-render time — that value
+  // gets frozen by the browser/Router cache and never reflects an admin gate
+  // flip). Defaults to all-ON until the fetch resolves; fails open to all-ON.
+  const [enabledModes, setEnabledModes] =
+    useState<Record<ConversationMode, boolean>>(ALL_MODES_ENABLED);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
@@ -104,7 +106,9 @@ export default function MainApp({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/onboarding-status");
+        // no-store so the per-mode door availability reflects a live admin
+        // gate flip rather than a cached response.
+        const res = await fetch("/api/onboarding-status", { cache: "no-store" });
         if (!res.ok) {
           console.error(
             "[MainApp] onboarding-status returned",
@@ -117,6 +121,7 @@ export default function MainApp({
         const data = await res.json();
         if (cancelled) return;
         setOnboardingStatus(data.completed ? "complete" : "needed");
+        if (data.enabledModes) setEnabledModes(data.enabledModes);
       } catch (err) {
         console.error("[MainApp] onboarding-status fetch failed:", err);
         if (!cancelled) setOnboardingStatus("needed");
