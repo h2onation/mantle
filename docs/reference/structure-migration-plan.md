@@ -35,6 +35,15 @@ columns and fills them after human review. Any plan step that mutates existing u
 | 3 | `routines-structure` | Routines and structure | the systems that hold the day up, and their collapse |
 | 4 | `sensory-burnout` | Sensory and burnout | what the body takes in and what it costs |
 | 5 | `interests-flow` | Interests and flow | where the user goes deep and does their best work |
+| 6 | `inner-world` | Inner world | the self-to-self relationship — self-judgment, self-governance, self-perception |
+
+> **Sixth section reopened 2026-06-24, data-driven (Step 2 backfill).** The "self-perception" room was
+> rejected pre-corpus as circular. The backfill surfaced a recurring, durable self-to-self territory whose
+> boundary is *drawable* (Rule C), and the survives-solitude test sorted 16 entries cleanly in both directions
+> (4 in, 12 held in Relationships). That cleared the real bar — a territory with a drawable edge — not a count.
+> **This is the last structural change before beta: the structure is now locked at six.** A future odd entry
+> does not earn a seventh section; the bar for any further change is a pattern across a real multi-user corpus
+> over weeks, never a single anomaly on the backfill.
 
 ### Tags (closed set, system-applied, optional lens — never primary nav)
 - `strength` — any section.
@@ -75,6 +84,22 @@ These become instructions in the composition prompt (new entries) and the re-der
 > is a former-L1 strength, but its *subject* is connection, so its home is **Relationships** with tag
 > `strength` — not Interests and flow. The subject's territory always sets the home; `strength` is the lens on
 > top. This is the case the 21-row review is most likely to fumble: route by subject, tag by capability.
+
+### Rule C — Inner world vs Relationships (the survives-solitude boundary)
+> A pattern homes to **Inner world** when it **survives solitude** — when it runs with nobody else in the room.
+> Self-judgment, self-governance, self-perception. **The edge, as a decision:** if removing every other person
+> *dissolves* the pattern, it is **Relationships** (self-to-others). If it *persists alone* — you would still run
+> it with no one to perform for, please, or protect — it is **Inner world** (self-to-self). A present other is
+> the occasion or the measuring-stick, not the subject.
+>
+> **Test: "does this pattern exist with nobody in the room?"** Yes → Inner world. No → Relationships.
+> - Masking needs an audience → Relationships. Scanning a partner needs the partner → Relationships. A family
+>   rupture needs the family → Relationships.
+> - The inner critic talks to you alone → Inner world. Revoking your own permission happens in your head →
+>   Inner world. The self-verdict ("I'm stupid") is written on the moment afterward, alone → Inner world.
+>
+> This boundary is the section's reason to exist (a drawable edge) and MUST be encoded — in the taxonomy AND in
+> the composition prompt (Step 3) — or the section bleeds into Relationships on every future entry.
 
 Note: because tags are a closed set with no "work" or "sensory" member, overlap (a) **cannot** be papered over
 with a tag — it must resolve to a single home via Rule A. That is by design.
