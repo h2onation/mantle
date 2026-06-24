@@ -44,7 +44,7 @@ describe("buildChatMessageFromEvent", () => {
       ...baseEvent(),
       checkpoint: {
         isCheckpoint: true,
-        layer: 2,
+        section: "work-money",
         name: "Voice Goes When Pressure Lands",
         refinement_count: 0,
         composed_content: "The polished entry text.",
@@ -53,7 +53,8 @@ describe("buildChatMessageFromEvent", () => {
     const result = buildChatMessageFromEvent(event, "Long reflection here.");
     expect(result.isCheckpoint).toBe(true);
     expect(result.checkpointMeta).toEqual({
-      layer: 2,
+      section: "work-money",
+      tags: [],
       name: "Voice Goes When Pressure Lands",
       status: "pending",
       refinement_count: 0,
@@ -67,7 +68,7 @@ describe("buildChatMessageFromEvent", () => {
       ...baseEvent(),
       checkpoint: {
         isCheckpoint: true,
-        layer: 1,
+        section: "relationships",
         name: "Test",
         refinement_count: 2,
         composed_content: "",
@@ -82,7 +83,7 @@ describe("buildChatMessageFromEvent", () => {
       ...baseEvent(),
       checkpoint: {
         isCheckpoint: true,
-        layer: 1,
+        section: "relationships",
         name: null,
         composed_content: "",
       },
@@ -99,7 +100,7 @@ describe("buildChatMessageFromEvent", () => {
       ...baseEvent(),
       checkpoint: {
         isCheckpoint: true,
-        layer: 3,
+        section: "routines-structure",
         name: "x",
         composed_content: "",
       },
@@ -136,7 +137,7 @@ describe("pendingCheckpointFromMessages", () => {
           id: "m1",
           content: "reflection",
           is_checkpoint: true,
-          checkpoint_meta: { layer: 2, name: "X", status: "confirmed" },
+          checkpoint_meta: { section: "work-money", name: "X", status: "confirmed" },
         },
       ])
     ).toBeNull();
@@ -150,7 +151,7 @@ describe("pendingCheckpointFromMessages", () => {
         content: "the reflection text",
         is_checkpoint: true,
         checkpoint_meta: {
-          layer: 3,
+          section: "routines-structure",
           name: "Raw name",
           composed_name: "Polished Name",
           composed_content: "polished entry",
@@ -160,7 +161,8 @@ describe("pendingCheckpointFromMessages", () => {
     ]);
     expect(result).toEqual({
       messageId: "m2",
-      layer: 3,
+      section: "routines-structure",
+      tags: [],
       name: "Polished Name",
       content: "the reflection text",
       composedContent: "polished entry",
@@ -179,7 +181,7 @@ describe("pendingCheckpointFromMessages", () => {
         is_checkpoint: true,
         channel: "app",
         checkpoint_meta: {
-          layer: 2,
+          section: "work-money",
           name: "Raw name",
           composed_name: "Polished Name",
           composed_content: "polished entry",
@@ -189,7 +191,8 @@ describe("pendingCheckpointFromMessages", () => {
     ]);
     expect(result).toEqual({
       messageId: "m2",
-      layer: 2,
+      section: "work-money",
+      tags: [],
       name: "Polished Name",
       content: "the reflection text",
       composedContent: "polished entry",
@@ -202,7 +205,7 @@ describe("pendingCheckpointFromMessages", () => {
         id: "m3",
         content: "c",
         is_checkpoint: true,
-        checkpoint_meta: { layer: 1, name: "Raw", status: "pending" },
+        checkpoint_meta: { section: "relationships", name: "Raw", status: "pending" },
       },
     ]);
     expect(result?.name).toBe("Raw");

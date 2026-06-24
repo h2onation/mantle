@@ -132,6 +132,15 @@ export const RELATIONSHIP_TAGS: readonly Tag[] = ["romantic", "family", "friends
  *  life-area. See docs/reference/structure-migration-plan.md §3.4 / Rule C. */
 export const HELD_SECTION = "__held__" as const;
 
+// ── HELD GROUP COPY — STUB. Jeff finalizes the voice (decision D2). ──────────
+// This is the visible group for parked (NULL-section) entries — the proto-face
+// of the deferred "inner-world" section. It must read as a REAL kind of pattern
+// (self-to-self: how you relate to yourself), NOT "Unsorted" / an error state
+// (the audience carries completion-anxiety). DO NOT SHIP these strings as-is.
+export const HELD_GROUP_LABEL = "How you relate to yourself"; // COPY STUB (D2)
+export const HELD_GROUP_ABOUT =
+  "Patterns about your relationship with yourself — held here while we see whether this becomes its own section."; // COPY STUB (D2)
+
 const SECTION_BY_SLUG: Record<string, LayerDefinition> = Object.fromEntries(
   LAYERS.map((l) => [l.slug, l])
 );

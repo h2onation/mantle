@@ -174,23 +174,23 @@ export default function Landing() {
               <ul className="layers">
                 <li>
                   <span className="ln">01</span>
-                  <span>Where you&apos;re strong</span>
+                  <span>How you connect — and how you&apos;re read</span>
                 </li>
                 <li>
                   <span className="ln">02</span>
-                  <span>The patterns people misread in you</span>
+                  <span>How you hold up where you earn</span>
                 </li>
                 <li>
                   <span className="ln">03</span>
-                  <span>How you process the world</span>
+                  <span>The systems that hold your day up</span>
                 </li>
                 <li>
                   <span className="ln">04</span>
-                  <span>What helps you function at your best</span>
+                  <span>What your body takes in, and what it costs</span>
                 </li>
                 <li>
                   <span className="ln">05</span>
-                  <span>How you show up with people</span>
+                  <span>Where you go deep and do your best work</span>
                 </li>
               </ul>
             </div>

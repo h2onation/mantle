@@ -67,7 +67,7 @@ describe("buildSystemPrompt", () => {
 
     it("contains 'You are Jove' with all parameters populated", () => {
       const result = build({
-        manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
+        manualComponents: [{ section: "relationships", name: "Test", content: "Test content" }],
         isReturningUser: true,
         sessionSummary: "Previous summary",
         extractionContext: "Some extraction context",
@@ -190,7 +190,7 @@ describe("buildSystemPrompt", () => {
       const result = build({
         manualComponents: [
           {
-            layer: 1,
+            section: "relationships",
             name: "Autonomy Drive",
             content: "You need control over your own direction.",
           },
@@ -202,14 +202,14 @@ describe("buildSystemPrompt", () => {
 
     it("renders layer 1 name correctly", () => {
       const result = build({
-        manualComponents: [{ layer: 1, name: null, content: "Layer 1 content" }],
+        manualComponents: [{ section: "relationships", name: null, content: "Layer 1 content" }],
       });
       expect(result).toContain(LAYER_NAMES[1]);
     });
 
     it("renders layer 5 name correctly", () => {
       const result = build({
-        manualComponents: [{ layer: 5, name: null, content: "Layer 5 content" }],
+        manualComponents: [{ section: "interests-flow", name: null, content: "Layer 5 content" }],
       });
       expect(result).toContain(LAYER_NAMES[5]);
     });
@@ -217,7 +217,7 @@ describe("buildSystemPrompt", () => {
     it("includes the name in quotes when entry has a name", () => {
       const result = build({
         manualComponents: [
-          { layer: 2, name: "The Fixer", content: "Some content" },
+          { section: "work-money", name: "The Fixer", content: "Some content" },
         ],
       });
       expect(result).toContain('"The Fixer"');
@@ -226,12 +226,12 @@ describe("buildSystemPrompt", () => {
     it("does NOT include stray quotes or 'null' when entry name is null", () => {
       const result = build({
         manualComponents: [
-          { layer: 3, name: null, content: "Pattern content" },
+          { section: "routines-structure", name: null, content: "Pattern content" },
         ],
       });
       expect(result).not.toContain('"null"');
       const lines = result.split("\n");
-      const layerLine = lines.find((l) => l.includes("Layer 3"));
+      const layerLine = lines.find((l) => l.includes("Routines and structure"));
       expect(layerLine).toBeDefined();
       expect(layerLine).not.toMatch(/ — ""/);
     });

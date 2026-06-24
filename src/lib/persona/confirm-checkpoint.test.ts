@@ -76,7 +76,8 @@ describe("confirmCheckpoint", () => {
   const pendingMessage = {
     content: "Fallback content",
     checkpoint_meta: {
-      layer: 1,
+      section: "relationships",
+      tags: [],
       name: "Test name",
       status: "pending",
       composed_content: "Polished composed content",
@@ -123,7 +124,8 @@ describe("confirmCheckpoint", () => {
     expect(args).toBeDefined();
     expect(args!.p_content).toBe("Polished composed content");
     expect(args!.p_name).toBe("Composed name");
-    expect(args!.p_layer).toBe(1);
+    expect(args!.p_layer).toBeNull();
+    expect(args!.p_section).toBe("relationships");
   });
 
   it("falls back to message.content when composed_content is null", async () => {

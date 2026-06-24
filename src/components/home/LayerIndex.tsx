@@ -23,7 +23,7 @@ const DENSITY = {
     cardPad: "18px 20px 20px",
     h2: 22,
     sub: 14,
-    subCopy: "Five layers of how you operate. Tap one to go deeper with Jove.",
+    subCopy: "Five sections of how you operate. Tap one to go deeper with Jove.",
     pipW: 14,
     rowPad: "14px 0",
     emblem: 34,
@@ -39,7 +39,7 @@ const DENSITY = {
     h2: 24,
     sub: 14.5,
     subCopy:
-      "Five layers of how you operate. Open one to go deeper with Jove — or read the whole thing.",
+      "Five sections of how you operate. Open one to go deeper with Jove — or read the whole thing.",
     pipW: 16,
     rowPad: "15px 0",
     emblem: 38,

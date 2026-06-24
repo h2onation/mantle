@@ -9,7 +9,7 @@ import { LAYER_NAMES } from "@/lib/manual/layers";
 
 function makeEntry(overrides: Partial<ManualEntryForContext> = {}): ManualEntryForContext {
   return {
-    layer: 1,
+    section: "relationships",
     name: "Test Entry",
     content: "You step into rooms and rewrite yourself until no one can see the weight.",
     summary: "A second version switches on in rooms and runs the conversation while the real one waits in the back.",
@@ -21,9 +21,9 @@ function makeEntry(overrides: Partial<ManualEntryForContext> = {}): ManualEntryF
 }
 
 describe("compressManualEntry", () => {
-  it("renders the layer label, headline, summary, and key words", () => {
+  it("renders the section label, headline, summary, and key words", () => {
     const result = compressManualEntry(makeEntry());
-    expect(result).toContain(`Layer 1 — ${LAYER_NAMES[1]}`);
+    expect(result).toContain(`[${LAYER_NAMES[1]}]`);
     expect(result).toContain('"Test Entry"');
     expect(result).toContain("A second version switches on in rooms");
     expect(result).toContain("Key words: rooms, second version, weight");

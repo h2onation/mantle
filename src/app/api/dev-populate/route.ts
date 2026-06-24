@@ -1,6 +1,7 @@
 export const runtime = "edge";
 
 import { requireAdmin } from "@/lib/admin/verify-admin";
+import { LAYERS } from "@/lib/manual/layers";
 
 // Realistic Jove-style narratives for each layer, ~150-200 words each.
 const LAYER_CONTENT: Record<number, string> = {
@@ -66,12 +67,15 @@ export async function POST(request: Request) {
     .eq("user_id", userId)
     .is("name", null);
 
-  // Insert one entry per requested layer
+  // Insert one entry per requested section (picker index 1-5 → section slug).
+  // New-model rows: section is the structural key, layer is null.
   const rows = validLayers.map((layer) => ({
     user_id: userId,
-    layer,
+    layer: null,
+    section: LAYERS[layer - 1]?.slug ?? null,
+    tags: [],
     name: null,
-    content: LAYER_CONTENT[layer] || `Layer ${layer} content placeholder.`,
+    content: LAYER_CONTENT[layer] || `Section ${layer} content placeholder.`,
   }));
 
   const { error } = await admin.from("manual_entries").insert(rows);

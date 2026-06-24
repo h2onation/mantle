@@ -468,7 +468,7 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const components = [
-        { layer: 1, name: "The Fixer", content: "You always step in..." },
+        { section: "relationships", name: "The Fixer", content: "You always step in..." },
       ];
       const result = formatExtractionForPersona(state, false, components);
       expect(result).toContain("What's already in the manual");
@@ -487,7 +487,7 @@ describe("formatExtractionForPersona", () => {
         },
       });
       const components = [
-        { layer: 3, name: null, content: "Different layer" },
+        { section: "routines-structure", name: null, content: "Different layer" },
       ];
       const result = formatExtractionForPersona(state, false, components);
       expect(result).not.toContain("What's already in the manual");
