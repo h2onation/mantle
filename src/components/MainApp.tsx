@@ -578,7 +578,6 @@ export default function MainApp() {
           onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
           onNavigateToHome={handleNavigateToHome}
-          onNavigateToSession={() => setActiveView("session")}
           onNavigateToManual={handleNavigateToManual}
           onNavigateToSettings={handleNavigateToSettings}
           onNavigateToCrisis={handleNavigateToCrisis}

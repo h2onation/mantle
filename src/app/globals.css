@@ -526,9 +526,17 @@ textarea:focus-visible {
    lives in src/components/desktop/. Tokens only — no raw colors. */
 .mw-dsk-item:hover,
 .mw-dsk-item[data-active="true"],
-.mw-dsk-session:hover,
-.mw-dsk-session[data-active="true"] {
+.mw-dsk-session:hover {
   background: var(--session-walnut-surface-soft);
+}
+
+/* The active session is the sole "you are here in a conversation" anchor
+   now that the generic Conversation nav row is gone — give it more weight
+   than a hover: a stronger fill plus a walnut spine on the left edge.
+   inset box-shadow (not border-left) so it respects the row's radius. */
+.mw-dsk-session[data-active="true"] {
+  background: var(--session-walnut-surface);
+  box-shadow: inset 3px 0 0 var(--session-walnut);
 }
 
 .mw-dsk-item:hover,

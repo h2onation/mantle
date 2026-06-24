@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { MobileView } from "@/components/layout/MobileLayout";
 import { formatShortDate } from "@/lib/utils/format";
-import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { APP_VERSION } from "@/lib/version";
 import { PERSONA_NAME } from "@/lib/persona/config";
@@ -15,8 +14,6 @@ const VISIBLE_SESSION_COUNT = 6;
 export const SIDEBAR_WIDTH = 276;
 export const RAIL_WIDTH = 64;
 
-const THEME_CYCLE: ThemeChoice[] = ["system", "light", "dark"];
-
 interface DesktopSidebarProps {
   conversations: ConversationSummaryItem[];
   activeConversationId: string | null;
@@ -25,7 +22,6 @@ interface DesktopSidebarProps {
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onNavigateToHome: () => void;
-  onNavigateToSession: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
   onNavigateToCrisis: () => void;
@@ -59,12 +55,10 @@ const IC_HOME = "M3 8.5L9 3l6 5.5M4.5 7.5V15h9V7.5";
 const IC_BOOK =
   "M2 4.5c2.2-1.2 4.4-1.2 6.5 0v9.5c-2.1-1.2-4.3-1.2-6.5 0zM16 4.5c-2.2-1.2-4.4-1.2-6.5 0v9.5c2.1-1.2 4.3-1.2 6.5 0z";
 const IC_CLOCK = "M9 2.5a6.5 6.5 0 110 13 6.5 6.5 0 010-13zM9 5.5V9l2.3 1.8";
-const IC_CHAT = "M3 4.5h12v8H8l-3.5 2.8V12.5H3z";
 const IC_GEAR =
   "M9 6.6a2.4 2.4 0 110 4.8 2.4 2.4 0 010-4.8zM9 2v2.2M9 13.8V16M2 9h2.2M13.8 9H16M4.1 4.1l1.5 1.5M12.4 12.4l1.5 1.5M13.9 4.1l-1.5 1.5M5.6 12.4l-1.5 1.5";
 const IC_HEART =
   "M9 15S3 11.6 3 7.4a3.4 3.4 0 016-2.2 3.4 3.4 0 016 2.2C15 11.6 9 15 9 15z";
-const IC_THEME = "M14.5 11A6.5 6.5 0 017 3.5 6.5 6.5 0 1014.5 11z";
 const IC_LOGOUT = "M7 4H3.5v10H7M11.5 12l3-3-3-3M14.5 9H7";
 const IC_COLLAPSE = "M11 4l-5 5 5 5";
 const IC_EXPAND = "M7 4l5 5-5 5";
@@ -113,7 +107,6 @@ export default function DesktopSidebar({
   onSelectSession,
   onNewSession,
   onNavigateToHome,
-  onNavigateToSession,
   onNavigateToManual,
   onNavigateToSettings,
   onNavigateToCrisis,
@@ -122,7 +115,6 @@ export default function DesktopSidebar({
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
   const isAdmin = useIsAdmin();
 
   useEffect(() => {
@@ -132,12 +124,6 @@ export default function DesktopSidebar({
       // Private mode / disabled storage — collapse just won't persist.
     }
   }, [collapsed]);
-
-  function cycleTheme() {
-    const next =
-      THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
-    setTheme(next);
-  }
 
   const visibleConversations = showAllSessions
     ? conversations
@@ -191,7 +177,9 @@ export default function DesktopSidebar({
 
         {/* Primary destinations. Home owns the resume + 5-layer index; the
             sidebar is the persistent nav + session history, so the Manual is
-            a quiet nav row with its count, not a competing card. */}
+            a quiet nav row with its count, not a competing card. There is no
+            generic "Conversation" row — the highlighted active session below
+            is the way back into the live thread. */}
         <button
           className="mw-dsk-item"
           data-active={activeView === "home"}
@@ -202,17 +190,6 @@ export default function DesktopSidebar({
             <Icon d={IC_HOME} />
           </span>
           Home
-        </button>
-        <button
-          className="mw-dsk-item"
-          data-active={activeView === "session"}
-          style={ITEM_STYLE}
-          onClick={onNavigateToSession}
-        >
-          <span style={{ color: "var(--session-walnut-meta)", display: "inline-flex" }}>
-            <Icon d={IC_CHAT} />
-          </span>
-          Conversation
         </button>
         <button
           className="mw-dsk-item"
@@ -238,9 +215,16 @@ export default function DesktopSidebar({
           </span>
         </button>
 
+        {/* An action, not a destination — bordered so it reads as a button
+            distinct from the Home/Manual nav rows above it. */}
         <button
           className="mw-dsk-item"
-          style={{ ...ITEM_STYLE, margin: "12px 12px 4px", color: "var(--session-walnut)" }}
+          style={{
+            ...ITEM_STYLE,
+            margin: "12px 12px 4px",
+            color: "var(--session-walnut)",
+            border: "1px solid var(--session-walnut-border)",
+          }}
           onClick={onNewSession}
         >
           <span style={{ color: "var(--session-walnut)", display: "inline-flex" }}>
@@ -352,29 +336,6 @@ export default function DesktopSidebar({
               <Icon d={IC_GEAR} />
             </span>
             Settings
-          </button>
-          <button
-            className="mw-dsk-item"
-            style={{ ...ITEM_STYLE, margin: "2px 0", width: "100%" }}
-            onClick={cycleTheme}
-            aria-label={`Theme: ${theme}. Click to change.`}
-          >
-            <span style={{ color: "var(--session-walnut-meta)", display: "inline-flex" }}>
-              <Icon d={IC_THEME} />
-            </span>
-            Theme
-            <span
-              style={{
-                marginLeft: "auto",
-                fontFamily: "var(--font-mono)",
-                fontSize: "9px",
-                letterSpacing: "1.4px",
-                textTransform: "uppercase",
-                color: "var(--session-ink-faded)",
-              }}
-            >
-              {theme}
-            </span>
           </button>
           <button
             className="mw-dsk-item"
@@ -527,15 +488,6 @@ export default function DesktopSidebar({
         <button className="mw-dsk-railbtn" onClick={onNewSession} aria-label="New session">
           <Icon d={IC_PLUS} />
           <span className="mw-dsk-tip">New session</span>
-        </button>
-        <button
-          className="mw-dsk-railbtn"
-          data-active={activeView === "session"}
-          onClick={onNavigateToSession}
-          aria-label="Back to the conversation"
-        >
-          <Icon d={IC_CHAT} />
-          <span className="mw-dsk-tip">Conversation</span>
         </button>
         <button
           className="mw-dsk-railbtn mw-dsk-railbtn-manual"
