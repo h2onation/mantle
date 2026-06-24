@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
 import SettingsRow from "@/components/shared/SettingsRow";
 import PersonaModePicker from "@/components/mobile/settings/PersonaModePicker";
@@ -57,6 +57,76 @@ function SectionHeader({
     >
       {label}
     </h2>
+  );
+}
+
+// Tap-to-expand settings section. Header keeps the SectionHeader look
+// (mono caps + hairline rule); a chevron rotates to point down when open.
+// Collapsed by default so Settings reads as a short, scannable list.
+// Children stay mounted and hide via display:none so form state (phone
+// linking, dev tools) survives a collapse/expand.
+function CollapsibleSection({
+  label,
+  sectionId,
+  children,
+}: {
+  label: string;
+  sectionId: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const bodyId = `${sectionId}-body`;
+  return (
+    <section style={{ marginTop: 32 }}>
+      <h2 style={{ margin: 0 }}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={bodyId}
+          style={{
+            all: "unset",
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            cursor: "pointer",
+            paddingBottom: 8,
+            borderBottom: "1px solid var(--session-walnut-border-soft)",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              fontWeight: 500,
+              color: "var(--session-walnut-meta-strong)",
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </span>
+          <span
+            aria-hidden="true"
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 16,
+              color: "var(--session-walnut-meta)",
+              transform: open ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
+            }}
+          >
+            ›
+          </span>
+        </button>
+      </h2>
+      <div id={bodyId} hidden={!open} style={{ display: open ? "block" : "none" }}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -367,9 +437,7 @@ export default function MobileSettings({
       </h1>
 
       {/* ─── Account ─────────────────────────────────────────────── */}
-      <SectionHeader label="ACCOUNT" sectionId="settings-account" />
-
-      <div id="settings-account">
+      <CollapsibleSection label="ACCOUNT" sectionId="settings-account">
         <SettingsRow
           title="Log out"
           subtitle={userEmail || "—"}
@@ -390,17 +458,17 @@ export default function MobileSettings({
           onClick={() => setShowDeleteAccountConfirm(true)}
           noBorder
         />
-      </div>
+      </CollapsibleSection>
 
       {/* ─── Voice ──────────────────────────────────────────────── */}
-      <SectionHeader label="HOW JOVE TALKS TO YOU" sectionId="settings-voice" />
-      <div id="settings-voice" style={{ padding: "12px 0 4px" }}>
-        <PersonaModePicker />
-      </div>
+      <CollapsibleSection label="HOW JOVE TALKS TO YOU" sectionId="settings-voice">
+        <div style={{ padding: "12px 0 4px" }}>
+          <PersonaModePicker />
+        </div>
+      </CollapsibleSection>
 
       {/* ─── Appearance ──────────────────────────────────────────── */}
-      <SectionHeader label="APPEARANCE" sectionId="settings-appearance" />
-      <div id="settings-appearance">
+      <CollapsibleSection label="APPEARANCE" sectionId="settings-appearance">
         <SettingsRow title="Theme" noBorder>
           <div
             style={{
@@ -440,7 +508,7 @@ export default function MobileSettings({
             </div>
           </div>
         </SettingsRow>
-      </div>
+      </CollapsibleSection>
 
       {/* ─── Support ─────────────────────────────────────────────── */}
       {/* Crisis lives here under "You" (a row that opens the dedicated
@@ -463,9 +531,7 @@ export default function MobileSettings({
       )}
 
       {/* ─── Text Jove ─────────────────────────────────────────── */}
-      <SectionHeader label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage" />
-
-      <div id="settings-textsage">
+      <CollapsibleSection label={`TEXT ${PERSONA_NAME.toUpperCase()}`} sectionId="settings-textsage">
         <SettingsRow title={`Text ${PERSONA_NAME}`} noBorder>
           <div style={{ width: "100%" }}>
             {phoneState === "loading" && (
@@ -792,14 +858,11 @@ export default function MobileSettings({
             )}
           </div>
         </SettingsRow>
-      </div>
+      </CollapsibleSection>
 
       {/* ─── Dev Tools (admin only) ────────────────────────────── */}
       {isAdmin && (
-      <>
-      <SectionHeader label="DEV TOOLS" sectionId="settings-devtools" />
-
-      <div id="settings-devtools">
+      <CollapsibleSection label="DEV TOOLS" sectionId="settings-devtools">
       {/* Simulate user */}
       <SettingsRow title="Simulate user">
         <div style={{ width: "100%" }}>
@@ -1026,8 +1089,7 @@ export default function MobileSettings({
           >
             Open admin dashboard →
           </a>
-        </div>
-      </>
+      </CollapsibleSection>
       )}
 
       {/* Confirmation modals */}

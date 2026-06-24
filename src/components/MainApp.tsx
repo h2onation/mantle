@@ -580,7 +580,6 @@ export default function MainApp() {
           onNavigateToHome={handleNavigateToHome}
           onNavigateToManual={handleNavigateToManual}
           onNavigateToSettings={handleNavigateToSettings}
-          onNavigateToCrisis={handleNavigateToCrisis}
           onLogout={handleLogout}
         />
       ) : (

@@ -24,7 +24,6 @@ interface DesktopSidebarProps {
   onNavigateToHome: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
-  onNavigateToCrisis: () => void;
   onLogout: () => void;
 }
 
@@ -57,8 +56,6 @@ const IC_BOOK =
 const IC_CLOCK = "M9 2.5a6.5 6.5 0 110 13 6.5 6.5 0 010-13zM9 5.5V9l2.3 1.8";
 const IC_GEAR =
   "M9 6.6a2.4 2.4 0 110 4.8 2.4 2.4 0 010-4.8zM9 2v2.2M9 13.8V16M2 9h2.2M13.8 9H16M4.1 4.1l1.5 1.5M12.4 12.4l1.5 1.5M13.9 4.1l-1.5 1.5M5.6 12.4l-1.5 1.5";
-const IC_HEART =
-  "M9 15S3 11.6 3 7.4a3.4 3.4 0 016-2.2 3.4 3.4 0 016 2.2C15 11.6 9 15 9 15z";
 const IC_LOGOUT = "M7 4H3.5v10H7M11.5 12l3-3-3-3M14.5 9H7";
 const IC_COLLAPSE = "M11 4l-5 5 5 5";
 const IC_EXPAND = "M7 4l5 5-5 5";
@@ -109,7 +106,6 @@ export default function DesktopSidebar({
   onNavigateToHome,
   onNavigateToManual,
   onNavigateToSettings,
-  onNavigateToCrisis,
   onLogout,
 }: DesktopSidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed);
@@ -336,17 +332,6 @@ export default function DesktopSidebar({
               <Icon d={IC_GEAR} />
             </span>
             Settings
-          </button>
-          <button
-            className="mw-dsk-item"
-            data-active={activeView === "crisis"}
-            style={{ ...ITEM_STYLE, margin: "2px 0", width: "100%", color: "var(--session-error)" }}
-            onClick={onNavigateToCrisis}
-          >
-            <span style={{ display: "inline-flex" }}>
-              <Icon d={IC_HEART} />
-            </span>
-            Crisis support
           </button>
           <button
             className="mw-dsk-item"

@@ -31,7 +31,6 @@ interface DesktopShellProps {
   onNavigateToHome: () => void;
   onNavigateToManual: () => void;
   onNavigateToSettings: () => void;
-  onNavigateToCrisis: () => void;
   onLogout: () => void;
 }
 
@@ -59,7 +58,6 @@ export default function DesktopShell({
   onNavigateToHome,
   onNavigateToManual,
   onNavigateToSettings,
-  onNavigateToCrisis,
   onLogout,
 }: DesktopShellProps) {
   return (
@@ -80,7 +78,6 @@ export default function DesktopShell({
         onNavigateToHome={onNavigateToHome}
         onNavigateToManual={onNavigateToManual}
         onNavigateToSettings={onNavigateToSettings}
-        onNavigateToCrisis={onNavigateToCrisis}
         onLogout={onLogout}
       />
 
