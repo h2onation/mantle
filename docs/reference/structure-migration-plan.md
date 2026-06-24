@@ -79,6 +79,19 @@ These become instructions in the composition prompt (new entries) and the re-der
 Note: because tags are a closed set with no "work" or "sensory" member, overlap (a) **cannot** be papered over
 with a tag — it must resolve to a single home via Rule A. That is by design.
 
+### Rule C — Inner world vs Relationships (DEFERRED boundary — on file, NOT built)
+A sixth section, **Inner world** (`inner-world`, self-to-self patterns), is **deferred** — it is NOT created on
+the Step 2 backfill. The backfill surfaced four self-to-self entries (§3.4), but four rows is not a corpus; the
+section is reconsidered only if beta shows the territory recurs across real users over weeks. The boundary is
+recorded now so a future reopen is cheap and the edge is already drawn:
+> A pattern would home to **Inner world** when it **survives solitude** — runs with nobody else in the room
+> (self-judgment, self-governance, self-perception). The edge, as a decision: if removing every other person
+> *dissolves* the pattern, it is **Relationships** (self-to-others); if it *persists alone*, it is **Inner
+> world** (self-to-self). A present other is the occasion or the measuring-stick, not the subject. Test: *"does
+> this exist with nobody in the room?"* Masking needs an audience → Relationships. The inner critic talks to you
+> alone → Inner world. **If/when built, this MUST be encoded in the composition prompt (Step 3) or it bleeds
+> into Relationships.**
+
 ---
 
 ## 3. Data migration — the 21 existing entries
@@ -116,6 +129,23 @@ There is no auto-apply at low confidence. For the 21 known entries, the fallback
 For any row still unreviewed at code cutover (only possible for entries created in the backfill→cutover window),
 a deterministic render-safety default applies so nothing renders blank — see §4 Step 3's `sectionForEntry()`
 safety net. These defaults are provisional and flagged, never authoritative.
+
+### 3.4 Parked entries + the deferred sixth section (Step 2 outcome)
+Step 2 backfills **17** of the 21 entries into the five sections. **Four are PARKED** — `section` stays NULL,
+`layer` frozen, **deliberately held** (null here means *intentional*, not *missed* — recorded in the migration's
+parked block and here):
+- `64be5d81` The Room Inside You (inner critic)
+- `c9905ab3` Exposure Freeze with a Running Verdict (self-verdict)
+- `aa2c9438` the caregiver trap (self-betrayal)
+- `11cfe411` the permission loop (self-governance)
+
+All four passed the survives-solitude test (Rule C). They are held pending beta evidence on whether a sixth
+`inner-world` section is warranted; the section is **not built on backfill evidence alone**.
+
+**Step 3 guard (note now, handle then):** once code reads `section`, these rows are NULL. `sectionForEntry()`
+gives them a **render-only** fallback so a Manual view never crashes — but the fallback **MUST NOT write a
+section back** to these rows. The four stay NULL in the data; un-parking is the deferred-section decision, never
+a side effect of rendering.
 
 ---
 
