@@ -12,17 +12,22 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *   personaDeltas      OFF → composeTier2 renders base voice only (the
  *                            neutral "general" voice); the four neurotype
  *                            voice deltas never load.
- *   guidedIntake       OFF → the Guided entry path falls back to "situation":
- *                            the guided-intake Tier 3 block + section-picker
- *                            handoff never fire, and the Home "Guided" door
- *                            renders disabled ("Coming soon").
- *   upload             OFF → the Upload entry path falls back to "situation":
- *                            the upload server short-circuit + transcript-wrap
- *                            behavior never fire, and the Home "Upload" door
- *                            renders disabled ("Coming soon"). Situation is the
- *                            always-on floor — it has no switch (with both of
- *                            these OFF, every conversation runs "situation",
- *                            the old single-gate behavior).
+ *   situation          OFF → the Situation entry door renders disabled
+ *                            ("Coming soon") and new / fallback conversations
+ *                            resolve to the next enabled mode (guided, then
+ *                            upload). Situation remains the engine's ULTIMATE
+ *                            hard floor: if every mode gate is off, conversations
+ *                            still run "situation" so they're never mode-less.
+ *                            Default ON — turning it off enables a guided-solo
+ *                            (or upload-solo) configuration.
+ *   guidedIntake       OFF → the Guided entry path falls back to the first
+ *                            enabled mode: the guided-intake Tier 3 block +
+ *                            section-picker handoff never fire, and the Home
+ *                            "Guided" door renders disabled ("Coming soon").
+ *   upload             OFF → the Upload entry path falls back to the first
+ *                            enabled mode: the upload server short-circuit +
+ *                            transcript-wrap behavior never fire, and the Home
+ *                            "Upload" door renders disabled ("Coming soon").
  *   checkpoints        OFF → no checkpoint is ever detected, gated, composed,
  *                            or proposed; the checkpoint-derived Tier 3
  *                            overlays (approaching, post-suppression) also go
@@ -54,6 +59,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  */
 export interface FeatureGates {
   personaDeltas: boolean;
+  situation: boolean;
   guidedIntake: boolean;
   upload: boolean;
   checkpoints: boolean;
@@ -63,6 +69,7 @@ export interface FeatureGates {
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
   personaDeltas: true,
+  situation: true,
   guidedIntake: true,
   upload: true,
   checkpoints: true,
@@ -79,6 +86,7 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
  */
 export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   persona_deltas: "personaDeltas",
+  situation: "situation",
   guided_intake: "guidedIntake",
   upload: "upload",
   checkpoints: "checkpoints",

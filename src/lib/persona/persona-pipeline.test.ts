@@ -8,6 +8,7 @@ import {
   computeInheritedRefinementCount,
   buildEntriesSummary,
   buildPromptOptionsFromContext,
+  resolveConversationMode,
   type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
@@ -975,5 +976,52 @@ describe("reflectionMeterFill (capture-progress)", () => {
   it("returns 0 for unknown/empty depth when not ready", () => {
     expect(reflectionMeterFill(null, Infinity, false, COOLDOWN)).toBe(0);
     expect(reflectionMeterFill(undefined, Infinity, false, COOLDOWN)).toBe(0);
+  });
+});
+
+describe("resolveConversationMode", () => {
+  const ALL_ON = { situation: true, guidedIntake: true, upload: true };
+
+  it("returns the requested mode when its gate is on", () => {
+    expect(resolveConversationMode("guided-intake", ALL_ON)).toBe("guided-intake");
+    expect(resolveConversationMode("upload", ALL_ON)).toBe("upload");
+    expect(resolveConversationMode("situation", ALL_ON)).toBe("situation");
+  });
+
+  it("defaults an absent/unknown raw mode to situation when situation is on", () => {
+    expect(resolveConversationMode(undefined, ALL_ON)).toBe("situation");
+    expect(resolveConversationMode(null, ALL_ON)).toBe("situation");
+    expect(resolveConversationMode("nonsense", ALL_ON)).toBe("situation");
+  });
+
+  it("falls a disabled optional mode back to situation while situation is on (legacy behavior)", () => {
+    expect(
+      resolveConversationMode("guided-intake", { situation: true, guidedIntake: false, upload: true })
+    ).toBe("situation");
+    expect(
+      resolveConversationMode("upload", { situation: true, guidedIntake: true, upload: false })
+    ).toBe("situation");
+  });
+
+  it("guided-solo: situation off → every request resolves to guided", () => {
+    const guidedSolo = { situation: false, guidedIntake: true, upload: false };
+    expect(resolveConversationMode("situation", guidedSolo)).toBe("guided-intake");
+    expect(resolveConversationMode(undefined, guidedSolo)).toBe("guided-intake");
+    expect(resolveConversationMode("guided-intake", guidedSolo)).toBe("guided-intake");
+    expect(resolveConversationMode("upload", guidedSolo)).toBe("guided-intake");
+  });
+
+  it("upload-solo: situation + guided off → everything resolves to upload", () => {
+    const uploadSolo = { situation: false, guidedIntake: false, upload: true };
+    expect(resolveConversationMode("situation", uploadSolo)).toBe("upload");
+    expect(resolveConversationMode("guided-intake", uploadSolo)).toBe("upload");
+    expect(resolveConversationMode("upload", uploadSolo)).toBe("upload");
+  });
+
+  it("every gate off → situation is the ultimate hard floor (never mode-less)", () => {
+    const allOff = { situation: false, guidedIntake: false, upload: false };
+    expect(resolveConversationMode("guided-intake", allOff)).toBe("situation");
+    expect(resolveConversationMode("upload", allOff)).toBe("situation");
+    expect(resolveConversationMode(undefined, allOff)).toBe("situation");
   });
 });

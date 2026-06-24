@@ -19,10 +19,16 @@ const GATE_META: {
     off: "OFF → one neutral voice. The autistic / ADHD / dyslexic voice deltas stop loading; everyone gets the base scaffold.",
   },
   {
+    key: "situation",
+    field: "situation",
+    label: "Situation mode",
+    off: "OFF → the Situation entry door shows as “Coming soon” and new conversations default to the next enabled mode (e.g. Guided) — use this for a guided-solo (or upload-solo) setup. Situation stays the engine's hard floor: if every mode is off, conversations still run Situation.",
+  },
+  {
     key: "guided_intake",
     field: "guidedIntake",
     label: "Guided intake mode",
-    off: "OFF → the Guided entry path falls back to Situation and its Home door shows as “Coming soon.” The guided-intake flow + section picker stop firing. (Situation is always on — it has no switch.)",
+    off: "OFF → the Guided entry door shows as “Coming soon” and its path falls back to the next enabled mode. The guided-intake flow + section picker stop firing.",
   },
   {
     key: "upload",

@@ -18,11 +18,13 @@ export const dynamic = "force-dynamic";
 export default async function App() {
   // Read the per-mode gates server-side and hand the client which entry doors
   // are live. Reuses the same getFeatureGates the chat pipeline uses (fails open
-  // to all-ON), so a missing/unreachable table just shows every door. Situation
-  // is the always-on floor and has no gate. One cheap indexed read per render.
+  // to all-ON), so a missing/unreachable table just shows every door. All three
+  // modes are gate-backed; situation also stays the engine's hard floor (see
+  // resolveConversationMode), so turning its door off enables a guided-solo
+  // config without ever leaving a conversation mode-less. One indexed read/render.
   const gates = await getFeatureGates(createAdminClient());
   const enabledModes: Record<ConversationMode, boolean> = {
-    situation: true,
+    situation: gates.situation,
     "guided-intake": gates.guidedIntake,
     upload: gates.upload,
   };

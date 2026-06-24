@@ -27,6 +27,7 @@ describe("getFeatureGates", () => {
     expect(gates).toEqual(DEFAULT_FEATURE_GATES);
     expect(gates).toEqual({
       personaDeltas: true,
+      situation: true,
       guidedIntake: true,
       upload: true,
       checkpoints: true,
@@ -52,6 +53,7 @@ describe("getFeatureGates", () => {
     // their defaults (debug gates ON, reflectionMeter OFF).
     expect(gates).toEqual({
       personaDeltas: true,
+      situation: true,
       guidedIntake: true,
       upload: true,
       checkpoints: false,
@@ -60,12 +62,13 @@ describe("getFeatureGates", () => {
     });
   });
 
-  it("maps all six keys when all are present", async () => {
+  it("maps all seven keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
         data: [
           { key: "persona_deltas", enabled: false },
+          { key: "situation", enabled: false },
           { key: "guided_intake", enabled: false },
           { key: "upload", enabled: false },
           { key: "checkpoints", enabled: false },
@@ -78,6 +81,7 @@ describe("getFeatureGates", () => {
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
       personaDeltas: false,
+      situation: false,
       guidedIntake: false,
       upload: false,
       checkpoints: false,
@@ -100,6 +104,7 @@ describe("getFeatureGates", () => {
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
       personaDeltas: false,
+      situation: true,
       guidedIntake: true,
       upload: true,
       checkpoints: true,
@@ -120,8 +125,9 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the six known keys", () => {
+  it("accepts the seven known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
+    expect(isFeatureGateKey("situation")).toBe(true);
     expect(isFeatureGateKey("guided_intake")).toBe(true);
     expect(isFeatureGateKey("upload")).toBe(true);
     expect(isFeatureGateKey("checkpoints")).toBe(true);

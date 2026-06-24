@@ -21,7 +21,7 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
-import { getFeatureGates } from "./feature-gates";
+import { getFeatureGates, type FeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 import {
   getCheckpointTuning,
@@ -197,20 +197,10 @@ export async function loadConversationContext(
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
-  const resolvedConversationMode: "situation" | "guided-intake" | "upload" =
-    rawMode === "guided-intake" ? "guided-intake" :
-    rawMode === "upload" ? "upload" : "situation";
-  // Per-mode gate OFF → fall the chosen optional mode back to "situation" (the
-  // always-on floor), so that mode's entry block, server short-circuit, and
-  // transcript-wrap behavior never fire. Situation has no gate. This is the one
-  // place conversation mode is resolved; the guided-intake / upload blocks
-  // downstream key off this value, not the gates directly.
-  const conversationMode: "situation" | "guided-intake" | "upload" =
-    resolvedConversationMode === "guided-intake" && !gates.guidedIntake
-      ? "situation"
-      : resolvedConversationMode === "upload" && !gates.upload
-        ? "situation"
-        : resolvedConversationMode;
+  // The one place conversation mode is resolved against the per-mode gates;
+  // the guided-intake / upload blocks downstream key off this value, not the
+  // gates directly. See resolveConversationMode.
+  const conversationMode = resolveConversationMode(rawMode, gates);
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -364,6 +354,41 @@ export async function loadConversationContext(
     voiceOverrides,
     checkpointTuning,
   };
+}
+
+// ── Conversation-mode resolution ───────────────────────────────────────────
+//
+// The single authority for turning a requested mode + the per-mode gates into
+// the mode a turn actually runs in. Used by the main pipeline (above) and
+// unit-tested directly. Rules:
+//   - Use the requested mode if its gate is on.
+//   - Otherwise fall to the first enabled mode, priority situation → guided →
+//     upload (so disabling an optional mode keeps the old "fall to situation"
+//     behavior while situation is on, and a guided-/upload-solo config falls to
+//     whatever IS enabled).
+//   - If every mode gate is off (misconfiguration), situation is the ultimate
+//     hard floor, so a conversation is never left mode-less.
+export function resolveConversationMode(
+  rawMode: string | null | undefined,
+  gates: Pick<FeatureGates, "situation" | "guidedIntake" | "upload">
+): "situation" | "guided-intake" | "upload" {
+  const requested: "situation" | "guided-intake" | "upload" =
+    rawMode === "guided-intake"
+      ? "guided-intake"
+      : rawMode === "upload"
+        ? "upload"
+        : "situation";
+  const requestedEnabled =
+    requested === "guided-intake"
+      ? gates.guidedIntake
+      : requested === "upload"
+        ? gates.upload
+        : gates.situation;
+  if (requestedEnabled) return requested;
+  if (gates.situation) return "situation";
+  if (gates.guidedIntake) return "guided-intake";
+  if (gates.upload) return "upload";
+  return "situation";
 }
 
 // ── 1b. Build prompt options from context ──────────────────────────────────

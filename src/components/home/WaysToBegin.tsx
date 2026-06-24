@@ -14,7 +14,7 @@ interface WaysToBeginProps {
   onStartConversation: (mode: ConversationMode) => void;
   // Which doors are live (per-mode feature gates, read server-side). A door
   // whose mode is false renders dimmed + non-interactive with a "Coming soon"
-  // tag. Situation is always true. Defaults to all-on if omitted.
+  // tag. All three modes are gate-backed. Defaults to all-on if omitted.
   enabledModes?: Record<ConversationMode, boolean>;
   variant?: "mobile" | "desktop";
 }
@@ -84,9 +84,9 @@ export default function WaysToBegin({
         }}
       >
         {DOORS.map((w) => {
-          // A door is disabled when its mode's gate is off (Situation is always
-          // on). Disabled doors are dimmed, non-interactive, and tagged
-          // "Coming soon" instead of showing the start cue.
+          // A door is disabled when its mode's gate is off. Disabled doors are
+          // dimmed, non-interactive, and tagged "Coming soon" instead of
+          // showing the start cue.
           const disabled = enabledModes ? !enabledModes[w.mode] : false;
           const isHovered = !disabled && hovered === w.key;
           return (
