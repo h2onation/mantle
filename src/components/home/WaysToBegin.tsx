@@ -12,6 +12,10 @@ import { LineIcon, IC_CHAT, IC_LIST, IC_UPLOAD } from "@/components/home/LineIco
 
 interface WaysToBeginProps {
   onStartConversation: (mode: ConversationMode) => void;
+  // Which doors are live (per-mode feature gates, read server-side). A door
+  // whose mode is false renders dimmed + non-interactive with a "Coming soon"
+  // tag. Situation is always true. Defaults to all-on if omitted.
+  enabledModes?: Record<ConversationMode, boolean>;
   variant?: "mobile" | "desktop";
 }
 
@@ -51,6 +55,7 @@ const DOORS: {
 
 export default function WaysToBegin({
   onStartConversation,
+  enabledModes,
   variant = "mobile",
 }: WaysToBeginProps) {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -78,15 +83,24 @@ export default function WaysToBegin({
           gap: 12,
         }}
       >
-        {DOORS.map((w) => (
+        {DOORS.map((w) => {
+          // A door is disabled when its mode's gate is off (Situation is always
+          // on). Disabled doors are dimmed, non-interactive, and tagged
+          // "Coming soon" instead of showing the start cue.
+          const disabled = enabledModes ? !enabledModes[w.mode] : false;
+          const isHovered = !disabled && hovered === w.key;
+          return (
           <button
             key={w.key}
-            onClick={() => onStartConversation(w.mode)}
-            onMouseEnter={() => setHovered(w.key)}
-            onMouseLeave={() => setHovered(null)}
+            disabled={disabled}
+            aria-label={disabled ? `${w.title} — coming soon` : w.title}
+            onClick={disabled ? undefined : () => onStartConversation(w.mode)}
+            onMouseEnter={disabled ? undefined : () => setHovered(w.key)}
+            onMouseLeave={disabled ? undefined : () => setHovered(null)}
             style={{
               all: "unset",
-              cursor: "pointer",
+              cursor: disabled ? "default" : "pointer",
+              opacity: disabled ? 0.55 : 1,
               display: "flex",
               // Desktop stacks the card (icon over title over cue); mobile lays
               // it out as a compact row (icon · text · arrow) to save height.
@@ -96,12 +110,11 @@ export default function WaysToBegin({
               boxSizing: "border-box",
               padding: isDesktop ? "18px 18px 15px" : "12px 14px",
               borderRadius: 14,
-              background:
-                hovered === w.key
-                  ? "var(--session-cream-bright)"
-                  : "var(--session-cream)",
+              background: isHovered
+                ? "var(--session-cream-bright)"
+                : "var(--session-cream)",
               border: `1px solid ${
-                hovered === w.key
+                isHovered
                   ? "var(--session-walnut-border-soft)"
                   : "var(--session-hair-soft)"
               }`,
@@ -161,21 +174,41 @@ export default function WaysToBegin({
                 {w.desc}
               </span>
             </span>
-            <span
-              aria-hidden={isDesktop ? undefined : true}
-              style={{
-                flexShrink: 0,
-                fontFamily: "var(--font-mono)",
-                fontSize: isDesktop ? 9.5 : 13,
-                letterSpacing: isDesktop ? "1px" : "0",
-                textTransform: "uppercase",
-                color: "var(--session-walnut)",
-              }}
-            >
-              {isDesktop ? `${w.cue} →` : "→"}
-            </span>
+            {disabled ? (
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: isDesktop ? 9 : 9.5,
+                  letterSpacing: "0.5px",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  color: "var(--session-walnut-meta)",
+                  border: "1px solid var(--session-hair-soft)",
+                  borderRadius: 999,
+                  padding: "3px 8px",
+                }}
+              >
+                Coming soon
+              </span>
+            ) : (
+              <span
+                aria-hidden={isDesktop ? undefined : true}
+                style={{
+                  flexShrink: 0,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: isDesktop ? 9.5 : 13,
+                  letterSpacing: isDesktop ? "1px" : "0",
+                  textTransform: "uppercase",
+                  color: "var(--session-walnut)",
+                }}
+              >
+                {isDesktop ? `${w.cue} →` : "→"}
+              </span>
+            )}
           </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

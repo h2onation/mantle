@@ -28,6 +28,15 @@ const MANUAL_LAST_VIEW_KEY = "mw_last_manual_view";
 // control-flow inversion).
 const LAND_ON_HOME = true;
 
+// Default when no gates are passed (e.g. a test render): every entry door live.
+// The real value comes from the /app server component, which reads the per-mode
+// feature gates and hands it down so disabled doors render as "Coming soon".
+const ALL_MODES_ENABLED: Record<ConversationMode, boolean> = {
+  situation: true,
+  "guided-intake": true,
+  upload: true,
+};
+
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
 type OnboardingStatus = "loading" | "needed" | "complete";
 
@@ -35,7 +44,11 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export default function MainApp() {
+export default function MainApp({
+  enabledModes = ALL_MODES_ENABLED,
+}: {
+  enabledModes?: Record<ConversationMode, boolean>;
+}) {
   const isDesktop = useIsDesktop();
   const [activeView, setActiveView] = useState<MobileView>("session");
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
@@ -514,6 +527,7 @@ export default function MainApp() {
       onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
+      enabledModes={enabledModes}
       showTopBar={!isDesktop}
     />
   );
@@ -527,6 +541,7 @@ export default function MainApp() {
       onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
+      enabledModes={enabledModes}
     />
   );
 

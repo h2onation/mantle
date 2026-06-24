@@ -19,6 +19,9 @@ interface MobileHomeProps {
   onStartConversation: (mode: ConversationMode) => void;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
+  // Which entry doors are live (per-mode feature gates). A disabled door
+  // renders as "Coming soon". Situation is always true.
+  enabledModes: Record<ConversationMode, boolean>;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
 }
@@ -47,6 +50,7 @@ export default function MobileHome({
   onStartConversation,
   onExploreWithPersona,
   onNavigateToManual,
+  enabledModes,
   showTopBar = true,
 }: MobileHomeProps) {
   const [showAll, setShowAll] = useState(false);
@@ -179,7 +183,11 @@ export default function MobileHome({
 
         {/* Begin a new conversation — the same three doors desktop shows,
             stacked into one column (shared WaysToBegin). */}
-        <WaysToBegin variant="mobile" onStartConversation={onStartConversation} />
+        <WaysToBegin
+          variant="mobile"
+          onStartConversation={onStartConversation}
+          enabledModes={enabledModes}
+        />
 
         {/* Manual index — quiet menu of go-deeper actions. */}
         <LayerIndex

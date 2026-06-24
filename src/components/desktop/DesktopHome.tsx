@@ -24,6 +24,9 @@ interface DesktopHomeProps {
   onStartConversation: (mode: ConversationMode) => void;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
+  // Which entry doors are live (per-mode feature gates). A disabled door
+  // renders as "Coming soon". Situation is always true.
+  enabledModes: Record<ConversationMode, boolean>;
 }
 
 const EYEBROW: React.CSSProperties = {
@@ -47,6 +50,7 @@ export default function DesktopHome({
   onStartConversation,
   onExploreWithPersona,
   onNavigateToManual,
+  enabledModes,
 }: DesktopHomeProps) {
   const { greeting, dateLine, heroConv, heroSnippet, layers, startedCount } =
     useHomeModel({ firstName, conversations, activeConversationId, entries });
@@ -182,6 +186,7 @@ export default function DesktopHome({
         <WaysToBegin
           variant="desktop"
           onStartConversation={onStartConversation}
+          enabledModes={enabledModes}
         />
 
         <LayerIndex

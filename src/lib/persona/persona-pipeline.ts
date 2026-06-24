@@ -200,11 +200,17 @@ export async function loadConversationContext(
   const resolvedConversationMode: "situation" | "guided-intake" | "upload" =
     rawMode === "guided-intake" ? "guided-intake" :
     rawMode === "upload" ? "upload" : "situation";
-  // conversationModes gate OFF → force "situation" (the documented default
-  // fallback) so guided-intake / upload entry blocks, the upload opener
-  // short-circuit, and transcript-wrap behavior never fire.
+  // Per-mode gate OFF → fall the chosen optional mode back to "situation" (the
+  // always-on floor), so that mode's entry block, server short-circuit, and
+  // transcript-wrap behavior never fire. Situation has no gate. This is the one
+  // place conversation mode is resolved; the guided-intake / upload blocks
+  // downstream key off this value, not the gates directly.
   const conversationMode: "situation" | "guided-intake" | "upload" =
-    gates.conversationModes ? resolvedConversationMode : "situation";
+    resolvedConversationMode === "guided-intake" && !gates.guidedIntake
+      ? "situation"
+      : resolvedConversationMode === "upload" && !gates.upload
+        ? "situation"
+        : resolvedConversationMode;
 
   // Build conversation history
   let messages = applySlidingWindow(

@@ -7,16 +7,22 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  * read once per turn inside loadConversationContext and written only via
  * /api/admin/feature-gates.
  *
- * Three gates cover five subsystems by sitting at chokepoints where one
- * boolean collapses a whole branch:
+ * These gates sit at chokepoints where one boolean collapses a whole branch:
  *
  *   personaDeltas      OFF → composeTier2 renders base voice only (the
  *                            neutral "general" voice); the four neurotype
  *                            voice deltas never load.
- *   conversationModes  OFF → every conversation runs in "situation" mode;
- *                            guided-intake / upload entry blocks, the upload
- *                            server short-circuit, and transcript-wrap
- *                            behavior never fire.
+ *   guidedIntake       OFF → the Guided entry path falls back to "situation":
+ *                            the guided-intake Tier 3 block + section-picker
+ *                            handoff never fire, and the Home "Guided" door
+ *                            renders disabled ("Coming soon").
+ *   upload             OFF → the Upload entry path falls back to "situation":
+ *                            the upload server short-circuit + transcript-wrap
+ *                            behavior never fire, and the Home "Upload" door
+ *                            renders disabled ("Coming soon"). Situation is the
+ *                            always-on floor — it has no switch (with both of
+ *                            these OFF, every conversation runs "situation",
+ *                            the old single-gate behavior).
  *   checkpoints        OFF → no checkpoint is ever detected, gated, composed,
  *                            or proposed; the checkpoint-derived Tier 3
  *                            overlays (approaching, post-suppression) also go
@@ -29,7 +35,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *                            with this OFF the checkpoint gate fails closed
  *                            (no entries fire) even if `checkpoints` is ON.
  *
- * These four debug gates default ON, and the read fails open to ON on any
+ * These five debug gates default ON, and the read fails open to ON on any
  * error or missing row, so production behaves exactly as it does today when
  * the table is absent or unreachable. They are debug scaffolding with a
  * documented deletion condition (see the migration), not permanent forks.
@@ -48,7 +54,8 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  */
 export interface FeatureGates {
   personaDeltas: boolean;
-  conversationModes: boolean;
+  guidedIntake: boolean;
+  upload: boolean;
   checkpoints: boolean;
   extractionBrief: boolean;
   reflectionMeter: boolean;
@@ -56,7 +63,8 @@ export interface FeatureGates {
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
   personaDeltas: true,
-  conversationModes: true,
+  guidedIntake: true,
+  upload: true,
   checkpoints: true,
   extractionBrief: true,
   // Forward feature flag — defaults OFF so production keeps the current
@@ -71,7 +79,8 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
  */
 export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   persona_deltas: "personaDeltas",
-  conversation_modes: "conversationModes",
+  guided_intake: "guidedIntake",
+  upload: "upload",
   checkpoints: "checkpoints",
   extraction_brief: "extractionBrief",
   reflection_meter: "reflectionMeter",

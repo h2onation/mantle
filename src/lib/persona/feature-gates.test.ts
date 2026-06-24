@@ -27,7 +27,8 @@ describe("getFeatureGates", () => {
     expect(gates).toEqual(DEFAULT_FEATURE_GATES);
     expect(gates).toEqual({
       personaDeltas: true,
-      conversationModes: true,
+      guidedIntake: true,
+      upload: true,
       checkpoints: true,
       extractionBrief: true,
       // Forward feature flag — fails CLOSED to OFF, unlike the debug gates.
@@ -51,20 +52,22 @@ describe("getFeatureGates", () => {
     // their defaults (debug gates ON, reflectionMeter OFF).
     expect(gates).toEqual({
       personaDeltas: true,
-      conversationModes: true,
+      guidedIntake: true,
+      upload: true,
       checkpoints: false,
       extractionBrief: true,
       reflectionMeter: false,
     });
   });
 
-  it("maps all five keys when all are present", async () => {
+  it("maps all six keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
         data: [
           { key: "persona_deltas", enabled: false },
-          { key: "conversation_modes", enabled: false },
+          { key: "guided_intake", enabled: false },
+          { key: "upload", enabled: false },
           { key: "checkpoints", enabled: false },
           { key: "extraction_brief", enabled: false },
           { key: "reflection_meter", enabled: true },
@@ -75,7 +78,8 @@ describe("getFeatureGates", () => {
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
       personaDeltas: false,
-      conversationModes: false,
+      guidedIntake: false,
+      upload: false,
       checkpoints: false,
       extractionBrief: false,
       reflectionMeter: true,
@@ -96,7 +100,8 @@ describe("getFeatureGates", () => {
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
       personaDeltas: false,
-      conversationModes: true,
+      guidedIntake: true,
+      upload: true,
       checkpoints: true,
       extractionBrief: true,
       reflectionMeter: false,
@@ -115,9 +120,10 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the five known keys", () => {
+  it("accepts the six known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
-    expect(isFeatureGateKey("conversation_modes")).toBe(true);
+    expect(isFeatureGateKey("guided_intake")).toBe(true);
+    expect(isFeatureGateKey("upload")).toBe(true);
     expect(isFeatureGateKey("checkpoints")).toBe(true);
     expect(isFeatureGateKey("extraction_brief")).toBe(true);
     expect(isFeatureGateKey("reflection_meter")).toBe(true);

@@ -19,10 +19,16 @@ const GATE_META: {
     off: "OFF → one neutral voice. The autistic / ADHD / dyslexic voice deltas stop loading; everyone gets the base scaffold.",
   },
   {
-    key: "conversation_modes",
-    field: "conversationModes",
-    label: "Conversation modes",
-    off: "OFF → every conversation runs Situation. Guided Intake and Upload entry paths (and the upload short-circuit) stop firing.",
+    key: "guided_intake",
+    field: "guidedIntake",
+    label: "Guided intake mode",
+    off: "OFF → the Guided entry path falls back to Situation and its Home door shows as “Coming soon.” The guided-intake flow + section picker stop firing. (Situation is always on — it has no switch.)",
+  },
+  {
+    key: "upload",
+    field: "upload",
+    label: "Upload mode",
+    off: "OFF → the Upload entry path falls back to Situation and its Home door shows as “Coming soon.” The upload short-circuit + transcript-wrap behavior stop firing.",
   },
   {
     key: "checkpoints",
