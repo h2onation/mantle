@@ -30,65 +30,41 @@ interface Props {
 
 const PER_PAGE = 10;
 
-// Single-select lenses over the user list. Each is a different cut, not a
-// status field — "guests" overlaps active/dormant by design (it answers a
-// different admin question: which accounts are anonymous).
-type UserFilter = "all" | "active" | "dormant" | "guests";
-
-const FILTERS: UserFilter[] = ["all", "active", "dormant", "guests"];
-
-const FILTER_LABEL: Record<UserFilter, string> = {
-  all: "All",
-  active: "Active",
-  dormant: "Dormant",
-  guests: "Guests",
-};
+// Which field the list is sorted by, newest-first in both cases.
+type SortMode = "last_active" | "created_at";
 
 export default function UsersTab({ users, onSelectUser, selectedId }: Props) {
   const [page, setPage] = useState(0);
-  const [filter, setFilter] = useState<UserFilter>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("last_active");
   const [search, setSearch] = useState("");
 
-  // Sort by last_active desc; nulls last so brand-new users that have no
-  // messages yet sink to the bottom rather than dominating the top.
   const sorted = useMemo(() => {
-    return [...users].sort((a, b) => {
-      if (!a.last_active && !b.last_active) return 0;
-      if (!a.last_active) return 1;
-      if (!b.last_active) return -1;
-      return b.last_active.localeCompare(a.last_active);
-    });
-  }, [users]);
-
-  // Counts for the filter chips, computed off the full set so they stay stable
-  // as the active filter / search narrows the visible rows.
-  const counts = useMemo(
-    () => ({
-      all: users.length,
-      active: users.filter((u) => u.conversation_count > 0).length,
-      dormant: users.filter((u) => u.conversation_count === 0).length,
-      guests: users.filter((u) => u.is_anonymous).length,
-    }),
-    [users]
-  );
+    const arr = [...users];
+    if (sortMode === "created_at") {
+      // Newest sign-ups first.
+      arr.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    } else {
+      // Most recently active first; nulls last so brand-new users with no
+      // messages yet sink to the bottom rather than dominating the top.
+      arr.sort((a, b) => {
+        if (!a.last_active && !b.last_active) return 0;
+        if (!a.last_active) return 1;
+        if (!b.last_active) return -1;
+        return b.last_active.localeCompare(a.last_active);
+      });
+    }
+    return arr;
+  }, [users, sortMode]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return sorted
-      .filter((u) => {
-        if (filter === "active") return u.conversation_count > 0;
-        if (filter === "dormant") return u.conversation_count === 0;
-        if (filter === "guests") return u.is_anonymous;
-        return true;
-      })
-      .filter((u) => {
-        if (!query) return true;
-        return (
-          u.email.toLowerCase().includes(query) ||
-          (u.display_name?.toLowerCase().includes(query) ?? false)
-        );
-      });
-  }, [sorted, filter, search]);
+    if (!query) return sorted;
+    return sorted.filter(
+      (u) =>
+        u.email.toLowerCase().includes(query) ||
+        (u.display_name?.toLowerCase().includes(query) ?? false)
+    );
+  }, [sorted, search]);
 
   const visible = paginate(filtered, page, PER_PAGE);
 
@@ -125,43 +101,29 @@ export default function UsersTab({ users, onSelectUser, selectedId }: Props) {
         }}
       />
 
-      {/* ── Filter chips ──────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          flexWrap: "wrap",
-          marginBottom: 8,
-        }}
-      >
-        {FILTERS.map((f) => {
-          const active = f === filter;
-          return (
-            <button
-              key={f}
-              onClick={() => {
-                setFilter(f);
-                resetPage();
-              }}
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--size-meta)",
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-                color: active ? "var(--session-cream)" : "var(--session-ink-mid)",
-                background: active ? "var(--session-walnut)" : "none",
-                border: "1px solid var(--session-ink-hairline)",
-                borderRadius: "var(--radius-pill)",
-                padding: "4px 10px",
-                cursor: "pointer",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {FILTER_LABEL[f]} ({counts[f]})
-            </button>
-          );
-        })}
+      {/* ── Sort ──────────────────────────────────────────────── */}
+      <div style={{ marginBottom: 8 }}>
+        <select
+          value={sortMode}
+          onChange={(e) => {
+            setSortMode(e.target.value as SortMode);
+            resetPage();
+          }}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "var(--session-ink)",
+            background: "rgba(255,255,255,0.6)",
+            border: "1px solid var(--session-ink-hairline)",
+            borderRadius: 4,
+            padding: "5px 6px",
+          }}
+        >
+          <option value="last_active">Sort: last active</option>
+          <option value="created_at">Sort: sign-up date</option>
+        </select>
       </div>
 
       {/* ── Rows ──────────────────────────────────────────────── */}
