@@ -1,27 +1,30 @@
 // ---------------------------------------------------------------------------
-// Single source of truth for the 5-section behavioral manual.
+// Single source of truth for the 5-section behavioral Manual.
 //
-// Layer names, descriptions, dimensions, and example phrases live here.
+// Section names, descriptions, dimensions, and example phrases live here.
 // Every consumer (extraction, system-prompt, classifier, confirm-checkpoint,
-// mobile manual UI) imports from this file. Renaming a layer or shifting its
-// scope is a one-line change here, not a 12-file migration.
+// mobile manual UI) imports from this file.
 //
-// If you find yourself hardcoding a layer name in another file, stop and
-// import it instead. The Feb 2026 layer rename and the Apr 2026 ND pivot
-// both required touching this codebase in 5+ places because layer names
-// were duplicated. That problem now lives here.
+// NAMING NOTE (deliberate, documented divergence — structure migration):
+//   In CODE the identifier is `layer` / `LAYERS` (kept to avoid a churny,
+//   risk-for-no-user-benefit rename). In the PRODUCT the noun is "section".
+//   The DB `manual_entries.section` slug is the stable structural key going
+//   forward; the integer `manual_entries.layer` is FROZEN legacy provenance
+//   (existing rows only — new rows are born with section + a NULL layer).
+//   So "layer" in this file == "section" in the product. Translate, don't
+//   rename.
 // ---------------------------------------------------------------------------
 
 export interface LayerDefinition {
-  /** 1-5. Stable across renames. The DB stores this. */
+  /** 1-5. Display order. */
   id: number;
-  /** URL/programmatic identifier. Stable across renames. */
+  /** Stable structural key. Stored in manual_entries.section. */
   slug: string;
   /** User-facing display name. */
   name: string;
   /** Short description for UI tiles and prompt context. */
   description: string;
-  /** One-line gloss for compact UI (e.g. the Home layer index). Second
+  /** One-line gloss for compact UI (e.g. the Home section index). Second
    *  person, punchier than `description`. */
   tagline: string;
   /** Dimensions the extraction layer tracks for this section. */
@@ -33,97 +36,127 @@ export interface LayerDefinition {
 export const LAYERS: readonly LayerDefinition[] = [
   {
     id: 1,
-    slug: "where-strong",
-    name: "My Strengths",
+    slug: "relationships",
+    name: "Relationships",
     description:
-      "Understand the traits that make you exceptional and the environments that bring them out.",
-    tagline: "What you're genuinely good at, named plainly.",
+      "How you connect, withdraw, and show care — and the gap between what you mean and what people see.",
+    tagline: "How you connect — and how you're read.",
     dimensions: [
-      "hyperfocus",
-      "pattern recognition",
-      "systemizing",
-      "loyalty",
-      "honesty",
-      "context-dependent capabilities",
+      "connection style",
+      "withdrawal and closeness",
+      "conflict processing",
+      "how others read you",
+      "care expression",
     ],
-    example:
-      "When something captures my attention I can stay with it for hours in a state most people can't access.",
+    example: "When voices get raised I go offline. It's not stonewalling — my system shuts down input.",
   },
   {
     id: 2,
-    slug: "patterns",
-    name: "Some of My Patterns",
+    slug: "work-money",
+    name: "Work and money",
     description:
-      "What behavior means when you can't explain it in the moment. Silence, freezing, shutdown, masking — the signals other people misread.",
-    tagline: "Loops you repeat — and what they cost.",
+      "How you operate, mask, and hold up where you earn — under pressure, on a timeline, with stakes.",
+    tagline: "How you hold up where you earn.",
     dimensions: [
-      "masking signals",
-      "shutdown triggers",
-      "freeze responses",
-      "what silence means",
-      "what others misread",
+      "operating under pressure",
+      "masking at work",
+      "what you can absorb",
+      "the line you won't cross",
+      "earning and stakes",
     ],
-    example: "When plans change I go still. It looks like resistance. It's recalculation.",
+    example:
+      "Under financial pressure I go quiet and inward, and by the time I surface there's already damage to repair.",
   },
   {
     id: 3,
-    slug: "processing",
-    name: "How I Process Things",
+    slug: "routines-structure",
+    name: "Routines and structure",
     description:
-      "Sensory experience, how change lands, how information gets taken in, what overload looks and feels like.",
-    tagline: "The way your mind actually works through things.",
+      "The systems that hold your day up — what you depend on, how change lands, and what their collapse costs.",
+    tagline: "The systems that hold your day up.",
     dimensions: [
-      "sensory sensitivities",
-      "processing speed",
-      "change response",
+      "daily systems",
+      "structure dependency",
+      "how change lands",
+      "transitions",
+      "what collapse costs",
+    ],
+    example:
+      "When plans change I go still while the new variables get integrated. Interrupt me in the first thirty seconds and I lose another five.",
+  },
+  {
+    id: 4,
+    slug: "sensory-burnout",
+    name: "Sensory and burnout",
+    description:
+      "What your body takes in and what it costs. Sensory load, overload, shutdown, and what recovery actually requires.",
+    tagline: "What your body takes in, and what it costs.",
+    dimensions: [
+      "sensory load",
       "overload indicators",
-      "information intake style",
+      "shutdown",
+      "what recovery requires",
+      "the stack before the last thing",
     ],
     example:
       "Fluorescent lights and background noise are load on my system. By the time I seem irritable I've been absorbing input for hours.",
   },
   {
-    id: 4,
-    slug: "what-helps",
-    name: "What Helps",
-    description:
-      "What you need to function. Alone time, routine, environment, recovery, structure. Why these are non-negotiable, not preferences.",
-    tagline: "The conditions and moves that make things easier.",
-    dimensions: [
-      "non-negotiable needs",
-      "environment requirements",
-      "recovery patterns",
-      "routine dependency",
-      "structure",
-    ],
-    example: "I need roughly an hour alone after social time. This is maintenance, not withdrawal.",
-  },
-  {
     id: 5,
-    slug: "with-people",
-    name: "How I Show Up with People",
+    slug: "interests-flow",
+    name: "Interests and flow",
     description:
-      "How you connect, handle conflict, show care. What withdrawal and closeness actually look like from your side.",
-    tagline: "The gap between what you mean and what others see.",
+      "Where you go deep and do your best work. The domains that pull you in and the state most people can't access.",
+    tagline: "Where you go deep and do your best work.",
     dimensions: [
-      "connection style",
-      "conflict processing",
-      "care expression",
-      "withdrawal/closeness mechanics",
-      "social energy",
+      "deep focus",
+      "flow states",
+      "hyperfocus",
+      "best work",
+      "absorption",
     ],
     example:
-      "When voices get raised I go offline. It's not stonewalling. My system shuts down input.",
+      "When something captures my attention I can stay with it for hours in a state most people can't access.",
   },
 ] as const;
 
-/** Lookup table for `Layer N (Name)` rendering. Imported by every consumer. */
+/** Closed tag set. `strength` anywhere; the relationship sub-tags only inside
+ *  the relationships section (enforced by a DB CHECK; mirrored here for the UI). */
+export const TAGS = ["strength", "romantic", "family", "friends"] as const;
+export type Tag = (typeof TAGS)[number];
+export const RELATIONSHIP_TAGS: readonly Tag[] = ["romantic", "family", "friends"];
+
+/** Sentinel group key for entries with no section yet — the "held" group.
+ *  Used by the Manual UI to gather NULL-section entries (deliberately parked
+ *  self-to-self patterns + any straggler) without mis-filing them into a
+ *  life-area. See docs/reference/structure-migration-plan.md §3.4 / Rule C. */
+export const HELD_SECTION = "__held__" as const;
+
+const SECTION_BY_SLUG: Record<string, LayerDefinition> = Object.fromEntries(
+  LAYERS.map((l) => [l.slug, l])
+);
+
+/** The grouping key for an entry: its section slug, or HELD_SECTION when the
+ *  entry has no section (parked). PURE — returns a display value, never
+ *  mutates the entry and is never persisted (the no-write-back guard). */
+export function sectionForEntry(entry: { section?: string | null }): string {
+  return entry.section ?? HELD_SECTION;
+}
+
+/** Display name for a section slug. Falls back to a readable form of an
+ *  unknown slug rather than throwing. */
+export function sectionName(slug: string | null | undefined): string {
+  if (!slug) return "Held";
+  return SECTION_BY_SLUG[slug]?.name ?? slug;
+}
+
+/** Lookup table for `Layer N (Name)` rendering. Imported by every consumer.
+ *  Keyed by display-order id (1-5). */
 export const LAYER_NAMES: Record<number, string> = Object.fromEntries(
   LAYERS.map((l) => [l.id, l.name])
 );
 
-/** Roman-numeral-as-word ordinal per layer. Used wherever the UI says
- *  "Layer Two — Some of My Patterns" instead of "Layer 2 — ...". */
+/** Roman-numeral-as-word ordinal per section. */
 export const LAYER_ORDINAL: Record<number, string> = {
   1: "One",
   2: "Two",
@@ -133,50 +166,49 @@ export const LAYER_ORDINAL: Record<number, string> = {
 };
 
 /**
- * Canonical eyebrow string for any checkpoint-shaped surface (compact
- * trigger card, overlay header, historical Plate). One source of truth
- * so the three surfaces can't drift visually. Falls back to "Suggested
- * Entry" when the layer is missing or unknown.
+ * Canonical eyebrow string for any checkpoint-shaped surface. Takes a section
+ * SLUG (the new structural key). Falls back to "Suggested Entry" when the
+ * section is missing/unknown (e.g. a parked self-pattern checkpoint).
  */
-export function formatLayerEyebrow(layer: number | null | undefined): string {
-  if (!layer || !LAYER_NAMES[layer]) return "Suggested Entry";
-  return `Layer ${LAYER_ORDINAL[layer] ?? layer} — ${LAYER_NAMES[layer]}`;
+export function formatLayerEyebrow(section: string | null | undefined): string {
+  if (!section || !SECTION_BY_SLUG[section]) return "Suggested Entry";
+  return SECTION_BY_SLUG[section].name;
 }
 
 /**
- * Canonical "Manual entry inside a prompt" rendering. Used wherever the
- * full content of an entry needs to be inlined into an LLM prompt.
- * Shape: `Layer N (Name) [— "headline"]:\ncontent\n`
+ * Canonical "Manual entry inside a prompt" rendering. Used wherever the full
+ * content of an entry needs to be inlined into an LLM prompt.
+ * Shape: `Section (Name) [— "headline"]:\ncontent\n`
  */
 export function renderManualEntryFull(entry: {
-  layer: number;
+  section?: string | null;
   name: string | null;
   content: string;
 }): string {
-  const layerLabel = LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`;
+  const label = entry.section ? sectionName(entry.section) : "Held (no section yet)";
   const headline = entry.name ? ` — "${entry.name}"` : "";
-  return `Layer ${entry.layer} (${layerLabel})${headline}:\n${entry.content}\n`;
+  return `Section: ${label}${headline}:\n${entry.content}\n`;
 }
 
 /**
- * Per-layer empty-state copy for the Manual page. Two beats render
- * inside the Plate when a layer has no confirmed entries:
- *   • STATUS — one italic sentence that names the absence AND
- *     what this layer is for, in one breath.
+ * Per-section empty-state copy for the Manual page. Two beats render inside the
+ * Plate when a section has no confirmed entries:
+ *   • STATUS — one italic sentence naming the absence AND what the section is for.
  *   • INVITE — one italic line in Jove's voice. Opens a door.
+ * Keyed by display-order id (1-5).
  */
 export const LAYER_EMPTY_STATUS: Record<number, string> = {
-  1: "Nothing about where you're strong yet.",
-  2: "No patterns named here yet.",
-  3: "Nothing about how you process the world yet.",
-  4: "Nothing about what you need to function yet.",
-  5: "Nothing about how you show up with people yet.",
+  1: "Nothing about how you connect with people yet.",
+  2: "Nothing about how you operate where you earn yet.",
+  3: "Nothing about the systems that hold your day up yet.",
+  4: "Nothing about what your body takes in yet.",
+  5: "Nothing about where you go deep yet.",
 };
 
 export const LAYER_EMPTY_INVITE: Record<number, string> = {
-  1: "What activates the version of you most people don't get to see?",
-  2: "When something's been hard to put words to, we can start there.",
-  3: "Tell me about a recent moment your system was working harder than it looked.",
-  4: "Start anywhere — even something small that feels non-negotiable.",
-  5: "Pick someone you're close to. What does showing up there look like?",
+  1: "Pick someone you're close to. What does showing up there look like?",
+  2: "Tell me about a moment at work the pressure changed how you operate.",
+  3: "Start anywhere — even one small thing that holds your day together.",
+  4: "Tell me about a recent moment your system was working harder than it looked.",
+  5: "What activates the version of you most people don't get to see?",
 };

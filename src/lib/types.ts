@@ -13,7 +13,11 @@ export interface ChatMessage {
   // action under this message (set only after the user accepts the handoff).
   offerStartSituation?: boolean;
   checkpointMeta?: {
-    layer: number;
+    // Section slug chosen by composition, or null when the entry is parked
+    // (a self-to-self pattern — Rule C). Replaces the legacy `layer` number.
+    section: string | null;
+    // Closed tag set applied by composition (strength / romantic / family / friends).
+    tags?: string[];
     name: string | null;
     status: string;
     // Number of "Close but not quite" refinements that produced this
@@ -27,7 +31,13 @@ export interface ChatMessage {
 
 export interface ManualEntry {
   id?: string;
-  layer: number;
+  // FROZEN legacy pattern-type id. Existing rows keep it; new rows are born
+  // with `section` and a null layer. Never the structural key going forward.
+  layer?: number | null;
+  // Life-area section slug — the structural key. Null = parked (held group).
+  section?: string | null;
+  // Closed cross-cutting tag set.
+  tags?: string[] | null;
   name: string | null;
   content: string;
   created_at?: string;
@@ -43,7 +53,9 @@ export interface ManualEntry {
 
 export interface ActiveCheckpoint {
   messageId: string;
-  layer: number;
+  /** Section slug chosen by composition, or null when parked. */
+  section: string | null;
+  tags?: string[];
   name: string | null;
   /** The assistant message content as it appears in the chat stream.
    *  Kept as a fallback for the review overlay when composition didn't run. */

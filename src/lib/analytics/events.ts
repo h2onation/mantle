@@ -53,7 +53,7 @@ export function trackConversationEnded(props: {
 export function trackCheckpointProposed(props: {
   conversation_id: string;
   checkpoint_id: string;
-  layer: number;
+  section: string | null;
   message_number: number;
   // Count of user messages in the conversation at the moment the
   // checkpoint fires. Lets the dashboard answer "how fast does guided
@@ -68,7 +68,7 @@ export function trackCheckpointProposed(props: {
 export function trackCheckpointConfirmed(props: {
   conversation_id: string;
   checkpoint_id: string;
-  layer: number;
+  section: string | null;
   time_to_decision_ms: number;
   mode: ConversationMode;
 }) {
@@ -78,7 +78,7 @@ export function trackCheckpointConfirmed(props: {
 export function trackCheckpointRejected(props: {
   conversation_id: string;
   checkpoint_id: string;
-  layer: number;
+  section: string | null;
   time_to_decision_ms: number;
   mode: ConversationMode;
   // DO NOT include rejection reason text.
@@ -89,7 +89,7 @@ export function trackCheckpointRejected(props: {
 export function trackCheckpointRefined(props: {
   conversation_id: string;
   checkpoint_id: string;
-  layer: number;
+  section: string | null;
   time_to_decision_ms: number;
   mode: ConversationMode;
 }) {
@@ -106,7 +106,7 @@ export function trackCheckpointRefined(props: {
 export function trackCheckpointDeferred(props: {
   conversation_id: string;
   checkpoint_id: string;
-  layer: number;
+  section: string | null;
   time_to_decision_ms: number;
   mode: ConversationMode;
 }) {

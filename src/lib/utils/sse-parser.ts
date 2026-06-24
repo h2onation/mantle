@@ -5,7 +5,9 @@ export interface MessageCompleteEvent {
   conversationId: string;
   checkpoint: {
     isCheckpoint: boolean;
-    layer: number;
+    // Section slug chosen by composition, or null when parked (Rule C).
+    section: string | null;
+    tags?: string[];
     name: string | null;
     // Track A Phase 7-Mid: refinement_count is set when the new
     // checkpoint inherits from a prior refined checkpoint in the

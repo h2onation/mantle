@@ -99,7 +99,11 @@ export interface CheckpointGateResult {
 }
 
 export interface CheckpointMeta {
-  layer: number | null;
+  // Section slug chosen by composition, or null when parked (Rule C).
+  // Replaces the legacy `layer` number as the structural key.
+  section: string | null;
+  // Closed tag set applied by composition.
+  tags: string[];
   name: string | null;
   status: "pending";
   composed_content: string | null;
@@ -146,7 +150,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("manual_entries")
-      .select("layer, name, content, summary, key_words, created_at, source_message_id")
+      .select("layer, section, tags, name, content, summary, key_words, created_at, source_message_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: true }),
     admin
@@ -230,7 +234,9 @@ export async function loadConversationContext(
   // below so prepareManualContext can split "current session" from "older"
   // without another round-trip.
   const rawEntries = (manualResult.data || []) as Array<{
-    layer: number;
+    layer: number | null;
+    section: string | null;
+    tags: string[] | null;
     name: string | null;
     content: string;
     summary: string | null;
@@ -258,6 +264,8 @@ export async function loadConversationContext(
 
   const manualComponents: ManualEntry[] = rawEntries.map((e) => ({
     layer: e.layer,
+    section: e.section,
+    tags: e.tags,
     name: e.name,
     content: e.content,
     summary: e.summary,
@@ -1053,7 +1061,8 @@ export function buildCheckpointMeta(
   composedEntry: {
     content: string;
     name: string;
-    layer: number;
+    section: string | null;
+    tags?: string[];
     changelog: string;
     summary?: string;
     key_words?: string[];
@@ -1061,7 +1070,8 @@ export function buildCheckpointMeta(
   inheritedRefinementCount: number = 0
 ): CheckpointMeta {
   return {
-    layer: composedEntry?.layer ?? null,
+    section: composedEntry?.section ?? null,
+    tags: composedEntry?.tags ?? [],
     name: composedEntry?.name ?? null,
     status: "pending",
     composed_content: composedEntry?.content || null,

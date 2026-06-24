@@ -1,5 +1,5 @@
 import type { ManualEntry } from "@/lib/types";
-import { LAYER_NAMES } from "@/lib/manual/layers";
+import { sectionName } from "@/lib/manual/layers";
 
 // Why this exists:
 // A returning user's Manual can grow to dozens of entries. Shipping every
@@ -31,14 +31,14 @@ export type ManualEntryForContext = ManualEntry;
  * Jove can still recognize and reference the entry without the full narrative.
  */
 export function compressManualEntry(entry: ManualEntryForContext): string {
-  const layerLabel = LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`;
+  const layerLabel = sectionName(entry.section);
   const headline = entry.name ? `"${entry.name}"` : "(unnamed)";
   const summary = entry.summary?.trim() || deriveSummaryFromContent(entry.content);
   const keyWords =
     Array.isArray(entry.key_words) && entry.key_words.length > 0
       ? ` Key words: ${entry.key_words.join(", ")}.`
       : "";
-  return `[Layer ${entry.layer} — ${layerLabel}] ${headline} — ${summary}${keyWords}`;
+  return `[${layerLabel}] ${headline} — ${summary}${keyWords}`;
 }
 
 /**
@@ -79,7 +79,7 @@ export function prepareManualContextBlocks(
   if (recent.length > 0) {
     recentBlock = "\nCONFIRMED MANUAL\n";
     for (const entry of recent) {
-      recentBlock += `Layer ${entry.layer} (${LAYER_NAMES[entry.layer] || `Layer ${entry.layer}`})`;
+      recentBlock += `Section: ${sectionName(entry.section)}`;
       if (entry.name) recentBlock += ` — "${entry.name}"`;
       recentBlock += `:\n${entry.content}\n\n`;
     }

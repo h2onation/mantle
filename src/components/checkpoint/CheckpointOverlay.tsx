@@ -3,11 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown } from "@/lib/utils/format";
-import {
-  LAYER_NAMES,
-  LAYER_ORDINAL,
-  formatLayerEyebrow,
-} from "@/lib/manual/layers";
+import { formatLayerEyebrow, sectionName } from "@/lib/manual/layers";
 
 import type { CheckpointAction } from "@/lib/persona/config";
 
@@ -187,7 +183,7 @@ export default function CheckpointOverlay({
 
   if (!open) return null;
 
-  const eyebrowText = formatLayerEyebrow(checkpoint.layer);
+  const eyebrowText = formatLayerEyebrow(checkpoint.section);
 
   return (
     <div
@@ -597,11 +593,9 @@ export default function CheckpointOverlay({
               color: "var(--session-walnut)",
             }}
           >
-            {checkpoint.layer && LAYER_ORDINAL[checkpoint.layer]
-              ? `Added to Layer ${LAYER_ORDINAL[checkpoint.layer]}`
-              : "Added to your Manual"}
+            Added to your Manual
           </span>
-          {checkpoint.layer && LAYER_NAMES[checkpoint.layer] && (
+          {checkpoint.section && (
             <span
               style={{
                 fontFamily: "var(--font-spectral), var(--font-serif), serif",
@@ -611,7 +605,7 @@ export default function CheckpointOverlay({
                 marginTop: 8,
               }}
             >
-              {LAYER_NAMES[checkpoint.layer]}
+              {sectionName(checkpoint.section)}
             </span>
           )}
         </div>

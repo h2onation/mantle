@@ -20,7 +20,8 @@ async function consumePersonaStream(stream: ReadableStream): Promise<{
   messageId: string | null;
   checkpoint: {
     isCheckpoint: boolean;
-    layer: number;
+    section: string | null;
+    tags?: string[];
     name: string | null;
   } | null;
   processingText: string | null;
@@ -30,7 +31,8 @@ async function consumePersonaStream(stream: ReadableStream): Promise<{
   let messageId: string | null = null;
   let checkpoint: {
     isCheckpoint: boolean;
-    layer: number;
+    section: string | null;
+    tags?: string[];
     name: string | null;
   } | null = null;
   let processingText: string | null = null;
@@ -215,17 +217,17 @@ export async function POST(request: Request) {
             type: "turn_complete",
             turn,
             conversationId,
-            hasCheckpoint: !!(result.checkpoint?.isCheckpoint && result.checkpoint.layer),
+            hasCheckpoint: !!result.checkpoint?.isCheckpoint,
           });
 
           // Checkpoint reached — stop the simulation and hand off to the user.
           // The checkpoint message is left with status: "pending" (set by
           // callPersona), so the real UI confirm button drives the rest.
-          if (result.checkpoint?.isCheckpoint && result.checkpoint.layer) {
+          if (result.checkpoint?.isCheckpoint) {
             emit(controller, {
               type: "checkpoint",
               turn,
-              layer: result.checkpoint.layer,
+              section: result.checkpoint.section,
               name: result.checkpoint.name,
               action: "pending",
               conversationId,

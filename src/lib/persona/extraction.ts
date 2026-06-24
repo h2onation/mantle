@@ -66,7 +66,8 @@ export interface ExtractionState {
 }
 
 interface ManualEntry {
-  layer: number;
+  layer?: number | null;
+  section?: string | null;
   name: string | null;
   content: string;
 }
@@ -142,13 +143,9 @@ function parseSnippet(raw: unknown): string | null {
 // definition so a layer rename is one line in src/lib/manual/layers.ts.
 const LAYER_MODEL_BLOCK = LAYERS.map(
   (l) =>
-    `Layer ${l.id} (${l.name}): ${l.description}\n  Example: "${l.example}"`
+    `${l.name}: ${l.description}\n  Example: "${l.example}"`
 ).join("\n");
 
-// Resolve layer ids by slug so the per-layer mechanism note below survives a
-// reorder — the canonical ids in layers.ts can move; the slugs never do.
-const WHAT_HELPS_LAYER = LAYERS.find((l) => l.slug === "what-helps")!.id;
-const STRENGTHS_LAYER = LAYERS.find((l) => l.slug === "where-strong")!.id;
 
 const EXTRACTION_SYSTEM = `You are the extraction layer for a conversational AI called ${PERSONA_NAME} that builds Manuals for late-diagnosed autistic adults. You run silently before ${PERSONA_NAME} responds. Your job is to analyze what the user just said and produce structured context so ${PERSONA_NAME} can have a deeper, more grounded conversation.
 
@@ -166,7 +163,7 @@ Use Schema Therapy, Attachment Theory, and Functional Analysis as internal patte
 - "emotional avoidance" → "you stopped feeling it so you could keep going"
 - "attachment anxiety" → "when you're not sure where you stand, everything gets loud"
 
-THE FIVE-LAYER MODEL
+THE FIVE SECTIONS
 ${LAYER_MODEL_BLOCK}
 
 YOUR ANALYSIS PRIORITIES
@@ -226,7 +223,7 @@ GATE (all must be true):
 - has_charged_language: The language bank contains at least one high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor the checkpoint.
 - has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
 
-Mechanism per layer: For Layer ${WHAT_HELPS_LAYER} (${LAYER_NAMES[WHAT_HELPS_LAYER]}), "mechanism" means why-this-need-is-non-negotiable, not optional preference. For Layer ${STRENGTHS_LAYER} (${LAYER_NAMES[STRENGTHS_LAYER]}), "mechanism" means the conditions that activate the strength.
+Mechanism per section: in Routines and structure, "mechanism" means why-this-system-is-non-negotiable, not optional preference. Where a section names a strength or capability, "mechanism" means the conditions that activate it.
 
 When the gate is met, identify strongest_layer: which layer has the most material, examples, and depth. Layers can hold many entries — there's no per-layer cap.
 
@@ -582,7 +579,7 @@ export function formatExtractionForPersona(
   // lighter gate was retired 2026-06-12 (one bar for every checkpoint).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _isFirstCheckpoint: boolean,
-  manualComponents?: { layer: number; name: string | null; content: string }[]
+  manualComponents?: { section?: string | null; name: string | null; content: string }[]
 ): string {
   let context = "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\n";
 
@@ -718,8 +715,9 @@ export function formatExtractionForPersona(
     ) ||
     null;
   if (activeLayer && manualComponents) {
+    const activeSlug = LAYERS.find((l) => l.id === activeLayer)?.slug;
     const layerContent = manualComponents
-      .filter((c) => c.layer === activeLayer)
+      .filter((c) => activeSlug != null && c.section === activeSlug)
       .slice(-2);
     if (layerContent.length > 0) {
       context += `\nWhat's already in the manual on ${LAYER_NAMES[activeLayer]}:\n`;

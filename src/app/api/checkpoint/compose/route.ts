@@ -90,7 +90,8 @@ export async function POST(request: Request) {
     .maybeSingle();
   const lastMeta = lastMsg?.checkpoint_meta as {
     status?: string;
-    layer?: number;
+    section?: string | null;
+    tags?: string[];
     name?: string | null;
     composed_name?: string | null;
     composed_content?: string | null;
@@ -101,7 +102,8 @@ export async function POST(request: Request) {
       reused: true,
       checkpoint: {
         isCheckpoint: true,
-        layer: lastMeta.layer ?? null,
+        section: lastMeta.section ?? null,
+        tags: lastMeta.tags ?? [],
         name: lastMeta.composed_name ?? lastMeta.name ?? null,
         refinement_count: 0,
         composed_content: lastMeta.composed_content ?? lastMsg.content,
@@ -169,7 +171,8 @@ export async function POST(request: Request) {
     durationMs: Date.now() - startedAt,
     checkpoint: {
       isCheckpoint: true,
-      layer: composed.layer,
+      section: composed.section,
+      tags: composed.tags,
       name: composed.name,
       refinement_count: 0,
       composed_content: composed.content,

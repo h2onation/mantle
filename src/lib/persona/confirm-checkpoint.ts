@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
-import { LAYERS, LAYER_NAMES } from "@/lib/manual/layers";
+import { LAYERS, TAGS, RELATIONSHIP_TAGS, sectionName } from "@/lib/manual/layers";
 import { PERSONA_NAME, COMPOSITION_MODEL } from "./config";
 import { deriveSummaryFromContent } from "./manual-context";
 
@@ -25,7 +25,7 @@ interface ComposeManualEntryOptions {
    *  entries on the chosen layer). Replaces the old `layer` + `name` +
    *  `existingLayerContent` inputs — the classifier no longer pre-picks
    *  these. */
-  manualComponents: { layer: number; name: string | null; content: string }[];
+  manualComponents: { section?: string | null; name: string | null; content: string }[];
   /** distinct_contexts from the latest extraction state. When 1 or 0 the
    *  entry came from a single situation, so the headline validator will
    *  enforce a "can" / "sometimes" softener — prevents over-claiming a
@@ -62,7 +62,8 @@ export async function composeManualEntry(
 ): Promise<{
   content: string;
   name: string;
-  layer: number;
+  section: string | null;
+  tags: string[];
   changelog: string;
   summary: string;
   key_words: string[];
@@ -100,7 +101,7 @@ export async function composeManualEntry(
   // that layer. Empty layers are still listed (so Opus knows the option
   // exists) but show "(no entries yet)".
   const layerCatalog = LAYERS.map((l) => {
-    const entries = manualComponents.filter((c) => c.layer === l.id);
+    const entries = manualComponents.filter((c) => c.section === l.slug);
     const entriesText =
       entries.length === 0
         ? "(no entries yet)"
@@ -109,10 +110,10 @@ export async function composeManualEntry(
               (c) => `  [entry${c.name ? ` — "${c.name}"` : ""}]\n  ${c.content}`
             )
             .join("\n\n");
-    return `Layer ${l.id} — ${l.name} (${l.dimensions.join(", ")}):\n${entriesText}`;
+    return `${l.name} (${l.dimensions.join(", ")}):\n${entriesText}`;
   }).join("\n\n");
 
-  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the layer this entry belongs to based on what the entry IS (the dimensions above), and how it relates to entries already on that layer. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
+  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the section this entry belongs to based on what the entry IS at its core (the dimensions above), and how it relates to entries already in that section. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
 
   // Trailing transcript the composer reads literally. Widened from 8 → 50
   // for the user-pulled Reflection model: a reflection can be pulled long
@@ -159,7 +160,19 @@ NON-NEGOTIABLES
 - Stay in the user's frame. The entry is about the thing THEY named, not a sharper angle you found. Claim only as wide as their evidence reaches — the body carries the scope.
 - First person. No references to the session or to time. It reads the same six months from now.
 
-LAYER (field: "layer", 1-5): pick the layer whose dimensions (shown in the input) best describe what the entry IS. Prefer a layer that already holds related entries so this integrates rather than scatters.
+SECTION (field: "section"): the entry's one home. Pick the section whose dimensions (shown in the input) best describe what the entry IS AT ITS CORE — its spine, not where the scene happens. Use one of these exact slugs:
+- "relationships" — how you connect, withdraw, show care; how others read you.
+- "work-money" — how you operate, mask, and hold up where you earn.
+- "routines-structure" — the systems that hold the day up, and their collapse.
+- "sensory-burnout" — what the body takes in and what it costs (load, overload, shutdown, recovery).
+- "interests-flow" — where you go deep and do your best work.
+Spine over scene: a sensory crash that happens at work is "sensory-burnout" (the body is the subject); a work-performance pattern is "work-money". If an entry holds BOTH the masking AND the crash/cost, the body wins → "sensory-burnout". Prefer a section that already holds related entries so this integrates rather than scatters.
+
+PARK (field "section": null): a few patterns are about the self's relationship to ITSELF — self-judgment, self-governance, self-perception — and survive solitude: they run with nobody else in the room (the inner critic; revoking your own permission; the verdict you write on yourself). These have no life-area home yet. Set "section": null for these. BIAS TO HOME: only park when it is CLEARLY self-to-self and survives solitude. If another person is required for the pattern to exist, it is "relationships". When unsure, pick a section.
+
+TAGS (field: "tags", array of strings, may be empty): a closed set, optional lens. Never invent tags outside it.
+- "strength" — when the pattern is genuinely a capability or asset (not a costly pattern). Valid in any section.
+- "romantic" / "family" / "friends" — ONLY when section is "relationships" AND the entry names which sphere. Omit otherwise.
 
 ACKNOWLEDGMENT (field: "acknowledgment"): one plain sentence, 12-22 words, second person, that quotes the specific moment from the user's last turn(s) and ends with the intent to mark it ("…I want to put that down"). Plain spoken, no therapy voice. If there is no quotable specific, return "".
 
@@ -168,7 +181,8 @@ COMPRESSED (for future reference):
 - key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Depth on the one pattern...", "name": "The title — what they do", "layer": 1, "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}`;
+{"content": "Depth on the one pattern...", "name": "The title — what they do", "section": "relationships", "tags": ["romantic"], "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
+("section" may be null to park a self-to-self pattern; "tags" may be []. )`;
 
   // The auto-pushed path seeds the composer with Jove's drafted reflection.
   // The user-pulled path has none — tell the composer the truth (compose from
@@ -184,7 +198,7 @@ ${historyText}
 
 ${reflectionBlock}
 
-Compose the manual entry. Pick the layer, the headline, the prose. Return the JSON.`;
+Compose the manual entry. Pick the section (or null to park), the tags, the headline, the prose. Return the JSON.`;
 
   const response = await anthropicFetch({
     model: COMPOSITION_MODEL,
@@ -204,28 +218,31 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
     return null;
   }
 
-  // Layer must be a valid integer in 1..5. If Opus emits anything else the
-  // entry can't be filed correctly — return null so the caller suppresses
-  // the checkpoint rather than scattering an entry to an unknown layer.
-  const rawLayer = parsed.layer;
-  const parsedLayer =
-    typeof rawLayer === "number"
-      ? rawLayer
-      : typeof rawLayer === "string"
-        ? Number.parseInt(rawLayer, 10)
-        : NaN;
-  if (
-    !Number.isInteger(parsedLayer) ||
-    parsedLayer < 1 ||
-    parsedLayer > 5
-  ) {
-    console.error(
-      "[composeManualEntry] Composition returned invalid layer:",
-      rawLayer
+  // SECTION: a known slug, or null to PARK a self-to-self pattern (Rule C).
+  // Content validity (checked above) is the gate — section may legitimately be
+  // null, so an absent/unknown section does NOT suppress the checkpoint; it
+  // parks the entry (renders in the held group) rather than scattering it.
+  const SECTION_SLUGS = LAYERS.map((l) => l.slug);
+  const rawSection =
+    typeof parsed.section === "string" ? parsed.section.trim() : null;
+  const section: string | null =
+    rawSection && SECTION_SLUGS.includes(rawSection) ? rawSection : null;
+  if (rawSection && section === null) {
+    console.warn(
+      "[composeManualEntry] Composition returned unknown section (parking):",
+      rawSection
     );
-    return null;
   }
-  const layer: number = parsedLayer;
+
+  // TAGS: closed set; relationship sub-tags only valid inside relationships.
+  const allowedTags = TAGS as readonly string[];
+  const relTags = RELATIONSHIP_TAGS as readonly string[];
+  const tags: string[] = (Array.isArray(parsed.tags) ? parsed.tags : [])
+    .filter((t: unknown): t is string => typeof t === "string")
+    .map((t: string) => t.trim())
+    .filter((t: string) => allowedTags.includes(t))
+    .filter((t: string) => (relTags.includes(t) ? section === "relationships" : true))
+    .filter((t: string, i: number, a: string[]) => a.indexOf(t) === i);
 
   // Universal-tone validator. The composition prompt forbids "always /
   // every / all / never / everyone / nobody" unless the user used the
@@ -315,8 +332,11 @@ Compose the manual entry. Pick the layer, the headline, the prose. Return the JS
   return {
     content: parsed.content,
     name: finalName,
-    layer,
-    changelog: parsed.changelog || `Created ${LAYER_NAMES[layer] || "Layer " + layer} entry.`,
+    section,
+    tags,
+    changelog:
+      parsed.changelog ||
+      `Created ${section ? sectionName(section) : "held"} entry.`,
     summary,
     key_words: keyWords,
     acknowledgment,
@@ -540,7 +560,8 @@ export async function confirmCheckpoint({
     }
 
     const meta = message.checkpoint_meta as {
-      layer: number;
+      section: string | null;
+      tags?: string[] | null;
       name: string | null;
       status: string;
       composed_content: string | null;
@@ -592,7 +613,9 @@ export async function confirmCheckpoint({
       {
         p_message_id: messageId,
         p_user_id: userId,
-        p_layer: meta.layer,
+        p_layer: null,
+        p_section: meta.section ?? null,
+        p_tags: Array.isArray(meta.tags) ? meta.tags : [],
         p_name: nameToWrite,
         p_content: contentToWrite,
         p_summary: summaryToWrite,

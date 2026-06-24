@@ -7,7 +7,7 @@ import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
-import { LAYER_NAMES, LAYER_ORDINAL, formatLayerEyebrow } from "@/lib/manual/layers";
+import { formatLayerEyebrow, sectionName } from "@/lib/manual/layers";
 import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
@@ -478,9 +478,9 @@ export default function MobileSession({
 
               // Checkpoint card rendering
               if (isCheckpoint) {
-                const checkpointLayer = isPendingCheckpoint
-                  ? activeCheckpoint?.layer
-                  : msg.checkpointMeta?.layer;
+                const checkpointSection = isPendingCheckpoint
+                  ? activeCheckpoint?.section
+                  : msg.checkpointMeta?.section;
 
                 // ── Pending checkpoint: trigger card ──
                 // A bright Plate (--session-jove-bg) with a brass layer
@@ -492,7 +492,7 @@ export default function MobileSession({
                 // .checkpoint-trigger-plate in globals.css for the halo +
                 // shadow stack.
                 if (isPendingCheckpoint) {
-                  const cpLayer = activeCheckpoint?.layer;
+                  const cpSection = activeCheckpoint?.section;
                   return (
                     <div
                       key={msg.id || `msg-${i}`}
@@ -510,7 +510,7 @@ export default function MobileSession({
                             appears: centered brass eyebrow, a display
                             headline, the brass rule. Tapping opens the
                             confirm overlay for the full entry + actions. */}
-                        {cpLayer && (
+                        {cpSection && (
                           <p
                             style={{
                               margin: "0 0 14px",
@@ -523,7 +523,7 @@ export default function MobileSession({
                               textAlign: "center",
                             }}
                           >
-                            {formatLayerEyebrow(cpLayer)}
+                            {formatLayerEyebrow(cpSection)}
                           </p>
                         )}
                         {activeCheckpoint?.name && (
@@ -628,7 +628,7 @@ export default function MobileSession({
                     }}
                   >
                     <Plate
-                      eyebrow={checkpointLayer ? formatLayerEyebrow(checkpointLayer) : undefined}
+                      eyebrow={checkpointSection ? formatLayerEyebrow(checkpointSection) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
                       {!isRejected && renderMarkdown(stripCheckpointFooter(msg.content))}
@@ -653,13 +653,11 @@ export default function MobileSession({
                                 : "var(--session-ink-ghost)",
                             }}
                           >
-                            {msg.checkpointMeta.status === "confirmed" && checkpointLayer && LAYER_NAMES[checkpointLayer]
-                              ? `Saved to ${LAYER_NAMES[checkpointLayer]} — Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
-                              : msg.checkpointMeta.status === "confirmed" && checkpointLayer
-                                ? `Saved to Layer ${LAYER_ORDINAL[checkpointLayer] ?? checkpointLayer}`
-                                : msg.checkpointMeta.status === "confirmed"
-                                  ? "Saved to your Manual"
-                                  : null}
+                            {msg.checkpointMeta.status === "confirmed" && checkpointSection
+                              ? `Saved to ${sectionName(checkpointSection)}`
+                              : msg.checkpointMeta.status === "confirmed"
+                                ? "Saved to your Manual"
+                                : null}
                             {msg.checkpointMeta.status === "refined" && `${PERSONA_NAME} will revisit this`}
                             {msg.checkpointMeta.status === "rejected" && "Discarded"}
                           </span>

@@ -1028,7 +1028,8 @@ export function callPersona({
         let composedEntry: {
           content: string;
           name: string;
-          layer: number;
+          section: string | null;
+          tags: string[];
           changelog: string;
           summary: string;
           key_words: string[];
@@ -1228,7 +1229,8 @@ export function callPersona({
         const checkpoint = isCheckpoint && composedEntry
           ? {
               isCheckpoint: true,
-              layer: composedEntry.layer,
+              section: composedEntry.section,
+              tags: composedEntry.tags,
               name: composedEntry.name,
               // Surface the refinement_count to the client so the
               // ceiling card UI fires on the third+ attempt without

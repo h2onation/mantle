@@ -206,7 +206,8 @@ export async function processTextMessage(
   let composedEntry: {
     content: string;
     name: string;
-    layer: number;
+    section: string | null;
+    tags: string[];
     changelog: string;
     summary: string;
     key_words: string[];
@@ -263,8 +264,8 @@ export async function processTextMessage(
       `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
 
     console.log(
-      "[persona-bridge] checkpoint_detected layer=%d name=%s message_id=%s",
-      composedEntry.layer,
+      "[persona-bridge] checkpoint_detected section=%s name=%s message_id=%s",
+      composedEntry.section ?? "(held)",
       name,
       messageId
     );

@@ -89,7 +89,8 @@ export function buildChatMessageFromEvent(
       id: event.messageId,
       isCheckpoint: true,
       checkpointMeta: {
-        layer: checkpoint.layer,
+        section: checkpoint.section ?? null,
+        tags: checkpoint.tags ?? [],
         name: checkpoint.name,
         status: "pending",
         refinement_count: checkpoint.refinement_count ?? 0,
@@ -116,7 +117,8 @@ export function pendingCheckpointFromMessages(
     content: string;
     is_checkpoint?: boolean | null;
     checkpoint_meta?: {
-      layer: number;
+      section?: string | null;
+      tags?: string[];
       name?: string | null;
       composed_name?: string | null;
       composed_content?: string | null;
@@ -131,7 +133,8 @@ export function pendingCheckpointFromMessages(
   if (lastMsg?.is_checkpoint && lastMsg.checkpoint_meta?.status === "pending") {
     return {
       messageId: lastMsg.id,
-      layer: lastMsg.checkpoint_meta.layer,
+      section: lastMsg.checkpoint_meta.section ?? null,
+      tags: lastMsg.checkpoint_meta.tags ?? [],
       name:
         lastMsg.checkpoint_meta.composed_name ||
         lastMsg.checkpoint_meta.name ||
@@ -399,7 +402,8 @@ export function useChat() {
       // Set active checkpoint with clean text
       setActiveCheckpoint({
         messageId: completeEvent.messageId,
-        layer: completeEvent.checkpoint.layer,
+        section: completeEvent.checkpoint.section ?? null,
+        tags: completeEvent.checkpoint.tags ?? [],
         name: completeEvent.checkpoint.name,
         content: displayContent,
         composedContent: completeEvent.checkpoint.composed_content ?? null,
@@ -415,7 +419,7 @@ export function useChat() {
         trackCheckpointProposed({
           conversation_id: convIdForCp,
           checkpoint_id: completeEvent.messageId,
-          layer: completeEvent.checkpoint.layer,
+          section: completeEvent.checkpoint.section ?? null,
           message_number: messages.length + 1,
           user_turn_count: userTurnCount,
           mode: eventMode,
@@ -431,7 +435,8 @@ export function useChat() {
             ...updated[idx],
             isCheckpoint: true,
             checkpointMeta: {
-              layer: completeEvent!.checkpoint!.layer,
+              section: completeEvent!.checkpoint!.section ?? null,
+              tags: completeEvent!.checkpoint!.tags ?? [],
               name: completeEvent!.checkpoint!.name,
               status: "pending",
               refinement_count:
@@ -991,7 +996,8 @@ export function useChat() {
           ...prev,
           {
             id: activeCheckpoint.messageId,
-            layer: activeCheckpoint.layer,
+            section: activeCheckpoint.section,
+            tags: activeCheckpoint.tags,
             name: finalName,
             content: finalContent,
             created_at: new Date().toISOString(),
@@ -1033,7 +1039,7 @@ export function useChat() {
       const cpProps = {
         conversation_id: conversationId || "",
         checkpoint_id: activeCheckpoint.messageId,
-        layer: activeCheckpoint.layer,
+        section: activeCheckpoint.section ?? null,
         time_to_decision_ms: timeToDecisionMs,
         mode: conversationMode.current,
       };
@@ -1119,7 +1125,8 @@ export function useChat() {
       }
       const checkpoint: ActiveCheckpoint = {
         messageId: body.messageId,
-        layer: body.checkpoint.layer,
+        section: body.checkpoint.section ?? null,
+        tags: body.checkpoint.tags ?? [],
         name: body.checkpoint.name,
         content: body.checkpoint.composed_content,
         composedContent: body.checkpoint.composed_content,
