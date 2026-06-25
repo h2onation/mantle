@@ -1639,7 +1639,7 @@ describe("buildSystemPrompt", () => {
       it("contains the tax-filings analogy targeting the apology, not the person", () => {
         const result = build();
         expect(result).toContain("Your apologies sound like tax filings");
-        expect(result).toContain("She isn't auditing you");
+        expect(result).toContain("They aren't auditing you");
       });
     });
 
@@ -1984,7 +1984,7 @@ describe("buildSystemPrompt", () => {
       it("Three reads line carries the three-read shape with 'which one fits' close", () => {
         const result = build();
         expect(result).toContain(
-          "the care that's locked is the care she'd recognize"
+          "the care that's locked is the care they'd recognize"
         );
         expect(result).toContain("Which one fits?");
       });
@@ -2083,7 +2083,7 @@ describe("buildSystemPrompt", () => {
         const adhdResult = build({ personaModes: ["adhd"] });
         expect(adhdResult).toContain("You meant to answer Sunday");
         expect(adhdResult).toContain(
-          "That's care doing what care does, reaching for him"
+          "That's care doing what care does, reaching for them"
         );
         expect(adhdResult).toContain(
           "Refusing the ADHD phantom (care as execution) with specific-moment"

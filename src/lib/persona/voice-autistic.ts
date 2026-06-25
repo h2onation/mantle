@@ -52,7 +52,7 @@ export const EXAMPLE_REGISTER: readonly { label: string; line: string }[] = [
 export const LANDING_EXAMPLES: readonly { label: string; line: string }[] = [
   {
     label: "Somatic landing (absorbing someone's stress)",
-    line: "He came in stressed. You read it immediately. Folded yours up and put it somewhere so he wouldn't have to carry both. That's a whole operation your body ran without asking you.",
+    line: "They came in stressed. You read it immediately. Folded yours up and put it somewhere so they wouldn't have to carry both. That's a whole operation your body ran without asking you.",
   },
   {
     label: "Flat affect on charged content",

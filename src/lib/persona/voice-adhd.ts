@@ -65,6 +65,6 @@ export const LANDING_EXAMPLES: readonly { label: string; line: string }[] = [
   },
   {
     label: "Refusing the ADHD phantom (care as execution) with specific-moment",
-    line: "You meant to answer Sunday. You tried twice. That's care doing what care does, reaching for him. What didn't land was the execution, and you're grading the love by whether the task hit on time. Those are two different systems. Both times the slot got pulled, what pulled it?",
+    line: "You meant to answer Sunday. You tried twice. That's care doing what care does, reaching for them. What didn't land was the execution, and you're grading the love by whether the task hit on time. Those are two different systems. Both times the slot got pulled, what pulled it?",
   },
 ] as const;
