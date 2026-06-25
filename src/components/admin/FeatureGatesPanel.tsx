@@ -132,9 +132,8 @@ export default function FeatureGatesPanel() {
           margin: "0 0 16px",
         }}
       >
-        Live global switches. Turn one off to strip that subsystem out and test
-        the core voice + extraction loop in isolation. All default ON; off is
-        debug scaffolding, not a permanent state.
+        Each toggle removes one subsystem from the live loop. The OFF line spells
+        out exactly what drops when you flip it.
       </p>
 
       {gates === null && !error && (

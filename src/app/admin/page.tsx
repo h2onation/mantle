@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { useAdminData } from "@/lib/hooks/useAdminData";
@@ -179,20 +179,7 @@ function AdminPageInner() {
             </div>
           )}
 
-          {section === "tuning" && (
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "18px 24px 40px",
-              }}
-            >
-              <IntakeDoorsPanel />
-              <FeatureGatesPanel />
-              <VoiceEditorPanel />
-              <CheckpointTuningPanel />
-            </div>
-          )}
+          {section === "tuning" && <TuningSection />}
 
           {section === "health" && (
             <div
@@ -293,5 +280,125 @@ function UsersSection({ data }: { data: ReturnType<typeof useAdminData> }) {
         <UserProfilePane data={data} />
       </div>
     </>
+  );
+}
+
+// ── Tuning ───────────────────────────────────────────────────────────
+//
+// Two kinds of control live here, and they read very differently:
+//   TUNE  — the everyday soak dials (voice text, checkpoint eagerness,
+//           intake-door copy)
+//   DEBUG — coarse subsystem kill-switches (feature gates)
+// The everyday dials come first; the break-glass switches come last.
+
+function TuningGroup({
+  kicker,
+  title,
+  desc,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  desc: string;
+  children: ReactNode;
+}) {
+  return (
+    <section style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 14 }}>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-meta)",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            color: "var(--session-ink-faded)",
+            marginBottom: 5,
+          }}
+        >
+          {kicker}
+        </div>
+        <h2
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "18px",
+            fontWeight: 700,
+            letterSpacing: "-0.01em",
+            color: "var(--session-ink)",
+            margin: "0 0 5px",
+          }}
+        >
+          {title}
+        </h2>
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            lineHeight: 1.55,
+            color: "var(--session-ink-ghost)",
+            margin: 0,
+            maxWidth: 580,
+          }}
+        >
+          {desc}
+        </p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function TuningSection() {
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "22px 24px 48px" }}>
+      <div style={{ maxWidth: 760 }}>
+        <header style={{ marginBottom: 26 }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "22px",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--session-ink)",
+              margin: "0 0 6px",
+            }}
+          >
+            Tuning
+          </h1>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13.5px",
+              lineHeight: 1.55,
+              color: "var(--session-ink-ghost)",
+              margin: 0,
+              maxWidth: 620,
+            }}
+          >
+            Live controls for Jove. Every change here takes effect on the next
+            turn — no deploy, no restart. There are two kinds: behavior dials you
+            adjust during the soak, and system gates that strip subsystems out
+            for debugging.
+          </p>
+        </header>
+
+        <TuningGroup
+          kicker="Tune"
+          title="Jove's behavior"
+          desc="How Jove sounds, when it saves an entry, and the copy that greets users at each intake door — the dials and text you reach for during the soak. Each field shows its shipped default, and Reset restores it instantly."
+        >
+          <VoiceEditorPanel />
+          <CheckpointTuningPanel />
+          <IntakeDoorsPanel />
+        </TuningGroup>
+
+        <TuningGroup
+          kicker="Debug"
+          title="System gates"
+          desc="Coarse on/off switches. Turn one off to strip a whole subsystem out of the live loop and test the core voice + extraction path in isolation. All default ON — off is debug scaffolding, not a destination."
+        >
+          <FeatureGatesPanel />
+        </TuningGroup>
+      </div>
+    </div>
   );
 }
