@@ -144,7 +144,7 @@ export async function PATCH(
       .update(updates)
       .eq("id", entryId)
       .eq("user_id", user.id)
-      .select("id, layer, name, content, created_at, updated_at")
+      .select("id, layer, section, name, content, created_at, updated_at")
       .single();
 
     if (updateError || !updated) {

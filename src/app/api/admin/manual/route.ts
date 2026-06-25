@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const { data: components, error } = await admin
       .from("manual_entries")
-      .select("id, layer, name, content, created_at")
+      .select("id, layer, section, name, content, created_at")
       .eq("user_id", targetUserId)
       .order("layer", { ascending: true });
 

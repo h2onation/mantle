@@ -18,13 +18,20 @@ vi.mock("@/lib/observability/record-api-error", () => ({
 // configures the two results below.
 let manualEntriesResult: { data: unknown; error: unknown };
 let profileResult: { data: unknown; error: unknown };
+// Captures the column list passed to manual_entries.select() so a test can
+// assert `section` is fetched — its omission silently routed every entry into
+// the held group on prod (the read-path never saw the structural key).
+let manualEntriesSelect = "";
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: (table: string) => {
       if (table === "manual_entries") {
         const builder: Record<string, unknown> = {};
-        builder.select = () => builder;
+        builder.select = (cols: string) => {
+          manualEntriesSelect = cols;
+          return builder;
+        };
         builder.eq = () => builder;
         builder.order = () => builder;
         builder.then = (resolve: (v: unknown) => void) =>
@@ -50,6 +57,7 @@ beforeEach(() => {
   mockRecordApiError.mockClear();
   manualEntriesResult = { data: [], error: null };
   profileResult = { data: { display_name: "Alex" }, error: null };
+  manualEntriesSelect = "";
 });
 
 // --- Tests ---------------------------------------------------------------
@@ -74,6 +82,15 @@ describe("/api/manual — GET", () => {
     };
     expect(body.components).toHaveLength(1);
     expect(body.displayName).toBe("Alex");
+  });
+
+  // Regression guard: the Manual groups by `section` (sectionForEntry =
+  // section ?? HELD_SECTION). If the read-path omits the column, every entry
+  // arrives section-undefined and renders in the held "junk drawer" group.
+  it("selects the section column so entries can be grouped by section", async () => {
+    manualEntriesResult = { data: [sampleEntry], error: null };
+    await GET();
+    expect(manualEntriesSelect).toContain("section");
   });
 
   // The core data-loss guard: a transient DB read error must NOT come back as

@@ -20,7 +20,7 @@ export async function GET() {
     ] = await Promise.all([
       admin
         .from("manual_entries")
-        .select("id, layer, name, content, created_at, updated_at")
+        .select("id, layer, section, name, content, created_at, updated_at")
         .eq("user_id", user.id)
         .order("layer", { ascending: true })
         .order("created_at", { ascending: true }),
