@@ -273,6 +273,21 @@ describe("stripCheckpointFromText", () => {
     expect(stripCheckpointFromText(input)).toBe(input);
   });
 
+  it("falls back when only a bare acknowledgment precedes the transition (no dead turn)", () => {
+    // The model put a filler ack in front of the transition; suppressing the
+    // transition would otherwise leave "Okay." as the whole message — a turn
+    // with no handoff (the observed "Okay." → user "?" bug). Must fall back.
+    for (const ack of ["Okay.", "Got it.", "Right.", "Okay, got it."]) {
+      const result = stripCheckpointFromText(
+        `${ack}\n\nI want to put something in your Manual. The Quiet Build. What would you change?`
+      );
+      expect(result).not.toBe(ack);
+      expect(result).not.toContain("in your Manual");
+      // Falls back to the grounding handoff, not the dangling ack.
+      expect(result).toBe("Tell me what's going on for you right now.");
+    }
+  });
+
   it("strips every transition variant the detector recognizes (one shared contract)", () => {
     const variants = [
       "I'd like to put this in your Manual. Reflection follows.",
@@ -338,6 +353,15 @@ describe("splitCheckpointLeadIn", () => {
   it("returns null when only whitespace precedes the transition", () => {
     const input =
       "  \n\nI want to put something in your Manual. Entry prose here.";
+    expect(splitCheckpointLeadIn(input)).toBeNull();
+  });
+
+  it("returns null when only a bare acknowledgment precedes the transition", () => {
+    // Don't ship "Okay." early as a standalone bubble; fall through to
+    // single-row delivery so the card carries the next move. Same handoff
+    // bar as the suppression strip (shared leadInHandsOff contract).
+    const input =
+      "Okay.\n\nI want to put something in your Manual. Entry prose here.";
     expect(splitCheckpointLeadIn(input)).toBeNull();
   });
 

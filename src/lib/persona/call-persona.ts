@@ -312,6 +312,21 @@ const SUPPRESSION_EMPTY_FALLBACK =
   "Tell me what's going on for you right now.";
 
 /**
+ * Does the stripped lead-in stand on its own as a turn, or is it just a
+ * bare acknowledgment the model put in front of the (now-stripped)
+ * transition line? "Okay." / "Got it." hand the user nothing — shipping one
+ * as the whole message leaves a dead turn with no next move (the observed
+ * "Okay." → user "?" → "Sorry, I went quiet" bug). A real lead-in hands off:
+ * it asks a question, or it's a substantive directive/reflection (>= 4
+ * words). Below that with no question, treat it as filler and fall back to
+ * the grounding handoff instead.
+ */
+function leadInHandsOff(leadIn: string): boolean {
+  if (leadIn.includes("?")) return true;
+  return leadIn.split(/\s+/).filter(Boolean).length >= 4;
+}
+
+/**
  * Rewrite a Jove response whose checkpoint transition line is being
  * suppressed (gate failed or composition errored). Strip the transition
  * line and everything after it (the entry prose that would have followed),
@@ -339,7 +354,7 @@ export function stripCheckpointFromText(text: string): string {
     return text;
   }
   const before = text.slice(0, match.index).trim();
-  return before.length > 0 ? before : SUPPRESSION_EMPTY_FALLBACK;
+  return leadInHandsOff(before) ? before : SUPPRESSION_EMPTY_FALLBACK;
 }
 
 /**
@@ -361,7 +376,11 @@ export function splitCheckpointLeadIn(
   if (!match || match.index <= 0) return null;
   const leadIn = text.slice(0, match.index).trim();
   const remainder = text.slice(match.index).trim();
-  if (leadIn.length === 0 || remainder.length === 0) return null;
+  // Same handoff bar as the suppression strip: a bare acknowledgment
+  // ("Okay.") isn't shippable as a standalone lead-in either — shipping one
+  // early and then failing composition would strand the same dead turn. Fall
+  // through to single-row delivery instead (the card carries the next move).
+  if (!leadInHandsOff(leadIn) || remainder.length === 0) return null;
   return { leadIn, remainder };
 }
 
