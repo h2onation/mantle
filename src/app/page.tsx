@@ -178,7 +178,7 @@ export default function Landing() {
                 </li>
                 <li>
                   <span className="ln">02</span>
-                  <span>How you hold up where you earn</span>
+                  <span>How you hold up at work — and what fits</span>
                 </li>
                 <li>
                   <span className="ln">03</span>

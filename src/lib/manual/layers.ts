@@ -53,19 +53,19 @@ export const LAYERS: readonly LayerDefinition[] = [
   {
     id: 2,
     slug: "work-money",
-    name: "Work and money",
+    name: "Work and career",
     description:
-      "How you operate, mask, and hold up where you earn — under pressure, on a timeline, with stakes.",
-    tagline: "How you hold up where you earn.",
+      "How you operate, mask, and hold up at work — under pressure, on a timeline, with stakes — and the kind of work that fits how you're built.",
+    tagline: "How you hold up at work — and what fits.",
     dimensions: [
       "operating under pressure",
       "masking at work",
       "what you can absorb",
       "the line you won't cross",
-      "earning and stakes",
+      "fit and direction",
     ],
     example:
-      "Under financial pressure I go quiet and inward, and by the time I surface there's already damage to repair.",
+      "On a tight deadline I go quiet and inward, and by the time I surface there's already damage to repair.",
   },
   {
     id: 3,
@@ -208,7 +208,7 @@ export function renderManualEntryFull(entry: {
  */
 export const LAYER_EMPTY_STATUS: Record<number, string> = {
   1: "Nothing about how you connect with people yet.",
-  2: "Nothing about how you operate where you earn yet.",
+  2: "Nothing about how you operate at work yet.",
   3: "Nothing about the systems that hold your day up yet.",
   4: "Nothing about what your body takes in yet.",
   5: "Nothing about where you go deep yet.",

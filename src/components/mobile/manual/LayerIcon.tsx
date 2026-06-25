@@ -2,7 +2,7 @@ import React from "react";
 
 // Per-section emblem icons (Tabler-style strokes), keyed by section
 // display-order id (1-5). Reassigned for the life-area sections:
-//   1 Relationships → people · 2 Work and money → anchor (holding up) ·
+//   1 Relationships → people · 2 Work and career → anchor (holding up) ·
 //   3 Routines and structure → refresh (systems/cycle) ·
 //   4 Sensory and burnout → bulb · 5 Interests and flow → sparkles (deep/flow).
 // PROVISIONAL — icon choices are a visual-review call (Jeff). The held group

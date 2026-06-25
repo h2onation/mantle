@@ -162,7 +162,7 @@ NON-NEGOTIABLES
 
 SECTION (field: "section"): the entry's one home. Pick the section whose dimensions (shown in the input) best describe what the entry IS AT ITS CORE — its spine, not where the scene happens. Use one of these exact slugs:
 - "relationships" — how you connect, withdraw, show care; how others read you.
-- "work-money" — how you operate, mask, and hold up where you earn.
+- "work-money" — how you operate, mask, and hold up at work.
 - "routines-structure" — the systems that hold the day up, and their collapse.
 - "sensory-burnout" — what the body takes in and what it costs (load, overload, shutdown, recovery).
 - "interests-flow" — where you go deep and do your best work.
