@@ -28,20 +28,20 @@ const DOORS: {
   mode: ConversationMode;
 }[] = [
   {
-    key: "situation",
-    icon: IC_CHAT,
-    title: "Bring a situation",
-    desc: "A reaction that surprised you, a conflict that keeps repeating.",
-    cue: "Start",
-    mode: "situation",
-  },
-  {
     key: "guided",
     icon: IC_LIST,
     title: "Guided",
     desc: "Walk through it step by step with Jove.",
     cue: "Begin",
     mode: "guided-intake",
+  },
+  {
+    key: "situation",
+    icon: IC_CHAT,
+    title: "Bring a situation",
+    desc: "A reaction that surprised you, a conflict that keeps repeating.",
+    cue: "Start",
+    mode: "situation",
   },
   {
     key: "upload",
