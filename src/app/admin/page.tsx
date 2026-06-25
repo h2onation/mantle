@@ -13,6 +13,7 @@ import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
+import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
 import CheckpointTuningPanel from "@/components/admin/CheckpointTuningPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
@@ -186,6 +187,7 @@ function AdminPageInner() {
                 padding: "18px 24px 40px",
               }}
             >
+              <IntakeDoorsPanel />
               <FeatureGatesPanel />
               <VoiceEditorPanel />
               <CheckpointTuningPanel />

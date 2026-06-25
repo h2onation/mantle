@@ -581,7 +581,17 @@ export function useChat() {
 
     if (restorable.length > 0 && !pendingNewSession) {
       setSessionOrigin("existing");
-      const latest = restorable[0];
+      // Refresh-stays-put: prefer the conversation the user was actually in
+      // (persisted on every switch) over the most-recent-by-timestamp one, so
+      // a refresh reloads the SAME conversation even if they were viewing an
+      // older one. Falls back to most-recent when nothing is persisted.
+      let savedConvId: string | null = null;
+      try {
+        savedConvId = sessionStorage.getItem("mw_active_conversation");
+      } catch {}
+      const latest =
+        (savedConvId && restorable.find((c) => c.id === savedConvId)) ||
+        restorable[0];
       setConversationId(latest.id);
       setSessionSummary(latest.summary || null);
       setLastSessionDate(latest.updated_at || null);
@@ -661,6 +671,17 @@ export function useChat() {
   useEffect(() => {
     initializeConversation();
   }, [initializeConversation]);
+
+  // Persist the active conversation so a refresh reloads the SAME one
+  // (initializeConversation prefers it over most-recent). Skip the synthetic
+  // text-channel pseudo-id, which isn't a restorable uuid.
+  useEffect(() => {
+    try {
+      if (conversationId && conversationId !== "text-channel") {
+        sessionStorage.setItem("mw_active_conversation", conversationId);
+      }
+    } catch {}
+  }, [conversationId]);
 
   async function sendMessage(text: string, options?: { isChipResponse?: boolean }) {
     if (!text.trim() || isLoading || isStreaming) return;

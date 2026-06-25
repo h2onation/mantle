@@ -17,8 +17,10 @@ import MobileCrisis from "@/components/mobile/MobileCrisis";
 import MobileHome from "@/components/mobile/MobileHome";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
+import DoorIntroModal from "@/components/modals/DoorIntroModal";
+import type { DoorIntro } from "@/lib/persona/door-intros";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
-import { trackManualViewed } from "@/lib/analytics/events";
+import { trackManualViewed, trackModal1Shown } from "@/lib/analytics/events";
 
 const MANUAL_LAST_VIEW_KEY = "mw_last_manual_view";
 
@@ -27,6 +29,16 @@ const MANUAL_LAST_VIEW_KEY = "mw_last_manual_view";
 // The one-line revert for the migration's riskiest change (the landing
 // control-flow inversion).
 const LAND_ON_HOME = true;
+
+// Views a refresh may restore the user into (see the landing effect). Excludes
+// transient/derived states; these are the real top-level destinations.
+const RESTORABLE_VIEWS: MobileView[] = [
+  "home",
+  "session",
+  "manual",
+  "settings",
+  "crisis",
+];
 
 // Default when no gates are passed (e.g. a test render): every entry door live.
 // The real value comes from the /app server component, which reads the per-mode
@@ -65,6 +77,15 @@ export default function MainApp() {
     signupAtMs: number | null;
     isAnonymous: boolean;
   } | null>(null);
+  // Per-door one-time intro. doorIntros/doorIntrosSeen load once from
+  // /api/door-intros; pendingIntroMode is the door whose intro is currently
+  // open (set when a first-time door is tapped, cleared on dismiss → the
+  // conversation starts). Suppressed for anonymous-auth users.
+  const [doorIntros, setDoorIntros] =
+    useState<Record<ConversationMode, DoorIntro> | null>(null);
+  const [doorIntrosSeen, setDoorIntrosSeen] = useState<string[] | null>(null);
+  const [pendingIntroMode, setPendingIntroMode] =
+    useState<ConversationMode | null>(null);
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // One-time migration: rename mantle_* localStorage keys to mw_*
@@ -169,6 +190,31 @@ export default function MainApp() {
     };
   }, []);
 
+  // Per-door intro copy + which doors this user has already seen. Drives the
+  // one-time "how this works" card shown the first time each door is opened.
+  // Fail-open (leave null) so a fetch hiccup just means no intro this session.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/door-intros");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          intros?: Record<ConversationMode, DoorIntro>;
+          seen?: string[];
+        };
+        if (cancelled) return;
+        setDoorIntros(data.intros ?? null);
+        setDoorIntrosSeen(Array.isArray(data.seen) ? data.seen : []);
+      } catch {
+        // fail-open
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Lift a modal-progress advance (from a dismissed onboarding modal) back into
   // modalState so the NEXT modal's gate sees the new value in the SAME session.
   // Without this the in-memory value stays at its mount reading and the modal
@@ -241,6 +287,17 @@ export default function MainApp() {
   useEffect(() => {
     if (!initialized || landingDecided.current) return;
     landingDecided.current = true;
+    // Refresh-stays-put: if the user was already inside the app this tab,
+    // return them to the view they were on (their conversation, the manual,
+    // settings…) instead of bouncing them to Home. Only the first-of-tab
+    // load (no saved view) falls through to the LAND_ON_HOME default.
+    try {
+      const savedView = sessionStorage.getItem("mw_active_view");
+      if (savedView && RESTORABLE_VIEWS.includes(savedView as MobileView)) {
+        setActiveView(savedView as MobileView);
+        return;
+      }
+    } catch {}
     if (!LAND_ON_HOME) return;
     const midCheckpoint = activeCheckpoint !== null;
     const openerStreaming = conversationId !== null && messages.length === 0;
@@ -250,6 +307,16 @@ export default function MainApp() {
     // One-shot snapshot at init; deps intentionally minimal so it never re-fires.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
+
+  // Persist the active view so a refresh returns the user to it (see the
+  // landing effect above). Only after init so we never store the pre-landing
+  // default "session" and override the LAND_ON_HOME first-load decision.
+  useEffect(() => {
+    if (!landingDecided.current) return;
+    try {
+      sessionStorage.setItem("mw_active_view", activeView);
+    } catch {}
+  }, [activeView]);
 
   // Fire manual_viewed when the user lands on the manual tab. Days-since
   // is a rough retention signal computed from a localStorage timestamp —
@@ -370,11 +437,51 @@ export default function MainApp() {
   // the drawer's entry-cards path was retired in the front-door redesign.
   const handleStartConversation = useCallback(
     (mode: ConversationMode) => {
+      // First time this user opens this door (and not anonymous): show its
+      // one-time "how this works" intro, then start the conversation when they
+      // dismiss it. Otherwise go straight in.
+      if (
+        !modalState?.isAnonymous &&
+        doorIntros &&
+        doorIntrosSeen &&
+        !doorIntrosSeen.includes(mode)
+      ) {
+        if (doorIntrosSeen.length === 0) {
+          trackModal1Shown({
+            time_since_signup_ms: modalState?.signupAtMs
+              ? Date.now() - modalState.signupAtMs
+              : 0,
+          });
+        }
+        setPendingIntroMode(mode);
+        return;
+      }
       setActiveView("session");
       void startConversation(mode);
     },
-    [startConversation]
+    [startConversation, doorIntros, doorIntrosSeen, modalState]
   );
+
+  // "Got it" on a door's intro: mark it seen (optimistic + persist), advance
+  // the onboarding modal chain on the user's first intro so the later
+  // pattern-forming modal still fires, then start the deferred conversation.
+  const handleDoorIntroDismiss = useCallback(() => {
+    const mode = pendingIntroMode;
+    setPendingIntroMode(null);
+    if (!mode) return;
+    const wasFirst = (doorIntrosSeen?.length ?? 0) === 0;
+    setDoorIntrosSeen((prev) =>
+      prev ? (prev.includes(mode) ? prev : [...prev, mode]) : [mode]
+    );
+    if (wasFirst) handleModalProgressAdvance(1);
+    fetch("/api/door-intros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    }).catch(() => {});
+    setActiveView("session");
+    void startConversation(mode);
+  }, [pendingIntroMode, doorIntrosSeen, handleModalProgressAdvance, startConversation]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
@@ -672,6 +779,17 @@ export default function MainApp() {
         <AuthPromptModal
           onDismiss={handleAuthDismiss}
           onSuccess={handleAuthSuccess}
+        />
+      )}
+
+      {/* One-time "how this works" intro, shown the first time a door opens. */}
+      {pendingIntroMode && doorIntros && (
+        <DoorIntroModal
+          open
+          eyebrow={doorIntros[pendingIntroMode].eyebrow}
+          title={doorIntros[pendingIntroMode].title}
+          body={doorIntros[pendingIntroMode].body}
+          onDismiss={handleDoorIntroDismiss}
         />
       )}
     </>

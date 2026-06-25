@@ -558,12 +558,17 @@ export function callPersona({
         //     messages, no user input this turn. Paste turn (turnCount=2)
         //     and all later turns continue through the normal LLM path.
         if (shouldEmitUploadOpener(conversationMode, turnCount, message)) {
+          // Admin-editable via the Intake doors panel (upload_opener); falls
+          // back to the code default. Same override path as the situation
+          // opener, just resolved here because upload's opener is
+          // server-emitted verbatim rather than delivered by the model.
+          const uploadOpenerText = ctx.voiceOverrides?.uploadOpener ?? UPLOAD_OPENER;
           const { data: savedOpener, error: openerError } = await admin
             .from("messages")
             .insert({
               conversation_id: convId,
               role: "assistant",
-              content: UPLOAD_OPENER,
+              content: uploadOpenerText,
             })
             .select("id")
             .single();
@@ -579,7 +584,7 @@ export function callPersona({
                 conversationId: convId,
                 checkpoint: null,
                 processingText: "",
-                cleanContent: UPLOAD_OPENER,
+                cleanContent: uploadOpenerText,
                 emergingPatternSnippet: null,
                 hasLayerEmergingOrBeyond: false,
                 concreteExamples: 0,

@@ -3,7 +3,6 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
-import ChatWindowModal from "@/components/modals/ChatWindowModal";
 import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
@@ -16,6 +15,7 @@ import TopBar from "@/components/shared/TopBar";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
 import SectionPicker from "./SectionPicker";
+import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
 /** First sentence of a checkpoint's entry, for the inline-preview teaser.
  *  Prefers the composed entry; falls back to the chat-stream content. Strips
@@ -131,7 +131,6 @@ export default function MobileSession({
   draftToRestore = null,
   onDraftRestored,
 }: MobileSessionProps) {
-  const [modal1Dismissed, setModal1Dismissed] = useState(false);
   const [modal2Dismissed, setModal2Dismissed] = useState(false);
   // Auto-advance modal_progress past the first-checkpoint gate when a
   // checkpoint arrives. No modal shown — the inline trigger card + overlay
@@ -203,6 +202,18 @@ export default function MobileSession({
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
+
+  const isDesktop = useIsDesktop();
+  // Quick-reply chips or the section picker are on screen for the latest Jove
+  // turn. Drives the input's "Or type something else…" invitation so it's
+  // clear the options are optional and free text is always available.
+  const lastMessage = messages[messages.length - 1];
+  const optionsShowing =
+    !!lastMessage &&
+    lastMessage.role === "assistant" &&
+    !isStreaming &&
+    !isLoading &&
+    (((lastMessage.chips?.length ?? 0) > 0) || lastMessage.showSections === true);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -913,20 +924,8 @@ export default function MobileSession({
         disabled={isLoading || isStreaming || conversationId === "text-channel"}
         draftToRestore={draftToRestore}
         onDraftRestored={onDraftRestored}
-      />
-
-      <ChatWindowModal
-        open={
-          typeof modalProgress === "number" &&
-          modalProgress < 1 &&
-          !isAnonymous &&
-          !modal1Dismissed
-        }
-        onDismiss={() => {
-          setModal1Dismissed(true);
-          onModalProgressAdvance?.(1);
-        }}
-        signupAtMs={signupAtMs}
+        placeholder={optionsShowing ? "Or type something else…" : undefined}
+        focusOnEnable={isDesktop === true}
       />
 
       <PatternFormingModal

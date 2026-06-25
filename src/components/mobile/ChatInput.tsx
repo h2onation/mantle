@@ -14,6 +14,16 @@ interface ChatInputProps {
   // to restore.
   draftToRestore?: string | null;
   onDraftRestored?: () => void;
+  // Ghost text in the empty input. Defaults to the standard prompt; the
+  // session swaps it to an "Or type something else…" invitation while
+  // quick-reply chips are on screen, so it's clear the chips are optional
+  // and free text always works.
+  placeholder?: string;
+  // Desktop only. When true, the textarea grabs focus the moment the input
+  // becomes enabled again (a turn finished, or a chip was just selected),
+  // so the user can keep typing without clicking back into the field. Off
+  // on touch devices, where auto-focus would pop the keyboard unprompted.
+  focusOnEnable?: boolean;
 }
 
 type ButtonMode = "mic" | "mic-denied" | "stop" | "send";
@@ -23,12 +33,30 @@ export default function ChatInput({
   disabled,
   draftToRestore,
   onDraftRestored,
+  placeholder = "Write back to Jove…",
+  focusOnEnable = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wasDisabledRef = useRef(disabled);
 
   const voice = useVoiceInput();
+
+  // Desktop focus restore. When the input flips from disabled back to
+  // enabled — a Jove turn finished, or the user just tapped a chip — pull
+  // focus into the textarea so keystrokes land immediately. Fixes the
+  // desktop bug where typing silently did nothing after selecting an
+  // option until the user clicked back into the field (or refreshed).
+  // Guarded to desktop by the caller; touch devices skip it so the
+  // keyboard never opens on its own.
+  useEffect(() => {
+    const wasDisabled = wasDisabledRef.current;
+    wasDisabledRef.current = disabled;
+    if (focusOnEnable && wasDisabled && !disabled) {
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+  }, [disabled, focusOnEnable]);
 
   // Server-rejected message recovery. When useChat surfaces a draftToRestore
   // (e.g. after a 400 oversize), refill the textarea, focus it, and clear
@@ -226,7 +254,7 @@ export default function ChatInput({
               pointerEvents: "none",
             }}
           >
-            Write back to Jove…
+            {placeholder}
           </span>
         )}
 

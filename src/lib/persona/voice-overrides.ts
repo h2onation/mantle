@@ -2,6 +2,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { REBUILT_CHARACTER } from "@/lib/persona/voice-scaffold";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
+import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
 
 /**
  * Voice overrides — admin-editable replacements for a small, fixed set of
@@ -29,6 +30,7 @@ import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 export interface VoiceOverrides {
   character?: string;
   situationOpener?: string;
+  uploadOpener?: string;
   postConfirmFirstEntry?: string;
 }
 
@@ -52,6 +54,11 @@ export const VOICE_OVERRIDE_FIELDS: Record<
     label: "Situation opener",
     getDefault: () => SITUATION_OPENER,
   },
+  upload_opener: {
+    field: "uploadOpener",
+    label: "Upload opener",
+    getDefault: () => UPLOAD_OPENER,
+  },
   post_confirm_first_entry: {
     field: "postConfirmFirstEntry",
     label: "Post-confirm line (first entry)",
@@ -63,6 +70,20 @@ export type VoiceOverrideKey = keyof typeof VOICE_OVERRIDE_FIELDS;
 
 export function isVoiceOverrideKey(value: unknown): value is VoiceOverrideKey {
   return typeof value === "string" && value in VOICE_OVERRIDE_FIELDS;
+}
+
+/**
+ * The door-opener keys with a FIXED, editable opening message. These are still
+ * resolved by the prompt reader (getVoiceOverrides) like any other voice
+ * field, but they're EDITED through the per-door "Intake doors" admin panel
+ * (grouped with each door's intro copy), not the generic Voice editor — so
+ * each key has exactly one edit surface. (Guided-intake is absent: its opener
+ * is a model-generated tee-up, not a fixed string.)
+ */
+export const DOOR_OPENER_KEYS = ["situation_opener", "upload_opener"] as const;
+
+export function isDoorOpenerKey(value: unknown): value is (typeof DOOR_OPENER_KEYS)[number] {
+  return typeof value === "string" && (DOOR_OPENER_KEYS as readonly string[]).includes(value);
 }
 
 /**
@@ -99,4 +120,87 @@ export async function getVoiceOverrides(
   } catch {
     return {};
   }
+}
+
+// ---------------------------------------------------------------------------
+// Shared row read/write for the persona_voice_overrides table. Both admin
+// routes (persona-voice for core voice, intake-doors for per-door copy) write
+// the same table the same way — one source of truth for the upsert + audit
+// logic so the two routes can't drift. Callers own key validation against
+// their own registry before calling these.
+// ---------------------------------------------------------------------------
+
+export interface OverrideRow {
+  text_override: string | null;
+  enabled: boolean;
+}
+
+/** Read override rows as a key→{text_override, enabled} map. Empty map on error. */
+export async function readOverrideRows(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<Map<string, OverrideRow>> {
+  const { data } = await admin
+    .from("persona_voice_overrides")
+    .select("key, text_override, enabled");
+  return new Map(
+    (data ?? []).map((r: { key: string } & OverrideRow) => [
+      r.key,
+      { text_override: r.text_override, enabled: r.enabled },
+    ]),
+  );
+}
+
+/**
+ * Save one override: upsert enabled=true with the new text, then append the
+ * old→new audit row (best-effort — a history failure never fails the save).
+ * Returns true on success. Never logs the text, only the key (security rule).
+ */
+export async function saveOverride(
+  admin: ReturnType<typeof createAdminClient>,
+  key: string,
+  text: string,
+  userId: string,
+): Promise<boolean> {
+  const { data: prior } = await admin
+    .from("persona_voice_overrides")
+    .select("text_override")
+    .eq("key", key)
+    .maybeSingle();
+  const oldText = (prior as { text_override: string | null } | null)?.text_override ?? null;
+
+  const { error } = await admin.from("persona_voice_overrides").upsert(
+    {
+      key,
+      text_override: text,
+      enabled: true,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    },
+    { onConflict: "key" },
+  );
+  if (error) return false;
+
+  const { error: historyError } = await admin
+    .from("persona_voice_override_history")
+    .insert({ key, old_text: oldText, new_text: text, updated_by: userId });
+  if (historyError) {
+    console.warn("[voice-overrides] history write failed for key=%s", key);
+  }
+  return true;
+}
+
+/**
+ * Reset one override to the code default: flip the row off (non-destructive —
+ * the text stays for history and a later re-enable). Returns true on success.
+ */
+export async function resetOverride(
+  admin: ReturnType<typeof createAdminClient>,
+  key: string,
+  userId: string,
+): Promise<boolean> {
+  const { error } = await admin
+    .from("persona_voice_overrides")
+    .update({ enabled: false, updated_at: new Date().toISOString(), updated_by: userId })
+    .eq("key", key);
+  return !error;
 }

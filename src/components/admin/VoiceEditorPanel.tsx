@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OverrideFieldEditor from "./OverrideFieldEditor";
 
 // One editable voice field as the API returns it.
 interface VoiceField {
@@ -164,116 +165,17 @@ export default function VoiceEditorPanel() {
                 i === 0 ? "none" : "1px solid var(--session-walnut-border-soft)",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "var(--session-ink)",
-                }}
-              >
-                {f.label}
-              </span>
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  color: live
-                    ? "var(--session-persona)"
-                    : "var(--session-walnut-meta-soft)",
-                }}
-              >
-                {live ? "EDITED" : "DEFAULT"}
-              </span>
-            </div>
-            <textarea
+            <OverrideFieldEditor
+              label={f.label}
               value={draft}
-              disabled={busy}
-              onChange={(e) =>
-                setDrafts((d) => ({ ...d, [f.key]: e.target.value }))
-              }
+              isEdited={live}
+              dirty={dirty}
+              busy={busy}
               rows={f.key === "rebuilt_character" ? 16 : 4}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: "12.5px",
-                lineHeight: 1.5,
-                color: "var(--session-ink)",
-                background: "var(--session-walnut-surface-soft)",
-                border: "1px solid var(--session-walnut-border)",
-                borderRadius: 8,
-                padding: "10px 12px",
-                resize: "vertical",
-              }}
+              onChange={(v) => setDrafts((d) => ({ ...d, [f.key]: v }))}
+              onSave={() => save(f.key)}
+              onReset={() => reset(f.key)}
             />
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                marginTop: 8,
-                alignItems: "center",
-              }}
-            >
-              <button
-                type="button"
-                disabled={busy || !dirty}
-                onClick={() => save(f.key)}
-                style={{
-                  all: "unset",
-                  cursor: busy || !dirty ? "default" : "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  color: "var(--session-cream-bright)",
-                  background: "var(--session-persona)",
-                  borderRadius: 7,
-                  padding: "6px 14px",
-                  opacity: busy || !dirty ? 0.5 : 1,
-                }}
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                disabled={busy || !live}
-                onClick={() => reset(f.key)}
-                style={{
-                  all: "unset",
-                  cursor: busy || !live ? "default" : "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  color: "var(--session-walnut-meta-strong)",
-                  border: "1px solid var(--session-walnut-border)",
-                  borderRadius: 7,
-                  padding: "5px 13px",
-                  opacity: busy || !live ? 0.5 : 1,
-                }}
-              >
-                Reset to default
-              </button>
-              {dirty && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "12px",
-                    color: "var(--session-walnut-meta-soft)",
-                  }}
-                >
-                  unsaved changes
-                </span>
-              )}
-            </div>
           </div>
         );
       })}
