@@ -138,7 +138,7 @@ Everything Jove observes and the user validates flows into the Manual. The Manua
 **Five sections:**
 
 - Relationships
-- Work and money
+- Work and career
 - Routines and structure
 - Sensory and burnout
 - Interests and flow

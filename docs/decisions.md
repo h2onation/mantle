@@ -452,7 +452,7 @@ Why this was a live bug, not a theoretical one: extraction is instructed to boot
 
 **Context**: The Manual's five pattern-type layers (My Strengths / Some of My Patterns / How I Process Things / What Helps / How I Show Up with People) didn't fit the post-ND-pivot audience; entries were hard to navigate by life situation.
 
-**Decision**: Replace the five pattern-type layers with five **life-area sections** (Relationships / Work and money / Routines and structure / Sensory and burnout / Interests and flow) + a **closed tag set** (`strength` on any section; `romantic`/`family`/`friends` only inside Relationships, DB-CHECK-enforced). Key sub-decisions worth recording as case law:
+**Decision**: Replace the five pattern-type layers with five **life-area sections** (Relationships / Work and career / Routines and structure / Sensory and burnout / Interests and flow) + a **closed tag set** (`strength` on any section; `romantic`/`family`/`friends` only inside Relationships, DB-CHECK-enforced). Key sub-decisions worth recording as case law:
 - **Additive / non-destructive (keystone).** Added `section`+`tags` columns; NEVER overwrite `layer`. `manual_entries.layer` is kept FROZEN forever as legacy provenance / audit oracle / rollback key (now nullable; new rows born with section + NULL layer). Decision: never drop it.
 - **Code keeps `layer`/`LAYERS`; product says "section"** — a deliberate, documented naming divergence (avoids churn-rename of the identifier).
 - **Closed tags** with a cross-column CHECK (relationship sub-tags require section='relationships').

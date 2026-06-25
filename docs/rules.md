@@ -138,7 +138,7 @@ Tier 1 is constant text. Tier 2 is composed at call time from base + selected pe
 Canonical nouns, used consistently across prompt, code comments, UI, and docs. The DB table is `manual_entries`; all surface area uses "entry."
 
 - **Manual** — the user's self-authored document (never "profile," "report," "assessment").
-- **Section** — one of the five life-area sections of the manual (Relationships / Work and money / Routines and structure / Sensory and burnout / Interests and flow). The CODE keeps the `layer`/`LAYERS` identifier as a documented divergence.
+- **Section** — one of the five life-area sections of the manual (Relationships / Work and career / Routines and structure / Sensory and burnout / Interests and flow). The CODE keeps the `layer`/`LAYERS` identifier as a documented divergence.
 - **Entry** — a single confirmed piece of content on a section (never "component," "thread," or "card").
 - **Checkpoint** — the moment Jove proposes an entry for confirmation (never "moment," "reflection card," "save point").
 

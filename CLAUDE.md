@@ -69,7 +69,7 @@ Rules when touching this:
 Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.
 
 - **Manual** — the user's self-authored document.
-- **Section** — one of the five life-area sections of the manual (Relationships / Work and money / Routines and structure / Sensory and burnout / Interests and flow). NOTE: the CODE identifier is still `layer` / `LAYERS` (src/lib/manual/layers.ts) — a deliberate, documented divergence. "Layer" in code == "Section" in product.
+- **Section** — one of the five life-area sections of the manual (Relationships / Work and career / Routines and structure / Sensory and burnout / Interests and flow). NOTE: the CODE identifier is still `layer` / `LAYERS` (src/lib/manual/layers.ts) — a deliberate, documented divergence. "Layer" in code == "Section" in product.
 - **Entry** — a single confirmed piece of content on a section.
 - **Checkpoint** — the moment Jove proposes an entry for confirmation.
 
