@@ -42,13 +42,6 @@ export default function CheckpointOverlay({
 }: CheckpointOverlayProps) {
   const [phase, setPhase] = useState<Phase>("actions");
   const [editing, setEditing] = useState(false);
-  // The "press" confirm: the plate dips and a brass rule strikes under
-  // the headline at the moment of confirming, before the composing phase.
-  const [pressing, setPressing] = useState(false);
-  const [ruleStruck, setRuleStruck] = useState(false);
-  const reduceMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
   const editedRef = useRef(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
@@ -69,8 +62,6 @@ export default function CheckpointOverlay({
     if (open) {
       setPhase("actions");
       setEditing(false);
-      setPressing(false);
-      setRuleStruck(false);
       editedRef.current = false;
     }
   }, [open]);
@@ -137,23 +128,10 @@ export default function CheckpointOverlay({
 
     if (editing) setEditing(false);
 
-    // Strike the rule, dip the plate, then hand off to the composing
-    // phase. Reduced motion commits immediately.
-    const commit = () => {
-      setPhase("composing");
-      onAction("confirmed", edits);
-    };
-    setRuleStruck(true);
-    if (reduceMotion) {
-      commit();
-      return;
-    }
-    setPressing(true);
-    setTimeout(() => {
-      setPressing(false);
-      commit();
-    }, 280);
-  }, [editing, onAction, checkpoint.name, reduceMotion]);
+    // Hand straight off to the saving cover — no press animation.
+    setPhase("composing");
+    onAction("confirmed", edits);
+  }, [editing, onAction, checkpoint.name]);
 
   const handleRefine = useCallback(() => {
     onAction("refined");
@@ -218,7 +196,7 @@ export default function CheckpointOverlay({
         style={{
           position: "relative",
           zIndex: 1,
-          maxWidth: 400,
+          maxWidth: 480,
           width: "calc(100% - 40px)",
           maxHeight: "calc(100vh - 80px)",
           display: "flex",
@@ -230,23 +208,9 @@ export default function CheckpointOverlay({
           WebkitBackdropFilter: "blur(28px) saturate(140%)",
           boxShadow: "var(--session-plate-shadow)",
           overflow: "hidden",
-          transform: pressing ? "scale(0.985)" : "scale(1)",
-          transition: "transform 0.26s cubic-bezier(0.34, 1.15, 0.64, 1)",
           animation: "cpModuleIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1)",
         }}
       >
-        {/* Letterpress inset frame — a hairline set inside the plate edge */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 12,
-            border: "1px solid var(--session-walnut-border-soft)",
-            borderRadius: 12,
-            pointerEvents: "none",
-            zIndex: 2,
-          }}
-        />
         {/* Entry section (scrollable) */}
         <div
           style={{
@@ -265,7 +229,6 @@ export default function CheckpointOverlay({
               textTransform: "uppercase",
               color: "var(--session-walnut-meta-strong)",
               lineHeight: 1,
-              textAlign: "center",
             }}
           >
             {eyebrowText}
@@ -277,15 +240,13 @@ export default function CheckpointOverlay({
               contentEditable={editing}
               suppressContentEditableWarning
               style={{
-                margin: "16px auto 0",
-                maxWidth: "20ch",
-                fontFamily: "var(--font-display), var(--font-serif), Georgia, serif",
-                fontSize: 30,
-                fontWeight: 400,
-                lineHeight: 1.12,
-                letterSpacing: "-0.01em",
+                margin: "14px 0 0",
+                fontFamily: "var(--font-spectral), var(--font-persona), serif",
+                fontSize: 22,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: "-0.3px",
                 color: "var(--session-ink)",
-                textAlign: "center",
                 outline: "none",
                 borderBottom: editing
                   ? "1px solid var(--session-walnut-border)"
@@ -298,37 +259,12 @@ export default function CheckpointOverlay({
             </h3>
           )}
 
-          {/* Brass rule — a quiet hairline that strikes solid on confirm */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: "relative",
-              width: 72,
-              height: 2,
-              margin: "18px auto 4px",
-              background: "var(--session-walnut-border)",
-            }}
-          >
-            <span
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "var(--session-walnut)",
-                transform: ruleStruck ? "scaleX(1)" : "scaleX(0)",
-                transformOrigin: "center",
-                transition: reduceMotion
-                  ? "none"
-                  : "transform 0.5s cubic-bezier(0.22, 0.75, 0.25, 1) 0.08s",
-              }}
-            />
-          </div>
-
           <div
             ref={bodyRef}
             contentEditable={editing}
             suppressContentEditableWarning
             style={{
-              marginTop: 10,
+              marginTop: 18,
               fontFamily: "var(--font-spectral), var(--font-persona), serif",
               fontSize: 17,
               lineHeight: 1.65,
@@ -510,50 +446,15 @@ export default function CheckpointOverlay({
           </div>
         )}
 
-        {/* Composing state */}
-        {phase === "composing" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              padding: "20px 24px 24px",
-              borderTop: "1px solid var(--session-walnut-border-soft)",
-              background: "var(--session-walnut-surface-soft)",
-              animation: "cpFadeIn 0.4s ease forwards",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontSize: 18,
-                color: "var(--session-walnut)",
-                animation: "personaPulse 2.4s ease-in-out infinite",
-              }}
-            >
-              ❦
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontSize: 15,
-                fontStyle: "italic",
-                color: "var(--session-ink-soft)",
-              }}
-            >
-              Adding to your Manual…
-            </span>
-          </div>
-        )}
-
-        {/* Confirmed cover. Must fully obscure the entry section behind it so
-         *  the "Added to Layer N" celebration reads cleanly. `--session-walnut-surface`
-         *  alone is 20% opaque in Hearth and 90% in Bloom — both leak entry text
-         *  through. Layered background stacks the walnut tint over `--session-cream`
-         *  (opaque in both themes) so the cover keeps its warm Manual feel while
-         *  being fully opaque. backdrop-filter dropped — nothing to blur once the
-         *  background is opaque. */}
+        {/* Saving cover — the single save screen. It appears the moment the
+         *  user confirms (composing) and stays through success (confirmed),
+         *  so there is no separate inline "saving" line below the entry. The
+         *  label reads "Adding…" while the save is in flight, then "Added".
+         *  Must fully obscure the entry behind it: `--session-walnut-surface`
+         *  alone is 20% opaque in Hearth and 90% in Bloom — both leak entry
+         *  text through. Layered background stacks the walnut tint over
+         *  `--session-cream` (opaque in both themes) so the cover keeps its
+         *  warm Manual feel while being fully opaque. */}
         <div
           style={{
             position: "absolute",
@@ -566,8 +467,9 @@ export default function CheckpointOverlay({
               "linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)), var(--session-cream)",
             borderRadius: 20,
             zIndex: 5,
-            opacity: phase === "confirmed" ? 1 : 0,
-            pointerEvents: phase === "confirmed" ? "auto" : "none",
+            opacity: phase === "confirmed" || phase === "composing" ? 1 : 0,
+            pointerEvents:
+              phase === "confirmed" || phase === "composing" ? "auto" : "none",
             transition: "opacity 0.5s ease",
           }}
         >
@@ -593,7 +495,7 @@ export default function CheckpointOverlay({
               color: "var(--session-walnut)",
             }}
           >
-            Added to your Manual
+            {phase === "confirmed" ? "Added to your Manual" : "Adding to your Manual…"}
           </span>
           {checkpoint.section && (
             <span

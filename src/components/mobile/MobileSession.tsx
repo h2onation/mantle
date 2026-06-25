@@ -17,6 +17,23 @@ import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
 import SectionPicker from "./SectionPicker";
 
+/** First sentence of a checkpoint's entry, for the inline-preview teaser.
+ *  Prefers the composed entry; falls back to the chat-stream content. Strips
+ *  light markdown and caps length so the tee-up stays a glance — the full
+ *  entry lives in the review popup. */
+function checkpointTeaser(cp: ActiveCheckpoint | null): string {
+  if (!cp) return "";
+  const source = (
+    cp.composedContent?.trim() || stripCheckpointFooter(cp.content ?? "")
+  ).trim();
+  if (!source) return "";
+  const plain = source.replace(/[#>*_`~]/g, "").replace(/\s+/g, " ").trim();
+  const match = plain.match(/^.*?[.!?](?=\s|$)/);
+  let sentence = match ? match[0] : plain;
+  if (sentence.length > 150) sentence = `${sentence.slice(0, 149).trimEnd()}…`;
+  return sentence;
+}
+
 interface MobileSessionProps {
   messages: ChatMessage[];
   conversationId: string | null;
@@ -482,93 +499,63 @@ export default function MobileSession({
                   ? activeCheckpoint?.section
                   : msg.checkpointMeta?.section;
 
-                // ── Pending checkpoint: trigger card ──
-                // A bright Plate (--session-jove-bg) with a brass layer
-                // eyebrow matching the Manual headers + confirm overlay.
-                // Body uses --session-jove-bg so the card belongs to
-                // Jove's side of the conversation. A soft brass halo
-                // around the frame marks this as a moment, not a resting
-                // Manual card. See .checkpoint-trigger-frame and
-                // .checkpoint-trigger-plate in globals.css for the halo +
-                // shadow stack.
+                // ── Pending checkpoint: inline preview tee-up ──
+                // A calm Plate that sits in the conversation flow (not a
+                // spotlight): section eyebrow, headline, and a one-sentence
+                // teaser of the entry. Tapping opens the review popup with
+                // the full entry + actions. The full text lives in the
+                // popup, so the inline card stays a glance.
                 if (isPendingCheckpoint) {
                   const cpSection = activeCheckpoint?.section;
+                  const teaser = checkpointTeaser(activeCheckpoint);
                   return (
                     <div
                       key={msg.id || `msg-${i}`}
-                      className="checkpoint-trigger-frame"
+                      style={{
+                        margin: "var(--sp-md) 0 var(--sp-sm)",
+                        animation: "checkpointFadeIn 0.5s ease forwards",
+                      }}
                     >
                       <button
                         type="button"
-                        className="checkpoint-trigger-plate"
                         onClick={() => {
                           overlayCheckpointRef.current = activeCheckpoint;
                           setCheckpointOverlayOpen(true);
                         }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          border: "none",
+                          background: "none",
+                          padding: 0,
+                          cursor: "pointer",
+                        }}
                       >
-                        {/* The trigger reads as the Plate the moment it
-                            appears: centered brass eyebrow, a display
-                            headline, the brass rule. Tapping opens the
-                            confirm overlay for the full entry + actions. */}
-                        {cpSection && (
-                          <p
+                        <Plate
+                          eyebrow={cpSection ? formatLayerEyebrow(cpSection) : undefined}
+                          heading={activeCheckpoint?.name ?? undefined}
+                        >
+                          {teaser && <span style={{ display: "block" }}>{teaser}</span>}
+                          <span
                             style={{
-                              margin: "0 0 14px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 7,
+                              marginTop: 16,
+                              paddingTop: 12,
+                              borderTop: "1px solid var(--session-walnut-border-soft)",
                               fontFamily: "var(--font-mono)",
                               fontSize: 10,
-                              fontWeight: 500,
-                              letterSpacing: "0.22em",
+                              letterSpacing: "0.18em",
                               textTransform: "uppercase",
-                              color: "var(--session-walnut-meta-strong)",
-                              textAlign: "center",
+                              color: "var(--session-walnut-meta)",
                             }}
                           >
-                            {formatLayerEyebrow(cpSection)}
-                          </p>
-                        )}
-                        {activeCheckpoint?.name && (
-                          <h3
-                            style={{
-                              margin: "0 auto",
-                              maxWidth: "22ch",
-                              fontFamily: "var(--font-serif), Georgia, serif",
-                              fontSize: 25,
-                              fontWeight: 400,
-                              lineHeight: 1.14,
-                              letterSpacing: "-0.01em",
-                              color: "var(--session-ink)",
-                              textAlign: "center",
-                            }}
-                          >
-                            {activeCheckpoint.name}
-                          </h3>
-                        )}
-                        <div
-                          aria-hidden="true"
-                          style={{
-                            width: 64,
-                            height: 2,
-                            margin: "16px auto 0",
-                            background: "var(--session-walnut-border)",
-                          }}
-                        />
-                        <div
-                          style={{
-                            margin: "16px 0 0",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 7,
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 10,
-                            letterSpacing: "0.18em",
-                            textTransform: "uppercase",
-                            color: "var(--session-walnut-meta)",
-                          }}
-                        >
-                          <span>Tap to review</span>
-                          <span aria-hidden="true">&rarr;</span>
-                        </div>
+                            Tap to review
+                            <span aria-hidden="true">&rarr;</span>
+                          </span>
+                        </Plate>
                       </button>
 
                       {/* Action state receipt (after overlay closes) */}
