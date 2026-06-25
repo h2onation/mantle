@@ -510,8 +510,6 @@ export default function MainApp() {
     <MobileSettings
       userEmail={userEmail}
       isActive={activeView === "settings"}
-      onSimulationEvent={handleSimulationEvent}
-      onPopulateComplete={loadManual}
       onNavigateToCrisis={handleNavigateToCrisis}
       showTopBar={!isDesktop}
     />
