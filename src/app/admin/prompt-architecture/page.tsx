@@ -164,7 +164,7 @@ const DYNAMIC_OPERATION: Record<string, string> = {
   "confirmed-manual":
     "Each turn, the prompt builder reads the user's confirmed Manual entries from the database. The recent ones (everything from the current conversation, plus a backfill up to 4 of the most recent overall) are pasted in full, under the header \"CONFIRMED MANUAL\", so Jove can quote them precisely. Rebuilt every turn from current data.",
   "earlier-entries":
-    "Older entries beyond the recent four collapse to one line each — [Layer N — Name] \"Headline\" — summary; key words — under the header \"EARLIER ENTRIES (compressed)\". Enough for Jove to recognize an entry exists without re-reading its full prose. The summary and key words were written once, when the entry was confirmed.",
+    "Older entries beyond the recent four collapse to one line each — [Section] \"Headline\" — summary; key words — under the header \"EARLIER ENTRIES (compressed)\". Enough for Jove to recognize an entry exists without re-reading its full prose. The summary and key words were written once, when the entry was confirmed.",
   "session-context":
     "For a returning user, the prompt builder reads the session count and a summary of the previous session from the database and pastes them under \"SESSION CONTEXT\", so Jove can pick up where things left off without a recap.",
   "transcript-detected":

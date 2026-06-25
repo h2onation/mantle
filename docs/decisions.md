@@ -78,10 +78,10 @@
 
 ## ADR-015: Five-Layer Manual Structure
 
-**Status**: Settled (may evolve)  
+**Status**: Superseded by ADR-050 (structure migration 2026-06-24)  
 **Context**: The manual needed a structure that captures the full picture of how someone operates without becoming either too shallow (one-page summary) or too fragmented (dozens of unconnected observations).  
 **Decision**: Five layers grounded in clinical frameworks — drives, self-perception, reaction system, operating style, relational patterns. Layers can hold many entries; there is no per-layer cap.  
-**Consequences**: Dense enough to be useful, bounded enough to complete. The five layers map to real dimensions of human behavior: what you need, how you see yourself, how you cope, how you work, how you relate. Grounded in Schema Therapy (layers 1-2), behavioral analysis (layer 3), and Attachment Theory (layer 5), with layer 4 as the practical synthesis. This structure may evolve as the product matures and user feedback reveals whether five layers is the right granularity.
+**Consequences**: Dense enough to be useful, bounded enough to complete. The five layers map to real dimensions of human behavior: what you need, how you see yourself, how you cope, how you work, how you relate. Grounded in Schema Therapy (layers 1-2), behavioral analysis (layer 3), and Attachment Theory (layer 5), with layer 4 as the practical synthesis. This structure may evolve as the product matures and user feedback reveals whether five layers is the right granularity. SUPERSEDED 2026-06-24: the five clinical pattern-type layers were replaced by five life-area sections + a closed tag set — see ADR-050. This entry is retained as the historical record of why five existed.
 
 ## ADR-016: User as Author
 
@@ -445,3 +445,18 @@ Why this was a live bug, not a theoretical one: extraction is instructed to boot
 **Consequences**: One launchpad (Home), no duplicate; `MobileSession` is leaner and single-purpose. The two source-string tests that pinned the modes to `MobileSession` were rewritten to assert them against `MobileHome`/`DesktopHome` — the guard moved with the code, not deleted. **The richer first-run experience first-run-plan.md describes (one warm Jove sentence + focused input + example chips) remains the deferred replacement** for the new-user landing — Home is the interim launchpad, not the final first-run answer. **Open follow-up (flagged, unmade):** the just-in-time "Nothing's saved unless you say so" control line lived on the retired cards (added 2026-06-17 from the applied-psychologist trust pass). A new user still sees that promise on the consent screen, but a returning user starting fresh from Home no longer sees it pre-disclosure — moving it onto Home is a pending decision. **Verification gap:** the authed app couldn't be driven from the agent session (password-entry barred); shipped on tsc + full suite + rewritten tests + senior review, with live click-through deferred to a founder pass.
 
 **Relationship to prior ADRs**: Supersedes the "first-run drops into a conversation" landing in **ADR-047** (its returning-user Home landing is unchanged; now new users land there too). Builds on ADR-048 (Home as the front-door launchpad) and ADR-042 (`startConversation` modes).
+
+## ADR-050: Structure Migration — Pattern-Type Layers → Life-Area Sections + Tags
+
+**Status**: Settled (2026-06-24, live on prod)
+
+**Context**: The Manual's five pattern-type layers (My Strengths / Some of My Patterns / How I Process Things / What Helps / How I Show Up with People) didn't fit the post-ND-pivot audience; entries were hard to navigate by life situation.
+
+**Decision**: Replace the five pattern-type layers with five **life-area sections** (Relationships / Work and money / Routines and structure / Sensory and burnout / Interests and flow) + a **closed tag set** (`strength` on any section; `romantic`/`family`/`friends` only inside Relationships, DB-CHECK-enforced). Key sub-decisions worth recording as case law:
+- **Additive / non-destructive (keystone).** Added `section`+`tags` columns; NEVER overwrite `layer`. `manual_entries.layer` is kept FROZEN forever as legacy provenance / audit oracle / rollback key (now nullable; new rows born with section + NULL layer). Decision: never drop it.
+- **Code keeps `layer`/`LAYERS`; product says "section"** — a deliberate, documented naming divergence (avoids churn-rename of the identifier).
+- **Closed tags** with a cross-column CHECK (relationship sub-tags require section='relationships').
+- **Held group:** self-to-self patterns that don't fit a life area are PARKED (section=NULL) and shown in a "held" group — the proto-face of a **deferred sixth "inner-world" section**, which is NOT built; its boundary is the **survives-solitude test** (a pattern homes there only if it runs with nobody else in the room), on file in the plan but deferred pending beta evidence. Held-group label copy is still a stub.
+- **Migrations:** 20260624000002 (columns+CHECKs), 20260624000003 (reviewed backfill: 17 homed / 4 parked), 20260624000004 (code cutover: layer nullable, confirm_checkpoint_write gains p_section/p_tags, extraction_state null-out).
+
+**Consequences**: Supersedes ADR-015. Plan of record: docs/reference/structure-migration-plan.md.

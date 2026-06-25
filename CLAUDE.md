@@ -1,6 +1,6 @@
 # mywalnut
 
-mywalnut is a mobile-first AI app where an AI called Jove builds a five-layer behavioral model ("User Manual") through deep conversation. Nothing enters the manual unless the user confirms it.
+mywalnut is a mobile-first AI app where an AI called Jove builds a five-section behavioral model ("User Manual") through deep conversation. Nothing enters the manual unless the user confirms it.
 
 Stack: Next.js 14 · Supabase · Anthropic API (raw fetch, no SDK) · Vercel Edge Runtime. Mobile-first with multiple entry points (app, text, web).
 
@@ -53,7 +53,7 @@ The system prompt doesn't ship the full text of every confirmed Manual entry on 
 The scheme, implemented in `src/lib/persona/manual-context.ts`:
 
 - **Recent** (entries authored in the current conversation, plus the most-recent backfill up to a cap of 4) render in full. Jove sees the exact narrative prose so it can reference specifics and avoid proposing duplicates.
-- **Older** entries render as one line: `[Layer N — LayerName] "Headline" — one-sentence summary. Key words: w1, w2, w3.` Jove still knows the shape of the Manual but doesn't re-read the prose every turn.
+- **Older** entries render as one line: `[Section — SectionName] "Headline" — one-sentence summary. Key words: w1, w2, w3.` Jove still knows the shape of the Manual but doesn't re-read the prose every turn.
 
 The compressed summary and key words are generated at checkpoint-confirm time by the same Sonnet call that composes the entry (`src/lib/persona/confirm-checkpoint.ts`). They are stored on `manual_entries.summary` and `manual_entries.key_words`. Pre-existing rows and any fallback path derive a summary from the first sentence of `content`.
 
@@ -69,11 +69,11 @@ Rules when touching this:
 Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.
 
 - **Manual** — the user's self-authored document.
-- **Layer** — one of the five structural sections of the manual.
-- **Entry** — a single confirmed piece of content on a layer.
+- **Section** — one of the five life-area sections of the manual (Relationships / Work and money / Routines and structure / Sensory and burnout / Interests and flow). NOTE: the CODE identifier is still `layer` / `LAYERS` (src/lib/manual/layers.ts) — a deliberate, documented divergence. "Layer" in code == "Section" in product.
+- **Entry** — a single confirmed piece of content on a section.
 - **Checkpoint** — the moment Jove proposes an entry for confirmation.
 
-The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "section."
+The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "card." ("Section" is now the live user-facing noun for the five structural groups — never use "layer" for them in user-facing copy.)
 
 ## Hard Rules
 
@@ -115,7 +115,7 @@ These apply to every task. No exceptions.
 
 ## Migrations
 
-- For Supabase migrations: check for timestamp collisions with parallel branches and verify prod constraints before shipping. There is no automated migration pipeline — flag migration steps for the user to run by hand.
+- For Supabase migrations: migrations **auto-apply to prod via CI** (`supabase db push`) on merge to main — see `.github/workflows/supabase-migrations.yml` (no by-hand apply step). Because the merge applies immediately, before merging check for timestamp collisions with parallel branches and verify prod constraints.
 
 ## Security Rules
 

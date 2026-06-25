@@ -8,7 +8,7 @@ import AdminNavRail from "@/components/admin/AdminNavRail";
 
 // ---------------------------------------------------------------------------
 // Docs — the canonical reference shelf. Renders the five docs from /docs/
-// plus a navigator for the 37+ ADRs inside decisions.md. Companion to the
+// plus a navigator for the 50+ ADRs inside decisions.md. Companion to the
 // walkthrough pages (How Jove works → prompt architecture / extraction /
 // schema) — those are the tour; this is the reference.
 // ---------------------------------------------------------------------------

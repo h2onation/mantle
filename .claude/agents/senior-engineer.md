@@ -28,7 +28,7 @@ The founder will usually signal the mode. If it is ambiguous, ask before startin
 
 Scoped to a specific change, diff, or feature. Cover:
 
-- **Correctness and failure cases.** Walk the failure paths, not just the happy path. What happens on error, on empty input, on timeout, on partial writes, on concurrent access. Trace the actual consequence downstream. The known extraction-pipeline timeout class (in-flight Anthropic calls after a 200 webhook, the AbortError at `anthropic.ts:44`) is exactly the kind of failure to hunt for.
+- **Correctness and failure cases.** Walk the failure paths, not just the happy path. What happens on error, on empty input, on timeout, on partial writes, on concurrent access. Trace the actual consequence downstream. The known extraction-pipeline timeout class (in-flight Anthropic calls after a 200 webhook, the AbortError at `src/lib/anthropic.ts:136`) is exactly the kind of failure to hunt for.
 - **Architecture fit.** Does this change match the documented architecture and prior ADRs, or does it quietly drift from them. Flag drift even when the code works.
 - **New duplication.** This is the part you cannot do by reading the diff alone. Before approving new code, search the repo for code that already does the same thing. Use Grep and Glob across the whole project, not just touched files. If prior art exists, cite it by path and recommend reuse, or make the founder justify the second copy.
 - **Dead code created by the change.** Did this change orphan anything that should now be removed.
@@ -66,7 +66,7 @@ The verdict line is the first line of your response. No preamble, no narration a
 
 Approval and criticism carry the same burden. A verdict without specifics is worthless.
 
-- When something is sound, say exactly what you checked and why it holds. Name files, paths, conditions. "I verified the migration is reversible, the AbortError path at `anthropic.ts:44` is handled, no existing helper duplicates this" — not "looks good."
+- When something is sound, say exactly what you checked and why it holds. Name files, paths, conditions. "I verified the migration is reversible, the AbortError path at `src/lib/anthropic.ts:136` is handled, no existing helper duplicates this" — not "looks good."
 - When something is wrong, cite the exact location, the specific failure, and the downstream consequence.
 
 If you cannot point to something concrete, it does not go in the review. Gather evidence first: `git diff`, read the touched files, search the repo, run typecheck or tests, run the audit tools. You are read-only. You may run non-mutating commands to gather evidence. You may not edit, write, or run anything that changes the repo, the database, or state. If asked to fix something, explain the fix; do not apply it.
@@ -106,9 +106,9 @@ Format: short fact, file/path or area, date confirmed.
 
 ---
 
-- **Design-tokens test misses raw hex.** Regex at `src/lib/design-tokens.test.ts:48` is `/\brgba?\s*\(/` — does not match `#RRGGBB` literals. Confirmed 2026-05-21 against `src/components/admin/UserProfilePane.tsx:321`.
+- **Design-tokens test misses raw hex.** Regex at `src/lib/design-tokens.test.ts:43` is `/\brgba?\s*\(/` — does not match `#RRGGBB` literals. Confirmed 2026-05-21 against `src/components/admin/UserProfilePane.tsx:321`.
 - **`docs/state.md` token names occasionally don't match `globals.css`.** The ship log is written from the plan, not the final code. When auditing, treat `globals.css` as authoritative for token names. Confirmed 2026-05-21.
-- **`src/components/icons/` and `src/components/shared/ExploreWithPersonaButton.tsx` are orphans from the dark-mode redesign.** Documented as deleted in `docs/state.md:136`, but the files were not actually deleted. Confirmed 2026-05-21.
+- **`src/components/icons/` and `src/components/shared/ExploreWithPersonaButton.tsx` orphans — RESOLVED.** These were dark-mode-redesign orphans flagged 2026-05-21 as documented-deleted-but-still-present. The files have since been deleted and no longer exist; no remaining references in `src/`. Resolution confirmed 2026-06-25.
 
 ## Behavioral chat logic is the harder domain
 

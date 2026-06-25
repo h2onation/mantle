@@ -284,11 +284,11 @@ function Premise() {
         The instant the message arrives, two AI calls fire in parallel: Jove
         reads its assembled prompt and streams a response, while a separate
         extraction call analyzes the message and writes Jove&rsquo;s working
-        memory for the next turn. As Jove finishes streaming, a third call
-        — a smaller, faster model — decides whether the response was a
-        Manual-entry proposal. If yes and the user accepts, a fourth call
-        composes the polished entry. Then the database catches up and the
-        loop closes. About 2–3 seconds end to end.
+        memory for the next turn. As Jove finishes streaming, a
+        deterministic check — a regex, not a model — decides whether the
+        response was a Manual-entry proposal. If yes and the user accepts, a
+        third call composes the polished entry. Then the database catches up
+        and the loop closes. About 2–3 seconds end to end.
       </p>
       <p
         style={{
@@ -532,7 +532,7 @@ function ClosingNote() {
           fontStyle: "italic",
         }}
       >
-        Five stages. Four AI calls. Two to three seconds. Then the user types
+        Five stages. Three AI calls. Two to three seconds. Then the user types
         again and the whole thing fires fresh — a new prompt assembled, a new
         extraction call written, a new response streamed, a new turn saved. The
         Manual grows one confirmed entry at a time. The conversation history

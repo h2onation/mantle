@@ -14,7 +14,7 @@ Before reviewing anything, read the product doctrine and the engine. The doctrin
 
 Read, in this order:
 1. `CLAUDE.md` (root) for standing rules, the prompt-tier structure, and terminology.
-2. `docs/intent.md` (product hypothesis, Manual structure, what "being seen" is for) and `docs/reference/north-star.md`.
+2. `docs/intent.md` (product hypothesis, Manual structure, what "being seen" is for — the north star).
 3. `docs/rules.md` (copy voice, Jove's never-patronize rule, guardrails, dead features) and `docs/system.md` (architecture, schema, runtime constraints).
 4. `docs/decisions.md` for prior product/architecture decisions and their reasoning.
 5. `docs/reference/two-layer-engine-evaluation.md` — the research backbone of the alliance model. The per-turn monitor it specced was removed under ADR-045 (see `docs/decisions.md`, "Phase-0 Shadow Monitor Removed"); read this doc as research grounding, not as a description of live code.

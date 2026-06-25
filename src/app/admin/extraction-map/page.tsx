@@ -155,7 +155,7 @@ const STEPS: Step[] = [
     id: 5,
     title: "The raw material",
     caption:
-      "The notes both jobs read from. The language bank — the user's exact charged phrases — is the center of gravity: it keeps Jove quoting the user instead of paraphrasing them into a stranger, and (since the gate stopped trusting a self-reported flag) it is the real evidence the gate checks. Per-layer state tracks where each of the five Manual layers stands. One note, the pattern snippet, is a client-only signal that feeds the halfway-there modal.",
+      "The notes both jobs read from. The language bank — the user's exact charged phrases — is the center of gravity: it keeps Jove quoting the user instead of paraphrasing them into a stranger, and (since the gate stopped trusting a self-reported flag) it is the real evidence the gate checks. Per-section state tracks where each of the five Manual sections stands. One note, the pattern snippet, is a client-only signal that feeds the halfway-there modal.",
   },
   {
     id: 6,
@@ -255,9 +255,9 @@ const FIELDS: Field[] = [
     type: "number | null (1-5)",
     job: "gate",
     loadBearing: "load-bearing",
-    summary: "Which of the 5 layers has the most to work with right now.",
+    summary: "Which of the 5 sections has the most to work with right now.",
     represents:
-      "Which of the 5 layers has the most material, examples, and depth right now. Set only when the gate is met.",
+      "Which of the 5 sections has the most material, examples, and depth right now. Set only when the gate is met.",
     storage: "conversations.extraction_state.checkpoint_gate.strongest_layer",
     readers: [
       { where: "extraction.ts:541, 567 (formatExtractionForPersona)", what: "Names the target layer in Jove's brief; surfaces existing entries on that layer" },
@@ -351,7 +351,7 @@ const FIELDS: Field[] = [
     loadBearing: "auxiliary",
     summary: "The stance the extractor recommends Jove take.",
     represents:
-      "Extractor's recommendation for Jove's stance. situation_led is default; direct_exploration when ≥2 layers have entries; synthesis when all 5 do.",
+      "Extractor's recommendation for Jove's stance. situation_led is default; direct_exploration when ≥2 sections have entries; synthesis when all 5 sections do.",
     storage: "conversations.extraction_state.mode",
     readers: [
       { where: "extraction.ts:609 (formatExtractionForPersona)", what: "'Current approach: X' framing line in the brief" },
@@ -445,9 +445,9 @@ const FIELDS: Field[] = [
     type: "'none' | 'emerging' | 'explored' | 'checkpoint_ready'",
     job: "material",
     loadBearing: "load-bearing",
-    summary: "Where each of the 5 layers stands (only ever advances).",
+    summary: "Where each of the 5 sections stands (only ever advances).",
     represents:
-      "Where each layer is in its development. Monotonic — only advances. When a layer already has a confirmed entry, its signal starts at 'explored' minimum.",
+      "Where each section is in its development. Monotonic — only advances. When a section already has a confirmed entry, its signal starts at 'explored' minimum.",
     storage: "conversations.extraction_state.layers[N].signal",
     readers: [
       { where: "persona-pipeline.ts:686 (deriveCheckpointApproaching)", what: "A layer ≥ 'explored' loads CHECKPOINTS instructions only when charged material backs that layer and no crisis is active; otherwise it falls through to the full ripeness gate" },
@@ -462,9 +462,9 @@ const FIELDS: Field[] = [
     type: "string[]",
     job: "material",
     loadBearing: "load-bearing",
-    summary: "Jove-side observations attached to each layer (cumulative).",
+    summary: "Jove-side observations attached to each section (cumulative).",
     represents:
-      "Specific observations attached to each layer. Cumulative — accumulates across the session.",
+      "Specific observations attached to each section. Cumulative — accumulates across the session.",
     storage: "conversations.extraction_state.layers[N].material",
     readers: [
       { where: "extraction.ts:506-508 (formatExtractionForPersona)", what: "Last 3 entries shown in the brief as 'recent observations'" },
@@ -476,9 +476,9 @@ const FIELDS: Field[] = [
     type: "string[]",
     job: "material",
     loadBearing: "auxiliary",
-    summary: "User-narrated moments tagged to a layer. Nothing downstream reads it.",
+    summary: "User-narrated moments tagged to a section. Nothing downstream reads it.",
     represents:
-      "Concrete moments the user narrated, tagged to layer. Distinct from material (which is Jove-side observations).",
+      "Concrete moments the user narrated, tagged to section. Distinct from material (which is Jove-side observations).",
     storage: "conversations.extraction_state.layers[N].examples",
     readers: [
       { where: "(extractor's own cumulative reasoning)", what: "Read by the extractor next turn to avoid double-counting" },

@@ -86,7 +86,7 @@ The extraction layer is a Sonnet call that runs per turn and produces a structur
 - **Jove brief**: 3-5 sentence field note orienting Jove for its next response.
 - **Next prompt**: 3-6 word placeholder hint for the text input field.
 
-**Input**: Last 6 messages only (3 exchanges) plus previous extraction state. The cumulative state carries all earlier signals forward.
+**Input**: Last 12 messages (6 exchanges) plus previous extraction state. The cumulative state carries all earlier signals forward.
 
 **First-checkpoint exception — RETIRED 2026-06-12**: The first checkpoint meets the same quality bar as every other (2 concrete examples, 2 distinct contexts, mechanism AND behavior-driver link, depth at mechanism). The old lighter bar ("teaching moment that needs to land early") reliably produced the user's thinnest entry as their first impression; THE DEAL in the first-message block now does the teaching up front. The `isFirstCheckpoint` parameters survive in signatures (underscore-prefixed) for call-site stability.
 
@@ -112,6 +112,7 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
   mode: "situation_led" | "direct_exploration" | "synthesis",
   checkpoint_gate: {
     concrete_examples: number,
+    distinct_contexts: number,
     has_mechanism: boolean,
     has_charged_language: boolean,
     has_behavior_driver_link: boolean,
@@ -119,7 +120,10 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
   },
   sage_brief: string,                // 3-5 sentence field note
   next_prompt: string,               // 3-6 word input placeholder
-  clinical_flag: { level: "none" | "caution" | "crisis" }
+  clinical_flag: { active: boolean, level: "none" | "caution" | "crisis", note: string },
+  observation_miss_count: number,
+  emerging_pattern_snippet: string | null,
+  pattern_engaged: boolean
 }
 ```
 
@@ -131,7 +135,7 @@ Checkpoints are the core mechanic: Jove reflects something the user has shown, t
 
 **On confirmation:**
 1. `confirmCheckpoint()` reads `composed_content` from `checkpoint_meta`
-2. Inserts a new row in `manual_entries` (no upsert — layers can hold many entries)
+2. Inserts a new row in `manual_entries` (no upsert — sections can hold many entries)
 3. Updates the source message's `checkpoint_meta.status` to "confirmed"
 4. Inserts system message "[User confirmed the checkpoint]"
 5. No API call to Anthropic. Confirmation is instant.
@@ -144,13 +148,13 @@ These are the rules that prevent the highest-severity bugs. Every one represents
 
 - `composed_content` must NEVER be null on confirmed checkpoints. `composeManualEntry()` always runs server-side after the classifier flags a checkpoint, so `checkpoint_meta.composed_content` is populated before the confirmation card is shown. `confirmCheckpoint()` falls back to raw message content as a safety net.
 - Crisis text must never appear in manual entries.
-- `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForSage` and the server-side `validateMaterialQuality` gate).
+- `clinical_flag.level === "crisis"` blocks the checkpoint gate entirely (in `formatExtractionForPersona` and the server-side `validateMaterialQuality` gate).
 - Checkpoint gate is quality-based (concrete examples + mechanism + charged language), never turn-based.
 - The first checkpoint meets the same gate as every other (lighter first-checkpoint bar retired 2026-06-12).
 
 ## Manual Entries
 
-There is one entry shape. Layers can hold many entries — there is no per-layer cap, no type discriminator, no pattern/entry split. The classifier picks the strongest layer; composition writes the entry; the user confirms. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
+There is one entry shape. Sections can hold many entries — there is no per-section cap, no type discriminator, no pattern/entry split. Composition (Opus) picks the section (or parks it as null); composition writes the entry; the user confirms. Entries now carry `section` (one of the five slugs — the structural key) plus `tags`, with `layer` a frozen nullable legacy column. NULL-section entries form the held group. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
 
 ## Jove Prompt Assembly
 
@@ -172,7 +176,7 @@ The system prompt is built dynamically by `buildSystemPrompt()`. Different secti
 | Session Context (session count, previous summary) | Returning user |
 | Exploration Focus | explorationContext provided (user clicked "Explore with Jove") |
 
-**Key detail**: `isReturningUser` is determined by having `manual_entries`, not by conversation count. `checkpointApproaching` fires when any layer signal is `emerging`, `explored`, or `checkpoint_ready` in the previous extraction state (1-turn lag applies).
+**Key detail**: `isReturningUser` is determined by having `manual_entries`, not by conversation count. `checkpointApproaching` fires when a section signal is `explored` or `checkpoint_ready` AND charged material backs it AND there's no active crisis — otherwise it falls through to the full material-quality gate. (`emerging` alone never fires it.) (1-turn lag applies.)
 
 **Planned: smsMode flag**: When MMS is built, a `smsMode: true` option in `buildSystemPrompt` will strip checkpoint and manual entry sections. Same Jove voice and depth, no manual building via text. If you see this flag in the code, do not remove it.
 
@@ -206,22 +210,26 @@ API routes follow a consistent pattern:
 
 ## Checkpoint Meta Shape
 
-Not enforced at the DB layer (stored as untyped JSONB on the `messages` table). Canonical definition is in the TypeScript types in `confirm-checkpoint.ts` — this is a convenience summary for quick reference.
+Not enforced at the DB layer (stored as untyped JSONB on the `messages` table). The canonical write-side shape is `CheckpointMeta` in `persona-pipeline.ts` (built by `buildCheckpointMeta()`) — this is a convenience summary for quick reference.
 
 ```json
 {
-  "layer": 1-5,
+  "section": "<slug>" | null,
+  "tags": ["..."],
   "name": "The Proposed Name" | null,
   "status": "pending" | "confirmed" | "rejected" | "refined",
   "composed_content": "polished manual entry text" | null,
   "composed_name": "headline name" | null,
-  "changelog": "what changed from previous version" | null
+  "changelog": "what changed from previous version" | null,
+  "composed_summary": "one-sentence summary" | null,
+  "composed_key_words": ["..."] | null,
+  "refinement_count": <number>
 }
 ```
 
 ## Manual Entry Accumulation
 
-Layers can hold many entries. Confirmation is always an insert — there is no upsert, no per-layer cap, no replacement rule. (There is no edit/version flow; the unused `manual_changelog` table was dropped 2026-06-04 — see ADR-045 sibling cleanup.)
+Sections can hold many entries. Confirmation is always an insert — there is no upsert, no per-section cap, no replacement rule. (There is no edit/version flow; the unused `manual_changelog` table was dropped 2026-06-04 — see ADR-045 sibling cleanup.)
 
 ## Migration Protocols
 

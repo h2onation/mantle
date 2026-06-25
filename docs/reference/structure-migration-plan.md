@@ -1,8 +1,9 @@
 # Structure Migration Plan — Pattern-Type Layers → Life-Area Sections + Tags
 
-> **Status:** PLAN ONLY — v2 (post senior-engineer review; verdict: SHIP WITH FIXES). Not executed.
-> Correctness fixes folded in: B1 (write-pipeline carrier), S1 (hardcoded prompt literals), S2 (manual-context
-> relabel), S4 (test canary), N1/N2 (doc notes), + §10 pre-execution checklist. Execution is a separate gate.
+> **Status:** EXECUTED — Steps 1–3 are LIVE on prod (2026-06-24, commit `179f300`). This plan is now the
+> historical record + reference for the shipped structure migration; the canonical decision is **ADR-050**.
+> The build-correctness fixes from senior review (B1 write-pipeline carrier, S1/S2 prompt literals, S4 test
+> canary) were all folded in and shipped.
 > **Authored:** 2026-06-24. **Scope:** replace the five pattern-type Manual layers with five life-area
 > **sections** plus a closed **tag** set, with zero destructive writes to existing data.
 

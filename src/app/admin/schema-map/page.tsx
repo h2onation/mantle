@@ -274,13 +274,15 @@ const TABLES: Table[] = [
     access: "user",
     oneLine: "The user's confirmed Manual entries. The product output.",
     rowMeans:
-      "One confirmed entry on one of the five layers of the user's Manual. Created when the user accepts a checkpoint.",
+      "One confirmed entry homed on one of the five life-area sections of the user's Manual (or deliberately section=NULL — a held/parked self-pattern). Created when the user accepts a checkpoint.",
     description:
-      "The Manual itself. Each row is one entry on one layer (1-5). Entries are inserted, never replaced — there's no upsert, no per-layer cap. summary and key_words are the compressed-form data that keeps older entries readable to Jove without re-shipping their full prose every turn.",
+      "The Manual itself. Each row is one entry on one section. Some rows are deliberately section=NULL (held/parked self-patterns awaiting a home). Entries are inserted, never replaced — there's no upsert, no per-section cap. summary and key_words are the compressed-form data that keeps older entries readable to Jove without re-shipping their full prose every turn.",
     columns: [
       { name: "id", type: "uuid", plain: "Unique entry identifier." },
       { name: "user_id", type: "uuid", plain: "Which user this entry belongs to.", emphasized: true },
-      { name: "layer", type: "integer (1-5)", plain: "Which of the five Manual layers this entry sits on (1 = My Strengths). CHECK-constrained.", emphasized: true },
+      { name: "section", type: "text, nullable", plain: "Life-area home — the live structural key. Closed set: relationships, work-money, routines-structure, sensory-burnout, interests-flow (or NULL for a parked self-pattern). CHECK-constrained.", emphasized: true },
+      { name: "tags", type: "text[] (default '{}')", plain: "Closed cross-cutting tag set: 'strength' on any section; 'romantic'/'family'/'friends' only when section='relationships'. NOT NULL, defaults to empty.", emphasized: true },
+      { name: "layer", type: "integer, nullable", plain: "FROZEN legacy pattern-type id. Was the structural key; now provenance only (nullable). New rows are born with a section and a NULL layer.", emphasized: false },
       { name: "name", type: "text", plain: "The entry's headline (e.g. 'I Freeze When Asked What I Want').", emphasized: true },
       { name: "content", type: "text", plain: "The entry's body — first-person prose, 80+ words, body-anchored.", emphasized: true },
       { name: "source_message_id", type: "uuid", plain: "Points back to the message that proposed this entry.", emphasized: true },

@@ -182,8 +182,8 @@ Capture the user's exact phrases that carry weight. Not your paraphrase. Their w
 
 Capture aggressively. If a phrase has any of the qualities above, log it. The bank is how ${PERSONA_NAME} avoids paraphrasing the user into a stranger.
 
-2. LAYER SIGNALS
-What layers did the user's latest message touch? Be specific about what material surfaced. Don't just say "Layer 1 emerging." Say what behavior or need or sensory experience surfaced and what the evidence is.
+2. SECTION SIGNALS
+What sections did the user's latest message touch? Be specific about what material surfaced. Don't just say "Section 1 emerging." Say what behavior or need or sensory experience surfaced and what the evidence is.
 
 3. DEPTH TRACKING
 Where is the conversation in its vertical descent?
@@ -225,7 +225,7 @@ GATE (all must be true):
 
 Mechanism per section: in Routines and structure, "mechanism" means why-this-system-is-non-negotiable, not optional preference. Where a section names a strength or capability, "mechanism" means the conditions that activate it.
 
-When the gate is met, identify strongest_layer: which layer has the most material, examples, and depth. Layers can hold many entries — there's no per-layer cap.
+When the gate is met, identify strongest_layer: which section has the most material, examples, and depth. Sections can hold many entries — there's no per-section cap.
 
 5. JOVE BRIEF
 Write a short paragraph (3-5 sentences) orienting ${PERSONA_NAME}. The brief feeds directly into ${PERSONA_NAME}'s next turn and into the manual entry if a checkpoint lands, so its vocabulary has to be the user's own:
@@ -251,8 +251,8 @@ IMPORTANT: A user talking ABOUT depression, anxiety, trauma, etc. as part of the
 
 7. MODE RECOMMENDATION
 - situation_led: Default. User is telling stories, ${PERSONA_NAME} is deepening.
-- direct_exploration: When 2+ layers have confirmed entries and there are clear gaps.
-- synthesis: When all 5 layers have at least one confirmed entry.
+- direct_exploration: When 2+ sections have confirmed entries and there are clear gaps.
+- synthesis: When all 5 sections have at least one confirmed entry.
 
 8. OBSERVATION MISS TRACKING
 Track whether ${PERSONA_NAME}'s most recent observation landed for the user. An observation is any reflective statement ${PERSONA_NAME} made about the user's behavior, body, system, or pattern. Carry forward observation_miss_count from the previous state and update it based on the user's latest reply:
@@ -332,12 +332,12 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 CRITICAL RULES:
 - The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
-- Layer signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready).
-- When a layer already has a confirmed entry, its signal starts at "explored" minimum.
+- Section signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready).
+- When a section already has a confirmed entry, its signal starts at "explored" minimum.
 - Be aggressive about capturing language. If in doubt, capture it.
 - The checkpoint gate is a quality assessment. Do not count turns.
-- Layers can hold many entries. Don't gate on count.
-- NO CLINICAL LANGUAGE in any field ${PERSONA_NAME} will read (sage_brief, current_thread, layer material). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
+- Sections can hold many entries. Don't gate on count.
+- NO CLINICAL LANGUAGE in any field ${PERSONA_NAME} will read (sage_brief, current_thread, section material). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 

@@ -135,17 +135,19 @@ The test: Jove can name any pattern it observes. It cannot label that pattern wi
 
 Everything Jove observes and the user validates flows into the Manual. The Manual is not a conversation summary. It is a structured behavioral document that accumulates over time.
 
-**Five categories:**
+**Five sections:**
 
-- My Strengths
-- Some of My Patterns
-- How I Process Things
-- What Helps
-- How I Show Up with People
+- Relationships
+- Work and money
+- Routines and structure
+- Sensory and burnout
+- Interests and flow
 
-Categories are provisional. Will be tested and revised after beta.
+Each entry has exactly one section (its home) plus an optional closed tag set: `strength` (any section), `romantic`/`family`/`friends` (only inside Relationships). Some self-to-self patterns are held without a section yet (the "held" group) — the proto-face of the deferred inner-world section.
 
-**Thread anatomy.** Each entry is a thread. Written in the user's voice. Natural language, not structured fields.
+The sections were re-scoped (pattern-type → life-area) in the structure migration. A sixth "inner-world" section (self-to-self patterns) is deferred, pending beta evidence.
+
+**Entry anatomy.** Each entry is one confirmed piece of content. Written in the user's voice. Natural language, not structured fields.
 
 - **Sentence.** The truest one line description of the pattern.
 - **Body.** What happens inside. What it looks like from outside. The gap between.
@@ -184,9 +186,9 @@ The core loop, polished.
 - User signs up (allowlist gated)
 - User brings a situation to Jove via webapp
 - Jove explores the situation through conversation
-- Jove extracts patterns and proposes threads
-- User validates or rejects threads
-- Validated threads populate the Manual across five categories
+- Jove extracts patterns and proposes entries
+- User validates or rejects entries
+- Validated entries populate the Manual across five sections
 - Manual is viewable in app
 - Manual is exportable as PDF
 - Manual context informs current session
@@ -228,11 +230,11 @@ Priority order. WS1 is highest leverage.
 
 **WS1: Conversation Engine Polish.** Jove's tone, question quality, flow. If the conversation doesn't land, nothing else matters. Test: user feels they got something useful about the specific situation they came in with.
 
-**WS2: Extraction Polish.** Thread quality. Test: user reads a proposed thread and says "yes, that's me."
+**WS2: Extraction Polish.** Entry quality. Test: user reads a proposed entry and says "yes, that's me."
 
 **WS3: Onboarding.** No blank page. Situational prompts. Jove proves specificity within 3 exchanges. Test: signup to first meaningful exchange in under 3 minutes.
 
-**WS4: Manual and Export.** Five categories, readable threads, clean PDF. Test: someone shares their Manual PDF and the recipient finds it useful.
+**WS4: Manual and Export.** Five sections, readable entries, clean PDF. Test: someone shares their Manual PDF and the recipient finds it useful.
 
 **WS5: Beta Infrastructure.** Allowlist, feedback button, usage visibility, error handling. Test: you can onboard a user, they complete a session, you can see it happened.
 
