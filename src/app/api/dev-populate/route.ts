@@ -3,41 +3,28 @@ export const runtime = "edge";
 import { requireAdmin } from "@/lib/admin/verify-admin";
 import { LAYERS } from "@/lib/manual/layers";
 
-// Realistic Jove-style narratives for each layer, ~150-200 words each.
-const LAYER_CONTENT: Record<number, string> = {
-  1: `There's a through-line in everything you've described — the late nights, the solo problem-solving, the way you instinctively pull back when someone tries to help. It's not stubbornness. It's a deep, structural need for autonomy.
+// Dev-only seed content: one realistic Jove-style sample per SECTION, keyed by
+// slug so each stays matched to its section even if display order changes.
+const SECTION_CONTENT: Record<string, string> = {
+  relationships: `When voices get raised, you go offline. It's not stonewalling — your system shuts down input and you can't get to your own words until later. From the outside it reads as cold or checked-out; inside, you're flooded and protecting yourself the only way that works in the moment.
 
-You need to know you can handle things yourself. Not as a preference — as a requirement for feeling safe. When someone offers help, part of you hears it as evidence that you're not managing, and that feels intolerable. So you pre-empt it. You over-prepare, you stay up late, you carry things alone — not because you enjoy it, but because dependence feels like the precursor to being let down.
+The people closest to you feel the gap most. You care intensely, but the caring routes through doing — you fix the thing, you remember the detail, you show up — rather than through saying it out loud. So the ones who matter most can end up the least sure of where they stand with you, because the spoken reassurance they're scanning for is the one channel you go quiet on exactly when the stakes are highest.`,
 
-The origin is clear: you learned early that relying on others was unreliable. The people who were supposed to catch you didn't, and you adapted by becoming someone who never needs catching. It's an elegant solution for a kid. But for an adult trying to build real partnerships — at work, at home — it creates a ceiling. You can go far alone, but you can't go far together.`,
+  "work-money": `Under high-stakes pressure — the financial kind especially — something shifts. You go quiet and inward, you research, you try to get solid ground under your feet before you move. From the outside it reads as withdrawal, and by the time you surface there's sometimes already damage to walk back.
 
-  2: `You see yourself as the competent one. The person who holds it together, who doesn't crack, who other people lean on. And that identity isn't wrong — you are capable, you do hold things together. But it's become a cage you built yourself.
+What makes this flavor of stress different from ordinary anxiety is that it involves other people's needs on a timeline you can't fully control. The decision can't wait for you to finish processing. You can absorb a lot — being underestimated, a bad stretch — as long as the work still has a path to mattering. The one thing you can't absorb is being asked to misrepresent what you know is true; that's the line that, once crossed, becomes non-negotiable.`,
 
-The problem isn't the capability. It's that you've made it load-bearing for your self-worth. If you're not the strong one, who are you? If you need help, does that mean you've failed? There's a binary operating underneath: strong equals worthy, vulnerable equals weak. And you've been running from the weak side so long that you've forgotten it's not actually a threat.
+  "routines-structure": `When plans change, you go still. It looks like resistance. It's recalculation — your system goes offline while the new variables get integrated. Talk to you five minutes later and you're fine; interrupt you in the first thirty seconds and you lose another five.
 
-What I notice is that the people around you would welcome the unguarded version. Your partner has practically begged for it. But you keep presenting the curated self — the one who has answers, who stays calm, who never asks for what they need — because somewhere you decided that the real version isn't enough. That belief is the oldest thing in your system, and it's the one doing the most damage.`,
+The systems that hold your day up aren't preferences, they're load-bearing. The morning sequence, the known route, the buffer between things — each one quietly absorbs a cost you'd otherwise pay in the moment. When one collapses, it's not the single change that lands hardest; it's that the scaffolding you were leaning on to handle everything else just went out from under you, and now the rest of the day is heavier than it was an hour ago.`,
 
-  3: `Your reaction system has a very specific signature: freeze, retreat, reconstruct alone. It's a three-part sequence that fires before you have any conscious say in it.
+  "sensory-burnout": `You don't break at the last thing. You break because the last thing landed on top of everything already there. The stack builds quietly — a too-loud voice, a bright room, a plan that fell through — none of them individually loud enough to name. Then something small hits and the whole column goes.
 
-First, the freeze. Someone challenges you, raises the stakes, or asks you to be visible with what you care about — and your body goes still. Not calm. Locked. You described it as "the words just disappear." That's not a thinking failure. It's a protection response. Your system is scanning for danger before your mind catches up.
+From the outside it looks like an overreaction to a light switch. From inside, the lights were just what arrived when you were already full. Mid-stack, none of it looks like enough to say something about, so you hold each layer and the next until your body makes the decision your words couldn't. Recovery isn't optional downtime — it's the maintenance that keeps the next day from starting already half-full.`,
 
-Then the retreat. You concede, you agree, you say "fair point" or "sure, whatever you think." The retreat isn't agreement — it's a cover story. It buys you time to get out of the exposed position.
+  "interests-flow": `When something captures your attention, you can stay with it for hours in a state most people can't access. The noise drops away, time stops mattering, and the work gets a depth that surprises people who only see the scattered version of you.
 
-Then the underground work. The 2am redesigns. The quiet furniture rearranging. The email you draft alone at midnight. This is where the real you operates — with full intensity, full investment, full conviction. But nobody sees it, because the whole point is to care without witnesses.
-
-The cost is that people experience you as either passive or sneaky, when you're actually neither. You're just running a protection program that routes all your genuine engagement through a private channel.`,
-
-  4: `You think in systems. Before you act, you need to see the full map — every angle, every consequence, every way it could go wrong. That's not anxiety (though it can feel like it). It's how your mind actually works. You're a scenario-builder.
-
-The strength of this is real: you catch things other people miss, you plan for contingencies, you rarely get blindsided. The cost is equally real: you take too long to act, you exhaust yourself running simulations of conversations that may never happen, and you sometimes mistake preparation for progress. You've spent hours planning how to raise something with your partner, rehearsing responses to their responses, and then never actually saying anything — because by the time you've mapped the whole conversation, the moment has passed.
-
-There's also a decision pattern worth naming: you delay choices until you feel certain, but certainty never arrives, so the delay becomes the decision. You stay in jobs too long, tolerate situations past their expiry, and frame inaction as patience when it's actually avoidance of the discomfort of choosing wrong.`,
-
-  5: `The way others experience you is fundamentally different from how you experience yourself. Inside, you're intense, opinionated, emotionally invested. Outside, you're easy, flexible, low-maintenance. That gap is the central tension in almost every relationship you have.
-
-You've built a relational style around making other people comfortable. You read the room before you enter it. You adjust your opinions to reduce friction. You perform agreement to keep the peace, then quietly correct the outcome when no one's watching. Your partner called it out with the furniture. Your team lead experiences it as disengagement. Neither of them is seeing the real you — they're seeing the version you've decided is safe to show.
-
-The deeper pattern is this: you treat closeness as something you earn through compliance, not something you build through honesty. So the people closest to you are actually the farthest from knowing you. The more someone matters, the more carefully you curate what they see. And the loneliness that creates — the feeling of being surrounded by people who love a version of you that isn't quite real — that's the price you're paying for safety.`,
+This is where your best work lives — not in spite of how your mind runs but because of it. The same intensity that costs you in a loud meeting pays off here: you see the whole map, you catch what others miss, you go all the way down. What's worth protecting is the conditions that let you get there — the uninterrupted stretch, the real problem, the permission to disappear into it — because that state is where you're most yourself and most useful at once.`,
 };
 
 export async function POST(request: Request) {
@@ -51,10 +38,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "layers array required" }, { status: 400 });
   }
 
-  // Validate layer numbers
+  // Validate picker indices (1-5, one per section in display order).
   const validLayers = layers.filter((l) => l >= 1 && l <= 5);
   if (validLayers.length === 0) {
-    return Response.json({ error: "No valid layers (1-5)" }, { status: 400 });
+    return Response.json({ error: "No valid sections (1-5)" }, { status: 400 });
   }
 
   // Narrowed delete — only removes prior populate-shaped rows (null name).
@@ -68,15 +55,19 @@ export async function POST(request: Request) {
     .is("name", null);
 
   // Insert one entry per requested section (picker index 1-5 → section slug).
-  // New-model rows: section is the structural key, layer is null.
-  const rows = validLayers.map((layer) => ({
-    user_id: userId,
-    layer: null,
-    section: LAYERS[layer - 1]?.slug ?? null,
-    tags: [],
-    name: null,
-    content: LAYER_CONTENT[layer] || `Section ${layer} content placeholder.`,
-  }));
+  // New-model rows: section is the structural key, layer is null, content
+  // matches the section (keyed by slug).
+  const rows = validLayers.map((layer) => {
+    const slug = LAYERS[layer - 1]?.slug ?? null;
+    return {
+      user_id: userId,
+      layer: null,
+      section: slug,
+      tags: [] as string[],
+      name: null,
+      content: (slug && SECTION_CONTENT[slug]) || `Sample ${slug ?? layer} entry.`,
+    };
+  });
 
   const { error } = await admin.from("manual_entries").insert(rows);
 
@@ -85,7 +76,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Failed to insert components" }, { status: 500 });
   }
 
-  // Mark populated layers as explored in extraction_state
+  // Mark populated sections as explored in extraction_state (keyed 1-5 by
+  // section display order, matching the per-section signal map).
   const { data: activeConv } = await admin
     .from("conversations")
     .select("id, extraction_state")
@@ -97,11 +89,11 @@ export async function POST(request: Request) {
 
   if (activeConv?.extraction_state) {
     const state = activeConv.extraction_state as Record<string, unknown>;
-    const layers = state.layers as Record<string, Record<string, unknown>> | undefined;
-    if (layers) {
+    const sectionSignals = state.layers as Record<string, Record<string, unknown>> | undefined;
+    if (sectionSignals) {
       for (const layer of validLayers) {
-        if (layers[layer]) {
-          layers[layer].signal = "explored";
+        if (sectionSignals[layer]) {
+          sectionSignals[layer].signal = "explored";
         }
       }
       await admin
