@@ -67,7 +67,7 @@ const CASES: Case[] = [
       events.trackCheckpointProposed({
         conversation_id: "c1",
         checkpoint_id: "m1",
-        layer: 3,
+        section: "relationships",
         message_number: 5,
         user_turn_count: 2,
         mode: "situation",
@@ -75,7 +75,7 @@ const CASES: Case[] = [
     expectedKeys: [
       "conversation_id",
       "checkpoint_id",
-      "layer",
+      "section",
       "message_number",
       "user_turn_count",
       "mode",
@@ -87,11 +87,11 @@ const CASES: Case[] = [
       events.trackCheckpointConfirmed({
         conversation_id: "c1",
         checkpoint_id: "m1",
-        layer: 3,
+        section: "relationships",
         time_to_decision_ms: 2500,
         mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_rejected",
@@ -99,11 +99,11 @@ const CASES: Case[] = [
       events.trackCheckpointRejected({
         conversation_id: "c1",
         checkpoint_id: "m1",
-        layer: 3,
+        section: "relationships",
         time_to_decision_ms: 2500,
         mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_refined",
@@ -111,11 +111,11 @@ const CASES: Case[] = [
       events.trackCheckpointRefined({
         conversation_id: "c1",
         checkpoint_id: "m1",
-        layer: 3,
+        section: "relationships",
         time_to_decision_ms: 2500,
         mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
   },
   {
     event: "checkpoint_deferred",
@@ -123,11 +123,11 @@ const CASES: Case[] = [
       events.trackCheckpointDeferred({
         conversation_id: "c1",
         checkpoint_id: "m1",
-        layer: 3,
+        section: "relationships",
         time_to_decision_ms: 2500,
         mode: "situation",
       }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "layer", "time_to_decision_ms", "mode"],
+    expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
   },
   {
     event: "manual_viewed",
@@ -196,7 +196,7 @@ describe("checkpoint_proposed user_turn_count semantics", () => {
     events.trackCheckpointProposed({
       conversation_id: "c1",
       checkpoint_id: "m1",
-      layer: 3,
+      section: "relationships",
       message_number: 7,
       user_turn_count: 4,
       mode: "guided-intake",
