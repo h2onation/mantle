@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useMemo } from "react";
-import { buildLayers } from "./manual/layer-definitions";
+import { buildLayers, SECTION_TILE_STYLE } from "./manual/layer-definitions";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
@@ -37,6 +37,21 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
   const isEmpty = layers.every((l) => l.entries.length === 0);
   const totalEntries = entries.length;
   const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
+  // Masthead meta line — mirrors Home's "N of 5 started" count gesture, in the
+  // same mono register. Held entries count toward total entries but not the
+  // five life-area sections.
+  const startedSections = layers.filter(
+    (l) => !l.isHeld && l.entries.length > 0
+  ).length;
+  const metaLine = isEmpty
+    ? "Nothing saved yet"
+    : startedSections === 0
+      ? // Entries exist but only in the parked group (legacy / pre-migration);
+        // "0 sections started" would read oddly, so show just the count.
+        totalLabel
+      : `${startedSections} ${
+          startedSections === 1 ? "section" : "sections"
+        } started · ${totalLabel}`;
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -68,37 +83,22 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
     >
       {showTopBar && <TopBar />}
 
-      {/* Scroll fade overlay */}
-      <div
-        style={{
-          position: "absolute",
-          top: showTopBar ? 68 : 0,
-          left: 0,
-          right: 0,
-          height: "48px",
-          zIndex: 1,
-          pointerEvents: "none",
-          background: "linear-gradient(to bottom, var(--session-glow-scroll) 0%, var(--session-persona-tint) 40%, transparent 100%)",
-        }}
-      />
-
-      {/* Scrollable content */}
+      {/* Scrollable content. Page padding matches Home (28px 22px) so the two
+          screens share the same optical left and top rhythm. */}
       <div
         ref={scrollRef}
         className="mw-scroll"
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: 0,
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          padding: "28px 22px calc(32px + env(safe-area-inset-bottom, 0px))",
           position: "relative",
         }}
       >
-        {/* Publication masthead — title + italic subtitle. The § ornament
-            that used to sit here is gone; the layer tab pip below carries
-            the next visual beat. Zero bottom padding so the layers
-            container owns the masthead→first-Plate gap. */}
-        <div style={{ padding: "var(--sp-lg) 20px 0" }}>
+        {/* Masthead — Fraunces title + mono count line + italic subtitle.
+            Same gesture as Home's greeting + date line, kept in the Manual's
+            own voice (the walnut period, the document subtitle). */}
+        <header>
           <h1
             style={{
               fontFamily: "var(--font-display), var(--font-serif), serif",
@@ -116,13 +116,25 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           </h1>
           <p
             style={{
+              margin: "6px 0 0",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "1.6px",
+              textTransform: "uppercase",
+              color: "var(--session-ink-faded)",
+            }}
+          >
+            {metaLine}
+          </p>
+          <p
+            style={{
               fontFamily: "var(--font-spectral), var(--font-serif), serif",
               fontStyle: "italic",
               fontWeight: 400,
               fontSize: 13.5,
               lineHeight: 1.5,
               color: "var(--session-ink-soft)",
-              margin: "8px 0 0",
+              margin: "9px 0 0",
               maxWidth: 300,
               letterSpacing: "0.005em",
               textWrap: "pretty" as React.CSSProperties["textWrap"],
@@ -130,20 +142,17 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           >
             A document about how you operate, in your own voice.
           </p>
-        </div>
+        </header>
 
-        {/* Layer list — Plates float in a flex column. Top padding
-            gives the first Plate's tab pip room to protrude into
-            without colliding with the masthead. Horizontal padding
-            matches the masthead so Plate edges align with the title's
-            optical left. */}
+        {/* Section tiles — the same white-tile material Home uses, stacked in
+            a column. Each tile owns its own card shell (SECTION_TILE_STYLE);
+            the gap is the only spacing between them. */}
         <div
           style={{
-            position: "relative",
+            marginTop: 22,
             display: "flex",
             flexDirection: "column",
-            gap: "var(--sp-lg)",
-            padding: "var(--sp-md) 20px 40px",
+            gap: 14,
           }}
         >
           {layers.map((layer) =>
@@ -163,44 +172,37 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           )}
         </div>
 
-        {/* Share invitation — only when at least one entry exists. § sits
-            above as a quiet section break, echoing publication conventions. */}
+        {/* Share invitation — a white tile in the same material as the
+            section tiles, closing the page. Only when at least one entry
+            exists. */}
         {!isEmpty && (
-          <div style={{ padding: "var(--sp-lg) var(--sp-md) var(--sp-md)" }}>
-            <div
-              aria-hidden="true"
+          <section
+            style={{
+              ...SECTION_TILE_STYLE,
+              marginTop: 20,
+              padding: "18px 20px 20px",
+            }}
+          >
+            <p
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
-                alignItems: "center",
-                gap: "var(--sp-sm)",
-                marginBottom: "var(--sp-md)",
+                margin: 0,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut-meta)",
               }}
             >
-              <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
-              <span
-                style={{
-                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                  fontStyle: "italic",
-                  color: "var(--session-walnut)",
-                  fontSize: 17,
-                  lineHeight: 1,
-                  transform: "translateY(-1px)",
-                }}
-              >
-                §
-              </span>
-              <span style={{ height: 1, background: "var(--session-hair-soft)" }} />
-            </div>
-
+              {totalLabel} · PDF
+            </p>
             <h2
               style={{
-                fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontSize: 19,
+                fontFamily: "var(--font-display), var(--font-serif), serif",
+                fontSize: 20,
                 fontWeight: 500,
                 color: "var(--session-ink)",
-                margin: 0,
-                letterSpacing: "-0.005em",
+                margin: "9px 0 0",
+                letterSpacing: "-0.3px",
                 lineHeight: 1.25,
               }}
             >
@@ -209,10 +211,10 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
             <p
               style={{
                 fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                fontSize: 15,
+                fontSize: 14.5,
                 color: "var(--session-ink-soft)",
                 lineHeight: 1.6,
-                margin: "var(--sp-xs) 0 var(--sp-sm)",
+                margin: "8px 0 14px",
                 textWrap: "pretty" as React.CSSProperties["textWrap"],
               }}
             >
@@ -239,7 +241,7 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
               <span>Share your manual</span>
               <span aria-hidden="true">›</span>
             </button>
-          </div>
+          </section>
         )}
 
       </div>

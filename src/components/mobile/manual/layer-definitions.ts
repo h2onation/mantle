@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { ManualEntry } from "@/lib/types";
 import {
   LAYERS,
@@ -7,7 +8,17 @@ import {
   sectionForEntry,
 } from "@/lib/manual/layers";
 
-export const LAYER_ROMAN = ["", "I", "II", "III", "IV", "V"] as const;
+// Shared white-tile shell for a section on the Manual page — the same
+// material Home uses for its cards (cream-bright fill, hairline border, soft
+// card shadow, 16px radius). One source of truth for PopulatedLayer and
+// EmptyLayer so the two tile states never drift apart.
+export const SECTION_TILE_STYLE: CSSProperties = {
+  borderRadius: 16,
+  background: "var(--session-cream-bright)",
+  border: "1px solid var(--session-hair)",
+  boxShadow: "var(--session-card-shadow, none)",
+  padding: "16px 18px",
+};
 
 export interface Entry {
   id: string;

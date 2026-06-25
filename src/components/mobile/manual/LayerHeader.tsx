@@ -1,79 +1,46 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import { type Layer } from "./layer-definitions";
 import LayerIcon from "./LayerIcon";
 
 interface LayerHeaderProps {
   layer: Layer;
-  /** Called when the description popover toggles open/closed. Hosts
-   *  use this to elevate the layer's stacking context so the popover
-   *  paints above sibling layers that come after in document order. */
-  onPopoverToggle?: (open: boolean) => void;
-  /** When provided, the header shows an entry count + a collapse chevron
-   *  (the populated-layer accordion). Omitted on empty layers. */
+  /** Populated read view: the entry count drives the count chip + the
+   *  collapse chevron. Omitted on the readOnly admin/PDF path (which renders
+   *  open and non-collapsible, so no chevron). */
   count?: number;
   collapsed?: boolean;
+  /** readOnly (admin / PDF) suppresses the interactive cues — no "Start →" on
+   *  empty tiles, no chevron on populated ones. */
+  readOnly?: boolean;
 }
 
 /**
- * Layer header — the demo's editorial masthead per layer: a brass
- * Roman numeral, the layer name in caps, a hairline rule running to
- * the right edge, and the info chip (description popover) anchored at
- * the far right. No plate, no chapter tab — the header sits directly
- * on the page and the entries hang beneath it as individual cards.
+ * Section tile header — the same row anatomy Home's section index uses: a
+ * rounded-square emblem (navy for sections with content, walnut for empty),
+ * the section name and its tagline, and a right-edge cue. Populated tiles show
+ * the entry count + a collapse chevron; empty tiles show "Start →". No plate,
+ * no Roman numeral, no info popover — the tile is the surface and Home and the
+ * Manual now speak one visual language.
  */
-export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }: LayerHeaderProps) {
-  const [open, setOpen] = useState(false);
+export default function LayerHeader({
+  layer,
+  count,
+  collapsed,
+  readOnly,
+}: LayerHeaderProps) {
   const isEmpty = layer.entries.length === 0;
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  function setOpenAndNotify(next: boolean) {
-    setOpen(next);
-    onPopoverToggle?.(next);
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent | TouchEvent) {
-      const target = e.target as Node;
-      if (popoverRef.current?.contains(target)) return;
-      if (buttonRef.current?.contains(target)) return;
-      setOpenAndNotify(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenAndNotify(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 13,
-        marginBottom: 14,
-      }}
-    >
-      {/* Layer emblem — a rounded-square icon (navy for started layers,
-          brown for empty), matching the v6 read view. */}
+    <header style={{ display: "flex", alignItems: "center", gap: 13 }}>
+      {/* Emblem — navy for started sections, walnut for empty. */}
       <span
         aria-hidden="true"
         style={{
+          flexShrink: 0,
           width: 34,
           height: 34,
           borderRadius: 9,
-          flexShrink: 0,
           display: "grid",
           placeItems: "center",
           background: isEmpty
@@ -82,180 +49,90 @@ export default function LayerHeader({ layer, onPopoverToggle, count, collapsed }
           color: isEmpty ? "var(--session-walnut)" : "var(--session-persona)",
         }}
       >
-        <LayerIcon layerId={layer.id} />
+        <LayerIcon layerId={layer.id} size={18} />
       </span>
 
-      {/* Layer name — caps, the section label. */}
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-sans), sans-serif",
-          fontWeight: 700,
-          fontSize: 12.5,
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          color: "var(--session-ink)",
-          flexShrink: 0,
-        }}
-      >
-        {layer.name}
-      </h2>
-
-      {/* Hairline rule running to the right edge. */}
-      <span
-        aria-hidden="true"
-        style={{
-          flex: 1,
-          height: 1,
-          minWidth: 12,
-          background: "var(--session-hair-soft)",
-        }}
-      />
-
-      {/* Entry count + collapse chevron (populated layers only). */}
-      {count !== undefined && (
+      {/* Name + tagline (tagline omitted for the held group, which has none). */}
+      <span style={{ flex: 1, minWidth: 0 }}>
         <span
-          aria-hidden="true"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            flexShrink: 0,
+            display: "block",
+            fontFamily: "var(--font-serif), serif",
+            fontSize: 16,
+            color: "var(--session-ink)",
+            lineHeight: 1.25,
           }}
         >
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--session-ink-faded)",
-            }}
-          >
-            {count} {count === 1 ? "entry" : "entries"}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              lineHeight: 1,
-              color: "var(--session-walnut)",
-              display: "inline-block",
-              transform: collapsed ? "rotate(90deg)" : "rotate(-90deg)",
-              transition: "transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            ›
-          </span>
+          {layer.name}
         </span>
-      )}
-
-      {/* Info chip + description popover. */}
-      <span style={{ position: "relative", flexShrink: 0 }}>
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpenAndNotify(!open);
-          }}
-          aria-expanded={open}
-          aria-controls={`layer-${layer.id}-desc`}
-          aria-label={`About Layer ${layer.id}`}
-          style={{
-            all: "unset",
-            width: 22,
-            height: 22,
-            borderRadius: "50%",
-            background: open ? "var(--session-walnut-highlight)" : "transparent",
-            color: open ? "var(--session-ink)" : "var(--session-walnut-meta)",
-            border: `1px solid ${
-              open ? "var(--session-walnut-meta-strong)" : "var(--session-walnut-meta)"
-            }`,
-            cursor: "pointer",
-            transition:
-              "background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease",
-            WebkitTapHighlightColor: "transparent",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg width="2" height="9" viewBox="0 0 2 9" fill="currentColor" aria-hidden="true">
-            <circle cx="1" cy="1" r="1" />
-            <rect x="0" y="3.5" width="2" height="5.5" rx="1" />
-          </svg>
-        </button>
-
-        <div
-          ref={popoverRef}
-          id={`layer-${layer.id}-desc`}
-          role="dialog"
-          aria-label={`Layer ${layer.id} description`}
-          aria-hidden={!open}
-          // Don't let a tap on the popover body bubble to the layer's
-          // collapse toggle (which wraps this header).
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            top: 36,
-            right: 0,
-            width: 270,
-            background: "var(--session-parchment)",
-            border: "1px solid var(--session-walnut-border)",
-            borderRadius: 10,
-            padding: "14px 16px 16px",
-            boxShadow: "var(--session-popover-shadow)",
-            zIndex: 60,
-            opacity: open ? 1 : 0,
-            pointerEvents: open ? "auto" : "none",
-            transform: open ? "translateY(0)" : "translateY(-4px)",
-            transition: "opacity 0.18s ease, transform 0.18s ease",
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: -6,
-              right: 14,
-              width: 11,
-              height: 11,
-              background: "var(--session-parchment)",
-              borderTop: "1px solid var(--session-walnut-border)",
-              borderLeft: "1px solid var(--session-walnut-border)",
-              transform: "rotate(45deg)",
-            }}
-          />
+        {layer.tagline && (
           <span
             style={{
               display: "block",
-              fontFamily: "var(--font-mono), monospace",
-              fontWeight: 500,
-              fontSize: 9,
-              letterSpacing: "0.28em",
-              textTransform: "uppercase",
-              color: "var(--session-walnut)",
-              marginBottom: 8,
+              marginTop: 2,
+              fontFamily: "var(--font-serif), serif",
+              fontSize: 13,
+              color: "var(--session-ink-mid)",
+              lineHeight: 1.35,
             }}
           >
-            About this layer
+            {layer.tagline}
           </span>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-spectral), var(--font-serif), serif",
-              fontWeight: 400,
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "var(--session-ink)",
-              textWrap: "pretty" as React.CSSProperties["textWrap"],
-            }}
-          >
-            {layer.about}
-          </p>
-        </div>
+        )}
       </span>
+
+      {/* Right cue: "Start →" on empty tiles; count + chevron on populated. */}
+      {isEmpty
+        ? !readOnly && (
+            <span
+              style={{
+                flexShrink: 0,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                color: "var(--session-walnut)",
+              }}
+            >
+              Start →
+            </span>
+          )
+        : count !== undefined && (
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 9,
+                  letterSpacing: "1.4px",
+                  textTransform: "uppercase",
+                  color: "var(--session-ink-faded)",
+                }}
+              >
+                {count} {count === 1 ? "entry" : "entries"}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                  lineHeight: 1,
+                  color: "var(--session-walnut)",
+                  display: "inline-block",
+                  transform: collapsed ? "rotate(90deg)" : "rotate(-90deg)",
+                  transition: "transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              >
+                ›
+              </span>
+            </span>
+          )}
     </header>
   );
 }

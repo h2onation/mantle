@@ -103,9 +103,10 @@ export default function EntryItem({
     <article
       style={{
         position: "relative",
-        background: showBody
-          ? "var(--session-cream-bright)"
-          : "var(--session-cream)",
+        // Nested inside a cream-bright section tile, so entry cards sit one
+        // step down (cream) to read as cards within the tile rather than
+        // dissolving into it.
+        background: "var(--session-cream)",
         border: "1px solid var(--session-hair)",
         borderRadius: 10,
         boxShadow: "var(--session-card-shadow)",
