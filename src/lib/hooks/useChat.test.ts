@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildChatMessageFromEvent,
+  createStartGuard,
   pendingCheckpointFromMessages,
+  type StartGuard,
 } from "./useChat";
 import type { MessageCompleteEvent } from "@/lib/utils/sse-parser";
 
@@ -210,5 +212,76 @@ describe("pendingCheckpointFromMessages", () => {
     ]);
     expect(result?.name).toBe("Raw");
     expect(result?.composedContent).toBeNull();
+  });
+});
+
+// Regression test for the same-tick double-start race (2026-06-26). The three
+// conversation-start paths in useChat (startConversation / startExploration /
+// startNewSession) guarded re-entry with `if (isLoading || isStreaming)`, which
+// reads React STATE — not visible within the same render tick. A sub-frame
+// double-tap on a start control could fire two calls in one tick; both read a
+// stale `false` and both proceeded, creating two conversations / two POST
+// /api/chat. The fix backs the guard with a synchronous ref (createStartGuard).
+//
+// The hook can't be rendered here (vitest runs in node env, no jsdom), so these
+// tests exercise the real guard primitive through `guardedStart` — a faithful
+// replica of the hook's usage: acquire synchronously before the await, release
+// in finally. The fetch count is a direct consequence of how many acquisitions
+// succeed, so asserting "exactly one fetch" proves the same-tick window is shut.
+describe("createStartGuard (same-tick double-start guard)", () => {
+  async function guardedStart(
+    guard: StartGuard,
+    fetchSpy: () => Promise<void>
+  ): Promise<boolean> {
+    if (!guard.tryAcquire()) return false;
+    try {
+      await fetchSpy();
+      return true;
+    } finally {
+      guard.release();
+    }
+  }
+
+  it("admits exactly one of two synchronous acquisitions until released", () => {
+    const guard = createStartGuard();
+    expect(guard.tryAcquire()).toBe(true);
+    expect(guard.tryAcquire()).toBe(false);
+    guard.release();
+    expect(guard.tryAcquire()).toBe(true);
+  });
+
+  it("two starts fired in the same tick issue exactly one fetch", async () => {
+    const guard = createStartGuard();
+    const fetchSpy = vi.fn(async () => {});
+
+    // Both invoked synchronously — the second runs while the first is suspended
+    // at its await, before any state could update. Only one fetch must fire.
+    const results = await Promise.all([
+      guardedStart(guard, fetchSpy),
+      guardedStart(guard, fetchSpy),
+    ]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(results.filter(Boolean)).toHaveLength(1);
+  });
+
+  it("permits a fresh start after the in-flight one completes (release is not a deadlock)", async () => {
+    const guard = createStartGuard();
+    const fetchSpy = vi.fn(async () => {});
+
+    expect(await guardedStart(guard, fetchSpy)).toBe(true);
+    expect(await guardedStart(guard, fetchSpy)).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases even when the guarded work throws", async () => {
+    const guard = createStartGuard();
+    await expect(
+      guardedStart(guard, async () => {
+        throw new Error("boom");
+      })
+    ).rejects.toThrow("boom");
+    // A stuck lock here would permanently block every future start.
+    expect(guard.tryAcquire()).toBe(true);
   });
 });

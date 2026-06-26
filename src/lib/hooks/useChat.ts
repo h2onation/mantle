@@ -65,6 +65,42 @@ export function confirmErrorMessage(
 }
 
 /**
+ * Synchronous in-flight guard for the conversation-start paths.
+ *
+ * The start functions also check `isLoading || isStreaming`, but that reads
+ * React STATE — and state updates aren't visible within the same render tick.
+ * Two calls fired in the same tick (a sub-frame double-tap on a start control)
+ * both read a stale `false` and both proceed, creating two conversations / two
+ * POST /api/chat. A ref flips synchronously, so the second same-tick caller
+ * sees the lock and bails. This generalizes the door-path `preStartRef` guard
+ * in MainApp.tsx (commit f96ecf0) to the start paths that aren't behind the
+ * intro modal.
+ *
+ * Exported so the same-tick race can be unit-tested directly — this repo's
+ * vitest runs in node env without jsdom, so rendering the hook isn't an option.
+ */
+export interface StartGuard {
+  /** Locks and returns true if free; returns false if a start is in flight. */
+  tryAcquire(): boolean;
+  /** Releases the lock so a later, legitimate start can proceed. */
+  release(): void;
+}
+
+export function createStartGuard(): StartGuard {
+  let inFlight = false;
+  return {
+    tryAcquire() {
+      if (inFlight) return false;
+      inFlight = true;
+      return true;
+    },
+    release() {
+      inFlight = false;
+    },
+  };
+}
+
+/**
  * Convert a streaming `message_complete` SSE event into the optimistic
  * in-memory ChatMessage we append to `messages`.
  *
@@ -244,6 +280,13 @@ export function useChat() {
   // on every message_complete (server is authoritative). Defaults to
   // "situation" for any conversation that hasn't reported a mode yet.
   const conversationMode = useRef<ConversationMode>("situation");
+  // Synchronous re-entry guard shared by the three start paths. Closes the
+  // same-tick double-start window the isLoading/isStreaming state checks can't
+  // (state isn't visible in-tick). Lazily initialized so the same guard
+  // instance survives every re-render. See createStartGuard.
+  const startGuardRef = useRef<StartGuard | null>(null);
+  startGuardRef.current ??= createStartGuard();
+  const startGuard = startGuardRef.current;
   const router = useRouter();
   const supabase = createClient();
 
@@ -1397,42 +1440,54 @@ export function useChat() {
 
   async function startNewSession() {
     if (isLoading || isStreaming) return;
+    if (!startGuard.tryAcquire()) return;
 
-    // Complete current conversation fire-and-forget (don't block UI)
-    if (conversationId) {
-      const durationSeconds = conversationStartedAt.current
-        ? Math.round((Date.now() - conversationStartedAt.current) / 1000)
-        : 0;
-      trackConversationEnded({
-        conversation_id: conversationId,
-        end_type: "natural",
-        message_count: messages.length,
-        duration_seconds: durationSeconds,
-        mode: conversationMode.current,
-      });
-      conversationStartedAt.current = null;
-      conversationMode.current = "situation";
+    try {
+      // Complete current conversation fire-and-forget (don't block UI)
+      if (conversationId) {
+        const durationSeconds = conversationStartedAt.current
+          ? Math.round((Date.now() - conversationStartedAt.current) / 1000)
+          : 0;
+        trackConversationEnded({
+          conversation_id: conversationId,
+          end_type: "natural",
+          message_count: messages.length,
+          duration_seconds: durationSeconds,
+          mode: conversationMode.current,
+        });
+        conversationStartedAt.current = null;
+        conversationMode.current = "situation";
 
-      fetch("/api/conversations/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId }),
-      }).catch(() => {});
+        fetch("/api/conversations/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId }),
+        }).catch(() => {});
+      }
+
+      // Reset state for new session
+      resetConversationState("new");
+
+      // Persist intent so a page refresh stays on the new-session screen
+      // instead of reloading the most recent conversation.
+      try { sessionStorage.setItem("mw_new_session", "1"); } catch {}
+
+      // Refresh conversation list in background
+      refreshConversations();
+    } finally {
+      // Defer the release past the synchronous flush. Unlike the other two
+      // start paths, this body has no network await — a synchronous release
+      // would clear the lock before a same-tick second call runs, defeating
+      // the guard. A microtask hold covers the same-tick window; a double-fire
+      // here is benign anyway (no conversation created — just a redundant
+      // reset and a fire-and-forget complete).
+      void Promise.resolve().then(() => startGuard.release());
     }
-
-    // Reset state for new session
-    resetConversationState("new");
-
-    // Persist intent so a page refresh stays on the new-session screen
-    // instead of reloading the most recent conversation.
-    try { sessionStorage.setItem("mw_new_session", "1"); } catch {}
-
-    // Refresh conversation list in background
-    refreshConversations();
   }
 
   async function startExploration(context: ExplorationContext): Promise<boolean> {
     if (isLoading || isStreaming) return false;
+    if (!startGuard.tryAcquire()) return false;
 
     // Complete current conversation fire-and-forget (don't block on it)
     if (conversationId) {
@@ -1502,6 +1557,10 @@ export function useChat() {
       setErrorMessage("Connection lost. Try again.");
       setIsLoading(false);
       return false;
+    } finally {
+      // Releases after the awaited fetch settles (well past the same-tick
+      // window); the background stream's own setIsLoading(false) runs later.
+      startGuard.release();
     }
   }
 
@@ -1519,6 +1578,7 @@ export function useChat() {
    */
   async function startConversation(mode: ConversationMode): Promise<boolean> {
     if (isLoading || isStreaming) return false;
+    if (!startGuard.tryAcquire()) return false;
 
     // Complete the current conversation fire-and-forget (don't block on it),
     // then reset — the same reset-then-start shape startExploration uses.
@@ -1593,6 +1653,7 @@ export function useChat() {
       return false;
     } finally {
       setIsLoading(false);
+      startGuard.release();
     }
   }
 
