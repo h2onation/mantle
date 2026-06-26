@@ -91,6 +91,12 @@ export default function MainApp() {
   const [doorIntrosSeen, setDoorIntrosSeen] = useState<string[] | null>(null);
   const [pendingIntroMode, setPendingIntroMode] =
     useState<ConversationMode | null>(null);
+  // Holds the in-flight pre-start kicked off when a door's intro modal opens,
+  // so the opener generates *behind* the modal instead of as a dead wait after
+  // dismiss. Resolves true if the conversation actually started, false if
+  // startConversation's in-flight guard skipped it — the dismiss handler reads
+  // this to decide whether it must start one itself. See handleStartConversation.
+  const preStartRef = useRef<Promise<boolean> | null>(null);
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // One-time migration: rename mantle_* localStorage keys to mw_*
@@ -443,6 +449,13 @@ export default function MainApp() {
   // the drawer's entry-cards path was retired in the front-door redesign.
   const handleStartConversation = useCallback(
     (mode: ConversationMode) => {
+      // Guard against a second tap landing while a door intro is mid-pre-start
+      // (the ref is set synchronously below and cleared on dismiss). Rapid taps
+      // are sequential events, so the second sees the first's ref and bails —
+      // this closes the sub-frame double-start window the pre-warm would
+      // otherwise open. (useChat's own in-flight guard reads React state and
+      // can't catch a same-tick double-fire.)
+      if (preStartRef.current) return;
       // First time this user opens this door (and not anonymous): show its
       // one-time "how this works" intro, then start the conversation when they
       // dismiss it. Otherwise go straight in.
@@ -460,6 +473,17 @@ export default function MainApp() {
           });
         }
         setPendingIntroMode(mode);
+        // Pre-warm: start the conversation now, while the one-time intro modal
+        // is on screen being read, so the opener generates *behind* it instead
+        // of as a dead wait after dismiss. This matters most for guided-intake,
+        // whose opener is a live model-generated tee-up — there's no fixed
+        // string to emit instantly the way situation/upload openers do, so its
+        // first-token latency is the worst. Every dismiss path (Got it /
+        // Escape / backdrop) already commits to starting, so pre-starting can't
+        // orphan a conversation the user backed out of. Stash the promise so
+        // the dismiss handler can fall back to a real start if the in-flight
+        // guard skipped this one.
+        preStartRef.current = startConversation(mode);
         return;
       }
       setActiveView("session");
@@ -485,8 +509,16 @@ export default function MainApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode }),
     }).catch(() => {});
+    // The conversation was pre-started when the modal opened — reveal it.
+    // Only start one here as a fallback if that pre-start was skipped by the
+    // in-flight guard (resolves false); a successful pre-start resolves true,
+    // so this never double-starts.
     setActiveView("session");
-    void startConversation(mode);
+    const pending = preStartRef.current;
+    preStartRef.current = null;
+    void Promise.resolve(pending).then((started) => {
+      if (!started) void startConversation(mode);
+    });
   }, [pendingIntroMode, doorIntrosSeen, handleModalProgressAdvance, startConversation]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
