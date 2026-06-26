@@ -3,6 +3,7 @@ import { REBUILT_CHARACTER } from "@/lib/persona/voice-scaffold";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
+import { COMPOSER_ENTRY_BAR } from "@/lib/persona/confirm-checkpoint";
 
 /**
  * Voice overrides — admin-editable replacements for a small, fixed set of
@@ -32,6 +33,10 @@ export interface VoiceOverrides {
   situationOpener?: string;
   uploadOpener?: string;
   postConfirmFirstEntry?: string;
+  /** The composer's editable depth standard (THE BAR) — how an entry should
+   *  read. Threaded into composeManualEntry; the entry's structure, schema, and
+   *  safety rules stay code-only. */
+  composerEntryBar?: string;
 }
 
 /**
@@ -63,6 +68,11 @@ export const VOICE_OVERRIDE_FIELDS: Record<
     field: "postConfirmFirstEntry",
     label: "Post-confirm line (first entry)",
     getDefault: () => POST_CONFIRM_FIRST_ENTRY_SCAFFOLD,
+  },
+  composer_entry_bar: {
+    field: "composerEntryBar",
+    label: "Entry voice — the bar (composer)",
+    getDefault: () => COMPOSER_ENTRY_BAR,
   },
 };
 

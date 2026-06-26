@@ -10,6 +10,17 @@ import { deriveSummaryFromContent } from "./manual-context";
 // recentHistory comment below — widened for the user-pulled Reflection model.
 const COMPOSE_TRANSCRIPT_WINDOW = 50;
 
+// THE BAR — the editable depth/quality standard for a Manual entry: what makes
+// one "land." Admin-editable via the Voice editor ("Entry voice — the bar");
+// resolved override-or-default at the call sites (voice-overrides.ts →
+// composerEntryBar), fed in as `entryBarOverride`, and fails open to this
+// constant. Everything else in the composer prompt below — the output schema,
+// section assignment, length rules, and the no-clinical-names safety rule —
+// stays locked in code.
+export const COMPOSER_ENTRY_BAR = `THE BAR — what makes an entry land: it names the mechanism running underneath the user's own behavior so exactly that they feel both seen and a little caught off guard — "how did it see that. I never put it together that way." Not a summary they would nod at; a recognition that reorganizes how they see themselves. If they could have written the line before this conversation, it is not deep enough. Go to the part they could not see from inside.
+  Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
+  Deeper: "Part of me answers. The other part is busy watching how it'll land, and that part is louder, so it takes over. The pause looks like I don't know the answer. It's the opposite. I know it. I'm just stuck watching their face while I talk, and the more unsure I look, the more they check in, which makes me watch even harder. One time I stopped watching and it cost me, so now I can't stop. So I watch their face to get it right, and that's the same thing that makes me look like I don't know it."`;
+
 interface ComposeManualEntryOptions {
   /** Jove's checkpoint message in the auto-pushed path — the transition line
    *  plus the entry-shaped prose Jove drafted, which the composer polishes.
@@ -45,6 +56,11 @@ interface ComposeManualEntryOptions {
   depth?: string | null;
   sageBrief?: string | null;
   currentThread?: string | null;
+  /** Admin-editable "entry voice" standard (THE BAR). Resolved by the caller
+   *  from voice-overrides (composerEntryBar); undefined/blank falls back to the
+   *  shipped COMPOSER_ENTRY_BAR. Only the quality standard is editable — the
+   *  output schema, section assignment, and length/safety rules stay in code. */
+  entryBarOverride?: string;
 }
 
 /**
@@ -85,7 +101,15 @@ export async function composeManualEntry(
     depth,
     sageBrief,
     currentThread,
+    entryBarOverride,
   } = options;
+
+  // Resolve the editable depth standard: an enabled, non-blank override wins;
+  // otherwise the shipped default. Everything else in `system` is code-fixed.
+  const entryBar =
+    entryBarOverride && entryBarOverride.trim()
+      ? entryBarOverride
+      : COMPOSER_ENTRY_BAR;
 
   const chargedLanguage = languageBank
     .filter((e) => e.charge === "high" || e.charge === "medium")
@@ -144,9 +168,7 @@ export async function composeManualEntry(
 
   const system = `You compose Manual entries for a self-authored Manual. You take a checkpoint reflection from a conversationalist called ${PERSONA_NAME} plus the recent conversation, and turn it into one entry that reads as the user describing themselves to themselves — in their own words.
 
-THE BAR — what makes an entry land: it names the mechanism running underneath the user's own behavior so exactly that they feel both seen and a little caught off guard — "how did it see that. I never put it together that way." Not a summary they would nod at; a recognition that reorganizes how they see themselves. If they could have written the line before this conversation, it is not deep enough. Go to the part they could not see from inside.
-  Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
-  Deeper: "Part of me answers. The other part is busy watching how it'll land, and that part is louder, so it takes over. The pause looks like I don't know the answer. It's the opposite. I know it. I'm just stuck watching their face while I talk, and the more unsure I look, the more they check in, which makes me watch even harder. One time I stopped watching and it cost me, so now I can't stop. So I watch their face to get it right, and that's the same thing that makes me look like I don't know it."
+${entryBar}
 
 name (the TITLE) — THE ARTIFACT. This is the line the user sees every time they open their Manual; in the Manual list the body is collapsed behind it, so the title carries the entry's holdability. It must clear THE BAR above — the DISCOVERY, not a behavior they could have named walking in: the generic "I perform interest to stay close to people I love" fails (anyone could write that); the discovery under it — "I keep debating because going quiet feels like pulling away" — lands. A complete first-person sentence naming what they DO and what drives it — a tendency ("I tend to…") or a trigger ("I [verb] when…"). Picturable and complete: nothing left to decode. About 6–12 words. Never scenario-specific (no names, no "with him" — that lives in the body), never a feeling-state ("I feel alone…"), never an image. A single instance → hedge with "can"/"sometimes".
   Lands: "I tend to stay in things I've outgrown until I'm forced to leave."

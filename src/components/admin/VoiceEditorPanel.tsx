@@ -171,7 +171,13 @@ export default function VoiceEditorPanel() {
               isEdited={live}
               dirty={dirty}
               busy={busy}
-              rows={f.key === "rebuilt_character" ? 16 : 4}
+              rows={
+                f.key === "rebuilt_character"
+                  ? 16
+                  : f.key === "composer_entry_bar"
+                    ? 12
+                    : 4
+              }
               onChange={(v) => setDrafts((d) => ({ ...d, [f.key]: v }))}
               onSave={() => save(f.key)}
               onReset={() => reset(f.key)}

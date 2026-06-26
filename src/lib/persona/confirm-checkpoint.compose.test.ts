@@ -3,11 +3,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Capture the user-content string composeManualEntry sends to Opus so we can
 // assert how the prompt is framed for the pushed vs. user-pulled paths.
 let lastUserContent = "";
+let lastSystem = "";
 
 vi.mock("@/lib/anthropic", () => ({
   anthropicFetch: vi.fn(
-    async (opts: { messages: { role: string; content: string }[] }) => {
+    async (opts: {
+      system?: string;
+      messages: { role: string; content: string }[];
+    }) => {
       lastUserContent = opts.messages[0]?.content ?? "";
+      lastSystem = opts.system ?? "";
       return {};
     }
   ),
@@ -27,7 +32,10 @@ vi.mock("@/lib/anthropic", () => ({
     }),
 }));
 
-import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
+import {
+  composeManualEntry,
+  COMPOSER_ENTRY_BAR,
+} from "@/lib/persona/confirm-checkpoint";
 
 const baseOpts = {
   conversationHistory: [
@@ -69,5 +77,45 @@ describe("composeManualEntry — user-pulled framing", () => {
     expect(lastUserContent).toContain(
       "A specific Jove-drafted reflection paragraph."
     );
+  });
+});
+
+describe("composeManualEntry — editable entry-voice (THE BAR)", () => {
+  beforeEach(() => {
+    lastSystem = "";
+  });
+
+  it("uses the shipped COMPOSER_ENTRY_BAR by default", async () => {
+    await composeManualEntry(baseOpts);
+    expect(lastSystem).toContain("THE BAR — what makes an entry land");
+    expect(lastSystem).toContain(COMPOSER_ENTRY_BAR);
+  });
+
+  it("substitutes an admin override and drops the default standard", async () => {
+    await composeManualEntry({
+      ...baseOpts,
+      entryBarOverride: "THE BAR — custom standard: make every line sing.",
+    });
+    expect(lastSystem).toContain("custom standard: make every line sing");
+    expect(lastSystem).not.toContain(
+      "how did it see that. I never put it together that way"
+    );
+  });
+
+  it("falls back to the default when the override is blank", async () => {
+    await composeManualEntry({ ...baseOpts, entryBarOverride: "   " });
+    expect(lastSystem).toContain(COMPOSER_ENTRY_BAR);
+  });
+
+  it("keeps the locked structure + safety rules regardless of the override", async () => {
+    await composeManualEntry({
+      ...baseOpts,
+      entryBarOverride: "THE BAR — custom.",
+    });
+    // Output schema, section assignment, and the no-clinical-names safety rule
+    // stay in code — an override can't reach them.
+    expect(lastSystem).toContain("Respond with ONLY valid JSON");
+    expect(lastSystem).toContain("No clinical framework names");
+    expect(lastSystem).toContain('SECTION (field: "section")');
   });
 });

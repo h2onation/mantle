@@ -471,6 +471,9 @@ export function callPersona({
       // post-confirm line. Undefined until ctx loads → falls back to the
       // shipped constant, which is also correct if the catch fires early.
       let postConfirmLineOverride: string | undefined;
+      // Same hoist for the composer's editable entry-voice standard (THE BAR):
+      // read off ctx where it loads, used at the composeManualEntry call below.
+      let composerEntryBarOverride: string | undefined;
       try {
         // 0. Emit prepended assistant messages (Track A Phase 7-High).
         //    Used by 7e to deliver the first-lifetime Message 1 stamp
@@ -537,6 +540,7 @@ export function callPersona({
           personaModesOverride
         );
         postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
+        composerEntryBarOverride = ctx.voiceOverrides?.composerEntryBar;
         const {
           messages,
           manualComponents,
@@ -1082,6 +1086,7 @@ export function callPersona({
               depth: previousExtraction?.depth ?? null,
               sageBrief: previousExtraction?.sage_brief ?? null,
               currentThread: previousExtraction?.current_thread ?? null,
+              entryBarOverride: composerEntryBarOverride,
             });
             // Composition is a blocking Opus call that runs after the
             // conversational stream and before the checkpoint card — the

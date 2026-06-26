@@ -127,6 +127,7 @@ export async function POST(request: Request) {
     depth: ext?.depth ?? null,
     sageBrief: ext?.sage_brief ?? null,
     currentThread: ext?.current_thread ?? null,
+    entryBarOverride: ctx.voiceOverrides?.composerEntryBar,
   });
 
   logEvent({
