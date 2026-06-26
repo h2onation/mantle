@@ -119,16 +119,34 @@ export async function POST(request: Request) {
   const ext = ctx.previousExtraction;
 
   const composeStart = Date.now();
-  const composed = await composeManualEntry({
-    conversationHistory: ctx.messages,
-    languageBank: ext?.language_bank || [],
-    manualComponents: ctx.manualComponents || [],
-    distinctContexts: ext?.checkpoint_gate?.distinct_contexts ?? null,
-    depth: ext?.depth ?? null,
-    sageBrief: ext?.sage_brief ?? null,
-    currentThread: ext?.current_thread ?? null,
-    entryBarOverride: ctx.voiceOverrides?.composerEntryBar,
-  });
+  let composed: Awaited<ReturnType<typeof composeManualEntry>> = null;
+  try {
+    composed = await composeManualEntry({
+      conversationHistory: ctx.messages,
+      languageBank: ext?.language_bank || [],
+      manualComponents: ctx.manualComponents || [],
+      distinctContexts: ext?.checkpoint_gate?.distinct_contexts ?? null,
+      depth: ext?.depth ?? null,
+      sageBrief: ext?.sage_brief ?? null,
+      currentThread: ext?.current_thread ?? null,
+      entryBarOverride: ctx.voiceOverrides?.composerEntryBar,
+    });
+  } catch (err) {
+    // composeManualEntry can throw — e.g. Opus returns non-JSON and the
+    // JSON.parse inside it throws. Treat a throw exactly like the `null`
+    // return handled below: fall through to the retryable 502 so the client
+    // keeps the meter full + strip and the user can re-tap. Matches the web
+    // path (call-persona.ts), which suppresses the checkpoint on the same
+    // failure. Log the error TYPE and conversation id only — never the error
+    // message, which can embed the model's (user-derived) output. See the
+    // Security Rules in CLAUDE.md.
+    console.error(
+      "[compose] Composition threw, suppressing checkpoint:",
+      err instanceof Error ? err.name : typeof err,
+      "conversation:",
+      conversationId
+    );
+  }
 
   logEvent({
     event: "composition_latency",
