@@ -15,40 +15,47 @@ describe("PR3 onboarding copy pass", () => {
   // collapsed to one post-login screen). SeedScreen now carries the
   // proposition, affirmative provenance, the single clinical boundary, the
   // crisis pointer, and the age gate.
+  // The Seed copy moved into the admin-editable app-copy registry (the strings
+  // are now plain JS with real Unicode punctuation, not JSX entities). The copy
+  // assertions read the registry; the structural ones (the walnut-period span,
+  // the localStorage logic) still read the component.
   describe("SeedScreen", () => {
     const src = read("src/components/onboarding/SeedScreen.tsx");
+    const copy = read("src/lib/persona/app-copy.ts");
 
     it("contains the merged trust + proposition beats", () => {
-      expect(src).toContain("{PERSONA_NAME} is AI.");
-      expect(src).toContain("notice patterns in how you work");
-      expect(src).toContain("from what you actually say, in your own words");
-      expect(src).toContain("things you confirm become entries in your Manual");
-      expect(src).toContain("You&rsquo;re the authority on how you work");
-      expect(src).toContain("isn&rsquo;t here to fix you");
-      expect(src).toContain("Short answers are fine.");
-      expect(src).toContain("Leave and come back whenever.");
+      expect(copy).toContain("${PERSONA_NAME} is AI.");
+      expect(copy).toContain("notice patterns in how you work");
+      expect(copy).toContain("from what you actually say, in your own words");
+      expect(copy).toContain("things you confirm become entries in your Manual");
+      expect(copy).toContain("You’re the authority on how you work");
+      expect(copy).toContain("isn’t here to fix you");
+      expect(copy).toContain("Short answers are fine.");
+      expect(copy).toContain("Leave and come back whenever.");
     });
 
     it("uses the 'What this is, and isn't' heading with walnut period", () => {
-      expect(src).toContain("What this is, and isn&rsquo;t");
+      expect(copy).toContain("What this is, and isn’t");
+      // The styled period stays in the component, beside the heading slot.
       expect(src).toContain("var(--session-walnut)");
+      expect(src).toContain("{seed.heading}");
     });
 
     it("states the clinical boundary once, with the crisis pointer", () => {
-      expect(src).toContain("This isn&rsquo;t therapy, and {PERSONA_NAME} isn&rsquo;t a clinician.");
-      expect(src).toContain("not a replacement");
-      expect(src).toContain("Crisis Support is one tap away");
+      expect(copy).toContain("This isn’t therapy, and ${PERSONA_NAME} isn’t a clinician.");
+      expect(copy).toContain("not a replacement");
+      expect(copy).toContain("Crisis Support is one tap away");
     });
 
     it("does NOT contain the old framework-pointer, standalone no-diagnosis line, or negation", () => {
-      expect(src).not.toContain("surfaces patterns using psychological frameworks");
-      expect(src).not.toContain("doesn&rsquo;t diagnose or treat");
-      expect(src).not.toContain("It doesn&rsquo;t diagnose, and it&rsquo;s not trying to fix how you work.");
+      expect(copy).not.toContain("surfaces patterns using psychological frameworks");
+      expect(copy).not.toContain("doesn’t diagnose or treat");
+      expect(copy).not.toContain("It doesn’t diagnose, and it’s not trying to fix how you work.");
     });
 
     it("uses 'I'm 18 or older' (not 'I am')", () => {
-      expect(src).toContain("I&rsquo;m 18 or older");
-      expect(src).not.toContain("I am 18 or older");
+      expect(copy).toContain("I’m 18 or older");
+      expect(copy).not.toContain("I am 18 or older");
     });
 
     it("does NOT set dead localStorage keys", () => {
@@ -85,15 +92,17 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/mobile/MobileSession.tsx");
     const mobileHome = read("src/components/mobile/MobileHome.tsx");
     const desktopHome = read("src/components/desktop/DesktopHome.tsx");
-    // The three "ways to begin" doors (copy + launch wiring) live once in the
-    // shared WaysToBegin; both Home views render it.
+    // The three "ways to begin" doors: launch wiring (icon + mode) lives in the
+    // shared WaysToBegin; the door COPY is admin-editable and lives in the
+    // app-copy registry. Both Home views render WaysToBegin.
     const waysToBegin = read("src/components/home/WaysToBegin.tsx");
+    const appCopy = read("src/lib/persona/app-copy.ts");
 
     it("Home surfaces the three ways to begin (the retired entry-cards' modes)", () => {
-      expect(waysToBegin).toContain("Bring a situation");
-      expect(waysToBegin).toContain("Guided");
-      expect(waysToBegin).toContain("Upload");
-      expect(waysToBegin).toContain("Bring something you");
+      expect(appCopy).toContain("Bring a situation");
+      expect(appCopy).toContain("Guided");
+      expect(appCopy).toContain("Upload");
+      expect(appCopy).toContain("Bring something you");
       expect(mobileHome).toContain("<WaysToBegin");
       expect(desktopHome).toContain("<WaysToBegin");
     });

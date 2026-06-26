@@ -3,12 +3,14 @@
 import { useState } from "react";
 import type { ConversationMode } from "@/lib/persona/config";
 import { LineIcon, IC_CHAT, IC_LIST, IC_UPLOAD } from "@/components/home/LineIcon";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 
 // The "ways to begin" entry-point doors, shared by MobileHome and DesktopHome.
-// The three doors (icon, title, description, cue, mode) live here ONCE; both
-// platforms render the same cards with the same anatomy. `variant` controls
-// only the grid — desktop lays the three out across a row, mobile stacks them
-// in one column — never the card itself.
+// The three doors (icon + mode) live here ONCE; both platforms render the same
+// cards with the same anatomy. `variant` controls only the grid — desktop lays
+// the three out across a row, mobile stacks them in one column — never the card
+// itself. The door COPY (title / description / button) is admin-editable and
+// arrives via appCopy.doors[mode].
 
 interface WaysToBeginProps {
   onStartConversation: (mode: ConversationMode) => void;
@@ -16,53 +18,30 @@ interface WaysToBeginProps {
   // whose mode is false renders dimmed + non-interactive with a "Coming soon"
   // tag. All three modes are gate-backed. Defaults to all-on if omitted.
   enabledModes?: Record<ConversationMode, boolean>;
+  // Admin-editable door + section copy. Defaults to the shipped strings.
+  appCopy?: AppCopy;
   variant?: "mobile" | "desktop";
 }
 
-const DOORS: {
-  key: string;
-  icon: string;
-  title: string;
-  desc: string;
-  cue: string;
-  mode: ConversationMode;
-}[] = [
-  {
-    key: "guided",
-    icon: IC_LIST,
-    title: "Guided",
-    desc: "Walk through it step by step with Jove.",
-    cue: "Begin",
-    mode: "guided-intake",
-  },
-  {
-    key: "situation",
-    icon: IC_CHAT,
-    title: "Bring a situation",
-    desc: "A reaction that surprised you, a conflict that keeps repeating.",
-    cue: "Start",
-    mode: "situation",
-  },
-  {
-    key: "upload",
-    icon: IC_UPLOAD,
-    title: "Upload",
-    desc: "Bring something you’ve already written.",
-    cue: "Add",
-    mode: "upload",
-  },
+// Door identity (icon + which conversation mode it opens). The visible text
+// lives in appCopy.doors[mode]; `key` is a stable React/hover id.
+const DOORS: { key: string; icon: string; mode: ConversationMode }[] = [
+  { key: "guided", icon: IC_LIST, mode: "guided-intake" },
+  { key: "situation", icon: IC_CHAT, mode: "situation" },
+  { key: "upload", icon: IC_UPLOAD, mode: "upload" },
 ];
 
 export default function WaysToBegin({
   onStartConversation,
   enabledModes,
+  appCopy = APP_COPY_DEFAULTS,
   variant = "mobile",
 }: WaysToBeginProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const isDesktop = variant === "desktop";
 
   return (
-    <section aria-label="Ways to begin" style={{ marginTop: isDesktop ? 26 : 12 }}>
+    <section aria-label={appCopy.waysToBeginLabel} style={{ marginTop: isDesktop ? 26 : 12 }}>
       <p
         style={{
           margin: 0,
@@ -73,7 +52,7 @@ export default function WaysToBegin({
           color: "var(--session-walnut-meta)",
         }}
       >
-        Ways to begin
+        {appCopy.waysToBeginLabel}
       </p>
       <div
         style={{
@@ -89,11 +68,12 @@ export default function WaysToBegin({
           // showing the start cue.
           const disabled = enabledModes ? !enabledModes[w.mode] : false;
           const isHovered = !disabled && hovered === w.key;
+          const copy = appCopy.doors[w.mode];
           return (
           <button
             key={w.key}
             disabled={disabled}
-            aria-label={disabled ? `${w.title} — coming soon` : w.title}
+            aria-label={disabled ? `${copy.title} — coming soon` : copy.title}
             onClick={disabled ? undefined : () => onStartConversation(w.mode)}
             onMouseEnter={disabled ? undefined : () => setHovered(w.key)}
             onMouseLeave={disabled ? undefined : () => setHovered(null)}
@@ -152,7 +132,7 @@ export default function WaysToBegin({
                   lineHeight: 1.2,
                 }}
               >
-                {w.title}
+                {copy.title}
               </span>
               <span
                 style={{
@@ -171,7 +151,7 @@ export default function WaysToBegin({
                       }),
                 }}
               >
-                {w.desc}
+                {copy.desc}
               </span>
             </span>
             {disabled ? (
@@ -203,7 +183,7 @@ export default function WaysToBegin({
                   color: "var(--session-walnut)",
                 }}
               >
-                {isDesktop ? `${w.cue} →` : "→"}
+                {isDesktop ? `${copy.cue} →` : "→"}
               </span>
             )}
           </button>

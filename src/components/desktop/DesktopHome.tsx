@@ -7,6 +7,7 @@ import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
 import WaysToBegin from "@/components/home/WaysToBegin";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import { LineIcon, IC_BOOKMARK } from "@/components/home/LineIcon";
 
 // Desktop Home (≥1030px). Same shared substance as MobileHome — the
@@ -27,6 +28,8 @@ interface DesktopHomeProps {
   // Which entry doors are live (per-mode feature gates). A disabled door
   // renders as "Coming soon". Situation is always true.
   enabledModes: Record<ConversationMode, boolean>;
+  // Admin-editable onboarding/Home copy. Defaults to the shipped strings.
+  appCopy?: AppCopy;
 }
 
 const EYEBROW: React.CSSProperties = {
@@ -51,6 +54,7 @@ export default function DesktopHome({
   onExploreWithPersona,
   onNavigateToManual,
   enabledModes,
+  appCopy = APP_COPY_DEFAULTS,
 }: DesktopHomeProps) {
   const { greeting, dateLine, heroConv, heroSnippet, layers, startedCount } =
     useHomeModel({ firstName, conversations, activeConversationId, entries });
@@ -156,7 +160,7 @@ export default function DesktopHome({
           </section>
         ) : startedCount === 0 ? (
           <section
-            aria-label="Welcome"
+            aria-label={appCopy.home.welcomeEyebrow}
             style={{
               marginTop: 26,
               padding: "16px 20px",
@@ -166,7 +170,7 @@ export default function DesktopHome({
               boxShadow: "var(--session-card-shadow, none)",
             }}
           >
-            <span style={EYEBROW}>Welcome</span>
+            <span style={EYEBROW}>{appCopy.home.welcomeEyebrow}</span>
             <p
               style={{
                 margin: "8px 0 0",
@@ -176,9 +180,7 @@ export default function DesktopHome({
                 color: "var(--session-ink-soft)",
               }}
             >
-              Start a conversation below — what you confirm becomes your Manual,
-              the five layers of how you operate. Nothing&rsquo;s saved unless
-              you say so.
+              {appCopy.home.welcomeBody}
             </p>
           </section>
         ) : null}
@@ -187,6 +189,7 @@ export default function DesktopHome({
           variant="desktop"
           onStartConversation={onStartConversation}
           enabledModes={enabledModes}
+          appCopy={appCopy}
         />
 
         <LayerIndex
@@ -195,6 +198,7 @@ export default function DesktopHome({
           startedCount={startedCount}
           onExploreWithPersona={onExploreWithPersona}
           onNavigateToManual={onNavigateToManual}
+          appCopy={appCopy}
         />
       </div>
     </main>

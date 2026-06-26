@@ -1,18 +1,22 @@
 import type { ExplorationContext } from "@/lib/types";
 import type { Layer } from "@/components/mobile/manual/layer-definitions";
 import LayerIcon from "@/components/mobile/manual/LayerIcon";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 
 // The 5-layer "go deeper" index, shared by MobileHome and DesktopHome. The
 // row markup, the started/empty emblem tinting (navy = started, brown = empty),
 // and the onExploreWithPersona payload live here ONCE. `variant` controls
-// density only (sizes/padding/intro copy), never structure — both platforms
-// produce the same rows and fire the same exploration context.
+// density only (sizes/padding), never structure — both platforms produce the
+// same rows and fire the same exploration context. The heading + subheading
+// are admin-editable (appCopy.manual).
 
 interface LayerIndexProps {
   layers: Layer[];
   startedCount: number;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
+  // Admin-editable Manual-menu copy. Defaults to the shipped strings.
+  appCopy?: AppCopy;
   variant?: "mobile" | "desktop";
 }
 
@@ -23,7 +27,6 @@ const DENSITY = {
     cardPad: "18px 20px 20px",
     h2: 22,
     sub: 14,
-    subCopy: "Five sections of how you operate. Tap one to go deeper with Jove.",
     pipW: 14,
     rowPad: "14px 0",
     emblem: 34,
@@ -38,8 +41,6 @@ const DENSITY = {
     cardPad: "20px 22px 22px",
     h2: 24,
     sub: 14.5,
-    subCopy:
-      "Five sections of how you operate. Open one to go deeper with Jove — or read the whole thing.",
     pipW: 16,
     rowPad: "15px 0",
     emblem: 38,
@@ -55,13 +56,16 @@ export default function LayerIndex({
   startedCount,
   onExploreWithPersona,
   onNavigateToManual,
+  appCopy = APP_COPY_DEFAULTS,
   variant = "mobile",
 }: LayerIndexProps) {
   const d = DENSITY[variant];
+  const subCopy =
+    variant === "mobile" ? appCopy.manual.subMobile : appCopy.manual.subDesktop;
 
   return (
     <section
-      aria-label="Your manual"
+      aria-label={appCopy.manual.heading}
       style={{
         marginTop: d.sectionMt,
         padding: d.cardPad,
@@ -90,7 +94,7 @@ export default function LayerIndex({
               color: "var(--session-ink)",
             }}
           >
-            Your manual
+            {appCopy.manual.heading}
           </h2>
           <p
             style={{
@@ -101,7 +105,7 @@ export default function LayerIndex({
               color: "var(--session-ink-mid)",
             }}
           >
-            {d.subCopy}
+            {subCopy}
           </p>
         </div>
         <div style={{ flexShrink: 0, textAlign: "right", paddingTop: 4 }}>

@@ -14,6 +14,7 @@ import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
 import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
+import AppCopyPanel from "@/components/admin/AppCopyPanel";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
 import CheckpointTuningPanel from "@/components/admin/CheckpointTuningPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
@@ -384,11 +385,12 @@ function TuningSection() {
         <TuningGroup
           kicker="Tune"
           title="Jove's behavior"
-          desc="How Jove sounds, when it saves an entry, and the copy that greets users at each intake door — the dials and text you reach for during the soak. Each field shows its shipped default, and Reset restores it instantly."
+          desc="How Jove sounds, when it saves an entry, and the words a new user reads — the dials and copy you reach for during the soak. Each field shows its shipped default, and Reset restores it instantly."
         >
           <VoiceEditorPanel />
           <CheckpointTuningPanel />
           <IntakeDoorsPanel />
+          <AppCopyPanel />
         </TuningGroup>
 
         <TuningGroup

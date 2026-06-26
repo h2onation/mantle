@@ -19,6 +19,7 @@ import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import DoorIntroModal from "@/components/modals/DoorIntroModal";
 import type { DoorIntro } from "@/lib/persona/door-intros";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
 import { trackManualViewed, trackModal1Shown } from "@/lib/analytics/events";
 
@@ -65,6 +66,10 @@ export default function MainApp() {
   // flip). Defaults to all-ON until the fetch resolves; fails open to all-ON.
   const [enabledModes, setEnabledModes] =
     useState<Record<ConversationMode, boolean>>(ALL_MODES_ENABLED);
+  // Admin-editable onboarding/Home copy, fetched with the onboarding status
+  // (same call). Defaults to the shipped copy until the fetch resolves and on
+  // any error — so the screens always have text.
+  const [appCopy, setAppCopy] = useState<AppCopy>(APP_COPY_DEFAULTS);
   const [explorationPhase, setExplorationPhase] = useState<ExplorationPhase>(null);
   const [explorationLabel, setExplorationLabel] = useState("");
   const [authDismissed, setAuthDismissed] = useState(false);
@@ -143,6 +148,7 @@ export default function MainApp() {
         if (cancelled) return;
         setOnboardingStatus(data.completed ? "complete" : "needed");
         if (data.enabledModes) setEnabledModes(data.enabledModes);
+        if (data.appCopy) setAppCopy(data.appCopy);
       } catch (err) {
         console.error("[MainApp] onboarding-status fetch failed:", err);
         if (!cancelled) setOnboardingStatus("needed");
@@ -561,6 +567,7 @@ export default function MainApp() {
   if (onboardingStatus === "needed") {
     return (
       <PostLoginOnboarding
+        appCopy={appCopy}
         onComplete={() => setOnboardingStatus("complete")}
       />
     );
@@ -638,6 +645,7 @@ export default function MainApp() {
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       enabledModes={enabledModes}
+      appCopy={appCopy}
       showTopBar={!isDesktop}
     />
   );
@@ -652,6 +660,7 @@ export default function MainApp() {
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       enabledModes={enabledModes}
+      appCopy={appCopy}
     />
   );
 

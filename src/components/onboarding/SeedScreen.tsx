@@ -3,15 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { PERSONA_NAME } from "@/lib/persona/config";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import TopBar from "@/components/shared/TopBar";
 
 interface SeedScreenProps {
   onComplete?: () => void;
   onBack?: () => void;
+  // Admin-editable consent copy. Defaults to the shipped strings.
+  appCopy?: AppCopy;
 }
 
-export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {}) {
+export default function SeedScreen({
+  onComplete,
+  onBack,
+  appCopy = APP_COPY_DEFAULTS,
+}: SeedScreenProps = {}) {
+  const seed = appCopy.seed;
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -105,7 +112,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             color: "var(--session-walnut-meta)",
           }}
         >
-          Before you begin
+          {seed.eyebrow}
         </p>
 
         <h2
@@ -119,7 +126,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             color: "var(--session-ink)",
           }}
         >
-          What this is, and isn&rsquo;t<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
+          {seed.heading}<span style={{ color: "var(--session-walnut)", fontWeight: 400 }}>.</span>
         </h2>
 
         <div
@@ -132,15 +139,11 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             marginBottom: 24,
           }}
         >
-          <p style={{ margin: "0 0 14px 0" }}>
-            {PERSONA_NAME} is AI. It helps you notice patterns in how you work, from what you actually say, in your own words. The things you confirm become entries in your Manual. You&rsquo;re the authority on how you work, and {PERSONA_NAME} isn&rsquo;t here to fix you.
-          </p>
+          <p style={{ margin: "0 0 14px 0" }}>{seed.body1}</p>
           <p style={{ margin: "0 0 14px 0", color: "var(--session-ink-soft)" }}>
-            This isn&rsquo;t therapy, and {PERSONA_NAME} isn&rsquo;t a clinician. It&rsquo;s a complement to other support, not a replacement. If something serious comes up, Crisis Support is one tap away in the menu.
+            {seed.body2}
           </p>
-          <p style={{ margin: 0 }}>
-            Short answers are fine. &ldquo;I don&rsquo;t know&rdquo; is fine. Leave and come back whenever.
-          </p>
+          <p style={{ margin: 0 }}>{seed.body3}</p>
         </div>
 
         {/* Age checkbox */}
@@ -157,7 +160,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
           <div
             role="checkbox"
             aria-checked={ageConfirmed}
-            aria-label="I'm 18 or older"
+            aria-label={seed.ageLabel}
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === " " || e.key === "Enter") {
@@ -195,7 +198,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
               color: "var(--session-ink-mid)",
             }}
           >
-            I&rsquo;m 18 or older
+            {seed.ageLabel}
           </span>
         </label>
 
@@ -235,7 +238,7 @@ export default function SeedScreen({ onComplete, onBack }: SeedScreenProps = {})
             boxSizing: "border-box",
           }}
         >
-          <span>{submitting ? "Connecting..." : "Begin"}</span>
+          <span>{submitting ? "Connecting..." : seed.beginButton}</span>
           <span aria-hidden="true">&rsaquo;</span>
         </button>
 

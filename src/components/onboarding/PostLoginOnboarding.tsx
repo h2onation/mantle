@@ -1,6 +1,7 @@
 "use client";
 
 import SeedScreen from "./SeedScreen";
+import type { AppCopy } from "@/lib/persona/app-copy";
 
 // Single post-login consent screen (SeedScreen) for an already-authenticated
 // user finishing first-time onboarding. SeedScreen runs in post-login mode
@@ -17,10 +18,13 @@ import SeedScreen from "./SeedScreen";
 
 interface PostLoginOnboardingProps {
   onComplete: () => void;
+  // Admin-editable consent-screen copy, threaded down to SeedScreen.
+  appCopy?: AppCopy;
 }
 
 export default function PostLoginOnboarding({
   onComplete,
+  appCopy,
 }: PostLoginOnboardingProps) {
   return (
     <div
@@ -38,7 +42,7 @@ export default function PostLoginOnboarding({
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <SeedScreen onComplete={onComplete} />
+      <SeedScreen onComplete={onComplete} appCopy={appCopy} />
     </div>
   );
 }

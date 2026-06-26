@@ -1,6 +1,8 @@
 import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFeatureGates } from "@/lib/persona/feature-gates";
+import { readOverrideRows } from "@/lib/persona/voice-overrides";
+import { resolveAppCopy, APP_COPY_DEFAULTS } from "@/lib/persona/app-copy";
 import type { ConversationMode } from "@/lib/persona/config";
 
 // MainApp's on-mount bootstrap call. Returns two things:
@@ -39,14 +41,24 @@ export async function GET() {
   // but this covers any edge case where the trigger ran late.
   const completed = !!data?.onboarding_completed_at;
 
-  // Per-mode gates use the service-role admin client (the table has no
-  // client-readable RLS). getFeatureGates fails open to all-ON.
-  const gates = await getFeatureGates(createAdminClient());
+  // Per-mode gates + onboarding/Home copy both use the service-role admin
+  // client (those tables have no client-readable RLS). getFeatureGates fails
+  // open to all-ON; the copy resolver falls back to the shipped defaults on any
+  // read error — so a missing/unreachable overrides table renders as today.
+  const admin = createAdminClient();
+  const gates = await getFeatureGates(admin);
   const enabledModes: Record<ConversationMode, boolean> = {
     situation: gates.situation,
     "guided-intake": gates.guidedIntake,
     upload: gates.upload,
   };
 
-  return Response.json({ completed, enabledModes });
+  let appCopy = APP_COPY_DEFAULTS;
+  try {
+    appCopy = resolveAppCopy(await readOverrideRows(admin));
+  } catch {
+    // keep defaults
+  }
+
+  return Response.json({ completed, enabledModes, appCopy });
 }

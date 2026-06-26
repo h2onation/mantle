@@ -8,6 +8,7 @@ import type { ConversationMode } from "@/lib/persona/config";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
 import WaysToBegin from "@/components/home/WaysToBegin";
+import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import { formatShortDate } from "@/lib/utils/format";
 
 interface MobileHomeProps {
@@ -22,6 +23,8 @@ interface MobileHomeProps {
   // Which entry doors are live (per-mode feature gates). A disabled door
   // renders as "Coming soon". Situation is always true.
   enabledModes: Record<ConversationMode, boolean>;
+  // Admin-editable onboarding/Home copy. Defaults to the shipped strings.
+  appCopy?: AppCopy;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
 }
@@ -51,6 +54,7 @@ export default function MobileHome({
   onExploreWithPersona,
   onNavigateToManual,
   enabledModes,
+  appCopy = APP_COPY_DEFAULTS,
   showTopBar = true,
 }: MobileHomeProps) {
   const [showAll, setShowAll] = useState(false);
@@ -154,7 +158,7 @@ export default function MobileHome({
           </section>
         ) : startedCount === 0 ? (
           <section
-            aria-label="Welcome"
+            aria-label={appCopy.home.welcomeEyebrow}
             style={{
               marginTop: 24,
               padding: "18px 20px 20px",
@@ -164,7 +168,7 @@ export default function MobileHome({
               boxShadow: "var(--session-card-shadow, none)",
             }}
           >
-            <p style={EYEBROW}>Welcome</p>
+            <p style={EYEBROW}>{appCopy.home.welcomeEyebrow}</p>
             <p
               style={{
                 margin: "10px 0 0",
@@ -174,9 +178,7 @@ export default function MobileHome({
                 color: "var(--session-ink-soft)",
               }}
             >
-              Start a conversation below — what you confirm becomes your Manual,
-              the five layers of how you operate. Nothing&rsquo;s saved unless
-              you say so.
+              {appCopy.home.welcomeBody}
             </p>
           </section>
         ) : null}
@@ -187,6 +189,7 @@ export default function MobileHome({
           variant="mobile"
           onStartConversation={onStartConversation}
           enabledModes={enabledModes}
+          appCopy={appCopy}
         />
 
         {/* Manual index — quiet menu of go-deeper actions. */}
@@ -196,6 +199,7 @@ export default function MobileHome({
           startedCount={startedCount}
           onExploreWithPersona={onExploreWithPersona}
           onNavigateToManual={onNavigateToManual}
+          appCopy={appCopy}
         />
 
         {/* Recent conversations — reachability for older threads. */}
