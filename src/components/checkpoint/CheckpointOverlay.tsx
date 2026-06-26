@@ -21,7 +21,13 @@ export type ConfirmStatus = "idle" | "pending" | "success" | "error";
 
 interface CheckpointOverlayProps {
   open: boolean;
-  checkpoint: ActiveCheckpoint;
+  // Null while a user-pulled reflection is still composing server-side: the
+  // overlay opens immediately in its building state and fills in once the
+  // entry arrives.
+  checkpoint: ActiveCheckpoint | null;
+  // True while composeReflection() is in flight after a "Build" tap. Drives
+  // the building cover so the popup is visible the instant the user taps.
+  loading?: boolean;
   refinementCeilingActive: boolean;
   confirmStatus?: ConfirmStatus;
   errorMessage?: string | null;
@@ -34,6 +40,7 @@ type Phase = "actions" | "composing" | "confirmed";
 export default function CheckpointOverlay({
   open,
   checkpoint,
+  loading = false,
   refinementCeilingActive,
   confirmStatus = "idle",
   errorMessage,
@@ -121,7 +128,7 @@ export default function CheckpointOverlay({
       const rawContent = bodyRef.current?.innerText?.trim() ?? "";
       const rawName = headlineRef.current?.innerText?.trim() ?? "";
       if (rawContent) edits.editedContent = rawContent;
-      if (rawName && rawName !== (checkpoint.name?.trim() ?? "")) {
+      if (rawName && rawName !== (checkpoint?.name?.trim() ?? "")) {
         edits.editedName = rawName;
       }
     }
@@ -131,7 +138,7 @@ export default function CheckpointOverlay({
     // Hand straight off to the saving cover — no press animation.
     setPhase("composing");
     onAction("confirmed", edits);
-  }, [editing, onAction, checkpoint.name]);
+  }, [editing, onAction, checkpoint?.name]);
 
   const handleRefine = useCallback(() => {
     onAction("refined");
@@ -160,6 +167,79 @@ export default function CheckpointOverlay({
   }, []);
 
   if (!open) return null;
+
+  // Building state — the popup is visible the instant the user taps "Build",
+  // before the entry has composed server-side. Same module shell so the
+  // transition into the loaded entry is a cross-fade in place, not a re-open.
+  if (loading || !checkpoint) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Building your reflection"
+        aria-busy="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 500,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: "cpOverlayIn 0.3s ease forwards",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "var(--session-backdrop-heavy)",
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            maxWidth: 480,
+            width: "calc(100% - 40px)",
+            minHeight: 220,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+            borderRadius: 20,
+            background:
+              "linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)), var(--session-cream)",
+            border: "1px solid var(--session-bubble-border)",
+            boxShadow: "var(--session-plate-shadow)",
+            animation: "cpModuleIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-display), var(--font-serif), serif",
+              fontSize: 28,
+              color: "var(--session-walnut)",
+              animation: "personaPulse 1.8s ease-in-out infinite",
+            }}
+          >
+            ❦
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "2.2px",
+              textTransform: "uppercase",
+              color: "var(--session-walnut)",
+            }}
+          >
+            Building your reflection…
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const eyebrowText = formatLayerEyebrow(checkpoint.section);
 

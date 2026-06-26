@@ -82,6 +82,9 @@ interface MobileSessionProps {
   // immediately. All absent/no-op when the gate is off.
   reflectionFill?: number | null;
   reflectionReady?: boolean;
+  // One-sentence gist (extraction's current_thread) shown under the ready
+  // card's tee-up. Null/empty → the card shows the tee-up alone.
+  reflectionPreview?: string | null;
   composeReflection?: () => Promise<
     | { status: "ok"; checkpoint: ActiveCheckpoint }
     | { status: "blocked" }
@@ -125,6 +128,7 @@ export default function MobileSession({
   concreteExamples = 0,
   reflectionFill = null,
   reflectionReady = false,
+  reflectionPreview = null,
   composeReflection,
   showTopBar = true,
   scopedLabel = null,
@@ -158,15 +162,32 @@ export default function MobileSession({
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
   // Reflection meter (user-pulled model). `deferred` = the bloom has collapsed
-  // to the persistent top strip (after "Not yet" or sending another message);
-  // `composing` = a compose request is in flight after a tap.
+  // to the persistent top strip (after "Not yet"); `composing` = a compose
+  // request is in flight after a tap; `exiting` = the bloom card is mid-flight
+  // up to the strip (the "Not yet" travel animation), unmounting on end.
   const [reflectionDeferred, setReflectionDeferred] = useState(false);
   const [reflectionComposing, setReflectionComposing] = useState(false);
+  const [reflectionExiting, setReflectionExiting] = useState(false);
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  // "Not yet" → fly the card up to the waiting strip, then collapse. Reduced
+  // motion skips straight to the strip.
+  const deferReflection = () => {
+    if (reduceMotion) {
+      setReflectionDeferred(true);
+      return;
+    }
+    setReflectionExiting(true);
+  };
   // When readiness clears (a confirmed save, a new conversation, or crisis),
   // drop the deferred flag so the NEXT ready shows the bloom again, not the
   // collapsed strip.
   useEffect(() => {
-    if (!reflectionReady) setReflectionDeferred(false);
+    if (!reflectionReady) {
+      setReflectionDeferred(false);
+      setReflectionExiting(false);
+    }
   }, [reflectionReady]);
 
   // The server computes the capture-progress fill (resets on save, rebuilds).
@@ -182,16 +203,25 @@ export default function MobileSession({
     if (!composeReflection || reflectionComposing || isLoading || isStreaming) {
       return;
     }
+    // Open the popup NOW in its building state — the compose round-trip then
+    // fills in the entry in place. Clear any stale checkpoint so the loaded
+    // entry never flashes the previous one.
+    overlayCheckpointRef.current = null;
+    setCheckpointActionState(null);
     setReflectionComposing(true);
+    setCheckpointOverlayOpen(true);
     const result = await composeReflection();
-    setReflectionComposing(false);
     if (result.status === "ok") {
+      // Set the ref BEFORE clearing the loading flag so the re-render that
+      // flips `loading` false reads the composed entry.
       overlayCheckpointRef.current = result.checkpoint;
-      setCheckpointActionState(null);
-      setCheckpointOverlayOpen(true);
+      setReflectionComposing(false);
+    } else {
+      // "blocked" → the hook set promptAuth (the conversion modal handles it).
+      // "error"   → the hook set checkpointError, surfaced under the affordance.
+      setReflectionComposing(false);
+      setCheckpointOverlayOpen(false);
     }
-    // "blocked" → the hook set promptAuth (the conversion modal handles it).
-    // "error"   → the hook set checkpointError, surfaced under the affordance.
   };
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
@@ -381,8 +411,8 @@ export default function MobileSession({
           aria-valuenow={Math.round(displayFill)}
           style={{
             position: "relative",
-            height: 2,
-            background: "var(--session-hair)",
+            height: 3,
+            background: "var(--session-walnut-surface-soft)",
             flexShrink: 0,
             zIndex: 2,
           }}
@@ -394,12 +424,16 @@ export default function MobileSession({
               top: 0,
               height: "100%",
               width: `${displayFill}%`,
+              borderRadius: displayFill >= 100 ? 0 : "0 3px 3px 0",
               background:
                 "linear-gradient(90deg, var(--session-walnut-light), var(--session-walnut))",
-              boxShadow: reflectionReady
-                ? "0 0 7px var(--session-walnut-light)"
-                : "none",
-              transition: "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+              // Glow grows with the fill so the bar reads as alive while it
+              // climbs, not just at the finish line; strongest when ready.
+              boxShadow: `0 0 ${
+                reflectionReady ? 9 : 3 + (displayFill / 100) * 5
+              }px var(--session-walnut-light)`,
+              transition:
+                "width 0.9s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease",
             }}
           />
         </div>
@@ -819,109 +853,153 @@ export default function MobileSession({
         </div>
       </div>
 
-      {/* Reflection bloom — the first offer, above the composer. Collapses to
-          the top strip on "Not yet" or when the user sends another message. */}
+      {/* Reflection card — the ready moment, above the composer. A distinct
+          walnut plate (not loose text) so it lands as an event. The chat is
+          locked behind it until the user builds it or taps "Not yet", which
+          flies the card up to the persistent top strip to wait. */}
       {reflectionReady && !reflectionDeferred && (
         <div
           style={{
             flexShrink: 0,
-            textAlign: "center",
-            padding: "16px 26px 10px",
-            animation: "checkpointFadeIn 0.5s ease both",
+            padding: "10px 16px 12px",
           }}
         >
           <div
+            onAnimationEnd={() => {
+              if (reflectionExiting) {
+                setReflectionDeferred(true);
+                setReflectionExiting(false);
+              }
+            }}
             style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: 21,
-              color: "var(--session-walnut)",
-              lineHeight: 1,
-              marginBottom: 9,
+              textAlign: "left",
+              padding: "22px",
+              borderRadius: 16,
+              background:
+                "linear-gradient(var(--session-walnut-surface-soft), var(--session-walnut-surface-soft)), var(--session-cream)",
+              border: "1px solid var(--session-walnut-border)",
+              boxShadow: "var(--session-plate-shadow)",
+              transformOrigin: "center top",
+              animation: reflectionExiting
+                ? "reflectionFlyUp 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards"
+                : "reflectionRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
             }}
           >
-            ❦
-          </div>
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              fontSize: 20,
-              lineHeight: 1.3,
-              color: "var(--session-ink)",
-              margin: "0 0 16px",
-            }}
-          >
-            There&rsquo;s something here worth keeping.
-          </p>
-          <button
-            type="button"
-            onClick={handleBuildReflection}
-            disabled={reflectionComposing}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              fontFamily: "var(--font-sans)",
-              fontSize: 15,
-              fontWeight: 500,
-              color: "var(--session-ink)",
-              background: "var(--session-walnut-border)",
-              border: "1px solid var(--session-walnut)",
-              borderRadius: 13,
-              padding: "13px 26px",
-              cursor: reflectionComposing ? "default" : "pointer",
-              letterSpacing: "0.01em",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {reflectionComposing
-              ? "Building your reflection…"
-              : "Build this reflection"}
-            {!reflectionComposing && <span aria-hidden="true">&rarr;</span>}
-          </button>
-          <button
-            type="button"
-            onClick={() => setReflectionDeferred(true)}
-            disabled={reflectionComposing}
-            style={{
-              display: "block",
-              margin: "14px auto 0",
-              fontFamily: "var(--font-sans)",
-              fontSize: 13.5,
-              color: "var(--session-ink-faded)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Not yet
-          </button>
-          {checkpointError && (
-            <p
+            <div
               style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: "var(--session-ink-ghost)",
-                margin: "12px 0 0",
+                fontFamily: "var(--font-serif)",
+                fontSize: 18,
+                color: "var(--session-walnut)",
+                lineHeight: 1,
+                marginBottom: 14,
               }}
             >
-              {checkpointError}
+              ❦
+            </div>
+            {/* Tee-up — names the moment. */}
+            <p
+              style={{
+                fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                fontSize: 18,
+                lineHeight: 1.4,
+                color: "var(--session-ink)",
+                margin: reflectionPreview ? "0 0 9px" : "0 0 20px",
+              }}
+            >
+              We&rsquo;ve got enough here for a reflection worth keeping.
             </p>
-          )}
+            {/* Gist — the one-sentence current_thread, quieter so it sits
+                under the tee-up. Omitted entirely when empty. */}
+            {reflectionPreview && (
+              <p
+                style={{
+                  fontFamily: "var(--font-spectral), var(--font-serif), serif",
+                  fontStyle: "italic",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  color: "var(--session-ink-soft)",
+                  margin: "0 0 20px",
+                }}
+              >
+                {reflectionPreview}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleBuildReflection}
+              disabled={reflectionComposing}
+              style={{
+                display: "block",
+                width: "100%",
+                fontFamily: "var(--font-sans)",
+                fontSize: 15,
+                fontWeight: 500,
+                color: "var(--session-cream-bright)",
+                background: "var(--session-walnut)",
+                border: "none",
+                borderRadius: 12,
+                padding: "13px 20px",
+                cursor: reflectionComposing ? "default" : "pointer",
+                letterSpacing: "0.01em",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {reflectionComposing ? (
+                "Building your reflection…"
+              ) : (
+                <>
+                  Build this reflection <span aria-hidden="true">&rarr;</span>
+                </>
+              )}
+            </button>
+            <div style={{ textAlign: "center" }}>
+              <button
+                type="button"
+                onClick={deferReflection}
+                disabled={reflectionComposing}
+                style={{
+                  margin: "11px auto 0",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13.5,
+                  color: "var(--session-ink-faded)",
+                  background: "none",
+                  border: "none",
+                  cursor: reflectionComposing ? "default" : "pointer",
+                }}
+              >
+                Not yet
+              </button>
+            </div>
+            {checkpointError && (
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  letterSpacing: "1.5px",
+                  textTransform: "uppercase",
+                  color: "var(--session-ink-ghost)",
+                  margin: "12px 0 0",
+                }}
+              >
+                {checkpointError}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
       <ChatInput
-        onSend={(text) => {
-          // Sending another message while the bloom is up is an implicit
-          // "not yet" — collapse it to the persistent strip so it never
-          // blocks the composer.
-          if (reflectionReady && !reflectionDeferred) setReflectionDeferred(true);
-          sendMessage(text);
-        }}
-        disabled={isLoading || isStreaming || conversationId === "text-channel"}
+        onSend={sendMessage}
+        // The chat stops while the reflection card is up: the composer is
+        // locked until the user builds the reflection or taps "Not yet"
+        // (which flies it to the top strip and re-opens the composer, with
+        // the reflection still waiting). Once deferred, typing flows normally.
+        disabled={
+          isLoading ||
+          isStreaming ||
+          conversationId === "text-channel" ||
+          (reflectionReady && !reflectionDeferred)
+        }
         draftToRestore={draftToRestore}
         onDraftRestored={onDraftRestored}
         placeholder={optionsShowing ? "Or type something else…" : undefined}
@@ -948,10 +1026,11 @@ export default function MobileSession({
       />
 
 
-      {overlayCheckpointRef.current && (
+      {(checkpointOverlayOpen || overlayCheckpointRef.current) && (
         <CheckpointOverlay
           open={checkpointOverlayOpen}
           checkpoint={overlayCheckpointRef.current}
+          loading={reflectionComposing}
           refinementCeilingActive={refinementCeilingActive}
           confirmStatus={
             checkpointActionState !== "confirmed"

@@ -45,7 +45,11 @@ export interface MessageCompleteEvent {
   // server-side — it resets after a save (the cooldown) and rebuilds, capped by
   // depth. ready = completion. null HIDES the meter and clears any latched
   // readiness (crisis). Absent (undefined) when the gate is off.
-  reflectionMeter?: { fill: number; ready: boolean } | null;
+  // `preview` is the one-sentence current_thread (what the conversation is
+  // about) — shown as the gist line on the ready card. Already computed by
+  // extraction every turn; no extra cost. Absent/empty → card shows the
+  // tee-up alone.
+  reflectionMeter?: { fill: number; ready: boolean; preview?: string | null } | null;
   // Split delivery: true on the checkpoint lead-in event — the entry is
   // still composing server-side and more events follow on this stream.
   // The client keeps the typing indicator up until the next
