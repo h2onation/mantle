@@ -22,12 +22,42 @@ function rowsFor(key: string): number {
   return 1;
 }
 
+// Where each group's copy appears and who sees it. Rendered in the collapsed
+// group header so the founder knows what a section controls before expanding.
+const GROUP_INFO: Record<string, { where: string; when: string }> = {
+  "Entry doors": {
+    where: "The three “ways to begin” cards on the Home screen.",
+    when: "Every logged-in user, on Home. A door whose mode is switched off in Feature gates shows “Coming soon” instead of this copy.",
+  },
+  Home: {
+    where: "The welcome card at the top of Home, just above the “ways to begin” cards.",
+    when: "Only a brand-new user — nothing to resume and no Manual entries yet. Once they have a saved conversation it’s replaced by the “Pick up where you left off” card.",
+  },
+  "Manual menu": {
+    where: "The “Your manual” block on Home — the heading and subheading above the five section rows.",
+    when: "Every logged-in user, on Home. Mobile and desktop show slightly different subheadings (both editable below).",
+  },
+  "Seed screen": {
+    where: "The full-screen “What this is, and isn’t” consent screen.",
+    when: "Once, for a brand-new user right after their first login — before they reach the app.",
+  },
+};
+
 export default function AppCopyPanel() {
   const [fields, setFields] = useState<FieldView[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Groups collapse by default — this panel holds ~20 fields. Expand one to edit.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (g: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
 
   function load() {
     fetch("/api/admin/app-copy")
@@ -112,9 +142,9 @@ export default function AppCopyPanel() {
           margin: "0 0 16px",
         }}
       >
-        The words a new user reads — the entry doors, the Home welcome tile, the
-        Manual menu, and the &ldquo;what this is&rdquo; consent screen. Edits go
-        live on the next app load; Reset returns a field to its shipped default.
+        The words a new user reads. Each section below says where its copy
+        appears and who sees it — expand one to edit. Edits go live on the next
+        app load; Reset returns a field to its shipped default.
       </p>
 
       {fields === null && !error && (
@@ -130,51 +160,138 @@ export default function AppCopyPanel() {
         </p>
       )}
 
-      {groups.map((group, gi) => (
-        <div
-          key={group}
-          style={{
-            marginTop: gi === 0 ? 0 : 20,
-            paddingTop: gi === 0 ? 0 : 16,
-            borderTop: gi === 0 ? "none" : "1px solid var(--session-walnut-border)",
-          }}
-        >
+      {groups.map((group) => {
+        const info = GROUP_INFO[group];
+        const groupFields = (fields ?? []).filter((f) => f.group === group);
+        const editedCount = groupFields.filter(
+          (f) => f.enabled && f.override !== null,
+        ).length;
+        const open = openGroups.has(group);
+        return (
           <div
+            key={group}
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              letterSpacing: "1.5px",
-              textTransform: "uppercase",
-              color: "var(--session-walnut-meta-soft)",
-              marginBottom: 12,
+              marginTop: 12,
+              border: "1px solid var(--session-walnut-border-soft)",
+              borderRadius: 10,
+              overflow: "hidden",
             }}
           >
-            {group}
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => toggleGroup(group)}
+              style={{
+                all: "unset",
+                boxSizing: "border-box",
+                cursor: "pointer",
+                width: "100%",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "12px 14px",
+              }}
+            >
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      color: "var(--session-ink)",
+                    }}
+                  >
+                    {group}
+                  </span>
+                  {editedCount > 0 && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        letterSpacing: "0.04em",
+                        color: "var(--session-persona)",
+                        border: "1px solid var(--session-persona)",
+                        borderRadius: 999,
+                        padding: "1px 6px",
+                      }}
+                    >
+                      {editedCount} edited
+                    </span>
+                  )}
+                </span>
+                {info && (
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 5,
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "12px",
+                      lineHeight: 1.45,
+                      color: "var(--session-walnut-meta)",
+                    }}
+                  >
+                    <span style={{ color: "var(--session-walnut-meta-soft)" }}>
+                      Where:{" "}
+                    </span>
+                    {info.where}
+                    <br />
+                    <span style={{ color: "var(--session-walnut-meta-soft)" }}>
+                      When:{" "}
+                    </span>
+                    {info.when}
+                  </span>
+                )}
+              </span>
+              <span
+                aria-hidden="true"
+                style={{
+                  flexShrink: 0,
+                  marginTop: 2,
+                  fontSize: "12px",
+                  color: "var(--session-walnut-meta)",
+                  transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+                  transition: "transform 120ms ease",
+                }}
+              >
+                ▾
+              </span>
+            </button>
+
+            {open && (
+              <div
+                style={{
+                  padding: "4px 14px 14px",
+                  borderTop: "1px solid var(--session-walnut-border-soft)",
+                }}
+              >
+                {groupFields.map((f) => {
+                  const live = f.enabled && f.override !== null;
+                  const draft = drafts[f.key] ?? "";
+                  const dirty =
+                    draft !== (live ? (f.override as string) : f.default);
+                  return (
+                    <div key={f.key} style={{ marginTop: 14 }}>
+                      <OverrideFieldEditor
+                        label={f.label}
+                        value={draft}
+                        isEdited={live}
+                        dirty={dirty}
+                        busy={pending === f.key}
+                        rows={rowsFor(f.key)}
+                        onChange={(v) => setDrafts((d) => ({ ...d, [f.key]: v }))}
+                        onSave={() => save(f.key)}
+                        onReset={() => reset(f.key)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          {(fields ?? [])
-            .filter((f) => f.group === group)
-            .map((f) => {
-              const live = f.enabled && f.override !== null;
-              const draft = drafts[f.key] ?? "";
-              const dirty = draft !== (live ? (f.override as string) : f.default);
-              return (
-                <div key={f.key} style={{ marginBottom: 16 }}>
-                  <OverrideFieldEditor
-                    label={f.label}
-                    value={draft}
-                    isEdited={live}
-                    dirty={dirty}
-                    busy={pending === f.key}
-                    rows={rowsFor(f.key)}
-                    onChange={(v) => setDrafts((d) => ({ ...d, [f.key]: v }))}
-                    onSave={() => save(f.key)}
-                    onReset={() => reset(f.key)}
-                  />
-                </div>
-              );
-            })}
-        </div>
-      ))}
+        );
+      })}
 
       {(error || notice) && (
         <p
