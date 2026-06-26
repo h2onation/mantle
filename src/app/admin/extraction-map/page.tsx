@@ -196,7 +196,7 @@ const FIELDS: Field[] = [
       "Count of specific moments the user has walked Jove through. Moments within one incident still count separately here — the pattern-recurrence question is handled by distinct_contexts.",
     storage: "conversations.extraction_state.checkpoint_gate.concrete_examples",
     readers: [
-      { where: "persona-pipeline.ts:576 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent" },
+      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Requires ≥ minScenes scenes (admin-tunable, default 2) — same bar for every checkpoint" },
       { where: "extraction.ts:540 (formatExtractionForPersona)", what: "gateReady computation + brief copy" },
       { where: "call-persona.ts:789 (SSE payload)", what: "Surfaced to client as concreteExamples" },
       { where: "MobileSession.tsx:867", what: "Current Modal 2 firing condition" },
@@ -213,12 +213,12 @@ const FIELDS: Field[] = [
       "Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments in one phone call = 1 distinct context, not 4. Promoted from prose to gate logic recently.",
     storage: "conversations.extraction_state.checkpoint_gate.distinct_contexts",
     readers: [
-      { where: "persona-pipeline.ts:591 (validateMaterialQuality)", what: "Requires ≥1 first checkpoint, ≥2 subsequent (soft fallback when missing)" },
+      { where: "(not a gate)", what: "validateMaterialQuality does NOT block on distinct_contexts — strengthening signal only (ADR-043 Decision 3, reaffirmed ADR-045)" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'evidence from N more contexts' brief copy" },
-      { where: "call-persona.ts:617, persona-bridge.ts:203", what: "Plumbed into composeManualEntry — gates headline-softener validator" },
+      { where: "call-persona.ts:1077, linq/persona-bridge.ts", what: "Plumbed into composeManualEntry — feeds validateHeadline's can/sometimes hedge for single-scene entries" },
     ],
-    gates: "The two-instance rule — a pattern claim needs ≥2 contexts for a non-first checkpoint.",
-    notes: "Soft-fallback when undefined so legacy extraction states pass through.",
+    gates: "Not a blocking gate. Strengthens an entry — feeds validateHeadline's can/sometimes hedge for single-scene entries (confirm-checkpoint.ts). A single vivid scene in the user's charged language is saveable.",
+    notes: "A genuine recognition from one powerful moment is saveable; the over-claim is scoped by the title + the user's confirmation, not by a hard ≥2 gate.",
   },
   {
     path: "checkpoint_gate.has_mechanism",
@@ -230,7 +230,7 @@ const FIELDS: Field[] = [
       "Whether the conversation has reached WHY (not just WHAT). Specifically: a connection between an observed behavior and an underlying driver — a need, sensory load, system state, or bind.",
     storage: "conversations.extraction_state.checkpoint_gate.has_mechanism",
     readers: [
-      { where: "persona-pipeline.ts:635 (validateMaterialQuality)", what: "Required subsequent; OR-with-driver_link for first" },
+      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Required for every checkpoint — separate AND check alongside behavior-driver link (no OR-for-first)" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'no mechanism' missing-piece copy" },
     ],
     gates: "Checkpoint quality gate — the depth-of-understanding check.",
@@ -245,7 +245,7 @@ const FIELDS: Field[] = [
       "Whether a clear line has been drawn between an observable behavior and what's fueling it.",
     storage: "conversations.extraction_state.checkpoint_gate.has_behavior_driver_link",
     readers: [
-      { where: "persona-pipeline.ts:636 (validateMaterialQuality)", what: "Required subsequent; OR-with-mechanism for first" },
+      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Required for every checkpoint — separate AND check alongside mechanism (no OR-for-first)" },
       { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'not connected to driver' missing copy" },
     ],
     gates: "Checkpoint quality gate — the behavior↔driver linkage.",
@@ -274,11 +274,11 @@ const FIELDS: Field[] = [
       "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism → origin.",
     storage: "conversations.extraction_state.depth",
     readers: [
-      { where: "persona-pipeline.ts:567 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked until depth ≥ 'feeling' (first checkpoint) / 'mechanism' (subsequent)" },
+      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked until depth ≥ depthFloor (admin-tunable, default 'mechanism') — same bar for every checkpoint" },
       { where: "extraction.ts:609 (formatExtractionForPersona)", what: "One-line framing in the brief" },
       { where: "call-persona.ts:362", what: "Dev-only debug log" },
     ],
-    gates: "Checkpoint depth gate — blocks the checkpoint until the conversation reaches 'feeling' (first) / 'mechanism' (subsequent).",
+    gates: "Checkpoint depth gate — blocks the checkpoint until the conversation reaches depthFloor (admin-tunable, default 'mechanism') for every checkpoint.",
   },
   {
     path: "pattern_engaged",
@@ -436,7 +436,7 @@ const FIELDS: Field[] = [
       { where: "persona-pipeline.ts:613–627 (validateMaterialQuality — Lock 1)", what: "GATE — the deterministic charged-language check reads the bank directly (≥1 high/medium phrase on the candidate layer)" },
       { where: "confirm-checkpoint.ts (composeManualEntry)", what: "Top 10 high/medium-charge phrases passed into the composer prompt verbatim" },
       { where: "extraction.ts:517 (formatExtractionForPersona)", what: "Top 15 charged entries listed in the brief as 'phrases the user has used'" },
-      { where: "call-persona.ts:609, persona-bridge.ts:200", what: "Pass-through into composeManualEntry from web + SMS paths" },
+      { where: "call-persona.ts:609, linq/persona-bridge.ts", what: "Pass-through into composeManualEntry from web + SMS paths" },
     ],
     gates: "Keeps the user's voice in their Manual AND anchors the checkpoint gate. Without it, the composer drifts into clinical-adjacent prose and the gate loses its evidence.",
   },

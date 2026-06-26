@@ -55,7 +55,7 @@ The scheme, implemented in `src/lib/persona/manual-context.ts`:
 - **Recent** (entries authored in the current conversation, plus the most-recent backfill up to a cap of 4) render in full. Jove sees the exact narrative prose so it can reference specifics and avoid proposing duplicates.
 - **Older** entries render as one line: `[Section — SectionName] "Headline" — one-sentence summary. Key words: w1, w2, w3.` Jove still knows the shape of the Manual but doesn't re-read the prose every turn.
 
-The compressed summary and key words are generated at checkpoint-confirm time by the same Sonnet call that composes the entry (`src/lib/persona/confirm-checkpoint.ts`). They are stored on `manual_entries.summary` and `manual_entries.key_words`. Pre-existing rows and any fallback path derive a summary from the first sentence of `content`.
+The compressed summary and key words are generated at checkpoint-confirm time by the same Opus composition call that composes the entry (`src/lib/persona/confirm-checkpoint.ts`). They are stored on `manual_entries.summary` and `manual_entries.key_words`. Pre-existing rows and any fallback path derive a summary from the first sentence of `content`.
 
 The extraction layer sees the full, un-compressed Manual (it analyzes the user's message in detail and benefits from the nuance). Only the Jove system prompt uses the compressed view.
 

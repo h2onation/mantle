@@ -31,7 +31,7 @@ const STEPS: Step[] = [
     id: 1,
     title: "The whole prompt",
     caption:
-      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~7,000 tokens on a normal turn. These first six steps group the prompt by how often each part changes — which is why Tier 2's voice shows up in two of them.",
+      "Every user message triggers one Anthropic call. The system prompt below is what Jove sees. ~3,000 tokens on a normal turn under the live rebuilt voice. These first six steps group the prompt by how often each part changes — which is why Tier 2's voice shows up in two of them.",
   },
   {
     id: 2,
@@ -79,7 +79,7 @@ const STEPS: Step[] = [
     id: 9,
     title: "Cache view — what's reused vs rebuilt",
     caption:
-      "Static prefix + persona-keyed parts are cached. The conditional and dynamic layers are rebuilt every turn. That's why a ~7,000-token prompt streams in 2–3 seconds.",
+      "Static prefix + persona-keyed parts are cached. The conditional and dynamic layers are rebuilt every turn. That's why a ~3,000-token prompt streams in 2–3 seconds.",
   },
   {
     id: 10,
@@ -260,7 +260,7 @@ const ALONGSIDE_ITEMS: AdjacentItem[] = [
     oneLine: "Checkpoint action records",
     description:
       "When the user confirms / rejects / refines a checkpoint, a canonical system message is inserted into the messages array as a structured record. mapSystemMessages re-maps these to assistant turns at API-call time so Claude sees them as conversation events, not bare metadata.",
-    source: "src/lib/persona/persona-pipeline.ts → insertCheckpointActionMessage, mapSystemMessages",
+    source: "src/lib/persona/persona-pipeline.ts → insertCheckpointActionMessage; src/lib/persona/call-persona.ts → mapSystemMessages",
   },
   {
     id: "cache-control",

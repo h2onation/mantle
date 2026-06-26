@@ -47,7 +47,7 @@ const STAGES: Stage[] = [
     id: 3,
     title: "Jove streams back",
     caption:
-      "The assembled prompt plus the conversation history go to Anthropic's Sonnet model. The response streams back to the user one token at a time, so the page feels alive instead of pausing for a full reply.",
+      "The assembled prompt plus the conversation history go to Anthropic's Opus model. The response streams back to the user one token at a time, so the page feels alive instead of pausing for a full reply.",
     specifics: "Streaming via SSE. Total response time: 2–3 seconds for a normal turn.",
     actor: "anthropic",
     deepDives: [{ label: "Vendors", href: "/admin/vendors" }],

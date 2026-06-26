@@ -31,6 +31,7 @@ type Family =
   | "audit"
   | "telemetry"
   | "beta"
+  | "config"
   | "deprecated";
 
 // Who can read a table's rows — the security posture.
@@ -116,6 +117,7 @@ const FAMILY_LABEL: Record<Family, string> = {
   audit: "Audit",
   telemetry: "Telemetry",
   beta: "Beta & signup",
+  config: "Admin config",
   deprecated: "Deprecated",
 };
 
@@ -326,6 +328,8 @@ const TABLES: Table[] = [
       { name: "otp_expires_at", type: "timestamptz", plain: "When the one-time passcode expires. (Renamed from code_expires_at.)" },
       { name: "service_type", type: "text", plain: "Which messaging provider routes for this number." },
       { name: "otp_attempts", type: "integer", plain: "Brute-force-protection counter. Capped at OTP_MAX_ATTEMPTS (5). Verify route returns 429 at cap. Resets on successful verify or fresh OTP send.", emphasized: true },
+      { name: "linked_at", type: "timestamptz", plain: "When the number was first linked." },
+      { name: "linq_chat_id", type: "text", plain: "Per-phone Linq chat pointer. Dead with the Linq deprecation — still a live column." },
     ],
     connections: [
       {
@@ -357,7 +361,9 @@ const TABLES: Table[] = [
       { name: "to_number", type: "text", plain: "Recipient phone number (E.164)." },
       { name: "content", type: "text", plain: "Message text. Redacted after a retention window." },
       { name: "status", type: "text", plain: "Provider-reported delivery status." },
+      { name: "delivered_at", type: "timestamptz", plain: "When the provider confirmed delivery. Backs the Sendblue delivery-latency check.", emphasized: true },
       { name: "error_code", type: "text", plain: "Provider-reported error code if delivery failed." },
+      { name: "error_message", type: "text", plain: "Provider-reported error detail if delivery failed." },
       { name: "was_downgraded", type: "boolean", plain: "True when iMessage was downgraded to SMS at delivery time." },
       { name: "raw_payload", type: "jsonb", plain: "Full provider payload for forensic debugging." },
       { name: "owner_user_id", type: "uuid", plain: "The mywalnut user this event was for. SET NULL on user delete so the event survives.", emphasized: true },
@@ -437,7 +443,7 @@ const TABLES: Table[] = [
     ],
     deprecated: true,
     notes:
-      "Slated for removal. Per project memory: 'Moving away from Linq; no further investment in Linq code.'",
+      "Slated for removal. Per project memory: 'Moving away from Linq; no further investment in Linq code.' Columns abbreviated — the live table also carries intro_sent, intro_sent_at, last_inactive_reminder_at, and last_persona_spoke_at (pacing/reminder state), not enumerated here because the table is dead.",
   },
   {
     name: "beta_feedback",
@@ -569,6 +575,7 @@ const TABLES: Table[] = [
       { name: "method", type: "text", plain: "HTTP method." },
       { name: "status_code", type: "integer", plain: "HTTP status code returned." },
       { name: "error_message", type: "text", plain: "Error message." },
+      { name: "error_stack", type: "text", plain: "Captured stack trace for the error." },
       { name: "user_id_hash", type: "text (16-char hex)", plain: "Hashed user identifier. NOT a foreign key — deliberate, so users can't be correlated across rows.", emphasized: true },
       { name: "request_id", type: "text", plain: "Structured-log correlation ID." },
     ],
@@ -606,6 +613,106 @@ const TABLES: Table[] = [
     ],
     notes:
       "RLS-on, no policies. message_id and conversation_id are deliberately not FKs, to avoid coupling telemetry to the lifetime of the source rows.",
+  },
+  {
+    name: "feature_gates",
+    families: ["config"],
+    access: "backend",
+    oneLine: "Global on/off switches for ancillary Jove subsystems.",
+    rowMeans:
+      "One feature gate — a named subsystem (persona deltas, conversation modes, the checkpoint pipeline) that an admin can disable at runtime so the core voice + extraction loop can be tested in isolation.",
+    description:
+      "Holds NO user data — global app config, three seeded rows (persona_deltas, conversation_modes, checkpoints), all defaulting ON. Read once per turn inside loadConversationContext (folded into its existing parallel DB batch — no extra round-trip), written only via /api/admin/feature-gates. Debug scaffolding, not a permanent fork: deletion condition is once the core loop is validated in isolation, drop the table and its read sites.",
+    columns: [
+      { name: "key", type: "text (PK)", plain: "Gate name: persona_deltas, conversation_modes, or checkpoints.", emphasized: true },
+      { name: "enabled", type: "boolean", plain: "Whether the subsystem is on. Default true.", emphasized: true },
+      { name: "updated_at", type: "timestamptz", plain: "When the gate was last toggled." },
+    ],
+    connections: [],
+    notes:
+      "RLS enabled with NO policies — deny-all to anon/auth clients; server access is service-role only (bypasses RLS). Same convention as persona_voice_overrides and checkpoint_tuning.",
+  },
+  {
+    name: "persona_voice_overrides",
+    families: ["config"],
+    access: "backend",
+    oneLine: "Admin-editable replacements for a fixed set of voice-text fields.",
+    rowMeans:
+      "One overridden voice field (CHARACTER, the two openers, the post-confirm line) — live-tunable from /admin without a deploy. A field is overridden only when its row exists AND is enabled.",
+    description:
+      "Holds NO user data — global app config, at most four rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). REBUILT_LIMITS, CRISIS_PHRASES, the checkpoint contract + detector regex, and OTP caps are NOT editable here.",
+    columns: [
+      { name: "key", type: "text (PK)", plain: "Which voice field is overridden.", emphasized: true },
+      { name: "text_override", type: "text", plain: "The admin-supplied replacement text." },
+      { name: "enabled", type: "boolean", plain: "Whether the override is live. Default false.", emphasized: true },
+      { name: "updated_at", type: "timestamptz", plain: "When the override was last saved." },
+      { name: "updated_by", type: "uuid", plain: "Admin user id who saved it. No FK — id only, per the log-ids-not-content rule." },
+    ],
+    connections: [],
+    notes:
+      "RLS enabled with NO policies — service-role only. Paired with persona_voice_override_history (append-only audit of edits).",
+  },
+  {
+    name: "persona_voice_override_history",
+    families: ["config", "audit"],
+    access: "backend",
+    oneLine: "Append-only audit of voice-override edits.",
+    rowMeans:
+      "One edit to a persona_voice_overrides field — old text, new text, who, when. For 'who changed what when' and rollback by eye.",
+    description:
+      "Append-only history backing persona_voice_overrides. old_text is null on the first edit of a key. No FK on updated_by (admin user id only). Indexed on (key, created_at desc).",
+    columns: [
+      { name: "id", type: "uuid (PK)", plain: "Unique history-row identifier." },
+      { name: "key", type: "text", plain: "Which voice field was edited.", emphasized: true },
+      { name: "old_text", type: "text", plain: "Prior text. Null on the first edit of a key." },
+      { name: "new_text", type: "text", plain: "The new text saved." },
+      { name: "updated_by", type: "uuid", plain: "Admin user id who made the edit. No FK." },
+      { name: "created_at", type: "timestamptz", plain: "When the edit was made." },
+    ],
+    connections: [],
+    notes: "RLS enabled with NO policies — service-role only.",
+  },
+  {
+    name: "checkpoint_tuning",
+    families: ["config"],
+    access: "backend",
+    oneLine: "Admin-editable thresholds that decide WHEN a checkpoint fires.",
+    rowMeans:
+      "The single typed row of eagerness dials — min scenes, cooldown turns, engagement-failsafe turn, depth floor. Moves eagerness only; the quality gates stay locked in code.",
+    description:
+      "Holds NO user data — global app config, exactly one row (a boolean-singleton PK guarantees at most one). A column is honored only when non-null and in-range; any null/out-of-range/unreachable case resolves to CHECKPOINT_TUNING_DEFAULTS (the permanent code floor: min_scenes 2, cooldown 5, failsafe 12, depth mechanism). Read once per turn inside loadConversationContext, written only via /api/admin/checkpoint-tuning. No admin value can lower the quality floor.",
+    columns: [
+      { name: "id", type: "boolean (PK, singleton)", plain: "Always true — a check constraint guarantees a single row.", emphasized: true },
+      { name: "min_scenes", type: "integer", plain: "Concrete narrated scenes before a proposal. Null = code default (2)." },
+      { name: "cooldown_turns", type: "integer", plain: "Minimum user turns between checkpoints. Null = code default (5)." },
+      { name: "failsafe_turn", type: "integer", plain: "Fire even if the engagement signal never trips, past this turn. Null = code default (12)." },
+      { name: "depth_floor", type: "text", plain: "How deep the talk must go: surface|behavior|feeling|mechanism|origin. Null = code default (mechanism)." },
+      { name: "updated_at", type: "timestamptz", plain: "When a dial was last saved." },
+      { name: "updated_by", type: "uuid", plain: "Admin user id who saved it. No FK." },
+    ],
+    connections: [],
+    notes:
+      "RLS enabled with NO policies — service-role only. Paired with checkpoint_tuning_history (append-only audit of edits).",
+  },
+  {
+    name: "checkpoint_tuning_history",
+    families: ["config", "audit"],
+    access: "backend",
+    oneLine: "Append-only audit of checkpoint-tuning edits.",
+    rowMeans:
+      "One edit to a checkpoint_tuning dial — field, old value, new value, who, when. Values stored as text so one shape covers the numeric dials and the depth_floor enum.",
+    description:
+      "Append-only history backing checkpoint_tuning. old_value is null on the first edit of a field. No FK on updated_by. Indexed on (field, created_at desc).",
+    columns: [
+      { name: "id", type: "uuid (PK)", plain: "Unique history-row identifier." },
+      { name: "field", type: "text", plain: "Which dial was edited.", emphasized: true },
+      { name: "old_value", type: "text", plain: "Prior value (as text). Null on the first edit of a field." },
+      { name: "new_value", type: "text", plain: "The new value saved (as text)." },
+      { name: "updated_by", type: "uuid", plain: "Admin user id who made the edit. No FK." },
+      { name: "created_at", type: "timestamptz", plain: "When the edit was made." },
+    ],
+    connections: [],
+    notes: "RLS enabled with NO policies — service-role only.",
   },
 ];
 
@@ -2405,6 +2512,7 @@ function WorkedExampleFooter() {
     audit: "var(--session-walnut-surface-soft)",
     telemetry: "var(--session-walnut-tint)",
     beta: "var(--session-walnut-meta-soft)",
+    config: "var(--session-persona-soft)",
     deprecated: "var(--session-warning-soft)",
   };
 

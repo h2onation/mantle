@@ -21,7 +21,7 @@ User message
   → Save to DB + parallel reads (history, manual, previous extraction state)
   → Two calls fire simultaneously:
       → EXTRACTION (Sonnet): analyzes the message, updates research brief, saves for NEXT turn
-      → JOVE (Sonnet): uses PREVIOUS turn's extraction brief, streams response to user
+      → JOVE (Opus): uses PREVIOUS turn's extraction brief, streams response to user
   → After Jove finishes:
       → DETECTOR (regex) decides if the response is a checkpoint
       → If checkpoint: composeManualEntry (Opus) writes the polished entry server-side
@@ -84,7 +84,6 @@ The extraction layer is a Sonnet call that runs per turn and produces a structur
 - **Checkpoint gate**: Quality assessment of whether enough material exists for a meaningful checkpoint. Based on material quality (concrete examples, mechanism, charged language), NOT turn count.
 - **Mode recommendation**: situation_led (default), direct_exploration (2+ layers confirmed), synthesis (all 5 confirmed). See rules.md "Conversation Modes" for what Jove does in each mode.
 - **Jove brief**: 3-5 sentence field note orienting Jove for its next response.
-- **Next prompt**: 3-6 word placeholder hint for the text input field.
 
 **Input**: Last 12 messages (6 exchanges) plus previous extraction state. The cumulative state carries all earlier signals forward.
 
@@ -119,11 +118,12 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
     strongest_layer: number | null
   },
   sage_brief: string,                // 3-5 sentence field note
-  next_prompt: string,               // 3-6 word input placeholder
   clinical_flag: { active: boolean, level: "none" | "caution" | "crisis", note: string },
   observation_miss_count: number,
   emerging_pattern_snippet: string | null,
-  pattern_engaged: boolean
+  pattern_engaged: boolean,
+  user_named_cost: boolean,          // informational hint, not a hard gate
+  user_named_stance: boolean         // informational hint, not a hard gate
 }
 ```
 
@@ -195,7 +195,7 @@ Pattern: server client authenticates the user, admin client does all database wo
 All streaming responses (chat and checkpoint confirm) use three event types:
 
 - `text_delta`: Streamed token by token directly to the client.
-- `message_complete`: Final event. Carries checkpoint data, `nextPrompt` (extraction's suggested input placeholder), and `processingText`.
+- `message_complete`: Final event. Carries checkpoint data and `processingText`.
 - `error`: Emitted on failure, stream closes.
 
 Client parses via `parseSSEStream` in `src/lib/utils/sse-parser.ts`. Text is NOT streamed incrementally to the UI — it's buffered and shown in one shot after parsing completes.
@@ -261,18 +261,24 @@ There is no persona-prompt version constant. Anthropic prompt caching is content
 
 ## Onboarding Flow
 
-Pre-auth flow on `/login`. Four views: entry → login → onboarding → seed.
+`/login` renders the login form directly (`LoginScreen`) — no entry/splash step. The marketing landing at `/` is the brand moment; middleware redirects authenticated users from `/login` to `/app`.
 
-New users go through info screens then a seed screen where they type their opening thought. The app calls `signInAnonymously()`, stores the seed text in `sessionStorage` (key: `mywalnut_seed_text`), and redirects to `/`. MainApp reads and removes the seed, sending it as the first message.
+First-time onboarding is a single consent screen, `SeedScreen`: the "what this is, and isn't" prose, an 18+ age checkbox, and a "Begin" button. There is no opening-thought "seed text" — the first message is just the user's first chat turn in `/app`. (The old InfoScreens → PersonaModeScreen → SeedScreen sequence was collapsed 2026-06-17; the persona-mode pick was dropped because the rebuilt voice doesn't render persona deltas.) Two paths through it:
+- **Guest:** on Begin, calls `signInAnonymously()` and `router.push("/app")`.
+- **Post-login** (already authenticated, via `PostLoginOnboarding`): writes `profiles.onboarding_completed_at` and calls `onComplete()`, letting MainApp re-render into the app without a route push.
 
-Guest-to-real conversion: After first checkpoint confirm, backend detects `user.is_anonymous` and returns `promptAuth: true` in SSE. AuthPromptModal handles email (`updateUser`) or Google (`linkIdentity` with `mywalnut_pending_conversion` localStorage flag).
+Onboarding completion lives in the DB column `profiles.onboarding_completed_at` (not localStorage); `/api/onboarding-status` reads it.
+
+Guest-to-real conversion: After first checkpoint confirm, backend detects `user.is_anonymous` and returns `promptAuth: true` in SSE. AuthPromptModal handles email (`updateUser`) or Google (`linkIdentity` with the `mw_pending_conversion` localStorage flag).
 
 ## Storage Keys
 
-Do not create keys that conflict with these. They control onboarding and auth flow.
+Do not create keys that conflict with these. All live keys use the `mw_` prefix (the former `mantle_*` keys are dead — migrated once via `mw_keys_migrated`).
 
-localStorage: `mywalnut_onboarding_completed` (prevents re-showing onboarding), `mywalnut_age_confirmed` (legal age gate), `mywalnut_pending_conversion` (flags Google OAuth redirect in progress).  
-sessionStorage: `mywalnut_seed_text` (seed text handoff from onboarding to MainApp, consumed and removed on use).
+localStorage: `mw_pending_conversion` (flags Google OAuth redirect in progress), `mw_first_session_completed` (first-session marker), `mw_signin_banner_dismissed`, `mw_manual_intro_seen`, `mw_sidebar_collapsed`.  
+sessionStorage: `mw_active_view`, `mw_active_conversation`, `mw_new_session` (in-app view/session state).
+
+Onboarding completion and the age gate are no longer localStorage keys — completion is the DB column `profiles.onboarding_completed_at`, and the age check is in-component state gated before `signInAnonymously()`.
 
 ## Admin Access
 
@@ -280,7 +286,7 @@ Admin role is set via JWT custom claims (`app_metadata.role = "admin"`), managed
 
 ## Edge Runtime Gotchas
 
-- Vercel Edge Runtime cannot use all Node.js APIs. SMS routes (`/api/sms/incoming`) must use Node.js Runtime, not Edge.
+- Vercel Edge Runtime cannot use all Node.js APIs. Inbound text webhooks (`/api/webhooks/sendblue`, `/api/linq/webhook`) must use Node.js Runtime, not Edge.
 - `ANTHROPIC_API_KEY` sometimes unavailable in Edge Runtime via `.env.local` alone during local dev. Workaround: `source <(grep ANTHROPIC_API_KEY .env.local) && ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" npx next dev`
 - Vercel free tier kills functions at 10 seconds. Jove takes 5-8 seconds. Vercel Pro required for any real usage.
 

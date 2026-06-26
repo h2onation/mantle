@@ -251,10 +251,10 @@ Read any piece of copy and ask: "Could a reasonable person interpret this as myw
 - `--session-ink-ghost` for secondary
 - `--session-ink-faded` for tertiary (labels, metadata)
 - `--session-ink-hairline` for borders
-- `--color-accent` (#8BA888) for primary accent (Jove green)
+- `--session-persona` for the Jove accent (sage in dark, navy #21436B in light)
 - `--session-linen` for surface background
 
-**Contrast floor.** All text must pass WCAG AA (≥4.5:1 on the linen surface). `--session-ink-ghost` and `--session-ink-faded` are the lowest-contrast tokens approved for body text. `--session-ink-whisper` is decorative only — never for text. When adjusting tokens, verify contrast against `--session-linen` (#F4F0EA) before shipping.
+**Contrast floor.** All text must pass WCAG AA (≥4.5:1 on the linen surface). `--session-ink-ghost` and `--session-ink-faded` are the lowest-contrast tokens approved for body text. `--session-ink-whisper` is decorative only — never for text. When adjusting tokens, verify contrast against `--session-linen` (#E6E0D4) before shipping.
 
 Full token list lives in `globals.css`. Agent reads the file for exact values. Dark void tokens (`--color-void`, `--color-surface`, `--color-text`, `--color-text-dim`, `--color-text-ghost`) are deprecated. Do not use in new work.
 

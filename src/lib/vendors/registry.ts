@@ -53,7 +53,7 @@ export const VENDORS: Vendor[] = [
     adrRefs: [8, 11],
     url: "https://docs.anthropic.com",
     notes:
-      "Raw fetch only (ADR-008), no SDK. Streaming via SSE for Jove; blocking for extraction and composition. Two-tier model use: Sonnet for reasoning, Haiku where speed matters (ADR-011).",
+      "Raw fetch only (ADR-008), no SDK. Streaming via SSE for Jove; blocking for extraction and composition. Three-tier model use: Opus for the conversational turn and entry composition, Sonnet for extraction, Haiku for summaries (ADR-011).",
   },
   {
     id: "supabase",

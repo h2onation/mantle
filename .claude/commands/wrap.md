@@ -18,6 +18,8 @@ Wrap up the current session. Produce a structured summary for the user.
    Bucket categories: Jove Quality, Product + Design, Narrative + Strategy, Infra + Architecture, Business Ops + Legal.
    If no decisions were made this session, say "None."
 
+   This table is a session-summary scratch format. The canonical decision log is `docs/decisions.md`, which uses numbered ADRs (Status / Context / Decision / Consequences) — landed decisions get hand-translated into that shape, they do not paste in verbatim.
+
 3. **Loose ends**: List anything unfinished, deferred, or flagged during the session. Include:
    - Work started but not shipped
    - Bugs noticed but not fixed
