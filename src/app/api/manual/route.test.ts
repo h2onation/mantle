@@ -19,8 +19,8 @@ vi.mock("@/lib/observability/record-api-error", () => ({
 let manualEntriesResult: { data: unknown; error: unknown };
 let profileResult: { data: unknown; error: unknown };
 // Captures the column list passed to manual_entries.select() so a test can
-// assert `section` is fetched — its omission silently routed every entry into
-// the held group on prod (the read-path never saw the structural key).
+// assert `section` is fetched — its omission would leave every entry
+// section-undefined and ungrouped (the read-path never saw the structural key).
 let manualEntriesSelect = "";
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -84,9 +84,8 @@ describe("/api/manual — GET", () => {
     expect(body.displayName).toBe("Alex");
   });
 
-  // Regression guard: the Manual groups by `section` (sectionForEntry =
-  // section ?? HELD_SECTION). If the read-path omits the column, every entry
-  // arrives section-undefined and renders in the held "junk drawer" group.
+  // Regression guard: the Manual groups by `section`. If the read-path omits
+  // the column, every entry arrives section-undefined and groups into nothing.
   it("selects the section column so entries can be grouped by section", async () => {
     manualEntriesResult = { data: [sampleEntry], error: null };
     await GET();

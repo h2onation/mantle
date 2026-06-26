@@ -143,9 +143,9 @@ Everything Jove observes and the user validates flows into the Manual. The Manua
 - Sensory and burnout
 - Interests and flow
 
-Each entry has exactly one section (its home) plus an optional closed tag set: `strength` (any section), `romantic`/`family`/`friends` (only inside Relationships). Some self-to-self patterns are held without a section yet (the "held" group) — the proto-face of the deferred inner-world section.
+Each entry has exactly one section (its home) plus an optional closed tag set: `strength` (any section), `romantic`/`family`/`friends` (only inside Relationships). Every entry homes on one of the five — including self-to-self patterns (inner critic, self-judgment), which are filed by their spine rather than held apart.
 
-The sections were re-scoped (pattern-type → life-area) in the structure migration. A sixth "inner-world" section (self-to-self patterns) is deferred, pending beta evidence.
+The sections were re-scoped (pattern-type → life-area) in the structure migration. A sixth "inner-world" section was once deferred for self-to-self patterns; that was **abandoned** (ADR-051) — there are five sections, full stop.
 
 **Entry anatomy.** Each entry is one confirmed piece of content. Written in the user's voice. Natural language, not structured fields.
 

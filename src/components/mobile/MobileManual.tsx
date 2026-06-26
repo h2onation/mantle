@@ -38,20 +38,14 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
   const totalEntries = entries.length;
   const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
   // Masthead meta line — mirrors Home's "N of 5 started" count gesture, in the
-  // same mono register. Held entries count toward total entries but not the
-  // five life-area sections.
-  const startedSections = layers.filter(
-    (l) => !l.isHeld && l.entries.length > 0
-  ).length;
+  // same mono register. Every entry is homed on one of the five sections, so a
+  // non-empty manual always has at least one started section.
+  const startedSections = layers.filter((l) => l.entries.length > 0).length;
   const metaLine = isEmpty
     ? "Nothing saved yet"
-    : startedSections === 0
-      ? // Entries exist but only in the parked group (legacy / pre-migration);
-        // "0 sections started" would read oddly, so show just the count.
-        totalLabel
-      : `${startedSections} ${
-          startedSections === 1 ? "section" : "sections"
-        } started · ${totalLabel}`;
+    : `${startedSections} ${
+        startedSections === 1 ? "section" : "sections"
+      } started · ${totalLabel}`;
 
   const [showSheet, setShowSheet] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);

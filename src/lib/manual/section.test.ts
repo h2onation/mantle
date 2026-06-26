@@ -1,50 +1,55 @@
 import { describe, it, expect } from "vitest";
-import { sectionForEntry, HELD_SECTION, sectionName, formatLayerEyebrow } from "./layers";
+import { sectionName, formatLayerEyebrow } from "./layers";
 import { buildLayers } from "@/components/mobile/manual/layer-definitions";
 import type { ManualEntry } from "@/lib/types";
 
-// Step 3 checkpoint #1 — the no-write-back guard. Rendering a parked
-// (NULL-section) entry must NEVER persist a section back to it. sectionForEntry
-// is a pure display helper; grouping must not mutate the data.
-describe("sectionForEntry — pure display, no write-back", () => {
-  it("returns HELD_SECTION for a null-section entry WITHOUT mutating it", () => {
-    const entry = Object.freeze({ section: null, name: "x", content: "y" });
-    expect(sectionForEntry(entry)).toBe(HELD_SECTION);
-    expect(entry.section).toBeNull(); // untouched
+describe("sectionName — display name for a section slug", () => {
+  it("returns the display name for a known slug", () => {
+    expect(sectionName("relationships")).toBe("Relationships");
+    expect(sectionName("work-money")).toBe("Work and career");
   });
 
-  it("returns the slug for a homed entry", () => {
-    expect(sectionForEntry({ section: "relationships" })).toBe("relationships");
-  });
-
-  it("HELD_SECTION is a sentinel, never a real section slug", () => {
-    expect(sectionName(HELD_SECTION)).toBe(HELD_SECTION); // not a known section name
-    expect(formatLayerEyebrow(HELD_SECTION)).toBe("Suggested Entry"); // unknown slug → fallback
+  it("falls back without throwing for null/unknown", () => {
+    expect(sectionName(null)).toBe("Section");
+    expect(formatLayerEyebrow("__nope__")).toBe("Suggested Entry");
   });
 });
 
-describe("buildLayers — parked entries land in the held group; section stays null", () => {
+describe("buildLayers — every entry homes on one of the five sections", () => {
   const entries: ManualEntry[] = [
     { id: "r1", section: "relationships", name: "R", content: "...", layer: null },
-    { id: "p1", section: null, name: "Parked self-pattern", content: "...", layer: 2 },
+    { id: "w1", section: "work-money", name: "W", content: "...", layer: null },
   ];
 
-  it("groups by section and gathers NULL-section entries into the held group", () => {
+  it("groups entries by section and produces exactly five sections", () => {
     const layers = buildLayers(entries);
-    const rel = layers.find((l) => l.slug === "relationships");
-    const held = layers.find((l) => l.slug === HELD_SECTION);
-    expect(rel?.entries.map((e) => e.id)).toContain("r1");
-    expect(held?.isHeld).toBe(true);
-    expect(held?.entries.map((e) => e.id)).toContain("p1");
+    expect(layers).toHaveLength(5);
+    expect(layers.find((l) => l.slug === "relationships")?.entries.map((e) => e.id)).toContain("r1");
+    expect(layers.find((l) => l.slug === "work-money")?.entries.map((e) => e.id)).toContain("w1");
   });
 
-  it("does NOT write a section back to the parked entry (no-write-back guard)", () => {
-    buildLayers(entries);
-    expect(entries[1].section).toBeNull(); // still parked in the data
+  it("never produces a sixth (held) group", () => {
+    const layers = buildLayers(entries);
+    const slugs = layers.map((l) => l.slug);
+    expect(slugs).toEqual([
+      "relationships",
+      "work-money",
+      "routines-structure",
+      "sensory-burnout",
+      "interests-flow",
+    ]);
   });
 
-  it("omits the held group entirely when no entries are parked", () => {
-    const layers = buildLayers([entries[0]]);
-    expect(layers.find((l) => l.slug === HELD_SECTION)).toBeUndefined();
+  it("drops a stray null/unknown-section entry rather than resurrecting a sixth group", () => {
+    const stray: ManualEntry = { id: "x1", section: null, name: "Stray", content: "...", layer: 2 };
+    const layers = buildLayers([entries[0], stray]);
+    expect(layers).toHaveLength(5);
+    expect(layers.flatMap((l) => l.entries.map((e) => e.id))).not.toContain("x1");
+  });
+
+  it("is pure display — does not mutate the entries it groups", () => {
+    const frozen = Object.freeze({ ...entries[0] });
+    expect(() => buildLayers([frozen])).not.toThrow();
+    expect(frozen.section).toBe("relationships");
   });
 });

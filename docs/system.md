@@ -154,7 +154,7 @@ These are the rules that prevent the highest-severity bugs. Every one represents
 
 ## Manual Entries
 
-There is one entry shape. Sections can hold many entries — there is no per-section cap, no type discriminator, no pattern/entry split. Composition (Opus) picks the section (or parks it as null); composition writes the entry; the user confirms. Entries now carry `section` (one of the five slugs — the structural key) plus `tags`, with `layer` a frozen nullable legacy column. NULL-section entries form the held group. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
+There is one entry shape. Sections can hold many entries — there is no per-section cap, no type discriminator, no pattern/entry split. Composition (Opus) picks the section — always one of the five (an off-spec/missing pick defaults to `relationships`, logged); composition writes the entry; the user confirms. Entries now carry `section` (one of the five slugs — the structural key) plus `tags`, with `layer` a frozen nullable legacy column. There is no held group and no sixth section — parking was killed (ADR-051); the `section` column stays nullable only as frozen legacy provenance. See rules.md "Checkpoint and Manual Entry Voice" for composition quality rules and word count range (80–300).
 
 ## Jove Prompt Assembly
 

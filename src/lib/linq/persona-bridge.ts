@@ -265,7 +265,7 @@ export async function processTextMessage(
 
     console.log(
       "[persona-bridge] checkpoint_detected section=%s name=%s message_id=%s",
-      composedEntry.section ?? "(held)",
+      composedEntry.section ?? "(none)",
       name,
       messageId
     );

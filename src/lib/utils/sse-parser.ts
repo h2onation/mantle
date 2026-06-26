@@ -5,7 +5,7 @@ export interface MessageCompleteEvent {
   conversationId: string;
   checkpoint: {
     isCheckpoint: boolean;
-    // Section slug chosen by composition, or null when parked (Rule C).
+    // Section slug chosen by composition — one of the five life-area sections.
     section: string | null;
     tags?: string[];
     name: string | null;

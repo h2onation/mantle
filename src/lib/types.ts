@@ -13,8 +13,9 @@ export interface ChatMessage {
   // action under this message (set only after the user accepts the handoff).
   offerStartSituation?: boolean;
   checkpointMeta?: {
-    // Section slug chosen by composition, or null when the entry is parked
-    // (a self-to-self pattern — Rule C). Replaces the legacy `layer` number.
+    // Section slug chosen by composition — always one of the five life-area
+    // sections. Replaces the legacy `layer` number. Nullable only to tolerate
+    // in-flight checkpoint_meta written before parking was removed.
     section: string | null;
     // Closed tag set applied by composition (strength / romantic / family / friends).
     tags?: string[];
@@ -34,7 +35,8 @@ export interface ManualEntry {
   // FROZEN legacy pattern-type id. Existing rows keep it; new rows are born
   // with `section` and a null layer. Never the structural key going forward.
   layer?: number | null;
-  // Life-area section slug — the structural key. Null = parked (held group).
+  // Life-area section slug — the structural key. One of the five sections on
+  // every new entry (null only on un-refiled legacy rows).
   section?: string | null;
   // Closed cross-cutting tag set.
   tags?: string[] | null;
@@ -53,7 +55,7 @@ export interface ManualEntry {
 
 export interface ActiveCheckpoint {
   messageId: string;
-  /** Section slug chosen by composition, or null when parked. */
+  /** Section slug chosen by composition — one of the five life-area sections. */
   section: string | null;
   tags?: string[];
   name: string | null;

@@ -126,36 +126,16 @@ export const TAGS = ["strength", "romantic", "family", "friends"] as const;
 export type Tag = (typeof TAGS)[number];
 export const RELATIONSHIP_TAGS: readonly Tag[] = ["romantic", "family", "friends"];
 
-/** Sentinel group key for entries with no section yet — the "held" group.
- *  Used by the Manual UI to gather NULL-section entries (deliberately parked
- *  self-to-self patterns + any straggler) without mis-filing them into a
- *  life-area. See docs/reference/structure-migration-plan.md §3.4 / Rule C. */
-export const HELD_SECTION = "__held__" as const;
-
-// ── HELD GROUP COPY — STUB. Jeff finalizes the voice (decision D2). ──────────
-// This is the visible group for parked (NULL-section) entries — the proto-face
-// of the deferred "inner-world" section. It must read as a REAL kind of pattern
-// (self-to-self: how you relate to yourself), NOT "Unsorted" / an error state
-// (the audience carries completion-anxiety). DO NOT SHIP these strings as-is.
-export const HELD_GROUP_LABEL = "How you relate to yourself"; // COPY STUB (D2)
-export const HELD_GROUP_ABOUT =
-  "Patterns about your relationship with yourself — held here while we see whether this becomes its own section."; // COPY STUB (D2)
-
 const SECTION_BY_SLUG: Record<string, LayerDefinition> = Object.fromEntries(
   LAYERS.map((l) => [l.slug, l])
 );
 
-/** The grouping key for an entry: its section slug, or HELD_SECTION when the
- *  entry has no section (parked). PURE — returns a display value, never
- *  mutates the entry and is never persisted (the no-write-back guard). */
-export function sectionForEntry(entry: { section?: string | null }): string {
-  return entry.section ?? HELD_SECTION;
-}
-
 /** Display name for a section slug. Falls back to a readable form of an
- *  unknown slug rather than throwing. */
+ *  unknown slug rather than throwing. Every entry is homed on one of the five
+ *  sections (composition always assigns one), so the null branch is a defensive
+ *  guard, not a live state. */
 export function sectionName(slug: string | null | undefined): string {
-  if (!slug) return "Held";
+  if (!slug) return "Section";
   return SECTION_BY_SLUG[slug]?.name ?? slug;
 }
 
@@ -194,7 +174,7 @@ export function renderManualEntryFull(entry: {
   name: string | null;
   content: string;
 }): string {
-  const label = entry.section ? sectionName(entry.section) : "Held (no section yet)";
+  const label = sectionName(entry.section);
   const headline = entry.name ? ` — "${entry.name}"` : "";
   return `Section: ${label}${headline}:\n${entry.content}\n`;
 }

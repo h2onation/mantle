@@ -5,8 +5,8 @@ import React from "react";
 //   1 Relationships → people · 2 Work and career → anchor (holding up) ·
 //   3 Routines and structure → refresh (systems/cycle) ·
 //   4 Sensory and burnout → bulb · 5 Interests and flow → sparkles (deep/flow).
-// PROVISIONAL — icon choices are a visual-review call (Jeff). The held group
-// (id 99) falls through to the people glyph.
+// PROVISIONAL — icon choices are a visual-review call (Jeff). An unknown id
+// falls through to the people glyph.
 const PATHS: Record<number, React.ReactNode> = {
   1: (
     <>

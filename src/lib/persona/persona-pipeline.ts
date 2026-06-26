@@ -99,8 +99,9 @@ export interface CheckpointGateResult {
 }
 
 export interface CheckpointMeta {
-  // Section slug chosen by composition, or null when parked (Rule C).
-  // Replaces the legacy `layer` number as the structural key.
+  // Section slug chosen by composition — one of the five life-area sections.
+  // Replaces the legacy `layer` number as the structural key. Nullable only to
+  // tolerate in-flight checkpoint_meta written before parking was removed.
   section: string | null;
   // Closed tag set applied by composition.
   tags: string[];

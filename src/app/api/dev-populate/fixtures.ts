@@ -14,8 +14,8 @@
 //      with empty conversationHistory / languageBank / manualComponents. The
 //      `content` fields below double as good seed drafts.
 //   2. `npx tsx scripts/_capture-populate-fixtures.ts`
-//   3. Verify each composed `section` matches its intended slug (a seed must not
-//      park to null), then paste the JSON below.
+//   3. Verify each composed `section` matches its intended slug (every entry
+//      homes on one of the five), then paste the JSON below.
 //   4. Delete the throwaway script — it is not committed (Complexity Gate).
 
 export interface PopulateFixture {

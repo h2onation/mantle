@@ -62,7 +62,7 @@ export async function composeManualEntry(
 ): Promise<{
   content: string;
   name: string;
-  section: string | null;
+  section: string;
   tags: string[];
   changelog: string;
   summary: string;
@@ -168,7 +168,7 @@ SECTION (field: "section"): the entry's one home. Pick the section whose dimensi
 - "interests-flow" — where you go deep and do your best work.
 Spine over scene: a sensory crash that happens at work is "sensory-burnout" (the body is the subject); a work-performance pattern is "work-money". If an entry holds BOTH the masking AND the crash/cost, the body wins → "sensory-burnout". Prefer a section that already holds related entries so this integrates rather than scatters.
 
-PARK (field "section": null): a few patterns are about the self's relationship to ITSELF — self-judgment, self-governance, self-perception — and survive solitude: they run with nobody else in the room (the inner critic; revoking your own permission; the verdict you write on yourself). These have no life-area home yet. Set "section": null for these. BIAS TO HOME: only park when it is CLEARLY self-to-self and survives solitude. If another person is required for the pattern to exist, it is "relationships". When unsure, pick a section.
+ALWAYS pick exactly one of the five — every entry gets a home, including a self-to-self pattern (self-judgment, self-doubt, self-governance). Home it by its spine: where the pattern bites hardest in life (capability and self-trust → "work-money"; a body freeze/shutdown → "sensory-burnout"; suppressing your wants around people you love → "relationships"). When unsure, pick the closest of the five.
 
 TAGS (field: "tags", array of strings, may be empty): a closed set, optional lens. Never invent tags outside it.
 - "strength" — when the pattern is genuinely a capability or asset (not a costly pattern). Valid in any section.
@@ -182,7 +182,7 @@ COMPRESSED (for future reference):
 
 Respond with ONLY valid JSON. No markdown. No backticks.
 {"content": "Depth on the one pattern...", "name": "The title — what they do", "section": "relationships", "tags": ["romantic"], "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
-("section" may be null to park a self-to-self pattern; "tags" may be []. )`;
+("section" is one of the five slugs above; "tags" may be []. )`;
 
   // The auto-pushed path seeds the composer with Jove's drafted reflection.
   // The user-pulled path has none — tell the composer the truth (compose from
@@ -198,7 +198,7 @@ ${historyText}
 
 ${reflectionBlock}
 
-Compose the manual entry. Pick the section (or null to park), the tags, the headline, the prose. Return the JSON.`;
+Compose the manual entry. Pick the section (one of the five), the tags, the headline, the prose. Return the JSON.`;
 
   const response = await anthropicFetch({
     model: COMPOSITION_MODEL,
@@ -218,18 +218,21 @@ Compose the manual entry. Pick the section (or null to park), the tags, the head
     return null;
   }
 
-  // SECTION: a known slug, or null to PARK a self-to-self pattern (Rule C).
-  // Content validity (checked above) is the gate — section may legitimately be
-  // null, so an absent/unknown section does NOT suppress the checkpoint; it
-  // parks the entry (renders in the held group) rather than scattering it.
+  // SECTION: every entry is homed on one of the five life-area sections. The
+  // composition prompt always picks one; if it ever returns an absent/unknown
+  // section we default to "relationships" (the catch-all) rather than dropping
+  // a confirmed entry. Logged so an off-spec rate is visible.
   const SECTION_SLUGS = LAYERS.map((l) => l.slug);
+  const DEFAULT_SECTION = "relationships";
   const rawSection =
     typeof parsed.section === "string" ? parsed.section.trim() : null;
-  const section: string | null =
-    rawSection && SECTION_SLUGS.includes(rawSection) ? rawSection : null;
-  if (rawSection && section === null) {
+  const section: string =
+    rawSection && SECTION_SLUGS.includes(rawSection)
+      ? rawSection
+      : DEFAULT_SECTION;
+  if (rawSection !== section) {
     console.warn(
-      "[composeManualEntry] Composition returned unknown section (parking):",
+      "[composeManualEntry] Composition returned missing/unknown section; defaulting to relationships:",
       rawSection
     );
   }
@@ -334,9 +337,7 @@ Compose the manual entry. Pick the section (or null to park), the tags, the head
     name: finalName,
     section,
     tags,
-    changelog:
-      parsed.changelog ||
-      `Created ${section ? sectionName(section) : "held"} entry.`,
+    changelog: parsed.changelog || `Created ${sectionName(section)} entry.`,
     summary,
     key_words: keyWords,
     acknowledgment,

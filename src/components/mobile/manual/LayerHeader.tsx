@@ -52,7 +52,7 @@ export default function LayerHeader({
         <LayerIcon layerId={layer.id} size={18} />
       </span>
 
-      {/* Name + tagline (tagline omitted for the held group, which has none). */}
+      {/* Name + tagline. */}
       <span style={{ flex: 1, minWidth: 0 }}>
         <span
           style={{
