@@ -334,7 +334,8 @@ CRITICAL RULES:
 - The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
 - Section signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready).
 - When a section already has a confirmed entry, its signal starts at "explored" minimum.
-- Be aggressive about capturing language. If in doubt, capture it.
+- Be aggressive about capturing language from the live conversation. If in doubt, capture it.
+- The language_bank holds ONLY the user's words from the conversation transcript below. The CONFIRMED MANUAL ENTRIES are context for recognizing when the current conversation echoes an existing pattern ("same shape as...") — they are NOT bank candidates. Never copy a phrase into language_bank because you saw it in a Manual entry. Capture a phrase only when the user says it in THIS conversation (even if the same phrase also appears in the Manual — what matters is that they said it here, now).
 - The checkpoint gate is a quality assessment. Do not count turns.
 - Sections can hold many entries. Don't gate on count.
 - NO CLINICAL LANGUAGE in any field ${PERSONA_NAME} will read (sage_brief, current_thread, section material). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
@@ -486,7 +487,8 @@ export async function runExtraction(
   userContent += "\n\n";
 
   if (manualComponents.length > 0) {
-    userContent += "CONFIRMED MANUAL ENTRIES:\n";
+    userContent +=
+      "CONFIRMED MANUAL ENTRIES (context for threading only — do NOT extract these into language_bank; capture only what the user says in the conversation below):\n";
     for (const comp of manualComponents) {
       userContent += renderManualEntryFull(comp) + "\n";
     }
