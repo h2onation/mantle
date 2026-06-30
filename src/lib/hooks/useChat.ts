@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
 import { firstNameFrom } from "@/lib/utils/name";
+import { LAYERS } from "@/lib/manual/layers";
 import type { CheckpointAction } from "@/lib/persona/config";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
 import {
@@ -289,6 +290,18 @@ export function useChat() {
   const startGuard = startGuardRef.current;
   const router = useRouter();
   const supabase = createClient();
+
+  // Live (client-driven) simulator state. A fake user drives the REAL app —
+  // startConversation + sendMessage/sendChipResponse, the same paths a person
+  // hits — so the section picker, focus chips, and taps all render live. The
+  // turn loop runs as an effect-driven state machine (below) reading fresh
+  // render state, not refs, so there are no stale-closure races between turns.
+  // See runLiveSimulation. Admin dev tooling only.
+  const [simActive, setSimActive] = useState(false);
+  const [simBusy, setSimBusy] = useState(false);
+  const simDescRef = useRef<string | null>(null);
+  const simTurnRef = useRef(0);
+  const SIM_MAX_TURNS = 40;
 
   const loadManual = useCallback(async () => {
     try {
@@ -1657,6 +1670,106 @@ export function useChat() {
     }
   }
 
+  /**
+   * Start a live, client-driven simulation: open a real conversation in `mode`
+   * (the genuine door path, so the opener + section picker render live), then
+   * let the effect-driven loop below play the simulated user turn by turn.
+   * Persona comes from the signed-in account (the real path), not an override.
+   */
+  async function runLiveSimulation(description: string, mode: ConversationMode) {
+    if (simActive || simBusy) return;
+    const trimmed = description.trim();
+    if (!trimmed || isLoading || isStreaming) return;
+    simDescRef.current = trimmed;
+    simTurnRef.current = 0;
+    setSimActive(true);
+    const ok = await startConversation(mode);
+    if (!ok) {
+      simDescRef.current = null;
+      setSimActive(false);
+    }
+  }
+
+  // Live-simulation turn loop. Fires whenever Jove has just gone idle during an
+  // active sim: reads what's on screen, asks the turn endpoint for the next
+  // user line, and sends it through the real send path — tapping a section/chip
+  // when options are present, typing otherwise. Stops at the first checkpoint
+  // (left pending for the user to confirm), on [END], or at the turn cap.
+  // `simBusy` is STATE, not a ref, so clearing it re-fires this effect to
+  // advance the next turn; a ref wouldn't re-trigger and the loop would stall.
+  const stopSim = useCallback(() => {
+    simDescRef.current = null;
+    setSimActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (!simActive || simBusy) return;
+    if (isLoading || isStreaming) return;
+    if (!conversationId) return;
+    // Reached the "entry is ready" moment — hand off to the user. Covers both
+    // models: an auto-proposed checkpoint (activeCheckpoint), or, under the
+    // user-pulled reflection meter (where Jove never proposes), the latched
+    // ready state. Without the reflectionReady stop the loop runs past the
+    // natural end and pushes Jove into repeat-question drift.
+    if (activeCheckpoint || reflectionReady) {
+      stopSim();
+      return;
+    }
+    if (simTurnRef.current >= SIM_MAX_TURNS) {
+      stopSim();
+      return;
+    }
+    const description = simDescRef.current;
+    if (!description) return;
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (!lastAssistant) return; // wait for Jove's opener/turn before replying
+
+    const options =
+      lastAssistant.chips && lastAssistant.chips.length > 0
+        ? lastAssistant.chips
+        : lastAssistant.showSections
+          ? LAYERS.map((l) => l.name)
+          : undefined;
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+    setSimBusy(true);
+    void (async () => {
+      try {
+        const res = await fetch("/api/dev-simulate/turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            simulatedUserDescription: description,
+            history,
+            ...(options ? { availableOptions: options } : {}),
+          }),
+        });
+        if (!res.ok) throw new Error(`turn endpoint ${res.status}`);
+        const { message } = (await res.json()) as { message: string };
+        simTurnRef.current += 1;
+        if (!message || message.includes("[END]")) {
+          stopSim();
+          return;
+        }
+        await sendMessage(message, options ? { isChipResponse: true } : undefined);
+      } catch (err) {
+        console.error("[useChat] live simulation turn failed:", err);
+        stopSim();
+      } finally {
+        setSimBusy(false);
+      }
+    })();
+    // sendMessage/sendChipResponse are stable closures; messages drives re-runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simActive, simBusy, isLoading, isStreaming, conversationId, activeCheckpoint, reflectionReady, messages, stopSim]);
+
   return {
     messages,
     conversationId,
@@ -1692,6 +1805,8 @@ export function useChat() {
     startNewSession,
     startExploration,
     startConversation,
+    runLiveSimulation,
+    simActive,
     refreshConversations,
     loadManual,
     updateEntry,

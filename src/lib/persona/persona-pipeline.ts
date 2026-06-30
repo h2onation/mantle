@@ -131,8 +131,7 @@ export interface CheckpointMeta {
 export async function loadConversationContext(
   admin: ReturnType<typeof createAdminClient>,
   conversationId: string,
-  userId: string,
-  personaModesOverride?: PersonaMode[]
+  userId: string
 ): Promise<ConversationContext> {
   const [
     historyResult,
@@ -189,9 +188,7 @@ export async function loadConversationContext(
   // rows that pre-date the array migration, or any path that creates a
   // profile without setting persona_modes (e.g., the chat-route upsert).
   const resolvedPersonaModes: PersonaMode[] =
-    personaModesOverride && personaModesOverride.length > 0
-      ? personaModesOverride
-      : (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
+    (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
   // personaDeltas gate OFF → clamp to the neutral "general" voice so
   // composeTier2 renders the base scaffold only and no neurotype delta loads.
   const personaModes: PersonaMode[] = gates.personaDeltas

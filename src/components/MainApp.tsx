@@ -264,10 +264,11 @@ export default function MainApp() {
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,
-    loadConversation,
     startNewSession,
     startExploration,
     startConversation,
+    runLiveSimulation,
+    simActive,
     refreshConversations,
     loadManual,
     updateEntry,
@@ -399,34 +400,46 @@ export default function MainApp() {
     setExplorationPhase(null);
   }, [startExploration]);
 
-  const handleSimulationEvent = useCallback((type: string, conversationId: string) => {
-    loadConversation(conversationId);
-    if (type === "start") {
-      setActiveView("session");
-    }
-  }, [loadConversation]);
+  // Latest runLiveSimulation in a ref so the window-event listener below can
+  // have stable deps (the function gets a fresh identity every render).
+  const runLiveSimulationRef = useRef(runLiveSimulation);
+  runLiveSimulationRef.current = runLiveSimulation;
 
-  // Bridge events from the DevToolsPanel (hosted in the desktop sidebar
-  // and the admin settings view) into the app so populate refreshes the
-  // manual + navigates to it, and simulate switches to the simulated
-  // session. Window events keep the panel location-independent.
+  // Bridge events from the DevToolsPanel (hosted in the desktop sidebar and the
+  // admin settings view) into the app: populate refreshes the manual + navigates
+  // to it; run-live-simulation switches to the session and drives a fake user
+  // through the real guided-intake path. Window events keep the panel
+  // location-independent.
   useEffect(() => {
     function onPopulate() {
       loadManual();
       setActiveView("manual");
     }
-    function onSimulation(e: Event) {
-      const detail = (e as CustomEvent<{ type: string; conversationId: string }>).detail;
-      if (!detail?.conversationId) return;
-      handleSimulationEvent(detail.type, detail.conversationId);
+    function onRunLiveSim(e: Event) {
+      const detail = (
+        e as CustomEvent<{ description: string; mode: ConversationMode }>
+      ).detail;
+      if (!detail?.description) return;
+      setActiveView("session");
+      void runLiveSimulationRef.current(detail.description, detail.mode);
     }
     window.addEventListener("dev-tools:populate-complete", onPopulate);
-    window.addEventListener("dev-tools:simulation-event", onSimulation);
+    window.addEventListener("dev-tools:run-live-simulation", onRunLiveSim);
     return () => {
       window.removeEventListener("dev-tools:populate-complete", onPopulate);
-      window.removeEventListener("dev-tools:simulation-event", onSimulation);
+      window.removeEventListener("dev-tools:run-live-simulation", onRunLiveSim);
     };
-  }, [loadManual, handleSimulationEvent]);
+  }, [loadManual]);
+
+  // Tell the panel when a live simulation ends (checkpoint reached, [END], or
+  // turn cap) so it can re-enable its Run button.
+  const prevSimActive = useRef(false);
+  useEffect(() => {
+    if (prevSimActive.current && !simActive) {
+      window.dispatchEvent(new CustomEvent("dev-tools:live-sim-ended"));
+    }
+    prevSimActive.current = simActive;
+  }, [simActive]);
 
   // Bottom-nav navigation. Landing on Home refreshes the conversation
   // list the way opening the drawer used to.

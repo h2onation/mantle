@@ -6,7 +6,7 @@ import {
 import { parseAnthropicStream } from "@/lib/anthropic-sse";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME } from "@/lib/persona/config";
-import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD, type PersonaMode } from "@/lib/persona/system-prompt";
+import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { stripTrailingMarker } from "@/lib/persona/ui-markers";
 import { logEvent } from "@/lib/observability/log";
 import {
@@ -244,12 +244,6 @@ interface CallPersonaOptions {
    *  Drives the POST-REJECTION block (the pinned "That entry didn't land..."
    *  line). Set by the confirm route only for action === "rejected". */
   postRejection?: boolean;
-  /** Dev-only override: force a specific persona-mode set for this turn
-   *  instead of reading the caller's profiles.persona_modes. Used by
-   *  /api/dev-simulate so admins can test Jove against different user
-   *  types without mutating their own profile. Unused outside the
-   *  simulator. */
-  personaModesOverride?: PersonaMode[];
 }
 
 /** Retry-storm dedup window. If the same user content was inserted in
@@ -423,7 +417,6 @@ export function callPersona({
   prependedMessages,
   postConfirmMode = null,
   postRejection = false,
-  personaModesOverride,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -533,12 +526,7 @@ export function callPersona({
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
-        const ctx = await loadConversationContext(
-          admin,
-          convId,
-          userId,
-          personaModesOverride
-        );
+        const ctx = await loadConversationContext(admin, convId, userId);
         postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
         composerEntryBarOverride = ctx.voiceOverrides?.composerEntryBar;
         const {

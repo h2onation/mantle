@@ -24,11 +24,14 @@ const INTAKE_LABELS: Record<ConversationMode, string> = {
 };
 
 interface Props {
-  personaModes: PersonaMode[];
+  personaModes?: PersonaMode[];
   intakeMode: ConversationMode;
-  onPersonaModesChange: (next: PersonaMode[]) => void;
+  onPersonaModesChange?: (next: PersonaMode[]) => void;
   onIntakeModeChange: (next: ConversationMode) => void;
   disabled?: boolean;
+  // The live simulator runs on the signed-in account's persona (the real path),
+  // so it hides this picker. Defaults to shown for any other caller.
+  showPersona?: boolean;
 }
 
 const labelStyle: React.CSSProperties = {
@@ -64,41 +67,44 @@ export default function PersonaIntakeControls({
   onPersonaModesChange,
   onIntakeModeChange,
   disabled = false,
+  showPersona = true,
 }: Props) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          marginBottom: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={labelStyle}>Persona</span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {PERSONA_MODES.map((mode) => {
-            const active = personaModes.includes(mode);
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() =>
-                  !disabled &&
-                  onPersonaModesChange(togglePersonaMode(personaModes, mode))
-                }
-                disabled={disabled}
-                style={chip(active, disabled)}
-                aria-pressed={active}
-              >
-                {PERSONA_LABELS[mode]}
-              </button>
-            );
-          })}
+      {showPersona && personaModes && onPersonaModesChange && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={labelStyle}>Persona</span>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {PERSONA_MODES.map((mode) => {
+              const active = personaModes.includes(mode);
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() =>
+                    !disabled &&
+                    onPersonaModesChange(togglePersonaMode(personaModes, mode))
+                  }
+                  disabled={disabled}
+                  style={chip(active, disabled)}
+                  aria-pressed={active}
+                >
+                  {PERSONA_LABELS[mode]}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         style={{

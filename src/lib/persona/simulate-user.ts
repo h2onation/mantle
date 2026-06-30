@@ -102,6 +102,44 @@ CHECKPOINT RESPONSE:
 ${PERSONA_NAME} just presented a checkpoint — a reflection of what it's been hearing. Confirm it. Say something like "yeah that's right" or "that tracks" in your character's voice and length. ONLY reject or refine if your simulated user description EXPLICITLY instructs you to reject or refine checkpoints. If the description says nothing about checkpoint behavior, always confirm.`;
 
 /**
+ * In guided intake ${PERSONA_NAME} sometimes presents tappable options (the
+ * section picker, or focus-pick chips). A real user taps one. So when options
+ * are on screen we tell the simulated user to pick exactly one — verbatim — and
+ * then snap the reply to a real option (below) so the selection reaches the
+ * prompt as a genuine `[selected from options] <option>` tap.
+ */
+function optionInstruction(options: string[]): string {
+  return `
+TAPPABLE OPTIONS:
+${PERSONA_NAME} just offered you these options to choose from:
+${options.map((o) => `- ${o}`).join("\n")}
+Pick the ONE that best fits your character and reply with that option's exact text and nothing else. Do not add words, explain, or combine options. If none truly fit, still pick the closest one.`;
+}
+
+/**
+ * Force a simulated-user reply onto one of the real options so the downstream
+ * chip send carries a string ${PERSONA_NAME} recognizes as a tap. Exact match
+ * first, then case-insensitive, then the option the reply most clearly points
+ * at (one contains the other), and finally the first option as a guaranteed
+ * fallback. Exported for testing.
+ */
+export function snapToOption(reply: string, options: string[]): string {
+  if (options.length === 0) return reply;
+  const trimmed = reply.trim();
+  const exact = options.find((o) => o === trimmed);
+  if (exact) return exact;
+  const lower = trimmed.toLowerCase();
+  const ci = options.find((o) => o.toLowerCase() === lower);
+  if (ci) return ci;
+  const overlap = options.find(
+    (o) =>
+      o.toLowerCase().includes(lower) || lower.includes(o.toLowerCase())
+  );
+  if (overlap) return overlap;
+  return options[0];
+}
+
+/**
  * Generate a simulated user message using Haiku.
  * The conversation history should already be mapped (system messages converted
  * to natural language via mapSystemMessages before passing here).
@@ -109,8 +147,10 @@ ${PERSONA_NAME} just presented a checkpoint — a reflection of what it's been h
 export async function generateSimulatedUserMessage(
   simulatedUserDescription: string,
   conversationHistory: { role: "user" | "assistant"; content: string }[],
-  isCheckpointResponse?: boolean
+  isCheckpointResponse?: boolean,
+  availableOptions?: string[]
 ): Promise<string> {
+  const hasOptions = (availableOptions?.length ?? 0) > 0;
   const system = `You are roleplaying as a person in a conversation with an AI called ${PERSONA_NAME} that builds Manuals through deep conversation.
 
 YOUR CHARACTER:
@@ -127,7 +167,7 @@ RULES:
 
 ENDING THE CONVERSATION:
 You may end the conversation when it has reached a natural stopping point — for example, when your character has said goodbye, signaled they're done for the day, or there is genuinely nothing left to say. To end, respond with exactly [END] and nothing else. Do not use [END] to avoid difficult moments or hard questions; only use it when a real person would actually be done.
-${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}`;
+${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}${hasOptions ? optionInstruction(availableOptions!) : ""}`;
 
   const messages = flipRolesForSimulation(conversationHistory);
 
@@ -138,5 +178,12 @@ ${isCheckpointResponse ? CHECKPOINT_INSTRUCTION : ""}`;
     messages,
   });
 
-  return extractResponseText(response);
+  const text = extractResponseText(response);
+  // When options were on screen, force the reply onto a real one so the chip
+  // send carries a string Jove parses as a genuine tap. [END] is honored even
+  // mid-options (a real user can still quit at a picker).
+  if (hasOptions && !text.includes("[END]")) {
+    return snapToOption(text, availableOptions!);
+  }
+  return text;
 }

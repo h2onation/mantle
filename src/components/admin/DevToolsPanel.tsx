@@ -1,118 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import PersonaIntakeControls from "@/components/admin/PersonaIntakeControls";
-import type { PersonaMode } from "@/lib/persona/system-prompt";
 import type { ConversationMode } from "@/lib/persona/config";
 
 export default function DevToolsPanel() {
   const isAdmin = useIsAdmin();
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("");
-  const [simCheckpoints, setSimCheckpoints] = useState(1);
   const [simulatedUser, setSimulatedUser] = useState("");
-  const [simPersonaModes, setSimPersonaModes] = useState<PersonaMode[]>([
-    "autistic",
-  ]);
   const [simIntakeMode, setSimIntakeMode] =
-    useState<ConversationMode>("situation");
+    useState<ConversationMode>("guided-intake");
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(
     new Set([1, 2, 3, 4, 5]),
   );
   const [populating, setPopulating] = useState(false);
   const [populateStatus, setPopulateStatus] = useState<string>("");
 
-  async function handleSimulate() {
-    setSimulating(true);
-    setSimStatus("Starting simulation...");
-
-    let simConversationId: string | null = null;
-
-    try {
-      const res = await fetch("/api/dev-simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          simulatedUserDescription: simulatedUser.trim(),
-          checkpointTarget: simCheckpoints,
-          personaModes: simPersonaModes,
-          mode: simIntakeMode,
-        }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        setSimStatus(`Failed: ${errBody.error || `HTTP ${res.status}`}`);
-        setSimulating(false);
-        return;
-      }
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.type === "started") {
-              simConversationId = event.conversationId;
-              window.dispatchEvent(
-                new CustomEvent("dev-tools:simulation-event", {
-                  detail: { type: "start", conversationId: event.conversationId },
-                }),
-              );
-            } else if (event.type === "turn") {
-              setSimStatus(`Turn ${event.turn}...`);
-            } else if (event.type === "turn_complete") {
-              if (event.conversationId) simConversationId = event.conversationId;
-              setSimStatus(`Turn ${event.turn} complete`);
-              if (simConversationId) {
-                window.dispatchEvent(
-                  new CustomEvent("dev-tools:simulation-event", {
-                    detail: { type: "turn", conversationId: simConversationId },
-                  }),
-                );
-              }
-            } else if (event.type === "checkpoint") {
-              if (event.conversationId) simConversationId = event.conversationId;
-              setSimStatus(
-                `Checkpoint ${event.checkpointNumber} ${event.action || "confirmed"} (layer ${event.layer}) at turn ${event.turn}`,
-              );
-              if (simConversationId) {
-                window.dispatchEvent(
-                  new CustomEvent("dev-tools:simulation-event", {
-                    detail: { type: "checkpoint", conversationId: simConversationId },
-                  }),
-                );
-              }
-            } else if (event.type === "complete") {
-              const cpInfo =
-                event.totalCheckpoints != null
-                  ? `, ${event.totalCheckpoints} checkpoint${event.totalCheckpoints !== 1 ? "s" : ""}`
-                  : "";
-              setSimStatus(`Done — ${event.totalTurns} turns${cpInfo}`);
-            } else if (event.type === "error") {
-              setSimStatus("Simulation failed");
-            }
-          } catch {
-            // skip malformed SSE
-          }
-        }
-      }
-    } catch {
-      setSimStatus("Simulation failed");
-    } finally {
+  // The live run renders in the session view and ends itself at the first
+  // checkpoint / [END] / turn cap; MainApp broadcasts when it's done so the
+  // Run button re-enables.
+  useEffect(() => {
+    function onEnded() {
       setSimulating(false);
+      setSimStatus("Simulation ended — confirm the checkpoint in the session");
     }
+    window.addEventListener("dev-tools:live-sim-ended", onEnded);
+    return () =>
+      window.removeEventListener("dev-tools:live-sim-ended", onEnded);
+  }, []);
+
+  function handleSimulate() {
+    if (!simulatedUser.trim()) return;
+    setSimulating(true);
+    setSimStatus("Running live — watch the session view");
+    window.dispatchEvent(
+      new CustomEvent("dev-tools:run-live-simulation", {
+        detail: { description: simulatedUser.trim(), mode: simIntakeMode },
+      }),
+    );
   }
 
   function togglePopulateLayer(layer: number) {
@@ -247,35 +174,25 @@ export default function DevToolsPanel() {
       />
 
       <PersonaIntakeControls
-        personaModes={simPersonaModes}
         intakeMode={simIntakeMode}
-        onPersonaModesChange={setSimPersonaModes}
         onIntakeModeChange={setSimIntakeMode}
         disabled={simulating}
+        showPersona={false}
       />
 
-      <div
+      <p
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
+          margin: "0 0 10px",
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--size-meta)",
+          color: "var(--session-ink-soft)",
+          lineHeight: 1.4,
         }}
       >
-        <span style={labelStyle}>Checkpoints</span>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[1, 2, 3].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setSimCheckpoints(n)}
-              style={pillBtn(simCheckpoints === n)}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
+        Drives a fake user through the real app live. Persona comes from this
+        account — set it in Settings. Stops at the first checkpoint for you to
+        confirm.
+      </p>
 
       <button
         type="button"
@@ -284,10 +201,10 @@ export default function DevToolsPanel() {
         style={actionBtn(simulating || !simulatedUser.trim())}
       >
         {simulating
-          ? simStatus
+          ? "Running…"
           : !simulatedUser.trim()
             ? "Enter a description"
-            : `Run ${simCheckpoints} checkpoint${simCheckpoints > 1 ? "s" : ""}`}
+            : "Run live simulation"}
       </button>
 
       {!simulating && simStatus && (

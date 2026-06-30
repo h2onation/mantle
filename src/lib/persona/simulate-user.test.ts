@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   flipRolesForSimulation,
   parseCheckpointIntent,
+  snapToOption,
 } from "./simulate-user";
 
 describe("flipRolesForSimulation", () => {
@@ -91,5 +92,39 @@ describe("parseCheckpointIntent", () => {
     expect(parseCheckpointIntent("Hmm, interesting reflection.")).toBe("confirmed");
     expect(parseCheckpointIntent("I think you've captured something there.")).toBe("confirmed");
     expect(parseCheckpointIntent("")).toBe("confirmed");
+  });
+});
+
+describe("snapToOption", () => {
+  const options = ["Relationships", "Work and career", "Sensory and burnout"];
+
+  it("returns the reply unchanged when there are no options", () => {
+    expect(snapToOption("anything at all", [])).toBe("anything at all");
+  });
+
+  it("matches an exact option", () => {
+    expect(snapToOption("Work and career", options)).toBe("Work and career");
+  });
+
+  it("trims surrounding whitespace before matching", () => {
+    expect(snapToOption("  Relationships \n", options)).toBe("Relationships");
+  });
+
+  it("matches case-insensitively", () => {
+    expect(snapToOption("sensory and burnout", options)).toBe(
+      "Sensory and burnout"
+    );
+  });
+
+  it("snaps a wrapped reply to the option it contains", () => {
+    expect(
+      snapToOption("I'd go with Work and career, I think", options)
+    ).toBe("Work and career");
+  });
+
+  it("falls back to the first option when nothing matches", () => {
+    expect(snapToOption("none of these really", options)).toBe(
+      "Relationships"
+    );
   });
 });
