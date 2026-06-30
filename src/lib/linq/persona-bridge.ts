@@ -68,8 +68,16 @@ export async function processTextMessage(
     }
   }
 
-  // 3. Load shared conversation context (same DB reads + rules as web)
-  const ctx = await loadConversationContext(admin, conversationId, userId);
+  // 3. Load shared conversation context (same DB reads + rules as web).
+  //    surface="text": the reflection meter is web-only, so the SMS channel
+  //    keeps Jove-pushed checkpoints as its capture path regardless of the
+  //    reflection_meter gate.
+  const ctx = await loadConversationContext(
+    admin,
+    conversationId,
+    userId,
+    "text"
+  );
   markLatency(timings, "context_loaded");
 
   // 4. Fire extraction in background (only for real user messages). Skipped

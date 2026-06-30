@@ -4,6 +4,7 @@ import {
   validateComposedEntry,
   applyCheckpointGates,
   reflectionMeterFill,
+  deriveProposalFlags,
   deriveCheckpointApproaching,
   computeInheritedRefinementCount,
   buildEntriesSummary,
@@ -949,6 +950,39 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     const opts = buildPromptOptionsFromContext(makeCtx("situation"));
     const prompt = buildSystemPrompt(opts);
     expect(prompt).not.toContain("GUIDED INTAKE");
+  });
+});
+
+describe("deriveProposalFlags — reflection meter is web-only", () => {
+  it("meter OFF: proposals on, meter off (both surfaces, current prod default)", () => {
+    for (const surface of ["web", "text"] as const) {
+      expect(
+        deriveProposalFlags({ checkpoints: true, reflectionMeter: false }, surface)
+      ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: true });
+    }
+  });
+
+  it("meter ON + web: meter on, Jove-pushed proposals silenced", () => {
+    expect(
+      deriveProposalFlags({ checkpoints: true, reflectionMeter: true }, "web")
+    ).toEqual({ reflectionMeterEnabled: true, proposalsEnabled: false });
+  });
+
+  it("meter ON + text: meter forced off, proposals STAY on (SMS capture invariant)", () => {
+    // The blocker the switchover audit caught: a text-only user must keep a
+    // capture path. The meter never renders over SMS, so proposals must remain.
+    expect(
+      deriveProposalFlags({ checkpoints: true, reflectionMeter: true }, "text")
+    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: true });
+  });
+
+  it("checkpoints gate OFF: proposals off regardless of surface or meter", () => {
+    expect(
+      deriveProposalFlags({ checkpoints: false, reflectionMeter: false }, "web")
+    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: false });
+    expect(
+      deriveProposalFlags({ checkpoints: false, reflectionMeter: true }, "text")
+    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: false });
   });
 });
 

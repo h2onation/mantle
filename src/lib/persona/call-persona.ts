@@ -532,7 +532,7 @@ export function callPersona({
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
-        const ctx = await loadConversationContext(admin, convId, userId, isAdmin);
+        const ctx = await loadConversationContext(admin, convId, userId, "web", isAdmin);
         postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
         composerEntryBarOverride = ctx.voiceOverrides?.composerEntryBar;
         const {
@@ -1322,9 +1322,6 @@ export function callPersona({
                               ctx.checkpointTuning.cooldownTurns
                             ),
                             ready: gateResult.passed,
-                            // One-sentence gist for the ready card. Already
-                            // computed by extraction; no extra cost.
-                            preview: previousExtraction?.current_thread || null,
                           },
                   }
                 : {}),

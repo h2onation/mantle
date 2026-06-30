@@ -64,7 +64,6 @@ export async function GET(request: Request) {
   let reflectionMeter: {
     fill: number;
     ready: boolean;
-    preview?: string | null;
   } | null;
   if (!ext || crisis) {
     reflectionMeter = null;
@@ -84,8 +83,6 @@ export async function GET(request: Request) {
         ctx.checkpointTuning.cooldownTurns
       ),
       ready,
-      // One-sentence gist for the ready card; same field the live path emits.
-      preview: ext.current_thread || null,
     };
   }
 

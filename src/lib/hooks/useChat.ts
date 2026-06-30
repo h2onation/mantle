@@ -248,10 +248,6 @@ export function useChat() {
   // until a confirmed save clears it.
   const [reflectionFill, setReflectionFill] = useState<number | null>(null);
   const [reflectionReady, setReflectionReady] = useState(false);
-  // One-sentence gist (extraction's current_thread) shown on the ready card.
-  // Tracks the latest turn; the composer locks at ready so it can't drift
-  // after. Cleared on the same resets that hide the meter.
-  const [reflectionPreview, setReflectionPreview] = useState<string | null>(null);
 
   // Monotonic fill: within a thread the bar only ever climbs, so a later turn
   // that scores shallower (depth is re-read every turn) never drags it
@@ -455,11 +451,9 @@ export function useChat() {
     if (completeEvent.reflectionMeter === null) {
       setReflectionFill(null);
       setReflectionReady(false);
-      setReflectionPreview(null);
     } else if (completeEvent.reflectionMeter) {
       bumpReflectionFill(completeEvent.reflectionMeter.fill);
       if (completeEvent.reflectionMeter.ready) setReflectionReady(true);
-      setReflectionPreview(completeEvent.reflectionMeter.preview ?? null);
     }
 
     // Track the conversation's mode locally so checkpoint and
@@ -1125,7 +1119,6 @@ export function useChat() {
         // and ramps it back up over the cooldown as the next thread builds.
         setReflectionFill(0);
         setReflectionReady(false);
-        setReflectionPreview(null);
       }
 
       // Report time to decision for the checkpoint event.
@@ -1256,7 +1249,6 @@ export function useChat() {
         reflectionMeter?: {
           fill: number;
           ready: boolean;
-          preview?: string | null;
         } | null;
       };
       // undefined → gate off; leave state as-is (the caller already reset it).
@@ -1264,7 +1256,6 @@ export function useChat() {
       if (body.reflectionMeter === null) {
         setReflectionFill(null);
         setReflectionReady(false);
-        setReflectionPreview(null);
         return;
       }
       // Restore SETS ready to the server's current value (true or false) —
@@ -1273,7 +1264,6 @@ export function useChat() {
       // reload) null the fill first, so bumpReflectionFill climbs from there.
       bumpReflectionFill(body.reflectionMeter.fill);
       setReflectionReady(body.reflectionMeter.ready === true);
-      setReflectionPreview(body.reflectionMeter.preview ?? null);
     } catch {
       // Best-effort; the next live message_complete will populate it.
     }
@@ -1303,7 +1293,6 @@ export function useChat() {
     setCheckpointError(null);
     setReflectionReady(false);
     setReflectionFill(null);
-    setReflectionPreview(null);
 
     if (targetConversationId === "text-channel") {
       // Load all text channel messages across all 1:1 conversations.
@@ -1401,7 +1390,6 @@ export function useChat() {
     setActiveCheckpoint(null);
     setReflectionReady(false);
     setReflectionFill(null);
-    setReflectionPreview(null);
 
     const { data: dbMessages } = await supabase
       .from("messages")
@@ -1448,7 +1436,6 @@ export function useChat() {
     setCheckpointError(null);
     setReflectionReady(false);
     setReflectionFill(null);
-    setReflectionPreview(null);
   }
 
   async function startNewSession() {
@@ -1820,7 +1807,6 @@ export function useChat() {
     // composeReflection builds the entry on demand and opens the review overlay.
     reflectionFill,
     reflectionReady,
-    reflectionPreview,
     composeReflection,
   };
 }
