@@ -20,18 +20,29 @@ interface TuningField {
 // and understands these dials move EAGERNESS only, never the quality floor.
 const LOCKED_GATES: { label: string; why: string }[] = [
   {
-    label: "Pattern engaged / has-mechanism / behavior-driver link",
-    why: "Quality gates — was a real pattern actually reached. Lowering these would let thin material through.",
+    label: "Real pattern, with a 'why'",
+    why: "The material has to add up to an actual behavioral pattern with a reason behind it. Lowering this would let thin material through.",
   },
   {
-    label: "Charged-language requirement",
-    why: "The entry must rest on the user's own charged words. A system contract, not an eagerness dial.",
+    label: "Built on the user's own strong words",
+    why: "The entry must rest on the user's own charged words, not Jove's paraphrase. A system contract, not an eagerness dial.",
   },
   {
-    label: "Crisis block",
-    why: "A checkpoint never fires during an active crisis. Safety surface — code only.",
+    label: "Never during a crisis",
+    why: "Jove never proposes an entry during an active crisis. Safety surface — code only.",
   },
 ];
+
+// Plain-English gloss for the depth-floor dropdown. Keys are the stored enum
+// values (DEPTH_LEVELS); the value shown to the admin pairs the raw level with
+// what it means, so "surface" reading as "no depth required" is legible.
+const DEPTH_OPTION_LABELS: Record<string, string> = {
+  surface: "surface — what happened",
+  behavior: "behavior — what they do",
+  feeling: "feeling — how it feels",
+  mechanism: "mechanism — why it happens to them",
+  origin: "origin — where it comes from",
+};
 
 export default function CheckpointTuningPanel() {
   const [fields, setFields] = useState<TuningField[] | null>(null);
@@ -70,7 +81,7 @@ export default function CheckpointTuningPanel() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Save failed");
-      setNotice("Saved. Live on the next turn.");
+      setNotice("Saved. Live on the user's next message.");
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -91,7 +102,7 @@ export default function CheckpointTuningPanel() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Reset failed");
-      setNotice("Reset to the shipped default. Live on the next turn.");
+      setNotice("Reset to the shipped default. Live on the user's next message.");
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Reset failed");
@@ -134,9 +145,9 @@ export default function CheckpointTuningPanel() {
         }}
       >
         Tune how eagerly Jove proposes a Manual entry — no deploy. Saving takes
-        effect on the next turn. The shipped code is the floor: Reset returns a
-        dial instantly. These move eagerness only; the quality gates below stay
-        locked.
+        effect on the next user message. The shipped code is the floor: Reset
+        returns a dial instantly. These move eagerness only; the quality gates
+        below stay locked.
       </p>
 
       {fields === null && !error && (
@@ -234,7 +245,7 @@ export default function CheckpointTuningPanel() {
                 >
                   {(f.options ?? []).map((opt) => (
                     <option key={opt} value={opt}>
-                      {opt}
+                      {DEPTH_OPTION_LABELS[opt] ?? opt}
                     </option>
                   ))}
                 </select>
