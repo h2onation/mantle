@@ -49,8 +49,8 @@ export interface CheckpointTuning {
 export const CHECKPOINT_TUNING_FIELDS = {
   minScenes: {
     column: "min_scenes",
-    label: "Min concrete scenes",
-    help: "How much evidence before Jove proposes. Lower fires sooner.",
+    label: "Examples before proposing",
+    help: "Specific, real-life moments the user must describe before Jove offers to save an entry. Lower fires sooner.",
     kind: "int",
     min: 1,
     max: 5,
@@ -58,8 +58,8 @@ export const CHECKPOINT_TUNING_FIELDS = {
   },
   cooldownTurns: {
     column: "cooldown_turns",
-    label: "Cooldown (turns since last)",
-    help: "Minimum user turns between checkpoints. Lower proposes more often.",
+    label: "Messages between entries",
+    help: "After an entry is saved, how many of the user's messages must pass before Jove can propose another. Stops back-to-back proposals. Lower proposes again sooner.",
     kind: "int",
     min: 0,
     max: 20,
@@ -67,8 +67,8 @@ export const CHECKPOINT_TUNING_FIELDS = {
   },
   failsafeTurn: {
     column: "failsafe_turn",
-    label: "Engagement failsafe turn",
-    help: "If the 'pattern engaged' signal never trips, allow a checkpoint past this turn.",
+    label: "Propose-anyway after (messages)",
+    help: "Jove normally waits until it detects a real behavioral pattern. If that never happens, it may propose anyway once the user passes this message count — the quality floor still applies. Higher waits longer.",
     kind: "int",
     min: 3,
     max: 40,
@@ -76,8 +76,8 @@ export const CHECKPOINT_TUNING_FIELDS = {
   },
   depthFloor: {
     column: "depth_floor",
-    label: "Depth floor",
-    help: "How deep the talk must go before firing. Deeper = more conservative.",
+    label: "Minimum depth",
+    help: "How far past 'what happened' the talk must go before Jove can propose. Deeper = more conservative.",
     kind: "enum",
     options: DEPTH_LEVELS,
     default: "mechanism",
