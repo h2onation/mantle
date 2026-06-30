@@ -1315,9 +1315,6 @@ export function callPersona({
                               ctx.checkpointTuning.cooldownTurns
                             ),
                             ready: gateResult.passed,
-                            // One-sentence gist for the ready card. Already
-                            // computed by extraction; no extra cost.
-                            preview: previousExtraction?.current_thread || null,
                           },
                   }
                 : {}),

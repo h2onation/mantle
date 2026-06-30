@@ -277,7 +277,6 @@ export default function MainApp() {
     concreteExamples,
     reflectionFill,
     reflectionReady,
-    reflectionPreview,
     composeReflection,
   } = useChat();
 
@@ -649,7 +648,6 @@ export default function MainApp() {
       concreteExamples={concreteExamples}
       reflectionFill={reflectionFill}
       reflectionReady={reflectionReady}
-      reflectionPreview={reflectionPreview}
       composeReflection={composeReflection}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}

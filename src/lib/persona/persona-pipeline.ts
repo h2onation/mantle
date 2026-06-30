@@ -125,13 +125,45 @@ export interface CheckpointMeta {
 // ── 1. Load conversation context ────────────────────────────────────────────
 
 /**
+ * Resolve, for one turn, whether Jove-pushed checkpoint proposals and the
+ * reflection meter are active.
+ *
+ * INVARIANT (do not regress): the reflection meter is a WEB-only affordance —
+ * the fill bar and pull strip render only in the app client, and there is no
+ * pull/compose path over SMS. So on the text surface the meter is forced off
+ * and the channel KEEPS its only capture path, Jove-pushed checkpoints. A
+ * global meter flip that also silenced text would make text-only users unable
+ * to ever add a Manual entry (silently). Pulled out as a pure function so this
+ * scoping is independently testable and can't be un-scoped by accident.
+ * (Reflection-meter switchover, 2026-06-30.)
+ */
+export function deriveProposalFlags(
+  gates: { checkpoints: boolean; reflectionMeter: boolean },
+  surface: "web" | "text"
+): { reflectionMeterEnabled: boolean; proposalsEnabled: boolean } {
+  const reflectionMeterEnabled = gates.reflectionMeter && surface === "web";
+  // When the meter is ON (web only), Jove never auto-proposes — the user pulls
+  // instead. Collapsing this into the existing `checkpoints`-OFF path zeroes
+  // the same prompt flags and skips detection, reusing one tested branch. The
+  // standalone composer + confirm route don't read this, so pull-compose works.
+  const proposalsEnabled = gates.checkpoints && !reflectionMeterEnabled;
+  return { reflectionMeterEnabled, proposalsEnabled };
+}
+
+/**
  * Parallel DB reads + derived user state — shared by web and text paths.
  * Returns everything both paths need to build a system prompt and apply rules.
  */
 export async function loadConversationContext(
   admin: ReturnType<typeof createAdminClient>,
   conversationId: string,
-  userId: string
+  userId: string,
+  // The reflection meter is a web-app affordance (the fill bar + pull strip
+  // render only in the mobile/desktop client). Text/SMS has no meter and no
+  // pull path, so the meter must NOT govern that channel — its only capture
+  // route is Jove-pushed checkpoints. Callers that run over text pass "text";
+  // everyone else (web chat, the compose/meter routes) takes the default.
+  surface: "web" | "text" = "web"
 ): Promise<ConversationContext> {
   const [
     historyResult,
@@ -327,13 +359,10 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
-  // When the reflection meter is ON, Jove never auto-proposes — the user
-  // pulls the reflection instead. Collapsing the proposal capability into
-  // the existing `checkpoints`-OFF path zeroes the same prompt flags and
-  // skips detection, so we reuse one tested branch instead of adding a new
-  // suppression path. The standalone composer + confirm route are unaffected
-  // (they don't read this), so on-demand compose still works.
-  const proposalsEnabled = gates.checkpoints && !gates.reflectionMeter;
+  const { reflectionMeterEnabled, proposalsEnabled } = deriveProposalFlags(
+    gates,
+    surface
+  );
 
   return {
     messages,
@@ -355,7 +384,7 @@ export async function loadConversationContext(
     mode: conversationMode,
     priorCheckpointSuppressed: proposalsEnabled && priorCheckpointSuppressed,
     checkpointsEnabled: proposalsEnabled,
-    reflectionMeterEnabled: gates.reflectionMeter,
+    reflectionMeterEnabled,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
     checkpointTuning,
