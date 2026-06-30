@@ -919,6 +919,16 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       extractionEnabled: true,
       voiceOverrides: {},
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
+      baselineActive: false,
+      baselineForces: {
+        gate: false,
+        flagDontGrab: false,
+        seamRule: false,
+        mechanicsDeepening: false,
+        characterShaping: false,
+        tier3Blocks: false,
+      },
+      baselineGateOpen: false,
       mode,
     };
   }

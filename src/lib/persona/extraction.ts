@@ -2,6 +2,10 @@ import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
 import { LAYERS, LAYER_NAMES, renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, EXTRACTION_MODEL } from "@/lib/persona/config";
 import { logEvent } from "@/lib/observability/log";
+// DEPTH_LEVELS is the single source of truth for the ordered shallow→deep depth
+// scale, also used by the checkpoint gate's depth-floor comparison. Imported
+// here so the monotonic-depth merge below ranks depth the same way the gate does.
+import { DEPTH_LEVELS } from "@/lib/persona/checkpoint-tuning";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -373,6 +377,83 @@ export function coerceLayerList(value: unknown): number[] {
     .filter((n): n is number => n !== null);
 }
 
+/** Charge ordering low < medium < high, so a phrase's charge can be held at its
+ *  high-water mark rather than regressing. */
+const CHARGE_RANK: Record<LanguageEntry["charge"], number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+};
+
+/**
+ * Max low-charge phrases retained in the accumulated bank. High/medium phrases
+ * are NEVER capped — they're the gated, recognition-bearing material (the gate's
+ * builtOnCharged check and the composer read high/medium only) and they're
+ * naturally infrequent. Low-charge phrases are contextual noise the model
+ * captures liberally ("if in doubt, capture it"), so they're the only source of
+ * unbounded growth. Without a cap the union grows every turn and is fed back
+ * into the extraction model's input each turn — inflating input over long
+ * conversations. 20 keeps a useful recent-context tail for the composer/extractor
+ * while bounding that growth; oldest low entries age out first.
+ */
+const LOW_CHARGE_CAP = 20;
+
+/**
+ * Accumulate the language bank instead of replacing it (mirrors the monotonic
+ * count guard in mergeExtractionState). Sonnet re-reads the conversation from a
+ * smaller window each turn and can return a smaller bank — silently dropping a
+ * charged phrase captured earlier, which then fails the gate's
+ * builtOnCharged-on-candidate-layer check (persona-pipeline.ts) and suppresses
+ * an otherwise-ready checkpoint.
+ *
+ * Union by phrase (case/space-insensitive key). For a phrase seen in both:
+ *   - keep the freshest text + context (incoming wins, it's iterated last),
+ *   - hold charge at the MAX of the two (a phrase that was high/medium can't
+ *     silently downgrade — same regression the count guard prevents),
+ *   - union the layer ids.
+ * Earlier-only phrases persist; charge per phrase is preserved, never flattened.
+ *
+ * Growth bound: high/medium phrases are unbounded; low-charge entries are capped
+ * at LOW_CHARGE_CAP, evicting oldest first. Map insertion order is oldest→newest
+ * (re-emitting an existing phrase updates it in place without moving it), so the
+ * surviving low entries are simply the most recent ones.
+ */
+export function mergeLanguageBank(
+  prev: LanguageEntry[],
+  incoming: LanguageEntry[]
+): LanguageEntry[] {
+  const byPhrase = new Map<string, LanguageEntry>();
+  for (const entry of [...prev, ...incoming]) {
+    if (!entry || typeof entry.phrase !== "string") continue;
+    const key = entry.phrase.trim().toLowerCase();
+    if (!key) continue;
+    const existing = byPhrase.get(key);
+    if (!existing) {
+      byPhrase.set(key, { ...entry });
+      continue;
+    }
+    const existingRank = CHARGE_RANK[existing.charge] ?? 0;
+    const incomingRank = CHARGE_RANK[entry.charge] ?? 0;
+    byPhrase.set(key, {
+      phrase: entry.phrase,
+      context: entry.context,
+      charge: incomingRank >= existingRank ? entry.charge : existing.charge,
+      layers: Array.from(
+        new Set([...(existing.layers || []), ...(entry.layers || [])])
+      ),
+    });
+  }
+
+  // Growth bound: keep every high/medium phrase, cap low-charge to the most
+  // recent LOW_CHARGE_CAP. Values iterate oldest→newest, so the low entries to
+  // drop are the oldest ones beyond the cap.
+  const all = Array.from(byPhrase.values());
+  const low = all.filter((e) => (CHARGE_RANK[e.charge] ?? 0) === 0);
+  if (low.length <= LOW_CHARGE_CAP) return all;
+  const evict = new Set(low.slice(0, low.length - LOW_CHARGE_CAP));
+  return all.filter((e) => !evict.has(e));
+}
+
 /**
  * Merge a freshly-parsed extraction payload with the prior state. Pure and
  * exported so the merge rules — monotonic gate counts, the pattern_engaged
@@ -427,18 +508,38 @@ export function mergeExtractionState(
     };
   })();
 
+  // Monotonic depth — the same regression guard the gate counts get above.
+  // Sonnet can re-read a calm exchange from a smaller window and report a
+  // shallower depth than the conversation already reached; DEPTH_LEVELS is the
+  // ordered shallow→deep scale, so keep whichever index is higher. An absent or
+  // invalid parsed.depth (indexOf === -1) falls back to prior state, preserving
+  // the old `parsed.depth || state.depth` fallback while never regressing.
+  const mergedDepth = (() => {
+    const incomingIdx = DEPTH_LEVELS.indexOf(parsed.depth);
+    const prevIdx = DEPTH_LEVELS.indexOf(state.depth);
+    return incomingIdx > prevIdx ? parsed.depth : state.depth;
+  })();
+
   return {
     layers: parsed.layers || state.layers,
     // Coerce each entry's layer ids to numbers at the boundary so the
     // checkpoint gate's layer-membership checks never compare a string
     // "1" against a numeric 1 (see toLayerNumber / the 2026-06-03 incident).
-    language_bank: Array.isArray(parsed.language_bank)
-      ? parsed.language_bank.map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (e: any) => ({ ...e, layers: coerceLayerList(e?.layers) })
-        )
-      : state.language_bank,
-    depth: parsed.depth || state.depth,
+    // Accumulate (union), don't replace — a charged phrase captured earlier
+    // must not silently drop out when a later small-window extraction returns a
+    // smaller set (see mergeLanguageBank). Incoming layer ids are coerced to
+    // numbers at the boundary, same as before; a non-array payload contributes
+    // nothing, so prior phrases are preserved (matching the old fallback).
+    language_bank: mergeLanguageBank(
+      state.language_bank,
+      Array.isArray(parsed.language_bank)
+        ? parsed.language_bank.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (e: any) => ({ ...e, layers: coerceLayerList(e?.layers) })
+          )
+        : []
+    ),
+    depth: mergedDepth,
     current_thread: parsed.current_thread || state.current_thread,
     mode: parsed.mode || state.mode,
     checkpoint_gate: mergedGate,

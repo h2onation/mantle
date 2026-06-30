@@ -21,6 +21,12 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
+import {
+  getBaselineExperiment,
+  defaultBaselineExperiment,
+  DEFAULT_BASELINE_FORCES,
+  type BaselineForces,
+} from "./baseline-experiment";
 import { getFeatureGates, type FeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 import {
@@ -86,6 +92,16 @@ export interface ConversationContext {
    *  /persona-bridge to gate a detected checkpoint. Every dial falls back to
    *  its code default (CHECKPOINT_TUNING_DEFAULTS) on a missing/invalid value. */
   checkpointTuning: CheckpointTuning;
+  /** TEMPORARY strip-to-baseline experiment (baseline-experiment.ts). True only
+   *  when the conversation's user is an admin AND the master switch is on — a
+   *  stripped Jove can never reach a real user. False on every normal turn. */
+  baselineActive: boolean;
+  /** Which baseline forces are re-added this turn (the add-back ladder). Only
+   *  meaningful when baselineActive; all-off otherwise. */
+  baselineForces: BaselineForces;
+  /** True when the baseline experiment opens the gate (active && !forces.gate).
+   *  Passed to applyCheckpointGates so any emit saves — crisis still blocks. */
+  baselineGateOpen: boolean;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -131,7 +147,11 @@ export interface CheckpointMeta {
 export async function loadConversationContext(
   admin: ReturnType<typeof createAdminClient>,
   conversationId: string,
-  userId: string
+  userId: string,
+  // TEMPORARY strip-to-baseline experiment: the baseline variant is applied ONLY
+  // for admin users, so a stripped Jove can never reach a real user. Defaults
+  // false so every non-chat caller (SMS, compose, meter) is never baseline.
+  isAdmin: boolean = false
 ): Promise<ConversationContext> {
   const [
     historyResult,
@@ -142,6 +162,9 @@ export async function loadConversationContext(
     gates,
     voiceOverrides,
     checkpointTuning,
+    // Admin-only read — fail-closed to experiment-off. Skipped entirely for
+    // non-admins so a real user's turn never even reads the switch table.
+    baselineExperiment,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -180,6 +203,9 @@ export async function loadConversationContext(
     // Admin-editable checkpoint-firing thresholds — same batch, fails open to
     // CHECKPOINT_TUNING_DEFAULTS (the shipped code values) on any error.
     getCheckpointTuning(admin),
+    // Baseline experiment switches — read ONLY for admins; non-admins get the
+    // fail-closed default (experiment off) without touching the table.
+    isAdmin ? getBaselineExperiment(admin) : defaultBaselineExperiment(),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -335,6 +361,16 @@ export async function loadConversationContext(
   // (they don't read this), so on-demand compose still works.
   const proposalsEnabled = gates.checkpoints && !gates.reflectionMeter;
 
+  // Resolve the baseline experiment. baselineActive is the hard admin gate:
+  // even if the master switch is on in the DB, it only takes effect for an admin
+  // user (isAdmin is false for every non-chat caller and every non-admin). When
+  // inactive, forces collapse to all-off and the gate runs its full checklist.
+  const baselineActive = isAdmin && baselineExperiment.enabled;
+  const baselineForces = baselineActive
+    ? baselineExperiment.forces
+    : { ...DEFAULT_BASELINE_FORCES };
+  const baselineGateOpen = baselineActive && !baselineForces.gate;
+
   return {
     messages,
     manualComponents,
@@ -359,6 +395,9 @@ export async function loadConversationContext(
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
     checkpointTuning,
+    baselineActive,
+    baselineForces,
+    baselineGateOpen,
   };
 }
 
@@ -424,8 +463,13 @@ export function buildPromptOptionsFromContext(
     // Phase 3a: the live voice switch. Both consumers of these options — the
     // app path (call-persona → buildSystemPromptBlocks) and the SMS path
     // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
-    // LIVE_VOICE_VARIANT = "legacy" in config.ts.
-    voiceVariant: LIVE_VOICE_VARIANT,
+    // LIVE_VOICE_VARIANT = "legacy" in config.ts. When the admin-scoped
+    // strip-to-baseline experiment is active for this turn it overrides to the
+    // baseline variant; off by default, so this resolves to LIVE_VOICE_VARIANT
+    // in every normal run.
+    voiceVariant: ctx.baselineActive ? "baseline" : LIVE_VOICE_VARIANT,
+    // Which forces are re-added this turn (only consumed by the baseline branch).
+    baselineForces: ctx.baselineForces,
     // Admin-editable voice-text overrides; empty {} falls back to all code
     // defaults at each resolution site in system-prompt.ts.
     voiceOverrides: ctx.voiceOverrides,
@@ -582,8 +626,21 @@ export function validateMaterialQuality(
   // Admin-tunable firing thresholds. Defaults to the shipped code floor, so
   // every existing caller and test behaves exactly as before unless the
   // pipeline passes the DB-loaded values.
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS,
+  // TEMPORARY strip-to-baseline experiment: when the admin run opens the gate,
+  // any emit saves — EXCEPT crisis, which still blocks (safety is never
+  // stripped). Defaults false, so every normal caller and test hits the full
+  // checklist below unchanged.
+  baselineGateOpen: boolean = false
 ): { ok: boolean; reasons: string[] } {
+  if (baselineGateOpen) {
+    const cf = extractionState?.clinical_flag;
+    if (cf?.active && cf.level === "crisis") {
+      return { ok: false, reasons: ["crisis active — checkpoint blocked"] };
+    }
+    return { ok: true, reasons: [] };
+  }
+
   // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
   // state means no ripeness condition can be verified, charged material
   // included. The old two-gate design backstopped this with a post-composition
@@ -797,7 +854,10 @@ export function applyCheckpointGates(
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean,
   turnCount?: number,
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS,
+  // TEMPORARY strip-to-baseline experiment: opens the gate (crisis still blocks)
+  // and skips the cooldown. Defaults false → unchanged for every normal caller.
+  baselineGateOpen: boolean = false
 ): CheckpointGateResult {
   // Rule 1: pattern engagement + material-quality pre-emit gate
   if (extractionState !== undefined) {
@@ -805,7 +865,8 @@ export function applyCheckpointGates(
       extractionState ?? null,
       isFirstCheckpoint ?? false,
       turnCount,
-      tuning
+      tuning,
+      baselineGateOpen
     );
     if (!quality.ok) {
       const reason = quality.reasons.join("; ");
@@ -819,8 +880,9 @@ export function applyCheckpointGates(
     }
   }
 
-  // Rule 2: turn-count suppression
-  if (turnsSinceCheckpoint < tuning.cooldownTurns) {
+  // Rule 2: turn-count suppression. Skipped when the baseline experiment opens
+  // the gate — cooldown is a timing force, stripped along with the checklist.
+  if (!baselineGateOpen && turnsSinceCheckpoint < tuning.cooldownTurns) {
     const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum ${tuning.cooldownTurns})`;
     if (process.env.NODE_ENV !== "production") {
       console.log("[persona-pipeline] Checkpoint suppressed: %s", reason);
