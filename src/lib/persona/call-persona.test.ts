@@ -768,7 +768,8 @@ describe("call-persona — prompt-cache wiring", () => {
   });
 
   it("constructs an array-form system with exactly one cache_control marker", () => {
-    expect(src).toMatch(/SystemBlock\[\]\s*=\s*\[/);
+    expect(src).toMatch(/const systemBlocks:\s*SystemBlock\[\]\s*=/);
+    expect(src).toMatch(/\{\s*type:\s*"text",\s*text:\s*promptBlocks\.tier1\s*\}/);
     expect(src).toMatch(
       /text:\s*promptBlocks\.staticContext,\s*\n\s*cache_control:\s*\{\s*type:\s*"ephemeral"\s*\}/
     );
@@ -776,6 +777,13 @@ describe("call-persona — prompt-cache wiring", () => {
     // uses one on the largest stable prefix.
     const markerCount = (src.match(/cache_control:\s*\{\s*type:\s*"ephemeral"/g) || []).length;
     expect(markerCount).toBe(1);
+  });
+
+  it("drops empty text blocks (Anthropic rejects empty system blocks)", () => {
+    // A fresh baseline-experiment turn has an empty `dynamic` tail; an empty
+    // text block makes the API 400 ("system: text content blocks must be
+    // non-empty"). The filter must stay on the assembled systemBlocks.
+    expect(src).toMatch(/\.filter\(\(b\)\s*=>\s*b\.text\.trim\(\)\.length\s*>\s*0\)/);
   });
 
   it("passes the SystemBlock[] to anthropicStream as `system`", () => {

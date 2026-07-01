@@ -632,15 +632,23 @@ export function callPersona({
           postRejection,
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
-        const systemBlocks: SystemBlock[] = [
-          { type: "text", text: promptBlocks.tier1 },
-          {
-            type: "text",
-            text: promptBlocks.staticContext,
-            cache_control: { type: "ephemeral" },
-          },
-          { type: "text", text: promptBlocks.dynamic },
-        ];
+        // Drop empty text blocks — Anthropic rejects them ("system: text content
+        // blocks must be non-empty"). The `dynamic` tail is empty for a fresh
+        // baseline-experiment turn (no Tier 3, no Manual, no session context);
+        // rebuilt/legacy always populate it, so this filter is a no-op there.
+        // The cache_control block (staticContext) is always non-empty, so the
+        // cache boundary is preserved.
+        const systemBlocks: SystemBlock[] = (
+          [
+            { type: "text", text: promptBlocks.tier1 },
+            {
+              type: "text",
+              text: promptBlocks.staticContext,
+              cache_control: { type: "ephemeral" },
+            },
+            { type: "text", text: promptBlocks.dynamic },
+          ] as SystemBlock[]
+        ).filter((b) => b.text.trim().length > 0);
 
         // 8b. Debug logging (dev only)
         if (process.env.NODE_ENV !== "production") {

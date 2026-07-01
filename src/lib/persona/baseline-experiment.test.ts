@@ -173,6 +173,35 @@ describe("baseline plumbing cannot leak into the live (rebuilt) path", () => {
   const render = (b: ReturnType<typeof buildSystemPromptBlocks>) =>
     b.tier1 + b.staticContext + b.dynamic;
 
+  // Anthropic rejects empty system text blocks ("must be non-empty"). A fresh
+  // baseline-all-off turn produces an EMPTY dynamic tail, so call-persona must
+  // drop empty blocks before sending. This locks both facts.
+  it("baseline all-off dynamic is empty; filtering leaves only non-empty blocks", () => {
+    const b = buildSystemPromptBlocks({
+      kind: "oneOnOne",
+      manualComponents: [],
+      currentConversationId: "c",
+      isReturningUser: false,
+      sessionSummary: null,
+      extractionContext: "",
+      isFirstCheckpoint: true,
+      sessionCount: 1,
+      turnCount: 1,
+      checkpointApproaching: false,
+      personaModes: ["general"],
+      mode: "situation",
+      priorCheckpointSuppressed: false,
+      voiceVariant: "baseline",
+      voiceOverrides: {},
+    });
+    expect(b.dynamic.trim()).toBe(""); // the trap the filter exists for
+    const sent = [b.tier1, b.staticContext, b.dynamic].filter(
+      (t) => t.trim().length > 0,
+    );
+    expect(sent.length).toBe(2); // tier1 + static; the empty dynamic is dropped
+    expect(sent.every((t) => t.trim().length > 0)).toBe(true);
+  });
+
   it("rebuilt output is identical with forces all-on vs absent", () => {
     const without = render(buildSystemPromptBlocks(rebuiltOpts));
     const withAllOn = render(
