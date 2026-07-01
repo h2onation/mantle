@@ -1035,7 +1035,14 @@ export function buildSystemPromptBlocks(
     // characterShaping add-back swaps the neutral identity for the full CHARACTER.
     const tier1 = f.characterShaping ? REBUILT_CHARACTER : BASELINE_IDENTITY;
 
-    let staticContext = `\n\n${BASELINE_LIMITS}\n\n${BASELINE_SAVE_CONTRACT}\n\n${BASELINE_OPENER}`;
+    // The bare opener is a stand-in for when nothing else tells Jove how to
+    // start. When the Tier-3 spine is on it OWNS the opening (the guided-intake
+    // tee-up emits the ---sections--- picker, the situation opener, etc.), and
+    // the bare "ask what's on their mind" line directly contradicts it — Jove
+    // follows the simpler line and never shows the tiles. So drop it when tier3
+    // is on and let the tier-3 opener win.
+    let staticContext = `\n\n${BASELINE_LIMITS}\n\n${BASELINE_SAVE_CONTRACT}`;
+    if (!f.tier3Blocks) staticContext += `\n\n${BASELINE_OPENER}`;
     // Per-rung mechanics add-back (the approved carve). When mechanicsDeepening
     // is on, with flag + seam also on, this IS the full live REBUILT_MECHANICS;
     // earlier rungs append only their one part under the MECHANICS header.

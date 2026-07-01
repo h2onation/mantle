@@ -202,6 +202,39 @@ describe("baseline plumbing cannot leak into the live (rebuilt) path", () => {
     expect(sent.every((t) => t.trim().length > 0)).toBe(true);
   });
 
+  it("tier3 spine (guided) owns the opener — bare opener dropped, tiles instruction kept", () => {
+    const guided = buildSystemPromptBlocks({
+      kind: "oneOnOne",
+      manualComponents: [],
+      currentConversationId: "c",
+      isReturningUser: false,
+      sessionSummary: null,
+      extractionContext: "",
+      isFirstCheckpoint: true,
+      sessionCount: 1,
+      turnCount: 1,
+      checkpointApproaching: false,
+      personaModes: ["general"],
+      mode: "guided-intake",
+      priorCheckpointSuppressed: false,
+      voiceVariant: "baseline",
+      voiceOverrides: {},
+      baselineForces: {
+        gate: false,
+        flagDontGrab: false,
+        seamRule: false,
+        mechanicsDeepening: false,
+        characterShaping: false,
+        tier3Blocks: true,
+      },
+    });
+    const full = guided.tier1 + guided.staticContext + guided.dynamic;
+    // The guided tee-up's tile instruction must be present…
+    expect(full).toContain("---sections---");
+    // …and the bare opener, which contradicts it, must be gone.
+    expect(full).not.toContain("Open by asking what's on their mind");
+  });
+
   it("rebuilt output is identical with forces all-on vs absent", () => {
     const without = render(buildSystemPromptBlocks(rebuiltOpts));
     const withAllOn = render(
