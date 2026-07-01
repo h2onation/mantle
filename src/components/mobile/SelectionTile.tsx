@@ -31,6 +31,15 @@ export default function SelectionTile({
     <button
       type="button"
       onClick={onSelect}
+      // Keep the composer's caret put. A real mouse click on a button pulls
+      // DOM focus off the textarea onto this button; the tile then unmounts
+      // (the picker hides while Jove replies), so focus falls to <body> and
+      // the next keystrokes land nowhere — the desktop "can't type after
+      // selecting" bug. preventDefault on mousedown suppresses the focus
+      // transfer without touching the click, so focus never leaves the
+      // composer. Mouse-path only: keyboard Enter/Space activation and the
+      // press/focus-visible states are unaffected.
+      onMouseDown={(e) => e.preventDefault()}
       disabled={disabled}
       className={subtitle ? "mw-seltile" : "mw-seltile mw-seltile--focus"}
     >

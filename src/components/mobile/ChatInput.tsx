@@ -44,12 +44,15 @@ export default function ChatInput({
   const voice = useVoiceInput();
 
   // Desktop focus restore. When the input flips from disabled back to
-  // enabled — a Jove turn finished, or the user just tapped a chip — pull
-  // focus into the textarea so keystrokes land immediately. Fixes the
-  // desktop bug where typing silently did nothing after selecting an
-  // option until the user clicked back into the field (or refreshed).
-  // Guarded to desktop by the caller; touch devices skip it so the
-  // keyboard never opens on its own.
+  // enabled at the end of a Jove turn, pull focus into the textarea so the
+  // user can keep typing without clicking back into the field. This covers
+  // the typed-message flow (send with Enter, then the turn disables the
+  // composer). The option-selection flow no longer relies on this: the
+  // SelectionTile suppresses its own focus steal (onMouseDown preventDefault)
+  // so the caret never leaves the composer on a tap, which is why chasing it
+  // back here — a deferred focus racing other work in the same frame — was
+  // unreliable for selections. Guarded to desktop by the caller; touch
+  // devices skip it so the keyboard never opens on its own.
   useEffect(() => {
     const wasDisabled = wasDisabledRef.current;
     wasDisabledRef.current = disabled;
