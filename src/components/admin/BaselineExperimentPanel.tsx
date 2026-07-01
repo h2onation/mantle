@@ -26,7 +26,7 @@ const SWITCHES: {
   {
     key: "conductor",
     read: (e) => e.conductor,
-    label: "Conductor voice (v0.3)",
+    label: "Conductor voice (v0.4)",
     desc: "ON → YOUR conversations run the conductor prompt instead — self-contained, carries the 988 crisis clause and the save contract, no cross-domain instructions, ignores the rung toggles below. Overrides Baseline mode when both are on. Run it in a Situation conversation. Real users unaffected (admin-scoped).",
   },
   {
