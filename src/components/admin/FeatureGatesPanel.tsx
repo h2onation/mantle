@@ -5,54 +5,72 @@ import type { FeatureGates } from "@/lib/persona/feature-gates";
 
 // Founder-facing copy for each gate. `field` keys into the FeatureGates
 // object the API returns; `key` is the feature_gates row key the PATCH
-// body needs. Order is the order they render.
+// body needs. `def` is the shipped default. `what` is one plain line on what
+// the switch controls; `desc` spells out ON vs OFF and any gotcha. Order is
+// the order they render.
 const GATE_META: {
   key: string;
   field: keyof FeatureGates;
   label: string;
-  off: string;
+  def: "ON" | "OFF";
+  what: string;
+  desc: string;
 }[] = [
   {
     key: "persona_deltas",
     field: "personaDeltas",
     label: "Persona routing",
-    off: "OFF → one neutral voice. The autistic / ADHD / dyslexic voice deltas stop loading; everyone gets the base scaffold.",
+    def: "ON",
+    what: "Adapts Jove's voice to the user's neurotype.",
+    desc: "ON: autistic / ADHD / dyslexic users get their tailored voice. OFF: everyone gets one neutral voice (the neurotype deltas stop loading).",
   },
   {
     key: "situation",
     field: "situation",
     label: "Situation mode",
-    off: "OFF → the Situation entry door shows as “Coming soon” and new conversations default to the next enabled mode (e.g. Guided) — use this for a guided-solo (or upload-solo) setup. Situation stays the engine's hard floor: if every mode is off, conversations still run Situation.",
+    def: "ON",
+    what: "The “Situation” way to start — the user brings a topic and Jove goes deep.",
+    desc: "ON: the Situation door shows on Home and new chats can start here. OFF: the door reads “Coming soon” AND any conversation that would start as Situation falls back to the next enabled mode (Guided, then Upload). ⚠ With this OFF you cannot start a plain Situation chat — a new conversation lands in Guided instead.",
   },
   {
     key: "guided_intake",
     field: "guidedIntake",
     label: "Guided intake mode",
-    off: "OFF → the Guided entry door shows as “Coming soon” and its path falls back to the next enabled mode. The guided-intake flow + section picker stop firing.",
+    def: "ON",
+    what: "The “Guided” way to start — Jove leads, the user picks a section and taps through prompts.",
+    desc: "ON: the Guided door shows and its tappable section / focus cards work. OFF: the door reads “Coming soon” and its path falls back to the next enabled mode.",
   },
   {
     key: "upload",
     field: "upload",
     label: "Upload mode",
-    off: "OFF → the Upload entry path falls back to Situation and its Home door shows as “Coming soon.” The upload short-circuit + transcript-wrap behavior stop firing.",
+    def: "ON",
+    what: "The “Upload” way to start — paste a transcript or journal for Jove to work from.",
+    desc: "ON: the Upload door shows on Home. OFF: it reads “Coming soon” and falls back to Situation.",
   },
   {
     key: "checkpoints",
     field: "checkpoints",
     label: "Checkpoint pipeline",
-    off: "OFF → Jove never proposes a Manual entry. Detection, the quality gate, and composition all go dark. Voice + extraction still run.",
+    def: "ON",
+    what: "Whether Jove can propose Manual entries at all (the “I want to put something in your Manual” → tappable card flow).",
+    desc: "ON: Jove proposes and entries can be saved. OFF: Jove still talks and analyzes, but never proposes or saves anything.",
   },
   {
     key: "extraction_brief",
     field: "extractionBrief",
     label: "Extraction analysis",
-    off: "OFF → voice-only. The background analysis call is skipped and Jove gets no brief steering it. Checkpoints can't fire either (they depend on it).",
+    def: "ON",
+    what: "The background analysis that reads each message and judges when material is ripe to save.",
+    desc: "ON: normal. OFF: voice-only — no analysis steers Jove, AND checkpoints can't fire (they depend on it), so nothing saves even if Checkpoint pipeline is ON.",
   },
   {
     key: "reflection_meter",
     field: "reflectionMeter",
     label: "Reflection meter",
-    off: "ON → user-pulled Reflections: a depth meter fills as the conversation deepens and the user taps to build the entry on demand; Jove stops auto-proposing. OFF (default) → the current Jove-pushed checkpoint flow, unchanged.",
+    def: "OFF",
+    what: "Switches the WEB capture model between two mutually-exclusive ways to save.",
+    desc: "OFF: Jove PUSHES — it proposes an entry when it sees one is ready. ON: the user PULLS — a “reflection ready” meter fills as the talk deepens and the user taps to capture. ⚠ Turning this ON automatically turns OFF Jove's auto-propose — you get one model or the other, never both. Text / SMS always uses push. For the strip-to-baseline experiment: keep this OFF, or Jove's push (what the experiment watches) is disabled and the meter reads “ready” immediately.",
   },
 ];
 
@@ -132,8 +150,12 @@ export default function FeatureGatesPanel() {
           margin: "0 0 16px",
         }}
       >
-        Each toggle removes one subsystem from the live loop. The OFF line spells
-        out exactly what drops when you flip it.
+        <strong>These are global — they change Jove for every user, not just
+        you.</strong> Each switch shows its default and what ON vs OFF does. The
+        five mode / pipeline switches default ON (turn one off to isolate the
+        core loop for debugging); Reflection meter is a real product model that
+        defaults OFF. Watch for the ⚠ notes — some switches quietly change
+        another.
       </p>
 
       {gates === null && !error && (
@@ -192,6 +214,29 @@ export default function FeatureGatesPanel() {
                   >
                     {on ? "ON" : "OFF"}
                   </span>
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      letterSpacing: "0.03em",
+                      color: "var(--session-walnut-meta-soft)",
+                    }}
+                  >
+                    default {g.def}
+                    {on === (g.def === "ON") ? "" : " · changed"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12.5px",
+                    lineHeight: 1.45,
+                    color: "var(--session-ink)",
+                    marginBottom: 3,
+                  }}
+                >
+                  {g.what}
                 </div>
                 <div
                   style={{
@@ -201,7 +246,7 @@ export default function FeatureGatesPanel() {
                     color: "var(--session-walnut-meta)",
                   }}
                 >
-                  {g.off}
+                  {g.desc}
                 </div>
               </div>
 
