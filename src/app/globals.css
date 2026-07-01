@@ -457,6 +457,13 @@ textarea:focus-visible {
   border-bottom: 2px solid var(--session-persona) !important;
 }
 
+/* The session composer sits inside a decorated pill that shows focus on the
+   container (persona border + soft ring). The underline above would draw a
+   straight line inside the rounded pill, so opt this one textarea out. */
+textarea.mw-composer-input:focus-visible {
+  border-bottom: none !important;
+}
+
 /* Reduced motion — honor the OS preference. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

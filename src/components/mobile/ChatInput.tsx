@@ -244,7 +244,13 @@ export default function ChatInput({
           alignItems: "flex-end",
           gap: "4px",
           background: "var(--session-walnut-surface)",
-          border: "1px solid var(--session-bubble-border)",
+          // Focus lives on the pill, not as a straight line inside it: on
+          // focus the border takes the persona accent and a soft ring grows
+          // around the whole field — the standard search-bar pattern, and a
+          // gentler signal than a hard underline.
+          border: inputFocused
+            ? "1px solid var(--session-persona-border)"
+            : "1px solid var(--session-bubble-border)",
           borderRadius: "21px",
           padding: "12px 8px 12px 16px",
           minHeight: "56px",
@@ -252,7 +258,10 @@ export default function ChatInput({
           overflow: "hidden",
           backdropFilter: "blur(32px) saturate(150%)",
           WebkitBackdropFilter: "blur(32px) saturate(150%)",
-          boxShadow: "var(--session-bubble-shadow)",
+          boxShadow: inputFocused
+            ? "0 0 0 3px var(--session-persona-muted), var(--session-bubble-shadow)"
+            : "var(--session-bubble-shadow)",
+          transition: "border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       >
         {!input && !inputFocused && !isRecording && (
@@ -307,6 +316,7 @@ export default function ChatInput({
 
         <textarea
           ref={textareaRef}
+          className="mw-composer-input"
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
@@ -330,9 +340,14 @@ export default function ChatInput({
             border: "none",
             outline: "none",
             resize: "none" as const,
-            fontSize: "14.5px",
+            // 16px keeps the typed text legible and stops iOS Safari from
+            // auto-zooming the page on focus (sub-16px inputs trigger it).
+            // Upright (not italic): italic serif at input sizes is hard to
+            // read while composing — italic stays reserved for the ghost
+            // placeholder so real text and placeholder read distinctly.
+            fontSize: "16px",
             fontWeight: 400,
-            fontStyle: "italic",
+            fontStyle: "normal",
             lineHeight: 1.6,
             fontFamily: "var(--font-spectral), var(--font-persona), serif",
             padding: 0,
@@ -341,7 +356,9 @@ export default function ChatInput({
               isRecording && voice.isInterim
                 ? "var(--session-ink-faded)"
                 : "var(--session-ink-soft)",
-            caretColor: isRecording ? "transparent" : "var(--session-persona-soft)",
+            // Caret matches the ink, not the persona accent — a neutral,
+            // clearly-visible cursor instead of a faint blue line.
+            caretColor: isRecording ? "transparent" : "var(--session-ink-soft)",
           }}
         />
 
