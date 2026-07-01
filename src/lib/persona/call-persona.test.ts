@@ -9,6 +9,7 @@ import {
   selectTranscriptContextForPrompt,
   shouldEmitUploadOpener,
   splitCheckpointLeadIn,
+  stripCheckpointForCard,
   stripCheckpointFromText,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
@@ -313,6 +314,55 @@ describe("stripCheckpointFromText", () => {
     expect(result).not.toContain("write this up");
     expect(result).not.toContain("The Quiet Build");
     expect(result).not.toContain("What would you change");
+  });
+});
+
+// ── stripCheckpointForCard (success-path rewrite) ──
+// On a SUCCESSFUL checkpoint the card is the entry surface, so the message
+// row's own text must drop the transition line — and, unlike the suppression
+// stripper, must NEVER substitute the grounding fallback. Leaking the fallback
+// here rendered "Tell me what's going on for you right now." inside the card
+// AND tipped the post-confirm turn into denying the save ("I didn't save
+// anything yet — I was about to propose it"). Regression guard for 2026-07-01.
+describe("stripCheckpointForCard", () => {
+  it("returns empty (never the grounding fallback) when only a bare ack precedes the transition", () => {
+    for (const ack of ["Okay.", "Got it.", "Right.", "Okay, got it."]) {
+      const result = stripCheckpointForCard(
+        `${ack}\n\nI want to put something in your Manual. The Quiet Build. What would you change?`
+      );
+      expect(result).toBe("");
+      // The exact leak from the bug report must never survive onto a card.
+      expect(result).not.toContain("Tell me what's going on for you right now");
+      expect(result).not.toContain("in your Manual");
+      expect(result).not.toContain("The Quiet Build");
+    }
+  });
+
+  it("returns empty when the model led straight with the transition (no lead-in)", () => {
+    const result = stripCheckpointForCard(
+      "I want to put something in your Manual. Body Goes Quiet First. What shifts?"
+    );
+    expect(result).toBe("");
+    expect(result).not.toContain("in your Manual");
+  });
+
+  it("keeps a substantive standalone lead-in, transition and entry prose stripped", () => {
+    const input =
+      "That moment at the dinner table is sitting with me — the way your jaw locked before anyone spoke. I want to put something in your Manual. Body Goes Quiet First.";
+    const result = stripCheckpointForCard(input);
+    expect(result).toContain("dinner table");
+    expect(result).toContain("jaw locked");
+    expect(result).not.toContain("in your Manual");
+    expect(result).not.toContain("Body Goes Quiet");
+  });
+
+  it("never emits the suppression fallback that stripCheckpointFromText would here", () => {
+    const input = "Okay.\n\nI want to put something in your Manual. The Build.";
+    // Sibling helper falls back to the grounding line; the card variant must not.
+    expect(stripCheckpointFromText(input)).toBe(
+      "Tell me what's going on for you right now."
+    );
+    expect(stripCheckpointForCard(input)).toBe("");
   });
 });
 

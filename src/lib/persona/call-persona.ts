@@ -357,6 +357,34 @@ export function stripCheckpointFromText(text: string): string {
 }
 
 /**
+ * Strip the transition line for the SUCCESS path — where the checkpoint was
+ * composed and the card (checkpoint_meta) is the entry's surface. Same
+ * findCheckpointTransition contract as the suppression stripper, but with the
+ * opposite empty-case behavior: keep Jove's genuine lead-in when it stands on
+ * its own, otherwise return "" (empty) — NEVER the grounding fallback.
+ *
+ * The distinction matters. On a suppressed non-checkpoint turn, the message row
+ * IS the turn, so a blank would leave a dead turn — hence the fallback. On a
+ * successful checkpoint, the card carries the next move and the acknowledgment
+ * bubble carries Jove's reflection, so the row should be empty when there's no
+ * standalone lead-in. Leaking the fallback here instead (the pre-2026-07-01
+ * behavior) did two kinds of damage: it rendered "Tell me what's going on for
+ * you right now." as a stray line inside the card, AND it poisoned the
+ * post-confirm turn's replayed history — Jove's own transcript read "asked a
+ * grounding question, then the user says they saved it," incoherent enough to
+ * tip Jove into denying the save it had just made ("I didn't save anything
+ * yet — I was about to propose it").
+ */
+export function stripCheckpointForCard(text: string): string {
+  const match = findCheckpointTransition(text);
+  if (!match) {
+    return text;
+  }
+  const before = text.slice(0, match.index).trim();
+  return leadInHandsOff(before) ? before : "";
+}
+
+/**
  * Split a checkpoint response at its transition line for split delivery
  * (the lead-in ships to the client immediately; the entry composes after).
  * Returns the genuine lead-in (Jove responding to what the user just
@@ -1152,7 +1180,7 @@ export function callPersona({
             // used to skip this, which was the leak.
             conversationalText = leadInEmitted
               ? "" // lead-in already shipped as its own row; the card is the entry
-              : stripCheckpointFromText(conversationalText);
+              : stripCheckpointForCard(conversationalText);
             await admin
               .from("messages")
               .update({ content: conversationalText })
