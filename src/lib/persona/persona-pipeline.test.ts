@@ -1047,6 +1047,19 @@ describe("resolveConversationMode", () => {
     ).toBe("situation");
   });
 
+  it("honorRequested honors the requested mode even when its gate is off (baseline experiment)", () => {
+    const ALL_OFF = { situation: false, guidedIntake: false, upload: false };
+    // Situation with the situation gate off would normally fall back; baseline
+    // honors it so the admin can run the pilot in Situation regardless.
+    expect(resolveConversationMode("situation", ALL_OFF, true)).toBe("situation");
+    expect(resolveConversationMode("guided-intake", ALL_OFF, true)).toBe(
+      "guided-intake",
+    );
+    // Default (honorRequested=false) still falls back — unchanged for real users.
+    expect(resolveConversationMode("situation", ALL_OFF)).toBe("situation"); // hard floor
+    expect(resolveConversationMode("guided-intake", ALL_OFF)).toBe("situation");
+  });
+
   it("guided-solo: situation off → every request resolves to guided", () => {
     const guidedSolo = { situation: false, guidedIntake: true, upload: false };
     expect(resolveConversationMode("situation", guidedSolo)).toBe("guided-intake");

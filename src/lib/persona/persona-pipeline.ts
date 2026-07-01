@@ -253,14 +253,25 @@ export async function loadConversationContext(
     ? resolvedPersonaModes
     : ["general"];
 
+  // TEMPORARY strip-to-baseline experiment — resolved up front so the baseline
+  // conversation is SELF-CONTAINED: for the admin's own run it forces the push
+  // model and honors the requested mode below, ignoring the global
+  // reflection_meter / mode gates. So running the experiment never changes what
+  // real users see. Inactive (non-admin or master off) = everything as today.
+  const baselineActive = isAdmin && baselineExperiment.enabled;
+  const baselineForces = baselineActive
+    ? baselineExperiment.forces
+    : { ...DEFAULT_BASELINE_FORCES };
+  const baselineGateOpen = baselineActive && !baselineForces.gate;
+
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
-  // The one place conversation mode is resolved against the per-mode gates;
-  // the guided-intake / upload blocks downstream key off this value, not the
-  // gates directly. See resolveConversationMode.
-  const conversationMode = resolveConversationMode(rawMode, gates);
+  // The one place conversation mode is resolved against the per-mode gates —
+  // except a baseline experiment run honors the requested mode directly, so the
+  // admin can run Situation even when the global situation gate is off.
+  const conversationMode = resolveConversationMode(rawMode, gates, baselineActive);
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -385,20 +396,12 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
-  const { reflectionMeterEnabled, proposalsEnabled } = deriveProposalFlags(
-    gates,
-    surface
-  );
-
-  // Resolve the baseline experiment. baselineActive is the hard admin gate:
-  // even if the master switch is on in the DB, it only takes effect for an admin
-  // user (isAdmin is false for every non-chat caller and every non-admin). When
-  // inactive, forces collapse to all-off and the gate runs its full checklist.
-  const baselineActive = isAdmin && baselineExperiment.enabled;
-  const baselineForces = baselineActive
-    ? baselineExperiment.forces
-    : { ...DEFAULT_BASELINE_FORCES };
-  const baselineGateOpen = baselineActive && !baselineForces.gate;
+  // Baseline experiment forces the PUSH model (no reflection meter) so the run
+  // can observe Jove proposing, regardless of the global reflection_meter gate.
+  // (baselineActive / baselineForces / baselineGateOpen resolved up top.)
+  const { reflectionMeterEnabled, proposalsEnabled } = baselineActive
+    ? { reflectionMeterEnabled: false, proposalsEnabled: true }
+    : deriveProposalFlags(gates, surface);
 
   return {
     messages,
@@ -444,7 +447,12 @@ export async function loadConversationContext(
 //     hard floor, so a conversation is never left mode-less.
 export function resolveConversationMode(
   rawMode: string | null | undefined,
-  gates: Pick<FeatureGates, "situation" | "guidedIntake" | "upload">
+  gates: Pick<FeatureGates, "situation" | "guidedIntake" | "upload">,
+  // TEMPORARY strip-to-baseline experiment: when true, honor the requested mode
+  // directly and skip the per-mode gate fallback, so the admin can run Situation
+  // (or any mode) even when its global gate is off. Defaults false — every
+  // normal caller behaves exactly as before.
+  honorRequested: boolean = false
 ): "situation" | "guided-intake" | "upload" {
   const requested: "situation" | "guided-intake" | "upload" =
     rawMode === "guided-intake"
@@ -452,6 +460,7 @@ export function resolveConversationMode(
       : rawMode === "upload"
         ? "upload"
         : "situation";
+  if (honorRequested) return requested;
   const requestedEnabled =
     requested === "guided-intake"
       ? gates.guidedIntake
