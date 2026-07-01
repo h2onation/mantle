@@ -67,3 +67,17 @@ export function findCheckpointTransition(
   if (!m || m.index === undefined) return null;
   return { index: m.index, length: m[0].length };
 }
+
+/**
+ * The proposal prose AFTER the transition line — the entry text Jove wrote in
+ * the save message. Under the conductor experiment this IS the user-approved
+ * working version (conductor v0.5's save contract has Jove restate the
+ * approved words right after the phrase), and the save path uses it VERBATIM
+ * as the entry body so the composer can't re-author what the user already
+ * approved. Empty string when no transition line or nothing follows it.
+ */
+export function extractProposalProse(text: string): string {
+  const m = findCheckpointTransition(text);
+  if (!m) return "";
+  return text.slice(m.index + m.length).trim();
+}

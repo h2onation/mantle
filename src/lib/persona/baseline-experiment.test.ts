@@ -190,10 +190,25 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain("everyone would be better off without me");
   });
 
-  it("carries the save contract (detector's exact phrase)", () => {
-    expect(renderConductor()).toContain(
-      'The way to save something is the exact words "I want to put something in your Manual," then stop.',
+  it("carries the save contract (detector's exact phrase + verbatim-entry clause)", () => {
+    const full = renderConductor();
+    // The detector's exact phrase must appear in the contract…
+    expect(full).toContain('"I want to put something in your Manual,"');
+    // …and v0.5's verbatim clause: the approved entry text travels IN the
+    // save message (that's what the conductor verbatim save reads).
+    expect(full).toContain(
+      "followed by the entry exactly as you built it together",
     );
+    // Offer-don't-announce: the false-action claim is banned.
+    expect(full).toContain("Never say you're putting something down");
+  });
+
+  it("carries the v0.5 landed markers and after-save rule", () => {
+    const full = renderConductor();
+    expect(full).toContain("How you know there's more — and when it's landed");
+    expect(full).toContain('"Ok" is not landed');
+    expect(full).toContain("## After a save");
+    expect(full).toContain("Never say nothing was saved");
   });
 
   it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {

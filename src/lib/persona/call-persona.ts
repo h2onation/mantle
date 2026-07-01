@@ -12,6 +12,7 @@ import { logEvent } from "@/lib/observability/log";
 import {
   detectCheckpointInResponse,
   findCheckpointTransition,
+  extractProposalProse,
 } from "@/lib/persona/detect-checkpoint";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
@@ -1100,6 +1101,27 @@ export function callPersona({
               duration_ms: Date.now() - compositionStart,
               manual_entry_count: manualComponents?.length ?? 0,
             });
+
+            // TEMPORARY conductor experiment — verbatim save. Under the
+            // conductor, the prose after the transition line IS the working
+            // version the user approved in conversation (v0.5 save contract),
+            // so it becomes the entry body UNTOUCHED. The composer keeps its
+            // clerical outputs (section, tags, headline, summary) but may not
+            // re-author the body — the purpose-run card proved it re-writes
+            // in a register the user rejected. Floor of 40 chars: below that
+            // there is no real approved text in the save message (e.g. the
+            // user rushed "just save it"), so fall back to composer content
+            // rather than saving a fragment.
+            if (ctx.conductorActive && composedEntry?.content) {
+              const approvedProse = extractProposalProse(conversationalText);
+              if (approvedProse.length >= 40) {
+                composedEntry = { ...composedEntry, content: approvedProse };
+              } else if (process.env.NODE_ENV !== "production") {
+                console.log(
+                  "[callPersona] conductor verbatim fallback: no approved prose in save message, keeping composer body"
+                );
+              }
+            }
 
             if (composedEntry?.content) {
               const validation = validateComposedEntry(composedEntry.content);

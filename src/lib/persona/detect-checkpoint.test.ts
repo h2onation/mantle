@@ -174,3 +174,27 @@ describe("detectCheckpointInResponse", () => {
     });
   });
 });
+
+// Conductor v0.5 verbatim save: the prose after the transition line is the
+// user-approved working version; the save path uses it untouched as the entry
+// body. This helper is that extraction — the transition boundary is the SAME
+// contract the detector and stripper share.
+import { extractProposalProse } from "@/lib/persona/detect-checkpoint";
+
+describe("extractProposalProse", () => {
+  it("returns the prose after the transition line, trimmed", () => {
+    const text =
+      "That's landed.\n\nI want to put something in your Manual.\n\nI hold back my opinion with people who don't give ground. I do it to avoid the conflict, but it creates distance too.";
+    expect(extractProposalProse(text)).toBe(
+      "I hold back my opinion with people who don't give ground. I do it to avoid the conflict, but it creates distance too."
+    );
+  });
+
+  it("returns empty string when there is no transition line", () => {
+    expect(extractProposalProse("Just a normal turn.")).toBe("");
+  });
+
+  it("returns empty string when nothing follows the transition line", () => {
+    expect(extractProposalProse("I want to put something in your Manual.")).toBe("");
+  });
+});
