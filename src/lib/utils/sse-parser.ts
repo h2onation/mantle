@@ -59,22 +59,64 @@ interface SSECallbacks {
   onError?: (error: string) => void;
 }
 
+/** How long a stream may go with ZERO bytes before we treat it as hung.
+ *  Generous on purpose: first-token latency on a cold turn can run 10–30s and
+ *  the checkpoint split-delivery has a multi-second silent gap while the entry
+ *  composes server-side. A healthy stream never goes a full minute silent; a
+ *  hung one (dropped connection the browser never surfaces, proxy buffering)
+ *  goes silent forever — which used to leave isStreaming stuck true and the
+ *  composer locked until reload (2026-07-01 incident: situation-door opener). */
+const STALL_TIMEOUT_MS = 60_000;
+
 export async function parseSSEStream(
   response: Response,
-  callbacks: SSECallbacks
-): Promise<void> {
+  callbacks: SSECallbacks,
+  opts?: { stallTimeoutMs?: number }
+): Promise<{ stalled: boolean }> {
   if (!response.body) {
     callbacks.onError?.("No response body");
-    return;
+    return { stalled: false };
   }
 
+  const stallMs = opts?.stallTimeoutMs ?? STALL_TIMEOUT_MS;
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let stalled = false;
+
+  // reader.read() with a no-bytes watchdog. Resolves "stall" if nothing
+  // arrives within stallMs, so a hung connection can't suspend the caller
+  // forever. The timer resets on every read (it races each read call).
+  const readWithStallGuard = async () => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        reader.read(),
+        new Promise<"stall">((resolve) => {
+          timeoutId = setTimeout(() => resolve("stall"), stallMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const result = await readWithStallGuard();
+      if (result === "stall") {
+        stalled = true;
+        // Best-effort teardown of the dead connection. The caller decides
+        // whether this is an error (stalled mid-message) or a silent recovery
+        // (the message already completed; only the close never arrived).
+        try {
+          await reader.cancel();
+        } catch {
+          // Connection already dead — nothing to release.
+        }
+        break;
+      }
+      const { done, value } = result;
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
@@ -101,4 +143,6 @@ export async function parseSSEStream(
   } catch {
     callbacks.onError?.("Connection lost. Try again.");
   }
+
+  return { stalled };
 }

@@ -152,6 +152,66 @@ describe("parseSSEStream", () => {
     });
   });
 
+  describe("stall watchdog (2026-07-01 hung-opener incident)", () => {
+    /** A stream that delivers `chunks`, then hangs forever without closing —
+     *  the shape of the incident: message delivered, close never arrives. */
+    function createHangingResponse(chunks: string[]): Response {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+          // Deliberately never controller.close() — the connection hangs.
+        },
+      });
+      return new Response(stream);
+    }
+
+    it("resolves { stalled: true } instead of hanging forever", async () => {
+      const onMessageComplete = vi.fn();
+      const response = createHangingResponse([
+        'data: {"type":"message_complete","messageId":"m1","conversationId":"c1","checkpoint":null,"processingText":"listening..."}\n',
+      ]);
+
+      const result = await parseSSEStream(
+        response,
+        { onTextDelta: vi.fn(), onMessageComplete },
+        { stallTimeoutMs: 50 }
+      );
+
+      // The delivered event still parsed; the hang resolved as a stall.
+      expect(onMessageComplete).toHaveBeenCalledTimes(1);
+      expect(result.stalled).toBe(true);
+    });
+
+    it("a stall does NOT invoke onError (the caller decides)", async () => {
+      const onError = vi.fn();
+      const response = createHangingResponse([]);
+
+      const result = await parseSSEStream(
+        response,
+        { onTextDelta: vi.fn(), onMessageComplete: vi.fn(), onError },
+        { stallTimeoutMs: 50 }
+      );
+
+      expect(result.stalled).toBe(true);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("a healthy stream resolves { stalled: false }", async () => {
+      const response = createMockResponse([
+        'data: {"type":"text_delta","text":"ok"}\n',
+      ]);
+      const result = await parseSSEStream(
+        response,
+        { onTextDelta: vi.fn(), onMessageComplete: vi.fn() },
+        { stallTimeoutMs: 5000 }
+      );
+      expect(result.stalled).toBe(false);
+    });
+  });
+
   describe("no response body", () => {
     it("calls onError with 'No response body' when body is null", async () => {
       const onTextDelta = vi.fn();

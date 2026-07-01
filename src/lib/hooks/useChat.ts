@@ -370,15 +370,26 @@ export function useChat() {
     let lastCompleteEvent: MessageCompleteEvent | null = null;
     let lastMessageFullText = "";
     let sseError: string | null = null;
+    let streamStalled = false;
 
     setIsStreaming(true);
 
     try {
-      await parseSSEStream(response, {
+      const { stalled } = await parseSSEStream(response, {
         onTextDelta: (text) => {
           fullText += text;
         },
         onMessageComplete: (data) => {
+          // Record the conversation id the moment the server names it, not
+          // only after the stream fully closes. A stream that hangs (or a
+          // user who refreshes) after message_complete but before close used
+          // to orphan a server-created conversation — the opener was saved
+          // in the DB but the client never learned the conversation existed
+          // (2026-07-01 situation-door incident). Fill-only: never overwrite
+          // an id the client already has.
+          if (data.conversationId) {
+            setConversationId((prev) => prev ?? data.conversationId);
+          }
           // Split delivery: the lead-in event carries composing: true —
           // the entry is still composing server-side, keep the typing
           // indicator up. Any subsequent event (acknowledgment, card)
@@ -410,6 +421,7 @@ export function useChat() {
           sseError = error;
         },
       });
+      streamStalled = stalled;
     } finally {
       setIsStreaming(false);
       setComposingCheckpoint(false);
@@ -417,6 +429,12 @@ export function useChat() {
 
     if (sseError) {
       setErrorMessage(sseError);
+    } else if (streamStalled && !lastCompleteEvent) {
+      // The stream hung before ANY message completed — surface the standard
+      // retryable error. A stall AFTER a message_complete is a silent
+      // recovery: the turn rendered and only the close never arrived, so an
+      // error card would contradict what the user can see.
+      setErrorMessage("Connection lost. Try again.");
     }
 
     // Return value surfaces info about the LAST event for any caller
