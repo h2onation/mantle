@@ -96,6 +96,9 @@ export interface ConversationContext {
    *  when the conversation's user is an admin AND the master switch is on — a
    *  stripped Jove can never reach a real user. False on every normal turn. */
   baselineActive: boolean;
+  /** TEMPORARY conductor variant (conductor-prompt.ts). Admin-scoped like
+   *  baselineActive; takes precedence over it in the variant selector. */
+  conductorActive: boolean;
   /** Which baseline forces are re-added this turn (the add-back ladder). Only
    *  meaningful when baselineActive; all-off otherwise. */
   baselineForces: BaselineForces;
@@ -253,25 +256,32 @@ export async function loadConversationContext(
     ? resolvedPersonaModes
     : ["general"];
 
-  // TEMPORARY strip-to-baseline experiment — resolved up front so the baseline
+  // TEMPORARY strip-to-baseline experiment — resolved up front so an experiment
   // conversation is SELF-CONTAINED: for the admin's own run it forces the push
   // model and honors the requested mode below, ignoring the global
   // reflection_meter / mode gates. So running the experiment never changes what
-  // real users see. Inactive (non-admin or master off) = everything as today.
+  // real users see. Inactive (non-admin or switches off) = everything as today.
+  // Two variants share the machinery: `conductor` (self-contained founder
+  // prompt) takes precedence over `enabled` (the baseline force-ladder) when
+  // both are on — see buildPromptOptionsFromContext. The gate is open under
+  // either, except baseline's re-added `gate` force closes it.
+  const conductorActive = isAdmin && baselineExperiment.conductor;
   const baselineActive = isAdmin && baselineExperiment.enabled;
+  const experimentActive = conductorActive || baselineActive;
   const baselineForces = baselineActive
     ? baselineExperiment.forces
     : { ...DEFAULT_BASELINE_FORCES };
-  const baselineGateOpen = baselineActive && !baselineForces.gate;
+  const baselineGateOpen =
+    conductorActive || (baselineActive && !baselineForces.gate);
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
   // The one place conversation mode is resolved against the per-mode gates —
-  // except a baseline experiment run honors the requested mode directly, so the
-  // admin can run Situation even when the global situation gate is off.
-  const conversationMode = resolveConversationMode(rawMode, gates, baselineActive);
+  // except an experiment run honors the requested mode directly, so the admin
+  // can run Situation even when the global situation gate is off.
+  const conversationMode = resolveConversationMode(rawMode, gates, experimentActive);
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -396,10 +406,10 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
-  // Baseline experiment forces the PUSH model (no reflection meter) so the run
-  // can observe Jove proposing, regardless of the global reflection_meter gate.
-  // (baselineActive / baselineForces / baselineGateOpen resolved up top.)
-  const { reflectionMeterEnabled, proposalsEnabled } = baselineActive
+  // Experiment runs (baseline OR conductor) force the PUSH model (no reflection
+  // meter) so the run can observe Jove proposing, regardless of the global
+  // reflection_meter gate. (Resolved up top.)
+  const { reflectionMeterEnabled, proposalsEnabled } = experimentActive
     ? { reflectionMeterEnabled: false, proposalsEnabled: true }
     : deriveProposalFlags(gates, surface);
 
@@ -428,6 +438,7 @@ export async function loadConversationContext(
     voiceOverrides,
     checkpointTuning,
     baselineActive,
+    conductorActive,
     baselineForces,
     baselineGateOpen,
   };
@@ -502,10 +513,14 @@ export function buildPromptOptionsFromContext(
     // app path (call-persona → buildSystemPromptBlocks) and the SMS path
     // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
     // LIVE_VOICE_VARIANT = "legacy" in config.ts. When the admin-scoped
-    // strip-to-baseline experiment is active for this turn it overrides to the
-    // baseline variant; off by default, so this resolves to LIVE_VOICE_VARIANT
-    // in every normal run.
-    voiceVariant: ctx.baselineActive ? "baseline" : LIVE_VOICE_VARIANT,
+    // experiment is active for this turn it overrides the variant — conductor
+    // takes precedence over baseline when both switches are on. Off by default,
+    // so this resolves to LIVE_VOICE_VARIANT in every normal run.
+    voiceVariant: ctx.conductorActive
+      ? "conductor"
+      : ctx.baselineActive
+        ? "baseline"
+        : LIVE_VOICE_VARIANT,
     // Which forces are re-added this turn (only consumed by the baseline branch).
     baselineForces: ctx.baselineForces,
     // Admin-editable voice-text overrides; empty {} falls back to all code

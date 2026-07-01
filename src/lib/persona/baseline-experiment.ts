@@ -89,12 +89,18 @@ export const DEFAULT_BASELINE_FORCES: BaselineForces = {
 export interface BaselineExperiment {
   /** Master: put Jove into the baseline variant at all. */
   enabled: boolean;
+  /** Conductor voice (founder's self-contained prompt, conductor-prompt.ts).
+   *  Takes PRECEDENCE over `enabled` when both are on — the variant selector
+   *  picks conductor first, so flipping it on doesn't require un-setting the
+   *  baseline master. Reads none of the force toggles: the conductor branch is
+   *  structurally incapable of including REBUILT_MECHANICS. */
+  conductor: boolean;
   forces: BaselineForces;
 }
 
 /** Default = experiment off, all forces off. The fail-closed value. */
 export function defaultBaselineExperiment(): BaselineExperiment {
-  return { enabled: false, forces: { ...DEFAULT_BASELINE_FORCES } };
+  return { enabled: false, conductor: false, forces: { ...DEFAULT_BASELINE_FORCES } };
 }
 
 /**
@@ -104,9 +110,10 @@ export function defaultBaselineExperiment(): BaselineExperiment {
  */
 export const BASELINE_GATE_KEYS: Record<
   string,
-  "enabled" | keyof BaselineForces
+  "enabled" | "conductor" | keyof BaselineForces
 > = {
   enabled: "enabled",
+  conductor: "conductor",
   force_gate: "gate",
   force_flag_dont_grab: "flagDontGrab",
   force_seam_rule: "seamRule",
@@ -142,6 +149,7 @@ export async function getBaselineExperiment(
     for (const row of data as Array<{ key: string; enabled: boolean }>) {
       const target = BASELINE_GATE_KEYS[row.key];
       if (target === "enabled") result.enabled = row.enabled;
+      else if (target === "conductor") result.conductor = row.enabled;
       else if (target) result.forces[target] = row.enabled;
     }
     return result;

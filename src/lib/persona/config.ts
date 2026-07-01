@@ -105,10 +105,10 @@ export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 // revert on the next turn. The legacy arrays stay in the tree until the
 // Phase-3a soak confirms the rebuilt voice holds (Phase 3b deletes them).
 // See docs/voice-rebuild-proposal.md §8.
-// "baseline" is the strip-to-baseline experiment variant (see
-// baseline-experiment.ts). It is never the LIVE value; it is selected only when
-// BASELINE_EXPERIMENT_ENABLED is on, and the harness is dormant by default.
-export type VoiceVariant = "legacy" | "rebuilt" | "baseline";
+// "baseline" and "conductor" are strip-to-baseline experiment variants (see
+// baseline-experiment.ts / conductor-prompt.ts). Never the LIVE value; selected
+// only for an admin's own conversations when the experiment switches are on.
+export type VoiceVariant = "legacy" | "rebuilt" | "baseline" | "conductor";
 export const LIVE_VOICE_VARIANT: VoiceVariant = "rebuilt";
 
 // Conversation mode: which entry path the user took into a session. Centralized

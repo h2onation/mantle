@@ -79,6 +79,7 @@ describe("getBaselineExperiment", () => {
     expect(Object.keys(BASELINE_GATE_KEYS).sort()).toEqual(
       [
         "enabled",
+        "conductor",
         "force_character_shaping",
         "force_flag_dont_grab",
         "force_gate",
@@ -87,6 +88,16 @@ describe("getBaselineExperiment", () => {
         "force_tier3_blocks",
       ].sort(),
     );
+  });
+
+  it("maps the conductor key and fails closed without it", async () => {
+    const on = await getBaselineExperiment(
+      fakeAdmin({ data: [{ key: "conductor", enabled: true }], error: null }),
+    );
+    expect(on.conductor).toBe(true);
+    expect(on.enabled).toBe(false);
+    const off = await getBaselineExperiment(fakeAdmin({ data: [], error: null }));
+    expect(off.conductor).toBe(false);
   });
 });
 
@@ -145,6 +156,57 @@ describe("gate is unchanged when the experiment is off (default param)", () => {
     const res = validateMaterialQuality(null, false);
     expect(res.ok).toBe(false);
     expect(res.reasons.join(" ")).toMatch(/no extraction state/i);
+  });
+});
+
+describe("conductor variant — guard tests", () => {
+  const renderConductor = () => {
+    const b = buildSystemPromptBlocks({
+      kind: "oneOnOne",
+      manualComponents: [],
+      currentConversationId: "c",
+      isReturningUser: false,
+      sessionSummary: null,
+      extractionContext: "",
+      isFirstCheckpoint: true,
+      sessionCount: 1,
+      turnCount: 1,
+      checkpointApproaching: false,
+      personaModes: ["general"],
+      mode: "situation",
+      priorCheckpointSuppressed: false,
+      voiceVariant: "conductor",
+      voiceOverrides: {},
+    });
+    return b.tier1 + b.staticContext + b.dynamic;
+  };
+
+  it("carries the 988 crisis clause verbatim (the prompt-side safety layer)", () => {
+    const full = renderConductor();
+    expect(full).toContain("The one exception — crisis. This never bends.");
+    expect(full).toContain("988");
+    expect(full).toContain("741741");
+    // The non-negotiable-trigger examples from REBUILT_LIMITS #2, verbatim.
+    expect(full).toContain("I don't see the point anymore");
+    expect(full).toContain("everyone would be better off without me");
+  });
+
+  it("carries the save contract (detector's exact phrase)", () => {
+    expect(renderConductor()).toContain(
+      'The way to save something is the exact words "I want to put something in your Manual," then stop.',
+    );
+  });
+
+  it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {
+    const full = renderConductor();
+    // The REBUILT_MECHANICS lines the conductor's "don't leave a live moment"
+    // rule would fight — none may appear.
+    expect(full).not.toContain("holds anywhere else");
+    expect(full).not.toContain("across more than this one moment");
+    expect(full).not.toContain("different person or part of life");
+    expect(full).not.toContain("MECHANICS — how Manual entries get made");
+    // And no Tier-3 blocks (situation opener, guided spine, etc.).
+    expect(full).not.toContain("---sections---");
   });
 });
 

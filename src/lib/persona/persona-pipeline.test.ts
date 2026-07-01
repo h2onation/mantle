@@ -921,6 +921,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       voiceOverrides: {},
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
       baselineActive: false,
+      conductorActive: false,
       baselineForces: {
         gate: false,
         flagDontGrab: false,
@@ -950,6 +951,15 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     const opts = buildPromptOptionsFromContext(makeCtx("situation"));
     const prompt = buildSystemPrompt(opts);
     expect(prompt).not.toContain("GUIDED INTAKE");
+  });
+
+  // Experiment variant precedence: conductor > baseline > live.
+  it("selects the conductor variant over baseline when both are active", () => {
+    const both = { ...makeCtx("situation"), conductorActive: true, baselineActive: true };
+    expect(buildPromptOptionsFromContext(both).voiceVariant).toBe("conductor");
+    const baselineOnly = { ...makeCtx("situation"), baselineActive: true };
+    expect(buildPromptOptionsFromContext(baselineOnly).voiceVariant).toBe("baseline");
+    expect(buildPromptOptionsFromContext(makeCtx("situation")).voiceVariant).toBe("rebuilt");
   });
 });
 

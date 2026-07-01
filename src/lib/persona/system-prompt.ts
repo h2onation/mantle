@@ -34,6 +34,7 @@ import {
   BASELINE_OPENER,
   type BaselineForces,
 } from "@/lib/persona/baseline-experiment";
+import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
@@ -245,9 +246,10 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  byte-identical to the pre-switch prompt. As of Phase 3a the live call
    *  sites pass LIVE_VOICE_VARIANT from config.ts (the rollback lever);
    *  the builder default stays legacy so direct callers and tests are
-   *  unaffected. "baseline" is the strip-to-baseline experiment variant
-   *  (baseline-experiment.ts) — selected only when the experiment is active. */
-  voiceVariant?: "legacy" | "rebuilt" | "baseline";
+   *  unaffected. "baseline" / "conductor" are strip-to-baseline experiment
+   *  variants (baseline-experiment.ts / conductor-prompt.ts) — selected only
+   *  when the experiment is active for an admin's own conversation. */
+  voiceVariant?: "legacy" | "rebuilt" | "baseline" | "conductor";
   /** TEMPORARY strip-to-baseline experiment: which forces are re-added this
    *  turn. Only read by the baseline branch; absent ⇒ all-off (thinnest). */
   baselineForces?: BaselineForces;
@@ -1021,6 +1023,32 @@ export function buildSystemPromptBlocks(
   //     the opposite of the rebuilt press-for-precision posture.
   //   - readiness-gate: the canned 3-entry milestone speech (off-voice,
   //     two-option menu — flagged by the voice audit).
+  // Conductor experiment variant (conductor-prompt.ts): the founder's
+  // self-contained prompt, run as-is. Deliberately reads NO force toggles and
+  // appends NO Tier-3 blocks or REBUILT_MECHANICS — structurally incapable of
+  // carrying the cross-domain instructions its "don't leave a live moment" rule
+  // fights. Crisis clause + save contract are inside CONDUCTOR_PROMPT itself.
+  // Manual + session context still render so returning-user runs see the
+  // existing Manual (avoids duplicate entries). Situation-mode runs.
+  if (options.voiceVariant === "conductor") {
+    const { older: condOlder, recent: condRecent } =
+      prepareManualContextBlocks(manualComponents, currentConversationId);
+
+    // May be empty (fresh user) — call-persona filters empty system blocks.
+    let condStatic = "";
+    if (condOlder) condStatic = `\n\n${condOlder.trimEnd()}\n`;
+
+    let condDynamic = "";
+    if (condRecent) condDynamic += condRecent;
+    condDynamic += renderSessionContextBlock({
+      isReturningUser,
+      sessionCount,
+      sessionSummary,
+    });
+
+    return { tier1: CONDUCTOR_PROMPT, staticContext: condStatic, dynamic: condDynamic };
+  }
+
   // Strip-to-baseline experiment (baseline-experiment.ts). The thinnest runnable
   // Jove: neutral identity + safety/author LIMITS + the bare save contract +
   // a one-line opener. Every timing/shaping force is OFF unless its BASELINE_FORCES
@@ -1189,7 +1217,11 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // flat-string consumers (SMS persona-bridge, admin prompt viewer) get the
   // same rebuilt prompt as the app path; there is no legacy-bytes constraint
   // for the rebuilt variant, so delegation is safe and keeps one source.
-  if (options.voiceVariant === "rebuilt" || options.voiceVariant === "baseline") {
+  if (
+    options.voiceVariant === "rebuilt" ||
+    options.voiceVariant === "baseline" ||
+    options.voiceVariant === "conductor"
+  ) {
     const blocks = buildSystemPromptBlocks(options);
     return blocks.tier1 + blocks.staticContext + blocks.dynamic;
   }

@@ -24,6 +24,12 @@ const SWITCHES: {
     desc: "ON → YOUR conversations run stripped Jove: neutral identity + safety/author LIMITS + the bare save contract only. Everything below is OFF on top of this = the thinnest baseline. Real users are unaffected (admin-scoped).",
   },
   {
+    key: "conductor",
+    read: (e) => e.conductor,
+    label: "Conductor voice (v0.3)",
+    desc: "ON → YOUR conversations run the conductor prompt instead — self-contained, carries the 988 crisis clause and the save contract, no cross-domain instructions, ignores the rung toggles below. Overrides Baseline mode when both are on. Run it in a Situation conversation. Real users unaffected (admin-scoped).",
+  },
+  {
     key: "force_flag_dont_grab",
     read: (e) => e.forces.flagDontGrab,
     label: "Rung 1 · flag-don't-grab",
