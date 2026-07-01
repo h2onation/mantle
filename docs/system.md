@@ -120,7 +120,6 @@ The extraction output is stored as JSONB in `conversations.extraction_state`. Ca
   sage_brief: string,                // 3-5 sentence field note
   clinical_flag: { active: boolean, level: "none" | "caution" | "crisis", note: string },
   observation_miss_count: number,
-  emerging_pattern_snippet: string | null,
   pattern_engaged: boolean,
   user_named_cost: boolean,          // informational hint, not a hard gate
   user_named_stance: boolean         // informational hint, not a hard gate
