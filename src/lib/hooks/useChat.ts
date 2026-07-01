@@ -1149,6 +1149,10 @@ export function useChat() {
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
         await loadManual();
+        // No follow-up stream on this path (idempotent repeat / already-handled)
+        // — re-read the thread so a card/message written on the first attempt
+        // still shows without a reload.
+        if (conversationId) await reconcileThread(conversationId);
         return;
       }
 
@@ -1170,6 +1174,14 @@ export function useChat() {
         await streamFromResponse(res);
       } catch (err) {
         console.warn("[useChat] Confirm follow-up stream interrupted:", err);
+      } finally {
+        // Reconcile the thread from the DB as the LAST writer, whether the
+        // stream completed or was interrupted. Jove's follow-up (and, for a
+        // user-pulled reflection, the saved card) are already persisted
+        // server-side; re-reading makes the live thread match a reload so the
+        // update never silently goes missing. Runs after the stream settles so
+        // the authoritative DB view wins with no flicker/duplication.
+        if (conversationId) await reconcileThread(conversationId);
       }
     } finally {
       setIsLoading(false);
@@ -1336,29 +1348,14 @@ export function useChat() {
     }
 
     // Load messages for target conversation
-    const { data: dbMessages } = await supabase
-      .from("messages")
-      .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
-      .eq("conversation_id", targetConversationId)
-      .order("created_at", { ascending: true });
-
-    if (dbMessages) {
-      const chatMessages: ChatMessage[] = dbMessages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          channel: m.channel || null,
-          isCheckpoint: m.is_checkpoint || false,
-          checkpointMeta: m.checkpoint_meta || null,
-        }));
-      setMessages(chatMessages);
+    const thread = await fetchThreadFromDb(targetConversationId);
+    if (thread) {
+      setMessages(thread.chatMessages);
 
       // Detect + re-activate a pending checkpoint in the last message, same
       // as loadConversation — otherwise switching to this conversation from
       // the drawer renders the proposal as an inert historical card.
-      const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
+      const pendingCheckpoint = pendingCheckpointFromMessages(thread.dbMessages);
       if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
     }
 
@@ -1373,6 +1370,50 @@ export function useChat() {
       setSessionSummary(targetConv.summary);
       setLastSessionDate(targetConv.updated_at);
     }
+  }
+
+  /**
+   * Fetch a conversation's messages from the DB and map them to the client
+   * thread shape. The single shared read behind loadConversation,
+   * switchConversation, and reconcileThread — turning DB rows into
+   * ChatMessage[] lives in one place. Side effects (checkpoint re-activation,
+   * meter restore, conversationId) stay at the call sites; this only reads and
+   * maps. Returns null when the query yields no data.
+   */
+  async function fetchThreadFromDb(targetConversationId: string) {
+    const { data: dbMessages } = await supabase
+      .from("messages")
+      .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
+      .eq("conversation_id", targetConversationId)
+      .order("created_at", { ascending: true });
+    if (!dbMessages) return null;
+    const chatMessages: ChatMessage[] = dbMessages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        channel: (m.channel as "text" | "web" | null) || null,
+        isCheckpoint: m.is_checkpoint || false,
+        checkpointMeta: m.checkpoint_meta || null,
+      }));
+    return { chatMessages, dbMessages };
+  }
+
+  /**
+   * Re-read the chat thread from the DB and replace the client message list —
+   * nothing else. The DB is already the source of truth for what happened
+   * server-side after a checkpoint action: Jove's follow-up and, for a
+   * user-pulled reflection, the saved card are persisted before/while the live
+   * stream runs. Calling this once the action settles makes the live thread
+   * match a reload even when the follow-up stream was slow, interrupted, or the
+   * retry landed on the idempotent JSON receipt. Meter and Manual state are
+   * owned by their own reconcilers (restoreReflectionMeter / loadManual) and
+   * deliberately left untouched here so nothing races them.
+   */
+  async function reconcileThread(targetConversationId: string) {
+    const thread = await fetchThreadFromDb(targetConversationId);
+    if (thread) setMessages(thread.chatMessages);
   }
 
   /**
@@ -1391,26 +1432,12 @@ export function useChat() {
     setReflectionReady(false);
     setReflectionFill(null);
 
-    const { data: dbMessages } = await supabase
-      .from("messages")
-      .select("id, role, content, is_checkpoint, checkpoint_meta, channel, created_at")
-      .eq("conversation_id", targetConversationId)
-      .order("created_at", { ascending: true });
-
-    if (dbMessages) {
-      const chatMessages: ChatMessage[] = dbMessages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          isCheckpoint: m.is_checkpoint || false,
-          checkpointMeta: m.checkpoint_meta || null,
-        }));
-      setMessages(chatMessages);
+    const thread = await fetchThreadFromDb(targetConversationId);
+    if (thread) {
+      setMessages(thread.chatMessages);
 
       // Detect + re-activate a pending checkpoint in the last message.
-      const pendingCheckpoint = pendingCheckpointFromMessages(dbMessages);
+      const pendingCheckpoint = pendingCheckpointFromMessages(thread.dbMessages);
       if (pendingCheckpoint) setActiveCheckpoint(pendingCheckpoint);
     }
 
