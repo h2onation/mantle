@@ -176,12 +176,12 @@ const TABLES: Table[] = [
     oneLine: "One row per user. The root of every user-owned chain.",
     rowMeans: "One mywalnut user. The id mirrors Supabase's auth.users.id.",
     description:
-      "When someone signs up through Supabase Auth, a matching profiles row is created with the same id. Everything user-scoped — conversations, manual entries, phone numbers, modal progress — points back to this row. Deleting a profile cascades through almost every user-owned table.",
+      "When someone signs up through Supabase Auth, a matching profiles row is created with the same id. Everything user-scoped — conversations, manual entries, phone numbers — points back to this row. Deleting a profile cascades through almost every user-owned table.",
     columns: [
       { name: "id", type: "uuid", plain: "Mirrors auth.users.id. The user's unique identifier across the whole app." },
       { name: "display_name", type: "text", plain: "Optional name shown in UI." },
       { name: "persona_modes", type: "text[]", plain: "Which Jove voice modes apply to this user (e.g. ['autistic', 'adhd']). Drives prompt assembly. Default is ['general']; 'general' is exclusive.", emphasized: true },
-      { name: "modal_progress", type: "integer", plain: "Onboarding modal step (0-3). Gates which one-time modals fire.", emphasized: true },
+      { name: "modal_progress", type: "integer", plain: "Legacy onboarding modal step (0-3). The modal ladder was removed 2026-07-01; nothing reads or writes this column anymore. Drop candidate.", emphasized: false },
       { name: "onboarding_completed_at", type: "timestamptz", plain: "When the user finished initial onboarding. Null until completed." },
     ],
     connections: [

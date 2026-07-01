@@ -227,16 +227,6 @@ export function useChat() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("mw_first_session_completed") === "true";
   });
-  // Modal 2 (Pattern-Forming) trigger inputs, refreshed on every
-  // message_complete event. The values reflect the previous-turn
-  // extraction state (one-turn lag, server-side). MobileSession reads
-  // these to decide whether to fire Modal 2.
-  const [emergingPatternSnippet, setEmergingPatternSnippet] = useState<
-    string | null
-  >(null);
-  const [hasLayerEmergingOrBeyond, setHasLayerEmergingOrBeyond] =
-    useState(false);
-  const [concreteExamples, setConcreteExamples] = useState(0);
   // Reflection meter (user-pulled model, `reflection_meter` gate). depth
   // drives the meter fill; reflectionReady is a LATCH — once the server
   // reports the conversation is ripe it stays true (the option persists, even
@@ -448,16 +438,6 @@ export function useChat() {
     completeEvent: MessageCompleteEvent | null
   ) {
     if (!completeEvent) return;
-
-    // Refresh Modal 2 trigger inputs from the latest message_complete.
-    // These are optional fields; nullish-coalesce to safe defaults so an
-    // older server (or a missing field) leaves the modal in its
-    // pre-trigger state rather than firing on garbage.
-    setEmergingPatternSnippet(completeEvent.emergingPatternSnippet ?? null);
-    setHasLayerEmergingOrBeyond(
-      completeEvent.hasLayerEmergingOrBeyond ?? false
-    );
-    setConcreteExamples(completeEvent.concreteExamples ?? 0);
 
     // Reflection meter signals. The server sends one nullable field:
     //   undefined → gate off; leave state untouched.
@@ -1843,10 +1823,6 @@ export function useChat() {
     loadManual,
     updateEntry,
     displayName,
-    // Modal 2 trigger inputs — refreshed on every message_complete.
-    emergingPatternSnippet,
-    hasLayerEmergingOrBeyond,
-    concreteExamples,
     // Reflection meter (user-pulled model). reflectionFill (0–100) is the
     // capture-progress bar; reflectionReady is the latched completion;
     // composeReflection builds the entry on demand and opens the review overlay.

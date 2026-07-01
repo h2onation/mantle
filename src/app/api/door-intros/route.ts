@@ -6,10 +6,7 @@
 // The client shows a door's intro only when its mode is absent from `seen`.
 //
 // POST marks a door's intro dismissed: appends the mode to door_intros_seen
-// (idempotent) and advances modal_progress to >= 1 on the user's first door
-// intro, so the later pattern-forming / first-checkpoint modal chain (gated on
-// modal_progress) still fires now that the old global "How this works" modal
-// is retired.
+// (idempotent).
 
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/require-user";
@@ -80,7 +77,7 @@ export async function POST(req: Request) {
 
     const { data: profile, error: readError } = await admin
       .from("profiles")
-      .select("door_intros_seen, modal_progress")
+      .select("door_intros_seen")
       .eq("id", user.id)
       .maybeSingle();
     if (readError) throw readError;
@@ -95,13 +92,10 @@ export async function POST(req: Request) {
     }
 
     const nextSeen = [...current, mode as string];
-    // First door intro advances the onboarding modal chain to >= 1 so the
-    // pattern-forming modal (gated on modal_progress === 1) still triggers.
-    const nextModalProgress = Math.max(profile?.modal_progress ?? 0, 1);
 
     const { error: updateError } = await admin
       .from("profiles")
-      .update({ door_intros_seen: nextSeen, modal_progress: nextModalProgress })
+      .update({ door_intros_seen: nextSeen })
       .eq("id", user.id);
     if (updateError) throw updateError;
 

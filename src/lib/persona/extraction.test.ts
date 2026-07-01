@@ -184,10 +184,10 @@ describe("formatExtractionForPersona", () => {
       expect(result).not.toContain("⚠ CLINICAL CAUTION");
     });
 
-    it("does not leak emerging_pattern_snippet (client-only field)", () => {
-      // emerging_pattern_snippet is consumed by the client (Modal 2)
-      // not by Jove. The formatter must not surface either the schema
-      // name or the snippet text into the persona's prompt.
+    it("does not leak emerging_pattern_snippet (extractor-only field)", () => {
+      // emerging_pattern_snippet is never shown to Jove. The formatter
+      // must not surface either the schema name or the snippet text
+      // into the persona's prompt.
       const state = makeState({
         emerging_pattern_snippet: "the way you brace before people speak",
       });

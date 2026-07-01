@@ -367,10 +367,10 @@ interface Tier3Block {
 //
 // Phase 7-High / Gate 8: the PROGRESS SIGNALS block (EARLY FRAME,
 // DEPTH BUILDING SIGNAL, CHECKPOINT APPROACHING SIGNAL — both standard
-// and first-ever variants) was deleted from this list. Those signals
-// are now delivered as modals (see ChatWindowModal, PatternFormingModal)
-// plus the inline checkpoint trigger card. Keeping the inline prompt
-// instructions alongside the modals caused duplicate delivery.
+// and first-ever variants) was deleted from this list. Keeping inline
+// prompt instructions alongside UI delivery (the inline checkpoint
+// trigger card; formerly also onboarding modals, removed 2026-07-01)
+// caused duplicate delivery.
 /** Pinned first-time scaffolding paragraph for the post-confirm follow-up.
  *  Shared by the POST-CONFIRM Tier 3 block (first-message-2 branch) and the
  *  deterministic buildPostConfirmFallback in call-persona.ts, so the two

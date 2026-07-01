@@ -37,14 +37,13 @@ export async function POST() {
 
     // 4. Reset the profile's new-user gates so the account presents as a
     //    brand-new (logged-in) user after the wipe: the onboarding consent
-    //    screen replays (onboarding_completed_at → null) and the first-session
-    //    intro modals re-arm (modal_progress → 0). Conversations are already
-    //    gone, so isNewUser flips true on its own; localStorage is cleared
-    //    client-side. Auth row + other profile prefs (persona, phone) are
-    //    left alone. Dev-only affordance — see docs/state.md.
+    //    screen replays (onboarding_completed_at → null). Conversations are
+    //    already gone, so isNewUser flips true on its own; localStorage is
+    //    cleared client-side. Auth row + other profile prefs (persona, phone)
+    //    are left alone. Dev-only affordance — see docs/state.md.
     await admin
       .from("profiles")
-      .update({ onboarding_completed_at: null, modal_progress: 0 })
+      .update({ onboarding_completed_at: null })
       .eq("id", userId);
 
     return Response.json({ ok: true });

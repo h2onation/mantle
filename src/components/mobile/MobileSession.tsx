@@ -3,7 +3,6 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
-import PatternFormingModal from "@/components/modals/PatternFormingModal";
 import ReflectionIntroModal from "@/components/modals/ReflectionIntroModal";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
@@ -60,22 +59,9 @@ interface MobileSessionProps {
   ) => void;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
-  // Onboarding modal state. modalProgress=null means MainApp hasn't
-  // finished loading it yet — modals are suppressed until known so we
-  // never flash a modal that immediately disappears. Anonymous-auth
-  // users are excluded (they convert at first checkpoint and the modal
-  // flow starts then).
-  modalProgress?: number | null;
-  /** Lifts a modal-progress advance back into MainApp so the next modal's gate
-   *  sees the new value in the same session (not just after a page reload). */
-  onModalProgressAdvance?: (target: number) => void;
-  signupAtMs?: number | null;
+  // Anonymous-auth users are excluded from one-time onboarding modals
+  // (they convert at first checkpoint).
   isAnonymous?: boolean;
-  // Modal 2 (Pattern-Forming) trigger inputs from the latest
-  // message_complete event (one-turn lag, server-side).
-  emergingPatternSnippet?: string | null;
-  hasLayerEmergingOrBeyond?: boolean;
-  concreteExamples?: number;
   // Reflection meter (user-pulled model, `reflection_meter` gate).
   // reflectionFill (0–100) is the server-computed capture-progress bar (null =
   // hide); reflectionReady is the latched completion; composeReflection builds
@@ -117,13 +103,7 @@ export default function MobileSession({
   confirmCheckpoint,
   isGuest,
   onSignInPrompt,
-  modalProgress = null,
-  onModalProgressAdvance,
-  signupAtMs = null,
   isAnonymous = false,
-  emergingPatternSnippet = null,
-  hasLayerEmergingOrBeyond = false,
-  concreteExamples = 0,
   reflectionFill = null,
   reflectionReady = false,
   composeReflection,
@@ -132,28 +112,6 @@ export default function MobileSession({
   draftToRestore = null,
   onDraftRestored,
 }: MobileSessionProps) {
-  const [modal2Dismissed, setModal2Dismissed] = useState(false);
-  // Auto-advance modal_progress past the first-checkpoint gate when a
-  // checkpoint arrives. No modal shown — the inline trigger card + overlay
-  // handles the experience. Fire-and-forget; ref prevents duplicate POSTs.
-  const modal3AdvancedRef = useRef(false);
-  useEffect(() => {
-    if (
-      typeof modalProgress === "number" &&
-      modalProgress === 2 &&
-      !isAnonymous &&
-      activeCheckpoint !== null &&
-      !modal3AdvancedRef.current
-    ) {
-      modal3AdvancedRef.current = true;
-      onModalProgressAdvance?.(3);
-      fetch("/api/modal-progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: 3 }),
-      }).catch(() => {});
-    }
-  }, [modalProgress, isAnonymous, activeCheckpoint, onModalProgressAdvance]);
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
@@ -892,31 +850,6 @@ export default function MobileSession({
         open={reflectionReady && !isAnonymous && !reflectionIntroSeen}
         onDismiss={dismissReflectionIntro}
       />
-
-      <PatternFormingModal
-        open={
-          // Suppressed under the reflection meter — its copy promises a
-          // pushed card ("I will propose a piece... you'll see it on a card")
-          // that the pull model never delivers. reflectionMeterVisible is the
-          // meter-on signal (the server only emits a fill when it's enabled).
-          !reflectionMeterVisible &&
-          typeof modalProgress === "number" &&
-          modalProgress === 1 &&
-          !isAnonymous &&
-          hasLayerEmergingOrBeyond &&
-          concreteExamples >= 1 &&
-          typeof emergingPatternSnippet === "string" &&
-          emergingPatternSnippet.length > 0 &&
-          !modal2Dismissed
-        }
-        onDismiss={() => {
-          setModal2Dismissed(true);
-          onModalProgressAdvance?.(2);
-        }}
-        patternSnippet={emergingPatternSnippet ?? ""}
-        signupAtMs={signupAtMs}
-      />
-
 
       {(checkpointOverlayOpen || overlayCheckpointRef.current) && (
         <CheckpointOverlay

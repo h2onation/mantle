@@ -155,7 +155,3 @@ type ModalProgressEventProps = {
 export function trackModal1Shown(props: ModalProgressEventProps) {
   posthog.capture("modal_1_shown", props);
 }
-
-export function trackModal2Shown(props: ModalProgressEventProps) {
-  posthog.capture("modal_2_shown", props);
-}
