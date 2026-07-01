@@ -411,8 +411,6 @@ real cross-session Watch is v1.5 (§6).
   the user engaged with it (extraction.ts:292).
 - `current_thread`: one-sentence summary of what's underneath the
   topic.
-- `emerging_pattern_snippet`: <15-word phrase describing the pattern,
-  used by the Pattern-Forming modal in the UI.
 - `user_named_cost`, `user_named_stance`: informational, not gates.
 
 **What it currently does**:
@@ -458,7 +456,7 @@ real cross-session Watch is v1.5 (§6).
   the within-session equivalent of Decision 6's "resonated"
   criterion.
 - Across sessions, only confirmed `manual_entries` carry forward.
-  `current_thread`, `emerging_pattern_snippet`, language bank — all
+  `current_thread`, language bank — all
   die at session boundary. Decision 2 says Watch is v1.5; until
   then, session boundaries are walls.
 

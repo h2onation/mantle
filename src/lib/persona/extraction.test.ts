@@ -31,7 +31,6 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
     },
     observation_miss_count: 0,
     sage_brief: "",
-    emerging_pattern_snippet: null,
     pattern_engaged: false,
     user_named_cost: false,
     user_named_stance: false,
@@ -182,18 +181,6 @@ describe("formatExtractionForPersona", () => {
       expect(result).not.toContain("THREAD:");
       expect(result).not.toContain("⚠ CRISIS");
       expect(result).not.toContain("⚠ CLINICAL CAUTION");
-    });
-
-    it("does not leak emerging_pattern_snippet (extractor-only field)", () => {
-      // emerging_pattern_snippet is never shown to Jove. The formatter
-      // must not surface either the schema name or the snippet text
-      // into the persona's prompt.
-      const state = makeState({
-        emerging_pattern_snippet: "the way you brace before people speak",
-      });
-      const result = formatExtractionForPersona(state, false);
-      expect(result).not.toContain("emerging_pattern_snippet");
-      expect(result).not.toContain("the way you brace before people speak");
     });
   });
 

@@ -35,7 +35,6 @@ function crisisState(): ExtractionState {
     },
     observation_miss_count: 0,
     sage_brief: "",
-    emerging_pattern_snippet: null,
     pattern_engaged: false,
     user_named_cost: false,
     user_named_stance: false,

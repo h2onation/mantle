@@ -54,12 +54,6 @@ export interface ExtractionState {
   clinical_flag: ClinicalFlag;
   observation_miss_count: number;
   sage_brief: string;
-  // Short phrase (under 15 words) describing the pattern the extraction
-  // layer is beginning to see in the user's language and behavior.
-  // Used by the client to populate the Pattern-Forming modal copy.
-  // Regenerated each cycle — never latched, never fed back into the
-  // previous-state input. Null when no clear pattern has emerged.
-  emerging_pattern_snippet: string | null;
   // True when Jove has named a pattern in conversation AND the user has
   // engaged with it (elaborated, added examples, stayed on thread).
   // Gates checkpoint firing — no checkpoint until pattern is engaged.
@@ -112,33 +106,10 @@ function defaultState(): ExtractionState {
     },
     observation_miss_count: 0,
     sage_brief: "",
-    emerging_pattern_snippet: null,
     pattern_engaged: false,
     user_named_cost: false,
     user_named_stance: false,
   };
-}
-
-// Maximum word count for emerging_pattern_snippet. Spec target is "under
-// 15 words." Reject only on egregious overshoot (40+ words = the model
-// returned a paragraph) so normal variance passes through. Treats over-
-// long output as a model failure case, falling back to null.
-const SNIPPET_MAX_WORDS = 40;
-
-function parseSnippet(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return null;
-  const wordCount = trimmed.split(/\s+/).length;
-  if (wordCount > SNIPPET_MAX_WORDS) {
-    console.error(
-      "[extraction] emerging_pattern_snippet exceeded %d words (got %d), treating as null",
-      SNIPPET_MAX_WORDS,
-      wordCount
-    );
-    return null;
-  }
-  return trimmed;
 }
 
 // ─── Extraction prompt ──────────────────────────────────────────────────────
@@ -269,15 +240,7 @@ Track whether ${PERSONA_NAME}'s most recent observation landed for the user. An 
 
 The counter caps at 3 — do not exceed 3.
 
-9. EMERGING PATTERN SNIPPET
-
-Produce a short phrase (under 15 words) describing the pattern you are beginning to see in the user's language and behavior. This is used to tell the user what is emerging so they can direct more material toward it.
-
-Return null if no clear pattern has emerged yet. Do not force a phrase to fill the field.
-
-Good snippets describe what the pattern IS in behavioral or experiential terms, not what category it falls into. "How control and trust show up together" is good. "Attachment issues" is not.
-
-10. PATTERN ENGAGEMENT TRACKING
+9. PATTERN ENGAGEMENT TRACKING
 
 Track whether a pattern has been named in conversation and the user has engaged with it.
 
@@ -291,7 +254,7 @@ Once true, stays true for the rest of the session unless the user explicitly rej
 
 If this is the first turn or ${PERSONA_NAME} has not yet made a naming move, set to false.
 
-11. READINESS SIGNALS (informational — these do NOT gate checkpoints)
+10. READINESS SIGNALS (informational — these do NOT gate checkpoints)
 
 user_named_cost: Has the user articulated what the pattern costs them, in their own words? Not a vague "it's hard" but a specific loss, misreading, or consequence they can name.
 
@@ -328,7 +291,6 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
   },
   "observation_miss_count": 0,
   "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}",
-  "emerging_pattern_snippet": "short phrase under 15 words, OR null",
   "pattern_engaged": false,
   "user_named_cost": false,
   "user_named_stance": false
@@ -546,8 +508,7 @@ export function mergeExtractionState(
     clinical_flag: parsed.clinical_flag || state.clinical_flag,
     observation_miss_count: observationMissCount,
     sage_brief: parsed.sage_brief || "",
-    emerging_pattern_snippet: parseSnippet(parsed.emerging_pattern_snippet),
-    // Honor the documented reset (prose ~L302): the model is fed the prior
+    // Honor the documented reset (PATTERN ENGAGEMENT section): the model is fed the prior
     // value and told to keep it true unless the user explicitly reverses the
     // pattern, so trust its boolean rather than latching true forever.
     pattern_engaged:

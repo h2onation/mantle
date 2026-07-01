@@ -481,21 +481,6 @@ const FIELDS: Field[] = [
     gates: "None directly. The count feeds concrete_examples, which is what actually surfaces.",
     notes: "Prune candidate — extractor-internal bookkeeping, no downstream reader.",
   },
-
-  // ── Client signal (UI only) ────────────────────────────────────────────
-  {
-    path: "emerging_pattern_snippet",
-    type: "string (<15 words) | null",
-    job: "signal",
-    loadBearing: "auxiliary",
-    summary: "Short phrase naming the forming pattern. No remaining reader.",
-    represents:
-      "Short phrase describing the forming pattern in behavioral/experiential terms. Regenerated each turn — never latched. Null when no clear pattern has emerged.",
-    storage: "conversations.extraction_state.emerging_pattern_snippet",
-    readers: [],
-    gates: "Nothing. Its only consumer (the halfway-there onboarding modal) was removed 2026-07-01.",
-    notes: "Prune candidate — still produced and stored by the extractor, but nothing downstream reads it.",
-  },
 ];
 
 const SELECTED_RING = "0 0 0 2px var(--session-walnut-meta)";
