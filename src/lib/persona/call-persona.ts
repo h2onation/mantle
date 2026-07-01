@@ -583,9 +583,6 @@ export function callPersona({
                 checkpoint: null,
                 processingText: "",
                 cleanContent: uploadOpenerText,
-                emergingPatternSnippet: null,
-                hasLayerEmergingOrBeyond: false,
-                concreteExamples: 0,
                 mode: conversationMode,
               })}\n\n`
             )
@@ -1274,15 +1271,6 @@ export function callPersona({
             }
           : null;
 
-        // Modal 2 trigger inputs. Use previousExtraction (one-turn lag)
-        // since current-turn extraction runs in parallel and isn't ready
-        // when this event fires.
-        const hasLayerEmergingOrBeyond = previousExtraction
-          ? Object.values(previousExtraction.layers).some(
-              (l) => l.signal !== "none"
-            )
-          : false;
-
         // cleanContent is mandatory when earlier message_complete events
         // (prepended Message 1, or the 7f transition) have fired in
         // this stream — the client resets its text buffer on each
@@ -1298,11 +1286,6 @@ export function callPersona({
               checkpoint,
               processingText,
               cleanContent: conversationalText,
-              emergingPatternSnippet:
-                previousExtraction?.emerging_pattern_snippet ?? null,
-              hasLayerEmergingOrBeyond,
-              concreteExamples:
-                previousExtraction?.checkpoint_gate.concrete_examples ?? 0,
               mode: conversationMode,
               // Reflection meter (user-pulled model). One nullable field:
               // { depth, ready } drives the meter, or null to HIDE it entirely

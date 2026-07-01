@@ -75,10 +75,9 @@ export default function MainApp() {
   const [authDismissed, setAuthDismissed] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<OnboardingStatus>("loading");
-  // Onboarding modal state. null = not loaded yet (modals suppressed
-  // until known so we never flash). Track A Gate 4.
+  // Signup/anonymity context for one-time onboarding modals. null = not
+  // loaded yet (modals suppressed until known so we never flash).
   const [modalState, setModalState] = useState<{
-    modalProgress: number;
     signupAtMs: number | null;
     isAnonymous: boolean;
   } | null>(null);
@@ -183,13 +182,11 @@ export default function MainApp() {
           return;
         }
         const data = (await res.json()) as {
-          modal_progress: number;
           signup_at_ms: number | null;
           is_anonymous: boolean;
         };
         if (cancelled) return;
         setModalState({
-          modalProgress: data.modal_progress,
           signupAtMs: data.signup_at_ms,
           isAnonymous: data.is_anonymous,
         });
@@ -227,18 +224,6 @@ export default function MainApp() {
     };
   }, []);
 
-  // Lift a modal-progress advance (from a dismissed onboarding modal) back into
-  // modalState so the NEXT modal's gate sees the new value in the SAME session.
-  // Without this the in-memory value stays at its mount reading and the modal
-  // ladder (modal 2 following modal 1) only advances across a page reload.
-  const handleModalProgressAdvance = useCallback((target: number) => {
-    setModalState((prev) =>
-      prev
-        ? { ...prev, modalProgress: Math.max(prev.modalProgress, target) }
-        : prev
-    );
-  }, []);
-
   const {
     messages,
     conversationId,
@@ -272,9 +257,6 @@ export default function MainApp() {
     refreshConversations,
     loadManual,
     updateEntry,
-    emergingPatternSnippet,
-    hasLayerEmergingOrBeyond,
-    concreteExamples,
     reflectionFill,
     reflectionReady,
     composeReflection,
@@ -505,18 +487,15 @@ export default function MainApp() {
     [startConversation, doorIntros, doorIntrosSeen, modalState]
   );
 
-  // "Got it" on a door's intro: mark it seen (optimistic + persist), advance
-  // the onboarding modal chain on the user's first intro so the later
-  // pattern-forming modal still fires, then start the deferred conversation.
+  // "Got it" on a door's intro: mark it seen (optimistic + persist), then
+  // start the deferred conversation.
   const handleDoorIntroDismiss = useCallback(() => {
     const mode = pendingIntroMode;
     setPendingIntroMode(null);
     if (!mode) return;
-    const wasFirst = (doorIntrosSeen?.length ?? 0) === 0;
     setDoorIntrosSeen((prev) =>
       prev ? (prev.includes(mode) ? prev : [...prev, mode]) : [mode]
     );
-    if (wasFirst) handleModalProgressAdvance(1);
     fetch("/api/door-intros", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -532,7 +511,7 @@ export default function MainApp() {
     void Promise.resolve(pending).then((started) => {
       if (!started) void startConversation(mode);
     });
-  }, [pendingIntroMode, doorIntrosSeen, handleModalProgressAdvance, startConversation]);
+  }, [pendingIntroMode, startConversation]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
@@ -639,13 +618,7 @@ export default function MainApp() {
       confirmCheckpoint={confirmCheckpoint}
       isGuest={isGuest}
       onSignInPrompt={handleSignInPrompt}
-      modalProgress={modalState?.modalProgress ?? null}
-      signupAtMs={modalState?.signupAtMs ?? null}
       isAnonymous={modalState?.isAnonymous ?? false}
-      onModalProgressAdvance={handleModalProgressAdvance}
-      emergingPatternSnippet={emergingPatternSnippet}
-      hasLayerEmergingOrBeyond={hasLayerEmergingOrBeyond}
-      concreteExamples={concreteExamples}
       reflectionFill={reflectionFill}
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}

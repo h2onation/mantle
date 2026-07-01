@@ -11,9 +11,9 @@ interface ReflectionIntroModalProps {
 // One-time explainer for the reflection meter. Fires the first time the
 // "ready" strip appears for a signed-in user, so the quiet bar + pull strip
 // don't arrive unexplained. Seen-state is held by the caller (localStorage,
-// per-device) — this component is presentational. The pushed-checkpoint
-// onboarding (PatternFormingModal) is suppressed while the meter is on, so
-// this is the single capture explainer in the meter model.
+// per-device) — this component is presentational. This is the single
+// capture explainer (the old pushed-checkpoint PatternFormingModal was
+// removed 2026-07-01).
 export default function ReflectionIntroModal({
   open,
   onDismiss,

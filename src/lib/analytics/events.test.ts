@@ -154,11 +154,6 @@ const CASES: Case[] = [
     call: () => events.trackModal1Shown({ time_since_signup_ms: 1234 }),
     expectedKeys: ["time_since_signup_ms"],
   },
-  {
-    event: "modal_2_shown",
-    call: () => events.trackModal2Shown({ time_since_signup_ms: 1234 }),
-    expectedKeys: ["time_since_signup_ms"],
-  },
 ];
 
 // Mirrors the count expression at the trackCheckpointProposed fire

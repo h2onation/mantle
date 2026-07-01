@@ -22,12 +22,6 @@ export interface MessageCompleteEvent {
   processingText: string;
   cleanContent?: string;
   promptAuth?: boolean;
-  // Modal 2 (Pattern-Forming) trigger inputs, derived from the
-  // previous-turn extraction state (one-turn lag).
-  // Optional so older clients ignore them gracefully.
-  emergingPatternSnippet?: string | null;
-  hasLayerEmergingOrBeyond?: boolean;
-  concreteExamples?: number;
   // Conversation mode at the time this message was emitted. Carried for
   // analytics so the client can attach mode to checkpoint and session-end
   // events without a separate fetch. Optional for backward compatibility

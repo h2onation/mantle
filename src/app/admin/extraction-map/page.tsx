@@ -198,8 +198,6 @@ const FIELDS: Field[] = [
     readers: [
       { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Requires ≥ minScenes scenes (admin-tunable, default 2) — same bar for every checkpoint" },
       { where: "extraction.ts:540 (formatExtractionForPersona)", what: "gateReady computation + brief copy" },
-      { where: "call-persona.ts:789 (SSE payload)", what: "Surfaced to client as concreteExamples" },
-      { where: "MobileSession.tsx:867", what: "Current Modal 2 firing condition" },
     ],
     gates: "Checkpoint material-quality gate — the count threshold of real scenes.",
   },
@@ -294,7 +292,6 @@ const FIELDS: Field[] = [
       { where: "extraction.ts:616 (formatExtractionForPersona)", what: "Drives the 'phase hint' paragraph at the end of the brief" },
     ],
     gates: "Premature-checkpoint suppression. Without engagement, the conversation hasn't reached the 'we both see something' beat.",
-    notes: "Best candidate for the Modal 2 ('halfway') firing anchor — corresponds to a real felt conversational moment.",
   },
   {
     path: "clinical_flag { active, level, note }",
@@ -451,11 +448,9 @@ const FIELDS: Field[] = [
     storage: "conversations.extraction_state.layers[N].signal",
     readers: [
       { where: "persona-pipeline.ts:686 (deriveCheckpointApproaching)", what: "A layer ≥ 'explored' loads CHECKPOINTS instructions only when charged material backs that layer and no crisis is active; otherwise it falls through to the full ripeness gate" },
-      { where: "call-persona.ts:763 (SSE payload)", what: "Computes hasLayerEmergingOrBeyond (any signal !== 'none') for client" },
       { where: "extraction.ts:506 (formatExtractionForPersona)", what: "Per-layer status line in the brief" },
-      { where: "MobileSession.tsx:866", what: "hasLayerEmergingOrBeyond gates Modal 2 firing" },
     ],
-    gates: "'Is this turn a checkpoint moment?' upstream of the gate. Also gates the halfway-there modal.",
+    gates: "'Is this turn a checkpoint moment?' upstream of the gate.",
   },
   {
     path: "layers[1..5].material",
@@ -492,16 +487,14 @@ const FIELDS: Field[] = [
     path: "emerging_pattern_snippet",
     type: "string (<15 words) | null",
     job: "signal",
-    loadBearing: "load-bearing",
-    summary: "Short phrase naming the forming pattern. Drives the halfway-there modal.",
+    loadBearing: "auxiliary",
+    summary: "Short phrase naming the forming pattern. No remaining reader.",
     represents:
       "Short phrase describing the forming pattern in behavioral/experiential terms. Regenerated each turn — never latched. Null when no clear pattern has emerged.",
     storage: "conversations.extraction_state.emerging_pattern_snippet",
-    readers: [
-      { where: "call-persona.ts:786 (SSE payload)", what: "Surfaced to client as emergingPatternSnippet" },
-      { where: "MobileSession.tsx:868, 873 + PatternFormingModal:158", what: "Modal 2 firing + the snippet text rendered inside the modal" },
-    ],
-    gates: "Modal 2 ('halfway there') firing + the displayed text. Read by the client only, not by Jove or the gate.",
+    readers: [],
+    gates: "Nothing. Its only consumer (the halfway-there onboarding modal) was removed 2026-07-01.",
+    notes: "Prune candidate — still produced and stored by the extractor, but nothing downstream reads it.",
   },
 ];
 
