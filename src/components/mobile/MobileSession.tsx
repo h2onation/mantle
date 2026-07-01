@@ -838,6 +838,10 @@ export default function MobileSession({
           isStreaming ||
           conversationId === "text-channel"
         }
+        // While a turn streams, typing stays open but SEND is held — Enter
+        // keeps the draft in the box instead of clearing it into a send that
+        // useChat silently drops (the vanished-draft bug).
+        sendLocked={isLoading || isStreaming}
         draftToRestore={draftToRestore}
         onDraftRestored={onDraftRestored}
         placeholder={optionsShowing ? "Or type something else…" : undefined}

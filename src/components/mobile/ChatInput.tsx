@@ -7,6 +7,12 @@ import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
+  /** True while a turn is in flight (isLoading/isStreaming). Typing stays
+   *  enabled — the user can draft while Jove responds — but send is held:
+   *  Enter and the send button keep the draft in the box instead of clearing
+   *  it into a silently-dropped send (useChat's sendMessage early-returns
+   *  while a turn is in flight, so a cleared draft was simply LOST). */
+  sendLocked?: boolean;
   // When set, rehydrates the textarea with the given text and clears the
   // signal via `onDraftRestored`. Used to recover a paste that the server
   // rejected (e.g. an upload over MAX_UPLOAD_LENGTH) so the user can edit
@@ -31,6 +37,7 @@ type ButtonMode = "mic" | "mic-denied" | "stop" | "send";
 export default function ChatInput({
   onSend,
   disabled,
+  sendLocked = false,
   draftToRestore,
   onDraftRestored,
   placeholder = "Write back to Jove…",
@@ -111,6 +118,11 @@ export default function ChatInput({
   function handleSend() {
     const text = input.trim();
     if (!text) return;
+    // A turn is in flight: keep the draft in the box. Clearing it here and
+    // calling onSend would silently drop it (sendMessage early-returns while
+    // isLoading/isStreaming) — the user's text just vanished. They can send
+    // when the turn finishes.
+    if (sendLocked) return;
 
     // If recording, stop it first
     if (isRecording) {
@@ -338,17 +350,18 @@ export default function ChatInput({
         {buttonMode === "send" && (
           <button
             onClick={handleButtonClick}
-            disabled={disabled}
-            aria-label="Send message"
+            disabled={disabled || sendLocked}
+            aria-label={sendLocked ? "Jove is responding — send when done" : "Send message"}
             style={{
               all: "unset",
-              cursor: "pointer",
+              cursor: sendLocked ? "default" : "pointer",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               padding: "13px",
               margin: "-13px",
               color: "var(--session-ink)",
+              opacity: sendLocked ? 0.4 : 1,
               flexShrink: 0,
               animation: "mwFadeIn 0.15s ease-out both",
             }}
