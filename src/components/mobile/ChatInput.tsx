@@ -97,6 +97,15 @@ export default function ChatInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
+    // Inside a display:none view (MobileLayout keeps inactive views mounted
+    // but hidden) scrollHeight reads 0 — writing that as the height leaves a
+    // permanently unclickable 0px textarea once the view is shown, because
+    // this effect only re-runs on input changes. Leave the CSS default
+    // (rows=1) and let the next measurable run take over.
+    if (el.scrollHeight === 0) {
+      el.style.height = "";
+      return;
+    }
     const lineHeight = 26; // 17px * 1.5 line-height ≈ 25.5, round up
     const maxHeight = lineHeight * 6; // ~156px — 6 lines, then internal scroll
     el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
