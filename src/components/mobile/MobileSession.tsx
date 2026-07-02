@@ -3,7 +3,6 @@
 import React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import ChatInput from "./ChatInput";
-import ReflectionIntroModal from "@/components/modals/ReflectionIntroModal";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { formatLayerEyebrow, sectionName } from "@/lib/manual/layers";
@@ -165,10 +164,10 @@ export default function MobileSession({
     return Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000;
   });
 
-  // One-time reflection-meter explainer. Per-device (localStorage), mirroring
-  // the sign-in banner — deliberately not on the modal_progress ladder, which
-  // is the pushed-model onboarding sequence. Shown the first time the ready
-  // strip appears for a signed-in user (see the ReflectionIntroModal render).
+  // One-time strip explainer. Per-device (localStorage), mirroring the
+  // sign-in banner. Rendered INLINE under the ready strip on its first
+  // appearance (the old ReflectionIntroModal popup was removed 2026-07-02 —
+  // founder call: the strip teaches itself, in place, no interruption).
   const [reflectionIntroSeen, setReflectionIntroSeen] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("mw_reflection_intro_seen") === "1";
@@ -390,66 +389,117 @@ export default function MobileSession({
         </div>
       )}
 
-      {/* Ready strip — the persistent "a reflection's ready" handle. Appears
-          the moment readiness latches and waits under the header; it never
-          locks the composer. Tapping it composes on demand and opens the
-          review overlay. This is the entire proposal surface now that the
-          bloom card is gone. */}
+      {/* Ready strip — the persistent "your reflection is ready" handle.
+          Appears when the conversation has real depth and waits under the
+          header; it never locks the composer. Tapping it composes on demand
+          and opens the review overlay. This is the entire proposal surface.
+          FIRST APPEARANCE ONLY: a one-line explainer renders under the strip
+          (replacing the old ReflectionIntroModal popup — founder call: the
+          strip teaches itself, in place, no interruption); "Got it" clears it
+          and it never returns. */}
       {reflectionReady && (
         <>
-        <button
-          type="button"
-          onClick={handleBuildReflection}
-          disabled={reflectionComposing}
+        <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 9,
-            width: "100%",
-            padding: "10px 16px",
             flexShrink: 0,
-            cursor: reflectionComposing ? "default" : "pointer",
             background: "var(--session-walnut-surface-soft)",
-            border: "none",
             borderBottom: "1px solid var(--session-walnut-border)",
             animation: "checkpointFadeIn 0.4s ease both",
           }}
         >
-          <span
+          <button
+            type="button"
+            onClick={handleBuildReflection}
+            disabled={reflectionComposing}
             style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: 15,
-              color: "var(--session-walnut)",
-              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 9,
+              width: "100%",
+              padding: "10px 16px",
+              cursor: reflectionComposing ? "default" : "pointer",
+              background: "transparent",
+              border: "none",
             }}
           >
-            ❦
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              color: "var(--session-ink-soft)",
-            }}
-          >
-            {reflectionComposing
-              ? "Building your reflection…"
-              : "Your reflection, in your words — ready when you are"}
-          </span>
-          {!reflectionComposing && (
+            <span
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: 15,
+                color: "var(--session-walnut)",
+                lineHeight: 1,
+              }}
+            >
+              ❦
+            </span>
             <span
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: 13,
-                fontWeight: 500,
-                color: "var(--session-walnut-meta-strong)",
+                color: "var(--session-ink-soft)",
               }}
             >
-              Tap to build it &rarr;
+              {reflectionComposing
+                ? "Building your reflection…"
+                : "Your reflection, in your words — ready when you are"}
             </span>
+            {!reflectionComposing && (
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--session-walnut-meta-strong)",
+                }}
+              >
+                Tap to build it &rarr;
+              </span>
+            )}
+          </button>
+          {!reflectionIntroSeen && !isAnonymous && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                padding: "0 16px 10px",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "var(--session-walnut-meta)",
+                  textAlign: "center",
+                }}
+              >
+                Nothing enters your Manual unless you build it. Tap when
+                you&rsquo;re ready — or just keep talking.
+              </span>
+              <button
+                type="button"
+                onClick={dismissReflectionIntro}
+                aria-label="Dismiss explainer"
+                style={{
+                  all: "unset",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "0.03em",
+                  color: "var(--session-walnut-meta-strong)",
+                  whiteSpace: "nowrap",
+                  padding: "2px 4px",
+                }}
+              >
+                Got it
+              </button>
+            </div>
           )}
-        </button>
+        </div>
         {checkpointError && (
           <p
             style={{
@@ -846,13 +896,6 @@ export default function MobileSession({
         onDraftRestored={onDraftRestored}
         placeholder={optionsShowing ? "Or type something else…" : undefined}
         focusOnEnable={isDesktop === true}
-      />
-
-      {/* First-time meter explainer. reflectionReady can only be true when the
-          meter is on (server-gated), so this never fires in the pushed model. */}
-      <ReflectionIntroModal
-        open={reflectionReady && !isAnonymous && !reflectionIntroSeen}
-        onDismiss={dismissReflectionIntro}
       />
 
       {(checkpointOverlayOpen || overlayCheckpointRef.current) && (

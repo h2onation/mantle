@@ -139,6 +139,10 @@ export async function POST(request: Request) {
       sageBrief: ext?.sage_brief ?? null,
       currentThread: ext?.current_thread ?? null,
       entryBarOverride: ctx.voiceOverrides?.composerEntryBar,
+      // Conductor pull path (pull-model Step 3): the conversation built the
+      // entry in the open, so the body must REPRODUCE the user-approved
+      // working version near-verbatim rather than re-author it.
+      anchorApprovedVersion: ctx.conductorActive,
     });
   } catch (err) {
     // composeManualEntry can throw — e.g. Opus returns non-JSON and the

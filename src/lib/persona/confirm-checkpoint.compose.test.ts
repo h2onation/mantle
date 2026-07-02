@@ -78,6 +78,23 @@ describe("composeManualEntry — user-pulled framing", () => {
       "A specific Jove-drafted reflection paragraph."
     );
   });
+
+  // Conductor pull path (pull-model Step 3): the conversation built the entry
+  // in the open, so the body must REPRODUCE the most-recent user-approved
+  // working version — not re-author it (the purpose-run card re-wrote the
+  // approved draft back into a register the user rejected).
+  it("uses the verbatim-anchor framing when anchorApprovedVersion is set", async () => {
+    await composeManualEntry({ ...baseOpts, anchorApprovedVersion: true });
+
+    expect(lastUserContent).toContain("THE BODY IS THAT APPROVED VERSION");
+    expect(lastUserContent).toContain("the user's latest corrections always beat earlier drafts");
+    expect(lastUserContent).not.toContain("there is no pre-drafted reflection to polish");
+  });
+
+  it("anchor framing is OFF by default for the normal pull path", async () => {
+    await composeManualEntry(baseOpts);
+    expect(lastUserContent).not.toContain("THE BODY IS THAT APPROVED VERSION");
+  });
 });
 
 describe("composeManualEntry — editable entry-voice (THE BAR)", () => {

@@ -61,6 +61,17 @@ interface ComposeManualEntryOptions {
    *  shipped COMPOSER_ENTRY_BAR. Only the quality standard is editable — the
    *  output schema, section assignment, and length/safety rules stay in code. */
   entryBarOverride?: string;
+  /** Conductor pull path (pull-model Step 3): the conversation BUILT the entry
+   *  in the open — a working version said aloud and refined with the user's
+   *  corrections. When true, the composer's job for the BODY changes from
+   *  authoring to REPRODUCING: locate the most recent user-approved working
+   *  version in the transcript and carry it near-verbatim (the user's latest
+   *  corrections always win). Clerical outputs (section/title/tags/summary)
+   *  still follow the standard rules. False/absent = unchanged behavior for
+   *  the normal pull path (no working version exists to anchor on).
+   *  Deletion condition: conductor promoted → this becomes the only pull mode
+   *  and the flag collapses. */
+  anchorApprovedVersion?: boolean;
 }
 
 /**
@@ -102,6 +113,7 @@ export async function composeManualEntry(
     sageBrief,
     currentThread,
     entryBarOverride,
+    anchorApprovedVersion,
   } = options;
 
   // Resolve the editable depth standard: an enabled, non-blank override wins;
@@ -210,9 +222,16 @@ Respond with ONLY valid JSON. No markdown. No backticks.
   // The user-pulled path has none — tell the composer the truth (compose from
   // the conversation + the accumulated understanding above) rather than
   // fabricating a fake reflection, which composes better than a stale seed.
+  // The CONDUCTOR pull path (anchorApprovedVersion) is different again: the
+  // conversation built the entry in the open, so the body's job is
+  // reproduction, not authorship — the fidelity failures this guards against
+  // are documented (the purpose-run card re-wrote the approved draft back
+  // into a register the user had rejected).
   const reflectionBlock = checkpointText
     ? `${PERSONA_NAME.toUpperCase()}'S CHECKPOINT REFLECTION:\n${checkpointText}`
-    : `The user chose to capture a reflection from this conversation. Compose the entry from the conversation above and the accumulated understanding — there is no pre-drafted reflection to polish.`;
+    : anchorApprovedVersion
+      ? `The user chose to capture the reflection they BUILT WITH ${PERSONA_NAME} in this conversation. A working version of the entry was said aloud during the conversation and refined through the user's own corrections — find it in the transcript above. Take the MOST RECENT version the user approved (their last "yes, that's it" — or their own rewritten version if they wrote one; the user's latest corrections always beat earlier drafts). THE BODY IS THAT APPROVED VERSION, carried near-verbatim: light stitching only where needed for it to stand alone. Never re-author it, never upgrade its register, never reintroduce a phrasing the user corrected away, and do not deepen past what they approved — for the body, faithful reproduction IS the bar. Title, section, tags, summary, and acknowledgment follow the rules above, derived from the approved version and the conversation.`
+      : `The user chose to capture a reflection from this conversation. Compose the entry from the conversation above and the accumulated understanding — there is no pre-drafted reflection to polish.`;
 
   const userContent = `${languageSection}${manualSection}${depthSection}
 RECENT CONVERSATION:
