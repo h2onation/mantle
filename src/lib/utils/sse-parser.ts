@@ -58,8 +58,10 @@ interface SSECallbacks {
  *  the checkpoint split-delivery has a multi-second silent gap while the entry
  *  composes server-side. A healthy stream never goes a full minute silent; a
  *  hung one (dropped connection the browser never surfaces, proxy buffering)
- *  goes silent forever — which used to leave isStreaming stuck true and the
- *  composer locked until reload (2026-07-01 incident: situation-door opener). */
+ *  goes silent forever, leaving isStreaming stuck true until reload. Generic
+ *  transport insurance only — the 2026-07-01 "locked composer" incident this
+ *  was originally built for turned out to be a 0px textarea in ChatInput
+ *  (fixed 2026-07-02), not a hung stream. */
 const STALL_TIMEOUT_MS = 60_000;
 
 export async function parseSSEStream(
