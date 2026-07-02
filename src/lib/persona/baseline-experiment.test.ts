@@ -224,6 +224,10 @@ describe("conductor variant — guard tests", () => {
     // Keep-going must be specific; break must not fake a reminder.
     expect(full).toContain("a real loose end from the conversation");
     expect(full).toContain("Don't promise a reminder");
+    // 2-for-2 live miss (2026-07-02): the model resumed its open question
+    // instead of offering the chips. The clause makes them compatible — the
+    // open question IS the keep-going path.
+    expect(full).toContain("Offer the chips even when you left a question open");
   });
 
   it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {
