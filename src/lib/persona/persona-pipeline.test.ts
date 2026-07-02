@@ -1079,7 +1079,9 @@ describe("resolveReflectionMeter", () => {
     expect(shallow).toEqual({ fill: 6, ready: false });
   });
 
-  it("conductor: strip goes visible at the depth threshold, never claims 100", () => {
+  it("conductor: strip goes visible at MECHANISM depth, never claims 100", () => {
+    // Raised from "feeling" (58) after the 2026-07-02 mom-run incident: an
+    // early strip invited a pull before anything buildable existed.
     const feeling = resolveReflectionMeter({
       extraction: base({ depth: "feeling" }),
       turnsSinceCheckpoint: Infinity,
@@ -1087,7 +1089,15 @@ describe("resolveReflectionMeter", () => {
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(feeling?.ready).toBe(true); // fill 58 >= CONDUCTOR_STRIP_FILL
+    expect(feeling?.ready).toBe(false); // fill 58 < CONDUCTOR_STRIP_FILL (85)
+    const mechanism = resolveReflectionMeter({
+      extraction: base({ depth: "mechanism" }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(mechanism?.ready).toBe(true); // fill 85 >= threshold
     const deep = resolveReflectionMeter({
       extraction: base({ depth: "origin" }),
       turnsSinceCheckpoint: Infinity,

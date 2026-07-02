@@ -1247,11 +1247,17 @@ export function reflectionMeterFill(
 }
 
 /** Fill level at which the ready strip becomes VISIBLE under the conductor —
- *  depth "feeling" per REFLECTION_DEPTH_PCT. One constant, one comparison: the
- *  conductor strip is an invitational affordance ("ready when you are"), never
- *  a server claim of completion, so it keys off depth alone. Deletion
- *  condition: conductor promoted and the meter model finalized. */
-export const CONDUCTOR_STRIP_FILL = 58;
+ *  depth "mechanism" per REFLECTION_DEPTH_PCT. One constant, one comparison:
+ *  the conductor strip is an invitational affordance ("ready when you are"),
+ *  never a server claim of completion, so it keys off depth alone.
+ *  Raised 58 ("feeling") → 85 ("mechanism") after the 2026-07-02 mom-run
+ *  incident: at "feeling" the strip invited a pull ~12 turns before anything
+ *  buildable existed, bypassing every conversational safeguard (working
+ *  version, completeness check, landing) at once — the thin-entry failure
+ *  through the new door. At "mechanism" the conversation has the WHY, which is
+ *  the earliest point an entry can hold its shape. Deletion condition:
+ *  conductor promoted and the meter model finalized. */
+export const CONDUCTOR_STRIP_FILL = 85;
 
 /**
  * The ONE reflection-meter resolution, shared by the live SSE emit

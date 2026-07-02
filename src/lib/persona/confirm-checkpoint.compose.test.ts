@@ -89,6 +89,9 @@ describe("composeManualEntry — user-pulled framing", () => {
     expect(lastUserContent).toContain("THE BODY IS THAT APPROVED VERSION");
     expect(lastUserContent).toContain("the user's latest corrections always beat earlier drafts");
     expect(lastUserContent).not.toContain("there is no pre-drafted reflection to polish");
+    // The early-pull fallback (2026-07-02 mom-run): with no working version in
+    // the transcript, the composer must NOT stitch a chronological recap.
+    expect(lastUserContent).toContain("never a chronological retelling of the session");
   });
 
   it("anchor framing is OFF by default for the normal pull path", async () => {
