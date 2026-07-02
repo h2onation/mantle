@@ -314,7 +314,9 @@ describe("guided intake section picker + situation handoff wiring", () => {
   it("SectionPicker renders the canonical 5 sections from layers.ts", () => {
     expect(sectionPicker).toContain('from "@/lib/manual/layers"');
     expect(sectionPicker).toContain("LAYERS.map");
-    expect(sectionPicker).toContain("onSelect(layer.name)");
+    // The selected value handed to onSelect is the canonical layer name
+    // (SelectionTileGroup fires onSelect(item.value) after the print beat).
+    expect(sectionPicker).toContain("value: layer.name");
     expect(sectionPicker).toContain("layer.tagline");
   });
 
