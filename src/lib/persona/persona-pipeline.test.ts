@@ -1010,21 +1010,22 @@ describe("reflectionMeterFill (capture-progress)", () => {
   });
 
   it("ramps back up over the cooldown, capped by depth", () => {
-    // deep thread, mechanism depth = 85; cooldown cap rises 20/40/60/80/100
+    // deep thread, mechanism depth = 60 (back-loaded curve); cooldown cap
+    // rises 20/40/60/80/100
     expect(reflectionMeterFill("mechanism", 1, false, COOLDOWN)).toBe(20);
     expect(reflectionMeterFill("mechanism", 3, false, COOLDOWN)).toBe(60);
-    // once the cooldown has fully elapsed, the depth cap (85) takes over
-    expect(reflectionMeterFill("mechanism", 5, false, COOLDOWN)).toBe(85);
-    expect(reflectionMeterFill("mechanism", 9, false, COOLDOWN)).toBe(85);
+    // once the cooldown has fully elapsed, the depth cap (60) takes over
+    expect(reflectionMeterFill("mechanism", 5, false, COOLDOWN)).toBe(60);
+    expect(reflectionMeterFill("mechanism", 9, false, COOLDOWN)).toBe(60);
   });
 
-  it("stays low for a new shallow thread regardless of cooldown", () => {
-    expect(reflectionMeterFill("surface", 9, false, COOLDOWN)).toBe(6);
+  it("stays at zero for a new shallow thread regardless of cooldown (back-loaded curve)", () => {
+    expect(reflectionMeterFill("surface", 9, false, COOLDOWN)).toBe(0);
   });
 
   it("has no cooldown cap when there is no prior checkpoint (Infinity)", () => {
-    expect(reflectionMeterFill("mechanism", Infinity, false, COOLDOWN)).toBe(85);
-    expect(reflectionMeterFill("surface", Infinity, false, COOLDOWN)).toBe(6);
+    expect(reflectionMeterFill("mechanism", Infinity, false, COOLDOWN)).toBe(60);
+    expect(reflectionMeterFill("surface", Infinity, false, COOLDOWN)).toBe(0);
   });
 
   it("returns 0 for unknown/empty depth when not ready", () => {
@@ -1076,7 +1077,7 @@ describe("resolveReflectionMeter", () => {
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(shallow).toEqual({ fill: 6, ready: false });
+    expect(shallow).toEqual({ fill: 0, ready: false });
   });
 
   it("conductor: strip goes visible at MECHANISM depth, never claims 100", () => {
@@ -1089,7 +1090,7 @@ describe("resolveReflectionMeter", () => {
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(feeling?.ready).toBe(false); // fill 58 < CONDUCTOR_STRIP_FILL (85)
+    expect(feeling?.ready).toBe(false); // fill 28 < CONDUCTOR_STRIP_FILL (60)
     const mechanism = resolveReflectionMeter({
       extraction: base({ depth: "mechanism" }),
       turnsSinceCheckpoint: Infinity,

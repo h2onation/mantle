@@ -1205,13 +1205,18 @@ export function buildCheckpointMeta(
 // ── Reflection meter fill ────────────────────────────────────────────────────
 
 /** Depth rung → base fill percent. The deepest rung sits just under full so
- *  only true readiness (the gate) completes the bar. */
+ *  only true readiness (the gate) completes the bar.
+ *  BACK-LOADED 2026-07-02 (founder call): the bar must wait — visible fill
+ *  creates "I should action this" pressure, and early fill was part of why
+ *  premature pulls produced thin entries. It now barely moves through
+ *  storytelling (surface/behavior), stirs at feelings, and does its real
+ *  rising only once the WHY is on the table. */
 const REFLECTION_DEPTH_PCT: Record<string, number> = {
-  surface: 6,
-  behavior: 30,
-  feeling: 58,
-  mechanism: 85,
-  origin: 92,
+  surface: 0,
+  behavior: 8,
+  feeling: 28,
+  mechanism: 60,
+  origin: 80,
 };
 
 /**
@@ -1250,14 +1255,15 @@ export function reflectionMeterFill(
  *  depth "mechanism" per REFLECTION_DEPTH_PCT. One constant, one comparison:
  *  the conductor strip is an invitational affordance ("ready when you are"),
  *  never a server claim of completion, so it keys off depth alone.
- *  Raised 58 ("feeling") → 85 ("mechanism") after the 2026-07-02 mom-run
+ *  Raised from "feeling" to "mechanism" after the 2026-07-02 mom-run
  *  incident: at "feeling" the strip invited a pull ~12 turns before anything
  *  buildable existed, bypassing every conversational safeguard (working
  *  version, completeness check, landing) at once — the thin-entry failure
  *  through the new door. At "mechanism" the conversation has the WHY, which is
- *  the earliest point an entry can hold its shape. Deletion condition:
- *  conductor promoted and the meter model finalized. */
-export const CONDUCTOR_STRIP_FILL = 85;
+ *  the earliest point an entry can hold its shape. Value tracks
+ *  REFLECTION_DEPTH_PCT.mechanism (60 since the back-loaded curve). Deletion
+ *  condition: conductor promoted and the meter model finalized. */
+export const CONDUCTOR_STRIP_FILL = 60;
 
 /**
  * The ONE reflection-meter resolution, shared by the live SSE emit

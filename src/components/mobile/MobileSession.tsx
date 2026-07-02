@@ -124,10 +124,14 @@ export default function MobileSession({
   const [reflectionComposing, setReflectionComposing] = useState(false);
 
   // The server computes the capture-progress fill (resets on save, rebuilds).
-  // A latched-ready state always shows full, so the bar and the strip can't
-  // disagree (ready ⟺ full) even if a later turn's live fill dips.
+  // The bar shows the server fill AS-IS. (The old `ready ? 100 : fill` latch
+  // was removed 2026-07-02: under the pull model "ready" means the strip is
+  // available, not that the reflection is complete — snapping the bar to full
+  // was a false completion claim and created "I should action this" pressure.
+  // For the gate-driven model the latch was redundant anyway: gate-ready
+  // already returns fill 100 from the server.)
   const reflectionMeterVisible = reflectionFill !== null;
-  const displayFill = reflectionReady ? 100 : reflectionFill ?? 0;
+  const displayFill = reflectionFill ?? 0;
 
   // Shared handler for the bloom button AND the deferred strip — both go
   // STRAIGHT to the composed output (compose on demand, then open the existing
