@@ -215,6 +215,17 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain("Never start two turns in a row the same way");
   });
 
+  it("Step 4: the post-save turn offers the three paths via the chips marker", () => {
+    const full = renderConductor();
+    expect(full).toContain("---chips---");
+    expect(full).toContain("Start somewhere new");
+    expect(full).toContain("Keep this thread going");
+    expect(full).toContain("Take a break");
+    // Keep-going must be specific; break must not fake a reminder.
+    expect(full).toContain("a real loose end from the conversation");
+    expect(full).toContain("Don't promise a reminder");
+  });
+
   it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {
     const full = renderConductor();
     // The REBUILT_MECHANICS lines the conductor's "don't leave a live moment"
