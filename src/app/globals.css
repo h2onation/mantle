@@ -788,41 +788,91 @@ textarea.mw-composer-input:focus-visible {
    Jove bubble; the title rides --font-serif so the dyslexic accommodation
    applies. Single action: a tap selects AND advances, so there is NO selected
    state — :active is only the "go" feedback as it fires. */
+/* ── Selection tiles — "the handoff" ──
+   Each tile wears the user's sent-bubble shape (same radius + top-right
+   5px tail as Bubble's USER_STYLE) as a blind emboss: unprinted paper
+   relief at rest, Jove's navy blooming from the tail corner on hover,
+   and the user-bubble fill "printing" on press — tapping converts Jove's
+   offer into the user's own words. The chosen tile prints
+   (.mw-seltile--printed) while its siblings vanish (.mw-seltile--vanish);
+   SelectionTileGroup owns that staging. Relief shadows are theme-tuned:
+   light values here, dark overrides at the end of the block. */
 .mw-seltile-group {
   display: flex;
   flex-direction: column;
+  align-items: flex-end; /* right-aligned, like the user's own messages */
   gap: 8px;
   margin-top: 12px;
-  animation: mwFadeIn 0.3s ease-out both;
 }
 .mw-seltile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
+  position: relative;
+  overflow: hidden; /* clips the tail bloom to the bubble */
+  display: block;
+  max-width: 88%; /* matches Bubble USER_STYLE */
   text-align: left;
   cursor: pointer;
-  background: var(--session-cream-bright);
-  border: 1px solid var(--session-persona-border);
+  background: var(--session-parchment); /* ground, lifted one step: unprinted */
+  border: 1px solid var(--session-ink-hairline);
   border-radius: var(--session-bubble-radius);
-  padding: 13px 16px;
-  min-height: 48px;
+  border-top-right-radius: 5px; /* the user bubble's tail corner */
+  padding: 11px 17px 12px;
+  min-height: 44px;
   font-family: var(--font-serif);
-  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+  /* blind emboss: fine light top edge + soft warm lower inner shadow */
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.9),
+    inset 1px 0 0 rgba(255, 255, 255, 0.4),
+    inset 0 -3px 4px rgba(110, 69, 39, 0.1),
+    inset 0 -1px 0 rgba(26, 23, 18, 0.04);
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.09s ease,
+    opacity 0.18s ease;
+  animation: mwSeltilePressIn 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
-.mw-seltile-body { flex: 1; min-width: 0; }
+.mw-seltile:nth-child(1) { animation-delay: 0.06s; }
+.mw-seltile:nth-child(2) { animation-delay: 0.12s; }
+.mw-seltile:nth-child(3) { animation-delay: 0.18s; }
+.mw-seltile:nth-child(4) { animation-delay: 0.24s; }
+.mw-seltile:nth-child(5) { animation-delay: 0.3s; }
+@keyframes mwSeltilePressIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  60%  { opacity: 1; transform: translateY(0.5px); } /* the press lands */
+  to   { opacity: 1; transform: translateY(0); }      /* paper settles */
+}
+/* the ink bloom — Jove's navy surfacing FROM THE TAIL CORNER on hover */
+.mw-seltile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 96% 4%,
+    var(--session-persona-muted) 0%,
+    var(--session-persona-tint) 45%,
+    transparent 78%
+  );
+  opacity: 0;
+  transform: scale(0.55);
+  transform-origin: 96% 4%;
+  transition: opacity 0.24s ease, transform 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.mw-seltile-body {
+  position: relative; /* rides above the bloom layer */
+  display: block;
+  min-width: 0;
+}
 .mw-seltile-title {
   display: block;
   font-family: var(--font-serif);
   font-size: 16px;
   font-weight: 500;
   line-height: 1.3;
-  color: var(--session-persona);
+  color: var(--session-ink-soft);
+  transition: color 0.18s ease;
 }
-.mw-seltile--focus .mw-seltile-title {
-  font-weight: 400;
-  color: var(--session-ink);
-}
+.mw-seltile--focus .mw-seltile-title { font-weight: 400; }
 .mw-seltile-tagline {
   display: block;
   font-family: var(--font-sans);
@@ -831,38 +881,83 @@ textarea.mw-composer-input:focus-visible {
   color: var(--session-ink-mid);
   margin-top: 2px;
 }
-.mw-seltile-chev {
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: 19px;
-  line-height: 1;
-  color: var(--session-persona-soft);
-  transition: transform 0.16s ease, color 0.16s ease;
+/* letterpress titles — engraved while waiting, plain ink once printed.
+   Light theme only: a white under-edge reads as debris on the dark ground. */
+[data-theme="light"] .mw-seltile-title {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
-.mw-seltile:hover {
-  background: var(--session-persona-tint);
-  border-color: var(--session-persona-soft);
+@media (hover: hover) {
+  .mw-seltile:hover {
+    border-color: var(--session-persona-border);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 1),
+      inset 1px 0 0 rgba(255, 255, 255, 0.5),
+      inset 0 -4px 6px rgba(110, 69, 39, 0.13),
+      inset 0 -1px 0 rgba(26, 23, 18, 0.05);
+  }
+  .mw-seltile:hover::before { opacity: 1; transform: scale(1); }
+  .mw-seltile:hover .mw-seltile-title { color: var(--session-ink); }
 }
-.mw-seltile:hover .mw-seltile-chev {
-  color: var(--session-persona);
-  transform: translateX(2px);
-}
-.mw-seltile:focus-visible {
-  outline: none;
-  border-color: var(--session-persona);
-  box-shadow: 0 0 0 3px var(--session-persona-muted);
-}
-.mw-seltile:active {
-  background: var(--session-persona);
-  border-color: var(--session-persona);
+/* press / printed — the handoff lands: the user-bubble fill arrives, the
+   emboss inverts to a deboss. Matches Bubble USER_STYLE's surface. */
+.mw-seltile:active,
+.mw-seltile--printed {
+  background: var(--session-user-bg);
+  border-color: var(--session-user-border);
   transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 3px rgba(110, 69, 39, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
 }
+.mw-seltile:active::before,
+.mw-seltile--printed::before { opacity: 0; }
 .mw-seltile:active .mw-seltile-title,
-.mw-seltile:active .mw-seltile-tagline,
-.mw-seltile:active .mw-seltile-chev {
-  color: var(--session-cream-bright);
+.mw-seltile--printed .mw-seltile-title {
+  color: var(--session-ink-user-text);
+  text-shadow: none; /* printed ink needs no engraving */
 }
-.mw-seltile:disabled { opacity: 0.5; cursor: default; }
+.mw-seltile:active .mw-seltile-tagline,
+.mw-seltile--printed .mw-seltile-tagline { color: var(--session-ink-user-text); }
+/* siblings leave when a choice is made — the un-said options withdraw.
+   Both staging classes clear the entrance animation: its fill-mode would
+   otherwise pin opacity/transform at the animated end state and override
+   these class styles (animations beat the cascade). */
+.mw-seltile--printed,
+.mw-seltile--vanish {
+  animation: none;
+}
+.mw-seltile--vanish {
+  opacity: 0;
+  transform: translateY(-2px) scale(0.98);
+  pointer-events: none;
+}
+.mw-seltile:disabled:not(.mw-seltile--printed):not(.mw-seltile--vanish) {
+  opacity: 0.5;
+  cursor: default;
+}
+/* dark (Hearth) relief — same form, night-tuned: faint cool highlight,
+   deeper shadow well. Overrides the light literals above. */
+:root:not([data-theme="light"]) .mw-seltile {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.35);
+}
+@media (hover: hover) {
+  :root:not([data-theme="light"]) .mw-seltile:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -4px 7px rgba(0, 0, 0, 0.45);
+  }
+}
+:root:not([data-theme="light"]) .mw-seltile:active,
+:root:not([data-theme="light"]) .mw-seltile--printed {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mw-seltile { animation: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .mw-seltile, .mw-seltile-chev { transition: none; }
   .mw-seltile:active { transform: none; }
