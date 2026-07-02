@@ -25,7 +25,7 @@ import {
   fireBackgroundExtraction,
   handleCrisisDetection,
   applyCheckpointGates,
-  reflectionMeterFill,
+  resolveReflectionMeter,
   buildCheckpointMeta,
   computeInheritedRefinementCount,
   validateComposedEntry,
@@ -1348,22 +1348,17 @@ export function callPersona({
               // is off; older clients ignore it.
               ...(ctx.reflectionMeterEnabled
                 ? {
-                    reflectionMeter:
-                      previousExtraction?.clinical_flag?.active &&
-                      previousExtraction.clinical_flag.level === "crisis"
-                        ? null
-                        : {
-                            // Capture-progress fill: resets after a save (via
-                            // the cooldown) and rebuilds. Same helper the
-                            // restore endpoint uses, so they can't drift.
-                            fill: reflectionMeterFill(
-                              previousExtraction?.depth,
-                              turnsSinceCheckpoint,
-                              gateResult.passed,
-                              ctx.checkpointTuning.cooldownTurns
-                            ),
-                            ready: gateResult.passed,
-                          },
+                    // ONE resolution shared with the restore endpoint (see
+                    // resolveReflectionMeter) so live and reload can't drift.
+                    // Under the conductor the fill is depth-only and `ready`
+                    // means "strip visible", never a completion claim.
+                    reflectionMeter: resolveReflectionMeter({
+                      extraction: previousExtraction,
+                      turnsSinceCheckpoint,
+                      gatePassed: gateResult.passed,
+                      cooldownTurns: ctx.checkpointTuning.cooldownTurns,
+                      conductorActive: ctx.conductorActive,
+                    }),
                   }
                 : {}),
               ...(parsedChips.length > 0 ? { chips: parsedChips } : {}),

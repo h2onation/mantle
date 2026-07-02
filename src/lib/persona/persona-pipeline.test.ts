@@ -4,6 +4,7 @@ import {
   validateComposedEntry,
   applyCheckpointGates,
   reflectionMeterFill,
+  resolveReflectionMeter,
   deriveProposalFlags,
   deriveCheckpointApproaching,
   computeInheritedRefinementCount,
@@ -1029,6 +1030,92 @@ describe("reflectionMeterFill (capture-progress)", () => {
   it("returns 0 for unknown/empty depth when not ready", () => {
     expect(reflectionMeterFill(null, Infinity, false, COOLDOWN)).toBe(0);
     expect(reflectionMeterFill(undefined, Infinity, false, COOLDOWN)).toBe(0);
+  });
+});
+
+// The ONE meter resolution shared by the live SSE emit and the reload-restore
+// route (2026-07-02 incident: the two paths disagreed — the bar appeared only
+// after a browser reload). Conductor regime: fill is depth-only (the open gate
+// is never fed in), `ready` means only "strip visible" past the threshold.
+describe("resolveReflectionMeter", () => {
+  const COOLDOWN = 5;
+  const base = (over?: Partial<ExtractionState>) =>
+    makeExtractionState(over);
+
+  it("hides the meter (null) with no extraction or during crisis, both regimes", () => {
+    for (const conductorActive of [true, false]) {
+      expect(
+        resolveReflectionMeter({
+          extraction: null,
+          turnsSinceCheckpoint: 5,
+          gatePassed: true,
+          cooldownTurns: COOLDOWN,
+          conductorActive,
+        }),
+      ).toBeNull();
+      expect(
+        resolveReflectionMeter({
+          extraction: base({ clinical_flag: { active: true, level: "crisis", note: "" } }),
+          turnsSinceCheckpoint: 5,
+          gatePassed: true,
+          cooldownTurns: COOLDOWN,
+          conductorActive,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  it("conductor: the open gate NEVER feeds the meter — no 100, no ready-at-turn-one", () => {
+    // gatePassed=true (the open gate's constant verdict) must not produce a
+    // full/ready meter on a shallow conversation — the original strip-lit-on-
+    // empty-chat bug.
+    const shallow = resolveReflectionMeter({
+      extraction: base({ depth: "surface" }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(shallow).toEqual({ fill: 6, ready: false });
+  });
+
+  it("conductor: strip goes visible at the depth threshold, never claims 100", () => {
+    const feeling = resolveReflectionMeter({
+      extraction: base({ depth: "feeling" }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(feeling?.ready).toBe(true); // fill 58 >= CONDUCTOR_STRIP_FILL
+    const deep = resolveReflectionMeter({
+      extraction: base({ depth: "origin" }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(deep?.ready).toBe(true);
+    expect(deep?.fill).toBeLessThan(100); // depth-only fill caps below complete
+  });
+
+  it("normal (pull model): unchanged passthrough — gate verdict drives fill and ready", () => {
+    const readyState = resolveReflectionMeter({
+      extraction: base({ depth: "mechanism" }),
+      turnsSinceCheckpoint: 10,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: false,
+    });
+    expect(readyState).toEqual({ fill: 100, ready: true });
+    const notReady = resolveReflectionMeter({
+      extraction: base({ depth: "mechanism" }),
+      turnsSinceCheckpoint: 3,
+      gatePassed: false,
+      cooldownTurns: COOLDOWN,
+      conductorActive: false,
+    });
+    expect(notReady).toEqual({ fill: 60, ready: false });
   });
 });
 

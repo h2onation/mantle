@@ -406,12 +406,18 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
-  // Experiment runs (baseline OR conductor) force the PUSH model (no reflection
-  // meter) so the run can observe Jove proposing, regardless of the global
-  // reflection_meter gate. (Resolved up top.)
-  const { reflectionMeterEnabled, proposalsEnabled } = experimentActive
-    ? { reflectionMeterEnabled: false, proposalsEnabled: true }
-    : deriveProposalFlags(gates, surface);
+  // Experiment capture models, per variant (resolved up top):
+  //  - CONDUCTOR (v0.6, the pull redesign): the METER is the capture surface —
+  //    reflectionMeterEnabled true regardless of the global gate; proposals OFF
+  //    (the v0.6 prompt carries no save trigger, so detection is dead weight —
+  //    disabling it also zeroes the checkpoint-derived prompt flags).
+  //  - BASELINE force-ladder: unchanged — PUSH forced on, meter off, so the
+  //    ladder can observe Jove proposing.
+  const { reflectionMeterEnabled, proposalsEnabled } = conductorActive
+    ? { reflectionMeterEnabled: true, proposalsEnabled: false }
+    : baselineActive
+      ? { reflectionMeterEnabled: false, proposalsEnabled: true }
+      : deriveProposalFlags(gates, surface);
 
   return {
     messages,
@@ -1238,4 +1244,60 @@ export function reflectionMeterFill(
   }
   const cooldownCap = Math.min(1, turnsSinceCheckpoint / cooldownTurns) * 100;
   return Math.round(Math.min(depthPct, cooldownCap));
+}
+
+/** Fill level at which the ready strip becomes VISIBLE under the conductor —
+ *  depth "feeling" per REFLECTION_DEPTH_PCT. One constant, one comparison: the
+ *  conductor strip is an invitational affordance ("ready when you are"), never
+ *  a server claim of completion, so it keys off depth alone. Deletion
+ *  condition: conductor promoted and the meter model finalized. */
+export const CONDUCTOR_STRIP_FILL = 58;
+
+/**
+ * The ONE reflection-meter resolution, shared by the live SSE emit
+ * (call-persona) and the reload-restore endpoint (checkpoint/meter route) so
+ * the two can never disagree — the 2026-07-02 incident was exactly that drift:
+ * the live path (experiment-aware) hid the meter while the restore path
+ * (experiment-blind) served it with gate-driven fill, so the bar appeared only
+ * after a browser reload.
+ *
+ * Two regimes, one formula each:
+ *  - Normal (pull model): fill from reflectionMeterFill with the REAL gate
+ *    verdict; ready = gate passed. Unchanged behavior.
+ *  - Conductor: the gate is open (its verdict is meaningless as readiness), so
+ *    it is NEVER fed into the meter — fill is depth-only (gatePassed forced
+ *    false, so the bar can't claim 100/complete) and `ready` means only "the
+ *    strip is visible" (fill past CONDUCTOR_STRIP_FILL). The true landed
+ *    signal is Jove's conversational line, not the server.
+ *
+ * Returns null to HIDE the meter (crisis, or nothing analyzed yet).
+ */
+export function resolveReflectionMeter(args: {
+  extraction: ExtractionState | null;
+  turnsSinceCheckpoint: number;
+  gatePassed: boolean;
+  cooldownTurns: number;
+  conductorActive: boolean;
+}): { fill: number; ready: boolean } | null {
+  const { extraction, turnsSinceCheckpoint, gatePassed, cooldownTurns, conductorActive } = args;
+  if (!extraction) return null;
+  if (extraction.clinical_flag?.active && extraction.clinical_flag.level === "crisis") {
+    return null;
+  }
+  if (conductorActive) {
+    const fill = reflectionMeterFill(
+      extraction.depth,
+      turnsSinceCheckpoint,
+      /* gatePassed */ false,
+      cooldownTurns
+    );
+    return { fill, ready: fill >= CONDUCTOR_STRIP_FILL };
+  }
+  const fill = reflectionMeterFill(
+    extraction.depth,
+    turnsSinceCheckpoint,
+    gatePassed,
+    cooldownTurns
+  );
+  return { fill, ready: gatePassed };
 }

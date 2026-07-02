@@ -435,7 +435,7 @@ export default function MobileSession({
           >
             {reflectionComposing
               ? "Building your reflection…"
-              : "A reflection's ready"}
+              : "Your reflection, in your words — ready when you are"}
           </span>
           {!reflectionComposing && (
             <span
