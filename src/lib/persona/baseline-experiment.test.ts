@@ -190,25 +190,29 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain("everyone would be better off without me");
   });
 
-  it("carries the save contract (detector's exact phrase + verbatim-entry clause)", () => {
+  it("v0.6: Jove never triggers saves — no save phrase, no push contract", () => {
     const full = renderConductor();
-    // The detector's exact phrase must appear in the contract…
-    expect(full).toContain('"I want to put something in your Manual,"');
-    // …and v0.5's verbatim clause: the approved entry text travels IN the
-    // save message (that's what the conductor verbatim save reads).
-    expect(full).toContain(
-      "followed by the entry exactly as you built it together",
-    );
-    // Offer-don't-announce: the false-action claim is banned.
-    expect(full).toContain("Never say you're putting something down");
+    // The pull-model redesign: the detector's trigger phrase must be ABSENT
+    // from the prompt (the user saves from the reflection bar; Jove-triggered
+    // saves were the whack-a-mole failure). If this reappears, the v0.5.1
+    // revert block leaked back into the live template.
+    expect(full).not.toContain("I want to put something in your Manual");
+    expect(full).not.toContain("followed by the entry exactly as you built it together");
+    // The one-time landed acknowledgment replaces the save offer.
+    expect(full).toContain("That's yours now, in your words — whenever you want it");
+    // Never-announce discipline survives inside "When it's landed".
+    expect(full).toContain("never say you're saving, writing, or putting anything down");
   });
 
-  it("carries the v0.5 landed markers and after-save rule", () => {
+  it("carries the v0.5 landed markers, after-save rule, and v0.6 cadence/opener guards", () => {
     const full = renderConductor();
     expect(full).toContain("How you know there's more — and when it's landed");
     expect(full).toContain('"Ok" is not landed');
     expect(full).toContain("## After a save");
     expect(full).toContain("Never say nothing was saved");
+    // v0.6 additions
+    expect(full).toContain("Check in only when something CHANGED");
+    expect(full).toContain("Never start two turns in a row the same way");
   });
 
   it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {
