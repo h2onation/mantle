@@ -1551,6 +1551,13 @@ export function useChat() {
         return false;
       }
 
+      // Capture the conversation id from the header the server sets before
+      // the model call — same pattern as sendMessage / startConversation.
+      const headerConvId = res.headers.get("X-Conversation-Id");
+      if (headerConvId) {
+        setConversationId(headerConvId);
+      }
+
       // Stream in the background — don't block the caller
       streamFromResponse(res).then(({ completeEvent }) => {
         if (completeEvent) {
@@ -1648,6 +1655,16 @@ export function useChat() {
       if (!res.ok) {
         setErrorMessage("Something went wrong. Try again.");
         return false;
+      }
+
+      // Capture the conversation id from the header the server sets before
+      // the model call — same pattern as sendMessage. Waiting for
+      // message_complete meant a refresh during the (long) opener stream
+      // left the client with no id, orphaning the opener the server had
+      // already saved.
+      const headerConvId = res.headers.get("X-Conversation-Id");
+      if (headerConvId) {
+        setConversationId(headerConvId);
       }
 
       const { completeEvent } = await streamFromResponse(res);

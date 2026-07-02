@@ -260,7 +260,10 @@ export default function MobileSettings({
         console.error("[settings] Delete data failed:", body.error || res.status);
         return;
       }
+      // Clear both stores — sessionStorage holds mw_active_conversation,
+      // which would otherwise point at a just-deleted conversation.
       localStorage.clear();
+      sessionStorage.clear();
       window.location.reload();
     } catch (err) {
       console.error("[settings] Delete data error:", err);
@@ -270,6 +273,7 @@ export default function MobileSettings({
   async function handleDeleteAccount() {
     await fetch("/api/account/delete", { method: "POST" });
     localStorage.clear();
+    sessionStorage.clear();
     window.location.href = "/login";
   }
 
