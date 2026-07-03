@@ -1252,17 +1252,18 @@ export function reflectionMeterFill(
 }
 
 /** Fill level at which the ready strip becomes VISIBLE under the conductor —
- *  depth "mechanism" per REFLECTION_DEPTH_PCT. One constant, one comparison:
- *  the conductor strip is an invitational affordance ("ready when you are"),
- *  never a server claim of completion, so it keys off depth alone.
- *  Raised from "feeling" to "mechanism" after the 2026-07-02 mom-run
- *  incident: at "feeling" the strip invited a pull ~12 turns before anything
- *  buildable existed, bypassing every conversational safeguard (working
- *  version, completeness check, landing) at once — the thin-entry failure
- *  through the new door. At "mechanism" the conversation has the WHY, which is
- *  the earliest point an entry can hold its shape. Value tracks
- *  REFLECTION_DEPTH_PCT.mechanism (60 since the back-loaded curve). Deletion
- *  condition: conductor promoted and the meter model finalized. */
+ *  depth "mechanism" per REFLECTION_DEPTH_PCT. The conductor strip is an
+ *  invitational affordance ("ready when you are"), never a server claim of
+ *  completion. This fill threshold is the depth FLOOR of readiness, not the
+ *  whole gate — ready also requires extraction.pattern_engaged (see
+ *  resolveReflectionMeter). Depth alone proved insufficient twice: raised from
+ *  "feeling" to "mechanism" after the 2026-07-02 mom-run incident (strip
+ *  invited a pull ~12 turns before anything buildable existed), then still
+ *  fired early because depth is a bot-side material high-water mark that flips
+ *  the moment mechanism material is TOUCHED, knowing nothing about whether the
+ *  user is working the pattern. Value tracks REFLECTION_DEPTH_PCT.mechanism
+ *  (60 since the back-loaded curve). Deletion condition: conductor promoted
+ *  and the meter model finalized. */
 export const CONDUCTOR_STRIP_FILL = 60;
 
 /**
@@ -1279,8 +1280,11 @@ export const CONDUCTOR_STRIP_FILL = 60;
  *  - Conductor: the gate is open (its verdict is meaningless as readiness), so
  *    it is NEVER fed into the meter — fill is depth-only (gatePassed forced
  *    false, so the bar can't claim 100/complete) and `ready` means only "the
- *    strip is visible" (fill past CONDUCTOR_STRIP_FILL). The true landed
- *    signal is Jove's conversational line, not the server.
+ *    strip is visible": fill past CONDUCTOR_STRIP_FILL AND the user has
+ *    engaged the named pattern (extraction.pattern_engaged — the user-side
+ *    signal; depth alone is bot-side material and fired the strip before the
+ *    user was in it, the 2026-07-02 entries-ready-too-early failure). The
+ *    true landed signal is Jove's conversational line, not the server.
  *
  * Returns null to HIDE the meter (crisis, or nothing analyzed yet).
  */
@@ -1303,7 +1307,10 @@ export function resolveReflectionMeter(args: {
       /* gatePassed */ false,
       cooldownTurns
     );
-    return { fill, ready: fill >= CONDUCTOR_STRIP_FILL };
+    return {
+      fill,
+      ready: fill >= CONDUCTOR_STRIP_FILL && extraction.pattern_engaged,
+    };
   }
   const fill = reflectionMeterFill(
     extraction.depth,

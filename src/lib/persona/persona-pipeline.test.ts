@@ -1080,27 +1080,38 @@ describe("resolveReflectionMeter", () => {
     expect(shallow).toEqual({ fill: 0, ready: false });
   });
 
-  it("conductor: strip goes visible at MECHANISM depth, never claims 100", () => {
-    // Raised from "feeling" (58) after the 2026-07-02 mom-run incident: an
-    // early strip invited a pull before anything buildable existed.
+  it("conductor: strip needs MECHANISM depth AND an engaged pattern, never claims 100", () => {
+    // Depth floor raised from "feeling" after the 2026-07-02 mom-run incident;
+    // pattern_engaged added after the strip still fired early — depth is a
+    // bot-side material high-water mark, pattern_engaged is the user-side
+    // signal that they're working the pattern, not just that it was touched.
     const feeling = resolveReflectionMeter({
-      extraction: base({ depth: "feeling" }),
+      extraction: base({ depth: "feeling", pattern_engaged: true }),
       turnsSinceCheckpoint: Infinity,
       gatePassed: true,
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
     expect(feeling?.ready).toBe(false); // fill 28 < CONDUCTOR_STRIP_FILL (60)
-    const mechanism = resolveReflectionMeter({
-      extraction: base({ depth: "mechanism" }),
+    const mechanismUnengaged = resolveReflectionMeter({
+      extraction: base({ depth: "mechanism", pattern_engaged: false }),
       turnsSinceCheckpoint: Infinity,
       gatePassed: true,
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(mechanism?.ready).toBe(true); // fill 85 >= threshold
+    expect(mechanismUnengaged?.fill).toBe(60); // bar still fills with depth
+    expect(mechanismUnengaged?.ready).toBe(false); // but no strip until engaged
+    const mechanism = resolveReflectionMeter({
+      extraction: base({ depth: "mechanism", pattern_engaged: true }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(mechanism?.ready).toBe(true); // fill 60 >= threshold AND engaged
     const deep = resolveReflectionMeter({
-      extraction: base({ depth: "origin" }),
+      extraction: base({ depth: "origin", pattern_engaged: true }),
       turnsSinceCheckpoint: Infinity,
       gatePassed: true,
       cooldownTurns: COOLDOWN,
