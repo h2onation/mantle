@@ -911,18 +911,8 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       extractionEnabled: true,
       voiceOverrides: {},
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
-      baselineActive: false,
       conductorActive: false,
       reflectionLanded: false,
-      baselineForces: {
-        gate: false,
-        flagDontGrab: false,
-        seamRule: false,
-        mechanicsDeepening: false,
-        characterShaping: false,
-        tier3Blocks: false,
-      },
-      baselineGateOpen: false,
       mode,
     };
   }
@@ -945,12 +935,10 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     expect(prompt).not.toContain("GUIDED INTAKE");
   });
 
-  // Experiment variant precedence: conductor > baseline > live.
-  it("selects the conductor variant over baseline when both are active", () => {
-    const both = { ...makeCtx("situation"), conductorActive: true, baselineActive: true };
-    expect(buildPromptOptionsFromContext(both).voiceVariant).toBe("conductor");
-    const baselineOnly = { ...makeCtx("situation"), baselineActive: true };
-    expect(buildPromptOptionsFromContext(baselineOnly).voiceVariant).toBe("baseline");
+  // Conductor variant selection: active → "conductor"; otherwise the live voice.
+  it("selects the conductor variant when active, else the live voice", () => {
+    const conductor = { ...makeCtx("situation"), conductorActive: true };
+    expect(buildPromptOptionsFromContext(conductor).voiceVariant).toBe("conductor");
     expect(buildPromptOptionsFromContext(makeCtx("situation")).voiceVariant).toBe("rebuilt");
   });
 });

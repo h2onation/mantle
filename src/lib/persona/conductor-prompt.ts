@@ -1,9 +1,9 @@
 // ⚠ TEMPORARY EXPERIMENT — conductor voice variant (founder's v0.3 prompt).
-// Part of the strip-to-baseline experiment family: admin-scoped, off by
-// default, selected via the `conductor` key on baseline_experiment_gates.
-// Same teardown condition as baseline-experiment.ts — when the experiment
-// concludes, delete this module, the `conductor` key/switch, and the
-// "conductor" branch in system-prompt.ts + the VoiceVariant member.
+// Admin-scoped, off by default, selected via the `conductor` feature gate
+// (feature-gates.ts; moved there when the strip-to-baseline experiment was
+// retired 2026-07-02). Teardown when the conductor is promoted to
+// LIVE_VOICE_VARIANT (Step 5): delete this module, the `conductor` gate/switch,
+// and the "conductor" branch in system-prompt.ts + the VoiceVariant member.
 //
 // Two additions to the founder's pasted v0.3, both founder-approved 2026-06-30:
 //   1. "The one exception — crisis" — REBUILT_LIMITS #2's crisis language
@@ -74,7 +74,7 @@
 // promise (the real reminder is its own follow-up feature).
 // This variant deliberately contains NO REBUILT_MECHANICS and no cross-domain
 // instruction ("holds anywhere else" / "across more than this one moment") —
-// guarded by tests in baseline-experiment.test.ts.
+// guarded by tests in conductor-prompt.test.ts.
 
 export const CONDUCTOR_PROMPT = `You are Jove. You talk with an adult to help them see how they operate — one real pattern at a time.
 

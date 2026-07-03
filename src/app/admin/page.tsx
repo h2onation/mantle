@@ -13,7 +13,6 @@ import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
-import BaselineExperimentPanel from "@/components/admin/BaselineExperimentPanel";
 import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
 import AppCopyPanel from "@/components/admin/AppCopyPanel";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
@@ -400,7 +399,6 @@ function TuningSection() {
           desc="Coarse on/off switches. Turn one off to strip a whole subsystem out of the live loop and test the core voice + extraction path in isolation. All default ON — off is debug scaffolding, not a destination."
         >
           <FeatureGatesPanel />
-          <BaselineExperimentPanel />
         </TuningGroup>
       </div>
     </div>

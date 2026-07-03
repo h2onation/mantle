@@ -73,7 +73,7 @@ export async function GET(request: Request) {
 
   // The context resolution is the single authority on whether the meter is
   // active for this turn (global gate for normal users; forced ON under the
-  // conductor, forced OFF under the baseline ladder).
+  // conductor).
   if (!ctx.reflectionMeterEnabled) {
     return Response.json({ reflectionMeter: undefined });
   }
@@ -85,8 +85,7 @@ export async function GET(request: Request) {
     ctx.previousExtraction,
     ctx.isFirstCheckpoint,
     ctx.turnCount,
-    ctx.checkpointTuning,
-    ctx.baselineGateOpen
+    ctx.checkpointTuning
   );
 
   const reflectionMeter = resolveReflectionMeter({

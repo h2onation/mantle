@@ -171,8 +171,8 @@ export async function POST(request: Request) {
       message,
       explorationContext,
       isChipResponse: isChipResponse === true,
-      // TEMPORARY strip-to-baseline experiment: gate the baseline variant on the
-      // caller being an admin, so a stripped Jove can never reach a real user.
+      // TEMPORARY conductor experiment: gate the conductor variant on the caller
+      // being an admin, so the pull-model prompt can never reach a real user.
       isAdmin: user.app_metadata?.role === "admin",
     });
 

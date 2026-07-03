@@ -23,17 +23,8 @@ import {
   REBUILT_CHARACTER,
   REBUILT_LIMITS,
   REBUILT_MECHANICS,
-  MECHANICS_PARTS,
 } from "@/lib/persona/voice-scaffold";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
-import {
-  DEFAULT_BASELINE_FORCES,
-  BASELINE_IDENTITY,
-  BASELINE_LIMITS,
-  BASELINE_SAVE_CONTRACT,
-  BASELINE_OPENER,
-  type BaselineForces,
-} from "@/lib/persona/baseline-experiment";
 import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
@@ -245,13 +236,10 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  byte-identical to the pre-switch prompt. As of Phase 3a the live call
    *  sites pass LIVE_VOICE_VARIANT from config.ts (the rollback lever);
    *  the builder default stays legacy so direct callers and tests are
-   *  unaffected. "baseline" / "conductor" are strip-to-baseline experiment
-   *  variants (baseline-experiment.ts / conductor-prompt.ts) — selected only
-   *  when the experiment is active for an admin's own conversation. */
-  voiceVariant?: "legacy" | "rebuilt" | "baseline" | "conductor";
-  /** TEMPORARY strip-to-baseline experiment: which forces are re-added this
-   *  turn. Only read by the baseline branch; absent ⇒ all-off (thinnest). */
-  baselineForces?: BaselineForces;
+   *  unaffected. "conductor" is the pull-model experiment variant
+   *  (conductor-prompt.ts) — selected only when the conductor gate is active
+   *  for an admin's own conversation. */
+  voiceVariant?: "legacy" | "rebuilt" | "conductor";
   /** Admin-editable voice-text overrides (persona_voice_overrides table,
    *  resolved once per turn in loadConversationContext). Each present field
    *  replaces its code default at the resolution site (`?? CONSTANT`); absent
@@ -1047,59 +1035,6 @@ export function buildSystemPromptBlocks(
     return { tier1: CONDUCTOR_PROMPT, staticContext: condStatic, dynamic: condDynamic };
   }
 
-  // Strip-to-baseline experiment (baseline-experiment.ts). The thinnest runnable
-  // Jove: neutral identity + safety/author LIMITS + the bare save contract +
-  // a one-line opener. Every timing/shaping force is OFF unless its BASELINE_FORCES
-  // toggle re-adds it, one at a time, for the add-back arms. No extraction brief,
-  // no transcript/exploration shaping — the floor stays minimal. Reached only when
-  // the experiment selects this variant; dormant otherwise.
-  if (options.voiceVariant === "baseline") {
-    const f = options.baselineForces ?? DEFAULT_BASELINE_FORCES;
-    const { older: baseOlder, recent: baseRecent } =
-      prepareManualContextBlocks(manualComponents, currentConversationId);
-
-    // characterShaping add-back swaps the neutral identity for the full CHARACTER.
-    const tier1 = f.characterShaping ? REBUILT_CHARACTER : BASELINE_IDENTITY;
-
-    // The bare opener is a stand-in for when nothing else tells Jove how to
-    // start. When the Tier-3 spine is on it OWNS the opening (the guided-intake
-    // tee-up emits the ---sections--- picker, the situation opener, etc.), and
-    // the bare "ask what's on their mind" line directly contradicts it — Jove
-    // follows the simpler line and never shows the tiles. So drop it when tier3
-    // is on and let the tier-3 opener win.
-    let staticContext = `\n\n${BASELINE_LIMITS}\n\n${BASELINE_SAVE_CONTRACT}`;
-    if (!f.tier3Blocks) staticContext += `\n\n${BASELINE_OPENER}`;
-    // Per-rung mechanics add-back (the approved carve). When mechanicsDeepening
-    // is on, with flag + seam also on, this IS the full live REBUILT_MECHANICS;
-    // earlier rungs append only their one part under the MECHANICS header.
-    if (f.mechanicsDeepening) {
-      staticContext += `\n\n${REBUILT_MECHANICS}`;
-    } else {
-      const parts: string[] = [];
-      if (f.flagDontGrab) parts.push(MECHANICS_PARTS.flag);
-      if (f.seamRule) parts.push(MECHANICS_PARTS.seam);
-      if (parts.length > 0) {
-        staticContext += `\n\n${MECHANICS_PARTS.header}\n\n${parts.join(" ")}`;
-      }
-    }
-    if (baseOlder) staticContext += `\n\n${baseOlder.trimEnd()}\n`;
-
-    let dynamic = "";
-    // tier3Blocks add-back renders the mode's operational/guidance blocks
-    // (includes the guided-intake spine when the run is in intake mode).
-    if (f.tier3Blocks) {
-      dynamic += `\n\n${buildTier3(deriveTier3Flags(options), REBUILT_TIER3_EXCLUSIONS)}\n`;
-    }
-    if (baseRecent) dynamic += baseRecent;
-    dynamic += renderSessionContextBlock({
-      isReturningUser,
-      sessionCount,
-      sessionSummary,
-    });
-
-    return { tier1, staticContext, dynamic };
-  }
-
   if (options.voiceVariant === "rebuilt") {
     const { older: rebuiltOlder, recent: rebuiltRecent } =
       prepareManualContextBlocks(manualComponents, currentConversationId);
@@ -1214,7 +1149,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
   // for the rebuilt variant, so delegation is safe and keeps one source.
   if (
     options.voiceVariant === "rebuilt" ||
-    options.voiceVariant === "baseline" ||
     options.voiceVariant === "conductor"
   ) {
     const blocks = buildSystemPromptBlocks(options);

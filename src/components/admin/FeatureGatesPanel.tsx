@@ -70,7 +70,15 @@ const GATE_META: {
     label: "Reflection meter",
     def: "OFF",
     what: "Switches the WEB capture model between two mutually-exclusive ways to save.",
-    desc: "OFF: Jove PUSHES — it proposes an entry when it sees one is ready. ON: the user PULLS — a “reflection ready” meter fills as the talk deepens and the user taps to capture. ⚠ Turning this ON automatically turns OFF Jove's auto-propose — you get one model or the other, never both. Text / SMS always uses push. For the strip-to-baseline experiment: keep this OFF, or Jove's push (what the experiment watches) is disabled and the meter reads “ready” immediately.",
+    desc: "OFF: Jove PUSHES — it proposes an entry when it sees one is ready. ON: the user PULLS — a “reflection ready” meter fills as the talk deepens and the user taps to capture. ⚠ Turning this ON automatically turns OFF Jove's auto-propose — you get one model or the other, never both. Text / SMS always uses push.",
+  },
+  {
+    key: "conductor",
+    field: "conductor",
+    label: "Conductor voice (experiment)",
+    def: "OFF",
+    what: "Runs the pull-model conductor prompt in YOUR OWN chats only — admin-scoped, never reaches real users.",
+    desc: "OFF: normal. ON: your conversations use the conductor voice + the marker-driven reflection meter (the pull-model redesign under test) — readiness comes from Jove's own landed moment, not the checkpoint dials. Off by default; this replaced the old Baseline experiment panel.",
   },
 ];
 

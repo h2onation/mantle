@@ -659,9 +659,9 @@ export function callPersona({
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
         // Drop empty text blocks — Anthropic rejects them ("system: text content
-        // blocks must be non-empty"). The `dynamic` tail is empty for a fresh
-        // baseline-experiment turn (no Tier 3, no Manual, no session context);
-        // rebuilt/legacy always populate it, so this filter is a no-op there.
+        // blocks must be non-empty"). The `dynamic` tail can be empty for a fresh
+        // conductor turn (no Tier 3, no Manual, no session context); rebuilt/legacy
+        // always populate it, so this filter is a no-op there.
         // The cache_control block (staticContext) is always non-empty, so the
         // cache boundary is preserved.
         const systemBlocks: SystemBlock[] = (
@@ -936,8 +936,7 @@ export function callPersona({
           previousExtraction,
           isFirstCheckpoint,
           turnCount,
-          ctx.checkpointTuning,
-          ctx.baselineGateOpen
+          ctx.checkpointTuning
         );
 
         // 11b. Save extraction snapshot. The column is guaranteed present in the

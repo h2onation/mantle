@@ -20,12 +20,6 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
-import {
-  getBaselineExperiment,
-  defaultBaselineExperiment,
-  DEFAULT_BASELINE_FORCES,
-  type BaselineForces,
-} from "./baseline-experiment";
 import { getFeatureGates, type FeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 import {
@@ -91,12 +85,11 @@ export interface ConversationContext {
    *  /persona-bridge to gate a detected checkpoint. Every dial falls back to
    *  its code default (CHECKPOINT_TUNING_DEFAULTS) on a missing/invalid value. */
   checkpointTuning: CheckpointTuning;
-  /** TEMPORARY strip-to-baseline experiment (baseline-experiment.ts). True only
-   *  when the conversation's user is an admin AND the master switch is on — a
-   *  stripped Jove can never reach a real user. False on every normal turn. */
-  baselineActive: boolean;
-  /** TEMPORARY conductor variant (conductor-prompt.ts). Admin-scoped like
-   *  baselineActive; takes precedence over it in the variant selector. */
+  /** TEMPORARY conductor variant (conductor-prompt.ts). True only when the
+   *  conversation's user is an admin AND the `conductor` feature gate is on —
+   *  the pull-model prompt can never reach a real user. False on every normal
+   *  turn. Also opens the checkpoint gate (crisis still blocks) — see
+   *  applyCheckpointGates. */
   conductorActive: boolean;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
@@ -106,12 +99,6 @@ export interface ConversationContext {
    *  strip early — the 2026-07-02 Guerneville run. Resets automatically on
    *  save: a new checkpoint row postdates the marker message. */
   reflectionLanded: boolean;
-  /** Which baseline forces are re-added this turn (the add-back ladder). Only
-   *  meaningful when baselineActive; all-off otherwise. */
-  baselineForces: BaselineForces;
-  /** True when the baseline experiment opens the gate (active && !forces.gate).
-   *  Passed to applyCheckpointGates so any emit saves — crisis still blocks. */
-  baselineGateOpen: boolean;
 }
 
 /** Outcome of the post-detection gates. `passed` is the only field
@@ -204,9 +191,6 @@ export async function loadConversationContext(
     gates,
     voiceOverrides,
     checkpointTuning,
-    // Admin-only read — fail-closed to experiment-off. Skipped entirely for
-    // non-admins so a real user's turn never even reads the switch table.
-    baselineExperiment,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -245,9 +229,6 @@ export async function loadConversationContext(
     // Admin-editable checkpoint-firing thresholds — same batch, fails open to
     // CHECKPOINT_TUNING_DEFAULTS (the shipped code values) on any error.
     getCheckpointTuning(admin),
-    // Baseline experiment switches — read ONLY for admins; non-admins get the
-    // fail-closed default (experiment off) without touching the table.
-    isAdmin ? getBaselineExperiment(admin) : defaultBaselineExperiment(),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -263,32 +244,23 @@ export async function loadConversationContext(
     ? resolvedPersonaModes
     : ["general"];
 
-  // TEMPORARY strip-to-baseline experiment — resolved up front so an experiment
-  // conversation is SELF-CONTAINED: for the admin's own run it forces the push
+  // TEMPORARY conductor experiment — resolved up front so an experiment
+  // conversation is SELF-CONTAINED: for the admin's own run it forces the pull
   // model and honors the requested mode below, ignoring the global
   // reflection_meter / mode gates. So running the experiment never changes what
-  // real users see. Inactive (non-admin or switches off) = everything as today.
-  // Two variants share the machinery: `conductor` (self-contained founder
-  // prompt) takes precedence over `enabled` (the baseline force-ladder) when
-  // both are on — see buildPromptOptionsFromContext. The gate is open under
-  // either, except baseline's re-added `gate` force closes it.
-  const conductorActive = isAdmin && baselineExperiment.conductor;
-  const baselineActive = isAdmin && baselineExperiment.enabled;
-  const experimentActive = conductorActive || baselineActive;
-  const baselineForces = baselineActive
-    ? baselineExperiment.forces
-    : { ...DEFAULT_BASELINE_FORCES };
-  const baselineGateOpen =
-    conductorActive || (baselineActive && !baselineForces.gate);
+  // real users see. Admin-scoped (isAdmin && the conductor feature gate), off
+  // by default, fail-closed — inactive = everything as today. The conductor
+  // also opens the checkpoint gate (crisis still blocks; see applyCheckpointGates).
+  const conductorActive = isAdmin && gates.conductor;
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
   // The one place conversation mode is resolved against the per-mode gates —
-  // except an experiment run honors the requested mode directly, so the admin
+  // except a conductor run honors the requested mode directly, so the admin
   // can run Situation even when the global situation gate is off.
-  const conversationMode = resolveConversationMode(rawMode, gates, experimentActive);
+  const conversationMode = resolveConversationMode(rawMode, gates, conductorActive);
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -428,13 +400,9 @@ export async function loadConversationContext(
   //    reflectionMeterEnabled true regardless of the global gate; proposals OFF
   //    (the v0.6 prompt carries no save trigger, so detection is dead weight —
   //    disabling it also zeroes the checkpoint-derived prompt flags).
-  //  - BASELINE force-ladder: unchanged — PUSH forced on, meter off, so the
-  //    ladder can observe Jove proposing.
   const { reflectionMeterEnabled, proposalsEnabled } = conductorActive
     ? { reflectionMeterEnabled: true, proposalsEnabled: false }
-    : baselineActive
-      ? { reflectionMeterEnabled: false, proposalsEnabled: true }
-      : deriveProposalFlags(gates, surface);
+    : deriveProposalFlags(gates, surface);
 
   return {
     messages,
@@ -459,11 +427,8 @@ export async function loadConversationContext(
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
     checkpointTuning,
-    baselineActive,
     conductorActive,
     reflectionLanded,
-    baselineForces,
-    baselineGateOpen,
   };
 }
 
@@ -482,7 +447,7 @@ export async function loadConversationContext(
 export function resolveConversationMode(
   rawMode: string | null | undefined,
   gates: Pick<FeatureGates, "situation" | "guidedIntake" | "upload">,
-  // TEMPORARY strip-to-baseline experiment: when true, honor the requested mode
+  // TEMPORARY conductor experiment: when true, honor the requested mode
   // directly and skip the per-mode gate fallback, so the admin can run Situation
   // (or any mode) even when its global gate is off. Defaults false — every
   // normal caller behaves exactly as before.
@@ -535,16 +500,9 @@ export function buildPromptOptionsFromContext(
     // app path (call-persona → buildSystemPromptBlocks) and the SMS path
     // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
     // LIVE_VOICE_VARIANT = "legacy" in config.ts. When the admin-scoped
-    // experiment is active for this turn it overrides the variant — conductor
-    // takes precedence over baseline when both switches are on. Off by default,
-    // so this resolves to LIVE_VOICE_VARIANT in every normal run.
-    voiceVariant: ctx.conductorActive
-      ? "conductor"
-      : ctx.baselineActive
-        ? "baseline"
-        : LIVE_VOICE_VARIANT,
-    // Which forces are re-added this turn (only consumed by the baseline branch).
-    baselineForces: ctx.baselineForces,
+    // conductor experiment is active for this turn it overrides the variant.
+    // Off by default, so this resolves to LIVE_VOICE_VARIANT in every normal run.
+    voiceVariant: ctx.conductorActive ? "conductor" : LIVE_VOICE_VARIANT,
     // Admin-editable voice-text overrides; empty {} falls back to all code
     // defaults at each resolution site in system-prompt.ts.
     voiceOverrides: ctx.voiceOverrides,
@@ -701,20 +659,8 @@ export function validateMaterialQuality(
   // Admin-tunable firing thresholds. Defaults to the shipped code floor, so
   // every existing caller and test behaves exactly as before unless the
   // pipeline passes the DB-loaded values.
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS,
-  // TEMPORARY strip-to-baseline experiment: when the admin run opens the gate,
-  // any emit saves — EXCEPT crisis, which still blocks (safety is never
-  // stripped). Defaults false, so every normal caller and test hits the full
-  // checklist below unchanged.
-  baselineGateOpen: boolean = false
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
 ): { ok: boolean; reasons: string[] } {
-  if (baselineGateOpen) {
-    const cf = extractionState?.clinical_flag;
-    if (cf?.active && cf.level === "crisis") {
-      return { ok: false, reasons: ["crisis active — checkpoint blocked"] };
-    }
-    return { ok: true, reasons: [] };
-  }
 
   // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
   // state means no ripeness condition can be verified, charged material
@@ -928,10 +874,7 @@ export function applyCheckpointGates(
   extractionState?: ExtractionState | null,
   isFirstCheckpoint?: boolean,
   turnCount?: number,
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS,
-  // TEMPORARY strip-to-baseline experiment: opens the gate (crisis still blocks)
-  // and skips the cooldown. Defaults false → unchanged for every normal caller.
-  baselineGateOpen: boolean = false
+  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
 ): CheckpointGateResult {
   // Rule 1: pattern engagement + material-quality pre-emit gate
   if (extractionState !== undefined) {
@@ -939,8 +882,7 @@ export function applyCheckpointGates(
       extractionState ?? null,
       isFirstCheckpoint ?? false,
       turnCount,
-      tuning,
-      baselineGateOpen
+      tuning
     );
     if (!quality.ok) {
       const reason = quality.reasons.join("; ");
@@ -954,9 +896,8 @@ export function applyCheckpointGates(
     }
   }
 
-  // Rule 2: turn-count suppression. Skipped when the baseline experiment opens
-  // the gate — cooldown is a timing force, stripped along with the checklist.
-  if (!baselineGateOpen && turnsSinceCheckpoint < tuning.cooldownTurns) {
+  // Rule 2: turn-count suppression.
+  if (turnsSinceCheckpoint < tuning.cooldownTurns) {
     const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum ${tuning.cooldownTurns})`;
     if (process.env.NODE_ENV !== "production") {
       console.log("[persona-pipeline] Checkpoint suppressed: %s", reason);

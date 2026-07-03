@@ -64,19 +64,14 @@ export const REBUILT_LIMITS = `LIMITS — these never bend
 // that way"), produced by walking the arc account → scene → mechanism →
 // cost/bind → self-recognition. The never-said test below is the single
 // operation carrying discovery, summary-rejection, and the anchor check.
-// REBUILT_MECHANICS carved into named parts (strip-to-baseline experiment, Part
-// A). The parts reassemble BYTE-IDENTICAL into REBUILT_MECHANICS below — the
-// live rebuilt voice is provably unchanged, guarded by an equality test against
-// a frozen pre-carve snapshot (voice-mechanics-carve.test.ts). The carve exists
-// so the baseline experiment can re-add individual forces one rung at a time:
-//   - flag        → rung 1 "flag-don't-grab" (pre-proposal restraint that buys
-//                   the user room to land). NOT bundled with stopWait, which is
-//                   downstream of the offer and already in the baseline contract.
-//   - seam        → rung 2 "seam rule" (propose only at a seam / ready ≠ now)
-//   - open/walk/neverSaid/deepenFeeling/proposeForm → rung 3 "MECHANICS deepening"
-//   - stopWait/guards/postConfirm ride along only at the full-MECHANICS stage.
-// Within the live constant, flag…stopWait are one paragraph (space-joined); the
-// other parts are paragraphs (joined by a blank line). See the assembly below.
+// REBUILT_MECHANICS authored as named parts, then assembled below. Naming the
+// sections documents the mechanics structure and lets the byte-identity guard
+// (voice-mechanics-carve.test.ts, against a frozen snapshot) catch any accidental
+// edit to the live voice. Within the assembled constant, flag…stopWait are one
+// paragraph (space-joined); the other parts are paragraphs (blank-line joined).
+// (Originally carved so the strip-to-baseline experiment could re-add individual
+// forces one at a time; that experiment was retired 2026-07-02. The structure is
+// kept for readability + the snapshot guard.)
 export const MECHANICS_PARTS = {
   header: `MECHANICS — how Manual entries get made`,
   open: `Have the real conversation first. Ask one question at a time — a stack of questions is a wall, not an opening.`,

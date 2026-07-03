@@ -830,7 +830,7 @@ describe("call-persona — prompt-cache wiring", () => {
   });
 
   it("drops empty text blocks (Anthropic rejects empty system blocks)", () => {
-    // A fresh baseline-experiment turn has an empty `dynamic` tail; an empty
+    // A fresh conductor turn can have an empty `dynamic` tail; an empty
     // text block makes the API 400 ("system: text content blocks must be
     // non-empty"). The filter must stay on the assembled systemBlocks.
     expect(src).toMatch(/\.filter\(\(b\)\s*=>\s*b\.text\.trim\(\)\.length\s*>\s*0\)/);
