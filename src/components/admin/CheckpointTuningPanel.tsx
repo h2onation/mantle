@@ -7,54 +7,13 @@ interface TuningField {
   field: string;
   label: string;
   help: string;
-  kind: "int" | "enum";
-  default: number | string;
-  value: number | string;
+  kind: "int";
+  default: number;
+  value: number;
   edited: boolean;
-  min?: number;
-  max?: number;
-  options?: string[];
+  min: number;
+  max: number;
 }
-
-// Gates that stay locked in code — shown so the founder sees the whole picture
-// and understands these dials move EAGERNESS only, never the quality floor.
-const LOCKED_GATES: { label: string; why: string }[] = [
-  {
-    label: "Real pattern, with a 'why'",
-    why: "The material has to add up to an actual behavioral pattern with a reason behind it. Lowering this would let thin material through.",
-  },
-  {
-    label: "Built on the user's own strong words",
-    why: "The entry must rest on the user's own charged words, not Jove's paraphrase. A system contract, not an eagerness dial.",
-  },
-  {
-    label: "Never during a crisis",
-    why: "Jove never proposes an entry during an active crisis. Safety surface — code only.",
-  },
-];
-
-// Under the conductor (the pull model) the ready strip comes from Jove's own
-// landed marker, not from these eagerness dials — so tuning them does NOTHING
-// to a conductor conversation; they still govern the older push model on
-// text/SMS. Marked per-dial so an admin testing the conductor arm isn't misled
-// by a dial that has no effect there. cooldownTurns is the exception: it also
-// paces the conductor bar's recharge after a save, so it is NOT listed here.
-const CONDUCTOR_INERT_FIELDS = new Set([
-  "minScenes",
-  "failsafeTurn",
-  "depthFloor",
-]);
-
-// Plain-English gloss for the depth-floor dropdown. Keys are the stored enum
-// values (DEPTH_LEVELS); the value shown to the admin pairs the raw level with
-// what it means, so "surface" reading as "no depth required" is legible.
-const DEPTH_OPTION_LABELS: Record<string, string> = {
-  surface: "surface — what happened",
-  behavior: "behavior — what they do",
-  feeling: "feeling — how it feels",
-  mechanism: "mechanism — why it happens to them",
-  origin: "origin — where it comes from",
-};
 
 export default function CheckpointTuningPanel() {
   const [fields, setFields] = useState<TuningField[] | null>(null);
@@ -74,7 +33,7 @@ export default function CheckpointTuningPanel() {
           setDrafts(seed);
         }
       })
-      .catch(() => setError("Could not load checkpoint dials."));
+      .catch(() => setError("Could not load the meter dial."));
   }
 
   useEffect(() => {
@@ -144,7 +103,7 @@ export default function CheckpointTuningPanel() {
             color: "var(--session-walnut-meta-strong)",
           }}
         >
-          Checkpoint dials
+          Reflection meter dial
         </span>
       </div>
       <p
@@ -156,14 +115,10 @@ export default function CheckpointTuningPanel() {
           margin: "0 0 16px",
         }}
       >
-        Tune how eagerly Jove proposes a Manual entry — no deploy. Saving takes
-        effect on the next user message. The shipped code is the floor: Reset
-        returns a dial instantly. These move eagerness only; the quality gates
-        below stay locked. Under the conductor arm (the pull model), readiness
-        comes from Jove&rsquo;s own landed moment — so only Cooldown affects a
-        conductor conversation; the dials marked{" "}
-        <span style={{ fontWeight: 600 }}>push-model only</span> govern the
-        older text/SMS path.
+        Paces the reflection meter&rsquo;s recharge after a save — no deploy.
+        Capture is pull-only: the user taps the meter and the entry composes.
+        Saving takes effect on the next user message. The shipped code is the
+        floor: Reset returns the dial instantly.
       </p>
 
       {fields === null && !error && (
@@ -222,22 +177,6 @@ export default function CheckpointTuningPanel() {
               >
                 {f.edited ? "EDITED" : "DEFAULT"}
               </span>
-              {CONDUCTOR_INERT_FIELDS.has(f.field) && (
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                    color: "var(--session-walnut-meta-soft)",
-                    border: "1px solid var(--session-walnut-border)",
-                    borderRadius: 5,
-                    padding: "1px 6px",
-                  }}
-                >
-                  Push-model only
-                </span>
-              )}
             </div>
             <p
               style={{
@@ -250,64 +189,36 @@ export default function CheckpointTuningPanel() {
             >
               {f.help}{" "}
               <span style={{ color: "var(--session-walnut-meta-soft)" }}>
-                Default: {String(f.default)}
-                {f.kind === "int" && f.min !== undefined
-                  ? ` · range ${f.min}–${f.max}`
-                  : ""}
+                Default: {String(f.default)} · range {f.min}–{f.max}
               </span>
             </p>
 
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              {f.kind === "enum" ? (
-                <select
-                  value={String(draft)}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setDrafts((d) => ({ ...d, [f.field]: e.target.value }))
-                  }
-                  style={{
-                    fontFamily: "var(--font-mono, monospace)",
-                    fontSize: "13px",
-                    color: "var(--session-ink)",
-                    background: "var(--session-walnut-surface-soft)",
-                    border: "1px solid var(--session-walnut-border)",
-                    borderRadius: 7,
-                    padding: "6px 10px",
-                  }}
-                >
-                  {(f.options ?? []).map((opt) => (
-                    <option key={opt} value={opt}>
-                      {DEPTH_OPTION_LABELS[opt] ?? opt}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="number"
-                  value={String(draft)}
-                  disabled={busy}
-                  min={f.min}
-                  max={f.max}
-                  step={1}
-                  onChange={(e) =>
-                    setDrafts((d) => ({
-                      ...d,
-                      [f.field]:
-                        e.target.value === "" ? "" : Number(e.target.value),
-                    }))
-                  }
-                  style={{
-                    width: 80,
-                    fontFamily: "var(--font-mono, monospace)",
-                    fontSize: "13px",
-                    color: "var(--session-ink)",
-                    background: "var(--session-walnut-surface-soft)",
-                    border: "1px solid var(--session-walnut-border)",
-                    borderRadius: 7,
-                    padding: "6px 10px",
-                  }}
-                />
-              )}
+              <input
+                type="number"
+                value={String(draft)}
+                disabled={busy}
+                min={f.min}
+                max={f.max}
+                step={1}
+                onChange={(e) =>
+                  setDrafts((d) => ({
+                    ...d,
+                    [f.field]:
+                      e.target.value === "" ? "" : Number(e.target.value),
+                  }))
+                }
+                style={{
+                  width: 80,
+                  fontFamily: "var(--font-mono, monospace)",
+                  fontSize: "13px",
+                  color: "var(--session-ink)",
+                  background: "var(--session-walnut-surface-soft)",
+                  border: "1px solid var(--session-walnut-border)",
+                  borderRadius: 7,
+                  padding: "6px 10px",
+                }}
+              />
               <button
                 type="button"
                 disabled={busy || !dirty}
@@ -376,53 +287,6 @@ export default function CheckpointTuningPanel() {
           {error || notice}
         </p>
       )}
-
-      {/* Locked gates — visible so the eagerness/quality boundary is legible. */}
-      <div
-        style={{
-          marginTop: 20,
-          paddingTop: 16,
-          borderTop: "1px solid var(--session-walnut-border)",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px",
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: "var(--session-walnut-meta-soft)",
-            marginBottom: 8,
-          }}
-        >
-          Locked — quality floor, code only
-        </div>
-        {LOCKED_GATES.map((l) => (
-          <div key={l.label} style={{ marginBottom: 8 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "var(--session-walnut-meta-strong)",
-              }}
-            >
-              {l.label}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "12px",
-                lineHeight: 1.45,
-                color: "var(--session-walnut-meta)",
-              }}
-            >
-              {l.why}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

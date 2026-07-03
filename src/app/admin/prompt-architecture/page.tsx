@@ -294,26 +294,15 @@ const SIBLING_CALLS: {
     source: "src/lib/persona/extraction.ts → runExtraction",
   },
   {
-    id: "classifier",
-    label: "Checkpoint detector",
-    model: "Regex",
-    when: "Post-stream — after Jove finishes",
-    reads: "Jove's just-streamed response",
-    writes: "Triggers composer if a checkpoint is detected",
-    description:
-      "Looks at what Jove just said and decides if it's a checkpoint proposal. Deterministic phrase match for the canonical transition line — no model call, no streaming. If matched, the composer fires next.",
-    source: "src/lib/persona/detect-checkpoint.ts → detectCheckpointInResponse",
-  },
-  {
     id: "composer",
     label: "Manual entry composer",
     model: "Opus",
-    when: "Post-stream — at proposal time, on checkpoint turns only",
+    when: "On demand — when the user taps the reflection meter (pull model)",
     reads: "Conversation turn(s), language bank, manual entry list",
-    writes: "Returns the proposed entry (name + content + summary + key_words) for the checkpoint card — NOT a DB write",
+    writes: "Returns the proposed entry (name + content + summary + key_words) for the review card — NOT a DB write",
     description:
-      "Composes the proposed Manual entry server-side at proposal time — right after the detector flags a checkpoint, before the user sees the card. Includes headline validation + focused retry. Produces summary + key_words too, so the Manual-context compressor has them next turn. The actual manual_entries write happens later, only if the user confirms the card — a non-model database step (confirmCheckpoint), not part of this call.",
-    source: "src/lib/persona/confirm-checkpoint.ts → composeManualEntry",
+      "Capture is pull-only: the user taps the reflection meter and /api/checkpoint/compose composes the entry on demand — Jove never proposes. Includes headline validation + focused retry. Produces summary + key_words too, so the Manual-context compressor has them next turn. The actual manual_entries write happens later, only if the user confirms the card — a non-model database step (confirmCheckpoint), not part of this call.",
+    source: "src/lib/persona/confirm-checkpoint.ts → composeManualEntry (via /api/checkpoint/compose)",
   },
 ];
 

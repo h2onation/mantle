@@ -2,7 +2,6 @@ import { requireAdmin } from "@/lib/admin/verify-admin";
 import {
   CHECKPOINT_TUNING_FIELDS,
   isCheckpointTuningField,
-  isDepthLevel,
   type CheckpointTuningField,
 } from "@/lib/persona/checkpoint-tuning";
 
@@ -11,34 +10,29 @@ export const dynamic = "force-dynamic";
 
 // One tunable dial as the admin panel needs it: the code default (always
 // shown), the current live value, whether it's been edited off the default,
-// and the bounds/options the panel renders its control from.
+// and the bounds the panel renders its control from.
 interface TuningFieldView {
   field: CheckpointTuningField;
   label: string;
   help: string;
-  kind: "int" | "enum";
-  default: number | string;
-  value: number | string;
+  kind: "int";
+  default: number;
+  value: number;
   edited: boolean;
-  min?: number;
-  max?: number;
-  options?: readonly string[];
+  min: number;
+  max: number;
 }
 
 type RawRow = {
-  min_scenes: number | null;
   cooldown_turns: number | null;
-  failsafe_turn: number | null;
-  depth_floor: string | null;
 };
 
-// Is the stored column a real override (non-null AND in range / a valid enum)?
-// A null or out-of-range column resolves to the code default — same fail-safe
-// rule the getter applies — so it should read as DEFAULT, not EDITED.
+// Is the stored column a real override (non-null AND in range)? A null or
+// out-of-range column resolves to the code default — same fail-safe rule the
+// getter applies — so it should read as DEFAULT, not EDITED.
 function isValidOverride(field: CheckpointTuningField, raw: unknown): boolean {
   if (raw === null || raw === undefined) return false;
   const spec = CHECKPOINT_TUNING_FIELDS[field];
-  if (spec.kind === "enum") return isDepthLevel(raw);
   return (
     typeof raw === "number" &&
     Number.isInteger(raw) &&
@@ -55,7 +49,7 @@ export async function GET() {
 
   const { data } = await admin
     .from("checkpoint_tuning")
-    .select("min_scenes, cooldown_turns, failsafe_turn, depth_floor")
+    .select("cooldown_turns")
     .eq("id", true)
     .maybeSingle();
   const row = (data ?? null) as RawRow | null;
@@ -66,18 +60,17 @@ export async function GET() {
     const spec = CHECKPOINT_TUNING_FIELDS[field];
     const raw = row ? row[spec.column as keyof RawRow] : null;
     const edited = isValidOverride(field, raw);
-    const base = {
+    return {
       field,
       label: spec.label,
       help: spec.help,
       kind: spec.kind,
       default: spec.default,
-      value: edited ? (raw as number | string) : spec.default,
+      value: edited ? (raw as number) : spec.default,
       edited,
+      min: spec.min,
+      max: spec.max,
     };
-    return spec.kind === "enum"
-      ? { ...base, options: spec.options }
-      : { ...base, min: spec.min, max: spec.max };
   });
 
   return Response.json({ fields });
@@ -139,26 +132,15 @@ export async function PATCH(request: Request) {
     return Response.json({ ok: true, field, reset: true });
   }
 
-  // Save path — validate against the field's type + bounds/options.
-  let value: number | string;
-  if (spec.kind === "enum") {
-    if (!isDepthLevel(body.value)) {
-      return Response.json(
-        { error: `value must be one of: ${spec.options.join(", ")}` },
-        { status: 400 },
-      );
-    }
-    value = body.value;
-  } else {
-    const n = body.value;
-    if (typeof n !== "number" || !Number.isInteger(n) || n < spec.min || n > spec.max) {
-      return Response.json(
-        { error: `value must be an integer between ${spec.min} and ${spec.max}` },
-        { status: 400 },
-      );
-    }
-    value = n;
+  // Save path — validate against the field's type + bounds.
+  const n = body.value;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < spec.min || n > spec.max) {
+    return Response.json(
+      { error: `value must be an integer between ${spec.min} and ${spec.max}` },
+      { status: 400 },
+    );
   }
+  const value: number = n;
 
   const { error: upsertError } = await admin
     .from("checkpoint_tuning")

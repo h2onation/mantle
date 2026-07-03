@@ -1,12 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  validateMaterialQuality,
   validateComposedEntry,
-  applyCheckpointGates,
   reflectionMeterFill,
   resolveReflectionMeter,
-  deriveProposalFlags,
-  deriveCheckpointApproaching,
   computeInheritedRefinementCount,
   buildEntriesSummary,
   buildPromptOptionsFromContext,
@@ -15,7 +11,7 @@ import {
 } from "@/lib/persona/persona-pipeline";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { CHECKPOINT_TUNING_DEFAULTS } from "@/lib/persona/checkpoint-tuning";
-import type { ExtractionState, LanguageEntry } from "@/lib/persona/extraction";
+import type { ExtractionState } from "@/lib/persona/extraction";
 
 function makeExtractionState(
   overrides?: Partial<ExtractionState>
@@ -44,333 +40,6 @@ function makeExtractionState(
     ...overrides,
   };
 }
-
-// Lock 1 (ADR-043): the charged-material gate reads the real language_bank
-// (>=1 high/medium phrase tagged to the candidate layer), not the
-// has_charged_language boolean. Tests that need to pass that gate populate a
-// real charged phrase tagged to the layer they set as strongest_layer.
-function chargedBank(layer: number): LanguageEntry[] {
-  return [
-    {
-      phrase: "my chest goes tight",
-      context: "the moment it fires",
-      charge: "high",
-      layers: [layer],
-    },
-  ];
-}
-
-describe("validateMaterialQuality", () => {
-  it("returns not ok when state is null (fail closed on missing material)", () => {
-    // Lock 1 (ADR-043): missing extraction state can verify nothing, charged
-    // material included, so it must read as not ripe. This assertion passes on
-    // the fail-closed code and would fail against the old fail-open return —
-    // the durable regression guard.
-    const result = validateMaterialQuality(null, false);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/no extraction state/);
-  });
-
-  it("blocks during crisis regardless of other criteria", () => {
-    const state = makeExtractionState({
-      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
-      checkpoint_gate: {
-        concrete_examples: 5,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(false);
-    expect(result.reasons[0]).toMatch(/crisis/i);
-  });
-
-  it("requires 2 scenes for the standard gate", () => {
-    // Isolated to scene count: depth, engagement, and charged material all
-    // satisfied so concrete_examples is the only failing variable.
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 1,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/concrete scenes/);
-  });
-
-  it("passes the charged-phrase gate when strongest_layer is a string '1' (2026-06-03 incident guard)", () => {
-    // The extraction model emitted strongest_layer as the string "1" while
-    // language_bank layers were numeric [1]. [1].includes("1") === false, so
-    // the Lock-1 charged-phrase-on-layer check found nothing and suppressed
-    // every otherwise-ready checkpoint — the doom loop. The consumer now
-    // Number-coerces both sides. Reproduce the incident state exactly.
-    const state = makeExtractionState({
-      language_bank: chargedBank(1), // numeric layers [1]
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 5,
-        distinct_contexts: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        // String layer id, exactly as the model emitted it in the incident.
-        strongest_layer: "1" as unknown as number,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(true);
-    expect(result.reasons.join(" ")).not.toMatch(/charged phrase/);
-  });
-
-  // The first-checkpoint lighter bar was retired 2026-06-12: one bar for
-  // every checkpoint. These pins keep the flag from silently regaining
-  // meaning — a first checkpoint must fail and pass exactly like any other.
-  it("first checkpoint requires 2 scenes — 1 is not enough (lighter bar retired)", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 1,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, true);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/concrete scenes 1\/2/);
-  });
-
-  it("first checkpoint requires mechanism AND behavior-driver link, like every other", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: false,
-        has_charged_language: true,
-        has_behavior_driver_link: false,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, true);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/no mechanism/);
-    expect(result.reasons.join(" ")).toMatch(/no behavior-driver link/);
-  });
-
-  it("standard gate passes when all four criteria are met", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(true);
-  });
-
-  // ADR-043 Decision 3 (reaffirmed ADR-045): distinct_contexts is a
-  // STRENGTHENING signal, never a blocking gate. A single vivid scene in the
-  // user's own charged language must be saveable. The code had drifted back to
-  // a hard >=2 block (and iter 12 removed the first-checkpoint =1 escape);
-  // realigned 2026-06-15. This pins it so the wall can't silently return.
-  it("does NOT block on a single distinct context (ADR-043 Decision 3)", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 2,
-        distinct_contexts: 1, // one deep scene
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(true);
-    expect(result.reasons.join(" ")).not.toMatch(/distinct context/i);
-  });
-
-  // Regression: the CP2-shape failure. Even with full checklist (2+
-  // examples, distinct contexts, mechanism flag, charged language, driver
-  // link), the gate must block when conversation depth has not reached
-  // the mechanism layer. The depth signal is a structural backstop in
-  // case extraction's per-flag has_mechanism check is generous about
-  // what counts as a user-articulated mechanism.
-  it("blocks the standard gate when depth has not reached mechanism", () => {
-    // Isolated to depth: scene count, contexts, mechanism, link, and charged
-    // material all satisfied so depth is the only failing variable. Note the
-    // charged phrase is tagged to layer 5 to match strongest_layer here.
-    const state = makeExtractionState({
-      language_bank: chargedBank(5),
-      pattern_engaged: true,
-      depth: "feeling",
-      checkpoint_gate: {
-        concrete_examples: 5,
-        distinct_contexts: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 5,
-      },
-    });
-    const result = validateMaterialQuality(state, false);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/depth at feeling/);
-    expect(result.reasons.join(" ")).toMatch(/need mechanism/);
-  });
-
-  // The first-checkpoint depth carve-out ("feeling is enough for a
-  // teaching-moment entry") was retired 2026-06-12. First checkpoints
-  // require mechanism depth like every other.
-  it("first-checkpoint depth gate blocks at feeling and passes at mechanism", () => {
-    const baseGate = {
-      concrete_examples: 2,
-      has_mechanism: true,
-      has_charged_language: true,
-      has_behavior_driver_link: true,
-      strongest_layer: 1,
-    };
-
-    const atFeeling = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "feeling",
-      checkpoint_gate: baseGate,
-    });
-    expect(validateMaterialQuality(atFeeling, true).ok).toBe(false);
-
-    const atMechanism = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: baseGate,
-    });
-    expect(validateMaterialQuality(atMechanism, true).ok).toBe(true);
-  });
-});
-
-// ─── Lock 1: the charged-material gate (ADR-043) ───────────────────────────
-//
-// Deterministic check over the real language_bank, replacing the
-// has_charged_language boolean. A pattern is not ripe unless the bank carries
-// a high/medium charged phrase the candidate pattern is built on — linked to
-// strongest_layer, with an unlinked fallback when strongest_layer is null.
-describe("validateMaterialQuality — charged-material gate (Lock 1)", () => {
-  // Passes every standard-gate condition EXCEPT charged material, so each test
-  // varies only the language_bank. distinct_contexts: 2 satisfies today's
-  // cross-context gate (its removal is a separate ADR-043 Decision 3 build).
-  function richExceptBank(
-    strongestLayer: number | null,
-    bank: LanguageEntry[]
-  ): ExtractionState {
-    return makeExtractionState({
-      pattern_engaged: true,
-      depth: "mechanism",
-      language_bank: bank,
-      checkpoint_gate: {
-        concrete_examples: 2,
-        distinct_contexts: 2,
-        has_mechanism: true,
-        has_charged_language: true, // field kept; no longer gated on
-        has_behavior_driver_link: true,
-        strongest_layer: strongestLayer,
-      },
-    });
-  }
-
-  const phrase = (
-    charge: "low" | "medium" | "high",
-    layers: number[]
-  ): LanguageEntry => ({
-    phrase: "my chest goes tight",
-    context: "the moment it fires",
-    charge,
-    layers,
-  });
-
-  it("ripe when the bank has a high phrase on the candidate layer", () => {
-    const result = validateMaterialQuality(
-      richExceptBank(1, [phrase("high", [1])]),
-      false
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it("ripe when the only charged phrase is medium (high|medium, not high-only)", () => {
-    const result = validateMaterialQuality(
-      richExceptBank(1, [phrase("medium", [1])]),
-      false
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it("not ripe when the bank holds only low-charge phrases", () => {
-    const result = validateMaterialQuality(
-      richExceptBank(1, [phrase("low", [1])]),
-      false
-    );
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/charged phrase/);
-  });
-
-  it("not ripe when the bank is empty", () => {
-    const result = validateMaterialQuality(richExceptBank(1, []), false);
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/charged phrase/);
-  });
-
-  it("not ripe when the only charged phrase is on a different layer (linked reading)", () => {
-    // strongest_layer = 1, but the high phrase is tagged to layer 2.
-    const result = validateMaterialQuality(
-      richExceptBank(1, [phrase("high", [2])]),
-      false
-    );
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/candidate layer 1/);
-  });
-
-  it("ripe for that same off-layer phrase under the unlinked fallback (strongest_layer null)", () => {
-    // Paired with the test above: the unlinked fallback accepts any high/medium
-    // phrase when no candidate layer has been resolved. Locks the chosen
-    // linked-vs-unlinked behavior.
-    const result = validateMaterialQuality(
-      richExceptBank(null, [phrase("high", [2])]),
-      false
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it("ripe under the unlinked fallback with any high/medium phrase (strongest_layer null)", () => {
-    const result = validateMaterialQuality(
-      richExceptBank(null, [phrase("high", [3])]),
-      false
-    );
-    expect(result.ok).toBe(true);
-  });
-});
 
 describe("validateComposedEntry", () => {
   const goodEntry = `You walk into a room and a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the end of the day the buzzing starts in your jaw and your thoughts get slower. You lose the evening and you call it being tired. You can't stop running the second version because the real one got flagged as too much a long time ago. The cost is that almost nobody in your life has met the real one, including you on the days when you come home and go straight to the dark room.`;
@@ -415,316 +84,6 @@ describe("validateComposedEntry", () => {
     const text = goodEntry + " Right now this is happening.";
     const result = validateComposedEntry(text);
     expect(result.warnings.join(" ")).toMatch(/time reference/);
-  });
-});
-
-describe("applyCheckpointGates with material quality", () => {
-  it("blocks a checkpoint when extraction state shows insufficient material", () => {
-    const state = makeExtractionState({
-      checkpoint_gate: {
-        concrete_examples: 0,
-        has_mechanism: false,
-        has_charged_language: false,
-        has_behavior_driver_link: false,
-        strongest_layer: null,
-      },
-    });
-    const result = applyCheckpointGates(
-      10, // plenty of turns since last checkpoint
-      state,
-      false
-    );
-    expect(result.passed).toBe(false);
-    expect(result.reason).toBeDefined();
-  });
-
-  it("permits the checkpoint when extraction state confirms quality", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = applyCheckpointGates(10, state, false);
-    expect(result.passed).toBe(true);
-  });
-
-  it("still applies the turn-count gate after material quality passes", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    const result = applyCheckpointGates(
-      2, // too soon since last checkpoint
-      state,
-      false
-    );
-    expect(result.passed).toBe(false);
-    expect(result.reason).toContain("turns since last");
-  });
-
-  it("preserves backward compatibility when extraction state is omitted", () => {
-    const result = applyCheckpointGates(10);
-    expect(result.passed).toBe(true);
-  });
-});
-
-// ─── Checkpoint-instructions trigger (gate-mirror, 2026-05-15) ─────────────
-//
-// Regression: an 18-turn conversation with rich material (concrete scenes,
-// body anchors, charged language, mechanism, behavior-driver link) never
-// surfaced a checkpoint. Extraction's per-layer "signal" stayed at
-// "emerging" while its checklist was full. The old gate only read the
-// signal, so Jove never received the CHECKPOINTS instructions and just
-// kept deepening. deriveCheckpointApproaching now reads both.
-describe("deriveCheckpointApproaching", () => {
-  it("returns false when extraction state is null (cold start)", () => {
-    expect(deriveCheckpointApproaching(null, true, 0)).toBe(false);
-    expect(deriveCheckpointApproaching(undefined, true, 0)).toBe(false);
-  });
-
-  // Signal-ready path fires only when charged material is tagged to the
-  // signal-ready layer (ADR-043 amendment — signal alone no longer fires).
-  // chargedBank(1) backs layer 1, the explored layer here.
-  it("returns true when a layer signal is 'explored' and charged material backs it", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      layers: {
-        1: { signal: "explored" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
-  });
-
-  // Signal-ready path fires only when charged material is tagged to the
-  // signal-ready layer (ADR-043 amendment). chargedBank(2) backs layer 2,
-  // the checkpoint_ready layer here.
-  it("returns true when a layer signal is 'checkpoint_ready' and charged material backs it", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(2),
-      layers: {
-        1: { signal: "none" },
-        2: { signal: "checkpoint_ready" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
-  });
-
-  // The reported bug. Layer signal stuck at "emerging" while the checklist
-  // is full — old code returned false here. New code consults the gate.
-  it("returns true when checklist passes even if no layer signal beyond 'emerging'", () => {
-    const state = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: true,
-      depth: "mechanism",
-      layers: {
-        1: { signal: "emerging" },
-        2: { signal: "emerging" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    expect(deriveCheckpointApproaching(state, true, 8)).toBe(true);
-  });
-
-  // The original concern that motivated the signal-only gate: thin material
-  // should NOT load CHECKPOINTS instructions just because the conversation
-  // has been running a while. The checklist enforces this.
-  it("returns false when both signal is 'emerging' and checklist is empty", () => {
-    const state = makeExtractionState({
-      pattern_engaged: false,
-      layers: {
-        1: { signal: "emerging" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-      checkpoint_gate: {
-        concrete_examples: 0,
-        has_mechanism: false,
-        has_charged_language: false,
-        has_behavior_driver_link: false,
-        strongest_layer: null,
-      },
-    });
-    expect(deriveCheckpointApproaching(state, true, 5)).toBe(false);
-  });
-
-  // The crisis path: even with rich material, never load CHECKPOINTS during
-  // an active crisis. validateMaterialQuality enforces this; the gate-mirror
-  // inherits it for free, which is the point of using the same function.
-  it("returns false during an active crisis regardless of checklist", () => {
-    const state = makeExtractionState({
-      pattern_engaged: true,
-      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
-      checkpoint_gate: {
-        concrete_examples: 5,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    expect(deriveCheckpointApproaching(state, true, 12)).toBe(false);
-  });
-
-  // pattern_engaged=false blocks until turn 12. After 12, the override in
-  // validateMaterialQuality kicks in if the rest of the checklist is full.
-  it("respects the pattern_engaged turn-12 override from validateMaterialQuality", () => {
-    const richButNotEngaged = makeExtractionState({
-      language_bank: chargedBank(1),
-      pattern_engaged: false,
-      depth: "mechanism",
-      layers: {
-        1: { signal: "emerging" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-      checkpoint_gate: {
-        concrete_examples: 2,
-        has_mechanism: true,
-        has_charged_language: true,
-        has_behavior_driver_link: true,
-        strongest_layer: 1,
-      },
-    });
-    // Before turn 12: blocked by pattern_engaged=false
-    expect(deriveCheckpointApproaching(richButNotEngaged, true, 10)).toBe(false);
-    // At/after turn 12: override allows it through
-    expect(deriveCheckpointApproaching(richButNotEngaged, true, 12)).toBe(true);
-  });
-
-  // Regression guard for the charged-material fix (ADR-043 amendment). A
-  // signal-ready layer with no high/medium charge backing it must NOT fire the
-  // signal-ready short-circuit — the exact scenario that returned true under
-  // the old bypass (e.g. a returning user's bootstrapped "explored" layer with
-  // an empty current-session bank).
-  it("returns false when a layer is signal-ready but no high/medium charge backs it", () => {
-    const emptyBank = makeExtractionState({
-      language_bank: [],
-      layers: {
-        1: { signal: "explored" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(emptyBank, true, 5)).toBe(false);
-
-    // Low-charge-only bank tagged to the signal-ready layer: present on the
-    // right layer, but the high|medium filter excludes "low", so it still fails.
-    const lowOnlyBank = makeExtractionState({
-      language_bank: [
-        { phrase: "it was fine", context: "in passing", charge: "low", layers: [1] },
-      ],
-      layers: {
-        1: { signal: "explored" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(lowOnlyBank, true, 5)).toBe(false);
-  });
-
-  // Layer-specificity proof. The charge must be tagged to the SAME layer whose
-  // signal is ready; a high-charge phrase on a different layer does not back
-  // the signal-ready layer.
-  it("returns false when charge is high but tagged to a different layer than the signal-ready one", () => {
-    // Signal-ready layer is 1; charge tagged to layer 2 → no backing → false.
-    const chargeElsewhere = makeExtractionState({
-      language_bank: chargedBank(2),
-      layers: {
-        1: { signal: "explored" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(chargeElsewhere, true, 5)).toBe(false);
-
-    // Same fixture with the charge moved onto the signal-ready layer (1) →
-    // fires. The ONLY change is the layer tag, so the flip to true is
-    // attributable to layer-specificity alone.
-    const chargeOnSignalLayer = makeExtractionState({
-      language_bank: chargedBank(1),
-      layers: {
-        1: { signal: "explored" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(chargeOnSignalLayer, true, 5)).toBe(true);
-  });
-
-  // Crisis-guard proof — the first test to exercise signal-ready-during-crisis.
-  // A signal-ready layer with charge correctly on it must STILL not fire while
-  // a crisis is active: the !crisisActive condition blocks the short-circuit,
-  // and the fall-through validateMaterialQuality blocks on crisis too.
-  it("returns false when signal-ready and charged but a crisis is active", () => {
-    const inCrisis = makeExtractionState({
-      language_bank: chargedBank(1),
-      clinical_flag: { active: true, level: "crisis", note: "self-harm" },
-      layers: {
-        1: { signal: "checkpoint_ready" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(inCrisis, true, 5)).toBe(false);
-
-    // Same fixture without the crisis flag → fires. The ONLY change is the
-    // clinical_flag, so the flip to true is attributable to the crisis guard.
-    const noCrisis = makeExtractionState({
-      language_bank: chargedBank(1),
-      layers: {
-        1: { signal: "checkpoint_ready" },
-        2: { signal: "none" },
-        3: { signal: "none" },
-        4: { signal: "none" },
-        5: { signal: "none" },
-      },
-    });
-    expect(deriveCheckpointApproaching(noCrisis, true, 5)).toBe(true);
   });
 });
 
@@ -903,10 +262,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       turnsSinceCheckpoint: Infinity,
       conversationId: "test-conv",
       turnCount: 1,
-      checkpointApproaching: false,
       personaModes: ["autistic"],
-      priorCheckpointSuppressed: false,
-      checkpointsEnabled: true,
       reflectionMeterEnabled: false,
       extractionEnabled: true,
       voiceOverrides: {},
@@ -942,39 +298,6 @@ describe("buildPromptOptionsFromContext — mode field", () => {
   // resolves to "conductor" for live traffic. Rollback is LIVE_VOICE_VARIANT.
   it("resolves the voice variant to the live conductor voice", () => {
     expect(buildPromptOptionsFromContext(makeCtx("situation")).voiceVariant).toBe("conductor");
-  });
-});
-
-describe("deriveProposalFlags — reflection meter is web-only", () => {
-  it("meter OFF: proposals on, meter off (both surfaces, current prod default)", () => {
-    for (const surface of ["web", "text"] as const) {
-      expect(
-        deriveProposalFlags({ checkpoints: true, reflectionMeter: false }, surface)
-      ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: true });
-    }
-  });
-
-  it("meter ON + web: meter on, Jove-pushed proposals silenced", () => {
-    expect(
-      deriveProposalFlags({ checkpoints: true, reflectionMeter: true }, "web")
-    ).toEqual({ reflectionMeterEnabled: true, proposalsEnabled: false });
-  });
-
-  it("meter ON + text: meter forced off, proposals STAY on (SMS capture invariant)", () => {
-    // The blocker the switchover audit caught: a text-only user must keep a
-    // capture path. The meter never renders over SMS, so proposals must remain.
-    expect(
-      deriveProposalFlags({ checkpoints: true, reflectionMeter: true }, "text")
-    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: true });
-  });
-
-  it("checkpoints gate OFF: proposals off regardless of surface or meter", () => {
-    expect(
-      deriveProposalFlags({ checkpoints: false, reflectionMeter: false }, "web")
-    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: false });
-    expect(
-      deriveProposalFlags({ checkpoints: false, reflectionMeter: true }, "text")
-    ).toEqual({ reflectionMeterEnabled: false, proposalsEnabled: false });
   });
 });
 
@@ -1025,95 +348,58 @@ describe("resolveReflectionMeter", () => {
   const base = (over?: Partial<ExtractionState>) =>
     makeExtractionState(over);
 
-  it("hides the meter (null) with no extraction or during crisis, both regimes", () => {
-    for (const conductorActive of [true, false]) {
-      expect(
-        resolveReflectionMeter({
-          extraction: null,
-          turnsSinceCheckpoint: 5,
-          gatePassed: true,
-          cooldownTurns: COOLDOWN,
-          conductorActive,
-          reflectionLanded: true,
-        }),
-      ).toBeNull();
-      expect(
-        resolveReflectionMeter({
-          extraction: base({ clinical_flag: { active: true, level: "crisis", note: "" } }),
-          turnsSinceCheckpoint: 5,
-          gatePassed: true,
-          cooldownTurns: COOLDOWN,
-          conductorActive,
-          reflectionLanded: true,
-        }),
-      ).toBeNull();
-    }
+  it("hides the meter (null) with no extraction or during crisis", () => {
+    expect(
+      resolveReflectionMeter({
+        extraction: null,
+        turnsSinceCheckpoint: 5,
+        cooldownTurns: COOLDOWN,
+        reflectionLanded: true,
+      }),
+    ).toBeNull();
+    expect(
+      resolveReflectionMeter({
+        extraction: base({ clinical_flag: { active: true, level: "crisis", note: "" } }),
+        turnsSinceCheckpoint: 5,
+        cooldownTurns: COOLDOWN,
+        reflectionLanded: true,
+      }),
+    ).toBeNull();
   });
 
-  it("conductor: the open gate NEVER feeds the meter — no 100, no ready-at-turn-one", () => {
-    // gatePassed=true (the open gate's constant verdict) must not produce a
-    // full/ready meter on a shallow conversation — the original strip-lit-on-
-    // empty-chat bug.
+  it("never claims ready without the landed marker — no ready-at-turn-one on a shallow chat", () => {
     const shallow = resolveReflectionMeter({
       extraction: base({ depth: "surface" }),
       turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
       cooldownTurns: COOLDOWN,
-      conductorActive: true,
       reflectionLanded: false,
     });
     expect(shallow).toEqual({ fill: 0, ready: false });
   });
 
-  it("conductor: ready comes ONLY from Jove's landed marker — depth never opens the strip", () => {
+  it("ready comes ONLY from Jove's landed marker — depth never opens the strip", () => {
     // Every extraction-side proxy fired early (depth: mom-run;
-    // depth+pattern_engaged: Guerneville run). Ready is now Jove's own
-    // published landed judgment, nothing else. Without it, the bar shows the
-    // depth journey and caps at 80 — it can never read full.
+    // depth+pattern_engaged: Guerneville run). Ready is Jove's own published
+    // landed judgment. Without it, the bar shows the depth journey and caps at
+    // 80 — it can never read full.
     for (const depth of ["feeling", "mechanism", "origin"] as const) {
       const unlanded = resolveReflectionMeter({
         extraction: base({ depth, pattern_engaged: true }),
         turnsSinceCheckpoint: Infinity,
-        gatePassed: true,
         cooldownTurns: COOLDOWN,
-        conductorActive: true,
         reflectionLanded: false,
       });
       expect(unlanded?.ready).toBe(false);
       expect(unlanded?.fill).toBeLessThanOrEqual(80);
     }
-    // Landed → full bar ⇔ strip visible, regardless of the analyst's scores
-    // (Jove judges firsthand; the depth score can lag a turn behind).
+    // Landed → full bar ⇔ strip visible, regardless of depth.
     const landed = resolveReflectionMeter({
       extraction: base({ depth: "feeling", pattern_engaged: false }),
       turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
       cooldownTurns: COOLDOWN,
-      conductorActive: true,
       reflectionLanded: true,
     });
     expect(landed).toEqual({ fill: 100, ready: true });
-  });
-
-  it("normal (pull model): unchanged passthrough — gate verdict drives fill and ready, marker ignored", () => {
-    const readyState = resolveReflectionMeter({
-      extraction: base({ depth: "mechanism" }),
-      turnsSinceCheckpoint: 10,
-      gatePassed: true,
-      cooldownTurns: COOLDOWN,
-      conductorActive: false,
-      reflectionLanded: false,
-    });
-    expect(readyState).toEqual({ fill: 100, ready: true });
-    const notReady = resolveReflectionMeter({
-      extraction: base({ depth: "mechanism" }),
-      turnsSinceCheckpoint: 3,
-      gatePassed: false,
-      cooldownTurns: COOLDOWN,
-      conductorActive: false,
-      reflectionLanded: true,
-    });
-    expect(notReady).toEqual({ fill: 60, ready: false });
   });
 });
 

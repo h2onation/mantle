@@ -9,12 +9,6 @@ import { PERSONA_NAME } from "@/lib/persona/config";
 import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { stripTrailingMarker } from "@/lib/persona/ui-markers";
 import { logEvent } from "@/lib/observability/log";
-import {
-  detectCheckpointInResponse,
-  findCheckpointTransition,
-  extractProposalProse,
-} from "@/lib/persona/detect-checkpoint";
-import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
 import {
@@ -24,11 +18,7 @@ import {
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
   handleCrisisDetection,
-  applyCheckpointGates,
   resolveReflectionMeter,
-  buildCheckpointMeta,
-  computeInheritedRefinementCount,
-  validateComposedEntry,
   validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
 import { CHECKPOINT_ACTIONS } from "@/lib/persona/config";
@@ -297,116 +287,6 @@ export async function findRetryStormDuplicate(
   return subsequentAssistant ? null : recentDup.id;
 }
 
-// Last-resort handoff used only when a suppressed checkpoint leaves no
-// usable lead-in (the model led straight with the transition line, so
-// there's nothing of its own to keep). A plain grounding directive —
-// no presupposition, not in the banned-phrase list. The common case
-// keeps the model's genuine lead-in instead; this is the empty-string
-// floor so a suppressed turn never ships a blank or dangling message.
-const SUPPRESSION_EMPTY_FALLBACK =
-  "Tell me what's going on for you right now.";
-
-/**
- * Does the stripped lead-in stand on its own as a turn, or is it just a
- * bare acknowledgment the model put in front of the (now-stripped)
- * transition line? "Okay." / "Got it." hand the user nothing — shipping one
- * as the whole message leaves a dead turn with no next move (the observed
- * "Okay." → user "?" → "Sorry, I went quiet" bug). A real lead-in hands off:
- * it asks a question, or it's a substantive directive/reflection (>= 4
- * words). Below that with no question, treat it as filler and fall back to
- * the grounding handoff instead.
- */
-function leadInHandsOff(leadIn: string): boolean {
-  if (leadIn.includes("?")) return true;
-  return leadIn.split(/\s+/).filter(Boolean).length >= 4;
-}
-
-/**
- * Rewrite a Jove response whose checkpoint transition line is being
- * suppressed (gate failed or composition errored). Strip the transition
- * line and everything after it (the entry prose that would have followed),
- * keeping the genuine landing or lead-in that preceded it.
- *
- * Uses findCheckpointTransition — the SAME contract the detector used to
- * decide this was a checkpoint — so there is exactly one transition
- * definition. (The old design used a second, narrower regex here, which
- * let some detected transitions survive un-stripped and ship entry prose
- * to chat with no card.)
- *
- * No canned continuation is appended: the previous fixed staple ("What
- * was happening right before that landed?") was context-blind, looked
- * identical to the model's own words next turn, and drove the 2026-06-03
- * suppression doom-loop. We keep what the model actually said and only
- * fall back to a neutral grounding line when nothing usable remains.
- *
- * Without this, Jove's words ("I want to put something in your Manual")
- * end up saved to chat without a paired trigger card — the user reads
- * the promise and sees nothing happen.
- */
-export function stripCheckpointFromText(text: string): string {
-  const match = findCheckpointTransition(text);
-  if (!match) {
-    return text;
-  }
-  const before = text.slice(0, match.index).trim();
-  return leadInHandsOff(before) ? before : SUPPRESSION_EMPTY_FALLBACK;
-}
-
-/**
- * Strip the transition line for the SUCCESS path — where the checkpoint was
- * composed and the card (checkpoint_meta) is the entry's surface. Same
- * findCheckpointTransition contract as the suppression stripper, but with the
- * opposite empty-case behavior: keep Jove's genuine lead-in when it stands on
- * its own, otherwise return "" (empty) — NEVER the grounding fallback.
- *
- * The distinction matters. On a suppressed non-checkpoint turn, the message row
- * IS the turn, so a blank would leave a dead turn — hence the fallback. On a
- * successful checkpoint, the card carries the next move and the acknowledgment
- * bubble carries Jove's reflection, so the row should be empty when there's no
- * standalone lead-in. Leaking the fallback here instead (the pre-2026-07-01
- * behavior) did two kinds of damage: it rendered "Tell me what's going on for
- * you right now." as a stray line inside the card, AND it poisoned the
- * post-confirm turn's replayed history — Jove's own transcript read "asked a
- * grounding question, then the user says they saved it," incoherent enough to
- * tip Jove into denying the save it had just made ("I didn't save anything
- * yet — I was about to propose it").
- */
-export function stripCheckpointForCard(text: string): string {
-  const match = findCheckpointTransition(text);
-  if (!match) {
-    return text;
-  }
-  const before = text.slice(0, match.index).trim();
-  return leadInHandsOff(before) ? before : "";
-}
-
-/**
- * Split a checkpoint response at its transition line for split delivery
- * (the lead-in ships to the client immediately; the entry composes after).
- * Returns the genuine lead-in (Jove responding to what the user just
- * said) and the remainder (transition line + entry prose), or null when
- * there is no usable split — no transition match, the model led straight
- * with the transition (empty lead-in), or nothing follows it.
- *
- * Uses findCheckpointTransition so the boundary is the same contract the
- * detector and the suppression stripper already share — one transition
- * definition, three consumers.
- */
-export function splitCheckpointLeadIn(
-  text: string
-): { leadIn: string; remainder: string } | null {
-  const match = findCheckpointTransition(text);
-  if (!match || match.index <= 0) return null;
-  const leadIn = text.slice(0, match.index).trim();
-  const remainder = text.slice(match.index).trim();
-  // Same handoff bar as the suppression strip: a bare acknowledgment
-  // ("Okay.") isn't shippable as a standalone lead-in either — shipping one
-  // early and then failing composition would strand the same dead turn. Fall
-  // through to single-row delivery instead (the card carries the next move).
-  if (!leadInHandsOff(leadIn) || remainder.length === 0) return null;
-  return { leadIn, remainder };
-}
-
 /** Deterministic fallback for the post-confirm follow-up message when the
  *  Sonnet call fails. Mirrors the structure of the prompt-driven version
  *  (pinned "Saved." opener + optional first-time scaffolding paragraph +
@@ -493,9 +373,6 @@ export function callPersona({
       // post-confirm line. Undefined until ctx loads → falls back to the
       // shipped constant, which is also correct if the catch fires early.
       let postConfirmLineOverride: string | undefined;
-      // Same hoist for the composer's editable entry-voice standard (THE BAR):
-      // read off ctx where it loads, used at the composeManualEntry call below.
-      let composerEntryBarOverride: string | undefined;
       try {
         // 0. Emit prepended assistant messages (Track A Phase 7-High).
         //    Used by 7e to deliver the first-lifetime Message 1 stamp
@@ -557,10 +434,8 @@ export function callPersona({
         // 2. Load shared conversation context (DB reads + user state + derived flags)
         const ctx = await loadConversationContext(admin, convId, userId, "web");
         postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
-        composerEntryBarOverride = ctx.voiceOverrides?.composerEntryBar;
         const {
           messages,
-          manualComponents,
           previousExtraction,
           isFirstCheckpoint,
           turnsSinceCheckpoint,
@@ -877,23 +752,12 @@ export function callPersona({
           conversationalText = crisis.responseText;
         }
 
-        // 10c. Reflection-meter backstop. Under the user-pulled model Jove's
-        //      proposal instructions are suppressed (checkpointsEnabled is
-        //      false), so a transition line should never appear. But detection
-        //      is also off, so if the model drifts and writes "I want to put
-        //      something in your Manual" anyway, nothing downstream would strip
-        //      it — it would ship as dangling text with no card. Strip it here
-        //      so the user never sees a proposal Jove can't act on. No-op when
-        //      no transition line is present.
-        if (ctx.reflectionMeterEnabled) {
-          conversationalText = stripCheckpointFromText(conversationalText);
-        }
-
-        // 11. Save Jove's response (conversational part only).
-        //     created_at is selected back so the split-delivery lead-in
-        //     (12b2) and the acknowledgment bubble (13b) can backdate
-        //     their own rows to sort before this one in time-ordered
-        //     queries.
+        // 11. Save Jove's response. Capture is a pure PULL model now (the
+        //     conductor is the live voice): the user taps the reflection meter
+        //     and /api/checkpoint/compose composes the entry. Jove never
+        //     proposes, so there is no transition-line detection, gating,
+        //     inline composition, or split/acknowledgment delivery here — the
+        //     Jove-pushed checkpoint path was removed 2026-07-03 (Wave 3 ship 2).
         const { data: savedResponse } = await admin
           .from("messages")
           .insert({
@@ -901,8 +765,7 @@ export function callPersona({
             role: "assistant",
             content: conversationalText,
             // Landed signal persists on the row (marker itself is stripped)
-            // so the meter restore route sees readiness after a reload —
-            // same tag pattern as checkpoint_suppressed.
+            // so the meter restore route sees readiness after a reload.
             ...(reflectionLandedThisTurn
               ? { metadata: { reflection_landed: true } }
               : {}),
@@ -911,8 +774,6 @@ export function callPersona({
           .single();
 
         const messageId = savedResponse?.id || null;
-        const savedResponseCreatedAt: string | null =
-          (savedResponse as { created_at?: string } | null)?.created_at ?? null;
 
         // 11a. Response structure validation (logs violations, does not block).
         //      Runs on fullText — the raw model output — not conversationalText,
@@ -920,36 +781,15 @@ export function callPersona({
         //      contains an em dash that would trip the dash_usage check.
         validateResponseStructure(fullText, messageId);
 
-        // Checkpoint gate verdict, computed ONCE here (pure function, identical
-        // inputs) and reused by both the admin-overlay snapshot (11b) and the
-        // fire/strip decision (12b). These were two separate applyCheckpointGates
-        // calls before — a drift trap; the 2026-06-03 incident was two gate
-        // formulas diverging (the overlay read "yes" while the engine suppressed).
-        const gateResult = applyCheckpointGates(
-          turnsSinceCheckpoint,
-          previousExtraction,
-          isFirstCheckpoint,
-          turnCount,
-          ctx.checkpointTuning
-        );
+        const processingText = "listening...";
 
         // 11b. Save extraction snapshot. The column is guaranteed present in the
         //      20260417 squash baseline; any error here is a real DB failure, not
-        //      schema drift. Freeze the REAL gate verdict (gateResult) alongside
-        //      the state so the overlay shows the same verdict and reason the
-        //      engine acts on, computed where isFirstCheckpoint and turnCount exist.
+        //      schema drift. The admin overlay reads the frozen per-turn state.
         if (messageId && previousExtraction) {
           admin
             .from("messages")
-            .update({
-              extraction_snapshot: {
-                ...previousExtraction,
-                gate_eval: {
-                  passed: gateResult.passed,
-                  reason: gateResult.reason ?? null,
-                },
-              },
-            })
+            .update({ extraction_snapshot: previousExtraction })
             .eq("id", messageId)
             .then(({ error }) => {
               if (error) {
@@ -957,380 +797,6 @@ export function callPersona({
               }
             });
         }
-
-        // 12. Checkpoint detection (deterministic). The transition line
-        //     "I want to put something in your Manual" is the contract
-        //     with the user — if Jove wrote it, this turn is a checkpoint.
-        //     No probabilistic classifier sits between Jove's words and
-        //     the card. Layer + name + summary all come from the
-        //     composition Opus call below.
-        //
-        //     Skipped for post-confirm follow-up calls — Jove is producing
-        //     scaffolding for a JUST-confirmed entry, not proposing a new
-        //     one, and would risk double-checkpointing if the post-confirm
-        //     language happened to contain the transition phrase.
-        let isCheckpoint = false;
-        const processingText = "listening...";
-
-        // ctx.checkpointsEnabled is false when the `checkpoints` feature gate
-        // is OFF — skip detection entirely so no checkpoint is ever proposed,
-        // gated, or composed. The checkpoint-derived Tier 3 flags are already
-        // zeroed in loadConversationContext, so this one guard fully disables
-        // the pipeline while leaving the voice + extraction loop intact.
-        if (postConfirmMode === null && ctx.checkpointsEnabled) {
-          isCheckpoint = detectCheckpointInResponse(conversationalText).isCheckpoint;
-        }
-
-        // 12b. Shared checkpoint gates (material quality + turn-count).
-        //      Cheap to gate here before paying for the composition call.
-        //      When the gate fails, rewrite conversationalText to strip
-        //      the now-stranded transition line and update the saved row
-        //      — otherwise the user reads "I want to put something in
-        //      your Manual" in chat with no trigger card to back it up.
-        if (isCheckpoint) {
-          if (!gateResult.passed) {
-            isCheckpoint = false;
-            conversationalText = stripCheckpointFromText(conversationalText);
-            if (messageId) {
-              // Tag the row so next turn's loadConversationContext surfaces
-              // priorCheckpointSuppressed → POST-SUPPRESSION block, which
-              // holds the proposal instructions for one turn. This is the
-              // loop circuit-breaker: a gate that keeps failing can no longer
-              // drive Jove to re-propose-and-strip every turn (2026-06-03).
-              await admin
-                .from("messages")
-                .update({
-                  content: conversationalText,
-                  metadata: { checkpoint_suppressed: true },
-                })
-                .eq("id", messageId);
-            }
-            if (process.env.NODE_ENV !== "production") {
-              console.log(
-                "[persona-debug] Checkpoint gate failed, response rewritten: %s",
-                gateResult.reason
-              );
-            }
-          }
-        }
-
-        // 12b-log. Checkpoint detection debug log (dev only)
-        if (process.env.NODE_ENV !== "production") {
-          console.log(
-            "[persona-debug] %s",
-            isCheckpoint ? "CHECKPOINT detected" : "No checkpoint this turn"
-          );
-        }
-
-        // 12b2. Split delivery. Composition (12c) is a blocking Opus call
-        //       that runs for seconds (see composition_latency) — and the
-        //       chat renders nothing until it finishes, because both
-        //       visible artifacts of a checkpoint turn (acknowledgment
-        //       bubble + trigger card) are composition outputs. Ship
-        //       Jove's lead-in NOW as its own message so the user reads
-        //       something at normal-turn latency while the entry
-        //       composes. The `composing: true` flag tells the client to
-        //       keep the typing indicator up until the acknowledgment and
-        //       card events land.
-        //
-        //       The remainder (transition line + entry prose) stays on
-        //       the checkpoint row — rendered as the trigger card in
-        //       chat, kept in full for history and extraction. Rows are
-        //       backdated so a time-ordered reload reads the same way the
-        //       live stream did: lead-in (−2s) → acknowledgment (−1s) →
-        //       card. If the lead-in insert fails, fall through to
-        //       today's single-row behavior — never strand the lead-in
-        //       text outside the DB.
-        let leadInEmitted = false;
-        let checkpointRowDeleted = false;
-        if (isCheckpoint && messageId) {
-          const split = splitCheckpointLeadIn(conversationalText);
-          if (split) {
-            const leadInCreatedAt = savedResponseCreatedAt
-              ? new Date(
-                  new Date(savedResponseCreatedAt).getTime() - 2000
-                ).toISOString()
-              : undefined;
-            const { data: leadInRow } = await admin
-              .from("messages")
-              .insert({
-                conversation_id: convId,
-                role: "assistant",
-                content: split.leadIn,
-                ...(leadInCreatedAt ? { created_at: leadInCreatedAt } : {}),
-              })
-              .select("id")
-              .single();
-            if (leadInRow?.id) {
-              await admin
-                .from("messages")
-                .update({ content: split.remainder })
-                .eq("id", messageId);
-              conversationalText = split.remainder;
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "message_complete",
-                    messageId: leadInRow.id,
-                    conversationId: convId,
-                    checkpoint: null,
-                    processingText: "",
-                    cleanContent: split.leadIn,
-                    composing: true,
-                  })}\n\n`
-                )
-              );
-              leadInEmitted = true;
-            }
-          }
-        }
-
-        // 12c. Composition: when the detector says yes (and gates pass),
-        //      call Opus to compose the polished entry. Opus picks the
-        //      layer based on the entry content + the existing Manual,
-        //      picks the headline, polishes the prose, and emits the
-        //      compressed summary + key_words. If composition fails OR
-        //      Opus picks an invalid layer, suppress the checkpoint —
-        //      better to silently skip than to file an entry under no
-        //      layer.
-        let composedEntry: {
-          content: string;
-          name: string;
-          section: string | null;
-          tags: string[];
-          changelog: string;
-          summary: string;
-          key_words: string[];
-          acknowledgment: string;
-        } | null = null;
-
-        if (isCheckpoint) {
-          try {
-            const compositionStart = Date.now();
-            composedEntry = await composeManualEntry({
-              checkpointText: conversationalText,
-              conversationHistory: messages,
-              languageBank: previousExtraction?.language_bank || [],
-              manualComponents: manualComponents || [],
-              // Plumb distinct_contexts from the latest extraction state
-              // so the headline validator knows whether to enforce a
-              // "can" / "sometimes" softener — prevents the composer
-              // from over-claiming a recurring pattern when the user
-              // only described one situation.
-              distinctContexts:
-                previousExtraction?.checkpoint_gate?.distinct_contexts ?? null,
-              // Carry the session's accumulated understanding into the
-              // composer so the entry is written from the depth the whole
-              // conversation reached, not just the last 8 messages. This
-              // is the fix for entries that read as recap.
-              depth: previousExtraction?.depth ?? null,
-              sageBrief: previousExtraction?.sage_brief ?? null,
-              currentThread: previousExtraction?.current_thread ?? null,
-              entryBarOverride: composerEntryBarOverride,
-            });
-            // Composition is a blocking Opus call that runs after the
-            // conversational stream and before the checkpoint card — the
-            // gap a founder flagged as "feels like a bug." Measure it so we
-            // can confirm where the seconds go before optimizing (model,
-            // Manual size). Log-only; no behavior change.
-            logEvent({
-              event: "composition_latency",
-              surface: "chat",
-              conversation_id: convId,
-              duration_ms: Date.now() - compositionStart,
-              manual_entry_count: manualComponents?.length ?? 0,
-            });
-
-            // TEMPORARY conductor experiment — verbatim save. Under the
-            // conductor, the prose after the transition line IS the working
-            // version the user approved in conversation (v0.5 save contract),
-            // so it becomes the entry body UNTOUCHED. The composer keeps its
-            // clerical outputs (section, tags, headline, summary) but may not
-            // re-author the body — the purpose-run card proved it re-writes
-            // in a register the user rejected. Floor of 40 chars: below that
-            // there is no real approved text in the save message (e.g. the
-            // user rushed "just save it"), so fall back to composer content
-            // rather than saving a fragment.
-            if (ctx.conductorActive && composedEntry?.content) {
-              const approvedProse = extractProposalProse(conversationalText);
-              if (approvedProse.length >= 40) {
-                composedEntry = { ...composedEntry, content: approvedProse };
-              } else if (process.env.NODE_ENV !== "production") {
-                console.log(
-                  "[callPersona] conductor verbatim fallback: no approved prose in save message, keeping composer body"
-                );
-              }
-            }
-
-            if (composedEntry?.content) {
-              const validation = validateComposedEntry(composedEntry.content);
-              if (!validation.ok) {
-                console.warn(
-                  "[callPersona] Composed entry structural drift: %s",
-                  validation.warnings.join("; ")
-                );
-              }
-            }
-          } catch (err) {
-            console.error(
-              "[callPersona] Composition failed, suppressing checkpoint:",
-              err
-            );
-            composedEntry = null;
-          }
-
-          if (!composedEntry) {
-            // Composition failed — same broken-promise risk as a gate
-            // failure.
-            isCheckpoint = false;
-            if (leadInEmitted && messageId) {
-              // Split delivery already shipped the lead-in as its own
-              // row — exactly the text the strip path would have kept.
-              // Delete the orphaned remainder row (the unbacked "I want
-              // to put something in your Manual" promise) so reload
-              // never shows it, and emit nothing more: the final event
-              // carries empty cleanContent, which the client skips.
-              await admin.from("messages").delete().eq("id", messageId);
-              checkpointRowDeleted = true;
-              conversationalText = "";
-            } else {
-              // No lead-in was emitted — rewrite + update the saved row
-              // so the chat doesn't carry an unresolved transition line.
-              conversationalText = stripCheckpointFromText(conversationalText);
-              if (messageId) {
-                await admin
-                  .from("messages")
-                  .update({ content: conversationalText })
-                  .eq("id", messageId);
-              }
-            }
-          } else if (messageId) {
-            // Composition SUCCEEDED. The card (checkpoint_meta) is the entry's
-            // surface, so this message's own text must NOT also carry the raw
-            // transition line ("I want to put something in your Manual") — left
-            // un-stripped it renders inside the card, between title and body.
-            // The failure branch above already clears it; the success branch
-            // used to skip this, which was the leak.
-            conversationalText = leadInEmitted
-              ? "" // lead-in already shipped as its own row; the card is the entry
-              : stripCheckpointForCard(conversationalText);
-            await admin
-              .from("messages")
-              .update({ content: conversationalText })
-              .eq("id", messageId);
-          }
-        }
-
-        // 12d. Track A Phase 7-Mid: refinement_count chain inheritance.
-        //      Look up the most recent prior checkpoint in this
-        //      conversation. If its status was "refined", inherit the
-        //      count; otherwise start at 0. The value is the FINAL
-        //      refinement_count for this new checkpoint (no +1 here —
-        //      incrementing happens at action time on the prior
-        //      checkpoint, see /api/checkpoint/confirm). Lifted to
-        //      this scope so the SSE message_complete payload below
-        //      can also surface it to the client.
-        let checkpointRefinementCount = 0;
-        if (isCheckpoint && messageId) {
-          const { data: priorCheckpoint } = await admin
-            .from("messages")
-            .select("checkpoint_meta")
-            .eq("conversation_id", convId)
-            .eq("is_checkpoint", true)
-            .neq("id", messageId)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          checkpointRefinementCount = computeInheritedRefinementCount(
-            priorCheckpoint?.checkpoint_meta as
-              | { status?: string; refinement_count?: number }
-              | null
-          );
-        }
-
-        // 13. Update message metadata. Skipped when the composition-failure
-        //     path above deleted the checkpoint row — there is nothing
-        //     left to update.
-        if (messageId && !checkpointRowDeleted) {
-          const updateData: Record<string, unknown> = {
-            processing_text: processingText,
-          };
-
-          if (isCheckpoint) {
-            updateData.is_checkpoint = true;
-            updateData.checkpoint_meta = buildCheckpointMeta(
-              composedEntry,
-              checkpointRefinementCount
-            );
-          }
-
-          await admin
-            .from("messages")
-            .update(updateData)
-            .eq("id", messageId);
-        }
-
-        // 13b. Acknowledgment bubble. Opus produces a specific reflective
-        //      sentence as part of the composition output — quotes a
-        //      moment or phrase from the user's last 1-2 turns and ends
-        //      with the contractual signal ("I want to mark this," etc.).
-        //      Emitted as a regular Jove assistant message right before
-        //      the trigger card's message_complete. Replaces the old
-        //      generic "A pattern came through in what you said" lead-in
-        //      and the transient "Something is forming…" loading label —
-        //      both of which felt mechanical because they didn't quote
-        //      the user's actual words back. Skipped when composition
-        //      returned an empty acknowledgment (Opus declined for lack
-        //      of usable specifics) — better silence than a vague bubble.
-        //
-        //      Backdated 1s before the checkpoint message's created_at
-        //      so time-ordered reload reads acknowledgment → card.
-        if (isCheckpoint && composedEntry?.acknowledgment) {
-          const { data: ackRow } = await admin
-            .from("messages")
-            .select("created_at")
-            .eq("id", messageId!)
-            .single();
-          const ackCreatedAt = ackRow?.created_at
-            ? new Date(
-                new Date(ackRow.created_at).getTime() - 1000
-              ).toISOString()
-            : undefined;
-          const { data: ackInsert } = await admin
-            .from("messages")
-            .insert({
-              conversation_id: convId,
-              role: "assistant",
-              content: composedEntry.acknowledgment,
-              ...(ackCreatedAt ? { created_at: ackCreatedAt } : {}),
-            })
-            .select("id")
-            .single();
-          if (ackInsert?.id) {
-            emitInlineMessage(
-              controller,
-              ackInsert.id,
-              composedEntry.acknowledgment
-            );
-          }
-        }
-
-        // 14. Emit final event
-        const checkpoint = isCheckpoint && composedEntry
-          ? {
-              isCheckpoint: true,
-              section: composedEntry.section,
-              tags: composedEntry.tags,
-              name: composedEntry.name,
-              // Surface the refinement_count to the client so the
-              // ceiling card UI fires on the third+ attempt without
-              // requiring a separate fetch. Track A Phase 7-Mid.
-              refinement_count: checkpointRefinementCount,
-              // Polished entry text shown in the review overlay so the
-              // user sees the exact prose that will land in their Manual.
-              composed_content: composedEntry.content,
-            }
-          : null;
 
         // cleanContent is mandatory when earlier message_complete events
         // (prepended Message 1, or the 7f transition) have fired in
@@ -1344,31 +810,28 @@ export function callPersona({
               type: "message_complete",
               messageId,
               conversationId: convId,
-              checkpoint,
+              // Capture is pull-only now — Jove never proposes, so a live turn
+              // never carries a checkpoint. Always null (the client type still
+              // requires the key).
+              checkpoint: null,
               processingText,
               cleanContent: conversationalText,
               mode: conversationMode,
               // Reflection meter (user-pulled model). One nullable field:
-              // { depth, ready } drives the meter, or null to HIDE it entirely
-              // (crisis — spec §9; also clears any latched readiness on the
-              // client). `ready` reuses gateResult.passed — the SAME gate the
-              // Jove-pushed path uses, computed once at the top of this turn —
-              // so the meter and the dormant auto-trigger can't diverge, and
-              // the post-checkpoint cooldown folded into the gate gives the
-              // "starts over after save" reset for free. Absent when the flag
-              // is off; older clients ignore it.
+              // { fill, ready } drives the meter, or null to HIDE it entirely
+              // (crisis; also clears any latched readiness on the client).
+              // Absent when the meter is off (text surface); older clients
+              // ignore it.
               ...(ctx.reflectionMeterEnabled
                 ? {
                     // ONE resolution shared with the restore endpoint (see
                     // resolveReflectionMeter) so live and reload can't drift.
-                    // Under the conductor the fill is depth-only and `ready`
-                    // means "strip visible", never a completion claim.
+                    // The fill is depth-only and `ready` means "strip visible",
+                    // never a completion claim.
                     reflectionMeter: resolveReflectionMeter({
                       extraction: previousExtraction,
                       turnsSinceCheckpoint,
-                      gatePassed: gateResult.passed,
                       cooldownTurns: ctx.checkpointTuning.cooldownTurns,
-                      conductorActive: ctx.conductorActive,
                       // Prior turns' signal from context; this turn's marker
                       // was parsed above — OR them so the strip appears on
                       // the landed message itself, not one turn late.

@@ -300,16 +300,6 @@ export async function routeInboundMessage(
     });
     markLatency(timings, "send_returned");
 
-    // Send checkpoint follow-up if present
-    if (result.checkpointText) {
-      await sendMessage({
-        to: senderPhone,
-        content: result.checkpointText,
-        ownerUserId: userId,
-        contentKind: "jove",
-      });
-    }
-
     console.log(
       "[router] persona_response user=%s conv=%s len=%d latency_ms=%d",
       userId,

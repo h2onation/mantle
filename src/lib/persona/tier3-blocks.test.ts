@@ -42,29 +42,20 @@ const POST_TURN = [
 function reachableFlagDomain(): Tier3Flags[] {
   const out: Tier3Flags[] = [];
   for (const isReturningUser of [true, false]) {
-    for (const isFirstCheckpoint of [true, false]) {
-      for (const checkpointApproaching of [true, false]) {
-        for (const turnCount of [1, 2, 3, 4, 12]) {
-          for (const len of [0, 1, 3, 5]) {
-            for (const mode of ["situation", "guided-intake", "upload"] as const) {
-              for (const pt of POST_TURN) {
-                for (const priorCheckpointSuppressed of [true, false]) {
-                  out.push(
-                    deriveTier3Flags({
-                      manualComponents: fakeEntries(len),
-                      isReturningUser,
-                      isFirstCheckpoint,
-                      checkpointApproaching,
-                      turnCount,
-                      mode,
-                      postConfirmMode: pt.postConfirmMode,
-                      postRejection: pt.postRejection,
-                      priorCheckpointSuppressed,
-                    })
-                  );
-                }
-              }
-            }
+    for (const turnCount of [1, 2, 3, 4, 12]) {
+      for (const len of [0, 1, 3, 5]) {
+        for (const mode of ["situation", "guided-intake", "upload"] as const) {
+          for (const pt of POST_TURN) {
+            out.push(
+              deriveTier3Flags({
+                manualComponents: fakeEntries(len),
+                isReturningUser,
+                turnCount,
+                mode,
+                postConfirmMode: pt.postConfirmMode,
+                postRejection: pt.postRejection,
+              })
+            );
           }
         }
       }

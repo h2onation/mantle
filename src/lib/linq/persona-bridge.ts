@@ -7,8 +7,6 @@ import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
 import { selectTranscriptContextForPrompt } from "@/lib/persona/call-persona";
-import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
-import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
 import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import {
   PERSONA_MODEL,
@@ -17,9 +15,6 @@ import {
   buildPromptOptionsFromContext,
   fireBackgroundExtraction,
   handleCrisisDetection,
-  applyCheckpointGates,
-  buildCheckpointMeta,
-  validateComposedEntry,
   validateResponseStructure,
 } from "@/lib/persona/persona-pipeline";
 
@@ -27,19 +22,23 @@ interface PersonaBridgeResult {
   responseText: string;
   conversationId: string;
   messageId: string | null;
-  checkpointText: string | null;
 }
 
 /**
  * Processes a text-channel Jove interaction. Handles two cases:
  *
  * 1. User message (messageText provided): Save message, load context,
- *    call Jove, handle extraction/crisis/checkpoints. Full pipeline.
+ *    call Jove, handle extraction + crisis, save the response.
  *
  * 2. Post-checkpoint follow-up (messageText is null): Load context
  *    (which includes the system message from confirmCheckpoint), call
  *    Jove so it generates the tee-up response. Same as web's
  *    callPersona({ message: null }).
+ *
+ * Capture is a pure PULL model on web (the reflection meter → compose route);
+ * the text/SMS channel has no meter and no capture path until a future text
+ * rebuild. Jove never proposes an entry here — the Jove-pushed checkpoint path
+ * was removed 2026-07-03 (Wave 3 ship 2).
  */
 export async function processTextMessage(
   userId: string,
@@ -70,8 +69,7 @@ export async function processTextMessage(
 
   // 3. Load shared conversation context (same DB reads + rules as web).
   //    surface="text": the reflection meter is web-only, so the SMS channel
-  //    keeps Jove-pushed checkpoints as its capture path regardless of the
-  //    reflection_meter gate.
+  //    has no capture path until a future text rebuild.
   const ctx = await loadConversationContext(
     admin,
     conversationId,
@@ -127,7 +125,6 @@ export async function processTextMessage(
       responseText: fullText,
       conversationId,
       messageId: null,
-      checkpointText: null,
     };
   }
 
@@ -181,105 +178,9 @@ export async function processTextMessage(
       });
   }
 
-  // 11. Checkpoint detection (deterministic). Same contract as the web
-  //     channel: if Jove wrote the transition line, this turn is a
-  //     checkpoint. Composition picks layer + name + summary.
-  let checkpointText: string | null = null;
-  // ctx.checkpointsEnabled is false when the `checkpoints` feature gate is
-  // OFF — the SMS path honors the same global switch as the web path so the
-  // gate isn't a half-truth across channels.
-  let isCheckpoint =
-    messageId && ctx.checkpointsEnabled
-      ? detectCheckpointInResponse(responseText).isCheckpoint
-      : false;
-
-  // 11b. Shared checkpoint gates (material quality + turn-count)
-  if (isCheckpoint) {
-    const gateResult = applyCheckpointGates(
-      ctx.turnsSinceCheckpoint,
-      ctx.previousExtraction,
-      ctx.isFirstCheckpoint,
-      ctx.turnCount,
-      ctx.checkpointTuning
-    );
-    if (!gateResult.passed) {
-      isCheckpoint = false;
-    }
-  }
-
-  // 11c. Composition — Opus polishes the entry, picks the layer, picks
-  //      the headline. If composition fails or returns an invalid layer,
-  //      suppress the checkpoint rather than file an entry under no
-  //      layer.
-  let composedEntry: {
-    content: string;
-    name: string;
-    section: string | null;
-    tags: string[];
-    changelog: string;
-    summary: string;
-    key_words: string[];
-  } | null = null;
-
-  if (isCheckpoint) {
-    try {
-      composedEntry = await composeManualEntry({
-        checkpointText: responseText,
-        conversationHistory: ctx.messages,
-        languageBank: ctx.previousExtraction?.language_bank || [],
-        manualComponents: ctx.manualComponents || [],
-        distinctContexts:
-          ctx.previousExtraction?.checkpoint_gate?.distinct_contexts ?? null,
-      });
-
-      if (composedEntry?.content) {
-        const validation = validateComposedEntry(composedEntry.content);
-        if (!validation.ok) {
-          console.warn(
-            "[persona-bridge] Composed entry structural drift: %s",
-            validation.warnings.join("; ")
-          );
-        }
-      }
-    } catch (err) {
-      console.error("[persona-bridge] Composition failed:", err);
-      composedEntry = null;
-    }
-
-    if (!composedEntry) {
-      isCheckpoint = false;
-    }
-  }
-
-  // 11d. Save checkpoint metadata and build confirmation text
-  if (isCheckpoint && composedEntry && messageId) {
-    const meta = buildCheckpointMeta(composedEntry);
-
-    await admin
-      .from("messages")
-      .update({
-        is_checkpoint: true,
-        checkpoint_meta: meta,
-      })
-      .eq("id", messageId);
-
-    // Build the text checkpoint message — only show name + question
-    // (the user already read the insight in Jove's conversational response)
-    const name = composedEntry.name || "Untitled";
-    checkpointText =
-      `Does this feel right?\n\n` +
-      `"${name}"\n\n` +
-      `Reply YES to write to manual, NOT QUITE to refine, or NO to discard.`;
-
-    console.log(
-      "[persona-bridge] checkpoint_detected section=%s name=%s message_id=%s",
-      composedEntry.section ?? "(none)",
-      name,
-      messageId
-    );
-  }
-
-  return { responseText, conversationId, messageId, checkpointText };
+  // Capture is pull-only on web; the text channel has no meter and no capture
+  // path until a future text rebuild. Jove never proposes an entry here.
+  return { responseText, conversationId, messageId };
 }
 
 /**

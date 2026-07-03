@@ -307,24 +307,6 @@ const SECTION_DEFS: SectionDef[] = [
     alternativesFn: () => [],
   },
   {
-    id: "checkpoints",
-    label: "Checkpoints",
-    tier: "3",
-    pattern: /^CHECKPOINTS$/m,
-    source: { file: "system-prompt.ts", symbol: "buildTier3 → CHECKPOINTS" },
-    conditionFn: () => ({ type: "state", label: "State: checkpoint approaching, not a post-action turn" }),
-    alternativesFn: () => [],
-  },
-  {
-    id: "first-checkpoint",
-    label: "First Checkpoint",
-    tier: "3",
-    pattern: /^FIRST CHECKPOINT/m,
-    source: { file: "system-prompt.ts", symbol: "buildTier3 → FIRST CHECKPOINT" },
-    conditionFn: () => ({ type: "state", label: "State: first checkpoint" }),
-    alternativesFn: () => [],
-  },
-  {
     id: "post-rejection",
     label: "Post-Rejection",
     tier: "3",
@@ -663,7 +645,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         sessionSummary: null,
         isFirstCheckpoint: false,
         turnCount: 1,
-        checkpointApproaching: false,
       },
     },
     {
@@ -677,7 +658,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         sessionSummary: null,
         isFirstCheckpoint: true,
         turnCount: 8,
-        checkpointApproaching: true,
       },
     },
     {
@@ -693,7 +673,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         isFirstCheckpoint: false,
         sessionCount: 3,
         turnCount: 1,
-        checkpointApproaching: false,
       },
     },
     {
@@ -709,7 +688,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         isFirstCheckpoint: false,
         sessionCount: 3,
         turnCount: 10,
-        checkpointApproaching: true,
       },
     },
   ];

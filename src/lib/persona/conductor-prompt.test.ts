@@ -18,10 +18,8 @@ describe("conductor variant — guard tests", () => {
       isFirstCheckpoint: true,
       sessionCount: 1,
       turnCount: 1,
-      checkpointApproaching: false,
       personaModes: ["general"],
       mode: "situation",
-      priorCheckpointSuppressed: false,
       voiceVariant: "conductor",
       voiceOverrides: {},
     });

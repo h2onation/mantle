@@ -50,7 +50,6 @@ describe("buildSystemPrompt", () => {
     sessionSummary: null,
     isFirstCheckpoint: false,
     turnCount: 5,
-    checkpointApproaching: false,
     personaModes: ["autistic"],
   };
 
@@ -71,7 +70,6 @@ describe("buildSystemPrompt", () => {
         sessionSummary: "Previous summary",
         isFirstCheckpoint: true,
         sessionCount: 3,
-        checkpointApproaching: true,
       });
       expect(result).toContain("You are Jove");
     });
@@ -169,12 +167,6 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("Write behavior and body, not labels");
     });
 
-    it("Tier 1 appears before CHECKPOINTS when checkpoints render", () => {
-      const result = build({ checkpointApproaching: true });
-      const tier1Idx = result.indexOf("TIER 1: CONSTITUTIONAL RULES");
-      const checkpointsIdx = result.indexOf("CHECKPOINTS");
-      expect(tier1Idx).toBeLessThan(checkpointsIdx);
-    });
   });
 
   // ─── Manual entries section ──────────────────────────────────────────────
@@ -353,18 +345,6 @@ describe("buildSystemPrompt", () => {
       expect(result).toContain("FIRST MESSAGE (new user, situation mode)");
     });
 
-    it("FIRST MESSAGE appears before CHECKPOINTS when both present", () => {
-      const result = build({
-        manualComponents: [],
-        isReturningUser: false,
-        turnCount: 1,
-        checkpointApproaching: true,
-      });
-      const firstMessageIdx = result.indexOf("FIRST MESSAGE");
-      const checkpointsIdx = result.indexOf("\nCHECKPOINTS\n");
-      expect(firstMessageIdx).toBeLessThan(checkpointsIdx);
-    });
-
     it("delivers the SITUATION_OPENER verbatim and sets the deal once", () => {
       // Bootstrap pattern: Jove no longer introduces itself separately; the
       // opener IS the introduction. Soak iteration 10 (2026-06-12) replaced
@@ -434,18 +414,9 @@ describe("buildSystemPrompt", () => {
 
   // ─── First checkpoint (one-time) ─────────────────────────────────────────
   describe("first checkpoint instruction", () => {
-    it("contains 'FIRST CHECKPOINT (one-time, exact order)' when isFirstCheckpoint and checkpointApproaching", () => {
-      const result = build({
-        isFirstCheckpoint: true,
-        checkpointApproaching: true,
-      });
-      expect(result).toContain("FIRST CHECKPOINT (one-time, exact order)");
-    });
-
     it("does NOT contain 'FIRST CHECKPOINT' when isFirstCheckpoint is false", () => {
       const result = build({
         isFirstCheckpoint: false,
-        checkpointApproaching: true,
       });
       expect(result).not.toContain("FIRST CHECKPOINT");
     });
@@ -453,26 +424,13 @@ describe("buildSystemPrompt", () => {
     it("does NOT contain 'FIRST CHECKPOINT' when checkpointApproaching is false", () => {
       const result = build({
         isFirstCheckpoint: true,
-        checkpointApproaching: false,
       });
       expect(result).not.toContain("FIRST CHECKPOINT");
-    });
-
-    it("uses the new four-step sequence with the transition copy and no internal wrapper", () => {
-      const result = build({
-        isFirstCheckpoint: true,
-        checkpointApproaching: true,
-      });
-      expect(result).toContain('"I want to put something in your Manual."');
-      expect(result).toContain("No wrapper inside any checkpoint");
-      // Old five-step wrapper copy is gone
-      expect(result).not.toContain("This is what building your manual looks like");
     });
 
     it("does NOT use the old 'Something's taken shape' transition copy", () => {
       const result = build({
         isFirstCheckpoint: true,
-        checkpointApproaching: true,
       });
       expect(result).not.toContain("Something's taken shape from what you've told me");
     });
@@ -599,21 +557,21 @@ describe("buildSystemPrompt", () => {
     // assertions guard against accidental reintroduction.
     it("does NOT contain the old POST-CHECKPOINT section label in any build", () => {
       expect(build()).not.toContain("POST-CHECKPOINT");
-      expect(build({ checkpointApproaching: true })).not.toContain(
+      expect(build({})).not.toContain(
         "POST-CHECKPOINT"
       );
       expect(build({ isReturningUser: true })).not.toContain("POST-CHECKPOINT");
     });
 
     it("does NOT contain the old three-step structure labels", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("CONFIRM AND NAME THE STRUCTURE");
       expect(result).not.toContain("NAME AN OPEN THREAD");
       expect(result).not.toContain("PLANT A RETURN HOOK");
     });
 
     it("does NOT contain the old first/second/third-entry scripted copy", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain(
         "That's your first entry. Your Manual has five layers."
       );
@@ -665,13 +623,13 @@ describe("buildSystemPrompt", () => {
       // so the fixed line could fail to fire right after a rejection (when
       // extraction no longer reported approaching) and was primed on every
       // approaching turn. It now gates on the rejection signal alone.
-      const result = build({ checkpointApproaching: true, postRejection: false });
+      const result = build({ postRejection: false });
       expect(result).not.toContain("POST-REJECTION");
       expect(result).not.toContain("That entry didn't land. Was it off, or just not ready?");
     });
 
     it("does NOT load for returning users absent a rejection", () => {
-      const result = build({ isReturningUser: true, checkpointApproaching: false });
+      const result = build({ isReturningUser: true });
       expect(result).not.toContain("POST-REJECTION");
     });
   });
@@ -829,7 +787,6 @@ describe("buildSystemPrompt", () => {
 
     it("excludes CHECKPOINTS when checkpointApproaching is false and not returning", () => {
       const result = build({
-        checkpointApproaching: false,
         isReturningUser: false,
       });
       expect(result).not.toContain("\nCHECKPOINTS\n");
@@ -842,43 +799,8 @@ describe("buildSystemPrompt", () => {
       // not auto-load on turn 1 of a fresh session.
       const result = build({
         isReturningUser: true,
-        checkpointApproaching: false,
       });
       expect(result).not.toContain("\nCHECKPOINTS\n");
-    });
-
-    it("includes CHECKPOINTS when checkpointApproaching is true", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("\nCHECKPOINTS\n");
-    });
-
-    // Regression pin (2026-05-19 audit). Dyslexic-mode run drifted onto
-    // verb variants ("Let me write this up for your Manual") and drafted
-    // Manual-entry-shaped prose inline without ever firing the canonical
-    // checkpoint trigger. CHECKPOINTS block strengthened with explicit
-    // failure-mode warning on the transition phrase + a "never draft
-    // Manual-entry prose in regular chat" rule. These assertions pin both.
-    it("CHECKPOINTS block forbids drafting Manual entries in regular chat turns", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain("NEVER DRAFT MANUAL-ENTRY-SHAPED PROSE IN REGULAR CHAT TURNS");
-      expect(result).toContain("are NOT recognized as checkpoint proposals");
-      expect(result).toContain("Tier 1 Rule 1 violation");
-    });
-
-    it("CHECKPOINTS block warns about canonical-phrase contract with the system", () => {
-      const result = build({ checkpointApproaching: true });
-      // The "EXACT phrase" warning explains WHY the phrase matters — without
-      // this framing, the model treated it as stylistic and drifted.
-      expect(result).toContain("Say these EXACT words");
-      expect(result).toContain("invisible to the system");
-      expect(result).toContain("contract with the system");
-      // The audit-observed drift phrasings are listed as explicit non-matches.
-      expect(result).toContain("Let me write this up for your Manual");
-    });
-
-    it("includes CHECKPOINTS for returning users once checkpointApproaching is true", () => {
-      const result = build({ isReturningUser: true, checkpointApproaching: true });
-      expect(result).toContain("\nCHECKPOINTS\n");
     });
 
     it("excludes POST-REJECTION absent a rejection (regardless of returning status)", () => {
@@ -886,10 +808,10 @@ describe("buildSystemPrompt", () => {
       // the rejection signal (postRejection) — neither returning-user status
       // nor an approaching checkpoint loads the block.
       expect(
-        build({ checkpointApproaching: false, isReturningUser: false })
+        build({ isReturningUser: false })
       ).not.toContain("POST-REJECTION");
       expect(
-        build({ checkpointApproaching: true, isReturningUser: true })
+        build({ isReturningUser: true })
       ).not.toContain("POST-REJECTION");
     });
 
@@ -925,7 +847,7 @@ describe("buildSystemPrompt", () => {
     // APPROACHING) are now delivered as modals. The negative
     // assertions below guard against reintroduction.
     it("does NOT render the deleted PROGRESS SIGNALS block", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("PROGRESS SIGNALS");
       expect(result).not.toContain("DEPTH BUILDING SIGNAL");
       expect(result).not.toContain("CHECKPOINT APPROACHING SIGNAL");
@@ -933,7 +855,7 @@ describe("buildSystemPrompt", () => {
     });
 
     it("no longer contains the replaced BUILDING TOWARD SIGNAL header", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("BUILDING TOWARD SIGNAL");
     });
   });
@@ -1149,7 +1071,7 @@ describe("buildSystemPrompt", () => {
     // Gate 8: the approaching-signal copy is gone. Modal 3 carries
     // the "A pattern is ready for your Manual" teaching now.
     it("does NOT contain the deleted approaching-signal copy", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("There's an entry taking shape");
     });
 
@@ -2240,7 +2162,7 @@ describe("buildSystemPrompt", () => {
   // ─── Checkpoint mechanics sit in Tier 3, not in the voice ────────────────
   describe("checkpoint mechanics (Tier 3)", () => {
     function buildCheckpointMode() {
-      return build({ checkpointApproaching: true, turnCount: 5 });
+      return build({ turnCount: 5 });
     }
 
     describe("CHECKPOINT LANGUAGE block is ND-rewritten", () => {
@@ -2264,20 +2186,6 @@ describe("buildSystemPrompt", () => {
       it("uses autism-resonant rewrite examples", () => {
         const result = buildCheckpointMode();
         expect(result).toMatch(/second version of you switches on/i);
-      });
-    });
-
-    describe("CHECKPOINTS section keeps embodiment guidance without enforcement scaffolding", () => {
-      it("still talks about anchoring in the body, the bind, and recognition", () => {
-        const result = buildCheckpointMode();
-        expect(result).toMatch(/body/i);
-        expect(result).toMatch(/bind/i);
-        expect(result).toMatch(/recognition, not diagnosis/i);
-      });
-
-      it("instructs Jove to wait for confirmation before writing", () => {
-        const result = buildCheckpointMode();
-        expect(result).toMatch(/Never write to the Manual until/i);
       });
     });
 
@@ -2353,14 +2261,14 @@ describe("buildSystemPrompt", () => {
     });
 
     it("does NOT render the depth-building or approaching-signal sections", () => {
-      const result = build({ checkpointApproaching: true, isReturningUser: true });
+      const result = build({ isReturningUser: true });
       expect(result).not.toContain("DEPTH BUILDING SIGNAL");
       expect(result).not.toContain("CHECKPOINT APPROACHING SIGNAL");
       expect(result).not.toContain("Something is forming in your model");
     });
 
     it("does NOT contain the FIRST-EVER approaching signal's teaching copy", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("FIRST-EVER approaching signal");
       expect(result).not.toContain("When I see enough material I'll reflect a pattern back to you");
       expect(result).not.toContain("Nothing sticks unless you say so");
@@ -2369,13 +2277,8 @@ describe("buildSystemPrompt", () => {
 
   // ─── Transition copy (new) ───────────────────────────────────────────────
   describe("checkpoint transition copy", () => {
-    it("uses 'I want to put something in your Manual.' as the transition line", () => {
-      const result = build({ checkpointApproaching: true });
-      expect(result).toContain('"I want to put something in your Manual."');
-    });
-
     it("no longer contains the old 'Something\\'s taken shape' transition", () => {
-      const result = build({ checkpointApproaching: true });
+      const result = build({});
       expect(result).not.toContain("Something's taken shape from what you've told me");
     });
   });
@@ -2420,30 +2323,6 @@ describe("buildSystemPrompt", () => {
       }
     });
 
-    it("checkpoint-mode sections appear in the expected order", () => {
-      const result = build({
-        checkpointApproaching: true,
-        turnCount: 5,
-      });
-      // Phase 7-High removed POST-CHECKPOINT (replaced by mode-specific
-      // blocks loaded only on post-confirm calls). POST-REJECTION gates on
-      // the rejection signal, not on checkpointApproaching, so it is absent on
-      // a normal approaching turn. Gate 8 removed PROGRESS SIGNALS — modals now.
-      const EXPECTED_CHECKPOINT_SECTIONS = [
-        "TIER 3: CONVERSATION MECHANICS",
-        "CHECKPOINTS",
-        "ADAPTING",
-      ];
-      let cursor = 0;
-      for (const section of EXPECTED_CHECKPOINT_SECTIONS) {
-        const idx = result.indexOf(section, cursor);
-        expect(
-          idx,
-          `Section "${section}" missing or out of order (cursor=${cursor})`
-        ).toBeGreaterThanOrEqual(cursor);
-        cursor = idx + section.length;
-      }
-    });
   });
 
   // ─── Guided intake mode ─────────────────────────────────────────────────
@@ -2825,7 +2704,6 @@ describe("buildSystemPrompt", () => {
       sessionSummary: null,
       isFirstCheckpoint: false,
       turnCount: 5,
-      checkpointApproaching: false,
     };
 
     function buildBlocks(overrides: Partial<OneOnOnePromptOptions> = {}) {
@@ -2968,8 +2846,8 @@ describe("buildSystemPrompt", () => {
     });
 
     it("staticContext is identical across checkpointApproaching changes", () => {
-      const approaching = buildBlocks({ checkpointApproaching: true });
-      const notApproaching = buildBlocks({ checkpointApproaching: false });
+      const approaching = buildBlocks({});
+      const notApproaching = buildBlocks({});
       expect(approaching.staticContext).toBe(notApproaching.staticContext);
     });
   });
@@ -2987,7 +2865,6 @@ describe("buildSystemPrompt", () => {
       sessionSummary: null,
       isFirstCheckpoint: false,
       turnCount: 5,
-      checkpointApproaching: false,
     };
 
     function bothForms(overrides: Partial<OneOnOnePromptOptions> = {}) {

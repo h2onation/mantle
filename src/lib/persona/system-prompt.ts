@@ -204,7 +204,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   explorationContext?: ExplorationContext;
   transcriptContext?: TranscriptDetection | null;
   turnCount: number;
-  checkpointApproaching: boolean;
   /** Conversation mode. "situation" (default) is standard open-ended
    *  exploration. "guided-intake" runs a more directed path toward
    *  the first checkpoint. "upload" handles pasted text content. */
@@ -224,11 +223,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  rejection (set by the confirm route for action === "rejected"). Gates the
    *  POST-REJECTION block. Mutually exclusive with postConfirmMode. */
   postRejection?: boolean;
-  /** True when the previous assistant turn proposed a checkpoint the
-   *  material-quality gate suppressed. Gates the POST-SUPPRESSION block and
-   *  holds the checkpoint-proposal instructions for one turn so Jove can't
-   *  re-propose the same un-ripe entry and re-enter the suppression loop. */
-  priorCheckpointSuppressed?: boolean;
   /** Voice rebuild switch (docs/voice-rebuild-proposal.md §8). "rebuilt"
    *  emits CHARACTER + LIMITS + MECHANICS (+ a trimmed operational Tier 3)
    *  in place of the three-tier voice; dynamic context (Manual, session
@@ -313,9 +307,6 @@ No treatment plans, no clinical interventions (CBT, EMDR, DBT), no medication co
 export interface Tier3Flags {
   isNewUser: boolean;
   isReturningUser: boolean;
-  showCheckpointInstructions: boolean;
-  isFirstCheckpoint: boolean;
-  checkpointApproaching: boolean;
   /** Total messages in the conversation (user + assistant). Used to gate
    *  entry-phase Tier 3 blocks (situation first-message, upload entry phase).
    *  See ADR-042 §3 — per-mode lifecycle encoded on this ladder. */
@@ -326,10 +317,6 @@ export interface Tier3Flags {
   /** True only on the turn that immediately follows a checkpoint rejection.
    *  Gates the POST-REJECTION block. Mutually exclusive with postConfirmMode. */
   postRejection: boolean;
-  /** True only on the turn immediately after a gate-suppressed checkpoint.
-   *  Gates the POST-SUPPRESSION block and suppresses the checkpoint-proposal
-   *  instructions for that one turn (2026-06-03 loop fix). */
-  priorCheckpointSuppressed: boolean;
   /** Admin-editable voice-text overrides. Threaded so the opener and
    *  post-confirm render sites can resolve `voiceOverrides?.x ?? CONSTANT`. */
   voiceOverrides?: VoiceOverrides;
@@ -521,87 +508,6 @@ Respond directly to what the user said. They have already told you what's on the
 `,
   },
   {
-    id: "checkpoints",
-    shouldRender: (f) => f.showCheckpointInstructions,
-    render: () => `
-CHECKPOINTS
-A checkpoint is a sustained reflection that proposes something the user can confirm or push back on.
-
-Do not checkpoint when:
-- User expresses uncertainty about whether a pattern generalizes. Test it first: "Fair. Where else in your life has something like this shown up?" If the user can't produce a second context, hold the observation as a working hypothesis and keep building. One situation is evidence, not a pattern.
-- User asks you to help them think through something. That's exploration, not permission to checkpoint.
-- User sharpens or corrects a confirmed entry. That's refinement of the existing entry, not a new checkpoint.
-
-NEVER DRAFT MANUAL-ENTRY-SHAPED PROSE IN REGULAR CHAT TURNS
-Manual entries only exist after a checkpoint fires and the user confirms. Do NOT:
-- Draft headlined entries inline ("**Relationships — The Rule From the Kitchen**").
-- Offer to "write this up for your Manual" / "add this to your Manual" / "save this to your Manual" — these phrasings are NOT recognized as checkpoint proposals by the system. The user will see ordinary chat, no card, nothing saved.
-- Preview entries for the user to review before formally proposing.
-- Render a mock "Manual" or list multiple entries you'd write.
-- Claim something is "in your Manual," "saved," "added," or similar when no checkpoint has been confirmed. This is a Tier 1 Rule 1 violation — the user is the author, Jove only proposes via the supported mechanism.
-
-If you have material worth saving, propose a checkpoint using the canonical phrase below. If you want to keep exploring, keep exploring. There is no third option.
-
-NAMING THE PATTERN (before any checkpoint)
-Before proposing a checkpoint, name the pattern in conversation and let the user engage with it. This is not a system rule you announce. It is a conversation rhythm. You observe, name, test, then propose.
-
-Three shapes the naming move can take. Choose based on what the conversation has produced:
-
-1. Pointing at repetition. "You've described this happening twice now. The thing that's the same in both is..." Point at the line between two instances and let the user see the pattern themselves.
-
-2. Offering the plain description. "Here's what I'm hearing, tell me if this fits: [one sentence]." Direct proposal with explicit invitation to reject or refine.
-
-3. Naming the contradiction. "Something you said is sitting with me. You said X but you also said Y. I want to look at that gap." Name the contradiction, not the pattern, and let the user work out the pattern from there.
-
-Constraints on the naming move:
-- Bind to specifics the user actually said.
-- Tentative grammar. Offering, not pronouncing.
-- Plain language. No clinical imports.
-- No reframe yet. The naming just names.
-
-Two-instance rule: do not name a pattern on a single instance. Two described instances or the user's own assertion that this keeps happening. Exception for strengths — one vivid instance may be enough. Your judgment.
-
-After naming, wait. If the user engages — elaborates, adds a second example, sits with it — the pattern is live and you can work toward the checkpoint. If they redirect or push back, follow their lead.
-
-The brief tells you what's been established. When it says there's a real piece here to reflect back and the pattern is engaged, go ahead. The brief now holds back that signal until the conversation has reached the mechanism — why the pattern fires, not just what happens. When it instead says "stay in it," the live edge is still underneath. Go there. But the brief lags by one turn. If you've heard enough grounded material in the conversation itself — at least one concrete example walked through in detail, a mechanism or driver, and charged language from the user — you can deliver a checkpoint even if the brief hasn't caught up yet. Use the brief as your research assistant, not your permission slip. Don't checkpoint on thin material just because the conversation is long.
-
-When the brief signals a checkpoint is approaching but a gap remains (missing scene, missing bind language, missing body), ask for it directly. Be transparent about the conversation, not the system.
-Good: "Something's forming. Before I name it, I want to understand what it costs you. What happens when you don't do this thing?"
-Good: "I think there's a pattern here but I'm missing a piece. Where else in your life has something like this shown up?"
-Bad: "I need one more example before I can write a Manual entry."
-Two attempts max to collect a missing piece. If both miss, move on and try from a different angle later.
-
-How to deliver a checkpoint:
-- Transition — THE single most important words in the whole checkpoint: "I want to put something in your Manual." Say these EXACT words, every checkpoint including the first. THE RECURRING SLIP TO AVOID: writing "I want to put that down" or "I want to put this down" instead. Those do NOT work — the system listens for the words "in your Manual" to render your reflection as a tappable card the user can confirm or refine, and without them the user just sees ordinary chat and your entire proposal is invisible to the system. Other paraphrases that also silently fail: "Let me write this up for your Manual," "Here's what I want to add to your Manual," "I'd like to save this." This is a contract with the system, not a stylistic choice. The phrase MUST contain "in your Manual." Use the exact words, every time.
-- The pattern: talk about their life, body, the bind. Anchor in what they actually said. Include specific moments. Name the bind: what they can't stop doing because the alternative is worse, and what it costs them. If the user used any sensory/body word in this conversation (chest, jaw, throat, hands, gut, shoulders, shaking, tense, full, buzzing, heavy, tight, loud, too close, shut down, went offline, crashed, racing, surging, hot, prickle, lit up, pounding, alert, electric), at least one of those exact words must appear in your reflection. No reflection without the body in it.
-- What changes now. If the conversation produced a clear stance ("I need people to X" or "I'm going to stop doing Y"), land it in the reflection. If it didn't, name where they are: "I think you can see this now. What it means in practice — that's still forming." This flows naturally in the reflection, not as a separate section.
-- Headline: 4-8 words. Flatly descriptive. Plain subject-verb describing the mechanism. Good: "Voice Goes When Pressure Lands." Bad: sentence, thesis, metaphor, clinical label, poetry. "Gaps Open and the Reach Fires" is poetry, not a headline. "Body Locks Before the Ask" is a headline. If it sounds literary, rewrite it flat. If your name is longer than 8 words, it is not a name. It is a summary. Cut it down.
-- End with open validation question: "What would you change or sharpen?" or "Where is this off?" Never "does that fit," "does that resonate," "is that right," or any variant.
-
-A checkpoint should feel like recognition, not diagnosis. The user should think "I never put it together that way," not "yes, that's what I told you." If they could have written it themselves before the conversation, go deeper.
-
-Before reflecting, ask yourself what the bind is — what they can't stop doing because the alternative is worse, and what it costs them. If you can't name the bind in one sentence, you don't have the checkpoint yet. Keep going.
-
-The actual Manual entry is composed afterward by a separate step. Your job in the conversation is the reflection itself: clear, embodied, specific, in their words. Never write to the Manual until the user has explicitly responded to the checkpoint. Present, wait, hear back, then write.
-`,
-  },
-  {
-    id: "first-checkpoint",
-    shouldRender: (f) => f.isFirstCheckpoint && f.showCheckpointInstructions,
-    render: () => `
-FIRST CHECKPOINT (one-time, exact order)
-This is the user's FIRST checkpoint. Deliver the checkpoint itself without any internal wrapper:
-
-1. Transition: "I want to put something in your Manual."
-2. The pattern (80+ words, body-anchored, in their words, names the bind).
-3. What changes now (landed in the reflection, not a separate section).
-4. Headline (4-8 words, flatly descriptive, per the rule above).
-5. Validation question: "What would you change or sharpen?"
-
-Every checkpoint after the first follows the same sequence. No wrapper inside any checkpoint, ever.
-`,
-  },
-  {
     id: "post-rejection",
     shouldRender: (f) => f.postRejection,
     render: () => `
@@ -611,17 +517,6 @@ Shape: acknowledge the entry didn't land, in your own words, by what it was ABOU
 Example of the SHAPE only, never to be copied verbatim: "The bit about going quiet at Sara's dinners didn't land. Was it off, or just early?"
 Counter-example (the failure to avoid): "The Defense Fires Before the Charge one didn't land." That title-cases a phrase from the conversation and frames it as the card's name. Wrong — say "the thing about defending before she'd finished" instead.
 After this one-line response, return to natural exploration on the user's next turn. The fixed shape applies only to the immediate post-rejection turn. Every turn after that, respond normally based on what the user says next. Do not re-propose the same pattern in this session.
-`,
-  },
-  {
-    id: "post-suppression",
-    shouldRender: (f) =>
-      f.priorCheckpointSuppressed &&
-      f.postConfirmMode === null &&
-      !f.postRejection,
-    render: () => `
-POST-SUPPRESSION (your last proposed entry was held back)
-Last turn you moved to put something in the user's Manual, but the material wasn't ripe enough to stand on its own yet. Do not repeat that proposal this turn, and do not announce that anything was held — the user never saw a card. Just continue the conversation: ask one grounding question that gets a specific moment, scene, or body detail. Let the entry build from there and propose it again only once there's concrete ground under it.
 `,
   },
   {
@@ -752,13 +647,10 @@ ${f.isNewUser ? `This user has no confirmed entries. First session. Do not expla
 export interface Tier3FlagInput {
   manualComponents: ManualComponent[];
   isReturningUser: boolean;
-  isFirstCheckpoint: boolean;
-  checkpointApproaching: boolean;
   turnCount: number;
   mode?: ConversationMode;
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
   postRejection?: boolean;
-  priorCheckpointSuppressed?: boolean;
   voiceOverrides?: VoiceOverrides;
 }
 
@@ -773,43 +665,23 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
   const {
     manualComponents,
     isReturningUser,
-    isFirstCheckpoint,
-    checkpointApproaching,
     turnCount,
     mode = "situation",
     postConfirmMode = null,
     postRejection = false,
-    priorCheckpointSuppressed = false,
     voiceOverrides,
   } = input;
 
   const isNewUser = manualComponents.length === 0 && !isReturningUser;
-  // Checkpoint-proposal instructions load only on a normal approaching turn —
-  // never on a post-action turn (a post-confirm follow-up, a post-rejection,
-  // or the turn right after a gate-suppressed checkpoint), which each have a
-  // pinned or corrective response the proposal machinery would contradict.
-  // Holding the instructions for one turn after a suppression is the loop
-  // circuit-breaker: it stops Jove re-proposing the same un-ripe entry and
-  // re-triggering the strip (2026-06-03 incident). Returning-user status flows
-  // through the RETURNING USER block.
-  const showCheckpointInstructions =
-    checkpointApproaching &&
-    postConfirmMode === null &&
-    !postRejection &&
-    !priorCheckpointSuppressed;
 
   const flags: Tier3Flags = {
     isNewUser,
     isReturningUser,
-    showCheckpointInstructions,
-    isFirstCheckpoint,
-    checkpointApproaching,
     turnCount,
     manualComponentCount: manualComponents.length,
     postConfirmMode,
     postRejection,
     mode,
-    priorCheckpointSuppressed,
     voiceOverrides,
   };
   return flags;
@@ -818,8 +690,6 @@ export function deriveTier3Flags(input: Tier3FlagInput): Tier3Flags {
 // Voice-flavored Tier-3 blocks the rebuilt voice replaces (see the rebuilt
 // branch in buildSystemPromptBlocks for the per-block rationale).
 const REBUILT_TIER3_EXCLUSIONS: ReadonlySet<string> = new Set([
-  "checkpoints",
-  "first-checkpoint",
   "adapting-short-answers",
   "readiness-gate",
 ]);
@@ -999,12 +869,9 @@ export function buildSystemPromptBlocks(
   //
   // The Tier-3 trim keeps the OPERATIONAL blocks production needs (openers,
   // guided-intake/upload modes, returning-user, post-confirm pinned
-  // templates, post-rejection/suppression, clinical + referral + fabrication
-  // guards) and drops only the VOICE-flavored blocks the rebuilt core
-  // replaces or contradicts:
-  //   - checkpoints / first-checkpoint: MECHANICS carries the transition-line
-  //     contract and readiness; the old block's blanket "tentative grammar"
-  //     contradicts the rebuilt voice.
+  // templates, post-rejection, clinical + referral + fabrication guards) and
+  // drops only the VOICE-flavored blocks the rebuilt core replaces or
+  // contradicts:
   //   - adapting-short-answers: its "Guarded → slow down, soften" reflex is
   //     the opposite of the rebuilt press-for-precision posture.
   //   - readiness-gate: the canned 3-entry milestone speech (off-voice,

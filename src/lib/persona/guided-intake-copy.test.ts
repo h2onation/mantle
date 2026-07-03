@@ -18,7 +18,6 @@ describe("guided-intake block (area-anchored)", () => {
       sessionCount: 1,
       currentConversationId: "test",
       turnCount: 1,
-      checkpointApproaching: false,
     });
 
   it("renders the tee-up with the mandatory 'one thing worth keeping' endpoint", () => {

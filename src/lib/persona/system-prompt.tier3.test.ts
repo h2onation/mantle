@@ -32,7 +32,6 @@ const defaults: OneOnOnePromptOptions = {
   sessionSummary: null,
   isFirstCheckpoint: false,
   turnCount: 5,
-  checkpointApproaching: false,
 };
 
 function buildTier3Region(
@@ -106,37 +105,10 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("checkpoints fire for returning users when checkpointApproaching=true", () => {
-    // A returning user WITH checkpointApproaching set loads the checkpoint
-    // instruction blocks (returning-user first-turn-situation + checkpoints).
-    // POST-REJECTION is NOT here — it gates on the rejection signal, not on
-    // checkpointApproaching.
-    expect(
-      buildTier3Region({
-        isReturningUser: true,
-        checkpointApproaching: true,
-        manualComponents: [{ layer: 1, name: "Test", content: "Test content" }],
-      }),
-    ).toMatchSnapshot();
-  });
-
-  it("checkpoints fire when checkpointApproaching=true (new user)", () => {
-    expect(buildTier3Region({ checkpointApproaching: true })).toMatchSnapshot();
-  });
-
   it("post-rejection fires on the post-rejection turn (postRejection=true)", () => {
     // The corrected gate: POST-REJECTION loads on the rejection signal alone,
     // and the checkpoint-proposal blocks are suppressed on this turn.
     expect(buildTier3Region({ postRejection: true })).toMatchSnapshot();
-  });
-
-  it("first-checkpoint fires when isFirstCheckpoint=true AND checkpointApproaching=true", () => {
-    expect(
-      buildTier3Region({
-        isFirstCheckpoint: true,
-        checkpointApproaching: true,
-      }),
-    ).toMatchSnapshot();
   });
 
   it("post-confirm first-message-2 fires when postConfirmMode='first-message-2'", () => {
@@ -176,23 +148,4 @@ describe("buildTier3 — block-firing snapshots", () => {
     ).toMatchSnapshot();
   });
 
-  it("all conditional blocks together: returning + checkpoint approaching + first checkpoint + readiness + situation mode", () => {
-    // Fires the maximum set of blocks: returning-user main + returning-user
-    // first-turn-situation + checkpoints + first-checkpoint + readiness-gate +
-    // always-on + 'Not a first session' branch. POST-REJECTION is mutually
-    // exclusive with the checkpoint-proposal blocks (it gates on the rejection
-    // signal), so it is not part of this max set.
-    expect(
-      buildTier3Region({
-        isReturningUser: true,
-        isFirstCheckpoint: true,
-        checkpointApproaching: true,
-        manualComponents: [
-          { layer: 1, name: "A", content: "alpha" },
-          { layer: 2, name: "B", content: "beta" },
-          { layer: 3, name: "C", content: "gamma" },
-        ],
-      }),
-    ).toMatchSnapshot();
-  });
 });

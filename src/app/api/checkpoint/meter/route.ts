@@ -4,7 +4,6 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   loadConversationContext,
-  applyCheckpointGates,
   resolveReflectionMeter,
 } from "@/lib/persona/persona-pipeline";
 
@@ -15,9 +14,9 @@ import {
  * conversation (those land via DB reload, not a live stream). The client calls
  * this when a conversation opens to rehydrate `{ depth, ready }`.
  *
- * Derives the SAME values the live path emits — `depth` from the stored
- * extraction state, `ready` from `applyCheckpointGates` over the same inputs
- * `call-persona` uses — so there is no second readiness formula to drift.
+ * Derives the SAME values the live path emits — fill from the stored extraction
+ * state's depth, `ready` from Jove's published landed signal — via the shared
+ * resolveReflectionMeter, so there is no second readiness formula to drift.
  *
  * Returns:
  *   { reflectionMeter: { depth, ready } }  → render the meter
@@ -61,22 +60,12 @@ export async function GET(request: Request) {
     return Response.json({ reflectionMeter: undefined });
   }
 
-  // Same ONE resolution the live SSE path uses (resolveReflectionMeter), fed
-  // by the same gate verdict — no second readiness formula to drift.
-  const gateResult = applyCheckpointGates(
-    ctx.turnsSinceCheckpoint,
-    ctx.previousExtraction,
-    ctx.isFirstCheckpoint,
-    ctx.turnCount,
-    ctx.checkpointTuning
-  );
-
+  // Same ONE resolution the live SSE path uses (resolveReflectionMeter) — no
+  // second readiness formula to drift.
   const reflectionMeter = resolveReflectionMeter({
     extraction: ctx.previousExtraction,
     turnsSinceCheckpoint: ctx.turnsSinceCheckpoint,
-    gatePassed: gateResult.passed,
     cooldownTurns: ctx.checkpointTuning.cooldownTurns,
-    conductorActive: ctx.conductorActive,
     reflectionLanded: ctx.reflectionLanded,
   });
 

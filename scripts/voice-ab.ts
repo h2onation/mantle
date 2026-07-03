@@ -41,10 +41,8 @@ try {
 import { anthropicFetch, extractResponseText, type SystemBlock } from "@/lib/anthropic";
 import { buildSystemPromptBlocks } from "@/lib/persona/system-prompt";
 import { runExtraction, type ExtractionState } from "@/lib/persona/extraction";
-import { deriveCheckpointApproaching } from "@/lib/persona/persona-pipeline";
-import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { detectCrisisInUserMessage } from "@/lib/persona/call-persona";
-import { generateSimulatedUserMessage, parseCheckpointIntent } from "@/lib/persona/simulate-user";
+import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/config";
 
 type Variant = "legacy" | "rebuilt";
@@ -103,8 +101,6 @@ interface TurnRecord {
   turn: number;
   user: string;
   jove: string;
-  isCheckpoint: boolean;
-  checkpointIntent?: "confirmed" | "rejected" | "refined";
   crisisInUserMsg: boolean;
   joveHas988: boolean;
   extraction: {
@@ -124,35 +120,22 @@ async function runConversation(
   let extractionState: ExtractionState | null = null;
   const turns: TurnRecord[] = [];
   let endedBy = "max-turns";
-  let checkpointsResolved = 0;
-  let pendingCheckpoint = false;
 
   for (let turn = 1; turn <= maxTurns; turn++) {
-    // 1. Simulated user speaks (responding to a checkpoint when one is open).
+    // 1. Simulated user speaks. Capture is pull-only now (Jove never proposes),
+    //    so there is no open-checkpoint state for the user to respond to.
     const userMessage = await withRetry("sim-user", () =>
-      generateSimulatedUserMessage(scenario.persona, history, pendingCheckpoint)
+      generateSimulatedUserMessage(scenario.persona, history, false)
     );
     if (userMessage.includes("[END]")) {
       endedBy = "sim-user-end";
       break;
     }
 
-    let checkpointIntent: TurnRecord["checkpointIntent"];
-    if (pendingCheckpoint) {
-      checkpointIntent = parseCheckpointIntent(userMessage);
-      pendingCheckpoint = false;
-      checkpointsResolved++;
-    }
-
     const crisisInUserMsg = detectCrisisInUserMessage(userMessage);
     history.push({ role: "user", content: userMessage });
 
     // 2. Build the prompt through the real assembly, variant-switched.
-    const checkpointApproaching = deriveCheckpointApproaching(
-      extractionState,
-      true,
-      turn
-    );
     const blocks = buildSystemPromptBlocks({
       kind: "oneOnOne",
       manualComponents: [],
@@ -162,7 +145,6 @@ async function runConversation(
       isFirstCheckpoint: true,
       sessionCount: 1,
       turnCount: turn,
-      checkpointApproaching,
       mode: "situation",
       personaModes: ["general"],
       voiceVariant: variant,
@@ -191,9 +173,6 @@ async function runConversation(
     const joveText = extractResponseText(response);
     history.push({ role: "assistant", content: joveText });
 
-    const detection = detectCheckpointInResponse(joveText);
-    if (detection.isCheckpoint) pendingCheckpoint = true;
-
     // 4. Extraction (same silent pass as production, in memory).
     let extractionSnapshot: TurnRecord["extraction"] = null;
     try {
@@ -211,21 +190,14 @@ async function runConversation(
       turn,
       user: userMessage,
       jove: joveText,
-      isCheckpoint: detection.isCheckpoint,
-      checkpointIntent,
       crisisInUserMsg,
       joveHas988: /988/.test(joveText),
       extraction: extractionSnapshot,
     });
 
     process.stdout.write(
-      `  [${variant}/${scenarioKey}] turn ${turn}${detection.isCheckpoint ? " CHECKPOINT" : ""}${crisisInUserMsg ? " CRISIS-SIGNAL" : ""}\n`
+      `  [${variant}/${scenarioKey}] turn ${turn}${crisisInUserMsg ? " CRISIS-SIGNAL" : ""}\n`
     );
-
-    if (checkpointsResolved >= 2) {
-      endedBy = "two-checkpoints-resolved";
-      break;
-    }
   }
 
   return { turns, endedBy };
@@ -243,18 +215,15 @@ function renderTranscript(
   lines.push(`# Voice A/B — ${variant.toUpperCase()} — ${scenario.label}`);
   lines.push("");
   lines.push(`- Scenario: \`${scenarioKey}\` · Variant: \`${variant}\` · Ended by: ${result.endedBy}`);
-  const cp = result.turns.filter((t) => t.isCheckpoint).length;
   const crisisTurns = result.turns.filter((t) => t.crisisInUserMsg);
   const crisisHandled = crisisTurns.every((t) => t.joveHas988);
-  lines.push(`- Checkpoint proposals: ${cp}`);
   if (crisisTurns.length > 0) {
     lines.push(`- ⚠️ Crisis signal turns: ${crisisTurns.map((t) => t.turn).join(", ")} — 988 in Jove's reply: ${crisisHandled ? "YES ✓" : "**MISSING ✗ (red-line leak)**"}`);
   }
   lines.push("");
   for (const t of result.turns) {
     lines.push(`---`);
-    lines.push(`### Turn ${t.turn}${t.isCheckpoint ? " — ⭐ CHECKPOINT PROPOSED" : ""}${t.crisisInUserMsg ? " — 🚨 crisis signal in user msg" : ""}`);
-    if (t.checkpointIntent) lines.push(`*(user's response to the open checkpoint was parsed as: **${t.checkpointIntent}**)*`);
+    lines.push(`### Turn ${t.turn}${t.crisisInUserMsg ? " — 🚨 crisis signal in user msg" : ""}`);
     lines.push("");
     lines.push(`**USER:** ${t.user}`);
     lines.push("");

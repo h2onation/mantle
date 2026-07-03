@@ -24,8 +24,6 @@ import { getFeatureGates, type FeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 import {
   getCheckpointTuning,
-  CHECKPOINT_TUNING_DEFAULTS,
-  DEPTH_LEVELS,
   type CheckpointTuning,
 } from "./checkpoint-tuning";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
@@ -48,26 +46,12 @@ export interface ConversationContext {
   turnsSinceCheckpoint: number;
   conversationId: string;
   turnCount: number;
-  checkpointApproaching: boolean;
   personaModes: PersonaMode[];
   mode: "situation" | "guided-intake" | "upload";
-  /** True when the immediately-preceding assistant turn proposed a
-   *  checkpoint that the material-quality gate suppressed. Drives the
-   *  POST-SUPPRESSION prompt block so Jove doesn't re-propose the same
-   *  entry and re-trigger the suppression loop (2026-06-03 incident). */
-  priorCheckpointSuppressed: boolean;
-  /** False when the `checkpoints` feature gate is OFF. Read by
-   *  call-persona.ts to skip checkpoint detection entirely, so no
-   *  checkpoint is ever proposed while the gate is disabled. The
-   *  checkpoint-derived prompt flags (checkpointApproaching,
-   *  priorCheckpointSuppressed) are already zeroed in this context when
-   *  the gate is OFF, so one boolean fully neutralizes the pipeline. */
-  checkpointsEnabled: boolean;
-  /** True when the `reflection_meter` feature gate is ON — the user-pulled
-   *  Reflection model. When true, `checkpointsEnabled` is forced false (Jove
-   *  stops auto-proposing) while the standalone composer + confirm route stay
-   *  callable for the on-demand /api/checkpoint/compose endpoint. Read by
-   *  call-persona.ts to surface the depth + readiness signals to the client. */
+  /** True when the web reflection meter is active — the user-pulled capture
+   *  model. Web-only (surface === "web"); text/SMS has no meter and no capture
+   *  path. Read by call-persona.ts to surface the depth + readiness signals to
+   *  the client and by the compose/meter routes. */
   reflectionMeterEnabled: boolean;
   /** False when the `extraction_brief` feature gate is OFF. Read by
    *  call-persona.ts to skip the background extraction call. Extraction still
@@ -80,16 +64,15 @@ export interface ConversationContext {
    *  enabled override exists, in which case every field falls back to its
    *  code constant at the resolution site. */
   voiceOverrides: VoiceOverrides;
-  /** Admin-editable checkpoint-firing thresholds (checkpoint_tuning table),
-   *  resolved once per turn alongside the feature gates. Read by call-persona
-   *  /persona-bridge to gate a detected checkpoint. Every dial falls back to
-   *  its code default (CHECKPOINT_TUNING_DEFAULTS) on a missing/invalid value. */
+  /** Admin-editable checkpoint tuning (checkpoint_tuning table), resolved once
+   *  per turn alongside the feature gates. Only `cooldownTurns` is live now —
+   *  it caps the reflection meter's post-save recharge (reflectionMeterFill).
+   *  Falls back to its code default on a missing/invalid value. */
   checkpointTuning: CheckpointTuning;
-  /** TEMPORARY conductor variant (conductor-prompt.ts). True only when the
-   *  conversation's user is an admin AND the `conductor` feature gate is on —
-   *  the pull-model prompt can never reach a real user. False on every normal
-   *  turn. Also opens the checkpoint gate (crisis still blocks) — see
-   *  applyCheckpointGates. */
+  /** True when the conductor is the live voice (LIVE_VOICE_VARIANT ===
+   *  "conductor"). Drives the conductor prompt variant and keys the composer's
+   *  verbatim-anchor instruction on the pull path. Setting LIVE_VOICE_VARIANT
+   *  back to "rebuilt" rolls the pull model off in one place. */
   conductorActive: boolean;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
@@ -99,16 +82,6 @@ export interface ConversationContext {
    *  strip early — the 2026-07-02 Guerneville run. Resets automatically on
    *  save: a new checkpoint row postdates the marker message. */
   reflectionLanded: boolean;
-}
-
-/** Outcome of the post-detection gates. `passed` is the only field
- *  callers act on; `reason` is for dev logging when a checkpoint is
- *  suppressed (turn-count or material-quality). The classifier-era
- *  shape carried layer + name pass-throughs; those are now produced by
- *  the composition step instead. */
-export interface CheckpointGateResult {
-  passed: boolean;
-  reason?: string;
 }
 
 export interface CheckpointMeta {
@@ -138,32 +111,6 @@ export interface CheckpointMeta {
 // ── 1. Load conversation context ────────────────────────────────────────────
 
 /**
- * Resolve, for one turn, whether Jove-pushed checkpoint proposals and the
- * reflection meter are active.
- *
- * INVARIANT (do not regress): the reflection meter is a WEB-only affordance —
- * the fill bar and pull strip render only in the app client, and there is no
- * pull/compose path over SMS. So on the text surface the meter is forced off
- * and the channel KEEPS its only capture path, Jove-pushed checkpoints. A
- * global meter flip that also silenced text would make text-only users unable
- * to ever add a Manual entry (silently). Pulled out as a pure function so this
- * scoping is independently testable and can't be un-scoped by accident.
- * (Reflection-meter switchover, 2026-06-30.)
- */
-export function deriveProposalFlags(
-  gates: { checkpoints: boolean; reflectionMeter: boolean },
-  surface: "web" | "text"
-): { reflectionMeterEnabled: boolean; proposalsEnabled: boolean } {
-  const reflectionMeterEnabled = gates.reflectionMeter && surface === "web";
-  // When the meter is ON (web only), Jove never auto-proposes — the user pulls
-  // instead. Collapsing this into the existing `checkpoints`-OFF path zeroes
-  // the same prompt flags and skips detection, reusing one tested branch. The
-  // standalone composer + confirm route don't read this, so pull-compose works.
-  const proposalsEnabled = gates.checkpoints && !reflectionMeterEnabled;
-  return { reflectionMeterEnabled, proposalsEnabled };
-}
-
-/**
  * Parallel DB reads + derived user state — shared by web and text paths.
  * Returns everything both paths need to build a system prompt and apply rules.
  */
@@ -173,8 +120,8 @@ export async function loadConversationContext(
   userId: string,
   // The reflection meter is a web-app affordance (the fill bar + pull strip
   // render only in the mobile/desktop client). Text/SMS has no meter and no
-  // pull path, so the meter must NOT govern that channel — its only capture
-  // route is Jove-pushed checkpoints. Callers that run over text pass "text";
+  // pull path, so the meter must NOT govern that channel — it has no capture
+  // path until a future text rebuild. Callers that run over text pass "text";
   // everyone else (web chat, the compose/meter routes) takes the default.
   surface: "web" | "text" = "web"
 ): Promise<ConversationContext> {
@@ -267,22 +214,6 @@ export async function loadConversationContext(
     messages = [{ role: "user", content: "[Session started]" }];
   }
 
-  // Loop circuit-breaker (2026-06-03): did the immediately-preceding
-  // assistant turn propose a checkpoint that the gate suppressed? The
-  // suppressed turn tags its row metadata; we read it back here so the
-  // next turn's prompt can tell Jove not to re-propose the same entry.
-  const priorAssistant = [...(historyResult.data || [])]
-    .reverse()
-    .find((m: { role: string }) => m.role === "assistant");
-  const priorCheckpointSuppressed = Boolean(
-    (
-      priorAssistant?.metadata as
-        | { checkpoint_suppressed?: boolean }
-        | null
-        | undefined
-    )?.checkpoint_suppressed
-  );
-
   // Raw entries from manual_entries. We map source_message_id → conversation_id
   // below so prepareManualContext can split "current session" from "older"
   // without another round-trip.
@@ -329,15 +260,11 @@ export async function loadConversationContext(
       : null,
   }));
   // extraction_brief gate OFF → the pipeline sees NO analysis state at all.
-  // We null the stored extraction_state at the source (not just the rendered
-  // brief), so every downstream reader — the checkpoint material-quality gate,
-  // checkpointApproaching, the admin extraction_snapshot, and the brief — sees
-  // null and behaves as if nothing has been analyzed. Without this, a returning
-  // user's frozen-but-non-null stored state would let the checkpoint gate still
-  // pass and fire an entry composed from stale analysis, contradicting
-  // voice-only mode. This mirrors how the checkpoints gate zeros every
-  // checkpoint-derived flag. The DB row is untouched, so flipping the gate
-  // back ON restores the real state on the next turn.
+  // We null the stored extraction_state at the source, so every downstream
+  // reader — the save-time composer, the admin extraction_snapshot, the safety
+  // detectors, and the reflection meter — sees null and behaves as if nothing
+  // has been analyzed. The DB row is untouched, so flipping the gate back ON
+  // restores the real state on the next turn.
   const previousExtraction: ExtractionState | null = gates.extractionBrief
     ? (extractionResult.data?.extraction_state ?? null)
     : null;
@@ -385,23 +312,12 @@ export async function loadConversationContext(
   }
 
   const turnCount = messages.length;
-  const checkpointApproaching = deriveCheckpointApproaching(
-    previousExtraction,
-    isFirstCheckpoint,
-    turnCount,
-    checkpointTuning
-  );
 
-  // Capture model. Under the conductor (the live voice) the METER is the
-  // capture surface: proposals OFF (the conductor prompt carries no save
-  // trigger — detection would be dead weight, and disabling it zeroes the
-  // checkpoint-derived prompt flags), and the meter is enabled on WEB only
-  // (text/SMS has no meter UI, so it has no capture until the text rebuild —
-  // 2026-07-02 promotion). If LIVE_VOICE_VARIANT is rolled back to a
-  // non-conductor voice, this falls to the Jove-pushed model.
-  const { reflectionMeterEnabled, proposalsEnabled } = conductorActive
-    ? { reflectionMeterEnabled: surface === "web", proposalsEnabled: false }
-    : deriveProposalFlags(gates, surface);
+  // Capture model. The conductor (the live voice) is a pure PULL model: the
+  // meter is the capture surface on WEB (text/SMS has no meter UI, so it has no
+  // capture until the text rebuild). Jove never proposes — the Jove-pushed
+  // checkpoint path was removed 2026-07-03 (Wave 3 ship 2).
+  const reflectionMeterEnabled = surface === "web";
 
   return {
     messages,
@@ -414,14 +330,8 @@ export async function loadConversationContext(
     turnsSinceCheckpoint,
     conversationId,
     turnCount,
-    // checkpoints gate OFF → zero every checkpoint-derived prompt flag so
-    // the CHECKPOINTS and POST-SUPPRESSION Tier 3 blocks never render, and
-    // expose checkpointsEnabled so call-persona.ts skips detection entirely.
-    checkpointApproaching: proposalsEnabled && checkpointApproaching,
     personaModes,
     mode: conversationMode,
-    priorCheckpointSuppressed: proposalsEnabled && priorCheckpointSuppressed,
-    checkpointsEnabled: proposalsEnabled,
     reflectionMeterEnabled,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
@@ -491,10 +401,8 @@ export function buildPromptOptionsFromContext(
     isFirstCheckpoint: ctx.isFirstCheckpoint,
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
-    checkpointApproaching: ctx.checkpointApproaching,
     personaModes: ctx.personaModes,
     mode: ctx.mode,
-    priorCheckpointSuppressed: ctx.priorCheckpointSuppressed,
     // Phase 3a: the live voice switch. Both consumers of these options — the
     // app path (call-persona → buildSystemPromptBlocks) and the SMS path
     // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
@@ -631,280 +539,6 @@ export function handleCrisisDetection(
     });
 
   return { responseText, crisisDetected: true };
-}
-
-// ── 4. Checkpoint gates ─────────────────────────────────────────────────────
-
-/**
- * Pre-emit material-quality gate. Re-checks the extraction state's
- * quality criteria server-side BEFORE we let a flagged checkpoint
- * proceed to manual-entry composition. This enforces the same self-check
- * the conversation prompt used to spell out, but silently and outside
- * the leaked surface area.
- *
- * Standard gate: 2+ scenes, mechanism, charged language, behavior↔driver link.
- * First-checkpoint gate (lighter): 1 scene + charged language + (mechanism OR link).
- *
- * Returns { ok, reasons } so callers can log without echoing the
- * gate vocabulary back to the user.
- */
-export function validateMaterialQuality(
-  extractionState: ExtractionState | null,
-  // Retained for signature stability across call sites; the first-checkpoint
-  // lighter bar was retired 2026-06-12 (one bar for every checkpoint).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _isFirstCheckpoint: boolean,
-  turnCount?: number,
-  // Admin-tunable firing thresholds. Defaults to the shipped code floor, so
-  // every existing caller and test behaves exactly as before unless the
-  // pipeline passes the DB-loaded values.
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
-): { ok: boolean; reasons: string[] } {
-
-  // Fail closed on missing material (Lock 1 — ADR-043). A null extraction
-  // state means no ripeness condition can be verified, charged material
-  // included. The old two-gate design backstopped this with a post-composition
-  // check; this one-gate build removed that backstop, so "no data" must read as
-  // "not ripe," never as ripe. Empty / low-only banks on a non-null state are
-  // already caught downstream by the charged-material check.
-  if (!extractionState) {
-    return {
-      ok: false,
-      reasons: ["no extraction state — material cannot be verified"],
-    };
-  }
-
-  const cf = extractionState.clinical_flag;
-  if (cf?.active && cf.level === "crisis") {
-    return { ok: false, reasons: ["crisis active — checkpoint blocked"] };
-  }
-
-  // Phase gate: pattern must be engaged before checkpoint can fire.
-  // Override past the failsafe turn (tuning.failsafeTurn, code default 12):
-  // if extraction missed the engagement signal but material quality is
-  // otherwise strong, allow the checkpoint.
-  if (!extractionState.pattern_engaged) {
-    if (turnCount === undefined || turnCount < tuning.failsafeTurn) {
-      return { ok: false, reasons: ["pattern not yet engaged in conversation"] };
-    }
-    if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "[persona-pipeline] pattern_engaged override at turn %d",
-        turnCount
-      );
-    }
-  }
-
-  const gate = extractionState.checkpoint_gate;
-  const reasons: string[] = [];
-
-  // Depth gate: the conversation must have descended past surface
-  // description before a checkpoint can fire. Without depth at
-  // "mechanism" or "origin," we are still at the layer of "what
-  // happened" / "what they did," not "why this happens to them."
-  // Structural backstop on top of has_mechanism — even if extraction's
-  // per-flag check is generous, the depth reading catches the case
-  // where the conversation as a whole hasn't gone deep. The first
-  // checkpoint meets the same bar — the "feeling is enough for a
-  // teaching-moment entry" carve-out was retired 2026-06-12 (the user's
-  // first entry was reliably their thinnest; THE DEAL now teaches the
-  // loop up front).
-  // DEPTH_LEVELS is the shared shallow→deep ordering (checkpoint-tuning.ts),
-  // also the allowed values for the depth_floor dial.
-  const requiredDepth = tuning.depthFloor;
-  const currentDepthIdx = DEPTH_LEVELS.indexOf(extractionState.depth);
-  const requiredDepthIdx = DEPTH_LEVELS.indexOf(requiredDepth);
-  if (currentDepthIdx < requiredDepthIdx) {
-    reasons.push(
-      `depth at ${extractionState.depth} (need ${requiredDepth} or deeper)`
-    );
-  }
-
-  const minExamples = tuning.minScenes;
-  if (gate.concrete_examples < minExamples) {
-    reasons.push(
-      `concrete scenes ${gate.concrete_examples}/${minExamples}`
-    );
-  }
-
-  // Distinct-contexts is a STRENGTHENING signal, not a blocking gate
-  // (ADR-043 Decision 3, reaffirmed by ADR-045). A genuine recognition from
-  // a single vivid scene in the user's own charged language is saveable;
-  // requiring two contexts blocks exactly the single-powerful-moment case the
-  // recognition mechanism exists for. distinct_contexts still feeds
-  // validateHeadline's "can"/"sometimes" hedge for single-example entries —
-  // the over-claim is scoped by the title + the user's confirmation, not by a
-  // hard gate. (The code had drifted back to a hard >=2 block; soak iter 12
-  // even removed the first-checkpoint =1 escape. Realigned to the ADR
-  // 2026-06-15.)
-
-  // Charged-material gate (Lock 1 — ADR-043). Deterministic check over the
-  // real language_bank, replacing the model-reported has_charged_language
-  // boolean (which can read true while the bank is empty or weak). A pattern
-  // is not ripe unless the bank actually carries a high/medium charged phrase
-  // the candidate pattern is built on.
-  //
-  // - high|medium aligns the gate with the rest of the system: the composer
-  //   (confirm-checkpoint.ts) treats "charged" as high-or-medium. The
-  //   has_charged_language field is still produced by extraction and read
-  //   there — we just stop gating on it here.
-  // - "Built on" approximation: prefer phrases tagged to the candidate layer
-  //   (gate.strongest_layer). When strongest_layer is null (the gate hasn't
-  //   resolved a layer), fall back to any high/medium phrase in the bank.
-  //   A non-null strongest_layer with no charged phrase tagged to it reads as
-  //   not ripe — the charge has to attach to the pattern being proposed.
-  const chargedPhrases = (extractionState.language_bank || []).filter(
-    (e) => e.charge === "high" || e.charge === "medium"
-  );
-  // Coerce to a number so a legacy/in-flight string strongest_layer ("1")
-  // can't fail strict-equality membership against numeric language_bank
-  // layers. Boundary coercion (mergeExtractionState) handles freshly-written
-  // state; this guards previousExtraction rows persisted before that fix.
-  const candidateLayer =
-    gate.strongest_layer === null || gate.strongest_layer === undefined
-      ? null
-      : Number(gate.strongest_layer);
-  const builtOnCharged =
-    candidateLayer !== null
-      ? chargedPhrases.filter(
-          (e) =>
-            Array.isArray(e.layers) &&
-            e.layers.some((l) => Number(l) === candidateLayer)
-        )
-      : chargedPhrases;
-  if (builtOnCharged.length === 0) {
-    reasons.push(
-      candidateLayer !== null
-        ? `no high/medium charged phrase on candidate layer ${candidateLayer}`
-        : "no high/medium charged phrase in language bank"
-    );
-  }
-  if (!gate.has_mechanism) reasons.push("no mechanism");
-  if (!gate.has_behavior_driver_link) reasons.push("no behavior-driver link");
-
-  return { ok: reasons.length === 0, reasons };
-}
-
-/**
- * Decide whether to load the CHECKPOINTS instructions into Jove's
- * system prompt for this turn. Two paths to "true":
- *
- * (1) Extraction's per-layer signal has promoted at least one layer
- *     to "explored" or "checkpoint_ready", backed by charged material
- *     on one of those layers and not during a crisis — its holistic
- *     "feels developed" read (signal alone is not enough; see body and
- *     ADR-043).
- *
- * (2) Extraction's mechanical checklist (concrete scenes + charged
- *     language + mechanism/driver, plus the turn-12 pattern_engaged
- *     override) would pass the downstream material-quality gate —
- *     the field-by-field tally the post-detection suppression check
- *     already uses.
- *
- * Both paths read fields from the same Extraction call. The two
- * readings diverge in practice: long, rich conversations sometimes
- * fill the checklist while the per-layer signal stays at "emerging".
- * Under signal-only, Jove never gets the checkpoint instructions and
- * keeps deepening through material that already qualifies. Reading
- * the checklist too brings this upstream decision into sync with
- * `validateMaterialQuality` — same gate logic applied earlier, so the
- * prompt and the suppression check stay aligned. No new criterion.
- *
- * Returns false when previousExtraction is null (cold start).
- * Exported for direct testing.
- */
-export function deriveCheckpointApproaching(
-  previousExtraction: ExtractionState | null | undefined,
-  isFirstCheckpoint: boolean,
-  turnCount: number,
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
-): boolean {
-  if (!previousExtraction) return false;
-
-  // Signal-ready is a candidate, not a verdict. A layer extraction promoted
-  // to "explored"/"checkpoint_ready" loads checkpoint instructions only if
-  // (a) charged material backs one of those layers (Lock 1 principle,
-  // ADR-043) and (b) no crisis is active. Otherwise fall through to the full
-  // gate, which applies every check — crisis, pattern_engaged, depth, charged
-  // — uniformly. Returning true on signal alone used to bypass
-  // validateMaterialQuality entirely, so a returning user's bootstrapped
-  // "explored" layer could load instructions with no charged material, even
-  // during an active crisis.
-  const signalReadyLayers = Object.entries(previousExtraction.layers)
-    .filter(([, l]) => l.signal === "explored" || l.signal === "checkpoint_ready")
-    .map(([k]) => Number(k));
-
-  if (signalReadyLayers.length > 0) {
-    const cf = previousExtraction.clinical_flag;
-    const crisisActive = cf?.active && cf.level === "crisis";
-    const chargedOnSignalLayer = (previousExtraction.language_bank || []).some(
-      (e) =>
-        (e.charge === "high" || e.charge === "medium") &&
-        Array.isArray(e.layers) &&
-        e.layers.some((ln) => signalReadyLayers.includes(Number(ln)))
-    );
-    if (chargedOnSignalLayer && !crisisActive) return true;
-  }
-
-  return validateMaterialQuality(
-    previousExtraction,
-    isFirstCheckpoint,
-    turnCount,
-    tuning
-  ).ok;
-}
-
-/**
- * Apply material-quality gate and turn-count suppression to a detected
- * checkpoint. Called AFTER the deterministic transition-line detector
- * says yes, BEFORE the composition Opus call. Cheaper to gate here than
- * to compose and discard.
- *
- * Rule 1: Pattern engagement + material quality (validateMaterialQuality).
- * Rule 2: Suppress if fewer than `tuning.cooldownTurns` (code default 5) user
- *         turns have passed since the last checkpoint.
- *
- * Returns `{ passed: true }` when the checkpoint should proceed, or
- * `{ passed: false, reason }` when one of the gates fired. The reason
- * is for dev logging only — callers should never echo it to the user.
- */
-export function applyCheckpointGates(
-  turnsSinceCheckpoint: number,
-  extractionState?: ExtractionState | null,
-  isFirstCheckpoint?: boolean,
-  turnCount?: number,
-  tuning: CheckpointTuning = CHECKPOINT_TUNING_DEFAULTS
-): CheckpointGateResult {
-  // Rule 1: pattern engagement + material-quality pre-emit gate
-  if (extractionState !== undefined) {
-    const quality = validateMaterialQuality(
-      extractionState ?? null,
-      isFirstCheckpoint ?? false,
-      turnCount,
-      tuning
-    );
-    if (!quality.ok) {
-      const reason = quality.reasons.join("; ");
-      if (process.env.NODE_ENV !== "production") {
-        console.log(
-          "[persona-pipeline] Checkpoint suppressed by material-quality gate: %s",
-          reason
-        );
-      }
-      return { passed: false, reason };
-    }
-  }
-
-  // Rule 2: turn-count suppression.
-  if (turnsSinceCheckpoint < tuning.cooldownTurns) {
-    const reason = `only ${turnsSinceCheckpoint} turns since last checkpoint (minimum ${tuning.cooldownTurns})`;
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[persona-pipeline] Checkpoint suppressed: %s", reason);
-    }
-    return { passed: false, reason };
-  }
-
-  return { passed: true };
 }
 
 // ── 4c. Composed-entry post-validation ──────────────────────────────────────
@@ -1210,58 +844,36 @@ export function reflectionMeterFill(
  * The ONE reflection-meter resolution, shared by the live SSE emit
  * (call-persona) and the reload-restore endpoint (checkpoint/meter route) so
  * the two can never disagree — the 2026-07-02 incident was exactly that drift:
- * the live path (experiment-aware) hid the meter while the restore path
- * (experiment-blind) served it with gate-driven fill, so the bar appeared only
+ * one path hid the meter while the other served it, so the bar appeared only
  * after a browser reload.
  *
- * Two regimes, one formula each:
- *  - Normal (pull model): fill from reflectionMeterFill with the REAL gate
- *    verdict; ready = gate passed. Unchanged behavior.
- *  - Conductor: `ready` = Jove's own published landed signal (the
- *    ---reflection-ready--- marker → reflectionLanded), nothing else. Every
- *    extraction-side proxy tried before it fired the strip early — depth
- *    thresholds (mom-run), depth+pattern_engaged (Guerneville run) — because
- *    the analyst infers readiness secondhand while Jove JUDGES it firsthand,
- *    per the landed markers in its prompt. The gate is never fed in
- *    (gatePassed forced false); pre-ready fill is the depth journey and caps
- *    at 80, ready snaps fill to 100 — full bar ⇔ strip visible, one story.
+ * The conductor (the live voice) is the only regime now: `ready` = Jove's own
+ * published landed signal (the ---reflection-ready--- marker → reflectionLanded),
+ * nothing else. Jove JUDGES readiness firsthand, per the landed markers in its
+ * prompt; every extraction-side proxy tried before it fired the strip early
+ * (the mom-run and Guerneville-run incidents). Pre-ready fill is the depth
+ * journey and caps at 80; ready snaps fill to 100 — full bar ⇔ strip visible,
+ * one story.
  *
  * Returns null to HIDE the meter (crisis, or nothing analyzed yet).
  */
 export function resolveReflectionMeter(args: {
   extraction: ExtractionState | null;
   turnsSinceCheckpoint: number;
-  gatePassed: boolean;
   cooldownTurns: number;
-  conductorActive: boolean;
   reflectionLanded: boolean;
 }): { fill: number; ready: boolean } | null {
-  const {
-    extraction,
-    turnsSinceCheckpoint,
-    gatePassed,
-    cooldownTurns,
-    conductorActive,
-    reflectionLanded,
-  } = args;
+  const { extraction, turnsSinceCheckpoint, cooldownTurns, reflectionLanded } =
+    args;
   if (!extraction) return null;
   if (extraction.clinical_flag?.active && extraction.clinical_flag.level === "crisis") {
     return null;
   }
-  if (conductorActive) {
-    const depthFill = reflectionMeterFill(
-      extraction.depth,
-      turnsSinceCheckpoint,
-      /* gatePassed */ false,
-      cooldownTurns
-    );
-    return { fill: reflectionLanded ? 100 : depthFill, ready: reflectionLanded };
-  }
-  const fill = reflectionMeterFill(
+  const depthFill = reflectionMeterFill(
     extraction.depth,
     turnsSinceCheckpoint,
-    gatePassed,
+    /* gatePassed */ false,
     cooldownTurns
   );
-  return { fill, ready: gatePassed };
+  return { fill: reflectionLanded ? 100 : depthFill, ready: reflectionLanded };
 }
