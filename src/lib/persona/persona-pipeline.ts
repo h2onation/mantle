@@ -1278,13 +1278,15 @@ export const CONDUCTOR_STRIP_FILL = 60;
  *  - Normal (pull model): fill from reflectionMeterFill with the REAL gate
  *    verdict; ready = gate passed. Unchanged behavior.
  *  - Conductor: the gate is open (its verdict is meaningless as readiness), so
- *    it is NEVER fed into the meter — fill is depth-only (gatePassed forced
- *    false, so the bar can't claim 100/complete) and `ready` means only "the
- *    strip is visible": fill past CONDUCTOR_STRIP_FILL AND the user has
- *    engaged the named pattern (extraction.pattern_engaged — the user-side
- *    signal; depth alone is bot-side material and fired the strip before the
- *    user was in it, the 2026-07-02 entries-ready-too-early failure). The
- *    true landed signal is Jove's conversational line, not the server.
+ *    it is NEVER fed into the meter — pre-ready fill is depth-only (gatePassed
+ *    forced false, caps at 80) and `ready` requires fill past
+ *    CONDUCTOR_STRIP_FILL AND the user engaging the named pattern
+ *    (extraction.pattern_engaged — the user-side signal; depth alone is
+ *    bot-side material and fired the strip before the user was in it, the
+ *    2026-07-02 entries-ready-too-early failure). When ready, fill snaps to
+ *    100 so the bar and the strip agree on screen — full bar ⇔ strip visible,
+ *    one story. The true landed signal is Jove's conversational line, not the
+ *    server.
  *
  * Returns null to HIDE the meter (crisis, or nothing analyzed yet).
  */
@@ -1301,16 +1303,22 @@ export function resolveReflectionMeter(args: {
     return null;
   }
   if (conductorActive) {
-    const fill = reflectionMeterFill(
+    const depthFill = reflectionMeterFill(
       extraction.depth,
       turnsSinceCheckpoint,
       /* gatePassed */ false,
       cooldownTurns
     );
-    return {
-      fill,
-      ready: fill >= CONDUCTOR_STRIP_FILL && extraction.pattern_engaged,
-    };
+    const ready =
+      depthFill >= CONDUCTOR_STRIP_FILL && extraction.pattern_engaged;
+    // The bar and the strip must tell ONE story: full bar ⇔ strip visible.
+    // Pre-ready fill is depth-only and caps at 80 (REFLECTION_DEPTH_PCT.origin),
+    // so a full bar can never appear without the strip. A 60%-bar-with-ready-
+    // strip contradiction shipped 2026-07-02 and the founder rejected it on
+    // first sight. (Reverses the earlier latch removal: back then ready was
+    // depth-only and 100 was a false claim; ready now requires the user to
+    // have worked the pattern, so full-at-ready is honest.)
+    return { fill: ready ? 100 : depthFill, ready };
   }
   const fill = reflectionMeterFill(
     extraction.depth,

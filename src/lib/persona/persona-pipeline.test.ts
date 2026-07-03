@@ -1080,7 +1080,7 @@ describe("resolveReflectionMeter", () => {
     expect(shallow).toEqual({ fill: 0, ready: false });
   });
 
-  it("conductor: strip needs MECHANISM depth AND an engaged pattern, never claims 100", () => {
+  it("conductor: strip needs MECHANISM depth AND an engaged pattern; full bar ⇔ strip visible", () => {
     // Depth floor raised from "feeling" after the 2026-07-02 mom-run incident;
     // pattern_engaged added after the strip still fired early — depth is a
     // bot-side material high-water mark, pattern_engaged is the user-side
@@ -1109,7 +1109,19 @@ describe("resolveReflectionMeter", () => {
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(mechanism?.ready).toBe(true); // fill 60 >= threshold AND engaged
+    // Full bar ⇔ strip visible: when ready, fill snaps to 100 so the bar and
+    // the strip tell one story on screen (60%-bar-with-ready-strip rejected
+    // by the founder 2026-07-02).
+    expect(mechanism).toEqual({ fill: 100, ready: true });
+    const deepUnengaged = resolveReflectionMeter({
+      extraction: base({ depth: "origin", pattern_engaged: false }),
+      turnsSinceCheckpoint: Infinity,
+      gatePassed: true,
+      cooldownTurns: COOLDOWN,
+      conductorActive: true,
+    });
+    expect(deepUnengaged?.ready).toBe(false);
+    expect(deepUnengaged?.fill).toBe(80); // pre-ready depth fill caps at 80 — never reads full
     const deep = resolveReflectionMeter({
       extraction: base({ depth: "origin", pattern_engaged: true }),
       turnsSinceCheckpoint: Infinity,
@@ -1117,8 +1129,7 @@ describe("resolveReflectionMeter", () => {
       cooldownTurns: COOLDOWN,
       conductorActive: true,
     });
-    expect(deep?.ready).toBe(true);
-    expect(deep?.fill).toBeLessThan(100); // depth-only fill caps below complete
+    expect(deep).toEqual({ fill: 100, ready: true });
   });
 
   it("normal (pull model): unchanged passthrough — gate verdict drives fill and ready", () => {
