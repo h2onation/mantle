@@ -104,7 +104,6 @@ interface TurnRecord {
   crisisInUserMsg: boolean;
   joveHas988: boolean;
   extraction: {
-    pattern_engaged: boolean;
     gate: unknown;
     depth: string | null;
   } | null;
@@ -178,7 +177,6 @@ async function runConversation(
     try {
       extractionState = await runExtraction(history, extractionState, [], true);
       extractionSnapshot = {
-        pattern_engaged: extractionState.pattern_engaged,
         gate: extractionState.checkpoint_gate,
         depth: extractionState.depth ?? null,
       };
@@ -231,7 +229,7 @@ function renderTranscript(
     lines.push("");
     if (t.extraction) {
       lines.push(
-        `> extraction: pattern_engaged=${t.extraction.pattern_engaged} · depth=${t.extraction.depth} · gate=${JSON.stringify(t.extraction.gate)}`
+        `> extraction: depth=${t.extraction.depth} · gate=${JSON.stringify(t.extraction.gate)}`
       );
       lines.push("");
     }

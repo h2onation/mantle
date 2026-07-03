@@ -437,7 +437,6 @@ export function callPersona({
         const {
           messages,
           previousExtraction,
-          isFirstCheckpoint,
           turnsSinceCheckpoint,
           turnCount,
           mode: conversationMode,
@@ -547,22 +546,10 @@ export function callPersona({
 
         // 8b. Debug logging (dev only)
         if (process.env.NODE_ENV !== "production") {
-          const gate = previousExtraction?.checkpoint_gate;
           const depth = previousExtraction?.depth;
           const brief = previousExtraction?.sage_brief;
-          const strongest = gate?.strongest_layer;
 
           console.log("[persona-debug] Turn %d | Depth: %s | Since CP: %d", turnCount, depth || "none", turnsSinceCheckpoint);
-
-          if (gate) {
-            const gateMet = isFirstCheckpoint
-              ? gate.concrete_examples >= 1 && gate.has_charged_language && (gate.has_mechanism || gate.has_behavior_driver_link)
-              : gate.concrete_examples >= 2 && gate.has_mechanism && gate.has_charged_language && gate.has_behavior_driver_link;
-
-            console.log("[persona-debug] Gate: examples=%d mechanism=%s charged=%s driver=%s strongest=L%s | Met: %s (first: %s)",
-              gate.concrete_examples, gate.has_mechanism, gate.has_charged_language,
-              gate.has_behavior_driver_link, strongest || "?", gateMet, isFirstCheckpoint);
-          }
 
           if (brief) {
             console.log("[persona-debug] Brief: %s", brief.substring(0, 150));

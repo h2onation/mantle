@@ -9,10 +9,6 @@ import { DEPTH_LEVELS } from "@/lib/persona/checkpoint-tuning";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export interface LayerSignal {
-  signal: "none" | "emerging" | "explored" | "checkpoint_ready";
-}
-
 export interface LanguageEntry {
   phrase: string;
   context: string;
@@ -21,19 +17,13 @@ export interface LanguageEntry {
 }
 
 export interface CheckpointGate {
-  concrete_examples: number;
   // Count of DIFFERENT situations / events / time-periods the user has
-  // narrated. Distinct from concrete_examples: four moments inside one
-  // phone call is ONE distinct context. The pattern claim ("this is how
-  // you operate") requires evidence across at least two contexts for a
-  // non-first checkpoint. Optional on the type because extraction states
-  // written before this field existed will not carry it — validators
-  // treat undefined as "skip this check" for graceful fallback.
+  // narrated. The only surviving gate field — read by the save-time composer
+  // (compose route) to decide whether the headline needs a "can" / "sometimes"
+  // softener (one vivid scene shouldn't over-claim a recurring pattern). The
+  // rest of the old ripeness scorecard was removed with the Jove-pushed
+  // checkpoint gate (2026-07-03). Optional: pre-existing states may lack it.
   distinct_contexts?: number;
-  has_mechanism: boolean;
-  has_charged_language: boolean;
-  has_behavior_driver_link: boolean;
-  strongest_layer: number | null;
 }
 
 export interface ClinicalFlag {
@@ -43,19 +33,12 @@ export interface ClinicalFlag {
 }
 
 export interface ExtractionState {
-  layers: Record<number, LayerSignal>;
   language_bank: LanguageEntry[];
   depth: "surface" | "behavior" | "feeling" | "mechanism" | "origin";
   current_thread: string;
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
   sage_brief: string;
-  // True when Jove has named a pattern in conversation AND the user has
-  // engaged with it (elaborated, added examples, stayed on thread).
-  // Gates checkpoint firing on the push path — no checkpoint until pattern
-  // is engaged. (Not read by the conductor meter, which keys off Jove's
-  // own landed marker; kept for the text/SMS push path.)
-  pattern_engaged: boolean;
 }
 
 interface ManualEntry {
@@ -75,23 +58,11 @@ export const EXTRACTION_MESSAGE_WINDOW = 12;
 
 function defaultState(): ExtractionState {
   return {
-    layers: {
-      1: { signal: "none" },
-      2: { signal: "none" },
-      3: { signal: "none" },
-      4: { signal: "none" },
-      5: { signal: "none" },
-    },
     language_bank: [],
     depth: "surface",
     current_thread: "",
     checkpoint_gate: {
-      concrete_examples: 0,
       distinct_contexts: 0,
-      has_mechanism: false,
-      has_charged_language: false,
-      has_behavior_driver_link: false,
-      strongest_layer: null,
     },
     clinical_flag: {
       active: false,
@@ -99,7 +70,6 @@ function defaultState(): ExtractionState {
       note: "",
     },
     sage_brief: "",
-    pattern_engaged: false,
   };
 }
 
@@ -148,10 +118,7 @@ Capture the user's exact phrases that carry weight. Not your paraphrase. Their w
 
 Capture aggressively. If a phrase has any of the qualities above, log it. The bank is how ${PERSONA_NAME} avoids paraphrasing the user into a stranger.
 
-2. SECTION SIGNALS
-For each of the five sections, assess how far it has been explored — none / emerging / explored / checkpoint_ready. Signal level only advances; it never regresses.
-
-3. DEPTH TRACKING
+2. DEPTH TRACKING
 Where is the conversation in its vertical descent?
 - surface: what happened (events, facts, the situation)
 - behavior: what they did (actions, choices, what their body did)
@@ -159,12 +126,8 @@ Where is the conversation in its vertical descent?
 - mechanism: why it works that way (the underlying driver — the need, the sensory load, the system state, the bind)
 - origin: where it comes from (when this started, earliest examples)
 
-4. CHECKPOINT GATE
-Evaluate whether there is enough material for a meaningful checkpoint. This is purely a quality assessment. Number of turns is irrelevant.
-
-GATE (all must be true):
-- concrete_examples >= 2: Count of specific, concrete moments the user has walked you through. A concrete example requires: a specific moment in time, what happened, and what the user's body or system did. References to recurring situations ("when she's loud," "at work") do NOT count — the user must have narrated the scene, not just named the topic. Moments WITHIN a single incident still count separately here (a phone call where the user described four distinct beats produces concrete_examples = 4). The pattern-recurrence question is handled by distinct_contexts below.
-- distinct_contexts >= 2: Count of DIFFERENT lived situations the user has WALKED YOU THROUGH AS A SCENE. A scene means the user described what happened, when, with whom, and what they did or felt — narrated, not mentioned. Four moments inside one phone call is ONE distinct context. Two friendships described in two scenes is two distinct contexts.
+3. DISTINCT CONTEXTS
+Count the DIFFERENT lived situations the user has WALKED YOU THROUGH AS A SCENE (distinct_contexts). A scene means the user described what happened, when, with whom, and what they did or felt — narrated, not mentioned. Four moments inside one phone call is ONE distinct context. Two friendships described in two scenes is two distinct contexts. This is informational, read at save time so a composed entry's headline doesn't over-claim a recurring pattern from a single scene. It is NOT a gate.
 
   DOES NOT count as a distinct context:
   - A category named in passing without a scene ("at dinners," "with friends," "at work") where the user has not walked you through a specific instance.
@@ -172,28 +135,9 @@ GATE (all must be true):
   - A contrast to the pattern under examination. If the conversation is about social drain and the user mentions junkyard art as the opposite, the junkyard is a contrast — not a second distinct context for the drain. BUT a contrast is high-value data: an exception is what pins what TYPE of situation or person actually triggers the pattern (what the exception lacks is what the type is). Log the user's contrast language in language_bank and name it in the brief as the exception that defines the type — it just does not advance distinct_contexts.
   - Repeated description of the same lived activity ("I love the smell of grease, I love placing things together, trial and error" — all one activity, one context).
 
-  The pattern claim "this is how you operate" requires evidence from at least two distinct narrated scenes. If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 — the gate will hold and the checkpoint should not fire as a recurring-pattern entry.
-- has_mechanism: The USER has articulated WHY the pattern fires for them — what it costs, what it protects, what triggers it, what the underlying need or load is. Not extraction's synthesis of "what looks like mechanism if I combine these ingredients." The user has named the causal link in their own words.
+  If the user has explicitly stated this is a one-off ("I don't ever do this," "this never happens to me," "this is outside my normal"), set distinct_contexts to 1 so the composed entry doesn't frame it as a recurring pattern.
 
-  Counts as has_mechanism:
-  - "I shut down because the room got too loud and I couldn't filter."
-  - "I can't drop them because the network is real but I can't inhabit small talk without it costing me." (cost + bind named together)
-  - "I do it because I need to know I won't get blindsided."
-
-  Does NOT count as has_mechanism:
-  - The user named the contrast or wish ("what feeds me is flow state," "what I want is depth"). That's what they want, not the mechanism of the drain.
-  - The user gave rich sensory or process description without a causal link ("smell of grease, dirt, placing things together, trial and error"). Texture, no why.
-  - Extraction can synthesize a mechanism from the user's ingredients, but the user has not named it. Carry the ingredients in language_bank for the composer; leave has_mechanism false.
-
-  Test: would a reader of the user's words alone — without any extraction or composition synthesis — be able to say why this fires? If yes, true. If they would only be able to describe the experience, false.
-- has_charged_language: The language bank contains at least one high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor the checkpoint.
-- has_behavior_driver_link: A clear line exists between an observable behavior or response and what's fueling it.
-
-Mechanism per section: in Routines and structure, "mechanism" means why-this-system-is-non-negotiable, not optional preference. Where a section names a strength or capability, "mechanism" means the conditions that activate it.
-
-When the gate is met, identify strongest_layer: which section has the most material, examples, and depth. Sections can hold many entries — there's no per-section cap.
-
-5. JOVE BRIEF
+4. JOVE BRIEF
 Write a short paragraph (3-5 sentences) orienting the entry composition. The brief feeds into the manual entry when a checkpoint lands, so its vocabulary has to be the user's own:
 - What the user is actually describing underneath the surface topic (in behavioral and somatic terms — what their body did, what their system was doing, what the input was like — never clinical labels)
 - Which of the user's exact sensory or system words are load-bearing (e.g. "buzzing," "too loud," "went offline," "shut down," "went still," "full," "tight"). Name them so ${PERSONA_NAME} can carry them forward verbatim.
@@ -204,7 +148,7 @@ Write a short paragraph (3-5 sentences) orienting the entry composition. The bri
 
 Use the user's own language wherever possible. If you reach for a clinical word ("anxiety," "trauma," "avoidance," "dysregulation," "masking," "sensory overwhelm"), stop and rewrite using what the user actually said. "Masking" becomes "the version of you that switches on in rooms." "Sensory overwhelm" becomes "too much input, jaw started buzzing." A checkpoint needs a concrete anchor: a body sensation OR a specific behavioral or system response (what they did, what their system did, what the input was like). The body is one valid anchor, not a requirement. If neither is present yet, flag that gap. But ${PERSONA_NAME} should not keep steering toward the body when the user isn't going there. A concrete behavioral anchor carries the same weight.
 
-6. CLINICAL FLAG
+5. CLINICAL FLAG
 A lightweight signal that tells ${PERSONA_NAME} when to engage legal guardrails. Two levels:
 
 "crisis": User expressed suicidal ideation, self-harm intent, or intent to harm others. ${PERSONA_NAME} must stop building and provide resources.
@@ -215,60 +159,29 @@ A lightweight signal that tells ${PERSONA_NAME} when to engage legal guardrails.
 
 IMPORTANT: A user talking ABOUT depression, anxiety, trauma, etc. as part of their story is "none." A user asking ${PERSONA_NAME} to ASSESS whether they have a condition, or describing experiences that clearly exceed self-understanding scope (psychotic symptoms, inability to function, active destabilization), is "caution." The bar for "caution" is high. Most conversations stay "none" even when the material is heavy.
 
-7. PATTERN ENGAGEMENT TRACKING
-
-Track whether a pattern has been named in conversation and the user has engaged with it.
-
-Set pattern_engaged to true when BOTH conditions are met:
-(1) ${PERSONA_NAME} has made a naming move in a prior turn — pointed at a repetition across two moments, offered a plain description of a pattern, or named a contradiction between what the user claims and what they described.
-(2) The user's subsequent response engaged with it rather than withdrawing from it. Engagement means: elaborating, adding a second example, naming what it costs them, sitting with it, continuing on the same thread, OR pushing back with a correction that sharpens the pattern ("no, it's not that — it's more that..."). A correction is engagement — the user is working the pattern with ${PERSONA_NAME}, not leaving it; a correction that lands on a truer pattern is the strongest engagement signal there is. Non-engagement means withdrawal: changing topic, a flat "I don't know" that closes the thread, shortening answers, a bare "that's not it" with nothing offered in its place, or drifting to an unrelated situation without engaging the read.
-
-If the user names the pattern themselves before ${PERSONA_NAME} does ("I keep doing this thing," "there's a pattern here"), set pattern_engaged to true immediately.
-
-Once true, stays true for the rest of the session unless the user explicitly rejects the pattern ("actually that's not what's happening" or equivalent clear reversal).
-
-If this is the first turn or ${PERSONA_NAME} has not yet made a naming move, set to false.
-
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
-  "layers": {
-    "1": { "signal": "none|emerging|explored|checkpoint_ready" },
-    "2": { ... },
-    "3": { ... },
-    "4": { ... },
-    "5": { ... }
-  },
   "language_bank": [
     { "phrase": "exact user words", "context": "what they were discussing", "charge": "low|medium|high", "layers": [1, 3] }
   ],
   "depth": "surface|behavior|feeling|mechanism|origin",
   "current_thread": "one sentence: what the conversation is actually about",
   "checkpoint_gate": {
-    "concrete_examples": 0,
-    "distinct_contexts": 0,
-    "has_mechanism": false,
-    "has_charged_language": false,
-    "has_behavior_driver_link": false,
-    "strongest_layer": null
+    "distinct_contexts": 0
   },
   "clinical_flag": {
     "active": false,
     "level": "none",
     "note": ""
   },
-  "sage_brief": "3-5 sentence orientation for the entry composition",
-  "pattern_engaged": false
+  "sage_brief": "3-5 sentence orientation for the entry composition"
 }
 
 CRITICAL RULES:
 - The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
-- Section signals are CUMULATIVE. Signal level only advances (none → emerging → explored → checkpoint_ready).
-- When a section already has a confirmed entry, its signal starts at "explored" minimum.
 - Be aggressive about capturing language from the live conversation. If in doubt, capture it.
 - The language_bank holds ONLY the user's words from the conversation transcript below. The CONFIRMED MANUAL ENTRIES are context for recognizing when the current conversation echoes an existing pattern ("same shape as...") — they are NOT bank candidates. Never copy a phrase into language_bank because you saw it in a Manual entry. Capture a phrase only when the user says it in THIS conversation (even if the same phrase also appears in the Manual — what matters is that they said it here, now).
-- The checkpoint gate is a quality assessment. Do not count turns.
-- Sections can hold many entries. Don't gate on count.
 - NO CLINICAL LANGUAGE in any field that reaches ${PERSONA_NAME} or the entry (sage_brief, current_thread). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
@@ -276,14 +189,11 @@ CRITICAL RULES:
 /**
  * Coerce a model-supplied layer id to a number in 1..5, or null.
  *
- * The extraction model intermittently emits layer ids as strings ("1")
- * instead of numbers (1). Left uncoerced, a string `strongest_layer`
- * breaks the strict-equality membership checks the checkpoint gate runs
- * against numeric `language_bank[].layers`: `[1].includes("1") === false`.
- * That silently fails the Lock-1 charged-phrase-on-layer check
- * (validateMaterialQuality) and suppresses every otherwise-ready
- * checkpoint — the 2026-06-03 doom-loop incident. Normalize at the parse
- * boundary so the whole pipeline downstream compares numbers to numbers.
+ * The extraction model intermittently emits `language_bank[].layers` ids as
+ * strings ("1") instead of numbers (1). Left uncoerced, a string id breaks
+ * numeric membership checks downstream (`[1].includes("1") === false`).
+ * Normalize at the parse boundary so the whole pipeline compares numbers to
+ * numbers. (Originally added for the 2026-06-03 doom-loop incident.)
  */
 export function toLayerNumber(value: unknown): number | null {
   const n =
@@ -383,9 +293,9 @@ export function mergeLanguageBank(
 
 /**
  * Merge a freshly-parsed extraction payload with the prior state. Pure and
- * exported so the merge rules — monotonic gate counts, the pattern_engaged
- * reset — are unit-testable without an Anthropic call. `parsed` is the raw
- * JSON.parse() of the model's output.
+ * exported so the merge rules — monotonic distinct_contexts, language-bank
+ * accumulation, depth high-water mark — are unit-testable without an
+ * Anthropic call. `parsed` is the raw JSON.parse() of the model's output.
  */
 export function mergeExtractionState(
   // Raw JSON.parse() output from the model — genuinely untyped; the body runs
@@ -394,39 +304,23 @@ export function mergeExtractionState(
   parsed: any,
   state: ExtractionState
 ): ExtractionState {
-  // Monotonic enforcement on accumulating gate counts. Sonnet sometimes
-  // re-evaluates the conversation from a smaller window and returns a
-  // lower concrete_examples / distinct_contexts than the prior turn —
-  // even when no real evidence was removed. previousState is the
-  // authoritative high-water mark for counts: take max() so the gate
-  // doesn't silently regress from "ready" to "not ready" without the
-  // user actually walking back evidence. Booleans are intentionally
-  // NOT enforced monotonically; they're state assessments tied to the
-  // current strongest_layer and can legitimately oscillate if the
-  // conversation shifts focus to a different layer.
+  // Monotonic enforcement on distinct_contexts. Sonnet sometimes re-evaluates
+  // from a smaller window and returns a lower count than a prior turn even
+  // when no evidence was walked back; previousState is the authoritative
+  // high-water mark, so take max().
   const mergedGate = (() => {
     const incoming = parsed.checkpoint_gate;
     if (!incoming || typeof incoming !== "object") {
       return state.checkpoint_gate;
     }
-    const prevExamples = state.checkpoint_gate.concrete_examples ?? 0;
     const prevContexts = state.checkpoint_gate.distinct_contexts ?? 0;
-    const incomingExamples =
-      typeof incoming.concrete_examples === "number"
-        ? incoming.concrete_examples
-        : prevExamples;
     const incomingContexts =
       typeof incoming.distinct_contexts === "number"
         ? incoming.distinct_contexts
         : prevContexts;
-    return {
-      ...incoming,
-      concrete_examples: Math.max(incomingExamples, prevExamples),
-      distinct_contexts: Math.max(incomingContexts, prevContexts),
-      // Normalize the layer id to a number so downstream gate checks
-      // compare numbers to numbers (see toLayerNumber).
-      strongest_layer: toLayerNumber(incoming.strongest_layer),
-    };
+    // distinct_contexts is monotonic (never regress the high-water mark). It's
+    // the only surviving gate field — read at save time by the composer.
+    return { distinct_contexts: Math.max(incomingContexts, prevContexts) };
   })();
 
   // Monotonic depth — the same regression guard the gate counts get above.
@@ -442,15 +336,11 @@ export function mergeExtractionState(
   })();
 
   return {
-    layers: parsed.layers || state.layers,
-    // Coerce each entry's layer ids to numbers at the boundary so the
-    // checkpoint gate's layer-membership checks never compare a string
-    // "1" against a numeric 1 (see toLayerNumber / the 2026-06-03 incident).
-    // Accumulate (union), don't replace — a charged phrase captured earlier
-    // must not silently drop out when a later small-window extraction returns a
-    // smaller set (see mergeLanguageBank). Incoming layer ids are coerced to
-    // numbers at the boundary, same as before; a non-array payload contributes
-    // nothing, so prior phrases are preserved (matching the old fallback).
+    // Accumulate (union) the language bank, don't replace — a charged phrase
+    // captured earlier must not silently drop out when a later small-window
+    // extraction returns a smaller set (see mergeLanguageBank). Each entry's
+    // layer ids are coerced to numbers at the boundary (toLayerNumber); a
+    // non-array payload contributes nothing, so prior phrases are preserved.
     language_bank: mergeLanguageBank(
       state.language_bank,
       Array.isArray(parsed.language_bank)
@@ -465,13 +355,6 @@ export function mergeExtractionState(
     checkpoint_gate: mergedGate,
     clinical_flag: parsed.clinical_flag || state.clinical_flag,
     sage_brief: parsed.sage_brief || "",
-    // Honor the documented reset (PATTERN ENGAGEMENT section): the model is fed the prior
-    // value and told to keep it true unless the user explicitly reverses the
-    // pattern, so trust its boolean rather than latching true forever.
-    pattern_engaged:
-      typeof parsed.pattern_engaged === "boolean"
-        ? parsed.pattern_engaged
-        : state.pattern_engaged,
   };
 }
 
@@ -490,12 +373,10 @@ export async function runExtraction(
 
   userContent += "PREVIOUS EXTRACTION STATE:\n";
   userContent += JSON.stringify({
-    layers: state.layers,
     language_bank: state.language_bank,
     depth: state.depth,
     current_thread: state.current_thread,
     checkpoint_gate: state.checkpoint_gate,
-    pattern_engaged: state.pattern_engaged,
   });
   userContent += "\n\n";
 

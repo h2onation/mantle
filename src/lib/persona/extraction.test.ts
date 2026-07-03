@@ -5,22 +5,11 @@ import { mergeExtractionState, type ExtractionState } from "@/lib/persona/extrac
 
 function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
   return {
-    layers: {
-      1: { signal: "none" },
-      2: { signal: "none" },
-      3: { signal: "none" },
-      4: { signal: "none" },
-      5: { signal: "none" },
-    },
     language_bank: [],
     depth: "surface",
     current_thread: "",
     checkpoint_gate: {
-      concrete_examples: 0,
-      has_mechanism: false,
-      has_charged_language: false,
-      has_behavior_driver_link: false,
-      strongest_layer: null,
+      distinct_contexts: 0,
     },
     clinical_flag: {
       active: false,
@@ -28,74 +17,25 @@ function makeState(overrides?: Partial<ExtractionState>): ExtractionState {
       note: "",
     },
     sage_brief: "",
-    pattern_engaged: false,
     ...overrides,
   };
 }
 
 describe("mergeExtractionState — state merge", () => {
-  it("resets pattern_engaged true → false when the model reports an explicit reversal", () => {
-    const prev = makeState({ pattern_engaged: true });
-    const merged = mergeExtractionState({ pattern_engaged: false }, prev);
-    expect(merged.pattern_engaged).toBe(false);
-  });
-
-  it("keeps pattern_engaged true when the model omits it (no boolean reported)", () => {
-    const prev = makeState({ pattern_engaged: true });
-    const merged = mergeExtractionState({}, prev);
-    expect(merged.pattern_engaged).toBe(true);
-  });
-
-  it("sets pattern_engaged false → true when the model reports engagement", () => {
-    const prev = makeState({ pattern_engaged: false });
-    const merged = mergeExtractionState({ pattern_engaged: true }, prev);
-    expect(merged.pattern_engaged).toBe(true);
-  });
-
-  it("never lets the gate counts regress below the prior high-water mark", () => {
-    const prev = makeState({
-      checkpoint_gate: {
-        concrete_examples: 3,
-        distinct_contexts: 2,
-        has_mechanism: false,
-        has_charged_language: false,
-        has_behavior_driver_link: false,
-        strongest_layer: null,
-      },
-    });
+  it("never lets distinct_contexts regress below the prior high-water mark", () => {
+    const prev = makeState({ checkpoint_gate: { distinct_contexts: 2 } });
     const merged = mergeExtractionState(
-      { checkpoint_gate: { concrete_examples: 1, distinct_contexts: 0, strongest_layer: 2 } },
+      { checkpoint_gate: { distinct_contexts: 0 } },
       prev
     );
-    expect(merged.checkpoint_gate.concrete_examples).toBe(3);
     expect(merged.checkpoint_gate.distinct_contexts).toBe(2);
-    // non-count fields take the incoming value
-    expect(merged.checkpoint_gate.strongest_layer).toBe(2);
   });
 });
 
-// Layer-type coercion (2026-06-03 doom-loop incident). The model intermittently
-// emits layer ids as strings ("1"). Left uncoerced, a string strongest_layer
-// broke the gate's strict-equality membership against numeric language_bank
-// layers ([1].includes("1") === false), suppressing every ready checkpoint.
-// Normalize at the parse boundary so everything downstream compares numbers.
+// Layer-type coercion (2026-06-03 doom-loop incident): the model intermittently
+// emits language_bank layer ids as strings ("1"). Normalize at the parse
+// boundary so downstream comparisons are number-to-number.
 describe("mergeExtractionState — layer type coercion", () => {
-  it("coerces a string strongest_layer to a number", () => {
-    const merged = mergeExtractionState(
-      {
-        checkpoint_gate: {
-          concrete_examples: 5,
-          has_mechanism: true,
-          has_charged_language: true,
-          has_behavior_driver_link: true,
-          strongest_layer: "1",
-        },
-      },
-      makeState()
-    );
-    expect(merged.checkpoint_gate.strongest_layer).toBe(1);
-  });
-
   it("coerces string layer ids in the language bank to numbers", () => {
     const merged = mergeExtractionState(
       {
@@ -119,22 +59,6 @@ describe("mergeExtractionState — layer type coercion", () => {
     );
     // 9 is out of range, "abc" is non-numeric, 2 is valid.
     expect(merged.language_bank[0].layers).toEqual([2]);
-  });
-
-  it("leaves a null strongest_layer as null", () => {
-    const merged = mergeExtractionState(
-      {
-        checkpoint_gate: {
-          concrete_examples: 0,
-          has_mechanism: false,
-          has_charged_language: false,
-          has_behavior_driver_link: false,
-          strongest_layer: null,
-        },
-      },
-      makeState()
-    );
-    expect(merged.checkpoint_gate.strongest_layer).toBeNull();
   });
 });
 

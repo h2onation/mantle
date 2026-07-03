@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  validateComposedEntry,
   reflectionMeterFill,
   resolveReflectionMeter,
   computeInheritedRefinementCount,
@@ -17,75 +16,17 @@ function makeExtractionState(
   overrides?: Partial<ExtractionState>
 ): ExtractionState {
   return {
-    layers: {
-      1: { signal: "none" },
-      2: { signal: "none" },
-      3: { signal: "none" },
-      4: { signal: "none" },
-      5: { signal: "none" },
-    },
     language_bank: [],
     depth: "surface",
     current_thread: "",
     checkpoint_gate: {
-      concrete_examples: 0,
-      has_mechanism: false,
-      has_charged_language: false,
-      has_behavior_driver_link: false,
-      strongest_layer: null,
+      distinct_contexts: 0,
     },
     clinical_flag: { active: false, level: "none", note: "" },
     sage_brief: "",
-    pattern_engaged: false,
     ...overrides,
   };
 }
-
-describe("validateComposedEntry", () => {
-  const goodEntry = `You walk into a room and a second version of you switches on. It watches faces, times the nods, keeps your voice at the right volume, softens the parts of you that would read as too much. You don't decide to do this. It runs. By the end of the day the buzzing starts in your jaw and your thoughts get slower. You lose the evening and you call it being tired. You can't stop running the second version because the real one got flagged as too much a long time ago. The cost is that almost nobody in your life has met the real one, including you on the days when you come home and go straight to the dark room.`;
-
-  it("passes for a well-formed entry with body anchor", () => {
-    const result = validateComposedEntry(goodEntry);
-    expect(result.ok).toBe(true);
-    expect(result.warnings).toEqual([]);
-  });
-
-  it("does NOT warn on a lean entry (2026-06-16: the <80-word floor was removed)", () => {
-    // The body is now focus-bounded, not length-bounded — a good lean entry can
-    // land under 80 words. The old "too short" floor encoded the retired
-    // force-it-long doctrine and would false-warn on these.
-    const result = validateComposedEntry(
-      "You shut down. Your jaw goes tight. That's it."
-    );
-    expect(result.warnings.join(" ")).not.toMatch(/too short/);
-  });
-
-  it("warns when entry exceeds the 150-word upper bound", () => {
-    const tooLong = Array(200).fill("Your jaw goes tight").join(". ") + ".";
-    const result = validateComposedEntry(tooLong);
-    expect(result.ok).toBe(false);
-    expect(result.warnings.join(" ")).toMatch(/too long/);
-    expect(result.warnings.join(" ")).toMatch(/150/);
-  });
-
-  it("warns when entry has no somatic anchor word", () => {
-    const cerebral = Array(160).fill("You think about it carefully").join(". ") + ".";
-    const result = validateComposedEntry(cerebral);
-    expect(result.warnings.join(" ")).toMatch(/no somatic anchor/);
-  });
-
-  it("warns when a clinical label leaks through", () => {
-    const text = goodEntry + " This is your trauma response.";
-    const result = validateComposedEntry(text);
-    expect(result.warnings.join(" ")).toMatch(/clinical label/);
-  });
-
-  it("warns when a time reference leaks through", () => {
-    const text = goodEntry + " Right now this is happening.";
-    const result = validateComposedEntry(text);
-    expect(result.warnings.join(" ")).toMatch(/time reference/);
-  });
-});
 
 // ─── Refinement-count chain inheritance (Track A Phase 7-Mid) ──────────────
 describe("computeInheritedRefinementCount", () => {
@@ -384,7 +325,7 @@ describe("resolveReflectionMeter", () => {
     // 80 — it can never read full.
     for (const depth of ["feeling", "mechanism", "origin"] as const) {
       const unlanded = resolveReflectionMeter({
-        extraction: base({ depth, pattern_engaged: true }),
+        extraction: base({ depth }),
         turnsSinceCheckpoint: Infinity,
         cooldownTurns: COOLDOWN,
         reflectionLanded: false,
@@ -394,7 +335,7 @@ describe("resolveReflectionMeter", () => {
     }
     // Landed → full bar ⇔ strip visible, regardless of depth.
     const landed = resolveReflectionMeter({
-      extraction: base({ depth: "feeling", pattern_engaged: false }),
+      extraction: base({ depth: "feeling" }),
       turnsSinceCheckpoint: Infinity,
       cooldownTurns: COOLDOWN,
       reflectionLanded: true,
