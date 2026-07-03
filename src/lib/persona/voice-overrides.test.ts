@@ -116,7 +116,6 @@ describe("system prompt applies voice overrides at resolution sites", () => {
     currentConversationId: null,
     isReturningUser: false,
     sessionSummary: null,
-    extractionContext: "",
     isFirstCheckpoint: true,
     turnCount: 1,
     checkpointApproaching: false,

@@ -30,7 +30,6 @@ const defaults: OneOnOnePromptOptions = {
   currentConversationId: "test-conversation-id",
   isReturningUser: false,
   sessionSummary: null,
-  extractionContext: "",
   isFirstCheckpoint: false,
   turnCount: 5,
   checkpointApproaching: false,

@@ -1,5 +1,5 @@
 import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
-import { LAYERS, LAYER_NAMES, renderManualEntryFull } from "@/lib/manual/layers";
+import { LAYERS, renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, EXTRACTION_MODEL } from "@/lib/persona/config";
 import { logEvent } from "@/lib/observability/log";
 // DEPTH_LEVELS is the single source of truth for the ordered shallow→deep depth
@@ -11,8 +11,6 @@ import { DEPTH_LEVELS } from "@/lib/persona/checkpoint-tuning";
 
 export interface LayerSignal {
   signal: "none" | "emerging" | "explored" | "checkpoint_ready";
-  material: string[];
-  examples: string[];
 }
 
 export interface LanguageEntry {
@@ -49,18 +47,15 @@ export interface ExtractionState {
   language_bank: LanguageEntry[];
   depth: "surface" | "behavior" | "feeling" | "mechanism" | "origin";
   current_thread: string;
-  mode: "situation_led" | "direct_exploration" | "synthesis";
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
-  observation_miss_count: number;
   sage_brief: string;
   // True when Jove has named a pattern in conversation AND the user has
   // engaged with it (elaborated, added examples, stayed on thread).
-  // Gates checkpoint firing — no checkpoint until pattern is engaged.
+  // Gates checkpoint firing on the push path — no checkpoint until pattern
+  // is engaged. (Not read by the conductor meter, which keys off Jove's
+  // own landed marker; kept for the text/SMS push path.)
   pattern_engaged: boolean;
-  // Informational signals — surfaced in the brief as hints, not hard gates.
-  user_named_cost: boolean;
-  user_named_stance: boolean;
 }
 
 interface ManualEntry {
@@ -81,16 +76,15 @@ export const EXTRACTION_MESSAGE_WINDOW = 12;
 function defaultState(): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [] },
-      2: { signal: "none", material: [], examples: [] },
-      3: { signal: "none", material: [], examples: [] },
-      4: { signal: "none", material: [], examples: [] },
-      5: { signal: "none", material: [], examples: [] },
+      1: { signal: "none" },
+      2: { signal: "none" },
+      3: { signal: "none" },
+      4: { signal: "none" },
+      5: { signal: "none" },
     },
     language_bank: [],
     depth: "surface",
     current_thread: "",
-    mode: "situation_led",
     checkpoint_gate: {
       concrete_examples: 0,
       distinct_contexts: 0,
@@ -104,11 +98,8 @@ function defaultState(): ExtractionState {
       level: "none",
       note: "",
     },
-    observation_miss_count: 0,
     sage_brief: "",
     pattern_engaged: false,
-    user_named_cost: false,
-    user_named_stance: false,
   };
 }
 
@@ -158,7 +149,7 @@ Capture the user's exact phrases that carry weight. Not your paraphrase. Their w
 Capture aggressively. If a phrase has any of the qualities above, log it. The bank is how ${PERSONA_NAME} avoids paraphrasing the user into a stranger.
 
 2. SECTION SIGNALS
-What sections did the user's latest message touch? Be specific about what material surfaced. Don't just say "Section 1 emerging." Say what behavior or need or sensory experience surfaced and what the evidence is.
+For each of the five sections, assess how far it has been explored — none / emerging / explored / checkpoint_ready. Signal level only advances; it never regresses.
 
 3. DEPTH TRACKING
 Where is the conversation in its vertical descent?
@@ -203,7 +194,7 @@ Mechanism per section: in Routines and structure, "mechanism" means why-this-sys
 When the gate is met, identify strongest_layer: which section has the most material, examples, and depth. Sections can hold many entries — there's no per-section cap.
 
 5. JOVE BRIEF
-Write a short paragraph (3-5 sentences) orienting ${PERSONA_NAME}. The brief feeds directly into ${PERSONA_NAME}'s next turn and into the manual entry if a checkpoint lands, so its vocabulary has to be the user's own:
+Write a short paragraph (3-5 sentences) orienting the entry composition. The brief feeds into the manual entry when a checkpoint lands, so its vocabulary has to be the user's own:
 - What the user is actually describing underneath the surface topic (in behavioral and somatic terms — what their body did, what their system was doing, what the input was like — never clinical labels)
 - Which of the user's exact sensory or system words are load-bearing (e.g. "buzzing," "too loud," "went offline," "shut down," "went still," "full," "tight"). Name them so ${PERSONA_NAME} can carry them forward verbatim.
 - What the most charged or unresolved piece is
@@ -224,23 +215,7 @@ A lightweight signal that tells ${PERSONA_NAME} when to engage legal guardrails.
 
 IMPORTANT: A user talking ABOUT depression, anxiety, trauma, etc. as part of their story is "none." A user asking ${PERSONA_NAME} to ASSESS whether they have a condition, or describing experiences that clearly exceed self-understanding scope (psychotic symptoms, inability to function, active destabilization), is "caution." The bar for "caution" is high. Most conversations stay "none" even when the material is heavy.
 
-7. MODE RECOMMENDATION
-- situation_led: Default. User is telling stories, ${PERSONA_NAME} is deepening.
-- direct_exploration: When 2+ sections have confirmed entries and there are clear gaps.
-- synthesis: When all 5 sections have at least one confirmed entry.
-
-8. OBSERVATION MISS TRACKING
-Track whether ${PERSONA_NAME}'s most recent observation landed for the user. An observation is any reflective statement ${PERSONA_NAME} made about the user's behavior, body, system, or pattern. Carry forward observation_miss_count from the previous state and update it based on the user's latest reply:
-
-- If the user's reply confirms, deepens, or accepts the observation (agreement, elaboration, "yes," "exactly," or moving forward with the same thread), reset observation_miss_count to 0.
-- If the user CORRECTS the observation into something sharper ("no, it's not that — it's more that...", "it's actually X"), do NOT increment. A substantive correction is the user steering toward a truer pattern, not a miss — leave observation_miss_count unchanged. The next turn should follow the corrected read, not retreat from it.
-- If the user's reply withdraws or goes vague — shortening answers, changing topic, flat "I don't know," a bare "that's not it" with nothing offered in its place — increment observation_miss_count by 1. This is the user pulling back, and it is the signal to slow down and return to something concrete.
-- If ${PERSONA_NAME}'s last turn was a pure question (no observation in it), leave observation_miss_count unchanged.
-- If this is the first turn or there is no previous assistant message to evaluate, set observation_miss_count to 0.
-
-The counter caps at 3 — do not exceed 3.
-
-9. PATTERN ENGAGEMENT TRACKING
+7. PATTERN ENGAGEMENT TRACKING
 
 Track whether a pattern has been named in conversation and the user has engaged with it.
 
@@ -254,17 +229,11 @@ Once true, stays true for the rest of the session unless the user explicitly rej
 
 If this is the first turn or ${PERSONA_NAME} has not yet made a naming move, set to false.
 
-10. READINESS SIGNALS (informational — these do NOT gate checkpoints)
-
-user_named_cost: Has the user articulated what the pattern costs them, in their own words? Not a vague "it's hard" but a specific loss, misreading, or consequence they can name.
-
-user_named_stance: Has the user expressed what they want now that they can see the pattern? This could be a request ("I need people to wait"), a decision ("I'm going to stop doing that"), or an honest incomplete ("I see it but I don't know what to do yet"). Any of these count. Silence on the topic does not.
-
 Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
   "layers": {
-    "1": { "signal": "none|emerging|explored|checkpoint_ready", "material": ["specific observation"], "examples": ["concrete moment from user"] },
+    "1": { "signal": "none|emerging|explored|checkpoint_ready" },
     "2": { ... },
     "3": { ... },
     "4": { ... },
@@ -275,7 +244,6 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
   ],
   "depth": "surface|behavior|feeling|mechanism|origin",
   "current_thread": "one sentence: what the conversation is actually about",
-  "mode": "situation_led|direct_exploration|synthesis",
   "checkpoint_gate": {
     "concrete_examples": 0,
     "distinct_contexts": 0,
@@ -289,22 +257,19 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
     "level": "none",
     "note": ""
   },
-  "observation_miss_count": 0,
-  "sage_brief": "3-5 sentence orientation for ${PERSONA_NAME}",
-  "pattern_engaged": false,
-  "user_named_cost": false,
-  "user_named_stance": false
+  "sage_brief": "3-5 sentence orientation for the entry composition",
+  "pattern_engaged": false
 }
 
 CRITICAL RULES:
 - The language_bank is CUMULATIVE. Carry forward the 15 most relevant entries (prefer high-charge and recent). Only add new ones from the latest exchange. If the bank exceeds 15 entries, drop the oldest low-charge entries first.
-- Section signals are CUMULATIVE. Material and examples accumulate. Signal level only advances (none → emerging → explored → checkpoint_ready).
+- Section signals are CUMULATIVE. Signal level only advances (none → emerging → explored → checkpoint_ready).
 - When a section already has a confirmed entry, its signal starts at "explored" minimum.
 - Be aggressive about capturing language from the live conversation. If in doubt, capture it.
 - The language_bank holds ONLY the user's words from the conversation transcript below. The CONFIRMED MANUAL ENTRIES are context for recognizing when the current conversation echoes an existing pattern ("same shape as...") — they are NOT bank candidates. Never copy a phrase into language_bank because you saw it in a Manual entry. Capture a phrase only when the user says it in THIS conversation (even if the same phrase also appears in the Manual — what matters is that they said it here, now).
 - The checkpoint gate is a quality assessment. Do not count turns.
 - Sections can hold many entries. Don't gate on count.
-- NO CLINICAL LANGUAGE in any field ${PERSONA_NAME} will read (sage_brief, current_thread, section material). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
+- NO CLINICAL LANGUAGE in any field that reaches ${PERSONA_NAME} or the entry (sage_brief, current_thread). Use the user's words and behavioral/somatic descriptions, not psychological labels.`;
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
@@ -419,8 +384,8 @@ export function mergeLanguageBank(
 /**
  * Merge a freshly-parsed extraction payload with the prior state. Pure and
  * exported so the merge rules — monotonic gate counts, the pattern_engaged
- * reset, the observation-miss clamp — are unit-testable without an Anthropic
- * call. `parsed` is the raw JSON.parse() of the model's output.
+ * reset — are unit-testable without an Anthropic call. `parsed` is the raw
+ * JSON.parse() of the model's output.
  */
 export function mergeExtractionState(
   // Raw JSON.parse() output from the model — genuinely untyped; the body runs
@@ -429,12 +394,6 @@ export function mergeExtractionState(
   parsed: any,
   state: ExtractionState
 ): ExtractionState {
-  const rawMiss =
-    typeof parsed.observation_miss_count === "number"
-      ? parsed.observation_miss_count
-      : state.observation_miss_count;
-  const observationMissCount = Math.max(0, Math.min(3, rawMiss));
-
   // Monotonic enforcement on accumulating gate counts. Sonnet sometimes
   // re-evaluates the conversation from a smaller window and returns a
   // lower concrete_examples / distinct_contexts than the prior turn —
@@ -503,10 +462,8 @@ export function mergeExtractionState(
     ),
     depth: mergedDepth,
     current_thread: parsed.current_thread || state.current_thread,
-    mode: parsed.mode || state.mode,
     checkpoint_gate: mergedGate,
     clinical_flag: parsed.clinical_flag || state.clinical_flag,
-    observation_miss_count: observationMissCount,
     sage_brief: parsed.sage_brief || "",
     // Honor the documented reset (PATTERN ENGAGEMENT section): the model is fed the prior
     // value and told to keep it true unless the user explicitly reverses the
@@ -515,8 +472,6 @@ export function mergeExtractionState(
       typeof parsed.pattern_engaged === "boolean"
         ? parsed.pattern_engaged
         : state.pattern_engaged,
-    user_named_cost: Boolean(parsed.user_named_cost) || state.user_named_cost,
-    user_named_stance: Boolean(parsed.user_named_stance) || state.user_named_stance,
   };
 }
 
@@ -539,12 +494,8 @@ export async function runExtraction(
     language_bank: state.language_bank,
     depth: state.depth,
     current_thread: state.current_thread,
-    mode: state.mode,
     checkpoint_gate: state.checkpoint_gate,
-    observation_miss_count: state.observation_miss_count,
     pattern_engaged: state.pattern_engaged,
-    user_named_cost: state.user_named_cost,
-    user_named_stance: state.user_named_stance,
   });
   userContent += "\n\n";
 
@@ -624,202 +575,4 @@ export async function runExtraction(
     console.error("[extraction] Failed:", err);
     throw err;
   }
-}
-
-// ─── Format extraction state as context for Jove ─────────────────────────────
-
-// Maps internal signal codes to human-readable descriptions.
-// Keeps schema names out of the rendered prompt.
-const SIGNAL_LABEL: Record<string, string> = {
-  none: "untouched",
-  emerging: "starting to surface",
-  explored: "well explored",
-  checkpoint_ready: "ready to be reflected back",
-};
-
-export function formatExtractionForPersona(
-  state: ExtractionState,
-  // Retained for signature stability across call sites; the first-checkpoint
-  // lighter gate was retired 2026-06-12 (one bar for every checkpoint).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _isFirstCheckpoint: boolean,
-  manualComponents?: { section?: string | null; name: string | null; content: string }[]
-): string {
-  let context = "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\n";
-
-  const miss = state.observation_miss_count || 0;
-  if (miss >= 3) {
-    context += "Three misses. Full reset. Drop all observations. Ask one concrete situational question and let the user lead.\n\n";
-  } else if (miss >= 2) {
-    context += "Last two observations didn't land. Next turn: pure grounding. No reflection. Ask about the body or the situation.\n\n";
-  }
-
-  if (state.sage_brief) {
-    context += `What's underneath this conversation:\n${state.sage_brief}\n\n`;
-  }
-
-  context += "Where the conversation has touched:\n";
-  for (let i = 1; i <= 5; i++) {
-    const layer = state.layers[i];
-    if (!layer) continue;
-    const label = SIGNAL_LABEL[layer.signal] || layer.signal;
-    context += `- ${LAYER_NAMES[i]}: ${label}`;
-    if (layer.material.length > 0) {
-      context += ` Recent observations: ${layer.material.slice(-3).join("; ")}.`;
-    }
-    context += "\n";
-  }
-  context += "\n";
-
-  const chargedLanguage = state.language_bank
-    .filter((e) => e.charge === "high" || e.charge === "medium")
-    .slice(-15);
-
-  if (chargedLanguage.length > 0) {
-    context += "Phrases the user has used (their words carry weight — use them, don't paraphrase):\n";
-    for (const entry of chargedLanguage) {
-      context += `"${entry.phrase}" — re: ${entry.context}\n`;
-    }
-    context += "\n";
-  }
-
-  // Clinical flag — surfaced first so Jove notices before reflecting
-  const cf = state.clinical_flag;
-  if (cf && cf.active) {
-    if (cf.level === "crisis") {
-      context += `Safety note: ${cf.note}. Stop building. Acknowledge without interpretation, share 988 (call or text), and do not reflect anything back.\n\n`;
-    } else if (cf.level === "caution") {
-      context += `Care note: ${cf.note}. Stay in behavioral description. Offer a professional referral if this is exceeding what a manual can hold.\n\n`;
-    }
-  }
-
-  // Checkpoint readiness — phrased as a hint, not a gate
-  const gate = state.checkpoint_gate;
-  const isCrisis = cf && cf.active && cf.level === "crisis";
-  // distinct_contexts is a strengthening signal, not a gate (ADR-043
-  // Decision 3 / ADR-045): a single vivid scene in the user's own charged
-  // language is reflectable; cross-context repetition deepens but is not
-  // required. So the soft "there's a piece here" hint no longer waits on a
-  // second situation — it fires once the mechanism + charged language are
-  // present. (One bar for every checkpoint otherwise: the first-checkpoint
-  // lighter gate was retired 2026-06-12 — THE DEAL teaches the loop up front.)
-  const gateReady =
-    !isCrisis &&
-    gate.concrete_examples >= 2 &&
-    gate.has_mechanism &&
-    gate.has_charged_language &&
-    gate.has_behavior_driver_link;
-
-  // Depth gate on the SOFT hint only. The hard checkpoint gate
-  // (applyCheckpointGates) is unchanged — this governs what the brief
-  // whispers to Jove each turn, not whether an entry can fire. Until the
-  // conversation reaches the mechanism (WHY a pattern fires) we don't
-  // dangle "there's a piece here." And when it isn't ready we point Jove
-  // DOWN to the live edge instead of handing it a "what's still missing"
-  // checklist — that checklist turned every turn into a countdown to a
-  // deliverable, which is what made the whole thing feel performative.
-  // Applies to the first checkpoint too: fewer, deeper, later.
-  const DEPTH_LADDER = ["surface", "behavior", "feeling", "mechanism", "origin"];
-  const depthIdx = DEPTH_LADDER.indexOf(state.depth);
-  const deepEnough = depthIdx >= DEPTH_LADDER.indexOf("mechanism");
-
-  if (isCrisis) {
-    // During crisis emit nothing about readiness. The safety note above
-    // already told Jove to stop building.
-  } else if (!deepEnough) {
-    // Below the mechanism: keep Jove in it. Point at what's underneath,
-    // never sideways to "go find another example."
-    if (depthIdx < DEPTH_LADDER.indexOf("feeling")) {
-      context +=
-        "Stay in it. They've shown you what happens, not yet what it feels like from inside or why it fires. The live edge is underneath, not sideways.\n";
-    } else {
-      context +=
-        "Stay in it. They've named what happens and how it feels. You haven't reached why it fires yet. Go for the mechanism underneath before you reflect anything back.\n";
-    }
-  } else if (gateReady) {
-    context += `There's a real piece here you could reflect back when the moment is right. The strongest layer is ${LAYER_NAMES[gate.strongest_layer || 0] || "unclear"}. No rush. Stay if there's more underneath. Before you reflect: if a kind of person or situation keeps setting this off, don't settle what the type is until more instances and an exception have tested it — a yes to your list doesn't settle it; an exception they name or an instance they bring unasked does. And check whether this is the same engine as something already in their Manual.\n`;
-  } else {
-    // Deep enough, but the evidence is still thin. One soft line naming
-    // the single most important gap — not the old multi-item checklist.
-    // distinct_contexts is no longer a gap to flag (ADR-043 Decision 3) — a
-    // single vivid scene is reflectable; a second situation strengthens but
-    // is never the thing holding the entry back.
-    const minExamples = 2;
-    let gap: string | null = null;
-    if (gate.concrete_examples < minExamples) {
-      gap = "a concrete scene the user has walked through in detail";
-    } else if (!gate.has_charged_language) {
-      gap = "a phrase from the user that carries real weight";
-    } else if (!gate.has_behavior_driver_link) {
-      gap = "the link between what they do and what's driving it";
-    }
-    context += gap
-      ? `The understanding is there. Still thin on ${gap}. Stay with it.\n`
-      : "There's a real piece here you could reflect back when the moment is right. But you haven't reached what it would cost them to do otherwise — or, if a kind of person or situation keeps setting this off, what the type actually is; don't settle the type until more instances and an exception have tested it. And check: is this the same engine as something already in their Manual?\n";
-  }
-
-  // First-checkpoint wrapper is no longer delivered inside the reflection —
-  // it now rides along with the approaching signal (see Tier 3 PROGRESS
-  // SIGNALS). No extra hint needed here.
-
-  // Surface prior entries on the active layer DURING exploration, not only
-  // when the gate is ready. Threading is a descent engine — the driver of a
-  // new pattern is often already half-written in an existing entry (the
-  // compounding thesis). This block was previously gated on gateReady, which
-  // deadlocked it: the thread only arrived after descent was over (live
-  // evidence: exchange 4 threaded on the model's own initiative; exchange 5,
-  // with the driver sitting in the Manual, never did). Capped at the 2 most
-  // recent matching entries to bound per-turn token cost.
-  const activeLayer =
-    gate.strongest_layer ||
-    Number(
-      Object.entries(state.layers).find(
-        ([, l]) => l.signal && l.signal !== "none"
-      )?.[0] ?? 0
-    ) ||
-    null;
-  if (activeLayer && manualComponents) {
-    const activeSlug = LAYERS.find((l) => l.id === activeLayer)?.slug;
-    const layerContent = manualComponents
-      .filter((c) => activeSlug != null && c.section === activeSlug)
-      .slice(-2);
-    if (layerContent.length > 0) {
-      context += `\nWhat's already in the manual on ${LAYER_NAMES[activeLayer]}:\n`;
-      for (const comp of layerContent) {
-        context += `Entry${comp.name ? ` — "${comp.name}"` : ""}\n`;
-        context += `${comp.content}\n\n`;
-      }
-      context += gateReady
-        ? "Your reflection should build on or deepen this. If something new contradicts it, name the tension instead of flattening it.\n"
-        : "Test the new material against this: is it the same engine wearing different clothes? If so, the driver may already be written here — thread it. Threading is the discovery, not a duplicate-check.\n";
-    }
-  }
-
-  context += `How deep this conversation has gone: ${state.depth}. Current approach: ${state.mode}.\n`;
-
-  if (state.current_thread) {
-    context += `What's actually being explored right now: ${state.current_thread}\n`;
-  }
-
-  // Phase hint based on pattern_engaged
-  if (!state.pattern_engaged) {
-    context += "\nNo pattern has been named and engaged with yet. Keep exploring. When you see repetition across moments, name it conversationally — do not propose a checkpoint.\n";
-  } else if (gateReady) {
-    context += "\nPattern is live and engaged. Work toward what changes now that the user can see this. When you have enough, propose the checkpoint with the pinned transition.\n";
-  } else {
-    context += "\nPattern is engaged but material isn't strong enough yet for a checkpoint. Keep deepening — by offering reads to confirm or correct, not by interrogating. For the cost: name a likely consequence from the scene they walked and let them correct it. For the body: what would someone watching have seen them do? For how far back this runs: offer it as a read they can take or correct — never ask them to compute how long.\n";
-  }
-
-  // Readiness signals
-  if (state.user_named_cost && state.user_named_stance) {
-    context += "The user has named both the cost and their stance. Checkpoint should be strong.\n";
-  } else if (state.user_named_cost && !state.user_named_stance) {
-    context += "The user named the cost but hasn't landed on what they want. Work toward what changes before checkpointing, or checkpoint with an incomplete stance.\n";
-  } else if (!state.user_named_cost && state.pattern_engaged) {
-    context += "The user hasn't named what this costs them yet. Don't ask what it costs — name a likely consequence from the scene they walked and let them confirm or correct it before proposing.\n";
-  }
-
-  context += "── END BRIEF ──\n";
-
-  return context;
 }

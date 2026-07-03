@@ -7,7 +7,6 @@ import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   runExtraction,
-  formatExtractionForPersona,
   type ExtractionState,
 } from "@/lib/persona/extraction";
 import {
@@ -54,7 +53,6 @@ export interface ConversationContext {
   sessionCount: number;
   turnsSinceCheckpoint: number;
   conversationId: string;
-  extractionForPersona: string;
   turnCount: number;
   checkpointApproaching: boolean;
   personaModes: PersonaMode[];
@@ -78,9 +76,10 @@ export interface ConversationContext {
    *  call-persona.ts to surface the depth + readiness signals to the client. */
   reflectionMeterEnabled: boolean;
   /** False when the `extraction_brief` feature gate is OFF. Read by
-   *  call-persona.ts to skip the background extraction call. When false,
-   *  extractionForPersona is also already cleared in this context, so Jove
-   *  converses voice-only with no analysis steering it. */
+   *  call-persona.ts to skip the background extraction call. Extraction still
+   *  feeds the save-time composer + safety detectors off the state object; the
+   *  per-turn brief it used to narrate was retired 2026-07-02. When false, no
+   *  extraction runs — voice-only. */
   extractionEnabled: boolean;
   /** Admin-editable voice-text overrides (persona_voice_overrides table),
    *  resolved once per turn alongside the feature gates. Empty {} when no
@@ -416,12 +415,6 @@ export async function loadConversationContext(
     sessionCount = count || 1;
   }
 
-  // Derived prompt flags. When extraction_brief is OFF, previousExtraction is
-  // already null (cleared above), so no brief renders — voice-only.
-  const extractionForPersona = previousExtraction
-    ? formatExtractionForPersona(previousExtraction, isFirstCheckpoint, manualComponents)
-    : "";
-
   const turnCount = messages.length;
   const checkpointApproaching = deriveCheckpointApproaching(
     previousExtraction,
@@ -453,7 +446,6 @@ export async function loadConversationContext(
     sessionCount,
     turnsSinceCheckpoint,
     conversationId,
-    extractionForPersona,
     turnCount,
     // checkpoints gate OFF → zero every checkpoint-derived prompt flag so
     // the CHECKPOINTS and POST-SUPPRESSION Tier 3 blocks never render, and
@@ -532,7 +524,6 @@ export function buildPromptOptionsFromContext(
     currentConversationId: ctx.conversationId,
     isReturningUser: ctx.isReturningUser,
     sessionSummary: ctx.sessionSummary,
-    extractionContext: ctx.extractionForPersona,
     isFirstCheckpoint: ctx.isFirstCheckpoint,
     sessionCount: ctx.sessionCount,
     turnCount: ctx.turnCount,
@@ -809,10 +800,9 @@ export function validateMaterialQuality(
   // the candidate pattern is built on.
   //
   // - high|medium aligns the gate with the rest of the system: the composer
-  //   (confirm-checkpoint.ts) and formatExtractionForPersona both treat
-  //   "charged" as high-or-medium. The has_charged_language field is still
-  //   produced by extraction and read by those callers — we just stop gating
-  //   on it here.
+  //   (confirm-checkpoint.ts) treats "charged" as high-or-medium. The
+  //   has_charged_language field is still produced by extraction and read
+  //   there — we just stop gating on it here.
   // - "Built on" approximation: prefer phrases tagged to the candidate layer
   //   (gate.strongest_layer). When strongest_layer is null (the gate hasn't
   //   resolved a layer), fall back to any high/medium phrase in the bank.

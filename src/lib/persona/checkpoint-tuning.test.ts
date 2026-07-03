@@ -145,18 +145,17 @@ describe("isCheckpointTuningField / isDepthLevel", () => {
 function passingState(overrides?: Partial<ExtractionState>): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [] },
-      2: { signal: "none", material: [], examples: [] },
-      3: { signal: "none", material: [], examples: [] },
-      4: { signal: "none", material: [], examples: [] },
-      5: { signal: "none", material: [], examples: [] },
+      1: { signal: "none" },
+      2: { signal: "none" },
+      3: { signal: "none" },
+      4: { signal: "none" },
+      5: { signal: "none" },
     },
     language_bank: [
       { phrase: "my chest goes tight", context: "when it fires", charge: "high", layers: [1] },
     ],
     depth: "mechanism",
     current_thread: "",
-    mode: "situation_led",
     checkpoint_gate: {
       concrete_examples: 2,
       has_mechanism: true,
@@ -165,11 +164,8 @@ function passingState(overrides?: Partial<ExtractionState>): ExtractionState {
       strongest_layer: 1,
     },
     clinical_flag: { active: false, level: "none", note: "" },
-    observation_miss_count: 0,
     sage_brief: "",
     pattern_engaged: true,
-    user_named_cost: false,
-    user_named_stance: false,
     ...overrides,
   };
 }

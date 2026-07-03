@@ -476,18 +476,6 @@ const SECTION_DEFS: SectionDef[] = [
     alternativesFn: () => [],
   },
   {
-    id: "extraction-brief",
-    label: "Extraction Brief",
-    tier: "dynamic",
-    // Matches the actual runtime header emitted by formatExtractionForPersona
-    // (extraction.ts:535): "── BRIEF FOR YOUR NEXT RESPONSE ──". The leading
-    // characters are U+2500 BOX DRAWINGS LIGHT HORIZONTAL (×2), not em dashes.
-    pattern: /^── BRIEF FOR YOUR NEXT RESPONSE ──/m,
-    source: { file: "extraction.ts", symbol: "formatExtractionForPersona" },
-    conditionFn: () => ({ type: "dynamic", label: "Dynamic: appended at runtime" }),
-    alternativesFn: () => [],
-  },
-  {
     id: "transcript-detected",
     label: "Transcript Detected",
     tier: "dynamic",
@@ -673,7 +661,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         currentConversationId: "conv-1",
         isReturningUser: false,
         sessionSummary: null,
-        extractionContext: "",
         isFirstCheckpoint: false,
         turnCount: 1,
         checkpointApproaching: false,
@@ -688,8 +675,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         currentConversationId: "conv-1",
         isReturningUser: false,
         sessionSummary: null,
-        extractionContext:
-          "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\nThere is enough material to reflect a piece back. The user has walked through a concrete scene, named a mechanism, and used charged language. A checkpoint is approaching.\n",
         isFirstCheckpoint: true,
         turnCount: 8,
         checkpointApproaching: true,
@@ -705,7 +690,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         isReturningUser: true,
         sessionSummary:
           "Explored the pressure-to-perform pattern at work. Named the voice-goes-flat moment. Confirmed one entry on Layer 1.",
-        extractionContext: "",
         isFirstCheckpoint: false,
         sessionCount: 3,
         turnCount: 1,
@@ -722,8 +706,6 @@ function buildPhaseConfigs(): PhaseConfig[] {
         isReturningUser: true,
         sessionSummary:
           "Explored the pressure-to-perform pattern at work. Named the voice-goes-flat moment. Confirmed one entry on Layer 1.",
-        extractionContext:
-          "\n── BRIEF FOR YOUR NEXT RESPONSE ──\n\nThe user has walked through a new scene involving a family dynamic. Body language surfaced: jaw tightening, chest pressure. The bind is visible: protecting the relationship by absorbing, but the cost is losing their own position. Checkpoint approaching.\n",
         isFirstCheckpoint: false,
         sessionCount: 3,
         turnCount: 10,

@@ -208,7 +208,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   currentConversationId: string | null;
   isReturningUser: boolean;
   sessionSummary: string | null;
-  extractionContext: string;
   isFirstCheckpoint: boolean;
   sessionCount?: number;
   explorationContext?: ExplorationContext;
@@ -997,7 +996,6 @@ export function buildSystemPromptBlocks(
     currentConversationId,
     isReturningUser,
     sessionSummary,
-    extractionContext,
     sessionCount,
     explorationContext,
     transcriptContext,
@@ -1123,16 +1121,14 @@ export function buildSystemPromptBlocks(
       sessionCount,
       sessionSummary,
     });
-    // Voice/checkpoint decoupling (2026-06-16): the rebuilt voice does NOT
-    // receive the per-turn extraction brief. REBUILT_MECHANICS owns the
+    // Voice/checkpoint decoupling (2026-06-16): the rebuilt voice never
+    // received the per-turn extraction brief. REBUILT_MECHANICS owns the
     // "when to propose" decision and the user is the gate; the brief's steering
-    // duplicated that and turned each turn into a deliverable-countdown
-    // (the cadence the founder's A/B ablation isolated). Extraction still runs
-    // and feeds the SAVE-time composer + the safety detectors off the state
-    // object directly — it just stops narrating the live turn. The legacy path
-    // below intentionally still appends the brief (it has no MECHANICS
-    // replacement); the brief computation + formatExtractionForPersona are
-    // removed in the Phase-3b legacy teardown.
+    // duplicated that and turned each turn into a deliverable-countdown (the
+    // cadence the founder's A/B ablation isolated). The per-turn brief
+    // (formatExtractionForPersona) was retired entirely 2026-07-02 — no voice
+    // now injects it. Extraction still runs and feeds the SAVE-time composer +
+    // the safety detectors off the state object directly.
     rebuiltDynamic += renderTranscriptContextBlock(transcriptContext);
     if (explorationContext) {
       rebuiltDynamic += "\n" + renderExplorationContextBlock(explorationContext);
@@ -1179,7 +1175,6 @@ export function buildSystemPromptBlocks(
 
   if (recentManual) dynamicBlock += recentManual;
   dynamicBlock += renderSessionContextBlock({ isReturningUser, sessionCount, sessionSummary });
-  if (extractionContext) dynamicBlock += extractionContext;
   dynamicBlock += renderTranscriptContextBlock(transcriptContext);
   if (explorationContext) {
     dynamicBlock += "\n" + renderExplorationContextBlock(explorationContext);
@@ -1231,7 +1226,6 @@ export function buildSystemPrompt(options: BuildPromptOptions): string {
     currentConversationId,
     isReturningUser,
     sessionSummary,
-    extractionContext,
     sessionCount,
     explorationContext,
     transcriptContext,
@@ -1258,7 +1252,6 @@ ${tier3}`;
   let dynamicContext = "";
   dynamicContext += prepareManualContext(manualComponents, currentConversationId);
   dynamicContext += renderSessionContextBlock({ isReturningUser, sessionCount, sessionSummary });
-  if (extractionContext) dynamicContext += extractionContext;
   dynamicContext += renderTranscriptContextBlock(transcriptContext);
 
   if (explorationContext) {

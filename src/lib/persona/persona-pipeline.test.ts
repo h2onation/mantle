@@ -22,16 +22,15 @@ function makeExtractionState(
 ): ExtractionState {
   return {
     layers: {
-      1: { signal: "none", material: [], examples: [] },
-      2: { signal: "none", material: [], examples: [] },
-      3: { signal: "none", material: [], examples: [] },
-      4: { signal: "none", material: [], examples: [] },
-      5: { signal: "none", material: [], examples: [] },
+      1: { signal: "none" },
+      2: { signal: "none" },
+      3: { signal: "none" },
+      4: { signal: "none" },
+      5: { signal: "none" },
     },
     language_bank: [],
     depth: "surface",
     current_thread: "",
-    mode: "situation_led",
     checkpoint_gate: {
       concrete_examples: 0,
       has_mechanism: false,
@@ -40,11 +39,8 @@ function makeExtractionState(
       strongest_layer: null,
     },
     clinical_flag: { active: false, level: "none", note: "" },
-    observation_miss_count: 0,
     sage_brief: "",
     pattern_engaged: false,
-    user_named_cost: false,
-    user_named_stance: false,
     ...overrides,
   };
 }
@@ -508,11 +504,11 @@ describe("deriveCheckpointApproaching", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(1),
       layers: {
-        1: { signal: "explored", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "explored" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
@@ -525,15 +521,11 @@ describe("deriveCheckpointApproaching", () => {
     const state = makeExtractionState({
       language_bank: chargedBank(2),
       layers: {
-        1: { signal: "none", material: [], examples: [] },
-        2: {
-          signal: "checkpoint_ready",
-          material: [],
-          examples: [],
-        },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "none" },
+        2: { signal: "checkpoint_ready" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(state, true, 5)).toBe(true);
@@ -547,11 +539,11 @@ describe("deriveCheckpointApproaching", () => {
       pattern_engaged: true,
       depth: "mechanism",
       layers: {
-        1: { signal: "emerging", material: [], examples: [] },
-        2: { signal: "emerging", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "emerging" },
+        2: { signal: "emerging" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
       checkpoint_gate: {
         concrete_examples: 2,
@@ -571,11 +563,11 @@ describe("deriveCheckpointApproaching", () => {
     const state = makeExtractionState({
       pattern_engaged: false,
       layers: {
-        1: { signal: "emerging", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "emerging" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
       checkpoint_gate: {
         concrete_examples: 0,
@@ -614,11 +606,11 @@ describe("deriveCheckpointApproaching", () => {
       pattern_engaged: false,
       depth: "mechanism",
       layers: {
-        1: { signal: "emerging", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "emerging" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
       checkpoint_gate: {
         concrete_examples: 2,
@@ -643,11 +635,11 @@ describe("deriveCheckpointApproaching", () => {
     const emptyBank = makeExtractionState({
       language_bank: [],
       layers: {
-        1: { signal: "explored", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "explored" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(emptyBank, true, 5)).toBe(false);
@@ -659,11 +651,11 @@ describe("deriveCheckpointApproaching", () => {
         { phrase: "it was fine", context: "in passing", charge: "low", layers: [1] },
       ],
       layers: {
-        1: { signal: "explored", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "explored" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(lowOnlyBank, true, 5)).toBe(false);
@@ -677,11 +669,11 @@ describe("deriveCheckpointApproaching", () => {
     const chargeElsewhere = makeExtractionState({
       language_bank: chargedBank(2),
       layers: {
-        1: { signal: "explored", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "explored" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(chargeElsewhere, true, 5)).toBe(false);
@@ -692,11 +684,11 @@ describe("deriveCheckpointApproaching", () => {
     const chargeOnSignalLayer = makeExtractionState({
       language_bank: chargedBank(1),
       layers: {
-        1: { signal: "explored", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "explored" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(chargeOnSignalLayer, true, 5)).toBe(true);
@@ -711,11 +703,11 @@ describe("deriveCheckpointApproaching", () => {
       language_bank: chargedBank(1),
       clinical_flag: { active: true, level: "crisis", note: "self-harm" },
       layers: {
-        1: { signal: "checkpoint_ready", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "checkpoint_ready" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(inCrisis, true, 5)).toBe(false);
@@ -725,11 +717,11 @@ describe("deriveCheckpointApproaching", () => {
     const noCrisis = makeExtractionState({
       language_bank: chargedBank(1),
       layers: {
-        1: { signal: "checkpoint_ready", material: [], examples: [] },
-        2: { signal: "none", material: [], examples: [] },
-        3: { signal: "none", material: [], examples: [] },
-        4: { signal: "none", material: [], examples: [] },
-        5: { signal: "none", material: [], examples: [] },
+        1: { signal: "checkpoint_ready" },
+        2: { signal: "none" },
+        3: { signal: "none" },
+        4: { signal: "none" },
+        5: { signal: "none" },
       },
     });
     expect(deriveCheckpointApproaching(noCrisis, true, 5)).toBe(true);
@@ -910,7 +902,6 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       sessionCount: 1,
       turnsSinceCheckpoint: Infinity,
       conversationId: "test-conv",
-      extractionForPersona: "",
       turnCount: 1,
       checkpointApproaching: false,
       personaModes: ["autistic"],

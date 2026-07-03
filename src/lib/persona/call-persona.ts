@@ -680,11 +680,10 @@ export function callPersona({
         if (process.env.NODE_ENV !== "production") {
           const gate = previousExtraction?.checkpoint_gate;
           const depth = previousExtraction?.depth;
-          const mode = previousExtraction?.mode;
           const brief = previousExtraction?.sage_brief;
           const strongest = gate?.strongest_layer;
 
-          console.log("[persona-debug] Turn %d | Depth: %s | Mode: %s | Since CP: %d", turnCount, depth || "none", mode || "none", turnsSinceCheckpoint);
+          console.log("[persona-debug] Turn %d | Depth: %s | Since CP: %d", turnCount, depth || "none", turnsSinceCheckpoint);
 
           if (gate) {
             const gateMet = isFirstCheckpoint

@@ -48,7 +48,6 @@ describe("buildSystemPrompt", () => {
     currentConversationId: "test-conversation-id",
     isReturningUser: false,
     sessionSummary: null,
-    extractionContext: "",
     isFirstCheckpoint: false,
     turnCount: 5,
     checkpointApproaching: false,
@@ -70,7 +69,6 @@ describe("buildSystemPrompt", () => {
         manualComponents: [{ section: "relationships", name: "Test", content: "Test content" }],
         isReturningUser: true,
         sessionSummary: "Previous summary",
-        extractionContext: "Some extraction context",
         isFirstCheckpoint: true,
         sessionCount: 3,
         checkpointApproaching: true,
@@ -262,22 +260,6 @@ describe("buildSystemPrompt", () => {
       });
       expect(result).toContain("Earlier in this conversation:");
       expect(result).toContain("Explored conflict avoidance patterns.");
-    });
-  });
-
-  // ─── Extraction context ──────────────────────────────────────────────────
-  describe("extraction context", () => {
-    it("includes extraction context string when non-empty", () => {
-      const extraction =
-        "EXTRACTION BRIEF\nLayer signals: L1 strong, L3 emerging.";
-      const result = build({ extractionContext: extraction });
-      expect(result).toContain(extraction);
-    });
-
-    it("does not add extra content when extraction context is empty", () => {
-      const withEmpty = build({ extractionContext: "" });
-      const withoutExtraction = build({ extractionContext: "" });
-      expect(withEmpty).toBe(withoutExtraction);
     });
   });
 
@@ -2841,7 +2823,6 @@ describe("buildSystemPrompt", () => {
       currentConversationId: "test-conversation-id",
       isReturningUser: false,
       sessionSummary: null,
-      extractionContext: "",
       isFirstCheckpoint: false,
       turnCount: 5,
       checkpointApproaching: false,
@@ -3004,7 +2985,6 @@ describe("buildSystemPrompt", () => {
       currentConversationId: "test-conversation-id",
       isReturningUser: false,
       sessionSummary: null,
-      extractionContext: "",
       isFirstCheckpoint: false,
       turnCount: 5,
       checkpointApproaching: false,

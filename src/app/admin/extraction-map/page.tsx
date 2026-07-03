@@ -342,67 +342,6 @@ const FIELDS: Field[] = [
     notes: "Overlaps with sage_brief. Removing it marginally shortens the prompt.",
   },
   {
-    path: "mode",
-    type: "'situation_led' | 'direct_exploration' | 'synthesis'",
-    job: "brief",
-    loadBearing: "auxiliary",
-    summary: "The stance the extractor recommends Jove take.",
-    represents:
-      "Extractor's recommendation for Jove's stance. situation_led is default; direct_exploration when ≥2 sections have entries; synthesis when all 5 sections do.",
-    storage: "conversations.extraction_state.mode",
-    readers: [
-      { where: "extraction.ts:609 (formatExtractionForPersona)", what: "'Current approach: X' framing line in the brief" },
-      { where: "call-persona.ts:363", what: "Dev-only debug log" },
-    ],
-    gates: "None. Framing only.",
-    notes:
-      "Derivable from manualComponents.length. Distinct from conversations.mode (unrelated).",
-  },
-  {
-    path: "observation_miss_count",
-    type: "integer 0-3 (capped)",
-    job: "brief",
-    loadBearing: "auxiliary",
-    summary: "How many of Jove's guesses in a row the user pushed back on.",
-    represents:
-      "How many consecutive Jove observations the user has pushed back on. Increments on rejection/redirect/withdraw; resets on confirm/elaborate. Capped at 3.",
-    storage: "conversations.extraction_state.observation_miss_count",
-    readers: [
-      { where: "extraction.ts:493 (formatExtractionForPersona)", what: "Drives 'full reset' / 'pure grounding' instructions in brief when ≥2" },
-    ],
-    gates: "Soft control — at 3, the brief tells Jove to drop observations and just ground.",
-    notes:
-      "Could be made deterministic (count post-rejection system messages + short-answer streaks).",
-  },
-  {
-    path: "user_named_cost",
-    type: "boolean",
-    job: "brief",
-    loadBearing: "auxiliary",
-    summary: "Has the user said, in their words, what the pattern costs them.",
-    represents:
-      "Whether the user has articulated, in their own words, what the pattern costs them.",
-    storage: "conversations.extraction_state.user_named_cost",
-    readers: [
-      { where: "extraction.ts:625 (formatExtractionForPersona)", what: "Tail of brief: 'user named the cost' hint" },
-    ],
-    gates: "None — an informational nudge in the brief's closing lines.",
-  },
-  {
-    path: "user_named_stance",
-    type: "boolean",
-    job: "brief",
-    loadBearing: "auxiliary",
-    summary: "Has the user said what they want now that they see the pattern.",
-    represents:
-      "Whether the user has expressed what they want now that they can see the pattern (a request, decision, or honest incomplete).",
-    storage: "conversations.extraction_state.user_named_stance",
-    readers: [
-      { where: "extraction.ts:625 (formatExtractionForPersona)", what: "Tail of brief: pairs with user_named_cost" },
-    ],
-    gates: "None — an informational nudge in the brief's closing lines.",
-  },
-  {
     path: "checkpoint_gate.has_charged_language",
     type: "boolean",
     job: "brief",
@@ -451,35 +390,6 @@ const FIELDS: Field[] = [
       { where: "extraction.ts:506 (formatExtractionForPersona)", what: "Per-layer status line in the brief" },
     ],
     gates: "'Is this turn a checkpoint moment?' upstream of the gate.",
-  },
-  {
-    path: "layers[1..5].material",
-    type: "string[]",
-    job: "material",
-    loadBearing: "load-bearing",
-    summary: "Jove-side observations attached to each section (cumulative).",
-    represents:
-      "Specific observations attached to each section. Cumulative — accumulates across the session.",
-    storage: "conversations.extraction_state.layers[N].material",
-    readers: [
-      { where: "extraction.ts:506-508 (formatExtractionForPersona)", what: "Last 3 entries shown in the brief as 'recent observations'" },
-    ],
-    gates: "Indirect — feeds the brief so depth carries across turns.",
-  },
-  {
-    path: "layers[1..5].examples",
-    type: "string[]",
-    job: "material",
-    loadBearing: "auxiliary",
-    summary: "User-narrated moments tagged to a section. Nothing downstream reads it.",
-    represents:
-      "Concrete moments the user narrated, tagged to section. Distinct from material (which is Jove-side observations).",
-    storage: "conversations.extraction_state.layers[N].examples",
-    readers: [
-      { where: "(extractor's own cumulative reasoning)", what: "Read by the extractor next turn to avoid double-counting" },
-    ],
-    gates: "None directly. The count feeds concrete_examples, which is what actually surfaces.",
-    notes: "Prune candidate — extractor-internal bookkeeping, no downstream reader.",
   },
 ];
 

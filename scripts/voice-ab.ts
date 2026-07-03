@@ -40,7 +40,7 @@ try {
 
 import { anthropicFetch, extractResponseText, type SystemBlock } from "@/lib/anthropic";
 import { buildSystemPromptBlocks } from "@/lib/persona/system-prompt";
-import { runExtraction, formatExtractionForPersona, type ExtractionState } from "@/lib/persona/extraction";
+import { runExtraction, type ExtractionState } from "@/lib/persona/extraction";
 import { deriveCheckpointApproaching } from "@/lib/persona/persona-pipeline";
 import { detectCheckpointInResponse } from "@/lib/persona/detect-checkpoint";
 import { detectCrisisInUserMessage } from "@/lib/persona/call-persona";
@@ -109,7 +109,6 @@ interface TurnRecord {
   joveHas988: boolean;
   extraction: {
     pattern_engaged: boolean;
-    observation_miss_count: number;
     gate: unknown;
     depth: string | null;
   } | null;
@@ -123,7 +122,6 @@ async function runConversation(
   const scenario = SCENARIOS[scenarioKey];
   const history: Msg[] = [];
   let extractionState: ExtractionState | null = null;
-  let brief = "";
   const turns: TurnRecord[] = [];
   let endedBy = "max-turns";
   let checkpointsResolved = 0;
@@ -161,7 +159,6 @@ async function runConversation(
       currentConversationId: null,
       isReturningUser: false,
       sessionSummary: null,
-      extractionContext: brief,
       isFirstCheckpoint: true,
       sessionCount: 1,
       turnCount: turn,
@@ -201,10 +198,8 @@ async function runConversation(
     let extractionSnapshot: TurnRecord["extraction"] = null;
     try {
       extractionState = await runExtraction(history, extractionState, [], true);
-      brief = formatExtractionForPersona(extractionState, true, []);
       extractionSnapshot = {
         pattern_engaged: extractionState.pattern_engaged,
-        observation_miss_count: extractionState.observation_miss_count,
         gate: extractionState.checkpoint_gate,
         depth: extractionState.depth ?? null,
       };
@@ -267,7 +262,7 @@ function renderTranscript(
     lines.push("");
     if (t.extraction) {
       lines.push(
-        `> extraction: pattern_engaged=${t.extraction.pattern_engaged} · misses=${t.extraction.observation_miss_count} · depth=${t.extraction.depth} · gate=${JSON.stringify(t.extraction.gate)}`
+        `> extraction: pattern_engaged=${t.extraction.pattern_engaged} · depth=${t.extraction.depth} · gate=${JSON.stringify(t.extraction.gate)}`
       );
       lines.push("");
     }

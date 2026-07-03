@@ -17,7 +17,6 @@ describe("guided-intake block (area-anchored)", () => {
       isFirstCheckpoint: true,
       sessionCount: 1,
       currentConversationId: "test",
-      extractionContext: "",
       turnCount: 1,
       checkpointApproaching: false,
     });
