@@ -922,6 +922,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
       baselineActive: false,
       conductorActive: false,
+      reflectionLanded: false,
       baselineForces: {
         gate: false,
         flagDontGrab: false,
@@ -1052,6 +1053,7 @@ describe("resolveReflectionMeter", () => {
           gatePassed: true,
           cooldownTurns: COOLDOWN,
           conductorActive,
+          reflectionLanded: true,
         }),
       ).toBeNull();
       expect(
@@ -1061,6 +1063,7 @@ describe("resolveReflectionMeter", () => {
           gatePassed: true,
           cooldownTurns: COOLDOWN,
           conductorActive,
+          reflectionLanded: true,
         }),
       ).toBeNull();
     }
@@ -1076,69 +1079,49 @@ describe("resolveReflectionMeter", () => {
       gatePassed: true,
       cooldownTurns: COOLDOWN,
       conductorActive: true,
+      reflectionLanded: false,
     });
     expect(shallow).toEqual({ fill: 0, ready: false });
   });
 
-  it("conductor: strip needs MECHANISM depth AND an engaged pattern; full bar ⇔ strip visible", () => {
-    // Depth floor raised from "feeling" after the 2026-07-02 mom-run incident;
-    // pattern_engaged added after the strip still fired early — depth is a
-    // bot-side material high-water mark, pattern_engaged is the user-side
-    // signal that they're working the pattern, not just that it was touched.
-    const feeling = resolveReflectionMeter({
-      extraction: base({ depth: "feeling", pattern_engaged: true }),
+  it("conductor: ready comes ONLY from Jove's landed marker — depth never opens the strip", () => {
+    // Every extraction-side proxy fired early (depth: mom-run;
+    // depth+pattern_engaged: Guerneville run). Ready is now Jove's own
+    // published landed judgment, nothing else. Without it, the bar shows the
+    // depth journey and caps at 80 — it can never read full.
+    for (const depth of ["feeling", "mechanism", "origin"] as const) {
+      const unlanded = resolveReflectionMeter({
+        extraction: base({ depth, pattern_engaged: true }),
+        turnsSinceCheckpoint: Infinity,
+        gatePassed: true,
+        cooldownTurns: COOLDOWN,
+        conductorActive: true,
+        reflectionLanded: false,
+      });
+      expect(unlanded?.ready).toBe(false);
+      expect(unlanded?.fill).toBeLessThanOrEqual(80);
+    }
+    // Landed → full bar ⇔ strip visible, regardless of the analyst's scores
+    // (Jove judges firsthand; the depth score can lag a turn behind).
+    const landed = resolveReflectionMeter({
+      extraction: base({ depth: "feeling", pattern_engaged: false }),
       turnsSinceCheckpoint: Infinity,
       gatePassed: true,
       cooldownTurns: COOLDOWN,
       conductorActive: true,
+      reflectionLanded: true,
     });
-    expect(feeling?.ready).toBe(false); // fill 28 < CONDUCTOR_STRIP_FILL (60)
-    const mechanismUnengaged = resolveReflectionMeter({
-      extraction: base({ depth: "mechanism", pattern_engaged: false }),
-      turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
-      cooldownTurns: COOLDOWN,
-      conductorActive: true,
-    });
-    expect(mechanismUnengaged?.fill).toBe(60); // bar still fills with depth
-    expect(mechanismUnengaged?.ready).toBe(false); // but no strip until engaged
-    const mechanism = resolveReflectionMeter({
-      extraction: base({ depth: "mechanism", pattern_engaged: true }),
-      turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
-      cooldownTurns: COOLDOWN,
-      conductorActive: true,
-    });
-    // Full bar ⇔ strip visible: when ready, fill snaps to 100 so the bar and
-    // the strip tell one story on screen (60%-bar-with-ready-strip rejected
-    // by the founder 2026-07-02).
-    expect(mechanism).toEqual({ fill: 100, ready: true });
-    const deepUnengaged = resolveReflectionMeter({
-      extraction: base({ depth: "origin", pattern_engaged: false }),
-      turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
-      cooldownTurns: COOLDOWN,
-      conductorActive: true,
-    });
-    expect(deepUnengaged?.ready).toBe(false);
-    expect(deepUnengaged?.fill).toBe(80); // pre-ready depth fill caps at 80 — never reads full
-    const deep = resolveReflectionMeter({
-      extraction: base({ depth: "origin", pattern_engaged: true }),
-      turnsSinceCheckpoint: Infinity,
-      gatePassed: true,
-      cooldownTurns: COOLDOWN,
-      conductorActive: true,
-    });
-    expect(deep).toEqual({ fill: 100, ready: true });
+    expect(landed).toEqual({ fill: 100, ready: true });
   });
 
-  it("normal (pull model): unchanged passthrough — gate verdict drives fill and ready", () => {
+  it("normal (pull model): unchanged passthrough — gate verdict drives fill and ready, marker ignored", () => {
     const readyState = resolveReflectionMeter({
       extraction: base({ depth: "mechanism" }),
       turnsSinceCheckpoint: 10,
       gatePassed: true,
       cooldownTurns: COOLDOWN,
       conductorActive: false,
+      reflectionLanded: false,
     });
     expect(readyState).toEqual({ fill: 100, ready: true });
     const notReady = resolveReflectionMeter({
@@ -1147,6 +1130,7 @@ describe("resolveReflectionMeter", () => {
       gatePassed: false,
       cooldownTurns: COOLDOWN,
       conductorActive: false,
+      reflectionLanded: true,
     });
     expect(notReady).toEqual({ fill: 60, ready: false });
   });

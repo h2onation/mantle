@@ -215,6 +215,17 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain("Never start two turns in a row the same way");
   });
 
+  it("landed line publishes the ---reflection-ready--- marker (the meter's ONLY ready source)", () => {
+    const full = renderConductor();
+    // The marker instruction must live in "When it's landed" and be scoped to
+    // the landed message only. If this clause disappears, the strip can never
+    // appear under the conductor — miss direction is late/never, by design.
+    expect(full).toContain("---reflection-ready---");
+    expect(full).toContain(
+      "Use it only on the message where you say it's theirs, never earlier"
+    );
+  });
+
   it("Step 4: the post-save turn offers the three paths via the chips marker", () => {
     const full = renderConductor();
     expect(full).toContain("---chips---");

@@ -99,6 +99,14 @@ export interface ConversationContext {
   /** TEMPORARY conductor variant (conductor-prompt.ts). Admin-scoped like
    *  baselineActive; takes precedence over it in the variant selector. */
   conductorActive: boolean;
+  /** True when Jove has published the landed signal (the ---reflection-ready---
+   *  marker, tagged onto the message row as metadata.reflection_landed) since
+   *  the last checkpoint. Conductor-only readiness source: Jove's own landed
+   *  judgment, made in-conversation with full context, replaces every
+   *  extraction-side proxy (depth thresholds, pattern_engaged) that fired the
+   *  strip early — the 2026-07-02 Guerneville run. Resets automatically on
+   *  save: a new checkpoint row postdates the marker message. */
+  reflectionLanded: boolean;
   /** Which baseline forces are re-added this turn (the add-back ladder). Only
    *  meaningful when baselineActive; all-off otherwise. */
   baselineForces: BaselineForces;
@@ -379,6 +387,22 @@ export async function loadConversationContext(
     turnsSinceCheckpoint = userMsgsSince;
   }
 
+  // Jove's landed signal since the last checkpoint (conductor readiness).
+  // Same metadata-tag pattern as checkpoint_suppressed above: call-persona
+  // tags the row when it strips the ---reflection-ready--- marker. Scoped to
+  // after the last checkpoint so a save resets readiness with no extra state.
+  const cpTime = lastCheckpointResult.data?.created_at ?? null;
+  const reflectionLanded = (historyResult.data || []).some(
+    (m: {
+      role: string;
+      created_at?: string;
+      metadata?: { reflection_landed?: boolean } | null;
+    }) =>
+      m.role === "assistant" &&
+      Boolean(m.metadata?.reflection_landed) &&
+      (!cpTime || (m.created_at ?? "") > cpTime)
+  );
+
   // User state
   const isReturningUser = manualComponents.length > 0;
   const isFirstCheckpoint = !isReturningUser;
@@ -445,6 +469,7 @@ export async function loadConversationContext(
     checkpointTuning,
     baselineActive,
     conductorActive,
+    reflectionLanded,
     baselineForces,
     baselineGateOpen,
   };
@@ -1251,21 +1276,6 @@ export function reflectionMeterFill(
   return Math.round(Math.min(depthPct, cooldownCap));
 }
 
-/** Fill level at which the ready strip becomes VISIBLE under the conductor —
- *  depth "mechanism" per REFLECTION_DEPTH_PCT. The conductor strip is an
- *  invitational affordance ("ready when you are"), never a server claim of
- *  completion. This fill threshold is the depth FLOOR of readiness, not the
- *  whole gate — ready also requires extraction.pattern_engaged (see
- *  resolveReflectionMeter). Depth alone proved insufficient twice: raised from
- *  "feeling" to "mechanism" after the 2026-07-02 mom-run incident (strip
- *  invited a pull ~12 turns before anything buildable existed), then still
- *  fired early because depth is a bot-side material high-water mark that flips
- *  the moment mechanism material is TOUCHED, knowing nothing about whether the
- *  user is working the pattern. Value tracks REFLECTION_DEPTH_PCT.mechanism
- *  (60 since the back-loaded curve). Deletion condition: conductor promoted
- *  and the meter model finalized. */
-export const CONDUCTOR_STRIP_FILL = 60;
-
 /**
  * The ONE reflection-meter resolution, shared by the live SSE emit
  * (call-persona) and the reload-restore endpoint (checkpoint/meter route) so
@@ -1277,16 +1287,14 @@ export const CONDUCTOR_STRIP_FILL = 60;
  * Two regimes, one formula each:
  *  - Normal (pull model): fill from reflectionMeterFill with the REAL gate
  *    verdict; ready = gate passed. Unchanged behavior.
- *  - Conductor: the gate is open (its verdict is meaningless as readiness), so
- *    it is NEVER fed into the meter — pre-ready fill is depth-only (gatePassed
- *    forced false, caps at 80) and `ready` requires fill past
- *    CONDUCTOR_STRIP_FILL AND the user engaging the named pattern
- *    (extraction.pattern_engaged — the user-side signal; depth alone is
- *    bot-side material and fired the strip before the user was in it, the
- *    2026-07-02 entries-ready-too-early failure). When ready, fill snaps to
- *    100 so the bar and the strip agree on screen — full bar ⇔ strip visible,
- *    one story. The true landed signal is Jove's conversational line, not the
- *    server.
+ *  - Conductor: `ready` = Jove's own published landed signal (the
+ *    ---reflection-ready--- marker → reflectionLanded), nothing else. Every
+ *    extraction-side proxy tried before it fired the strip early — depth
+ *    thresholds (mom-run), depth+pattern_engaged (Guerneville run) — because
+ *    the analyst infers readiness secondhand while Jove JUDGES it firsthand,
+ *    per the landed markers in its prompt. The gate is never fed in
+ *    (gatePassed forced false); pre-ready fill is the depth journey and caps
+ *    at 80, ready snaps fill to 100 — full bar ⇔ strip visible, one story.
  *
  * Returns null to HIDE the meter (crisis, or nothing analyzed yet).
  */
@@ -1296,8 +1304,16 @@ export function resolveReflectionMeter(args: {
   gatePassed: boolean;
   cooldownTurns: number;
   conductorActive: boolean;
+  reflectionLanded: boolean;
 }): { fill: number; ready: boolean } | null {
-  const { extraction, turnsSinceCheckpoint, gatePassed, cooldownTurns, conductorActive } = args;
+  const {
+    extraction,
+    turnsSinceCheckpoint,
+    gatePassed,
+    cooldownTurns,
+    conductorActive,
+    reflectionLanded,
+  } = args;
   if (!extraction) return null;
   if (extraction.clinical_flag?.active && extraction.clinical_flag.level === "crisis") {
     return null;
@@ -1309,16 +1325,7 @@ export function resolveReflectionMeter(args: {
       /* gatePassed */ false,
       cooldownTurns
     );
-    const ready =
-      depthFill >= CONDUCTOR_STRIP_FILL && extraction.pattern_engaged;
-    // The bar and the strip must tell ONE story: full bar ⇔ strip visible.
-    // Pre-ready fill is depth-only and caps at 80 (REFLECTION_DEPTH_PCT.origin),
-    // so a full bar can never appear without the strip. A 60%-bar-with-ready-
-    // strip contradiction shipped 2026-07-02 and the founder rejected it on
-    // first sight. (Reverses the earlier latch removal: back then ready was
-    // depth-only and 100 was a false claim; ready now requires the user to
-    // have worked the pattern, so full-at-ready is honest.)
-    return { fill: ready ? 100 : depthFill, ready };
+    return { fill: reflectionLanded ? 100 : depthFill, ready: reflectionLanded };
   }
   const fill = reflectionMeterFill(
     extraction.depth,

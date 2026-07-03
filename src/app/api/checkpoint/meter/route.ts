@@ -95,6 +95,7 @@ export async function GET(request: Request) {
     gatePassed: gateResult.passed,
     cooldownTurns: ctx.checkpointTuning.cooldownTurns,
     conductorActive: ctx.conductorActive,
+    reflectionLanded: ctx.reflectionLanded,
   });
 
   return Response.json({ reflectionMeter });

@@ -835,6 +835,10 @@ export function callPersona({
         // cleanContent / DB storage stay text-only and the flag rides the SSE.
         let showSections = false;
         let offerStartSituation = false;
+        // Jove's landed signal (conductor): published on the message where
+        // Jove says the reflection is theirs. Stripped on every path so it
+        // can never leak to screen; only the conductor meter consumes it.
+        let reflectionLandedThisTurn = false;
         for (let stripped = true; stripped; ) {
           stripped = false;
           const sec = stripTrailingMarker(conversationalText, "---sections---");
@@ -850,6 +854,15 @@ export function callPersona({
           if (sit.present) {
             offerStartSituation = true;
             conversationalText = sit.text;
+            stripped = true;
+          }
+          const landed = stripTrailingMarker(
+            conversationalText,
+            "---reflection-ready---"
+          );
+          if (landed.present) {
+            reflectionLandedThisTurn = true;
+            conversationalText = landed.text;
             stripped = true;
           }
         }
@@ -894,6 +907,12 @@ export function callPersona({
             conversation_id: convId,
             role: "assistant",
             content: conversationalText,
+            // Landed signal persists on the row (marker itself is stripped)
+            // so the meter restore route sees readiness after a reload —
+            // same tag pattern as checkpoint_suppressed.
+            ...(reflectionLandedThisTurn
+              ? { metadata: { reflection_landed: true } }
+              : {}),
           })
           .select("id, created_at")
           .single();
@@ -1358,6 +1377,11 @@ export function callPersona({
                       gatePassed: gateResult.passed,
                       cooldownTurns: ctx.checkpointTuning.cooldownTurns,
                       conductorActive: ctx.conductorActive,
+                      // Prior turns' signal from context; this turn's marker
+                      // was parsed above — OR them so the strip appears on
+                      // the landed message itself, not one turn late.
+                      reflectionLanded:
+                        ctx.reflectionLanded || reflectionLandedThisTurn,
                     }),
                   }
                 : {}),
