@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import ChatInput from "./ChatInput";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
@@ -11,6 +11,8 @@ import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
 import ReflectionHeader from "./ReflectionHeader";
+import TopBar from "@/components/shared/TopBar";
+import type { ReflectionSessionHandle } from "@/lib/hooks/useReflection";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
 import SectionPicker from "./SectionPicker";
@@ -58,9 +60,6 @@ interface MobileSessionProps {
   ) => void;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
-  // Anonymous-auth users are excluded from one-time onboarding modals
-  // (they convert at first checkpoint).
-  isAnonymous?: boolean;
   // Reflection meter (user-pulled model, `reflection_meter` gate).
   // reflectionFill (0–100) is the server-computed capture-progress bar (null =
   // hide); reflectionReady is the latched completion; composeReflection builds
@@ -73,6 +72,13 @@ interface MobileSessionProps {
     | { status: "blocked" }
     | { status: "error" }
   >;
+  // Reflection UI state — owned by useReflection (in MainApp) and passed down
+  // so the mobile header and the desktop RoomHeader share one source. Absent =
+  // gate off. reflectionComposing also drives the overlay's building state.
+  reflectionComposing?: boolean;
+  showEducation?: boolean;
+  onBuild?: () => void;
+  onDismissEducation?: () => void;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
   // When this conversation was opened via "go deeper" on a Manual layer,
@@ -86,7 +92,7 @@ interface MobileSessionProps {
   onDraftRestored?: () => void;
 }
 
-export default function MobileSession({
+function MobileSessionInner({
   messages,
   conversationId,
   isLoading,
@@ -102,26 +108,21 @@ export default function MobileSession({
   confirmCheckpoint,
   isGuest,
   onSignInPrompt,
-  isAnonymous = false,
   reflectionFill = null,
   reflectionReady = false,
   composeReflection,
+  reflectionComposing = false,
+  showEducation = false,
+  onBuild,
+  onDismissEducation,
   showTopBar = true,
   scopedLabel = null,
   draftToRestore = null,
   onDraftRestored,
-}: MobileSessionProps) {
+}: MobileSessionProps, ref: React.ForwardedRef<ReflectionSessionHandle>) {
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
-
-  // Reflection meter (user-pulled model). `composing` = a compose request is
-  // in flight after the user taps the ready strip. There is no "defer" state:
-  // the meter never interrupts the conversation, so the top strip IS the
-  // proposal — it appears the moment readiness latches and waits until the
-  // user pulls it (or a save clears it). The old bloom card (a composer-locking
-  // takeover with a "Not yet" defer) was removed 2026-06-30.
-  const [reflectionComposing, setReflectionComposing] = useState(false);
 
   // The server computes the capture-progress fill (resets on save, rebuilds).
   // The bar shows the server fill AS-IS. (The old `ready ? 100 : fill` latch
@@ -133,33 +134,32 @@ export default function MobileSession({
   const reflectionMeterVisible = reflectionFill !== null;
   const displayFill = reflectionFill ?? 0;
 
-  // Shared handler for the bloom button AND the deferred strip — both go
-  // STRAIGHT to the composed output (compose on demand, then open the existing
-  // review overlay). There is no path back to the bloom from the strip.
-  const handleBuildReflection = async () => {
-    if (!composeReflection || reflectionComposing || isLoading || isStreaming) {
-      return;
-    }
-    // Open the popup NOW in its building state — the compose round-trip then
-    // fills in the entry in place. Clear any stale checkpoint so the loaded
-    // entry never flashes the previous one.
+  // Imperative handle for useReflection (in MainApp). Opens the ONE overlay in
+  // its building state, composes on demand, and fills it in place — then
+  // returns the status. The composing flag, guards, and education-marking live
+  // in the hook (so the desktop RoomHeader shares them); this keeps ALL overlay
+  // state byte-for-byte local and single-writer. Order matters: open in the
+  // loading state FIRST, then await, so the overlay shows "building".
+  const composeAndOpenOverlay = useCallback(async (): Promise<
+    "ok" | "blocked" | "error" | "noop"
+  > => {
+    if (!composeReflection) return "noop";
+    // Clear any stale checkpoint so the loading overlay never flashes the
+    // previous entry.
     overlayCheckpointRef.current = null;
     setCheckpointActionState(null);
-    setReflectionComposing(true);
     setCheckpointOverlayOpen(true);
     const result = await composeReflection();
     if (result.status === "ok") {
-      // Set the ref BEFORE clearing the loading flag so the re-render that
-      // flips `loading` false reads the composed entry.
       overlayCheckpointRef.current = result.checkpoint;
-      setReflectionComposing(false);
     } else {
       // "blocked" → the hook set promptAuth (the conversion modal handles it).
       // "error"   → the hook set checkpointError, surfaced under the affordance.
-      setReflectionComposing(false);
       setCheckpointOverlayOpen(false);
     }
-  };
+    return result.status;
+  }, [composeReflection]);
+  useImperativeHandle(ref, () => ({ composeAndOpenOverlay }), [composeAndOpenOverlay]);
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -168,22 +168,10 @@ export default function MobileSession({
     return Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000;
   });
 
-  // One-time strip explainer. Per-device (localStorage), mirroring the
-  // sign-in banner. Rendered INLINE under the ready strip on its first
-  // appearance (the old ReflectionIntroModal popup was removed 2026-07-02 —
-  // founder call: the strip teaches itself, in place, no interruption).
-  const [reflectionIntroSeen, setReflectionIntroSeen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("mw_reflection_intro_seen") === "1";
-  });
-  const dismissReflectionIntro = () => {
-    try {
-      localStorage.setItem("mw_reflection_intro_seen", "1");
-    } catch {
-      // Private-mode / storage-disabled: the modal simply re-shows next ready.
-    }
-    setReflectionIntroSeen(true);
-  };
+  // (The one-time reflection education state + build orchestration moved to
+  // useReflection in MainApp on 2026-07-03 so the desktop RoomHeader shares
+  // them; MobileSession now receives showEducation / onBuild / onDismissEducation
+  // as props.)
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
@@ -253,29 +241,23 @@ export default function MobileSession({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {(showTopBar || reflectionMeterVisible) && (
+      {/* Mobile (and mid-width) header. On desktop (showTopBar=false) the
+          reflection surface lives on the RoomHeader instead — MobileSession
+          renders no header there. */}
+      {showTopBar && (
         <ReflectionHeader
-          showWordmark={showTopBar}
           meterVisible={reflectionMeterVisible}
           fill={displayFill}
           ready={reflectionReady}
           composing={reflectionComposing}
-          showEducation={
-            reflectionMeterVisible &&
-            reflectionReady &&
-            !reflectionComposing &&
-            !reflectionIntroSeen &&
-            !isAnonymous
-          }
-          onBuild={() => {
-            // Building implies acknowledgement — mark the one-time education
-            // seen so it doesn't re-show on later readys, then compose.
-            dismissReflectionIntro();
-            handleBuildReflection();
-          }}
-          onDismissEducation={dismissReflectionIntro}
+          showEducation={showEducation}
+          onBuild={onBuild ?? (() => {})}
+          onDismissEducation={onDismissEducation ?? (() => {})}
+          fullCoverTap
           error={checkpointError}
-        />
+        >
+          <TopBar />
+        </ReflectionHeader>
       )}
 
       {/* In-body scoped context. On desktop (showTopBar=false) the RoomHeader
@@ -790,3 +772,11 @@ export default function MobileSession({
     </main>
   );
 }
+
+// forwardRef so MainApp's useReflection can drive the ONE overlay imperatively
+// (composeAndOpenOverlay) from either shell — the reflection surface can live
+// on the mobile header (here) or the desktop RoomHeader (a sibling).
+const MobileSession = forwardRef<ReflectionSessionHandle, MobileSessionProps>(
+  MobileSessionInner
+);
+export default MobileSession;

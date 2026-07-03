@@ -1102,8 +1102,9 @@ textarea.mw-composer-input:focus-visible {
 }
 
 /* when the meter is present the bar is the header's rule — suppress the
-   TopBar's own bottom border so there aren't two lines. */
-.mw-rh[data-meter="true"] .mw-rh-topbar > div {
+   wrapped header's own bottom border so there aren't two lines. `> *` covers
+   both the mobile TopBar (a div) and the desktop RoomHeader (a header el). */
+.mw-rh[data-meter="true"] .mw-rh-topbar > * {
   border-bottom-color: transparent;
 }
 
@@ -1232,6 +1233,38 @@ textarea.mw-composer-input:focus-visible {
 }
 .mw-rh-clear:hover::after { background: var(--session-walnut-meta-strong); }
 .mw-rh-clear:focus-visible {
+  outline: 2px solid var(--session-persona);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* desktop-only explicit build affordance — a peer of the meta/FEEDBACK cluster
+   in the RoomHeader right side (desktop has no whole-header tap overlay). */
+.mw-rh-build-btn {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--session-walnut-meta-strong);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 2px 4px;
+  position: relative;
+  white-space: nowrap;
+}
+.mw-rh-build-btn::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 1px;
+  height: 1px;
+  background: var(--session-walnut-border);
+  transition: background 0.3s ease;
+}
+.mw-rh-build-btn:hover::after { background: var(--session-walnut-meta-strong); }
+.mw-rh-build-btn:focus-visible {
   outline: 2px solid var(--session-persona);
   outline-offset: 3px;
   border-radius: 2px;

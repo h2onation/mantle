@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
+import type { ReflectionSurface } from "@/lib/hooks/useReflection";
 import { gradientFor, type MobileView } from "@/components/layout/MobileLayout";
 import DesktopSidebar from "./DesktopSidebar";
 import RoomHeader from "./RoomHeader";
@@ -15,6 +16,9 @@ const CONTENT_MAX_WIDTH = 720;
 interface DesktopShellProps {
   activeView: MobileView;
   hasActiveCheckpoint?: boolean;
+  // The reflection surface — RoomHeader carries the deep-field treatment on the
+  // session view (the desktop equivalent of the mobile ReflectionHeader).
+  reflection: ReflectionSurface;
   homeContent: React.ReactNode;
   sessionContent: React.ReactNode;
   manualContent: React.ReactNode;
@@ -42,6 +46,7 @@ interface DesktopShellProps {
 export default function DesktopShell({
   activeView,
   hasActiveCheckpoint,
+  reflection,
   homeContent,
   sessionContent,
   manualContent,
@@ -96,6 +101,7 @@ export default function DesktopShell({
           sessionDate={sessionDate}
           manualEntryCount={manualEntryCount}
           scopedLabel={scopedLabel}
+          reflection={reflection}
         />
 
         <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
