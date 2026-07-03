@@ -8,11 +8,13 @@ import AdminNavRail from "@/components/admin/AdminNavRail";
 // Extraction map — "one call, two jobs."
 //
 // A background Sonnet call ("extraction") reads each turn and writes a single
-// JSON case file (conversations.extraction_state). The next turn's prompt
-// reads it. The case file does exactly two jobs: it BRIEFS Jove (soft prose
-// that steers how Jove sounds) and it GATES checkpoints (hard deterministic
-// checks that decide whether Jove may propose a Manual entry). A small set of
-// raw notes — above all the user's exact words — feed both jobs.
+// JSON case file (conversations.extraction_state). Nothing renders it into
+// Jove's live turns — the per-turn brief (formatExtractionForPersona) was
+// retired 2026-07-02. The case file now does exactly two jobs: it GATES
+// checkpoints (hard deterministic checks that decide whether Jove may propose
+// a Manual entry) and it feeds the save-time COMPOSER (the Opus call that
+// writes the entry once a checkpoint fires). A small set of raw notes — above
+// all the user's exact words — feed both jobs.
 //
 // This page is organized around that frame: a front door, a lifecycle
 // walkthrough, and a field-by-field map tagged by which job each note serves.
@@ -25,10 +27,9 @@ type LoadBearing = "load-bearing" | "auxiliary";
 
 // What job each note does in the "two jobs" frame.
 //   gate     — hard. A deterministic input to the checkpoint gate.
-//   brief    — soft. Steers the prose Jove reads next turn.
+//   compose  — feeds the save-time Manual-entry composer (composeManualEntry).
 //   material — raw notes both jobs draw from (the user's words, layer state).
-//   signal   — streamed to the client UI only (not read by Jove or the gate).
-type JobId = "gate" | "brief" | "material" | "signal";
+type JobId = "gate" | "compose" | "material";
 
 interface Field {
   path: string;
@@ -64,12 +65,12 @@ const JOB_META: Record<
     blurb:
       "Deterministic checks that decide whether Jove may propose a Manual entry. They can silently veto Jove — this is the lock on what Jove can do.",
   },
-  brief: {
-    label: "Briefs Jove",
-    tag: "steers",
+  compose: {
+    label: "Composes the entry",
+    tag: "writes",
     tone: "soft",
     blurb:
-      "A cheat sheet woven into Jove's next prompt — what's underneath, which words matter, what to push on. It shapes how Jove sounds; it can't force anything.",
+      "Feeds the save-time composer that writes the Manual entry once a checkpoint fires — the user's exact words, the depth reached, whether the scene recurs. It shapes the entry's prose, not Jove's live turns.",
   },
   material: {
     label: "Raw material",
@@ -78,16 +79,9 @@ const JOB_META: Record<
     blurb:
       "The notes both jobs read from — above all the user's exact words. The language bank is the heart of the system.",
   },
-  signal: {
-    label: "Client signal",
-    tag: "ui",
-    tone: "ui",
-    blurb:
-      "Streamed to the app to drive the in-conversation modal — not read by Jove or the gate.",
-  },
 };
 
-const JOB_ORDER: JobId[] = ["gate", "brief", "material", "signal"];
+const JOB_ORDER: JobId[] = ["gate", "compose", "material"];
 
 function toneStyle(tone: "hard" | "soft" | "both" | "ui"): {
   bg: string;
@@ -137,13 +131,13 @@ const STEPS: Step[] = [
     id: 2,
     title: "The case file",
     caption:
-      "The call writes one JSON blob — the case file — to conversations.extraction_state. Twenty notes in all, color-coded here by the job each one does. Most either brief Jove or gate checkpoints; a few are raw material both draw from. Click any note to see what it means, who reads it, and whether anything breaks if you remove it.",
+      "The call writes one JSON blob — the case file — to conversations.extraction_state. Every note is color-coded here by the job it does. Most either gate checkpoints or feed the save-time composer; a few are raw material both draw from. Click any note to see what it means, who reads it, and whether anything breaks if you remove it.",
   },
   {
     id: 3,
-    title: "Job 1 · Briefs Jove",
+    title: "Job 1 · Composes the entry",
     caption:
-      "The soft job. These notes become a plain-language cheat sheet woven into Jove's next prompt — what's underneath the surface topic, which of the user's exact words carry weight, how deep things have gone, what to push on vs leave alone. It shapes how Jove sounds. It is advisory: it can suggest, but it can't force or stop anything.",
+      "The soft job. When a checkpoint fires, these notes are handed to the save-time composer — the Opus call that writes the actual Manual entry. The user's exact words, the depth the conversation reached, whether the scene recurs, a one-line orientation of what's underneath. They shape the entry's prose. Nothing here touches Jove's live turns — the per-turn brief was retired in 2026.",
   },
   {
     id: 4,
@@ -155,7 +149,7 @@ const STEPS: Step[] = [
     id: 5,
     title: "The raw material",
     caption:
-      "The notes both jobs read from. The language bank — the user's exact charged phrases — is the center of gravity: it keeps Jove quoting the user instead of paraphrasing them into a stranger, and (since the gate stopped trusting a self-reported flag) it is the real evidence the gate checks. Per-section state tracks where each of the five Manual sections stands. One note, the pattern snippet, is a client-only signal that feeds the halfway-there modal.",
+      "The notes both jobs read from. The language bank — the user's exact charged phrases — is the center of gravity: it keeps the composed entry quoting the user instead of paraphrasing them into a stranger, and (since the gate stopped trusting a self-reported flag) it is the real evidence the gate checks. Per-section state tracks where each of the five Manual sections stands.",
   },
   {
     id: 6,
@@ -169,11 +163,11 @@ const STEPS: Step[] = [
 function spotlightForStep(stepId: number): Set<JobId> | null {
   switch (stepId) {
     case 3:
-      return new Set<JobId>(["brief"]);
+      return new Set<JobId>(["compose"]);
     case 4:
       return new Set<JobId>(["gate"]);
     case 5:
-      return new Set<JobId>(["material", "signal"]);
+      return new Set<JobId>(["material"]);
     default:
       return null;
   }
@@ -196,26 +190,26 @@ const FIELDS: Field[] = [
       "Count of specific moments the user has walked Jove through. Moments within one incident still count separately here — the pattern-recurrence question is handled by distinct_contexts.",
     storage: "conversations.extraction_state.checkpoint_gate.concrete_examples",
     readers: [
-      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Requires ≥ minScenes scenes (admin-tunable, default 2) — same bar for every checkpoint" },
-      { where: "extraction.ts:540 (formatExtractionForPersona)", what: "gateReady computation + brief copy" },
+      { where: "persona-pipeline.ts:779 (validateMaterialQuality)", what: "GATE — requires ≥ minExamples scenes (admin-tunable, default 2); same bar for every checkpoint" },
+      { where: "call-persona.ts:691 (dev debug log)", what: "Dev-only gate-met console line; not a production reader" },
     ],
     gates: "Checkpoint material-quality gate — the count threshold of real scenes.",
   },
   {
     path: "checkpoint_gate.distinct_contexts",
     type: "number (optional, recent)",
-    job: "gate",
+    job: "compose",
     loadBearing: "load-bearing",
     summary: "How many *different* situations — not moments inside one.",
     represents:
-      "Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments in one phone call = 1 distinct context, not 4. Promoted from prose to gate logic recently.",
+      "Count of DIFFERENT situations / events / time-periods the user has narrated. Four moments in one phone call = 1 distinct context, not 4. Despite living inside checkpoint_gate, the gate does not read it — it feeds the composer.",
     storage: "conversations.extraction_state.checkpoint_gate.distinct_contexts",
     readers: [
-      { where: "(not a gate)", what: "validateMaterialQuality does NOT block on distinct_contexts — strengthening signal only (ADR-043 Decision 3, reaffirmed ADR-045)" },
-      { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'evidence from N more contexts' brief copy" },
-      { where: "call-persona.ts:1077, linq/persona-bridge.ts", what: "Plumbed into composeManualEntry — feeds validateHeadline's can/sometimes hedge for single-scene entries" },
+      { where: "call-persona.ts:1127 → composeManualEntry", what: "Plumbed into the composer — feeds validateHeadline's can/sometimes hedge so a single-scene entry doesn't over-claim a recurring pattern" },
+      { where: "checkpoint/compose/route.ts:137 → composeManualEntry", what: "Same plumbing on the standalone compose route (SMS / retry path)" },
+      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "NOT a gate — does not block; the gate never reads distinct_contexts (ADR-043 Decision 3, reaffirmed ADR-045)" },
     ],
-    gates: "Not a blocking gate. Strengthens an entry — feeds validateHeadline's can/sometimes hedge for single-scene entries (confirm-checkpoint.ts). A single vivid scene in the user's charged language is saveable.",
+    gates: "Not a gate. Strengthens the composed entry — feeds validateHeadline's can/sometimes hedge for single-scene entries (confirm-checkpoint.ts). A single vivid scene in the user's charged language is still saveable.",
     notes: "A genuine recognition from one powerful moment is saveable; the over-claim is scoped by the title + the user's confirmation, not by a hard ≥2 gate.",
   },
   {
@@ -228,8 +222,8 @@ const FIELDS: Field[] = [
       "Whether the conversation has reached WHY (not just WHAT). Specifically: a connection between an observed behavior and an underlying driver — a need, sensory load, system state, or bind.",
     storage: "conversations.extraction_state.checkpoint_gate.has_mechanism",
     readers: [
-      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Required for every checkpoint — separate AND check alongside behavior-driver link (no OR-for-first)" },
-      { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'no mechanism' missing-piece copy" },
+      { where: "persona-pipeline.ts:837 (validateMaterialQuality)", what: "GATE — required for every checkpoint; separate AND check alongside the behavior-driver link" },
+      { where: "call-persona.ts:691 (dev debug log)", what: "Dev-only gate-met console line; not a production reader" },
     ],
     gates: "Checkpoint quality gate — the depth-of-understanding check.",
   },
@@ -243,8 +237,8 @@ const FIELDS: Field[] = [
       "Whether a clear line has been drawn between an observable behavior and what's fueling it.",
     storage: "conversations.extraction_state.checkpoint_gate.has_behavior_driver_link",
     readers: [
-      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "Required for every checkpoint — separate AND check alongside mechanism (no OR-for-first)" },
-      { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady + 'not connected to driver' missing copy" },
+      { where: "persona-pipeline.ts:838 (validateMaterialQuality)", what: "GATE — required for every checkpoint; separate AND check alongside mechanism" },
+      { where: "call-persona.ts:691 (dev debug log)", what: "Dev-only gate-met console line; not a production reader" },
     ],
     gates: "Checkpoint quality gate — the behavior↔driver linkage.",
   },
@@ -258,9 +252,10 @@ const FIELDS: Field[] = [
       "Which of the 5 sections has the most material, examples, and depth right now. Set only when the gate is met.",
     storage: "conversations.extraction_state.checkpoint_gate.strongest_layer",
     readers: [
-      { where: "extraction.ts:541, 567 (formatExtractionForPersona)", what: "Names the target layer in Jove's brief; surfaces existing entries on that layer" },
+      { where: "persona-pipeline.ts:811–822 (validateMaterialQuality — Lock 1)", what: "GATE — the section the deterministic charged-phrase check runs against; a checkpoint needs a high/medium phrase tagged to this layer" },
+      { where: "call-persona.ts:684 (dev debug log)", what: "Dev-only gate console line; not a production reader" },
     ],
-    gates: "Tells the composer which layer to deepen on when the checkpoint fires, and which layer the charged-phrase check runs against.",
+    gates: "The section the charged-phrase gate check runs against — a checkpoint needs a high/medium phrase tagged to this layer. Not passed to the composer.",
   },
   {
     path: "depth",
@@ -272,11 +267,12 @@ const FIELDS: Field[] = [
       "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism → origin.",
     storage: "conversations.extraction_state.depth",
     readers: [
-      { where: "persona-pipeline.ts (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked until depth ≥ depthFloor (admin-tunable, default 'mechanism') — same bar for every checkpoint" },
-      { where: "extraction.ts:609 (formatExtractionForPersona)", what: "One-line framing in the brief" },
-      { where: "call-persona.ts:362", what: "Dev-only debug log" },
+      { where: "persona-pipeline.ts:770 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked until depth ≥ depthFloor (admin-tunable, default 'mechanism'); same bar for every checkpoint" },
+      { where: "call-persona.ts:1133 → composeManualEntry", what: "Carried into the composer so the entry is written from the depth the whole conversation reached, not just the last few messages" },
+      { where: "checkpoint/compose/route.ts:138 → composeManualEntry", what: "Same plumbing on the standalone compose route" },
+      { where: "call-persona.ts:686 (dev debug log)", what: "Dev-only turn/depth console line" },
     ],
-    gates: "Checkpoint depth gate — blocks the checkpoint until the conversation reaches depthFloor (admin-tunable, default 'mechanism') for every checkpoint.",
+    gates: "Checkpoint depth gate — blocks the checkpoint until the conversation reaches depthFloor (admin-tunable, default 'mechanism') for every checkpoint. Also carried into the composer.",
   },
   {
     path: "pattern_engaged",
@@ -288,8 +284,7 @@ const FIELDS: Field[] = [
       "Whether Jove has named a pattern in conversation AND the user has engaged with it (elaborated, added an example, sat with it). Sticky once true unless the user explicitly rejects the pattern.",
     storage: "conversations.extraction_state.pattern_engaged",
     readers: [
-      { where: "persona-pipeline.ts:534 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked unless engaged (overridable at turn ≥12)" },
-      { where: "extraction.ts:616 (formatExtractionForPersona)", what: "Drives the 'phase hint' paragraph at the end of the brief" },
+      { where: "persona-pipeline.ts:741 (validateMaterialQuality)", what: "HARD GATE — checkpoint blocked unless the pattern's been engaged (overridable at turn ≥12)" },
     ],
     gates: "Premature-checkpoint suppression. Without engagement, the conversation hasn't reached the 'we both see something' beat.",
   },
@@ -303,61 +298,63 @@ const FIELDS: Field[] = [
       "Safety signal. level ∈ {none, caution, crisis}. crisis = suicidal/harm intent (988 protocol fires). caution = diagnostic ask or distress exceeding manual scope.",
     storage: "conversations.extraction_state.clinical_flag",
     readers: [
-      { where: "persona-pipeline.ts:527 (validateMaterialQuality)", what: "Crisis hard-blocks the checkpoint" },
-      { where: "extraction.ts:530 (formatExtractionForPersona)", what: "Surfaces 'Safety note:' / 'Care note:' in Jove's brief ahead of any reflection" },
+      { where: "persona-pipeline.ts:712,732 (validateMaterialQuality)", what: "GATE — a crisis flag hard-blocks the checkpoint" },
+      { where: "persona-pipeline.ts:893,1308 (deriveCheckpointApproaching / ripeness)", what: "Crisis suppresses the 'checkpoint approaching' path and the ripeness gate" },
     ],
-    gates: "Crisis override on every downstream surface — checkpoint, modals, prompt context.",
+    gates: "Crisis override — hard-blocks the checkpoint and suppresses the approaching-checkpoint signal.",
+  },
+  {
+    path: "checkpoint_gate.has_charged_language",
+    type: "boolean",
+    job: "gate",
+    loadBearing: "auxiliary",
+    summary: "Self-report that a high-charge phrase exists. No longer read by anything in production.",
+    represents:
+      "Whether the language bank holds ≥1 high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor a checkpoint. Once gated checkpoints; now read only by debug surfaces.",
+    storage: "conversations.extraction_state.checkpoint_gate.has_charged_language",
+    readers: [
+      { where: "call-persona.ts:690–694 (dev debug log)", what: "Dev-only gate-met console line; not a production reader" },
+      { where: "components/admin/ExtractionPanel.tsx:87", what: "Shown in the admin extraction-snapshot panel (debug UI)" },
+    ],
+    gates: "No longer a gate and no production reader. Lock 1 moved the real vocabulary check to a deterministic language_bank read (persona-pipeline.ts); this boolean is still produced but only surfaces in debug output now.",
+    notes: "Sits inside checkpoint_gate structurally, but the gate ignores it (demoted by ADR-043). No code changes behavior on it — a prune candidate.",
   },
 
-  // ── Briefs Jove (soft) ─────────────────────────────────────────────────
+  // ── Composes the entry (save-time) ─────────────────────────────────────
   {
     path: "sage_brief",
     type: "string (3-5 sentences)",
-    job: "brief",
+    job: "compose",
     loadBearing: "load-bearing",
-    summary: "The cheat sheet itself — what's underneath, what to push on.",
+    summary: "The composer's orientation — what's underneath, which words are load-bearing.",
     represents:
-      "Short paragraph orienting Jove for the next turn — what's underneath the surface topic, which exact words are load-bearing, what's most charged, what to push on vs leave alone.",
+      "Short paragraph orienting the composer — what's underneath the surface topic, which of the user's exact words are load-bearing, what's most charged. Written every turn; consumed only when a checkpoint fires and the entry is composed.",
     storage: "conversations.extraction_state.sage_brief",
     readers: [
-      { where: "extraction.ts:500 (formatExtractionForPersona)", what: "Rendered verbatim at the top of Jove's brief block" },
-      { where: "call-persona.ts:364", what: "Dev-only debug log (first 150 chars)" },
+      { where: "call-persona.ts:1134 → composeManualEntry", what: "Passed to the save-time composer as orientation for the entry's prose (the session's accumulated read, in the user's words)" },
+      { where: "checkpoint/compose/route.ts:139 → composeManualEntry", what: "Same plumbing on the standalone compose route" },
+      { where: "call-persona.ts:683,698 (dev debug log)", what: "Dev-only 'Brief:' console line (first 150 chars)" },
+      { where: "components/admin/ExtractionPanel.tsx", what: "Rendered in the admin extraction-snapshot panel (debug UI)" },
     ],
-    gates: "The centerpiece of the brief. Empty = Jove flies blind.",
-    notes: "Named sage_brief for historical reasons (the persona was once 'Sage'); it is the brief.",
+    gates: "The composer's orientation note. Empty = the entry is written from the transcript alone.",
+    notes: "Named sage_brief for historical reasons (the persona was once 'Sage') and dates from when it fed a per-turn brief; that brief was retired 2026-07-02 and it now feeds only the save-time composer.",
   },
   {
     path: "current_thread",
     type: "string",
-    job: "brief",
+    job: "compose",
     loadBearing: "auxiliary",
     summary: "One sentence: what the conversation is actually about right now.",
     represents:
       "One sentence describing what the conversation is actually about right now.",
     storage: "conversations.extraction_state.current_thread",
     readers: [
-      { where: "extraction.ts:611 (formatExtractionForPersona)", what: "Single line in Jove's brief" },
+      { where: "call-persona.ts:1135 → composeManualEntry", what: "Passed to the composer as the one-line 'what this is actually about' anchor" },
+      { where: "checkpoint/compose/route.ts:140 → composeManualEntry", what: "Same plumbing on the standalone compose route" },
     ],
-    gates: "None. Framing only.",
-    notes: "Overlaps with sage_brief. Removing it marginally shortens the prompt.",
+    gates: "Minor composer input — a one-line anchor. Overlaps with sage_brief.",
+    notes: "Overlaps with sage_brief. Removing it marginally shortens the composer prompt.",
   },
-  {
-    path: "checkpoint_gate.has_charged_language",
-    type: "boolean",
-    job: "brief",
-    loadBearing: "auxiliary",
-    summary: "Self-report that a high-charge phrase exists. No longer the real check.",
-    represents:
-      "Whether the language bank holds ≥1 high-charge phrase (sensory, somatic, masking, shutdown, system, or bind) that can anchor a checkpoint. Once gated checkpoints; now informational.",
-    storage: "conversations.extraction_state.checkpoint_gate.has_charged_language",
-    readers: [
-      { where: "persona-pipeline.ts:613–627 (validateMaterialQuality — Lock 1)", what: "No longer a gate on this field. Lock 1 replaced the boolean with a deterministic language_bank read (≥1 high/medium phrase on the candidate layer); has_charged_language is informational now — still produced, not gated on." },
-      { where: "extraction.ts:530 (formatExtractionForPersona)", what: "gateReady hint + 'no phrase carries weight' missing copy" },
-    ],
-    gates: "No longer a gate. Lock 1 moved the real vocabulary check to a deterministic language_bank read; this field just informs the brief now.",
-    notes: "Sits inside checkpoint_gate structurally, but the gate ignores it. Demoted by ADR-043.",
-  },
-
   // ── Raw material (feeds both) ──────────────────────────────────────────
   {
     path: "language_bank[]",
@@ -366,13 +363,13 @@ const FIELDS: Field[] = [
     loadBearing: "load-bearing",
     summary: "The user's exact charged phrases — the heart of the system.",
     represents:
-      "User's exact phrases that carry weight (sensory, somatic, masking, shutdown, system, bind language). Cumulative across the session, capped at 15 entries, oldest low-charge dropped first. Feeds BOTH jobs: it's quoted in the brief and it's the real evidence the gate checks.",
+      "User's exact phrases that carry weight (sensory, somatic, masking, shutdown, system, bind language). Cumulative across the session; high/medium phrases kept, low-charge capped and aged out oldest-first. Feeds BOTH jobs: it's quoted verbatim in the composed entry and it's the real evidence the gate checks.",
     storage: "conversations.extraction_state.language_bank",
     readers: [
-      { where: "persona-pipeline.ts:613–627 (validateMaterialQuality — Lock 1)", what: "GATE — the deterministic charged-language check reads the bank directly (≥1 high/medium phrase on the candidate layer)" },
-      { where: "confirm-checkpoint.ts (composeManualEntry)", what: "Top 10 high/medium-charge phrases passed into the composer prompt verbatim" },
-      { where: "extraction.ts:517 (formatExtractionForPersona)", what: "Top 15 charged entries listed in the brief as 'phrases the user has used'" },
-      { where: "call-persona.ts:609, linq/persona-bridge.ts", what: "Pass-through into composeManualEntry from web + SMS paths" },
+      { where: "persona-pipeline.ts:811 (validateMaterialQuality — Lock 1)", what: "GATE — the deterministic charged-language check reads the bank directly (≥1 high/medium phrase on the candidate layer)" },
+      { where: "persona-pipeline.ts:895 (deriveCheckpointApproaching)", what: "Same charged-phrase check gates the 'approaching' signal on the strongest layer" },
+      { where: "call-persona.ts:1120 → composeManualEntry", what: "Top high/medium-charge phrases passed into the save-time composer verbatim" },
+      { where: "checkpoint/compose/route.ts:135 → composeManualEntry", what: "Same plumbing on the standalone compose route" },
     ],
     gates: "Keeps the user's voice in their Manual AND anchors the checkpoint gate. Without it, the composer drifts into clinical-adjacent prose and the gate loses its evidence.",
   },
@@ -386,8 +383,7 @@ const FIELDS: Field[] = [
       "Where each section is in its development. Monotonic — only advances. When a section already has a confirmed entry, its signal starts at 'explored' minimum.",
     storage: "conversations.extraction_state.layers[N].signal",
     readers: [
-      { where: "persona-pipeline.ts:686 (deriveCheckpointApproaching)", what: "A layer ≥ 'explored' loads CHECKPOINTS instructions only when charged material backs that layer and no crisis is active; otherwise it falls through to the full ripeness gate" },
-      { where: "extraction.ts:506 (formatExtractionForPersona)", what: "Per-layer status line in the brief" },
+      { where: "persona-pipeline.ts:889 (deriveCheckpointApproaching)", what: "A section ≥ 'explored' with charged material behind it and no crisis active marks the checkpoint as approaching; otherwise it falls through to the full ripeness gate" },
     ],
     gates: "'Is this turn a checkpoint moment?' upstream of the gate.",
   },
@@ -598,12 +594,12 @@ function Header() {
       >
         After every message, a second AI (the &ldquo;extraction&rdquo; call)
         quietly updates a case file on the conversation — {FIELDS.length} running
-        notes Jove reads on the <em>next</em> turn to know what&rsquo;s
-        underneath, which of the user&rsquo;s exact words matter, and whether
-        there&rsquo;s finally enough to propose a Manual entry (a
-        &ldquo;checkpoint&rdquo;). This page maps every note: what it&rsquo;s
-        for, who reads it, and whether anything breaks if you remove it. Use it
-        to see what the extractor tracks, and to spot notes nothing reads.
+        notes that decide whether there&rsquo;s finally enough to propose a
+        Manual entry (a &ldquo;checkpoint&rdquo;) and, when one fires, get woven
+        into the entry itself. Nothing here renders into Jove&rsquo;s live turns.
+        This page maps every note: what it&rsquo;s for, who reads it, and whether
+        anything breaks if you remove it. Use it to see what the extractor
+        tracks, and to spot notes nothing reads.
       </p>
       <a
         href="/admin/prompt-architecture"
@@ -619,8 +615,7 @@ function Header() {
           textDecoration: "none",
         }}
       >
-        ↳ This is the deep dive behind the &ldquo;Extraction Brief&rdquo; block
-        in Jove&rsquo;s prompt — see it in context →
+        ↳ See where extraction sits in Jove&rsquo;s prompt architecture →
       </a>
     </div>
   );
@@ -697,8 +692,8 @@ function FrontDoor({ onJump }: { onJump: (i: number) => void }) {
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <FrontDoorJob job="brief" onJump={() => onJump(2)} />
             <FrontDoorJob job="gate" onJump={() => onJump(3)} />
+            <FrontDoorJob job="compose" onJump={() => onJump(2)} />
 
             <div
               style={{
@@ -718,7 +713,7 @@ function FrontDoor({ onJump }: { onJump: (i: number) => void }) {
               >
                 <strong style={{ fontWeight: 600 }}>And the raw material both jobs read.</strong>{" "}
                 The user&rsquo;s exact words — the language bank — feed both the
-                brief and the gate. It&rsquo;s the heart of the system.
+                composer and the gate. It&rsquo;s the heart of the system.
               </div>
               <JumpButton label="Show it below ↓" onClick={() => onJump(4)} />
             </div>
@@ -772,7 +767,7 @@ function FrontDoorJob({ job, onJump }: { job: JobId; onJump: () => void }) {
             padding: "1px 5px",
           }}
         >
-          {job === "brief" ? "soft" : "hard"}
+          {job === "compose" ? "soft" : "hard"}
         </span>
       </div>
       <div
@@ -1406,13 +1401,13 @@ function LifecycleStrip() {
         <div style={{ display: "flex", alignItems: "stretch", gap: 6 }}>
           {node("The case file", "Last turn's notes — one JSON blob.")}
           {arrow("feeds")}
-          {node("Briefs Jove", "Soft guidance Jove reads.", "soft")}
+          {node("Gates checkpoints", "Hard checks that decide a Manual entry.", "hard")}
         </div>
         <div style={{ height: 6 }} />
         <div style={{ display: "flex", alignItems: "stretch", gap: 6 }}>
           <div style={{ flex: 1 }} />
           {arrow("feeds")}
-          {node("Gates checkpoints", "Hard checks that decide a Manual entry.", "hard")}
+          {node("Composes the entry", "Writes the Manual entry when a checkpoint fires.", "soft")}
         </div>
       </div>
 
@@ -1431,9 +1426,9 @@ function LifecycleStrip() {
         <strong style={{ color: "var(--session-ink)", fontWeight: 600 }}>
           The one-beat lag:
         </strong>{" "}
-        because the call isn&rsquo;t waited on, the notes Jove uses this turn are
-        the ones written <em>last</em> turn. On purpose — Jove never stalls, and
-        a continuous conversation barely notices the delay.
+        because the call isn&rsquo;t waited on, the notes the gate checks this
+        turn are the ones written <em>last</em> turn. On purpose — Jove never
+        stalls, and a continuous conversation barely notices the delay.
       </div>
     </div>
   );
@@ -1668,13 +1663,6 @@ function WorkedExampleFooter() {
   // Destinations matrix — count fields per downstream surface.
   const destinations: { label: string; count: number; oneLine: string }[] = [
     {
-      label: "Jove's brief",
-      count: FIELDS.filter((f) =>
-        f.readers.some((r) => r.where.includes("formatExtractionForPersona")),
-      ).length,
-      oneLine: "Rendered into the per-turn brief block that Jove reads first.",
-    },
-    {
       label: "Checkpoint gate",
       count: FIELDS.filter((f) =>
         f.readers.some((r) => r.where.includes("validateMaterialQuality")),
@@ -1689,22 +1677,6 @@ function WorkedExampleFooter() {
         ),
       ).length,
       oneLine: "Passed into the Manual entry composer prompt verbatim.",
-    },
-    {
-      label: "Modals",
-      count: FIELDS.filter((f) =>
-        f.readers.some(
-          (r) => r.where.includes("MobileSession") || r.where.includes("Modal"),
-        ),
-      ).length,
-      oneLine: "Drives the in-conversation modal (halfway-there).",
-    },
-    {
-      label: "SSE payload",
-      count: FIELDS.filter((f) =>
-        f.readers.some((r) => r.where.includes("SSE payload")),
-      ).length,
-      oneLine: "Streamed to the client for chat-input hints and UI state.",
     },
   ];
 
