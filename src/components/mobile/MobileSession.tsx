@@ -10,7 +10,7 @@ import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
-import TopBar from "@/components/shared/TopBar";
+import ReflectionHeader from "./ReflectionHeader";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
 import QuickReplyChips from "./QuickReplyChips";
 import SectionPicker from "./SectionPicker";
@@ -253,7 +253,30 @@ export default function MobileSession({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {showTopBar && <TopBar />}
+      {(showTopBar || reflectionMeterVisible) && (
+        <ReflectionHeader
+          showWordmark={showTopBar}
+          meterVisible={reflectionMeterVisible}
+          fill={displayFill}
+          ready={reflectionReady}
+          composing={reflectionComposing}
+          showEducation={
+            reflectionMeterVisible &&
+            reflectionReady &&
+            !reflectionComposing &&
+            !reflectionIntroSeen &&
+            !isAnonymous
+          }
+          onBuild={() => {
+            // Building implies acknowledgement — mark the one-time education
+            // seen so it doesn't re-show on later readys, then compose.
+            dismissReflectionIntro();
+            handleBuildReflection();
+          }}
+          onDismissEducation={dismissReflectionIntro}
+          error={checkpointError}
+        />
+      )}
 
       {/* In-body scoped context. On desktop (showTopBar=false) the RoomHeader
           carries the "Going deeper · {layer}" context instead, so suppress
@@ -353,178 +376,6 @@ export default function MobileSession({
         </div>
       )}
 
-      {/* Reflection meter (Tide — a hairline under the header). Fills as the
-          conversation deepens; at full it blooms above the composer. Hidden
-          entirely (reflectionFill null) when the gate is off or in crisis. */}
-      {reflectionMeterVisible && (
-        <div
-          role="progressbar"
-          aria-label="Understanding depth"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(displayFill)}
-          style={{
-            position: "relative",
-            height: 3,
-            background: "var(--session-walnut-surface-soft)",
-            flexShrink: 0,
-            zIndex: 2,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              height: "100%",
-              width: `${displayFill}%`,
-              borderRadius: displayFill >= 100 ? 0 : "0 3px 3px 0",
-              background:
-                "linear-gradient(90deg, var(--session-walnut-light), var(--session-walnut))",
-              // Glow grows with the fill so the bar reads as alive while it
-              // climbs, not just at the finish line; strongest when ready.
-              boxShadow: `0 0 ${
-                reflectionReady ? 9 : 3 + (displayFill / 100) * 5
-              }px var(--session-walnut-light)`,
-              transition:
-                "width 0.9s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease",
-            }}
-          />
-        </div>
-      )}
-
-      {/* Ready strip — the persistent "your reflection is ready" handle.
-          Appears when the conversation has real depth and waits under the
-          header; it never locks the composer. Tapping it composes on demand
-          and opens the review overlay. This is the entire proposal surface.
-          FIRST APPEARANCE ONLY: a one-line explainer renders under the strip
-          (replacing the old ReflectionIntroModal popup — founder call: the
-          strip teaches itself, in place, no interruption); "Got it" clears it
-          and it never returns. */}
-      {reflectionReady && (
-        <>
-        <div
-          style={{
-            flexShrink: 0,
-            background: "var(--session-walnut-surface-soft)",
-            borderBottom: "1px solid var(--session-walnut-border)",
-            animation: "checkpointFadeIn 0.4s ease both",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleBuildReflection}
-            disabled={reflectionComposing}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 9,
-              width: "100%",
-              padding: "10px 16px",
-              cursor: reflectionComposing ? "default" : "pointer",
-              background: "transparent",
-              border: "none",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: 15,
-                color: "var(--session-walnut)",
-                lineHeight: 1,
-              }}
-            >
-              ❦
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 13,
-                color: "var(--session-ink-soft)",
-              }}
-            >
-              {reflectionComposing
-                ? "Building your reflection…"
-                : "Your reflection, in your words — ready when you are"}
-            </span>
-            {!reflectionComposing && (
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "var(--session-walnut-meta-strong)",
-                }}
-              >
-                Tap to build it &rarr;
-              </span>
-            )}
-          </button>
-          {!reflectionIntroSeen && !isAnonymous && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                padding: "0 16px 10px",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 12,
-                  lineHeight: 1.45,
-                  color: "var(--session-walnut-meta)",
-                  textAlign: "center",
-                }}
-              >
-                Nothing enters your Manual unless you build it. Tap when
-                you&rsquo;re ready — or just keep talking.
-              </span>
-              <button
-                type="button"
-                onClick={dismissReflectionIntro}
-                aria-label="Dismiss explainer"
-                style={{
-                  all: "unset",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: "0.03em",
-                  color: "var(--session-walnut-meta-strong)",
-                  whiteSpace: "nowrap",
-                  padding: "2px 4px",
-                }}
-              >
-                Got it
-              </button>
-            </div>
-          )}
-        </div>
-        {checkpointError && (
-          <p
-            style={{
-              flexShrink: 0,
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "1.5px",
-              textTransform: "uppercase",
-              color: "var(--session-ink-ghost)",
-              textAlign: "center",
-              margin: 0,
-              padding: "6px 16px 8px",
-              background: "var(--session-walnut-surface-soft)",
-              borderBottom: "1px solid var(--session-walnut-border)",
-            }}
-          >
-            {checkpointError}
-          </p>
-        )}
-        </>
-      )}
 
       {/* Messages area wrapper. The mask on the scroll child below feathers
           both top and bottom edges so content dissolves into the surrounding

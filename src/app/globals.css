@@ -199,6 +199,15 @@
      Walnut tint is fainter than walnut-surface-soft. */
   --session-walnut-tint:         rgba(220, 170, 120, 0.05);
   --session-popover-shadow:      0 12px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
+
+  /* Reflection deep-field header (pull-model). Hearth recipe: flat walnut
+     over walnut-surface over cream-bright — a warm, lifted band, no seam. */
+  --mw-deepfield:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--session-walnut) 13%, transparent),
+      color-mix(in srgb, var(--session-walnut) 13%, transparent)),
+    linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)),
+    linear-gradient(var(--session-cream-bright), var(--session-cream-bright));
 }
 
 /* ─── Light mode — V3 Embossed linen ───
@@ -364,6 +373,14 @@
   /* Manual page — same names as dark, retuned for warm-white. */
   --session-walnut-tint:         rgba(110, 69, 39, 0.06);
   --session-popover-shadow:      0 10px 32px rgba(28, 27, 24, 0.16), 0 2px 6px rgba(28, 27, 24, 0.10);
+
+  /* Reflection deep-field header (pull-model). Slate & Brass recipe: flat
+     walnut over the user-bubble greige — a warm, lifted band, no seam. */
+  --mw-deepfield:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--session-walnut) 30%, transparent),
+      color-mix(in srgb, var(--session-walnut) 30%, transparent)),
+    var(--session-user-bg);
 }
 
 /* No-JS fallback. When the FOUC script doesn't run (JS disabled) and
@@ -1043,4 +1060,204 @@ textarea.mw-composer-input:focus-visible {
 @keyframes sheetBackdropIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   REFLECTION HEADER (pull-model) — src/components/mobile/ReflectionHeader.tsx
+   The top band that fills as the conversation deepens and, at ready, blooms
+   into the deep field with a message you clear (first session), then goes
+   colour-only. Replaced the stacked meter + ready-strip + explainer
+   (2026-07-02). Tokens: --mw-deepfield (per theme), --session-* family.
+   ════════════════════════════════════════════════════════════════════ */
+.mw-rh {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+/* the deep field — painted behind the wordmark, arrives by opacity so it can
+   transition; covers the whole band (grows with the message). */
+.mw-rh-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--mw-deepfield);
+  box-shadow: inset 0 1px 0 var(--session-walnut-highlight);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+.mw-rh[data-ready="true"] .mw-rh-field { opacity: 1; }
+
+.mw-rh-topbar,
+.mw-rh-bar {
+  position: relative;
+  z-index: 1;
+}
+/* the message sits ABOVE the build overlay so its clear button is tappable;
+   the zone itself is click-through, so taps on the message text still build. */
+.mw-rh-teach {
+  position: relative;
+  z-index: 3;
+}
+
+/* when the meter is present the bar is the header's rule — suppress the
+   TopBar's own bottom border so there aren't two lines. */
+.mw-rh[data-meter="true"] .mw-rh-topbar > div {
+  border-bottom-color: transparent;
+}
+
+/* whole-header build affordance — a transparent overlay button that catches
+   taps anywhere on the band (except the Got-it clear) when ready. */
+.mw-rh-build {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.mw-rh-build:focus-visible {
+  outline: 2px solid var(--session-persona);
+  outline-offset: -3px;
+  border-radius: 4px;
+}
+
+/* the meter — MobileSession's 3px bar, verbatim, as the header's base rule. */
+.mw-rh-bar {
+  height: 3px;
+  background: var(--session-walnut-surface-soft);
+  transition: background-color 1.5s ease;
+}
+.mw-rh[data-ready="true"] .mw-rh-bar {
+  background: color-mix(in srgb, var(--session-ink) 12%, transparent);
+}
+.mw-rh-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--mw-fill, 0%);
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--session-walnut-light), var(--session-walnut));
+  box-shadow: 0 0 var(--mw-glow, 3px) var(--session-walnut-light);
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease;
+}
+/* at ready the bar's glow settles to a calm, steady brass — no restless
+   breathing. The WIDTH still follows the real server fill: main removed the
+   false snap-to-100 latch (2026-07-02), so colour + field signal "ready"
+   while the bar keeps telling the honest depth (gate-ready already fills to
+   100 server-side, so it reads full there anyway). */
+.mw-rh[data-ready="true"] .mw-rh-fill {
+  box-shadow: 0 0 3px var(--session-walnut-light);
+}
+/* saved-drain hook (fast-follow): .mw-rh[data-draining] .mw-rh-fill { width: 0 } */
+
+/* below-the-bar message zone — collapses to nothing unless there's an
+   education line (first session) or a composing line. Clicks pass through
+   to the build overlay; only the clear button is interactive. */
+.mw-rh-teach {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-height 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+.mw-rh[data-education="true"] .mw-rh-teach,
+.mw-rh[data-composing="true"] .mw-rh-teach {
+  max-height: 168px;
+  opacity: 1;
+}
+.mw-rh-teach-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px 30px 18px;
+  text-align: center;
+}
+.mw-rh-teach-body {
+  margin: 0;
+  max-width: 316px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  color: var(--session-ink-soft);
+  text-wrap: balance;
+}
+.mw-rh-teach-body em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--session-walnut-meta-strong);
+}
+.mw-rh-status {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--session-ink-soft);
+}
+.mw-rh-fl {
+  font-family: var(--font-serif);
+  color: var(--session-walnut-meta-strong);
+  padding-right: 5px;
+}
+.mw-rh-clear {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--session-walnut-meta-strong);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 4px 5px;
+}
+.mw-rh-clear::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 2px;
+  height: 1px;
+  background: var(--session-walnut-border);
+  transition: background 0.3s ease;
+}
+.mw-rh-clear:hover::after { background: var(--session-walnut-meta-strong); }
+.mw-rh-clear:focus-visible {
+  outline: 2px solid var(--session-persona);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.mw-rh-error {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 6px 16px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--session-ink-ghost);
+  text-align: center;
+  background: var(--session-walnut-surface-soft);
+  border-bottom: 1px solid var(--session-walnut-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-rh-field,
+  .mw-rh-bar,
+  .mw-rh-fill,
+  .mw-rh-teach,
+  .mw-rh-clear::after {
+    transition-duration: 0.01ms;
+  }
 }
