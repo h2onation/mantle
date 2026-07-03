@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useChat } from "@/lib/hooks/useChat";
+import { useReflection, type ReflectionSessionHandle } from "@/lib/hooks/useReflection";
 import type { ExplorationContext } from "@/lib/types";
 import type { ConversationMode } from "@/lib/persona/config";
 import MobileLayout, { type MobileView } from "@/components/layout/MobileLayout";
@@ -255,6 +256,21 @@ export default function MainApp() {
     reflectionReady,
     composeReflection,
   } = useChat();
+
+  // Reflection surface state — the single source shared by the mobile header
+  // (rendered inside MobileSession) and the desktop RoomHeader (a sibling of
+  // MobileSession in DesktopShell). The ref lets the hook drive MobileSession's
+  // one CheckpointOverlay imperatively without lifting its state.
+  const sessionRef = useRef<ReflectionSessionHandle>(null);
+  const reflection = useReflection({
+    fill: reflectionFill,
+    ready: reflectionReady,
+    isAnonymous: modalState?.isAnonymous ?? false,
+    isLoading,
+    isStreaming,
+    hasComposer: !!composeReflection,
+    sessionRef,
+  });
 
   // When promptAuth fires, clear any previous dismiss so modal shows
   useEffect(() => {
@@ -572,6 +588,7 @@ export default function MainApp() {
   // active. Desktop hides each view's TopBar (the room header replaces it).
   const sessionContent = (
     <MobileSession
+      ref={sessionRef}
       messages={messages}
       conversationId={conversationId}
       isLoading={isLoading}
@@ -587,10 +604,13 @@ export default function MainApp() {
       confirmCheckpoint={confirmCheckpoint}
       isGuest={isGuest}
       onSignInPrompt={handleSignInPrompt}
-      isAnonymous={modalState?.isAnonymous ?? false}
       reflectionFill={reflectionFill}
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}
+      reflectionComposing={reflection.composing}
+      showEducation={reflection.showEducation}
+      onBuild={reflection.onBuild}
+      onDismissEducation={reflection.onDismissEducation}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
@@ -665,6 +685,15 @@ export default function MainApp() {
         <DesktopShell
           activeView={activeView}
           hasActiveCheckpoint={activeCheckpoint !== null}
+          reflection={{
+            meterVisible: reflection.meterVisible,
+            fill: reflection.displayFill,
+            ready: reflection.ready,
+            composing: reflection.composing,
+            showEducation: reflection.showEducation,
+            onBuild: reflection.onBuild,
+            onDismissEducation: reflection.onDismissEducation,
+          }}
           homeContent={desktopHomeContent}
           sessionContent={sessionContent}
           manualContent={manualContent}

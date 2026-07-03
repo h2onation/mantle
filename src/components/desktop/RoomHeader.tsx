@@ -1,7 +1,9 @@
 "use client";
 
 import type { MobileView } from "@/components/layout/MobileLayout";
+import type { ReflectionSurface } from "@/lib/hooks/useReflection";
 import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
+import ReflectionHeader from "@/components/mobile/ReflectionHeader";
 
 interface RoomHeaderProps {
   activeView: MobileView;
@@ -12,17 +14,26 @@ interface RoomHeaderProps {
   // "Going deeper · {layer}" context. The in-body bar that MobileSession
   // would otherwise render is suppressed on desktop, so this is its home.
   scopedLabel?: string | null;
+  // The reflection surface. On the session view the header carries the same
+  // deep-field treatment as the mobile ReflectionHeader — the field colours at
+  // ready, the meter is the base rule, and the message-you-clear blooms below.
+  reflection: ReflectionSurface;
 }
 
-// The persistent header over the desktop room. The wordmark lives here
-// so the brand survives sidebar collapse; the title is a running header
-// that follows the active view, like a book's.
+// The persistent header over the desktop room. The wordmark lives here so the
+// brand survives sidebar collapse; the title is a running header that follows
+// the active view, like a book's. On the session view it doubles as the
+// reflection surface (2026-07-03) — wrapped in the shared ReflectionHeader so
+// desktop and mobile read identically, with an explicit "Build reflection"
+// button in the right cluster (desktop has no whole-header tap — it would
+// swallow the controls that live in the row).
 export default function RoomHeader({
   activeView,
   sessionTitle,
   sessionDate,
   manualEntryCount,
   scopedLabel = null,
+  reflection,
 }: RoomHeaderProps) {
   const isScopedSession = activeView === "session" && !!scopedLabel;
   let title: string;
@@ -50,7 +61,11 @@ export default function RoomHeader({
       meta = `Session · ${sessionDate}`;
   }
 
-  return (
+  const reflectionActive = activeView === "session" && reflection.meterVisible;
+  const showBuild =
+    activeView === "session" && reflection.ready && !reflection.composing;
+
+  const headerRow = (
     <header
       style={{
         flex: "0 0 auto",
@@ -152,8 +167,35 @@ export default function RoomHeader({
         }}
       >
         {meta && <span>{meta}</span>}
+        {showBuild && (
+          <button
+            type="button"
+            className="mw-rh-build-btn"
+            onClick={reflection.onBuild}
+          >
+            Build reflection
+          </button>
+        )}
         <BetaFeedbackButton variant="inline" />
       </span>
     </header>
+  );
+
+  // Non-session views (or the gate off) render the plain header unchanged.
+  if (!reflectionActive) return headerRow;
+
+  return (
+    <ReflectionHeader
+      meterVisible={reflection.meterVisible}
+      fill={reflection.fill}
+      ready={reflection.ready}
+      composing={reflection.composing}
+      showEducation={reflection.showEducation}
+      onBuild={reflection.onBuild}
+      onDismissEducation={reflection.onDismissEducation}
+      fullCoverTap={false}
+    >
+      {headerRow}
+    </ReflectionHeader>
   );
 }

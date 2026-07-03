@@ -1,34 +1,36 @@
 "use client";
 
-import TopBar from "@/components/shared/TopBar";
-
 interface ReflectionHeaderProps {
-  // Mobile renders the wordmark (via TopBar); the desktop shell supplies its
-  // own header, so it passes false and gets just the field + bar + message.
-  showWordmark: boolean;
   // The reflection meter is gated (`reflection_meter`) and hidden in crisis;
-  // when false this is a plain header with no bar, field, or message.
+  // when false this is a plain header wrapper with no bar, field, or message.
   meterVisible: boolean;
-  // 0–100 capture-progress fill (latched to 100 at ready).
+  // 0–100 capture-progress fill (server value as-is — no snap-to-100 at ready).
   fill: number;
   ready: boolean;
   composing: boolean;
-  // First-session education: the one message you clear. Already gated on
-  // !introSeen && !isAnonymous by the caller.
+  // First-session education: the one message you clear. Computed once by
+  // useReflection; passed through unchanged.
   showEducation: boolean;
   onBuild: () => void;
   onDismissEducation: () => void;
+  // Whole-header tap-to-build overlay. Mobile only — on desktop the header row
+  // holds interactive controls (FEEDBACK, the explicit Build button) a
+  // full-cover overlay would swallow, so desktop passes false and offers an
+  // explicit affordance instead.
+  fullCoverTap: boolean;
   error?: string | null;
+  // The header's top row: TopBar on mobile, the RoomHeader row on desktop.
+  children: React.ReactNode;
 }
 
-// The pull-model reflection header. As the conversation deepens the bar fills;
-// when a reflection is ready the header blooms into the deep field, and — the
-// first time only — a message you clear grows below the bar. Once cleared, the
-// colour alone carries the standing invitation. Tapping the header (any ready
-// state) composes the reflection on demand. Replaced the old stacked meter +
-// ready-strip + explainer on 2026-07-02.
+// The pull-model reflection surface. As the conversation deepens the bar fills;
+// when a reflection is ready the header blooms into the deep field and — the
+// first session only — a message you clear grows below the bar. Once cleared,
+// the colour alone carries the standing invitation. It wraps whatever the
+// platform's header row is (`children`) so mobile and desktop share one
+// treatment. Replaced the old stacked meter + ready-strip + explainer
+// (2026-07-02); generalised to wrap the desktop RoomHeader (2026-07-03).
 export default function ReflectionHeader({
-  showWordmark,
   meterVisible,
   fill,
   ready,
@@ -36,7 +38,9 @@ export default function ReflectionHeader({
   showEducation,
   onBuild,
   onDismissEducation,
+  fullCoverTap,
   error,
+  children,
 }: ReflectionHeaderProps) {
   const buildable = meterVisible && ready && !composing;
   const glow = ready ? 3 : 3 + (Math.max(0, Math.min(100, fill)) / 100) * 3;
@@ -51,7 +55,7 @@ export default function ReflectionHeader({
     >
       {meterVisible && <div className="mw-rh-field" aria-hidden="true" />}
 
-      {buildable && (
+      {fullCoverTap && buildable && (
         <button
           type="button"
           className="mw-rh-build"
@@ -60,11 +64,7 @@ export default function ReflectionHeader({
         />
       )}
 
-      {showWordmark && (
-        <div className="mw-rh-topbar">
-          <TopBar />
-        </div>
-      )}
+      <div className="mw-rh-topbar">{children}</div>
 
       {meterVisible && (
         <div
