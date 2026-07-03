@@ -7,7 +7,6 @@ import {
   applyCheckpointGates,
   resolveReflectionMeter,
 } from "@/lib/persona/persona-pipeline";
-import { getFeatureGates } from "@/lib/persona/feature-gates";
 
 /**
  * Restore the reflection meter from a conversation's persisted state. The
@@ -37,21 +36,6 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
 
-  // The conductor experiment is admin-scoped and forces the meter ON
-  // regardless of the global gate — the restore path must resolve the same
-  // way the live SSE path does (2026-07-02 incident: this route was
-  // experiment-blind, so the bar appeared only after a browser reload).
-  const isAdmin = user.app_metadata?.role === "admin";
-
-  // Cheap short-circuit when the feature is off (the common case while the
-  // gate is OFF) — avoids the heavier context load for every conversation
-  // open. Admins skip it: their meter state depends on the experiment
-  // switches, which only the full context resolution knows.
-  const gates = await getFeatureGates(admin);
-  if (!gates.reflectionMeter && !isAdmin) {
-    return Response.json({ reflectionMeter: undefined });
-  }
-
   // Ownership. 404 (not 403) so a probing user can't distinguish a foreign id
   // from a missing one — matches the other checkpoint routes.
   const { data: conv, error: convErr } = await admin
@@ -67,13 +51,12 @@ export async function GET(request: Request) {
     admin,
     conversationId,
     user.id,
-    "web",
-    isAdmin
+    "web"
   );
 
   // The context resolution is the single authority on whether the meter is
-  // active for this turn (global gate for normal users; forced ON under the
-  // conductor).
+  // active for this turn — under the conductor (the live web voice) it's on;
+  // it resolves the same way the live SSE path does, so restore can't drift.
   if (!ctx.reflectionMeterEnabled) {
     return Response.json({ reflectionMeter: undefined });
   }

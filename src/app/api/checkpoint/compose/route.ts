@@ -115,15 +115,13 @@ export async function POST(request: Request) {
   //    user-pulled path has no Jove draft to polish, so the composer composes
   //    from the (50-message-widened) conversation + the accumulated
   //    understanding carried in via depth / sageBrief / currentThread.
-  //    isAdmin threads through so the resolution knows when the conductor
-  //    experiment applies (Step 3 keys the composer's verbatim-anchor
-  //    instruction off ctx.conductorActive).
+  //    ctx.conductorActive (the live voice) keys the composer's verbatim-anchor
+  //    instruction (Step 3).
   const ctx = await loadConversationContext(
     admin,
     conversationId,
     user.id,
-    "web",
-    user.app_metadata?.role === "admin"
+    "web"
   );
   const ext = ctx.previousExtraction;
 

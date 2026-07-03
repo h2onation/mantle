@@ -176,11 +176,7 @@ export async function loadConversationContext(
   // pull path, so the meter must NOT govern that channel — its only capture
   // route is Jove-pushed checkpoints. Callers that run over text pass "text";
   // everyone else (web chat, the compose/meter routes) takes the default.
-  surface: "web" | "text" = "web",
-  // TEMPORARY strip-to-baseline experiment: the baseline variant is applied ONLY
-  // for admin users, so a stripped Jove can never reach a real user. Defaults
-  // false so every non-chat caller (SMS, compose, meter) is never baseline.
-  isAdmin: boolean = false
+  surface: "web" | "text" = "web"
 ): Promise<ConversationContext> {
   const [
     historyResult,
@@ -245,21 +241,22 @@ export async function loadConversationContext(
     : ["general"];
 
   // TEMPORARY conductor experiment — resolved up front so an experiment
-  // conversation is SELF-CONTAINED: for the admin's own run it forces the pull
-  // model and honors the requested mode below, ignoring the global
-  // reflection_meter / mode gates. So running the experiment never changes what
-  // real users see. Admin-scoped (isAdmin && the conductor feature gate), off
-  // by default, fail-closed — inactive = everything as today. The conductor
-  // also opens the checkpoint gate (crisis still blocks; see applyCheckpointGates).
-  const conductorActive = isAdmin && gates.conductor;
+  // The conductor is the LIVE voice (promoted 2026-07-02). conductorActive is
+  // simply "is the live voice the conductor" — driven by the single
+  // LIVE_VOICE_VARIANT switch, so setting it back to "rebuilt" rolls the whole
+  // pull model off in one place. On web it drives the reflection-meter capture
+  // model (Jove never triggers saves; the user pulls); the meter itself is
+  // web-only (surface gate below). It also honors the requested conversation
+  // mode directly and opens the checkpoint gate (crisis still blocks).
+  const conductorActive = LIVE_VOICE_VARIANT === "conductor";
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
   // The one place conversation mode is resolved against the per-mode gates —
-  // except a conductor run honors the requested mode directly, so the admin
-  // can run Situation even when the global situation gate is off.
+  // except under the conductor the requested mode is honored directly, so a
+  // mode runs even when its global gate is off.
   const conversationMode = resolveConversationMode(rawMode, gates, conductorActive);
 
   // Build conversation history
@@ -395,13 +392,15 @@ export async function loadConversationContext(
     checkpointTuning
   );
 
-  // Experiment capture models, per variant (resolved up top):
-  //  - CONDUCTOR (v0.6, the pull redesign): the METER is the capture surface —
-  //    reflectionMeterEnabled true regardless of the global gate; proposals OFF
-  //    (the v0.6 prompt carries no save trigger, so detection is dead weight —
-  //    disabling it also zeroes the checkpoint-derived prompt flags).
+  // Capture model. Under the conductor (the live voice) the METER is the
+  // capture surface: proposals OFF (the conductor prompt carries no save
+  // trigger — detection would be dead weight, and disabling it zeroes the
+  // checkpoint-derived prompt flags), and the meter is enabled on WEB only
+  // (text/SMS has no meter UI, so it has no capture until the text rebuild —
+  // 2026-07-02 promotion). If LIVE_VOICE_VARIANT is rolled back to a
+  // non-conductor voice, this falls to the Jove-pushed model.
   const { reflectionMeterEnabled, proposalsEnabled } = conductorActive
-    ? { reflectionMeterEnabled: true, proposalsEnabled: false }
+    ? { reflectionMeterEnabled: surface === "web", proposalsEnabled: false }
     : deriveProposalFlags(gates, surface);
 
   return {

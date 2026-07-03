@@ -65,14 +65,6 @@ export interface FeatureGates {
   checkpoints: boolean;
   extractionBrief: boolean;
   reflectionMeter: boolean;
-  /** Conductor voice experiment (conductor-prompt.ts) — the pull-model
-   *  redesign's self-contained prompt. ADMIN-SCOPED: callers must AND this with
-   *  the user being an admin (persona-pipeline: conductorActive = isAdmin &&
-   *  gates.conductor), so it can never reach a real user. Defaults OFF and fails
-   *  CLOSED, same as reflectionMeter. TEMPORARY — dies when the conductor is
-   *  promoted to LIVE_VOICE_VARIANT (Step 5). Moved here from the retired
-   *  baseline_experiment_gates table 2026-07-02. */
-  conductor: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -85,9 +77,6 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   // Forward feature flag — defaults OFF so production keeps the current
   // Jove-pushed checkpoint flow until explicitly enabled.
   reflectionMeter: false,
-  // Admin-scoped experiment — defaults OFF, fails closed. Only applied when
-  // the turn's user is an admin (see persona-pipeline conductorActive).
-  conductor: false,
 };
 
 /**
@@ -103,7 +92,6 @@ export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   checkpoints: "checkpoints",
   extraction_brief: "extractionBrief",
   reflection_meter: "reflectionMeter",
-  conductor: "conductor",
 };
 
 export type FeatureGateKey = keyof typeof FEATURE_GATE_KEYS;

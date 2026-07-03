@@ -34,8 +34,6 @@ describe("getFeatureGates", () => {
       extractionBrief: true,
       // Forward feature flag — fails CLOSED to OFF, unlike the debug gates.
       reflectionMeter: false,
-      // Admin-scoped conductor experiment — also fails CLOSED to OFF.
-      conductor: false,
     });
   });
 
@@ -61,11 +59,10 @@ describe("getFeatureGates", () => {
       checkpoints: false,
       extractionBrief: true,
       reflectionMeter: false,
-      conductor: false,
     });
   });
 
-  it("maps all eight keys when all are present", async () => {
+  it("maps all seven keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
@@ -77,7 +74,6 @@ describe("getFeatureGates", () => {
           { key: "checkpoints", enabled: false },
           { key: "extraction_brief", enabled: false },
           { key: "reflection_meter", enabled: true },
-          { key: "conductor", enabled: true },
         ],
         error: null,
       },
@@ -91,7 +87,6 @@ describe("getFeatureGates", () => {
       checkpoints: false,
       extractionBrief: false,
       reflectionMeter: true,
-      conductor: true,
     });
   });
 
@@ -115,7 +110,6 @@ describe("getFeatureGates", () => {
       checkpoints: true,
       extractionBrief: true,
       reflectionMeter: false,
-      conductor: false,
     });
   });
 
@@ -131,7 +125,7 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the eight known keys", () => {
+  it("accepts the seven known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
     expect(isFeatureGateKey("situation")).toBe(true);
     expect(isFeatureGateKey("guided_intake")).toBe(true);
@@ -139,7 +133,6 @@ describe("isFeatureGateKey", () => {
     expect(isFeatureGateKey("checkpoints")).toBe(true);
     expect(isFeatureGateKey("extraction_brief")).toBe(true);
     expect(isFeatureGateKey("reflection_meter")).toBe(true);
-    expect(isFeatureGateKey("conductor")).toBe(true);
   });
 
   it("rejects unknown keys and non-strings", () => {

@@ -245,11 +245,6 @@ interface CallPersonaOptions {
    *  Drives the POST-REJECTION block (the pinned "That entry didn't land..."
    *  line). Set by the confirm route only for action === "rejected". */
   postRejection?: boolean;
-  /** TEMPORARY strip-to-baseline experiment: true when the authenticated user
-   *  is an admin (computed in /api/chat from app_metadata.role). The baseline
-   *  variant is applied only for admins, so a stripped Jove never reaches a real
-   *  user. Defaults false — every non-admin turn behaves exactly as today. */
-  isAdmin?: boolean;
 }
 
 /** Retry-storm dedup window. If the same user content was inserted in
@@ -451,7 +446,6 @@ export function callPersona({
   prependedMessages,
   postConfirmMode = null,
   postRejection = false,
-  isAdmin = false,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -561,7 +555,7 @@ export function callPersona({
         }
 
         // 2. Load shared conversation context (DB reads + user state + derived flags)
-        const ctx = await loadConversationContext(admin, convId, userId, "web", isAdmin);
+        const ctx = await loadConversationContext(admin, convId, userId, "web");
         postConfirmLineOverride = ctx.voiceOverrides?.postConfirmFirstEntry;
         composerEntryBarOverride = ctx.voiceOverrides?.composerEntryBar;
         const {

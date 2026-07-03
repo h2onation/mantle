@@ -171,9 +171,6 @@ export async function POST(request: Request) {
       message,
       explorationContext,
       isChipResponse: isChipResponse === true,
-      // TEMPORARY conductor experiment: gate the conductor variant on the caller
-      // being an admin, so the pull-model prompt can never reach a real user.
-      isAdmin: user.app_metadata?.role === "admin",
     });
 
     // X-Conversation-Id is set so the client can capture the conversation

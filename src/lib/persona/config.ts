@@ -97,20 +97,24 @@ export const CHECKPOINT_ACTIONS = {
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 
-// ── Voice rebuild — Phase 3a switch ──────────────────────────────────────────
-// Which voice the LIVE conversation paths run. "rebuilt" = CHARACTER + LIMITS
-// + MECHANICS (voice-scaffold.ts top banner); "legacy" = the three-tier
-// rule-pile. This is the single rollback lever: set to "legacy" and both the
-// app path (persona-pipeline → call-persona) and the SMS path (persona-bridge)
-// revert on the next turn. The legacy arrays stay in the tree until the
-// Phase-3a soak confirms the rebuilt voice holds (Phase 3b deletes them).
-// See docs/voice-rebuild-proposal.md §8.
-// "conductor" is the pull-model experiment variant (conductor-prompt.ts).
-// Never the LIVE value; selected only for an admin's own conversations when the
-// conductor feature gate is on (the strip-to-baseline experiment was retired
-// 2026-07-02).
+// ── Live voice switch ────────────────────────────────────────────────────────
+// Which voice every LIVE conversation path runs. This is the single master
+// lever — and the single rollback:
+//   "conductor" = the pull-model prompt (conductor-prompt.ts). PROMOTED to the
+//                 live voice for all users 2026-07-02. On web this drives the
+//                 reflection-meter capture model (Jove never triggers saves;
+//                 the user pulls). persona-pipeline derives conductorActive =
+//                 (LIVE_VOICE_VARIANT === "conductor"), so this one constant
+//                 turns the whole pull model on or off.
+//   "rebuilt"   = CHARACTER + LIMITS + MECHANICS (voice-scaffold.ts). The
+//                 pre-conductor voice + the Jove-pushed checkpoint model. Set
+//                 here to roll the promotion back on the next turn.
+//   "legacy"    = the old three-tier rule-pile. Deeper rollback; deleted at the
+//                 Phase-3b voice teardown.
+// Both the app path (persona-pipeline → call-persona) and the SMS path
+// (persona-bridge) read this. See docs/voice-rebuild-proposal.md §8.
 export type VoiceVariant = "legacy" | "rebuilt" | "conductor";
-export const LIVE_VOICE_VARIANT: VoiceVariant = "rebuilt";
+export const LIVE_VOICE_VARIANT: VoiceVariant = "conductor";
 
 // Conversation mode: which entry path the user took into a session. Centralized
 // here so the runtime tuple (used for input validation in /api/chat) and the

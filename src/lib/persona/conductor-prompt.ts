@@ -59,9 +59,10 @@
 //       landed/completeness logic survives; the close is now a one-time
 //       UI-light acknowledgment ("That's yours now, in your words — whenever
 //       you want it"), never a save offer. The bar reference in the ask-how
-//       line is deliberate and web-scoped: the conductor cannot run on SMS
-//       (conductorActive requires isAdmin, which the text path never sets) —
-//       revisit at the text port.
+//       line is web-scoped. Since the 2026-07-02 promotion the conductor is the
+//       live voice on text/SMS too, but text has NO reflection bar and no
+//       capture yet — so the bar line is a known wart there until the text
+//       rebuild lands. (Text capture is intentionally dark in the interim.)
 //   11. Check-in cadence guard in "Build it in the open" — resonance checks
 //       only when something CHANGED (over-fire guard, founder-flagged risk).
 //   12. Opener-variance rule in "What you never do" (the "Ok, so…" tic).
