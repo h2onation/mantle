@@ -33,6 +33,18 @@ const LOCKED_GATES: { label: string; why: string }[] = [
   },
 ];
 
+// Under the conductor (the pull model) the ready strip comes from Jove's own
+// landed marker, not from these eagerness dials — so tuning them does NOTHING
+// to a conductor conversation; they still govern the older push model on
+// text/SMS. Marked per-dial so an admin testing the conductor arm isn't misled
+// by a dial that has no effect there. cooldownTurns is the exception: it also
+// paces the conductor bar's recharge after a save, so it is NOT listed here.
+const CONDUCTOR_INERT_FIELDS = new Set([
+  "minScenes",
+  "failsafeTurn",
+  "depthFloor",
+]);
+
 // Plain-English gloss for the depth-floor dropdown. Keys are the stored enum
 // values (DEPTH_LEVELS); the value shown to the admin pairs the raw level with
 // what it means, so "surface" reading as "no depth required" is legible.
@@ -147,7 +159,11 @@ export default function CheckpointTuningPanel() {
         Tune how eagerly Jove proposes a Manual entry — no deploy. Saving takes
         effect on the next user message. The shipped code is the floor: Reset
         returns a dial instantly. These move eagerness only; the quality gates
-        below stay locked.
+        below stay locked. Under the conductor arm (the pull model), readiness
+        comes from Jove&rsquo;s own landed moment — so only Cooldown affects a
+        conductor conversation; the dials marked{" "}
+        <span style={{ fontWeight: 600 }}>push-model only</span> govern the
+        older text/SMS path.
       </p>
 
       {fields === null && !error && (
@@ -206,6 +222,22 @@ export default function CheckpointTuningPanel() {
               >
                 {f.edited ? "EDITED" : "DEFAULT"}
               </span>
+              {CONDUCTOR_INERT_FIELDS.has(f.field) && (
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "var(--session-walnut-meta-soft)",
+                    border: "1px solid var(--session-walnut-border)",
+                    borderRadius: 5,
+                    padding: "1px 6px",
+                  }}
+                >
+                  Push-model only
+                </span>
+              )}
             </div>
             <p
               style={{
