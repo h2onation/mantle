@@ -221,10 +221,12 @@ describe("guided intake instrumentation wiring", () => {
     expect(block).toContain("mode: conversationMode.current");
   });
 
-  it("useChat passes mode to trackCheckpointProposed", () => {
+  it("useChat passes mode to trackCheckpointProposed (pull path)", () => {
+    // The proposed event fires from composeCheckpoint (the user pulled a
+    // reflection into view) since 2026-07-06 — the SSE checkpoint block is gone.
     const region = useChat.match(/trackCheckpointProposed\(\{[\s\S]*?\}\);/)?.[0];
     expect(region).toBeDefined();
-    expect(region).toContain("mode: eventMode");
+    expect(region).toContain("mode: conversationMode.current");
   });
 
   it("useChat derives user_turn_count by filtering messages on role==='user'", () => {
@@ -236,7 +238,7 @@ describe("guided intake instrumentation wiring", () => {
   it("useChat passes user_turn_count to trackCheckpointProposed", () => {
     const region = useChat.match(/trackCheckpointProposed\(\{[\s\S]*?\}\);/)?.[0];
     expect(region).toBeDefined();
-    expect(region).toContain("user_turn_count: userTurnCount");
+    expect(region).toContain("user_turn_count:");
   });
 
   it("checkpoint_proposed message_number is preserved alongside user_turn_count", () => {

@@ -97,15 +97,10 @@ export const CHECKPOINT_ACTIONS = {
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 
-// ── Live voice ───────────────────────────────────────────────────────────────
-// The 1:1 voice every conversation path runs. Only "conductor" remains — the
-// pull-model prompt (conductor-prompt.ts), promoted to the live voice for all
-// users 2026-07-02. The rebuilt/legacy rollback voice worlds were retired
-// 2026-07-06. persona-pipeline derives conductorActive = (LIVE_VOICE_VARIANT
-// === "conductor"), which stays true. Both the app path (persona-pipeline →
-// call-persona) and the SMS path (persona-bridge) read this.
-export type VoiceVariant = "conductor";
-export const LIVE_VOICE_VARIANT: VoiceVariant = "conductor";
+// The live-voice switch (LIVE_VOICE_VARIANT / VoiceVariant) was deleted
+// 2026-07-06: the conductor (conductor-prompt.ts) is the sole 1:1 voice — it
+// was promoted for all users 2026-07-02 and the rebuilt/legacy rollback
+// worlds were retired, so there is nothing left to switch between.
 
 // Conversation mode: which entry path the user took into a session. Centralized
 // here so the runtime tuple (used for input validation in /api/chat) and the

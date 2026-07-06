@@ -126,7 +126,6 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       extractionEnabled: true,
       voiceOverrides: {},
       checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
-      conductorActive: false,
       reflectionLanded: false,
       mode,
     };
@@ -246,62 +245,20 @@ describe("resolveReflectionMeter", () => {
   });
 });
 
+// Parse-only since 2026-07-06: the per-mode-gate fallback was removed (it had
+// been dead since the conductor promotion — the requested mode was always
+// honored). The mode gates' live job is hiding home-screen doors via
+// /api/onboarding-status, not clamping the server-side mode.
 describe("resolveConversationMode", () => {
-  const ALL_ON = { situation: true, guidedIntake: true, upload: true };
-
-  it("returns the requested mode when its gate is on", () => {
-    expect(resolveConversationMode("guided-intake", ALL_ON)).toBe("guided-intake");
-    expect(resolveConversationMode("upload", ALL_ON)).toBe("upload");
-    expect(resolveConversationMode("situation", ALL_ON)).toBe("situation");
+  it("honors the requested mode", () => {
+    expect(resolveConversationMode("guided-intake")).toBe("guided-intake");
+    expect(resolveConversationMode("upload")).toBe("upload");
+    expect(resolveConversationMode("situation")).toBe("situation");
   });
 
-  it("defaults an absent/unknown raw mode to situation when situation is on", () => {
-    expect(resolveConversationMode(undefined, ALL_ON)).toBe("situation");
-    expect(resolveConversationMode(null, ALL_ON)).toBe("situation");
-    expect(resolveConversationMode("nonsense", ALL_ON)).toBe("situation");
-  });
-
-  it("falls a disabled optional mode back to situation while situation is on (legacy behavior)", () => {
-    expect(
-      resolveConversationMode("guided-intake", { situation: true, guidedIntake: false, upload: true })
-    ).toBe("situation");
-    expect(
-      resolveConversationMode("upload", { situation: true, guidedIntake: true, upload: false })
-    ).toBe("situation");
-  });
-
-  it("honorRequested honors the requested mode even when its gate is off (baseline experiment)", () => {
-    const ALL_OFF = { situation: false, guidedIntake: false, upload: false };
-    // Situation with the situation gate off would normally fall back; baseline
-    // honors it so the admin can run the pilot in Situation regardless.
-    expect(resolveConversationMode("situation", ALL_OFF, true)).toBe("situation");
-    expect(resolveConversationMode("guided-intake", ALL_OFF, true)).toBe(
-      "guided-intake",
-    );
-    // Default (honorRequested=false) still falls back — unchanged for real users.
-    expect(resolveConversationMode("situation", ALL_OFF)).toBe("situation"); // hard floor
-    expect(resolveConversationMode("guided-intake", ALL_OFF)).toBe("situation");
-  });
-
-  it("guided-solo: situation off → every request resolves to guided", () => {
-    const guidedSolo = { situation: false, guidedIntake: true, upload: false };
-    expect(resolveConversationMode("situation", guidedSolo)).toBe("guided-intake");
-    expect(resolveConversationMode(undefined, guidedSolo)).toBe("guided-intake");
-    expect(resolveConversationMode("guided-intake", guidedSolo)).toBe("guided-intake");
-    expect(resolveConversationMode("upload", guidedSolo)).toBe("guided-intake");
-  });
-
-  it("upload-solo: situation + guided off → everything resolves to upload", () => {
-    const uploadSolo = { situation: false, guidedIntake: false, upload: true };
-    expect(resolveConversationMode("situation", uploadSolo)).toBe("upload");
-    expect(resolveConversationMode("guided-intake", uploadSolo)).toBe("upload");
-    expect(resolveConversationMode("upload", uploadSolo)).toBe("upload");
-  });
-
-  it("every gate off → situation is the ultimate hard floor (never mode-less)", () => {
-    const allOff = { situation: false, guidedIntake: false, upload: false };
-    expect(resolveConversationMode("guided-intake", allOff)).toBe("situation");
-    expect(resolveConversationMode("upload", allOff)).toBe("situation");
-    expect(resolveConversationMode(undefined, allOff)).toBe("situation");
+  it("defaults an absent/unknown raw mode to situation", () => {
+    expect(resolveConversationMode(undefined)).toBe("situation");
+    expect(resolveConversationMode(null)).toBe("situation");
+    expect(resolveConversationMode("nonsense")).toBe("situation");
   });
 });

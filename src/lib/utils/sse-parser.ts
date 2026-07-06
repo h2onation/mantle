@@ -1,24 +1,12 @@
 import type { ConversationMode } from "@/lib/persona/config";
 
+// The former `checkpoint` payload field was removed 2026-07-06: the pull
+// model composes entries via /api/checkpoint/compose (the reflection meter),
+// so a live stream never proposes a checkpoint — the server had been sending
+// checkpoint: null on every event since the push path was deleted.
 export interface MessageCompleteEvent {
   messageId: string;
   conversationId: string;
-  checkpoint: {
-    isCheckpoint: boolean;
-    // Section slug chosen by composition — one of the five life-area sections.
-    section: string | null;
-    tags?: string[];
-    name: string | null;
-    // Track A Phase 7-Mid: refinement_count is set when the new
-    // checkpoint inherits from a prior refined checkpoint in the
-    // chain. Optional for backward compatibility with older server
-    // builds; client treats undefined as 0.
-    refinement_count?: number;
-    // Polished entry text composed at proposal time. Shown in the
-    // review overlay so the user sees the exact text that will land
-    // in their Manual on confirm. Optional for backward compatibility.
-    composed_content?: string | null;
-  } | null;
   processingText: string;
   cleanContent?: string;
   promptAuth?: boolean;
@@ -40,11 +28,6 @@ export interface MessageCompleteEvent {
   // depth. ready = completion (drives the ready strip). null HIDES the meter and
   // clears any latched readiness (crisis). Absent (undefined) when the gate is off.
   reflectionMeter?: { fill: number; ready: boolean } | null;
-  // Split delivery: true on the checkpoint lead-in event — the entry is
-  // still composing server-side and more events follow on this stream.
-  // The client keeps the typing indicator up until the next
-  // message_complete (or stream end) clears it.
-  composing?: boolean;
 }
 
 interface SSECallbacks {

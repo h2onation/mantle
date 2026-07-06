@@ -19,8 +19,8 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, LIVE_VOICE_VARIANT, type CheckpointAction } from "./config";
-import { getFeatureGates, type FeatureGates } from "./feature-gates";
+import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction } from "./config";
+import { getFeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
 import {
   getCheckpointTuning,
@@ -69,11 +69,6 @@ export interface ConversationContext {
    *  it caps the reflection meter's post-save recharge (reflectionMeterFill).
    *  Falls back to its code default on a missing/invalid value. */
   checkpointTuning: CheckpointTuning;
-  /** True when the conductor is the live voice. Keys the composer's
-   *  verbatim-anchor instruction on the pull path. Since the rebuilt/legacy
-   *  voice worlds were retired (2026-07-06) LIVE_VOICE_VARIANT is "conductor"
-   *  only, so this is now always true — a flag pending collapse in a follow-up. */
-  conductorActive: boolean;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
    *  the last checkpoint. Conductor-only readiness source: Jove's own landed
@@ -181,29 +176,22 @@ export async function loadConversationContext(
   // profile without setting persona_modes (e.g., the chat-route upsert).
   const resolvedPersonaModes: PersonaMode[] =
     (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
-  // personaDeltas gate OFF → clamp to the neutral "general" voice so
-  // composeTier2 renders the base scaffold only and no neurotype delta loads.
+  // personaDeltas gate OFF → clamp to the neutral "general" voice. (The
+  // conductor prompt reads no persona delta, so this only matters to
+  // downstream consumers of personaModes, e.g. extraction context.)
   const personaModes: PersonaMode[] = gates.personaDeltas
     ? resolvedPersonaModes
     : ["general"];
-
-  // The conductor is the LIVE voice (promoted 2026-07-02; the rebuilt/legacy
-  // rollback worlds were retired 2026-07-06, so LIVE_VOICE_VARIANT is now
-  // "conductor" only and this is always true — a flag pending collapse). On web
-  // it drives the reflection-meter capture model (Jove never triggers saves; the
-  // user pulls); the meter itself is web-only (surface gate below). It also
-  // honors the requested conversation mode directly and opens the checkpoint
-  // gate (crisis still blocks).
-  const conductorActive = LIVE_VOICE_VARIANT === "conductor";
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
     console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
   }
-  // The one place conversation mode is resolved against the per-mode gates —
-  // except under the conductor the requested mode is honored directly, so a
-  // mode runs even when its global gate is off.
-  const conversationMode = resolveConversationMode(rawMode, gates, conductorActive);
+  // The requested mode is honored directly (the conductor has been the live
+  // voice for all users since 2026-07-02, and it always honored the request).
+  // The per-mode feature gates still do their real job elsewhere: they hide
+  // entry doors on the home screen via /api/onboarding-status.
+  const conversationMode = resolveConversationMode(rawMode);
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -335,14 +323,13 @@ export async function loadConversationContext(
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
     checkpointTuning,
-    conductorActive,
     reflectionLanded,
   };
 }
 
 // ── Conversation-mode resolution ───────────────────────────────────────────
 //
-// The single authority for turning a requested mode + the per-mode gates into
+// The single authority for turning a stored/requested mode string into
 // the mode a turn actually runs in. Used by the main pipeline (above) and
 // unit-tested directly. Rules:
 //   - Use the requested mode if its gate is on.
@@ -353,32 +340,19 @@ export async function loadConversationContext(
 //   - If every mode gate is off (misconfiguration), situation is the ultimate
 //     hard floor, so a conversation is never left mode-less.
 export function resolveConversationMode(
-  rawMode: string | null | undefined,
-  gates: Pick<FeatureGates, "situation" | "guidedIntake" | "upload">,
-  // TEMPORARY conductor experiment: when true, honor the requested mode
-  // directly and skip the per-mode gate fallback, so the admin can run Situation
-  // (or any mode) even when its global gate is off. Defaults false — every
-  // normal caller behaves exactly as before.
-  honorRequested: boolean = false
+  rawMode: string | null | undefined
 ): "situation" | "guided-intake" | "upload" {
-  const requested: "situation" | "guided-intake" | "upload" =
-    rawMode === "guided-intake"
-      ? "guided-intake"
-      : rawMode === "upload"
-        ? "upload"
-        : "situation";
-  if (honorRequested) return requested;
-  const requestedEnabled =
-    requested === "guided-intake"
-      ? gates.guidedIntake
-      : requested === "upload"
-        ? gates.upload
-        : gates.situation;
-  if (requestedEnabled) return requested;
-  if (gates.situation) return "situation";
-  if (gates.guidedIntake) return "guided-intake";
-  if (gates.upload) return "upload";
-  return "situation";
+  // Parse-only: the stored mode is honored directly, unknown values fall back
+  // to situation. The per-mode-gate fallback that used to live here was dead
+  // since the 2026-07-02 conductor promotion (the conductor always honored the
+  // request) and was removed 2026-07-06. The mode gates' live job is hiding
+  // entry doors on the home screen (/api/onboarding-status), not clamping the
+  // server-side mode.
+  return rawMode === "guided-intake"
+    ? "guided-intake"
+    : rawMode === "upload"
+      ? "upload"
+      : "situation";
 }
 
 // ── 1b. Build prompt options from context ──────────────────────────────────
@@ -402,11 +376,6 @@ export function buildPromptOptionsFromContext(
     turnCount: ctx.turnCount,
     personaModes: ctx.personaModes,
     mode: ctx.mode,
-    // The 1:1 voice is the conductor for everyone (the rebuilt/legacy rollback
-    // worlds were retired 2026-07-06). buildSystemPromptBlocks no longer reads
-    // this field, but the options type still accepts it, so it's emitted for
-    // continuity with the SMS path + admin viewer.
-    voiceVariant: "conductor",
     // Admin-editable voice-text overrides; empty {} falls back to all code
     // defaults at each resolution site in system-prompt.ts.
     voiceOverrides: ctx.voiceOverrides,

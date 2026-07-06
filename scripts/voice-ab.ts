@@ -146,7 +146,6 @@ async function runConversation(
       turnCount: turn,
       mode: "situation",
       personaModes: ["general"],
-      voiceVariant: variant,
     });
     // The API rejects whitespace-only system blocks; on turn 1 of a fresh
     // conversation the dynamic block can be empty (no session context, no

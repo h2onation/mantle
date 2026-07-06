@@ -201,11 +201,8 @@ export function detectCrisisInUserMessage(message: string): boolean {
  * first-lifetime Message 1 stamp ("In. A working name: ...") without
  * an LLM call.
  *
- * Each entry produces one message_complete event with checkpoint: null
- * (bubble render on the client). The checkpoint payload is intentionally
- * NOT configurable here — a checkpoint must always come from the
- * classifier + composer path, never shortcut through prependedMessages.
- * The type enforces this at compile time.
+ * Each entry produces one plain message_complete event (bubble render on
+ * the client). No checkpoint can ride along — capture is pull-only.
  */
 export interface PrependedAssistantMessage {
   messageId: string;
@@ -358,7 +355,6 @@ export function callPersona({
           type: "message_complete",
           messageId,
           conversationId: convId,
-          checkpoint: null,
           processingText: "",
           cleanContent: content,
         })}\n\n`
@@ -477,7 +473,6 @@ export function callPersona({
                 type: "message_complete",
                 messageId: savedOpener?.id ?? null,
                 conversationId: convId,
-                checkpoint: null,
                 processingText: "",
                 cleanContent: uploadOpenerText,
                 mode: conversationMode,
@@ -797,10 +792,8 @@ export function callPersona({
               type: "message_complete",
               messageId,
               conversationId: convId,
-              // Capture is pull-only now — Jove never proposes, so a live turn
-              // never carries a checkpoint. Always null (the client type still
-              // requires the key).
-              checkpoint: null,
+              // Capture is pull-only — a live turn never carries a checkpoint
+              // (the event's checkpoint field was removed 2026-07-06).
               processingText,
               cleanContent: conversationalText,
               mode: conversationMode,

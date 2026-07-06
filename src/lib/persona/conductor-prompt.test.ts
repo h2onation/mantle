@@ -24,7 +24,6 @@ describe("conductor variant — guard tests", () => {
       turnCount: 1,
       personaModes: ["general"],
       mode: "situation",
-      voiceVariant: "conductor",
       voiceOverrides: {},
     });
     return b.tier1 + b.staticContext + b.dynamic;

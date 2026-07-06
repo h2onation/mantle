@@ -106,8 +106,6 @@ export async function POST(request: Request) {
   //    user-pulled path has no Jove draft to polish, so the composer composes
   //    from the (50-message-widened) conversation + the accumulated
   //    understanding carried in via depth / sageBrief / currentThread.
-  //    ctx.conductorActive (the live voice) keys the composer's verbatim-anchor
-  //    instruction (Step 3).
   const ctx = await loadConversationContext(
     admin,
     conversationId,
@@ -128,10 +126,12 @@ export async function POST(request: Request) {
       sageBrief: ext?.sage_brief ?? null,
       currentThread: ext?.current_thread ?? null,
       entryBarOverride: ctx.voiceOverrides?.composerEntryBar,
-      // Conductor pull path (pull-model Step 3): the conversation built the
-      // entry in the open, so the body must REPRODUCE the user-approved
-      // working version near-verbatim rather than re-author it.
-      anchorApprovedVersion: ctx.conductorActive,
+      // Pull path (pull-model Step 3): the conversation built the entry in
+      // the open, so the body must REPRODUCE the user-approved working
+      // version near-verbatim rather than re-author it. Always on — the
+      // conductor is the sole voice (the conductorActive flag was collapsed
+      // 2026-07-06).
+      anchorApprovedVersion: true,
     });
   } catch (err) {
     // composeManualEntry can throw — e.g. Opus returns non-JSON and the

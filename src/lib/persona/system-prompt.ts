@@ -57,12 +57,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  rejection (set by the confirm route for action === "rejected"). Gates the
    *  POST-REJECTION block. Mutually exclusive with postConfirmMode. */
   postRejection?: boolean;
-  /** The live voice. Only "conductor" remains (the rebuilt/legacy rollback
-   *  worlds were retired 2026-07-06). The conductor prompt is self-contained,
-   *  so buildSystemPromptBlocks no longer reads this field — it's kept as an
-   *  accepted option so callers that thread LIVE_VOICE_VARIANT through
-   *  (persona-pipeline, the admin prompt viewer) still typecheck. */
-  voiceVariant?: "conductor";
   /** Admin-editable voice-text overrides (persona_voice_overrides table,
    *  resolved once per turn in loadConversationContext). Each present field
    *  replaces its code default at the resolution site (`?? CONSTANT`); absent

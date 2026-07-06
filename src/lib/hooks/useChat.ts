@@ -103,37 +103,15 @@ export function createStartGuard(): StartGuard {
 
 /**
  * Convert a streaming `message_complete` SSE event into the optimistic
- * in-memory ChatMessage we append to `messages`.
- *
- * The critical bit: when the event carries a checkpoint payload, the
- * returned message MUST have `isCheckpoint: true` plus `checkpointMeta`
- * populated. MobileSession's render logic gates the trigger card on
- * `msg.isCheckpoint === true`. Without these fields, a pending
- * checkpoint message falls through to plain-bubble rendering — the
- * model's structured proposal text (Layer name, headline, validation
- * CTA) renders inline as raw chat content and the user has no card
- * to tap into the action overlay. Exported for testing.
+ * in-memory ChatMessage we append to `messages`. Always a plain bubble —
+ * capture is pull-only, so a live stream never carries a checkpoint
+ * (checkpoint messages enter via the compose/confirm path and DB reload).
+ * Exported for testing.
  */
 export function buildChatMessageFromEvent(
   event: MessageCompleteEvent,
   displayContent: string
 ): ChatMessage {
-  const checkpoint = event.checkpoint;
-  if (checkpoint) {
-    return {
-      role: "assistant",
-      content: displayContent,
-      id: event.messageId,
-      isCheckpoint: true,
-      checkpointMeta: {
-        section: checkpoint.section ?? null,
-        tags: checkpoint.tags ?? [],
-        name: checkpoint.name,
-        status: "pending",
-        refinement_count: checkpoint.refinement_count ?? 0,
-      },
-    };
-  }
   return {
     role: "assistant",
     content: displayContent,
@@ -188,12 +166,6 @@ export function useChat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  // Split delivery: true between the checkpoint lead-in event and the
-  // acknowledgment/card events that follow on the same stream. Keeps the
-  // typing indicator visible while the entry composes server-side —
-  // without it, the lead-in bubble landing would hide the indicator and
-  // the user would stare at a silent chat for the compose duration.
-  const [composingCheckpoint, setComposingCheckpoint] = useState(false);
   const [activeCheckpoint, setActiveCheckpoint] =
     useState<ActiveCheckpoint | null>(null);
   const [confirmedEntries, setConfirmedEntries] = useState<
@@ -380,13 +352,6 @@ export function useChat() {
           if (data.conversationId) {
             setConversationId((prev) => prev ?? data.conversationId);
           }
-          // Split delivery: the lead-in event carries composing: true —
-          // the entry is still composing server-side, keep the typing
-          // indicator up. Any subsequent event (acknowledgment, card)
-          // clears it; the finally block below is the safety net for
-          // streams that die mid-compose.
-          setComposingCheckpoint(data.composing === true);
-
           // Snapshot the text accumulated since the previous
           // message_complete (or since stream start). This is THIS
           // message's streamed content, if any.
@@ -399,9 +364,9 @@ export function useChat() {
           // preceding text_delta. Skip appending in that case.
           if (displayContent) {
             setMessages((prev) => [...prev, buildChatMessageFromEvent(data, displayContent)]);
-            // Run the per-event finalize (modal-2 trigger refresh,
-            // checkpoint metadata if this event carried one, etc.).
-            finalizeMessage(displayContent, data);
+            // Run the per-event finalize (reflection meter, mode mirror,
+            // chips, guided-intake flags).
+            finalizeMessage(data);
           }
 
           lastCompleteEvent = data;
@@ -414,7 +379,6 @@ export function useChat() {
       streamStalled = stalled;
     } finally {
       setIsStreaming(false);
-      setComposingCheckpoint(false);
     }
 
     if (sseError) {
@@ -433,10 +397,7 @@ export function useChat() {
     return { fullText: lastMessageFullText, completeEvent: lastCompleteEvent };
   }
 
-  function finalizeMessage(
-    fullText: string,
-    completeEvent: MessageCompleteEvent | null
-  ) {
+  function finalizeMessage(completeEvent: MessageCompleteEvent | null) {
     if (!completeEvent) return;
 
     // Reflection meter signals. The server sends one nullable field:
@@ -460,58 +421,8 @@ export function useChat() {
     const eventMode: ConversationMode = completeEvent.mode ?? "situation";
     conversationMode.current = eventMode;
 
-    // Use clean content (without manual entry block) when available
-    const displayContent = completeEvent.cleanContent || fullText;
-
-    if (completeEvent.checkpoint) {
-      // Set active checkpoint with clean text
-      setActiveCheckpoint({
-        messageId: completeEvent.messageId,
-        section: completeEvent.checkpoint.section ?? null,
-        tags: completeEvent.checkpoint.tags ?? [],
-        name: completeEvent.checkpoint.name,
-        content: displayContent,
-        composedContent: completeEvent.checkpoint.composed_content ?? null,
-      });
-
-      // Capture the moment the proposal became visible so checkpoint
-      // decision events can report time_to_decision_ms.
-      checkpointProposedAt.current = Date.now();
-
-      const convIdForCp = completeEvent.conversationId || conversationId;
-      if (convIdForCp && completeEvent.messageId) {
-        const userTurnCount = messages.filter((m) => m.role === "user").length;
-        trackCheckpointProposed({
-          conversation_id: convIdForCp,
-          checkpoint_id: completeEvent.messageId,
-          section: completeEvent.checkpoint.section ?? null,
-          message_number: messages.length + 1,
-          user_turn_count: userTurnCount,
-          mode: eventMode,
-        });
-      }
-
-      // Update last assistant message with checkpoint metadata
-      setMessages((prev) => {
-        const updated = [...prev];
-        const idx = updated.length - 1;
-        if (idx >= 0 && updated[idx]?.role === "assistant") {
-          updated[idx] = {
-            ...updated[idx],
-            isCheckpoint: true,
-            checkpointMeta: {
-              section: completeEvent!.checkpoint!.section ?? null,
-              tags: completeEvent!.checkpoint!.tags ?? [],
-              name: completeEvent!.checkpoint!.name,
-              status: "pending",
-              refinement_count:
-                completeEvent!.checkpoint!.refinement_count ?? 0,
-            },
-          };
-        }
-        return updated;
-      });
-    }
+    // (The former checkpoint block is gone — capture is pull-only, so a live
+    // stream never proposes. Proposal analytics fire from composeCheckpoint.)
 
     // Attach chips to the message if the server included them.
     if (completeEvent.chips && completeEvent.chips.length > 0) {
@@ -1234,6 +1145,18 @@ export function useChat() {
       // open the overlay immediately without waiting for state to propagate.
       setActiveCheckpoint(checkpoint);
       checkpointProposedAt.current = Date.now();
+      // Proposal analytics (time_to_decision_ms pairs with this in the
+      // decision event). Under the pull model "proposed" = the user pulled a
+      // composed reflection into view. Moved here 2026-07-06 from the deleted
+      // SSE checkpoint block.
+      trackCheckpointProposed({
+        conversation_id: conversationId,
+        checkpoint_id: body.messageId,
+        section: checkpoint.section,
+        message_number: messages.length + 1,
+        user_turn_count: messages.filter((m) => m.role === "user").length,
+        mode: conversationMode.current,
+      });
       return { status: "ok", checkpoint };
     } catch {
       setCheckpointError("Couldn't reach the server. Try again.");
@@ -1804,7 +1727,6 @@ export function useChat() {
     conversationId,
     isLoading,
     isStreaming,
-    composingCheckpoint,
     activeCheckpoint,
     confirmedEntries,
     firstName,

@@ -224,7 +224,6 @@ export default function MainApp() {
     conversationId,
     isLoading,
     isStreaming,
-    composingCheckpoint,
     activeCheckpoint,
     confirmedEntries,
     firstName,
@@ -593,7 +592,6 @@ export default function MainApp() {
       conversationId={conversationId}
       isLoading={isLoading}
       isStreaming={isStreaming}
-      composingCheckpoint={composingCheckpoint}
       activeCheckpoint={activeCheckpoint}
       checkpointError={checkpointError}
       errorMessage={errorMessage}
