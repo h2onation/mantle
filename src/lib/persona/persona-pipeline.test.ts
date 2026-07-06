@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   reflectionMeterFill,
   resolveReflectionMeter,
-  computeInheritedRefinementCount,
   buildEntriesSummary,
   buildPromptOptionsFromContext,
   resolveConversationMode,
@@ -27,86 +26,6 @@ function makeExtractionState(
     ...overrides,
   };
 }
-
-// ─── Refinement-count chain inheritance (Track A Phase 7-Mid) ──────────────
-describe("computeInheritedRefinementCount", () => {
-  it("returns 0 when there is no previous checkpoint", () => {
-    expect(computeInheritedRefinementCount(null)).toBe(0);
-  });
-
-  it("returns 0 when previous status is confirmed (chain broken)", () => {
-    expect(
-      computeInheritedRefinementCount({
-        status: "confirmed",
-        refinement_count: 5,
-      })
-    ).toBe(0);
-  });
-
-  it("returns 0 when previous status is rejected (chain broken)", () => {
-    expect(
-      computeInheritedRefinementCount({
-        status: "rejected",
-        refinement_count: 5,
-      })
-    ).toBe(0);
-  });
-
-  it("returns 0 when previous status is pending (defensive — not a chain state)", () => {
-    expect(
-      computeInheritedRefinementCount({
-        status: "pending",
-        refinement_count: 5,
-      })
-    ).toBe(0);
-  });
-
-  it("returns 0 when previous count is undefined (legacy meta rows pre-Phase-7-Mid)", () => {
-    expect(
-      computeInheritedRefinementCount({ status: "refined" })
-    ).toBe(0);
-  });
-
-  it("inherits the previous count when previous status is refined", () => {
-    expect(
-      computeInheritedRefinementCount({
-        status: "refined",
-        refinement_count: 1,
-      })
-    ).toBe(1);
-  });
-
-  // The case Phase 7-Mid spec called out explicitly to document via
-  // a test name. Naming this case "across distinct entries" makes the
-  // intent searchable in the codebase: yes, a fresh entry inherits
-  // the chain count, and yes, that is intended behavior.
-  it("refinement count inherits across distinct entries when chain is unbroken", () => {
-    // Setup: the user refined two prior entries about an entirely
-    // different topic (call them E1 about topic A, then E2 about topic
-    // A again, both refined). Server now composes E3, which happens
-    // to be about topic B (a fresh emerging pattern). The chain rule
-    // is structural — it looks only at the previous checkpoint's
-    // status, not at semantic similarity. Because E2 was refined with
-    // count=2, E3 inherits count=2 even though it is about a
-    // different topic.
-    //
-    // Result: the user sees the refinement-ceiling card UI on E3's
-    // first attempt. They can accept E3 as-is or let it go.
-    //
-    // This is intended behavior. Detecting "same pattern" semantically
-    // would require fuzzy LLM judgment we do not have. In practice,
-    // refinements happen rapidly enough that an unbroken chain is the
-    // right proxy for "the user has already pushed back twice and
-    // would rather move on than refine a third time." If a user does
-    // hit this case across genuinely distinct topics, hitting "Let it
-    // go" on E3 breaks the chain (next entry starts fresh at 0).
-    const e2RefinedMeta = {
-      status: "refined" as const,
-      refinement_count: 2,
-    };
-    expect(computeInheritedRefinementCount(e2RefinedMeta)).toBe(2);
-  });
-});
 
 // ─── Entries-summary builder (Track A Phase 7-High) ────────────────────────
 describe("buildEntriesSummary", () => {

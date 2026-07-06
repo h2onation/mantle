@@ -28,17 +28,9 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *                            enabled mode: the upload server short-circuit +
  *                            transcript-wrap behavior never fire, and the Home
  *                            "Upload" door renders disabled ("Coming soon").
- *   checkpoints        OFF → no checkpoint is ever detected, gated, composed,
- *                            or proposed; the checkpoint-derived Tier 3
- *                            overlays (approaching, post-suppression) also go
- *                            dark. Jove keeps naming patterns in conversation
- *                            but never proposes a Manual entry.
  *   extractionBrief    OFF → voice-only: the background Sonnet extraction call
- *                            is skipped and no brief is rendered into Jove's
- *                            prompt, so zero analysis steers the conversation.
- *                            Note: checkpoints depend on extraction state, so
- *                            with this OFF the checkpoint gate fails closed
- *                            (no entries fire) even if `checkpoints` is ON.
+ *                            is skipped, so nothing is analyzed and the save-time
+ *                            composer gets no accumulated understanding.
  *
  * These debug gates default ON, and the read fails open to ON on any error or
  * missing row, so production behaves exactly as it does today when the table is
@@ -50,7 +42,6 @@ export interface FeatureGates {
   situation: boolean;
   guidedIntake: boolean;
   upload: boolean;
-  checkpoints: boolean;
   extractionBrief: boolean;
 }
 
@@ -59,7 +50,6 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   situation: true,
   guidedIntake: true,
   upload: true,
-  checkpoints: true,
   extractionBrief: true,
 };
 
@@ -73,7 +63,6 @@ export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   situation: "situation",
   guided_intake: "guidedIntake",
   upload: "upload",
-  checkpoints: "checkpoints",
   extraction_brief: "extractionBrief",
 };
 

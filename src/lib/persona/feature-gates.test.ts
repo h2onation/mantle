@@ -30,7 +30,6 @@ describe("getFeatureGates", () => {
       situation: true,
       guidedIntake: true,
       upload: true,
-      checkpoints: true,
       extractionBrief: true,
     });
   });
@@ -44,22 +43,21 @@ describe("getFeatureGates", () => {
   it("defaults missing rows to ON and applies present rows", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
-      { data: [{ key: "checkpoints", enabled: false }], error: null },
+      { data: [{ key: "extraction_brief", enabled: false }], error: null },
     );
     const gates = await getFeatureGates(mock as never);
-    // checkpoints row present and false; the others have no row → stay at
-    // their defaults (all debug gates ON).
+    // extraction_brief row present and false; the others have no row → stay at
+    // their defaults (all ON).
     expect(gates).toEqual({
       personaDeltas: true,
       situation: true,
       guidedIntake: true,
       upload: true,
-      checkpoints: false,
-      extractionBrief: true,
+      extractionBrief: false,
     });
   });
 
-  it("maps all six keys when all are present", async () => {
+  it("maps all five keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
@@ -68,7 +66,6 @@ describe("getFeatureGates", () => {
           { key: "situation", enabled: false },
           { key: "guided_intake", enabled: false },
           { key: "upload", enabled: false },
-          { key: "checkpoints", enabled: false },
           { key: "extraction_brief", enabled: false },
         ],
         error: null,
@@ -80,7 +77,6 @@ describe("getFeatureGates", () => {
       situation: false,
       guidedIntake: false,
       upload: false,
-      checkpoints: false,
       extractionBrief: false,
     });
   });
@@ -102,7 +98,6 @@ describe("getFeatureGates", () => {
       situation: true,
       guidedIntake: true,
       upload: true,
-      checkpoints: true,
       extractionBrief: true,
     });
   });
@@ -119,13 +114,13 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the six known keys", () => {
+  it("accepts the five known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
     expect(isFeatureGateKey("situation")).toBe(true);
     expect(isFeatureGateKey("guided_intake")).toBe(true);
     expect(isFeatureGateKey("upload")).toBe(true);
-    expect(isFeatureGateKey("checkpoints")).toBe(true);
     expect(isFeatureGateKey("extraction_brief")).toBe(true);
+    expect(isFeatureGateKey("checkpoints")).toBe(false);
     expect(isFeatureGateKey("reflection_meter")).toBe(false);
   });
 

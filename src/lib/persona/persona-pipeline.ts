@@ -613,28 +613,6 @@ export async function insertCheckpointActionMessage(
 }
 
 /**
- * Computes the refinement_count for a NEW checkpoint based on the
- * most recent prior checkpoint's meta. The chain rule:
- *   - If there is no prior checkpoint → 0 (fresh start)
- *   - If the prior checkpoint was refined → inherit its count
- *   - Any other prior status (confirmed, rejected, deferred-as-rejected,
- *     pending) → reset to 0 (chain broken)
- *
- * The function does NOT add 1 — incrementing happens at action time
- * (see /api/checkpoint/confirm route for the increment). The new
- * checkpoint inherits the post-increment value of the previous one.
- *
- * Track A Phase 7-Mid.
- */
-export function computeInheritedRefinementCount(
-  previousMeta: { status?: string; refinement_count?: number } | null
-): number {
-  if (!previousMeta) return 0;
-  if (previousMeta.status !== "refined") return 0;
-  return previousMeta.refinement_count ?? 0;
-}
-
-/**
  * Builds the entries-summary sentence for the subsequent-single
  * post-confirm message (Track A Phase 7-High). Templated server-side
  * so the LLM reproduces a verbatim string rather than reconstructing

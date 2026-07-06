@@ -49,20 +49,12 @@ const GATE_META: {
     desc: "ON: the Upload door shows on Home. OFF: it reads “Coming soon” and falls back to Situation.",
   },
   {
-    key: "checkpoints",
-    field: "checkpoints",
-    label: "Checkpoint pipeline",
-    def: "ON",
-    what: "Whether Jove can propose Manual entries at all (the “I want to put something in your Manual” → tappable card flow).",
-    desc: "ON: Jove proposes and entries can be saved. OFF: Jove still talks and analyzes, but never proposes or saves anything.",
-  },
-  {
     key: "extraction_brief",
     field: "extractionBrief",
     label: "Extraction analysis",
     def: "ON",
-    what: "The background analysis that reads each message and judges when material is ripe to save.",
-    desc: "ON: normal. OFF: voice-only — no analysis steers Jove, AND checkpoints can't fire (they depend on it), so nothing saves even if Checkpoint pipeline is ON.",
+    what: "The background analysis that reads each message and feeds the save-time composer.",
+    desc: "ON: normal. OFF: voice-only — no analysis runs, so a saved reflection is composed from the conversation alone (no accumulated depth / language bank / thread).",
   },
 ];
 
