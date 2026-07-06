@@ -508,7 +508,7 @@ function Header() {
           textDecoration: "none",
         }}
       >
-        ↳ See where extraction sits in Jove&rsquo;s prompt architecture →
+        ↳ See the prompt this feeds around — Jove&rsquo;s Prompt →
       </a>
     </div>
   );

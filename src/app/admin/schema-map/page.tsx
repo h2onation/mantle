@@ -249,7 +249,7 @@ const TABLES: Table[] = [
       { name: "conversation_id", type: "uuid", plain: "Which conversation this message belongs to.", emphasized: true },
       { name: "role", type: "text", plain: "'user', 'assistant' (Jove), or 'system' (checkpoint markers).", emphasized: true },
       { name: "content", type: "text", plain: "The actual message text." },
-      { name: "is_checkpoint", type: "boolean", plain: "True when Jove proposed a Manual entry this turn.", emphasized: true },
+      { name: "is_checkpoint", type: "boolean", plain: "True on the system message written when the user pulled and confirmed/rejected an entry (capture is user-pulled; Jove never proposes).", emphasized: true },
       { name: "checkpoint_meta", type: "jsonb", plain: "When is_checkpoint is true: composed_content, composed_name, layer, refinement_count, status (pending/confirmed/rejected/refined).", emphasized: true },
       { name: "extraction_snapshot", type: "jsonb", plain: "Frozen copy of the conversation's working memory at this turn. Lets you replay history.", emphasized: true },
       { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. Carries the checkpoint-suppressed marker, guided-intake chip taps, etc." },
@@ -286,7 +286,7 @@ const TABLES: Table[] = [
       { name: "layer", type: "integer, nullable", plain: "FROZEN legacy pattern-type id. Was the structural key; now provenance only (nullable). New rows are born with a section and a NULL layer.", emphasized: false },
       { name: "name", type: "text", plain: "The entry's headline (e.g. 'I Freeze When Asked What I Want').", emphasized: true },
       { name: "content", type: "text", plain: "The entry's body — first-person prose, 80+ words, body-anchored.", emphasized: true },
-      { name: "source_message_id", type: "uuid", plain: "Points back to the message that proposed this entry.", emphasized: true },
+      { name: "source_message_id", type: "uuid", plain: "Points back to the message the entry was saved from (the turn where the user pulled it).", emphasized: true },
       { name: "summary", type: "text", plain: "One-sentence third-person summary used when this entry is compressed into Jove's older-entries context.", emphasized: true },
       { name: "key_words", type: "text[]", plain: "3-6 charged words the user would recognize. Paired with summary in compressed form." },
     ],
@@ -637,9 +637,9 @@ const TABLES: Table[] = [
     access: "backend",
     oneLine: "Admin-editable replacements for a fixed set of voice-text fields.",
     rowMeans:
-      "One overridden voice field (CHARACTER, the two openers, the post-confirm line) — live-tunable from /admin without a deploy. A field is overridden only when its row exists AND is enabled.",
+      "One overridden voice field (the whole conductor prompt, the two openers, the post-confirm line, the composer's entry bar) — live-tunable from admin without a deploy. A field is overridden only when its row exists AND is enabled.",
     description:
-      "Holds NO user data — global app config, at most four rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). REBUILT_LIMITS, CRISIS_PHRASES, the checkpoint contract + detector regex, and OTP caps are NOT editable here.",
+      "Holds NO user data — global app config, a handful of rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). The conductor_prompt key (Jove's whole prompt, edited on the Jove's Prompt page) is save-guarded: an edit that drops the crisis lines or the hidden UI markers is rejected. The CRISIS_PHRASES pipeline detector, the composer's entry schema, and OTP caps stay code-only.",
     columns: [
       { name: "key", type: "text (PK)", plain: "Which voice field is overridden.", emphasized: true },
       { name: "text_override", type: "text", plain: "The admin-supplied replacement text." },

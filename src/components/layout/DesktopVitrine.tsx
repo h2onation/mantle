@@ -218,7 +218,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             >
               {[
                 { href: "/admin", label: "Admin" },
-                { href: "/admin/prompt-architecture", label: `${PERSONA_NAME}'s prompt architecture` },
+                { href: "/admin/prompt-architecture", label: `${PERSONA_NAME}'s Prompt` },
                 { href: "/admin/docs", label: "Docs" },
               ].map((link, i) => (
                 <span key={link.href} style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>

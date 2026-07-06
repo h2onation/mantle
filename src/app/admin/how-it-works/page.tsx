@@ -34,12 +34,12 @@ const STAGES: Stage[] = [
     id: 2,
     title: "The prompt gets assembled — and extraction fires alongside it",
     caption:
-      "Jove doesn't see one fixed prompt. Every turn, a recipe gets built fresh: the voice (a short character + hard limits + entry mechanics — rebuilt June 2026 from the earlier rule-pile), the conversation mode, plus conditional blocks that only fire when relevant (returning user, clinical material, and so on). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory (what's underneath the surface topic, which phrases are load-bearing, where the conversation is); that working memory feeds the next turn's prompt (a one-turn lag you never feel).",
+      "Jove's personality is ONE document — the conductor prompt (view and edit it on the Jove's Prompt page). Each turn the system ships that document plus two context blocks: the Manual so far (older entries compressed to one line each, this session's entries in full), and session context (returning user, session count, running summary). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory: how deep the conversation is, which phrases are the user's own load-bearing words, what the current thread is. That working memory does two jobs, neither on this turn's reply: it fills the reflection meter (Stage 4) and it briefs the composer at save time (Stage 5).",
     specifics:
-      "~7,000 tokens assembled. One background fire-and-forget call: extraction (Sonnet — feeds next turn).",
+      "One background fire-and-forget call: extraction (Sonnet). Its output feeds the meter + the save-time composer — never Jove's own reply.",
     actor: "system",
     deepDives: [
-      { label: "Jove's prompt architecture", href: "/admin/prompt-architecture" },
+      { label: "Jove's Prompt (read + edit it live)", href: "/admin/prompt-architecture" },
       { label: "Jove's extraction of user messages", href: "/admin/extraction-map" },
     ],
   },
@@ -47,28 +47,37 @@ const STAGES: Stage[] = [
     id: 3,
     title: "Jove streams back",
     caption:
-      "The assembled prompt plus the conversation history go to Anthropic's Opus model. The response streams back to the user one token at a time, so the page feels alive instead of pausing for a full reply.",
-    specifics: "Streaming via SSE. Total response time: 2–3 seconds for a normal turn.",
+      "The assembled prompt plus the conversation history go to Anthropic's Opus model. The response streams back one token at a time. Jove's job on every turn is the conversation itself — it never proposes a save and never writes to the Manual. The one signal it controls: when it judges an insight has genuinely landed (the user recognized the pattern in their own words), it ends that message with a hidden marker the user never sees. That marker is what makes the reflection bar light up.",
+    specifics:
+      "Streaming via SSE, 2–3 seconds. The hidden ---reflection-ready--- line is the meter's ONLY readiness source — Jove's in-conversation judgment, not a score.",
     actor: "anthropic",
     deepDives: [{ label: "Vendors", href: "/admin/vendors" }],
   },
   {
     id: 4,
-    title: "After Jove streams, the checkpoint path runs",
+    title: "The reflection meter — capture belongs to the user",
     caption:
-      "After Jove finishes streaming, a deterministic check — a regex, not a model — reads the response and decides whether this turn was a checkpoint, a moment where Jove proposed a Manual entry. If it is, an Opus call composes the proposed entry right then, at proposal time, and the user sees a card showing it. Confirming the card writes the entry to their Manual — a plain database step, no model. Most turns aren't checkpoints, but the detector runs every time.",
+      "This is the heart of the pull model. A thin bar at the top of the screen fills as the conversation deepens (driven by extraction's depth reading) and colours ready when Jove has signalled the insight landed. Nothing happens unless the user acts: Jove never triggers a save, there is no card pushed into the chat, and an unfilled meter costs nothing. If the user ignores it and keeps talking, the conversation just continues.",
     specifics:
-      "Detector: a deterministic regex (no model call). Composer: Opus, ~3–4 seconds, at proposal time — checkpoint turns only. The on-confirm write is a non-model database step (Stage 5).",
-    actor: "anthropic",
-    deepDives: [
-      { label: "Jove's prompt architecture — sibling calls", href: "/admin/prompt-architecture" },
-    ],
+      "Meter fill: extraction depth, recharges after each save. Ready: the landed marker from Stage 3. Web-only surface — text/SMS has no meter (that channel is gated off pending its rebuild).",
+    actor: "user",
+    deepDives: [],
   },
   {
     id: 5,
+    title: "The user taps — compose, review, confirm",
+    caption:
+      "When the user taps the ready bar, an Opus call composes a draft entry from the whole conversation — reproducing the working version the user already approved in the open, in their words, briefed by extraction's language bank. The draft opens in an editable overlay: the user can change anything or discard it. Confirming writes the entry to their Manual — a plain database step, no model. The entry is theirs at every step: they pulled it, they edited it, they confirmed it.",
+    specifics:
+      "POST /api/checkpoint/compose (Opus, ~3–4 s) → editable overlay → POST /api/checkpoint/confirm (database write, no model). The composer also generates the compressed summary older-entry context uses.",
+    actor: "anthropic",
+    deepDives: [],
+  },
+  {
+    id: 6,
     title: "Database writes finish the loop",
     caption:
-      "Jove's response gets saved to messages. The extraction call's output gets saved to conversations.extraction_state for next turn. If a checkpoint was confirmed, a new row appears in manual_entries. The user is back at the chat input, ready for the next turn — and everything starts again.",
+      "Jove's response gets saved to messages. The extraction call's output gets saved to conversations.extraction_state for next turn. If the user confirmed an entry, a new row appears in manual_entries and the meter recharges. The user is back at the chat input, ready for the next turn — and everything starts again.",
     specifics:
       "Writes: messages, conversations.extraction_state, optionally manual_entries.",
     actor: "database",
@@ -108,13 +117,13 @@ const ACTOR_ACCENT: Record<Stage["actor"], { bg: string; border: string; fg: str
 
 const QUICK_LINKS: { label: string; oneLine: string; href: string }[] = [
   {
-    label: "Jove's prompt architecture",
-    oneLine: "Every layer of Jove's per-turn prompt. Click into any band for source.",
+    label: "Jove's Prompt",
+    oneLine: "The whole conductor prompt — read it, edit it live, see what ships around it.",
     href: "/admin/prompt-architecture",
   },
   {
     label: "Jove's extraction of user messages",
-    oneLine: "The 21 fields the parallel extraction call writes each turn.",
+    oneLine: "The working-memory fields the parallel extraction call writes each turn.",
     href: "/admin/extraction-map",
   },
   {
@@ -280,15 +289,17 @@ function Premise() {
           color: "var(--session-ink)",
         }}
       >
-        When a user sends a message to Jove, the same five-step loop runs.
-        The instant the message arrives, two AI calls fire in parallel: Jove
-        reads its assembled prompt and streams a response, while a separate
-        extraction call analyzes the message and writes Jove&rsquo;s working
-        memory for the next turn. As Jove finishes streaming, a
-        deterministic check — a regex, not a model — decides whether the
-        response was a Manual-entry proposal. If yes and the user accepts, a
-        third call composes the polished entry. Then the database catches up
-        and the loop closes. About 2–3 seconds end to end.
+        When a user sends a message to Jove, the same loop runs. The instant
+        the message arrives, two AI calls fire in parallel: Jove reads its
+        prompt (one document — the conductor) and streams a response, while a
+        separate extraction call analyzes the message and writes working
+        memory. Capture is a <em>pull</em>: Jove never saves anything and
+        never proposes a save. When an insight lands, Jove marks the moment
+        with a hidden signal that lights the reflection bar — and from there
+        every step is the user&rsquo;s: they tap, a third call composes a
+        draft in their words, they edit it, they confirm it. Then the
+        database catches up and the loop closes. About 2–3 seconds end to
+        end for a normal turn.
       </p>
       <p
         style={{
@@ -532,12 +543,13 @@ function ClosingNote() {
           fontStyle: "italic",
         }}
       >
-        Five stages. Three AI calls. Two to three seconds. Then the user types
-        again and the whole thing fires fresh — a new prompt assembled, a new
-        extraction call written, a new response streamed, a new turn saved. The
-        Manual grows one confirmed entry at a time. The conversation history
-        grows one turn at a time. The working memory updates every turn,
-        constantly carrying the conversation forward.
+        Six stages. Two AI calls on a normal turn, a third only when the user
+        pulls a reflection. Then the user types again and the whole thing fires
+        fresh — a new response streamed, new working memory written, a new turn
+        saved. The Manual grows one confirmed entry at a time, always by the
+        user&rsquo;s hand. The conversation history grows one turn at a time.
+        The working memory updates every turn, constantly carrying the
+        conversation forward.
       </p>
     </div>
   );

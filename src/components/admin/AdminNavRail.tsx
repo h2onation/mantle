@@ -26,7 +26,7 @@ const NAV_GROUPS: NavItem[][] = [
     { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
     {
       id: "prompt-architecture",
-      label: `${PERSONA_NAME}'s prompt architecture`,
+      label: `${PERSONA_NAME}'s Prompt`,
       href: "/admin/prompt-architecture",
       indent: true,
     },

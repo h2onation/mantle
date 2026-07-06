@@ -399,7 +399,7 @@ export default function DesktopSidebar({
                       href="/admin/prompt-architecture"
                       style={{ color: "inherit", textDecoration: "none" }}
                     >
-                      {PERSONA_NAME}&apos;s prompt architecture
+                      {PERSONA_NAME}&apos;s Prompt
                     </a>
                     <span aria-hidden="true">·</span>
                     <a href="/admin/docs" style={{ color: "inherit", textDecoration: "none" }}>
