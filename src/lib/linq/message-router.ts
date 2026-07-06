@@ -156,6 +156,20 @@ export async function routeInboundMessage(
     return;
   }
 
+  // 1b. Text/SMS 1:1 feature gate. The conductor is a PULL-model voice (the
+  //     user saves from the on-screen reflection meter), which text has no
+  //     surface for — so the 1:1 text experience is intentionally gated OFF
+  //     pending a rebuild (post-Wave-3, 2026-07-06). When disabled we drop the
+  //     inbound SILENTLY: the webhook still 200s, Jove just doesn't respond.
+  //     STOP/START/HELP above stay live (CTIA compliance is never gated). Flip
+  //     TEXT_MESSAGING_ENABLED=true in Vercel to re-enable once text is rebuilt.
+  //     Env var (not a feature_gate) — it's a coarse channel switch that should
+  //     default OFF and needs no per-inbound DB read on the webhook hot path.
+  if (process.env.TEXT_MESSAGING_ENABLED !== "true") {
+    console.log("[router] text messaging gated OFF — dropping inbound silently");
+    return;
+  }
+
   // 2. Look up user by phone number
   const admin = createAdminClient();
   const { data: phoneRow } = await admin
