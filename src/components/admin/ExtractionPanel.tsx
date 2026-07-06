@@ -3,11 +3,10 @@
 import { useState } from "react";
 
 interface ExtractionGate {
-  concrete_examples: number;
-  has_mechanism: boolean;
-  has_charged_language: boolean;
-  has_behavior_driver_link: boolean;
-  strongest_layer?: number;
+  // The only surviving gate field. distinct_contexts is read at save time by
+  // the composer (not a gate); the rest of the old ripeness scorecard was
+  // removed with the Jove-pushed checkpoint path (2026-07-03).
+  distinct_contexts?: number;
 }
 
 export interface ExtractionSnapshot {
@@ -15,14 +14,6 @@ export interface ExtractionSnapshot {
   mode?: string;
   checkpoint_gate?: ExtractionGate;
   sage_brief?: string;
-  /** The REAL gate verdict, frozen server-side at the turn via
-   *  applyCheckpointGates (call-persona.ts step 11b). Present on snapshots
-   *  written after 2026-06-03. When absent (older snapshots, SMS path) the
-   *  overlay shows "—" rather than recomputing a looser, lying approximation. */
-  gate_eval?: {
-    passed: boolean;
-    reason?: string | null;
-  };
 }
 
 export default function ExtractionPanel({
@@ -37,10 +28,6 @@ export default function ExtractionPanel({
   const isExpanded = forceExpanded || expanded;
 
   const gate = snapshot.checkpoint_gate;
-  // The real, engine-authoritative verdict frozen at the turn. Do NOT
-  // recompute from gate fields here — the old inline formula omitted half
-  // the gate and read "yes" while the engine suppressed (2026-06-03).
-  const gateEval = snapshot.gate_eval;
 
   return (
     <div style={{ marginTop: 6 }}>
@@ -79,29 +66,8 @@ export default function ExtractionPanel({
           <div>
             Depth: {snapshot.depth || "none"} | Mode: {snapshot.mode || "none"}
           </div>
-          {gate && (
-            <>
-              <div>
-                Gate: {gate.concrete_examples} examples, mechanism:{" "}
-                {gate.has_mechanism ? "y" : "n"}, charged:{" "}
-                {gate.has_charged_language ? "y" : "n"}, driver:{" "}
-                {gate.has_behavior_driver_link ? "y" : "n"}
-              </div>
-              <div>
-                Gate met:{" "}
-                {gateEval
-                  ? gateEval.passed
-                    ? "yes"
-                    : "no"
-                  : "—"}{" "}
-                | Strongest: L{gate.strongest_layer ?? "?"}
-              </div>
-              {gateEval && !gateEval.passed && gateEval.reason && (
-                <div style={{ color: "var(--session-warning)" }}>
-                  Held: {gateEval.reason}
-                </div>
-              )}
-            </>
+          {typeof gate?.distinct_contexts === "number" && (
+            <div>Distinct contexts: {gate.distinct_contexts}</div>
           )}
           {snapshot.sage_brief && (
             <div style={{ marginTop: 2 }}>

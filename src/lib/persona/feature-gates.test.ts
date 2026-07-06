@@ -32,8 +32,6 @@ describe("getFeatureGates", () => {
       upload: true,
       checkpoints: true,
       extractionBrief: true,
-      // Forward feature flag — fails CLOSED to OFF, unlike the debug gates.
-      reflectionMeter: false,
     });
   });
 
@@ -50,7 +48,7 @@ describe("getFeatureGates", () => {
     );
     const gates = await getFeatureGates(mock as never);
     // checkpoints row present and false; the others have no row → stay at
-    // their defaults (debug gates ON, reflectionMeter OFF).
+    // their defaults (all debug gates ON).
     expect(gates).toEqual({
       personaDeltas: true,
       situation: true,
@@ -58,11 +56,10 @@ describe("getFeatureGates", () => {
       upload: true,
       checkpoints: false,
       extractionBrief: true,
-      reflectionMeter: false,
     });
   });
 
-  it("maps all seven keys when all are present", async () => {
+  it("maps all six keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
@@ -73,7 +70,6 @@ describe("getFeatureGates", () => {
           { key: "upload", enabled: false },
           { key: "checkpoints", enabled: false },
           { key: "extraction_brief", enabled: false },
-          { key: "reflection_meter", enabled: true },
         ],
         error: null,
       },
@@ -86,7 +82,6 @@ describe("getFeatureGates", () => {
       upload: false,
       checkpoints: false,
       extractionBrief: false,
-      reflectionMeter: true,
     });
   });
 
@@ -109,7 +104,6 @@ describe("getFeatureGates", () => {
       upload: true,
       checkpoints: true,
       extractionBrief: true,
-      reflectionMeter: false,
     });
   });
 
@@ -125,14 +119,14 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the seven known keys", () => {
+  it("accepts the six known keys", () => {
     expect(isFeatureGateKey("persona_deltas")).toBe(true);
     expect(isFeatureGateKey("situation")).toBe(true);
     expect(isFeatureGateKey("guided_intake")).toBe(true);
     expect(isFeatureGateKey("upload")).toBe(true);
     expect(isFeatureGateKey("checkpoints")).toBe(true);
     expect(isFeatureGateKey("extraction_brief")).toBe(true);
-    expect(isFeatureGateKey("reflection_meter")).toBe(true);
+    expect(isFeatureGateKey("reflection_meter")).toBe(false);
   });
 
   it("rejects unknown keys and non-strings", () => {

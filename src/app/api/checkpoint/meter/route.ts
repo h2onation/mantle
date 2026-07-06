@@ -21,7 +21,7 @@ import {
  * Returns:
  *   { reflectionMeter: { depth, ready } }  → render the meter
  *   { reflectionMeter: null }              → hide it (crisis or no extraction)
- *   { reflectionMeter: undefined }         → gate off; client leaves state as-is
+ *   { reflectionMeter: undefined }         → not the web surface; client leaves state as-is
  */
 export async function GET(request: Request) {
   const auth = await requireUser();

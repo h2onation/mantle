@@ -7,7 +7,6 @@ import {
   buildCheckpointMeta,
 } from "@/lib/persona/persona-pipeline";
 import { composeManualEntry } from "@/lib/persona/confirm-checkpoint";
-import { getFeatureGates } from "@/lib/persona/feature-gates";
 import {
   reflectionComposeHour,
   checkLimit,
@@ -24,7 +23,9 @@ import { checkAnonCheckpointGate } from "@/lib/auth/anon-checkpoint-gate";
  * Jove-pushed path writes, so the existing `/api/checkpoint/confirm` route,
  * the review overlay, and reload-resume all work unchanged.
  *
- * Only reachable when the `reflection_meter` feature gate is on.
+ * The reflection meter (pull model) is the unconditional web capture surface,
+ * so this route has no feature gate of its own — ownership, the anonymous
+ * conversion gate, and the rate limiter are the only guards before the Opus call.
  */
 export async function POST(request: Request) {
   const startedAt = Date.now();
@@ -44,17 +45,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // 2. Feature gate — this endpoint only exists under the reflection meter.
-  //    Fails closed (the gate defaults OFF), so it's inert until enabled.
-  const gates = await getFeatureGates(admin);
-  if (!gates.reflectionMeter) {
-    return Response.json(
-      { error: "Reflection meter is not enabled" },
-      { status: 400 }
-    );
-  }
-
-  // 3. Ownership. The admin client bypasses RLS, so this is the only
+  // 2. Ownership. The admin client bypasses RLS, so this is the only
   //    boundary. 404 (not 403) so a probing user can't distinguish a foreign
   //    id from a missing one — matches the chat route.
   const { data: conv, error: convErr } = await admin
@@ -66,17 +57,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Conversation not found" }, { status: 404 });
   }
 
-  // 4. Anonymous conversion gate (shared with /api/chat) — before the rate
+  // 3. Anonymous conversion gate (shared with /api/chat) — before the rate
   //    limiter or any Opus call, so a converted-out anonymous user never burns
   //    quota or tokens.
   const anonBlock = await checkAnonCheckpointGate(admin, user);
   if (anonBlock) return Response.json(anonBlock);
 
-  // 5. Rate limit (this triggers an Opus composition).
+  // 4. Rate limit (this triggers an Opus composition).
   const limit = await checkLimit(reflectionComposeHour, user.id);
   if (!limit.success) return rateLimitedResponse(limit);
 
-  // 5b. Idempotency. If the last message is already a pending reflection (a
+  // 4b. Idempotency. If the last message is already a pending reflection (a
   //     double-tap, or a retry after a flaky network where the first compose
   //     actually succeeded), return THAT one instead of composing a duplicate
   //     row and burning a second Opus call. The client re-opens the same
@@ -111,7 +102,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // 6. Load context and compose on demand. No `checkpointText` — the
+  // 5. Load context and compose on demand. No `checkpointText` — the
   //    user-pulled path has no Jove draft to polish, so the composer composes
   //    from the (50-message-widened) conversation + the accumulated
   //    understanding carried in via depth / sageBrief / currentThread.
@@ -174,7 +165,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "compose_failed" }, { status: 502 });
   }
 
-  // 7. Write the checkpoint row — same shape as the Jove path. `content`
+  // 6. Write the checkpoint row — same shape as the Jove path. `content`
   //    carries the composed entry so a history reload renders it; refinement
   //    chain starts fresh (a pull is a new chain).
   const { data: row, error: rowErr } = await admin
@@ -193,7 +184,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "row_write_failed" }, { status: 500 });
   }
 
-  // 8. Return the checkpoint payload. The client builds an ActiveCheckpoint
+  // 7. Return the checkpoint payload. The client builds an ActiveCheckpoint
   //    and opens the existing review overlay; confirm goes through the
   //    existing /api/checkpoint/confirm route unchanged.
   return Response.json({

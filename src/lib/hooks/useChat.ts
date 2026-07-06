@@ -227,7 +227,7 @@ export function useChat() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("mw_first_session_completed") === "true";
   });
-  // Reflection meter (user-pulled model, `reflection_meter` gate). depth
+  // Reflection meter (user-pulled model, web capture surface). depth
   // drives the meter fill; reflectionReady is a LATCH — once the server
   // reports the conversation is ripe it stays true (the option persists, even
   // if the user keeps talking) until a confirmed save clears it. Both are

@@ -40,22 +40,10 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *                            with this OFF the checkpoint gate fails closed
  *                            (no entries fire) even if `checkpoints` is ON.
  *
- * These five debug gates default ON, and the read fails open to ON on any
- * error or missing row, so production behaves exactly as it does today when
- * the table is absent or unreachable. They are debug scaffolding with a
- * documented deletion condition (see the migration), not permanent forks.
- *
- * `reflectionMeter` is a DIFFERENT kind of switch — a forward feature flag,
- * not a debug isolation gate — so it inverts the default:
- *
- *   reflectionMeter   ON  → user-pulled "Reflection" model. Jove stops
- *                            auto-proposing entries (handled by collapsing
- *                            checkpointsEnabled, see loadConversationContext);
- *                            the client renders the depth meter and the user
- *                            pulls the reflection, which composes on demand via
- *                            /api/checkpoint/compose. Defaults OFF and fails
- *                            CLOSED to OFF, so the current Jove-pushed checkpoint
- *                            behavior is untouched until an admin flips it on.
+ * These debug gates default ON, and the read fails open to ON on any error or
+ * missing row, so production behaves exactly as it does today when the table is
+ * absent or unreachable. They are debug scaffolding with a documented deletion
+ * condition (see the migration), not permanent forks.
  */
 export interface FeatureGates {
   personaDeltas: boolean;
@@ -64,7 +52,6 @@ export interface FeatureGates {
   upload: boolean;
   checkpoints: boolean;
   extractionBrief: boolean;
-  reflectionMeter: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -74,9 +61,6 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   upload: true,
   checkpoints: true,
   extractionBrief: true,
-  // Forward feature flag — defaults OFF so production keeps the current
-  // Jove-pushed checkpoint flow until explicitly enabled.
-  reflectionMeter: false,
 };
 
 /**
@@ -91,7 +75,6 @@ export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
   upload: "upload",
   checkpoints: "checkpoints",
   extraction_brief: "extractionBrief",
-  reflection_meter: "reflectionMeter",
 };
 
 export type FeatureGateKey = keyof typeof FEATURE_GATE_KEYS;

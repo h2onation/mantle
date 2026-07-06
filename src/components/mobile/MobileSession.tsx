@@ -60,11 +60,11 @@ interface MobileSessionProps {
   ) => void;
   isGuest?: boolean;
   onSignInPrompt?: () => void;
-  // Reflection meter (user-pulled model, `reflection_meter` gate).
+  // Reflection meter (user-pulled model, web capture surface).
   // reflectionFill (0–100) is the server-computed capture-progress bar (null =
   // hide); reflectionReady is the latched completion; composeReflection builds
   // the entry on demand and returns it so the review overlay can open
-  // immediately. All absent/no-op when the gate is off.
+  // immediately. All absent/no-op off the web surface.
   reflectionFill?: number | null;
   reflectionReady?: boolean;
   composeReflection?: () => Promise<

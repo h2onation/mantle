@@ -64,14 +64,6 @@ const GATE_META: {
     what: "The background analysis that reads each message and judges when material is ripe to save.",
     desc: "ON: normal. OFF: voice-only — no analysis steers Jove, AND checkpoints can't fire (they depend on it), so nothing saves even if Checkpoint pipeline is ON.",
   },
-  {
-    key: "reflection_meter",
-    field: "reflectionMeter",
-    label: "Reflection meter",
-    def: "OFF",
-    what: "Switches the WEB capture model between two mutually-exclusive ways to save.",
-    desc: "OFF: Jove PUSHES — it proposes an entry when it sees one is ready. ON: the user PULLS — a “reflection ready” meter fills as the talk deepens and the user taps to capture. ⚠ Turning this ON automatically turns OFF Jove's auto-propose — you get one model or the other, never both. Text / SMS always uses push.",
-  },
 ];
 
 export default function FeatureGatesPanel() {
@@ -151,11 +143,9 @@ export default function FeatureGatesPanel() {
         }}
       >
         <strong>These are global — they change Jove for every user, not just
-        you.</strong> Each switch shows its default and what ON vs OFF does. The
-        five mode / pipeline switches default ON (turn one off to isolate the
-        core loop for debugging); Reflection meter is a real product model that
-        defaults OFF. Watch for the ⚠ notes — some switches quietly change
-        another.
+        you.</strong> Each switch shows its default and what ON vs OFF does. All
+        of them default ON — turn one off to isolate the core loop for debugging.
+        Watch for the ⚠ notes — some switches quietly change another.
       </p>
 
       {gates === null && !error && (

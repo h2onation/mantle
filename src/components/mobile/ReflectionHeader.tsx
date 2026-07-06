@@ -1,8 +1,8 @@
 "use client";
 
 interface ReflectionHeaderProps {
-  // The reflection meter is gated (`reflection_meter`) and hidden in crisis;
-  // when false this is a plain header wrapper with no bar, field, or message.
+  // The reflection meter shows on web and is hidden in crisis; when false this
+  // is a plain header wrapper with no bar, field, or message.
   meterVisible: boolean;
   // 0–100 capture-progress fill (server value as-is — no snap-to-100 at ready).
   fill: number;
