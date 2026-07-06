@@ -1,12 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { buildSystemPromptBlocks } from "@/lib/persona/system-prompt";
+import {
+  CONDUCTOR_PROMPT,
+  CONDUCTOR_REQUIRED_FRAGMENTS,
+  validateConductorPromptEdit,
+} from "@/lib/persona/conductor-prompt";
 
-// Guard tests for the conductor variant (the pull-model prompt, admin-scoped via
-// the `conductor` feature gate). These pin the safety layer, the no-Jove-saves
-// contract, the landed markers, and the deliberate ABSENCE of cross-domain
-// MECHANICS / Tier-3 blocks the conductor's "don't leave a live moment" rule
-// would fight. (Extracted from the retired baseline-experiment.test.ts,
-// 2026-07-02, when the strip-to-baseline experiment was torn down.)
+// Guard tests for the conductor prompt (the LIVE 1:1 voice). These pin the
+// safety layer, the no-Jove-saves contract, the landed markers, and the
+// deliberate ABSENCE of cross-domain MECHANICS / Tier-3 blocks the conductor's
+// "don't leave a live moment" rule would fight. (Extracted from the retired
+// baseline-experiment.test.ts, 2026-07-02.)
 describe("conductor variant — guard tests", () => {
   const renderConductor = () => {
     const b = buildSystemPromptBlocks({
@@ -97,5 +101,48 @@ describe("conductor variant — guard tests", () => {
     expect(full).not.toContain("MECHANICS — how Manual entries get made");
     // And no Tier-3 blocks (situation opener, guided spine, etc.).
     expect(full).not.toContain("---sections---");
+  });
+});
+
+// The admin-edit save guard. The whole prompt is one editable document, so
+// this validator is the ONLY thing standing between an admin edit and a
+// silently broken crisis layer or save path.
+describe("validateConductorPromptEdit — the admin save guard", () => {
+  it("the shipped prompt passes its own guard (self-consistency)", () => {
+    expect(validateConductorPromptEdit(CONDUCTOR_PROMPT)).toBeNull();
+  });
+
+  it("every required fragment is genuinely present in the shipped prompt", () => {
+    for (const f of CONDUCTOR_REQUIRED_FRAGMENTS) {
+      expect(CONDUCTOR_PROMPT).toContain(f.fragment);
+    }
+  });
+
+  it("rejects an edit that drops a crisis resource, naming it plainly", () => {
+    const withoutCrisis = CONDUCTOR_PROMPT.replace(
+      "text HOME to 741741",
+      "reach out to someone",
+    );
+    const err = validateConductorPromptEdit(withoutCrisis);
+    expect(err).not.toBeNull();
+    expect(err).toContain("Crisis Text Line");
+    expect(err).toContain("Not saved");
+  });
+
+  it("rejects an edit that drops a UI marker and lists EVERY missing line", () => {
+    const gutted = CONDUCTOR_PROMPT.replace("---reflection-ready---", "")
+      .replace("---chips---", "");
+    const err = validateConductorPromptEdit(gutted);
+    expect(err).not.toBeNull();
+    expect(err).toContain("reflection-ready");
+    expect(err).toContain("chips");
+  });
+
+  it("accepts a heavy rewrite as long as the protected lines survive", () => {
+    const rewrite =
+      "You are Jove, totally rewritten.\n" +
+      "Crisis: call or text 988, or text HOME to 741741.\n" +
+      "End landed turns with ---reflection-ready--- and post-save turns with ---chips---.";
+    expect(validateConductorPromptEdit(rewrite)).toBeNull();
   });
 });

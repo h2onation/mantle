@@ -1,5 +1,5 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { REBUILT_CHARACTER } from "@/lib/persona/voice-scaffold";
+import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
@@ -18,18 +18,21 @@ import { COMPOSER_ENTRY_BAR } from "@/lib/persona/confirm-checkpoint";
  * today when the table is empty or unreachable. "Reset to default" is just
  * `enabled = false` — non-destructive, and the code value always returns.
  *
- * Deliberately NOT editable here (safety + system contracts; see
- * docs/voice-rebuild-proposal and the admin Voice panel's read-only section):
- * REBUILT_LIMITS (crisis 988 protocol, no-clinical-names, no-prescribing),
- * the CRISIS_PHRASES list, the "in your Manual" checkpoint contract +
- * its detector regex, REBUILT_MECHANICS (carries that contract), and the
- * OTP caps. Those stay code-only and appear read-only in the admin viewer.
+ * The conductor prompt itself (Jove's whole 1:1 personality) is editable as
+ * ONE document via the `conductor_prompt` key — but a save that drops a
+ * non-negotiable line (crisis 988/741741, the ---reflection-ready--- and
+ * ---chips--- markers) is rejected at the API by validateConductorPromptEdit
+ * (conductor-prompt.ts). Still code-only: the CRISIS_PHRASES pipeline
+ * detector, the composer's entry structure/schema rules, and the OTP caps.
  */
 
 /** The resolved override map. Each field is present only when an enabled row
  *  overrides the code default; absent fields fall back to the constant. */
 export interface VoiceOverrides {
-  character?: string;
+  /** The whole conductor prompt (Jove's 1:1 personality) as one document.
+   *  Applied as the `tier1` block in buildSystemPromptBlocks; absent falls
+   *  back to CONDUCTOR_PROMPT. Guarded at save by validateConductorPromptEdit. */
+  conductorPrompt?: string;
   situationOpener?: string;
   uploadOpener?: string;
   postConfirmFirstEntry?: string;
@@ -49,10 +52,10 @@ export const VOICE_OVERRIDE_FIELDS: Record<
   string,
   { field: keyof VoiceOverrides; label: string; getDefault: () => string }
 > = {
-  rebuilt_character: {
-    field: "character",
-    label: "Character",
-    getDefault: () => REBUILT_CHARACTER,
+  conductor_prompt: {
+    field: "conductorPrompt",
+    label: "Jove's prompt (the conductor — the whole 1:1 voice)",
+    getDefault: () => CONDUCTOR_PROMPT,
   },
   situation_opener: {
     field: "situationOpener",

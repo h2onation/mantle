@@ -40,19 +40,19 @@ describe("getVoiceOverrides — resolver contract", () => {
   it("maps an enabled row to its field", async () => {
     const out = await getVoiceOverrides(
       adminStub({
-        data: [{ key: "rebuilt_character", text_override: "NEW VOICE", enabled: true }],
+        data: [{ key: "conductor_prompt", text_override: "NEW PROMPT", enabled: true }],
       }),
     );
-    expect(out.character).toBe("NEW VOICE");
+    expect(out.conductorPrompt).toBe("NEW PROMPT");
   });
 
   it("ignores a disabled row (falls back to the code default at the call site)", async () => {
     const out = await getVoiceOverrides(
       adminStub({
-        data: [{ key: "rebuilt_character", text_override: "NEW VOICE", enabled: false }],
+        data: [{ key: "conductor_prompt", text_override: "NEW PROMPT", enabled: false }],
       }),
     );
-    expect(out.character).toBeUndefined();
+    expect(out.conductorPrompt).toBeUndefined();
   });
 
   it("ignores an enabled-but-empty override (whitespace only)", async () => {
@@ -77,14 +77,14 @@ describe("getVoiceOverrides — resolver contract", () => {
     const out = await getVoiceOverrides(
       adminStub({
         data: [
-          { key: "rebuilt_character", text_override: "C", enabled: true },
+          { key: "conductor_prompt", text_override: "C", enabled: true },
           { key: "situation_opener", text_override: "S", enabled: true },
           { key: "post_confirm_first_entry", text_override: "P", enabled: true },
         ],
       }),
     );
     expect(out).toEqual({
-      character: "C",
+      conductorPrompt: "C",
       situationOpener: "S",
       postConfirmFirstEntry: "P",
     });
@@ -93,7 +93,8 @@ describe("getVoiceOverrides — resolver contract", () => {
 
 describe("isVoiceOverrideKey", () => {
   it("accepts known keys, rejects everything else", () => {
-    expect(isVoiceOverrideKey("rebuilt_character")).toBe(true);
+    expect(isVoiceOverrideKey("conductor_prompt")).toBe(true);
+    expect(isVoiceOverrideKey("rebuilt_character")).toBe(false); // retired 2026-07-06
     expect(isVoiceOverrideKey("post_confirm_first_entry")).toBe(true);
     expect(isVoiceOverrideKey("nope")).toBe(false);
     expect(isVoiceOverrideKey(42)).toBe(false);
@@ -107,9 +108,33 @@ describe("isVoiceOverrideKey", () => {
   });
 });
 
-// The former "system prompt applies voice overrides at resolution sites"
-// describe block was removed 2026-07-06: the conductor prompt (the sole 1:1
-// voice) is self-contained and reads no CHARACTER / situation-opener override
-// at build time, so tier1 is CONDUCTOR_PROMPT and the substitution those tests
-// asserted no longer happens. The override RESOLUTION (getVoiceOverrides) and
-// the field-default specs are still covered above.
+// The conductor_prompt override replaces the whole tier1 block — the one
+// resolution site that matters. Pinned here so the admin edit path can never
+// silently stop applying.
+describe("conductor prompt override at the tier1 resolution site", () => {
+  it("tier1 is the override when set, CONDUCTOR_PROMPT when absent", async () => {
+    const { buildSystemPromptBlocks } = await import(
+      "@/lib/persona/system-prompt"
+    );
+    const { CONDUCTOR_PROMPT } = await import(
+      "@/lib/persona/conductor-prompt"
+    );
+    const base = {
+      kind: "oneOnOne" as const,
+      manualComponents: [],
+      currentConversationId: null,
+      isReturningUser: false,
+      sessionSummary: null,
+      isFirstCheckpoint: false,
+      turnCount: 1,
+    };
+    const withoutOverride = buildSystemPromptBlocks(base);
+    expect(withoutOverride.tier1).toBe(CONDUCTOR_PROMPT);
+
+    const withOverride = buildSystemPromptBlocks({
+      ...base,
+      voiceOverrides: { conductorPrompt: "EDITED PROMPT" },
+    });
+    expect(withOverride.tier1).toBe("EDITED PROMPT");
+  });
+});

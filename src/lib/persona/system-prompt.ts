@@ -66,9 +66,10 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   /** Admin-editable voice-text overrides (persona_voice_overrides table,
    *  resolved once per turn in loadConversationContext). Each present field
    *  replaces its code default at the resolution site (`?? CONSTANT`); absent
-   *  fields fall back to the shipped voice. Only CHARACTER and the operational
-   *  copy (openers, post-confirm line) are overridable — LIMITS, MECHANICS,
-   *  and the crisis/contract surfaces stay code-only. See voice-overrides.ts. */
+   *  fields fall back to the shipped voice. `conductorPrompt` overrides the
+   *  whole tier1 prompt below (save-guarded — see conductor-prompt.ts); the
+   *  operational copy (openers, post-confirm line, composer bar) resolves at
+   *  its own site. See voice-overrides.ts. */
   voiceOverrides?: VoiceOverrides;
 }
 
@@ -110,8 +111,10 @@ export const POST_CONFIRM_FIRST_ENTRY_SCAFFOLD =
 
 /**
  * The cache-aware split of the Jove system prompt. Three blocks:
- *   - `tier1`: the conductor prompt (CONDUCTOR_PROMPT). Never changes. Lives
- *     at the very front of the cached prefix.
+ *   - `tier1`: the conductor prompt — the admin override when one is enabled,
+ *     else CONDUCTOR_PROMPT. Changes only when the founder edits the prompt
+ *     (the cache re-primes on the following turn). Lives at the very front of
+ *     the cached prefix.
  *   - `staticContext`: compressed older Manual entries. Stable for the
  *     duration of a session unless a new Manual entry lands. The
  *     `cache_control` marker sits on this block — Anthropic caches the prefix
@@ -187,7 +190,12 @@ export function buildSystemPromptBlocks(
     sessionSummary,
   });
 
-  return { tier1: CONDUCTOR_PROMPT, staticContext: condStatic, dynamic: condDynamic };
+  // The founder can override the whole prompt live from the "Jove's Prompt"
+  // admin page (guarded at save — crisis lines + UI markers can't be edited
+  // away). No override → the shipped code constant, byte-identical.
+  const tier1 = options.voiceOverrides?.conductorPrompt ?? CONDUCTOR_PROMPT;
+
+  return { tier1, staticContext: condStatic, dynamic: condDynamic };
 }
 
 /**
@@ -195,7 +203,6 @@ export function buildSystemPromptBlocks(
  *   - `src/lib/linq/group-bridge.ts` routes through `buildSystemPrompt({ kind: "group" })`
  *     to reach `buildGroupPrompt` (which is not currently exported).
  *   - `src/lib/linq/persona-bridge.ts` (1:1 SMS) takes a flat string.
- *   - The admin prompt-architecture viewer slices the output by section header.
  *
  * For the 1:1 path this just joins the three conductor blocks. Production hot
  * path (`call-persona.ts`) calls `buildSystemPromptBlocks` directly so the

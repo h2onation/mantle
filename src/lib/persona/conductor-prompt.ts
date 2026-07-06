@@ -1,9 +1,17 @@
-// ⚠ TEMPORARY EXPERIMENT — conductor voice variant (founder's v0.3 prompt).
-// Admin-scoped, off by default, selected via the `conductor` feature gate
-// (feature-gates.ts; moved there when the strip-to-baseline experiment was
-// retired 2026-07-02). Teardown when the conductor is promoted to
-// LIVE_VOICE_VARIANT (Step 5): delete this module, the `conductor` gate/switch,
-// and the "conductor" branch in system-prompt.ts + the VoiceVariant member.
+// THE LIVE 1:1 VOICE. This is Jove's entire personality for every one-on-one
+// conversation — promoted to the live voice for all users 2026-07-02; the
+// rebuilt/legacy rollback voice worlds were retired 2026-07-06, so this prompt
+// is the sole voice. system-prompt.ts ships it as the `tier1` block (the
+// cached prefix), followed only by Manual context + session context.
+//
+// ADMIN-EDITABLE: the founder can override this whole prompt live (no deploy)
+// from the "Jove's Prompt" admin page, via the `conductor_prompt` key in
+// persona_voice_overrides (voice-overrides.ts). The code constant below is the
+// permanent floor — Reset always returns to it. A save that drops any
+// CONDUCTOR_REQUIRED_FRAGMENTS line (crisis resources, the two hidden UI
+// markers) is rejected at the API (see the guard at the bottom of this file).
+//
+// Version history of the shipped prompt (founder-approved at each step):
 //
 // Two additions to the founder's pasted v0.3, both founder-approved 2026-06-30:
 //   1. "The one exception — crisis" — REBUILT_LIMITS #2's crisis language
@@ -225,3 +233,57 @@ Open simply. Invite a real moment, not a survey. Something like: "What's somethi
 // (Also from v0.4 "Before you offer", superseded by "When it's landed":
 // "...or should I put together a draft of what we've been building?" — the
 // draft path is now the reflection bar, not a Jove-drafted save.)
+
+// ---------------------------------------------------------------------------
+// Save guard for admin edits of the prompt. The whole prompt is one editable
+// document, so the only protection is at save time: an edit that drops one of
+// these lines is rejected with a plain-language error. This module is
+// dependency-free, so both the API route (enforcement) and the admin page
+// (display) import the SAME list — one source of truth, no drift.
+// ---------------------------------------------------------------------------
+
+/** Lines that must survive any admin edit of the conductor prompt. */
+export const CONDUCTOR_REQUIRED_FRAGMENTS: readonly {
+  fragment: string;
+  label: string;
+  why: string;
+}[] = [
+  {
+    fragment: "988",
+    label: "The 988 crisis line",
+    why: "Jove must always be able to point someone in crisis at 988. Safety floor — never removable.",
+  },
+  {
+    fragment: "text HOME to 741741",
+    label: "The Crisis Text Line",
+    why: "The second crisis resource, verbatim. Safety floor — never removable.",
+  },
+  {
+    fragment: "---reflection-ready---",
+    label: "The reflection-ready marker",
+    why: "The hidden line Jove emits when an entry has landed — it lights the reflection bar on the user's screen. Without it, nothing can ever be saved.",
+  },
+  {
+    fragment: "---chips---",
+    label: "The post-save chips marker",
+    why: "The hidden line that renders the three ways-forward chips after a save. Without it, the post-save turn dead-ends.",
+  },
+];
+
+/**
+ * Validate an admin edit of the conductor prompt. Returns null when the edit
+ * is safe to save, or a plain-language error naming every missing
+ * non-negotiable line. Enforced in /api/admin/persona-voice for the
+ * `conductor_prompt` key.
+ */
+export function validateConductorPromptEdit(text: string): string | null {
+  const missing = CONDUCTOR_REQUIRED_FRAGMENTS.filter(
+    (f) => !text.includes(f.fragment),
+  );
+  if (missing.length === 0) return null;
+  return (
+    "Not saved — this edit removes lines the product depends on: " +
+    missing.map((f) => `${f.label} ("${f.fragment}")`).join("; ") +
+    ". Put them back (anywhere in the prompt) and save again."
+  );
+}

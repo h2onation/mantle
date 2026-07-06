@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin/verify-admin";
+import { validateConductorPromptEdit } from "@/lib/persona/conductor-prompt";
 import {
   isVoiceOverrideKey,
   isDoorOpenerKey,
@@ -97,10 +98,17 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // Per-key invariant guard. None of the core fields embed a system contract
-  // (CHARACTER and the post-confirm line carry no load-bearing phrase), so the
-  // only guard is non-empty, already checked above. This is the seam where a
-  // future MECHANICS field would plug in its required-phrase check.
+  // Per-key invariant guard. The conductor prompt is the one field that embeds
+  // system contracts (crisis resources + the two hidden UI markers) — an edit
+  // that drops any of them is rejected with a plain-language error naming what
+  // went missing. The other core fields carry no load-bearing phrase; their
+  // only guard is non-empty, already checked above.
+  if (key === "conductor_prompt") {
+    const invalid = validateConductorPromptEdit(body.text);
+    if (invalid) {
+      return Response.json({ error: invalid }, { status: 400 });
+    }
+  }
 
   const ok = await saveOverride(admin, key, body.text, userId);
   if (!ok) {

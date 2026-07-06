@@ -12,21 +12,20 @@ interface VoiceField {
   enabled: boolean;
 }
 
-// The fields locked to code (shown read-only so the founder sees the whole
-// prompt and understands what is NOT free-text, and why). These are not fetched
-// — they are documented here so the panel can render the boundary legibly.
+// Jove's whole prompt (the conductor) is edited on its own page —
+// /admin/prompt-architecture — so this panel excludes that key and keeps the
+// small operational copy fields. One edit surface per key.
+const PROMPT_PAGE_KEY = "conductor_prompt";
+
+// What stays code-only (shown so the founder sees the boundary and why).
 const LOCKED_FIELDS: { label: string; why: string }[] = [
   {
-    label: "Limits (crisis 988 protocol, no clinical names, no prescribing)",
-    why: "Editing these is a safety + legal surface — a code change with review, never a live textarea.",
+    label: "Crisis phrase detector (pipeline)",
+    why: "The hard-coded phrase list that forces crisis resources into the room even if the model misses the signal. Safety layer — a code change with review, never a live textarea.",
   },
   {
-    label: "Mechanics (how entries get made)",
-    why: "Carries the “in your Manual” phrase that makes the checkpoint card appear. Editable later behind a save-check that protects that phrase.",
-  },
-  {
-    label: "Crisis phrase list + card detector",
-    why: "System contracts. A wrong edit silently breaks crisis detection or stops checkpoints from rendering.",
+    label: "Entry structure + composer schema",
+    why: "How a saved entry is shaped and validated at compose time. A wrong edit silently corrupts what lands in the Manual.",
   },
 ];
 
@@ -42,10 +41,15 @@ export default function VoiceEditorPanel() {
       .then((r) => r.json())
       .then((d) => {
         if (d?.fields) {
-          setFields(d.fields);
+          // The whole conductor prompt has its own page; this panel edits the
+          // small operational fields only.
+          const panelFields = (d.fields as VoiceField[]).filter(
+            (f) => f.key !== PROMPT_PAGE_KEY,
+          );
+          setFields(panelFields);
           // Seed each editor with the live value: override if enabled, else default.
           const seed: Record<string, string> = {};
-          for (const f of d.fields as VoiceField[]) {
+          for (const f of panelFields) {
             seed[f.key] = f.enabled && f.override !== null ? f.override : f.default;
           }
           setDrafts(seed);
@@ -133,9 +137,17 @@ export default function VoiceEditorPanel() {
           margin: "0 0 16px",
         }}
       >
-        Edit Jove&rsquo;s voice text live — no deploy. Saving takes effect on the
-        next turn. The shipped code is always the floor: Reset returns a field to
-        its default instantly. Safety surfaces stay locked (below).
+        Operational copy — the small fixed lines around the conversation. Saving
+        takes effect on the next turn, no deploy. The shipped code is always the
+        floor: Reset returns a field to its default instantly. Jove&rsquo;s whole
+        prompt (the conductor) is edited on{" "}
+        <a
+          href="/admin/prompt-architecture"
+          style={{ color: "var(--session-persona)", textDecoration: "underline" }}
+        >
+          the Jove&rsquo;s Prompt page
+        </a>
+        . Safety surfaces stay locked (below).
       </p>
 
       {fields === null && !error && (
@@ -171,13 +183,7 @@ export default function VoiceEditorPanel() {
               isEdited={live}
               dirty={dirty}
               busy={busy}
-              rows={
-                f.key === "rebuilt_character"
-                  ? 16
-                  : f.key === "composer_entry_bar"
-                    ? 12
-                    : 4
-              }
+              rows={f.key === "composer_entry_bar" ? 12 : 4}
               onChange={(v) => setDrafts((d) => ({ ...d, [f.key]: v }))}
               onSave={() => save(f.key)}
               onReset={() => reset(f.key)}
