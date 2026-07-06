@@ -1,5 +1,4 @@
 import {
-  composeTier2,
   buildSystemPrompt,
   type PersonaMode,
   type OneOnOnePromptOptions,
@@ -92,19 +91,16 @@ const CONV_MODE_LABELS: Record<ConvMode, string> = {
 
 function personaAlternatives(
   currentModes: PersonaMode[],
-  altTokenCache: Map<string, number>,
 ): SectionAlternative[] {
-  return PERSONA_ALL.filter((m) => !currentModes.includes(m)).map((m) => {
-    const key = `tier2-${m}`;
-    if (!altTokenCache.has(key)) {
-      altTokenCache.set(key, estimateTokens(composeTier2([m])));
-    }
-    return {
-      label: `Voice: ${m[0].toUpperCase() + m.slice(1)}`,
-      tokens: altTokenCache.get(key)!,
-      trigger: `Persona: ${m}`,
-    };
-  });
+  // The live 1:1 voice is the conductor prompt, which renders no per-persona
+  // Tier-2 block, so these per-persona alternatives no longer map to a real
+  // token cost — reported as 0. (This whole viewer is semantically dead after
+  // the 2026-07-06 voice-worlds retirement; pending a follow-up cleanup.)
+  return PERSONA_ALL.filter((m) => !currentModes.includes(m)).map((m) => ({
+    label: `Voice: ${m[0].toUpperCase() + m.slice(1)}`,
+    tokens: 0,
+    trigger: `Persona: ${m}`,
+  }));
 }
 
 function convModeAlternatives(currentMode: ConvMode): SectionAlternative[] {
@@ -172,7 +168,7 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^TIER 2: VOICE AND BEHAVIOR/,
     source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "VOICE_INTRO_PARAGRAPHS_BASE + VOICE_INTRO_PARAGRAPHS" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
-    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+    alternativesFn: (modes) => personaAlternatives(modes),
   },
   {
     id: "voice-rules",
@@ -181,7 +177,7 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^VOICE RULES$/m,
     source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "VOICE_RULES_BASE + VOICE_RULES" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
-    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+    alternativesFn: (modes) => personaAlternatives(modes),
   },
   {
     id: "banned-phrases",
@@ -199,7 +195,7 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^EXAMPLE REGISTER$/m,
     source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "EXAMPLE_REGISTER_BASE + EXAMPLE_REGISTER" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
-    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+    alternativesFn: (modes) => personaAlternatives(modes),
   },
   {
     id: "landing",
@@ -208,7 +204,7 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^LANDING$/m,
     source: { file: "voice-scaffold.ts + voice-*.ts", symbol: "LANDING_INTRO, LANDING_EXAMPLES_BASE + LANDING_EXAMPLES" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
-    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+    alternativesFn: (modes) => personaAlternatives(modes),
   },
   {
     id: "deepening",
@@ -217,7 +213,7 @@ const SECTION_DEFS: SectionDef[] = [
     pattern: /^DEEPENING$/m,
     source: { file: "voice-scaffold.ts", symbol: "DEEPENING_INTRO, WEAK_STRONG_EXAMPLES_BASE" },
     conditionFn: (modes) => ({ type: "persona", label: `Persona: ${personaLabel(modes)}` }),
-    alternativesFn: (modes, _, cache) => personaAlternatives(modes, cache),
+    alternativesFn: (modes) => personaAlternatives(modes),
   },
   {
     id: "pacing",

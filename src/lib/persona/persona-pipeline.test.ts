@@ -7,7 +7,6 @@ import {
   resolveConversationMode,
   type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
-import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { CHECKPOINT_TUNING_DEFAULTS } from "@/lib/persona/checkpoint-tuning";
 import type { ExtractionState } from "@/lib/persona/extraction";
 
@@ -138,27 +137,11 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     expect(buildPromptOptionsFromContext(makeCtx("situation")).mode).toBe("situation");
   });
 
-  // The guided-intake Tier-3 spine renders only under the rebuilt/legacy voice
-  // (rollback), not the live conductor — so these two pin the rollback voice's
-  // mode wiring by forcing voiceVariant: "rebuilt".
-  it("guided-intake context produces a rebuilt prompt with GUIDED INTAKE block", () => {
-    const opts = { ...buildPromptOptionsFromContext(makeCtx("guided-intake")), voiceVariant: "rebuilt" as const };
-    const prompt = buildSystemPrompt(opts);
-    expect(prompt).toContain("GUIDED INTAKE");
-    expect(prompt).toContain("The user opened this mode to be led");
-  });
-
-  it("situation context produces a rebuilt prompt WITHOUT GUIDED INTAKE block", () => {
-    const opts = { ...buildPromptOptionsFromContext(makeCtx("situation")), voiceVariant: "rebuilt" as const };
-    const prompt = buildSystemPrompt(opts);
-    expect(prompt).not.toContain("GUIDED INTAKE");
-  });
-
-  // Post-promotion (2026-07-02) the live voice is the conductor, so the variant
-  // resolves to "conductor" for live traffic. Rollback is LIVE_VOICE_VARIANT.
-  it("resolves the voice variant to the live conductor voice", () => {
-    expect(buildPromptOptionsFromContext(makeCtx("situation")).voiceVariant).toBe("conductor");
-  });
+  // Removed 2026-07-06: the two "rebuilt prompt renders the GUIDED INTAKE
+  // Tier-3 block" tests and the "resolves the voice variant" test. The
+  // rebuilt/legacy voice worlds (and the Tier-3 GUIDED INTAKE block) were
+  // deleted; the conductor is the sole voice and buildSystemPromptBlocks no
+  // longer reads voiceVariant.
 });
 
 describe("reflectionMeterFill (capture-progress)", () => {

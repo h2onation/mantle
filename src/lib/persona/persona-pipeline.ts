@@ -69,10 +69,10 @@ export interface ConversationContext {
    *  it caps the reflection meter's post-save recharge (reflectionMeterFill).
    *  Falls back to its code default on a missing/invalid value. */
   checkpointTuning: CheckpointTuning;
-  /** True when the conductor is the live voice (LIVE_VOICE_VARIANT ===
-   *  "conductor"). Drives the conductor prompt variant and keys the composer's
-   *  verbatim-anchor instruction on the pull path. Setting LIVE_VOICE_VARIANT
-   *  back to "rebuilt" rolls the pull model off in one place. */
+  /** True when the conductor is the live voice. Keys the composer's
+   *  verbatim-anchor instruction on the pull path. Since the rebuilt/legacy
+   *  voice worlds were retired (2026-07-06) LIVE_VOICE_VARIANT is "conductor"
+   *  only, so this is now always true — a flag pending collapse in a follow-up. */
   conductorActive: boolean;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
@@ -187,14 +187,13 @@ export async function loadConversationContext(
     ? resolvedPersonaModes
     : ["general"];
 
-  // TEMPORARY conductor experiment — resolved up front so an experiment
-  // The conductor is the LIVE voice (promoted 2026-07-02). conductorActive is
-  // simply "is the live voice the conductor" — driven by the single
-  // LIVE_VOICE_VARIANT switch, so setting it back to "rebuilt" rolls the whole
-  // pull model off in one place. On web it drives the reflection-meter capture
-  // model (Jove never triggers saves; the user pulls); the meter itself is
-  // web-only (surface gate below). It also honors the requested conversation
-  // mode directly and opens the checkpoint gate (crisis still blocks).
+  // The conductor is the LIVE voice (promoted 2026-07-02; the rebuilt/legacy
+  // rollback worlds were retired 2026-07-06, so LIVE_VOICE_VARIANT is now
+  // "conductor" only and this is always true — a flag pending collapse). On web
+  // it drives the reflection-meter capture model (Jove never triggers saves; the
+  // user pulls); the meter itself is web-only (surface gate below). It also
+  // honors the requested conversation mode directly and opens the checkpoint
+  // gate (crisis still blocks).
   const conductorActive = LIVE_VOICE_VARIANT === "conductor";
 
   const rawMode = extractionResult.data?.mode;
@@ -403,13 +402,11 @@ export function buildPromptOptionsFromContext(
     turnCount: ctx.turnCount,
     personaModes: ctx.personaModes,
     mode: ctx.mode,
-    // Phase 3a: the live voice switch. Both consumers of these options — the
-    // app path (call-persona → buildSystemPromptBlocks) and the SMS path
-    // (persona-bridge → buildSystemPrompt) — flip together. Rollback is
-    // LIVE_VOICE_VARIANT = "legacy" in config.ts. When the admin-scoped
-    // conductor experiment is active for this turn it overrides the variant.
-    // Off by default, so this resolves to LIVE_VOICE_VARIANT in every normal run.
-    voiceVariant: ctx.conductorActive ? "conductor" : LIVE_VOICE_VARIANT,
+    // The 1:1 voice is the conductor for everyone (the rebuilt/legacy rollback
+    // worlds were retired 2026-07-06). buildSystemPromptBlocks no longer reads
+    // this field, but the options type still accepts it, so it's emitted for
+    // continuity with the SMS path + admin viewer.
+    voiceVariant: "conductor",
     // Admin-editable voice-text overrides; empty {} falls back to all code
     // defaults at each resolution site in system-prompt.ts.
     voiceOverrides: ctx.voiceOverrides,

@@ -1,16 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Voice rebuild A/B harness — Phase 0–2 (docs/voice-rebuild-proposal.md §8).
+// Voice simulation harness (originally the rebuild A/B; the legacy/rebuilt
+// voice worlds were retired 2026-07-06, so only the "conductor" arm remains).
 //
 // Runs simulated conversations through the REAL prompt assembly
 // (buildSystemPromptBlocks) and the REAL extraction loop (runExtraction),
-// entirely in memory — no DB, no dev server. The only thing that varies
-// between arms is voiceVariant ("legacy" | "rebuilt"), so the A/B isolates
-// the voice. Haiku plays the user (generateSimulatedUserMessage), Opus plays
-// Jove (PERSONA_MODEL), Sonnet runs extraction — same models as production.
+// entirely in memory — no DB, no dev server. Haiku plays the user
+// (generateSimulatedUserMessage), Opus plays Jove (PERSONA_MODEL), Sonnet runs
+// extraction — same models as production.
 //
 // Usage (from the worktree root, .env.local symlinked):
-//   npx tsx scripts/voice-ab.ts --variant both --scenario all
-//   npx tsx scripts/voice-ab.ts --variant rebuilt --scenario withdrawn-flat --max-turns 3   # smoke
+//   npx tsx scripts/voice-ab.ts --scenario all
+//   npx tsx scripts/voice-ab.ts --scenario withdrawn-flat --max-turns 3   # smoke
 //
 // Output: markdown transcripts in scripts/transcripts/voice-ab/, one per
 // (variant, scenario), with per-turn extraction sidebars (pattern_engaged,
@@ -45,7 +45,7 @@ import { detectCrisisInUserMessage } from "@/lib/persona/call-persona";
 import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS } from "@/lib/persona/config";
 
-type Variant = "legacy" | "rebuilt";
+type Variant = "conductor";
 type Msg = { role: "user" | "assistant"; content: string };
 
 /** Retry transient API failures (network blips, rate-limit aborts after big
@@ -249,8 +249,9 @@ async function main() {
   const scenarioArg = arg("scenario", "all");
   const maxTurns = parseInt(arg("max-turns", "12"), 10);
 
-  const variants: Variant[] =
-    variantArg === "both" ? ["legacy", "rebuilt"] : [variantArg as Variant];
+  // Only the conductor arm remains; any --variant value collapses to it.
+  void variantArg;
+  const variants: Variant[] = ["conductor"];
   const scenarioKeys =
     scenarioArg === "all" ? Object.keys(SCENARIOS) : [scenarioArg];
 

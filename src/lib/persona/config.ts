@@ -97,23 +97,14 @@ export const CHECKPOINT_ACTIONS = {
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 
-// ── Live voice switch ────────────────────────────────────────────────────────
-// Which voice every LIVE conversation path runs. This is the single master
-// lever — and the single rollback:
-//   "conductor" = the pull-model prompt (conductor-prompt.ts). PROMOTED to the
-//                 live voice for all users 2026-07-02. On web this drives the
-//                 reflection-meter capture model (Jove never triggers saves;
-//                 the user pulls). persona-pipeline derives conductorActive =
-//                 (LIVE_VOICE_VARIANT === "conductor"), so this one constant
-//                 turns the whole pull model on or off.
-//   "rebuilt"   = CHARACTER + LIMITS + MECHANICS (voice-scaffold.ts). The
-//                 pre-conductor voice + the Jove-pushed checkpoint model. Set
-//                 here to roll the promotion back on the next turn.
-//   "legacy"    = the old three-tier rule-pile. Deeper rollback; deleted at the
-//                 Phase-3b voice teardown.
-// Both the app path (persona-pipeline → call-persona) and the SMS path
-// (persona-bridge) read this. See docs/voice-rebuild-proposal.md §8.
-export type VoiceVariant = "legacy" | "rebuilt" | "conductor";
+// ── Live voice ───────────────────────────────────────────────────────────────
+// The 1:1 voice every conversation path runs. Only "conductor" remains — the
+// pull-model prompt (conductor-prompt.ts), promoted to the live voice for all
+// users 2026-07-02. The rebuilt/legacy rollback voice worlds were retired
+// 2026-07-06. persona-pipeline derives conductorActive = (LIVE_VOICE_VARIANT
+// === "conductor"), which stays true. Both the app path (persona-pipeline →
+// call-persona) and the SMS path (persona-bridge) read this.
+export type VoiceVariant = "conductor";
 export const LIVE_VOICE_VARIANT: VoiceVariant = "conductor";
 
 // Conversation mode: which entry path the user took into a session. Centralized

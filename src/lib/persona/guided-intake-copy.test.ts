@@ -1,50 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf-8");
 
-describe("guided-intake block (area-anchored)", () => {
-  const build = (mode: "guided-intake" | "situation") =>
-    buildSystemPrompt({
-      kind: "oneOnOne",
-      mode,
-      personaModes: ["autistic"],
-      manualComponents: [],
-      sessionSummary: null,
-      isReturningUser: false,
-      isFirstCheckpoint: true,
-      sessionCount: 1,
-      currentConversationId: "test",
-      turnCount: 1,
-    });
-
-  it("renders the tee-up with the mandatory 'one thing worth keeping' endpoint", () => {
-    const prompt = build("guided-intake");
-    expect(prompt).toContain("TEE-UP");
-    expect(prompt).toContain("one thing worth keeping");
-  });
-
-  it("is section-anchored, not person-anchored (old opener retired)", () => {
-    const prompt = build("guided-intake");
-    expect(prompt).toContain("OPEN THE SECTION");
-    expect(prompt).not.toContain("Pick someone of note");
-  });
-
-  it("does NOT leak guided-intake markers into situation mode", () => {
-    const prompt = build("situation");
-    expect(prompt).not.toContain("TEE-UP");
-    expect(prompt).not.toContain("OPEN THE SECTION");
-  });
-
-  it("tee-up emits ---sections---, live-situation can emit ---start-situation---", () => {
-    const prompt = build("guided-intake");
-    expect(prompt).toContain("---sections---");
-    expect(prompt).toContain("---start-situation---");
-    expect(prompt).toContain("TAPPABLE AFFORDANCES");
-  });
-});
+// The former "guided-intake block (area-anchored)" describe block was removed
+// 2026-07-06: it asserted the guided-intake Tier-3 prompt spine (TEE-UP, OPEN
+// THE SECTION, ---sections---, TAPPABLE AFFORDANCES), which was deleted when
+// the rebuilt/legacy voice worlds were retired. The conductor prompt handles
+// every mode uniformly and carries none of that copy. The UI + wiring coverage
+// below (which reads component/hook source) is unaffected and still holds.
 
 describe("guided intake UI wiring", () => {
   // The three conversation modes (situation / guided-intake / upload) launch

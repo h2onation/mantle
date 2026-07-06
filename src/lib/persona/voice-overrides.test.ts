@@ -4,8 +4,6 @@ import {
   isVoiceOverrideKey,
   VOICE_OVERRIDE_FIELDS,
 } from "./voice-overrides";
-import { REBUILT_CHARACTER } from "./voice-scaffold";
-import { buildSystemPromptBlocks, type OneOnOnePromptOptions } from "./system-prompt";
 
 // A minimal stub of the admin client's `.from(...).select(...)` shape.
 function adminStub(result: {
@@ -109,37 +107,9 @@ describe("isVoiceOverrideKey", () => {
   });
 });
 
-describe("system prompt applies voice overrides at resolution sites", () => {
-  const base: OneOnOnePromptOptions = {
-    kind: "oneOnOne",
-    manualComponents: [],
-    currentConversationId: null,
-    isReturningUser: false,
-    sessionSummary: null,
-    isFirstCheckpoint: true,
-    turnCount: 1,
-    mode: "situation",
-    voiceVariant: "rebuilt",
-  };
-
-  it("uses REBUILT_CHARACTER when no override is present", () => {
-    const blocks = buildSystemPromptBlocks(base);
-    expect(blocks.tier1).toBe(REBUILT_CHARACTER);
-  });
-
-  it("substitutes the CHARACTER override into tier1", () => {
-    const blocks = buildSystemPromptBlocks({
-      ...base,
-      voiceOverrides: { character: "OVERRIDDEN CHARACTER BLOCK" },
-    });
-    expect(blocks.tier1).toBe("OVERRIDDEN CHARACTER BLOCK");
-  });
-
-  it("substitutes the situation-opener override into the first-message block", () => {
-    const blocks = buildSystemPromptBlocks({
-      ...base,
-      voiceOverrides: { situationOpener: "BRING ME A THING, OVERRIDDEN." },
-    });
-    expect(blocks.dynamic).toContain("BRING ME A THING, OVERRIDDEN.");
-  });
-});
+// The former "system prompt applies voice overrides at resolution sites"
+// describe block was removed 2026-07-06: the conductor prompt (the sole 1:1
+// voice) is self-contained and reads no CHARACTER / situation-opener override
+// at build time, so tier1 is CONDUCTOR_PROMPT and the substitution those tests
+// asserted no longer happens. The override RESOLUTION (getVoiceOverrides) and
+// the field-default specs are still covered above.
