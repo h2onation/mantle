@@ -3,24 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
+import OverrideFieldEditor from "@/components/admin/OverrideFieldEditor";
 import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 
 // ---------------------------------------------------------------------------
-// Jove's Prompt — the single view + edit surface for the conductor prompt.
+// Tuning — the ONE place both prompts are tuned (founder decision 2026-07-07).
 //
-// The conductor prompt IS Jove's whole 1:1 personality: one markdown document,
-// shipped as the first (cached) block of the system prompt on every turn. This
-// page shows the live version and lets the founder edit it as one document —
-// no deploy, live on the next turn. The shipped code constant is the permanent
-// floor: Reset returns to it instantly.
+// Two workers, two documents:
+//   1. THE CONVERSATION — the conductor prompt, Jove's whole 1:1 personality,
+//      editable as one document (the `conductor_prompt` override key).
+//   2. THE ENTRY — the composer, a separate model call that writes the entry
+//      when the user pulls a reflection. Its prompt is shown read-only
+//      (rendered from the same function the live call uses, so the display
+//      can never drift); its one editable piece is the entry bar
+//      (`composer_entry_bar`), edited here and nowhere else.
 //
-// Data: GET/PATCH /api/admin/persona-voice (the `conductor_prompt` key —
-// same override system as the operational copy fields, one row in
-// persona_voice_overrides). Saves that drop a non-negotiable line (crisis
-// resources, the hidden UI markers) are rejected by the API with a
-// plain-language error — see CONDUCTOR_REQUIRED_FRAGMENTS in
-// conductor-prompt.ts (imported here so the display and the enforcement can
-// never drift).
+// Data: GET/PATCH /api/admin/persona-voice. Conductor saves that drop a
+// non-negotiable line (crisis resources, the hidden UI markers) are rejected
+// by the API — see CONDUCTOR_REQUIRED_FRAGMENTS in conductor-prompt.ts.
 // ---------------------------------------------------------------------------
 
 interface VoiceField {
@@ -60,7 +60,7 @@ function extractSections(text: string): string[] {
     .map((line) => line.slice(3).trim());
 }
 
-export default function JovePromptPage() {
+export default function TuningPage() {
   const isAdmin = useIsAdmin();
 
   const [field, setField] = useState<VoiceField | null>(null);
@@ -68,6 +68,12 @@ export default function JovePromptPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // The composer: read-only prompt text + the one editable field (the bar).
+  const [composerPrompt, setComposerPrompt] = useState<string>("");
+  const [barField, setBarField] = useState<VoiceField | null>(null);
+  const [barDraft, setBarDraft] = useState<string>("");
+  const [barBusy, setBarBusy] = useState(false);
 
   function load() {
     fetch("/api/admin/persona-voice")
@@ -82,6 +88,17 @@ export default function JovePromptPage() {
         }
         setField(f);
         setDraft(f.enabled && f.override !== null ? f.override : f.default);
+
+        const b = (d?.fields as VoiceField[] | undefined)?.find(
+          (x) => x.key === "composer_entry_bar",
+        );
+        if (b) {
+          setBarField(b);
+          setBarDraft(b.enabled && b.override !== null ? b.override : b.default);
+        }
+        if (typeof d?.composerPrompt === "string") {
+          setComposerPrompt(d.composerPrompt);
+        }
       })
       .catch(() => setError("Could not load the prompt."));
   }
@@ -89,6 +106,31 @@ export default function JovePromptPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function patchBar(body: Record<string, unknown>) {
+    setBarBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/admin/persona-voice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "composer_entry_bar", ...body }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d?.error || "Save failed");
+      setNotice(
+        body.reset
+          ? "Entry bar reset to the shipped default. Live on the next pull."
+          : "Entry bar saved. Live on the next pull.",
+      );
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setBarBusy(false);
+    }
+  }
 
   const live =
     field !== null && field.enabled && field.override !== null;
@@ -192,7 +234,7 @@ export default function JovePromptPage() {
                 margin: "0 0 10px",
               }}
             >
-              Jove&rsquo;s Prompt
+              Tuning
             </h1>
             <p
               style={{
@@ -204,13 +246,29 @@ export default function JovePromptPage() {
                 maxWidth: 700,
               }}
             >
-              This one document is Jove&rsquo;s entire personality — every 1:1
-              conversation, web and text, runs on exactly the text below. There
-              is no other voice configuration anywhere. Edit it here and Jove
-              changes on the next message, no deploy. The shipped code version
-              is the permanent floor: Reset returns to it instantly, and
-              nothing you do here is destructive.
+              Two workers, tuned in this one place. <strong>The
+              conversation</strong>: Jove&rsquo;s prompt, the whole 1:1
+              personality, editable below as one document. <strong>The
+              entry</strong>: the composer, a separate model call that writes
+              the entry when someone saves a reflection — its prompt is shown
+              further down, with its one editable piece (the entry bar). When
+              something feels off, ask which it was: the conversation felt
+              wrong → tune Jove&rsquo;s prompt; the written entry read wrong →
+              tune the entry bar. Edits are live on the next turn, no deploy,
+              and the shipped code is always the floor: Reset returns to it
+              instantly.
             </p>
+
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "0 0 12px",
+              }}
+            >
+              The conversation — Jove&rsquo;s prompt
+            </h2>
 
             {/* ── How the full call assembles ────────────────────────── */}
             <div style={{ ...metaLabel, marginBottom: 10 }}>
@@ -464,8 +522,8 @@ export default function JovePromptPage() {
                 }}
               >
                 Everything else is yours to change. The small operational lines
-                around the conversation (openers, the post-save line, the
-                composer&rsquo;s entry bar) are edited in the{" "}
+                around the conversation (openers, the post-save line) are
+                edited in the{" "}
                 <a
                   href="/admin"
                   style={{
@@ -478,6 +536,91 @@ export default function JovePromptPage() {
                 on the main admin page.
               </div>
             </div>
+
+            {/* ── The entry — the composer ───────────────────────────── */}
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              The entry — the composer
+            </h2>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                color: "var(--session-walnut-meta)",
+                margin: "0 0 18px",
+                maxWidth: 700,
+              }}
+            >
+              When someone taps the reflection bar and saves, this second
+              worker writes the entry they see in the overlay and the Manual.
+              It never speaks in the conversation, and Jove&rsquo;s prompt
+              never touches it. Its full instructions are below, read-only:
+              the structure and safety rules are code (a wrong edit there
+              would silently break saving). The one piece meant for tuning is
+              the <strong>entry bar</strong> — the quality standard for how an
+              entry should read — editable here.
+            </p>
+
+            {barField && (
+              <div
+                style={{
+                  border: "1px solid var(--session-walnut-border)",
+                  background: "var(--session-walnut-surface)",
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                  marginBottom: 18,
+                }}
+              >
+                <OverrideFieldEditor
+                  label={barField.label}
+                  value={barDraft}
+                  isEdited={barField.enabled && barField.override !== null}
+                  dirty={
+                    barDraft !==
+                    (barField.enabled && barField.override !== null
+                      ? barField.override
+                      : barField.default)
+                  }
+                  busy={barBusy}
+                  rows={12}
+                  onChange={setBarDraft}
+                  onSave={() => patchBar({ text: barDraft })}
+                  onReset={() => patchBar({ reset: true })}
+                />
+              </div>
+            )}
+
+            <div style={{ ...metaLabel, marginBottom: 6 }}>
+              The composer&rsquo;s full instructions, read-only — rendered from
+              the exact text the live call uses
+            </div>
+            <pre
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                maxHeight: "48vh",
+                overflowY: "auto",
+                whiteSpace: "pre-wrap",
+                fontFamily: "var(--font-mono)",
+                fontSize: "12.5px",
+                lineHeight: 1.6,
+                color: "var(--session-walnut-meta-strong)",
+                background: "var(--session-walnut-surface-soft)",
+                border: "1px solid var(--session-walnut-border)",
+                borderRadius: 12,
+                padding: "16px 18px",
+                margin: 0,
+              }}
+            >
+              {composerPrompt || "Loading…"}
+            </pre>
           </div>
         </div>
       </div>

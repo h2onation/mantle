@@ -12,10 +12,11 @@ interface VoiceField {
   enabled: boolean;
 }
 
-// Jove's whole prompt (the conductor) is edited on its own page —
-// /admin/prompt-architecture — so this panel excludes that key and keeps the
-// small operational copy fields. One edit surface per key.
-const PROMPT_PAGE_KEY = "conductor_prompt";
+// Both prompts are tuned on the Tuning page (/admin/prompt-architecture):
+// Jove's whole prompt (conductor_prompt) and the composer's entry bar
+// (composer_entry_bar). This panel excludes those keys and keeps the small
+// operational copy fields. One edit surface per key.
+const TUNING_PAGE_KEYS = ["conductor_prompt", "composer_entry_bar"];
 
 // What stays code-only (shown so the founder sees the boundary and why).
 const LOCKED_FIELDS: { label: string; why: string }[] = [
@@ -41,10 +42,10 @@ export default function VoiceEditorPanel() {
       .then((r) => r.json())
       .then((d) => {
         if (d?.fields) {
-          // The whole conductor prompt has its own page; this panel edits the
+          // Both prompts live on the Tuning page; this panel edits the
           // small operational fields only.
           const panelFields = (d.fields as VoiceField[]).filter(
-            (f) => f.key !== PROMPT_PAGE_KEY,
+            (f) => !TUNING_PAGE_KEYS.includes(f.key),
           );
           setFields(panelFields);
           // Seed each editor with the live value: override if enabled, else default.
@@ -140,12 +141,12 @@ export default function VoiceEditorPanel() {
         Operational copy — the small fixed lines around the conversation. Saving
         takes effect on the next turn, no deploy. The shipped code is always the
         floor: Reset returns a field to its default instantly. Jove&rsquo;s whole
-        prompt (the conductor) is edited on{" "}
+        prompt and the composer&rsquo;s entry bar are tuned on{" "}
         <a
           href="/admin/prompt-architecture"
           style={{ color: "var(--session-persona)", textDecoration: "underline" }}
         >
-          the Jove&rsquo;s Prompt page
+          the Tuning page
         </a>
         . Safety surfaces stay locked (below).
       </p>

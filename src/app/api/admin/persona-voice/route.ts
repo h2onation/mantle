@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/admin/verify-admin";
 import { validateConductorPromptEdit } from "@/lib/persona/conductor-prompt";
+import { buildComposerSystemPrompt } from "@/lib/persona/confirm-checkpoint";
 import {
   isVoiceOverrideKey,
   isDoorOpenerKey,
@@ -53,7 +54,15 @@ export async function GET() {
     };
   });
 
-  return Response.json({ fields });
+  // The composer's full system prompt for the Tuning page's read-only view,
+  // rendered from the SAME function the live call uses (one source of truth).
+  // The bar is shown as a placeholder token — its live text is edited in its
+  // own field on that page, so it isn't duplicated inside the display.
+  const composerPrompt = buildComposerSystemPrompt(
+    "[ ENTRY VOICE — THE BAR: the editable standard below is inserted here ]",
+  );
+
+  return Response.json({ fields, composerPrompt });
 }
 
 // Save or reset one core voice field. Admin only.

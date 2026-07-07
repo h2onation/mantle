@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { PERSONA_NAME } from "@/lib/persona/config";
 
 interface NavItem {
   id: string;
@@ -26,7 +25,7 @@ const NAV_GROUPS: NavItem[][] = [
     { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
     {
       id: "prompt-architecture",
-      label: `${PERSONA_NAME}'s Prompt`,
+      label: "Tuning",
       href: "/admin/prompt-architecture",
       indent: true,
     },
