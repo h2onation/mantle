@@ -211,7 +211,7 @@ TAGS (field: "tags", array of strings, may be empty): a closed set, optional len
 ACKNOWLEDGMENT (field: "acknowledgment"): one plain sentence, 12-22 words, second person, that quotes the specific moment from the user's last turn(s) and ends with the intent to mark it ("…I want to put that down"). Plain spoken, no therapy voice. If there is no quotable specific, return "".
 
 COMPRESSED (for future reference):
-- summary: one sentence, 20-40 words, third person. The mechanism and the bind, the user's charged words kept.
+- summary: one sentence, 20-40 words, third person — "they" for the user, never a gendered pronoun. The mechanism and the bind, the user's charged words kept.
 - key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
