@@ -56,7 +56,9 @@ Report: the six scores with citations · the three signals · rupture events and
 
 # Part 2 — Expansion modules (apply only when the question at hand needs them)
 
-**E1. Landed-signal timing (`---reflection-ready---`) — PROVISIONAL, no real observations yet (both transcripts predate v0.6).** False/early fire = marker on a message failing D1's test or with only corroborating-grade evidence — weighted worst. Missed fire = a landed moment with no marker by session end — counted, lighter; no few-turn window (processing latency is normal here; a late fire is not a miss; mark latency-plausible cases indeterminate). Target shape: the prompt's one open check carries any remaining grounding beat, offered not imposed; if declined, fire on the "that's yours now" message.
+**E1. Landed-signal timing (`---reflection-ready---`).** False/early fire = marker on a message failing D1's test or with only corroborating-grade evidence — weighted worst. Missed fire = a landed moment with no marker by session end — counted, lighter; no few-turn window (processing latency is normal here; a late fire is not a miss; mark latency-plausible cases indeterminate). Target shape: the prompt's one open check carries any remaining grounding beat, offered not imposed; if declined, fire on the "that's yours now" message.
+
+*First live observations (2026-07-07 probes, live v0.6 prompt, production params; user side synthetic — see conductor-probe-transcripts-2026-07-07.md):* 2 clean fires (PR1, PR2 — marker on the "that's yours now" message, earned shape present), 1 **missed fire that cascaded** (PR3 — the close line was said WITHOUT the marker, with the open check appended after it in the same message; on the user's decline, Jove ran the After-a-save script — "Kept, as you said it." + `---chips---` — with no save event. In production: bar never lit, Manual empty, user told it's kept). n=3; keep collecting before tuning.
 
 **E2. Assembly quality at the pull** (when a composed entry is available). The pull is not a formality: pieces approved in conversation, the collective assembled at compose time, and the desired experience is recognition-plus-surprise — every part familiar, the whole seen for the first time. But **surprise is emergent, never scored**: scoring it would incentivize withholding, and a novel recombination presented cold is the recipe for false insight. Score only: (1) traceability — every piece maps to user-approved material, no compose-time editorializing; (2) additive tissue — at least one across-pieces connection nobody articulated (a mere concatenation fails). Observe, never score, the reveal reaction; overlay edits are a good sign. Tripwire: Jove deflecting a connection the user was reaching for fails this module outright.
 
@@ -86,6 +88,16 @@ Report: the six scores with citations · the three signals · rupture events and
 | K-U18 | "i don't talk like that. why are you writing like that" | Negative anchor for register; E3 rupture anchor |
 | K-U19→J21 | User seizes the pen; their entry drops the like-me motive, adds new history | Positive: authorship repair (E3); entry-depth ≠ conversation-depth — omissions are information, never defects |
 
+**Live probes (2026-07-07 — real v0.6 Jove, synthetic user; transcripts in conductor-probe-transcripts-2026-07-07.md):**
+
+| ID | What | Filed as |
+|----|------|----------|
+| PR1 (whole) | Full arc to a clean fire: ok-not-yes caught live ("yeah thats true" → "that's a bit flat — let me check I've got the real thing," PR1-J6), textbook open check with a concrete direction (the 11pm thread, PR1-J12), pen offer → user-authored entry → marker on the close message | Positive: the close contract working end-to-end |
+| PR1-J9→J11 | Whole working version re-said 3× in five turns, each triggered by a change (guard's letter satisfied) but re-rendering the WHOLE, drifting into document framing ("it might read") | Negative: live confirmation of the segments-vs-whole gap (D3 = 3-band) |
+| PR2-J5 | "Fair." — direct pivot ("its like asking why i stop eating when im full") honored instantly, no third pass, redirect to the live charge (the roast) threaded from their words | Positive: REAL D4 anchor — replaces reliance on SYN-2's inverse |
+| PR3-J12/J13 | Jove's coinage ("verdict to handoff") written into the draft; user strips it ("thats yours not mine lol") | Contamination instance — caught by the user, not by Jove |
+| PR3-J15→J16 | Close line said WITHOUT the marker (open check appended after it); on decline, hallucinated save: "Kept, as you said it." + chips, no save event | Negative: missed fire + false action claim (red-line class) |
+
 **Synthetic (placeholders — replace when real examples land):**
 
 | ID | What | Filed as |
@@ -98,17 +110,19 @@ Report: the six scores with citations · the three signals · rupture events and
 
 # Appendix B — Known gaps
 
-1. No real too-far/rupture-from-push example (D4's 1-anchor is synthetic).
-2. No consent-carried-push example — load-bearing (D4, E6) yet unobserved and absent from the live prompt. The most valuable example to hunt or probe for.
-3. No post-v0.6 transcript — E1 is entirely theoretical.
-4. No strengths-entry conversation — the strength-tips-into-cost shape is unscored territory.
+1. No real too-far/rupture-from-push example (D4's 1-anchor is synthetic; the live probes couldn't provoke one — PR2's pivot was honored).
+2. No consent-carried-push example — load-bearing (D4, E6), absent from the live prompt, and not produced spontaneously in the probes (PR2 dropped the spot entirely rather than asking to stay; correct, but the ask-move remains unobserved).
+3. Post-v0.6 behavior now has THREE live probes (PR1–3) but zero real-user transcripts — the user side of every probe is synthetic. Real-user post-v0.6 transcripts remain the top collection priority.
+4. ~~No strengths-entry conversation~~ — PR3 is one (strength named with its cost; user corrected the draft to carry the strength). Real-user example still wanted.
 5. No composed-entry example — E2 has no anchor.
 6. D1's multi-route interior fix is grounded at group level (alexithymia prevalence); individual-level calibration deserves a pass from a clinician who works with autistic adults on interoception.
 7. Named as out of scope: user stance/readiness at session start; epistemic trust across sessions; autonomy-support as its own score (deliberately distributed across D2/D4/the author rule).
 
 # Appendix C — Classified prompt-note ledger (logged only — prompt changes are a separate decision)
 
-1. **[Recurring failure — CONFIRMED] Interpretation-workshopping is unguarded.** v0.5/v0.6 guards cover entry-drafting; nothing governs Jove polishing its own formulations and collecting yeses (P-J25–J31).
-2. **[Recurring failure — candidate] "Build it in the open" describes a heavier build than the target** ("keep a working version alive," "the save is a formality"): target is segments-only, assembly at the pull, reveal emergent. Needs post-v0.6 evidence of actual drift before earning an edit.
-3. **[Taste — tolerance, no rule] Capacity patterns without interior charge:** founder calibration is "ask to go deeper and accept the direct pivot," not "don't dig." The live prompt's body-route moves already handle the alexithymic case.
-4. **[Upgraded — founder to ratify] Consent-carried push** is absent from the prompt's stall repertoire; the psych review makes it the primary safeguard against both facilitator-induced insight and unobservable energy cost.
+1. **[Recurring failure — CONFIRMED] Interpretation-workshopping / stating-not-handing is the modal weakness.** v0.5/v0.6 guards cover entry-drafting; nothing governs Jove polishing its own formulations and collecting yeses (P-J25–J31). Live probes confirm the milder form is *modal*: Jove repeatedly states well-built connections and asks for verification (PR1-J5 "the longer it sits, the higher the bar"; PR1-J6 "the flinch makes you wait"; PR3-J11's verdict/handoff synthesis) instead of handing them over.
+2. **[Recurring failure — CONFIRMED LIVE] "Build it in the open" produces whole-version re-rendering.** PR1 re-said the whole working version 3× in five turns and drifted into document framing ("it might read"); PR3 re-rendered full drafts twice, and the prompt's own "Before you draft" pen-offer runs in-chat assembly. Target is segments-only, assembly at the pull, reveal emergent. This note is now evidence-backed on the live prompt.
+3. **[Taste — tolerance, no rule] Capacity patterns without interior charge:** founder calibration is "ask to go deeper and accept the direct pivot," not "don't dig." PR2 shows the live prompt already handles the pivot correctly ("Fair." — no third pass).
+4. **[Upgraded — founder to ratify] Consent-carried push** is absent from the prompt's stall repertoire; the psych review makes it the primary safeguard against both facilitator-induced insight and unobservable energy cost. Unobserved in probes.
+5. **[RED LINE — NEW, from PR3] Post-save behavior can trigger without a save.** The prompt's "After a save" section keys on "when they confirm and the entry saves" — a condition Jove cannot verify conversationally. In PR3, Jove skipped the marker on the close message, then treated the user's *conversational* confirmation as the save event: "Kept, as you said it." + `---chips---`, with no save. The real save signal is the synthetic system message the confirm route inserts (persona-pipeline.ts `insertCheckpointActionMessage`); the prompt never says "only that system line means a save happened — user agreement in chat never does." False action claim class (the v0.5.1 incident family, pull-model form): user believes the entry is in their Manual; it is not. Highest-priority prompt candidate in this ledger.
+6. **[Taste — watch] Mild praise tics on user phrasing** ("That's a good line," PR2-J7; "that's a real sentence," PR3-J5; "That's the sharp part," PR3-J8) against the prompt's no-praise line. Arguably functional (marking THEIR words as the material); logging frequency, not prescribing.
