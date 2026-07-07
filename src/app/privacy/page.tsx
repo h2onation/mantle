@@ -279,7 +279,7 @@ export default function PrivacyPolicy() {
         </h2>
         <p>
           You may request access to, correction of, or deletion of your personal
-          data by contacting us at jeff@mywalnut.app. We will respond
+          data by contacting us at hello@mywalnut.app. We will respond
           within 30 days.
         </p>
 
@@ -330,7 +330,7 @@ export default function PrivacyPolicy() {
           information; the right to opt out of sale or sharing (we do not sell
           or share); and the right not to be discriminated against for
           exercising these rights. To exercise any of these rights, contact us
-          at jeff@mywalnut.app. We will verify your request by matching
+          at hello@mywalnut.app. We will verify your request by matching
           identifiers you provide (such as your account email) against the
           information we have on file.
         </p>
@@ -353,7 +353,7 @@ export default function PrivacyPolicy() {
           mywalnut, you consent to this transfer. If you are located in the
           European Economic Area, the United Kingdom, or another jurisdiction
           with comprehensive data protection laws, you may have additional
-          rights under local law; contact us at jeff@mywalnut.app to
+          rights under local law; contact us at hello@mywalnut.app to
           exercise them.
         </p>
 
@@ -382,7 +382,7 @@ export default function PrivacyPolicy() {
         >
           Contact
         </h2>
-        <p>jeff@mywalnut.app</p>
+        <p>hello@mywalnut.app</p>
 
         <div
           style={{

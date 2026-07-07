@@ -301,7 +301,7 @@ export default function Landing() {
             <span className="sep">·</span>
             <span>mywalnut.app</span>
             <span className="sep">·</span>
-            <a href="mailto:jeff@mywalnut.app">jeff@mywalnut.app</a>
+            <a href="mailto:hello@mywalnut.app">hello@mywalnut.app</a>
           </p>
           <p className="foot-legal">
             Mywalnut is a tool for self-understanding and is not therapy, a

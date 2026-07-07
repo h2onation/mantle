@@ -139,7 +139,7 @@ export default function TermsOfService() {
           we have collected information from a person under 18, we will delete
           it. If you are a parent or guardian and believe your child has
           provided us with personal information, contact us at
-          jeff@mywalnut.app.
+          hello@mywalnut.app.
         </p>
 
         <h2
@@ -166,7 +166,7 @@ export default function TermsOfService() {
           </li>
           <li>
             For help: text HELP (or INFO, SUPPORT) or email
-            jeff@mywalnut.app.
+            hello@mywalnut.app.
           </li>
         </ul>
 
@@ -397,7 +397,7 @@ export default function TermsOfService() {
         >
           Contact
         </h2>
-        <p>jeff@mywalnut.app</p>
+        <p>hello@mywalnut.app</p>
 
         <div
           style={{
