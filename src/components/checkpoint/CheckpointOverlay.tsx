@@ -169,7 +169,7 @@ export default function CheckpointOverlay({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Building your reflection"
+        aria-label="Building your Manual entry"
         aria-busy="true"
         style={{
           position: "fixed",
@@ -227,7 +227,7 @@ export default function CheckpointOverlay({
               color: "var(--session-walnut)",
             }}
           >
-            Building your reflection…
+            Building your Manual entry…
           </span>
         </div>
       </div>

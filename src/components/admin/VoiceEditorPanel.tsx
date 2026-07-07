@@ -13,10 +13,15 @@ interface VoiceField {
 }
 
 // Both prompts are tuned on the Tuning page (/admin/prompt-architecture):
-// Jove's whole prompt (conductor_prompt) and the composer's entry bar
-// (composer_entry_bar). This panel excludes those keys and keeps the small
+// Jove's whole prompt (conductor_prompt), the composer's entry bar
+// (composer_entry_bar), and the first-entry orientation
+// (first_entry_education). This panel excludes those keys and keeps the small
 // operational copy fields. One edit surface per key.
-const TUNING_PAGE_KEYS = ["conductor_prompt", "composer_entry_bar"];
+const TUNING_PAGE_KEYS = [
+  "conductor_prompt",
+  "composer_entry_bar",
+  "first_entry_education",
+];
 
 // What stays code-only (shown so the founder sees the boundary and why).
 const LOCKED_FIELDS: { label: string; why: string }[] = [

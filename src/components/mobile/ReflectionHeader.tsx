@@ -2,47 +2,43 @@
 
 interface ReflectionHeaderProps {
   // The reflection meter shows on web and is hidden in crisis; when false this
-  // is a plain header wrapper with no bar, field, or message.
+  // is a plain header wrapper with no bar, field, or pill.
   meterVisible: boolean;
   // 0–100 capture-progress fill (server value as-is — no snap-to-100 at ready).
   fill: number;
   ready: boolean;
   composing: boolean;
-  // First-session education: the one message you clear. Computed once by
-  // useReflection; passed through unchanged.
-  showEducation: boolean;
+  // First-ever ready on this device: the pill wears the ember halo until the
+  // user's first build. Computed once by useReflection; passed through.
+  firstTime: boolean;
   onBuild: () => void;
-  onDismissEducation: () => void;
-  // Whole-header tap-to-build overlay. Mobile only — on desktop the header row
-  // holds interactive controls (FEEDBACK, the explicit Build button) a
-  // full-cover overlay would swallow, so desktop passes false and offers an
-  // explicit affordance instead.
-  fullCoverTap: boolean;
   error?: string | null;
   // The header's top row: TopBar on mobile, the RoomHeader row on desktop.
   children: React.ReactNode;
 }
 
 // The pull-model reflection surface. As the conversation deepens the bar fills;
-// when a reflection is ready the header blooms into the deep field and — the
-// first session only — a message you clear grows below the bar. Once cleared,
-// the colour alone carries the standing invitation. It wraps whatever the
+// when an entry is ready the header blooms into the deep field and the build
+// pill condenses onto the bar's edge — the ONE affordance, identical on mobile
+// and desktop. Arrival is a one-shot animation (bloom → glow gathers → pill
+// blooms and settles → one sheen), then still. It wraps whatever the
 // platform's header row is (`children`) so mobile and desktop share one
-// treatment. Replaced the old stacked meter + ready-strip + explainer
-// (2026-07-02); generalised to wrap the desktop RoomHeader (2026-07-03).
+// treatment. Replaced the invisible tap-anywhere overlay + expanding education
+// band + GOT IT + desktop text button (2026-07-07); the one-time education
+// moved into Jove's own voice (FIRST_ENTRY_EDUCATION, conductor-prompt.ts).
 export default function ReflectionHeader({
   meterVisible,
   fill,
   ready,
   composing,
-  showEducation,
+  firstTime,
   onBuild,
-  onDismissEducation,
-  fullCoverTap,
   error,
   children,
 }: ReflectionHeaderProps) {
-  const buildable = meterVisible && ready && !composing;
+  // While composing the pill hides — the checkpoint overlay's building cover
+  // is the sole signal for that moment.
+  const showPill = meterVisible && ready && !composing;
   const glow = ready ? 3 : 3 + (Math.max(0, Math.min(100, fill)) / 100) * 3;
 
   return (
@@ -50,19 +46,8 @@ export default function ReflectionHeader({
       className="mw-rh"
       data-meter={meterVisible ? "true" : "false"}
       data-ready={ready ? "true" : "false"}
-      data-composing={composing ? "true" : "false"}
-      data-education={showEducation ? "true" : "false"}
     >
       {meterVisible && <div className="mw-rh-field" aria-hidden="true" />}
-
-      {fullCoverTap && buildable && (
-        <button
-          type="button"
-          className="mw-rh-build"
-          onClick={onBuild}
-          aria-label="Build your reflection"
-        />
-      )}
 
       <div className="mw-rh-topbar">{children}</div>
 
@@ -87,30 +72,26 @@ export default function ReflectionHeader({
         </div>
       )}
 
-      <div className="mw-rh-teach" aria-live="polite">
-        <div className="mw-rh-teach-inner">
-          {composing ? (
-            <p className="mw-rh-status">
-              <span className="mw-rh-fl">&#10086;</span>Building your reflection&hellip;
-            </p>
-          ) : showEducation ? (
-            <>
-              <p className="mw-rh-teach-body">
-                <em>Your reflection is ready.</em> Nothing enters your Manual
-                unless you build it &mdash; build it when you&rsquo;re ready, or
-                keep talking.
-              </p>
-              <button
-                type="button"
-                className="mw-rh-clear"
-                onClick={onDismissEducation}
-              >
-                Got it
-              </button>
-            </>
-          ) : null}
-        </div>
-      </div>
+      {showPill && (
+        <>
+          <span className="mw-rh-pill-glow" aria-hidden="true" />
+          <button
+            type="button"
+            className="mw-rh-pill"
+            data-first={firstTime ? "true" : "false"}
+            onClick={onBuild}
+          >
+            <span className="mw-rh-pill-fl" aria-hidden="true">
+              &#10086;
+            </span>
+            <span className="mw-rh-pill-txt">Build Manual entry</span>
+            <span className="mw-rh-pill-chev" aria-hidden="true">
+              &#8250;
+            </span>
+            <span className="mw-rh-pill-sheen" aria-hidden="true" />
+          </button>
+        </>
+      )}
 
       {error && <p className="mw-rh-error">{error}</p>}
     </div>

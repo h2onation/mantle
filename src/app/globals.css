@@ -208,6 +208,10 @@
       color-mix(in srgb, var(--session-walnut) 13%, transparent)),
     linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)),
     linear-gradient(var(--session-cream-bright), var(--session-cream-bright));
+
+  /* Reflection build pill (the seal on the bar's edge). */
+  --mw-pill-shadow: 0 5px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.30);
+  --mw-pill-sheen: rgba(255, 236, 210, 0.28);
 }
 
 /* ─── Light mode — V3 Embossed linen ───
@@ -381,6 +385,10 @@
       color-mix(in srgb, var(--session-walnut) 30%, transparent),
       color-mix(in srgb, var(--session-walnut) 30%, transparent)),
     var(--session-user-bg);
+
+  /* Reflection build pill (the seal on the bar's edge). */
+  --mw-pill-shadow: 0 5px 16px rgba(28, 27, 24, 0.14), 0 1px 3px rgba(28, 27, 24, 0.08);
+  --mw-pill-sheen: rgba(255, 252, 244, 0.75);
 }
 
 /* No-JS fallback. When the FOUC script doesn't run (JS disabled) and
@@ -1065,9 +1073,11 @@ textarea.mw-composer-input:focus-visible {
 /* ════════════════════════════════════════════════════════════════════
    REFLECTION HEADER (pull-model) — src/components/mobile/ReflectionHeader.tsx
    The top band that fills as the conversation deepens and, at ready, blooms
-   into the deep field with a message you clear (first session), then goes
-   colour-only. Replaced the stacked meter + ready-strip + explainer
-   (2026-07-02). Tokens: --mw-deepfield (per theme), --session-* family.
+   into the deep field with the build pill condensing onto the bar's edge —
+   the ONE affordance, identical on mobile and desktop. Replaced the invisible
+   tap-anywhere overlay + expanding education band + GOT IT + desktop text
+   button (2026-07-07). Tokens: --mw-deepfield / --mw-pill-sheen (per theme),
+   --session-* family.
    ════════════════════════════════════════════════════════════════════ */
 .mw-rh {
   position: relative;
@@ -1076,7 +1086,7 @@ textarea.mw-composer-input:focus-visible {
 }
 
 /* the deep field — painted behind the wordmark, arrives by opacity so it can
-   transition; covers the whole band (grows with the message). */
+   transition; covers the whole band. */
 .mw-rh-field {
   position: absolute;
   inset: 0;
@@ -1094,12 +1104,6 @@ textarea.mw-composer-input:focus-visible {
   position: relative;
   z-index: 1;
 }
-/* the message sits ABOVE the build overlay so its clear button is tappable;
-   the zone itself is click-through, so taps on the message text still build. */
-.mw-rh-teach {
-  position: relative;
-  z-index: 3;
-}
 
 /* when the meter is present the bar is the header's rule — suppress the
    wrapped header's own bottom border so there aren't two lines. `> *` covers
@@ -1108,25 +1112,7 @@ textarea.mw-composer-input:focus-visible {
   border-bottom-color: transparent;
 }
 
-/* whole-header build affordance — a transparent overlay button that catches
-   taps anywhere on the band (except the Got-it clear) when ready. */
-.mw-rh-build {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-}
-.mw-rh-build:focus-visible {
-  outline: 2px solid var(--session-persona);
-  outline-offset: -3px;
-  border-radius: 4px;
-}
-
-/* the meter — MobileSession's 3px bar, verbatim, as the header's base rule. */
+/* the meter — the 3px bar, the header's base rule. */
 .mw-rh-bar {
   height: 3px;
   background: var(--session-walnut-surface-soft);
@@ -1147,127 +1133,121 @@ textarea.mw-composer-input:focus-visible {
   transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease;
 }
 /* at ready the bar's glow settles to a calm, steady brass — no restless
-   breathing. The WIDTH still follows the real server fill: main removed the
-   false snap-to-100 latch (2026-07-02), so colour + field signal "ready"
-   while the bar keeps telling the honest depth (gate-ready already fills to
-   100 server-side, so it reads full there anyway). */
+   breathing. The WIDTH still follows the real server fill (gate-ready already
+   fills to 100 server-side, so it reads full there anyway). */
 .mw-rh[data-ready="true"] .mw-rh-fill {
   box-shadow: 0 0 3px var(--session-walnut-light);
 }
 /* saved-drain hook (fast-follow): .mw-rh[data-draining] .mw-rh-fill { width: 0 } */
 
-/* below-the-bar message zone — collapses to nothing unless there's an
-   education line (first session) or a composing line. Clicks pass through
-   to the build overlay; only the clear button is interactive. */
-.mw-rh-teach {
-  overflow: hidden;
-  max-height: 0;
+/* ── THE BUILD PILL — the one affordance while ready ──────────────────
+   Hangs centered off the bar's bottom edge like a seal. Mounts only when
+   ready && !composing, so its one-shot arrival keyframes run on mount:
+   the bloom is already washing in (field transition), then the glow
+   gathers at the bar's center, the pill blooms out of it with a soft
+   overshoot and settles, one sheen passes, and everything is still. */
+.mw-rh-pill-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 50%);
+  z-index: 2;
+  width: 110px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--session-walnut) 40%, transparent),
+    transparent 72%
+  );
+  filter: blur(5px);
   opacity: 0;
   pointer-events: none;
-  transition: max-height 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+  animation: mwGlowGather 1.5s ease-out 0.85s both;
 }
-.mw-rh[data-education="true"] .mw-rh-teach,
-.mw-rh[data-composing="true"] .mw-rh-teach {
-  max-height: 168px;
-  opacity: 1;
-}
-.mw-rh-teach-inner {
-  display: flex;
-  flex-direction: column;
+.mw-rh-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 55%);
+  z-index: 3;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 16px 30px 18px;
-  text-align: center;
+  gap: 7px;
+  padding: 8px 16px 9px 14px;
+  background:
+    linear-gradient(var(--session-walnut-surface), var(--session-walnut-surface)),
+    var(--session-cream-bright);
+  border: 1px solid var(--session-walnut-border);
+  border-radius: 999px;
+  box-shadow: var(--mw-pill-shadow);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: mwPillBloom 0.6s cubic-bezier(0.34, 1.4, 0.44, 1) 1.25s both;
 }
-.mw-rh-teach-body {
-  margin: 0;
-  max-width: 316px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  line-height: 1.6;
-  letter-spacing: 0.01em;
-  color: var(--session-ink-soft);
-  text-wrap: balance;
+.mw-rh-pill:focus-visible {
+  outline: 2px solid var(--session-persona);
+  outline-offset: 3px;
 }
-.mw-rh-teach-body em {
+.mw-rh-pill-fl {
+  font-family: var(--font-display), var(--font-serif), serif;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--session-walnut);
+}
+.mw-rh-pill-txt {
   font-family: var(--font-serif);
   font-style: italic;
-  color: var(--session-walnut-meta-strong);
+  font-size: 14px;
+  line-height: 1;
+  padding-bottom: 1px;
+  color: var(--session-ink);
 }
-.mw-rh-status {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  letter-spacing: 0.01em;
-  color: var(--session-ink-soft);
-}
-.mw-rh-fl {
+.mw-rh-pill-chev {
   font-family: var(--font-serif);
-  color: var(--session-walnut-meta-strong);
-  padding-right: 5px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--session-ink-faded);
 }
-.mw-rh-clear {
-  position: relative;
-  z-index: 3;
-  pointer-events: auto;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 2.2px;
-  text-transform: uppercase;
-  color: var(--session-walnut-meta-strong);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 4px 5px;
-}
-.mw-rh-clear::after {
-  content: "";
+/* one-time sheen — light catching the seal, once, right after it settles */
+.mw-rh-pill-sheen {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 2px;
-  height: 1px;
-  background: var(--session-walnut-border);
-  transition: background 0.3s ease;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    var(--mw-pill-sheen) 50%,
+    transparent 62%
+  );
+  transform: translateX(-110%);
+  pointer-events: none;
+  animation: mwSheenPass 0.9s ease-in-out 2.1s both;
 }
-.mw-rh-clear:hover::after { background: var(--session-walnut-meta-strong); }
-.mw-rh-clear:focus-visible {
-  outline: 2px solid var(--session-persona);
-  outline-offset: 3px;
-  border-radius: 2px;
+/* first-ever ready (per device): the pill wears a calm ember halo — steady
+   light, no pulsing — until the user's first build. */
+.mw-rh-pill[data-first="true"] {
+  border-color: var(--session-walnut-light);
+  box-shadow:
+    var(--mw-pill-shadow),
+    0 0 9px 1px var(--session-walnut-light),
+    0 0 22px 5px color-mix(in srgb, var(--session-walnut) 40%, transparent);
 }
 
-/* desktop-only explicit build affordance — a peer of the meta/FEEDBACK cluster
-   in the RoomHeader right side (desktop has no whole-header tap overlay). */
-.mw-rh-build-btn {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  color: var(--session-walnut-meta-strong);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 3px 2px 4px;
-  position: relative;
-  white-space: nowrap;
+@keyframes mwGlowGather {
+  0%   { opacity: 0; transform: translate(-50%, 50%) scaleX(2.4); }
+  35%  { opacity: 1; transform: translate(-50%, 50%) scaleX(1); }
+  70%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(-50%, 50%) scaleX(0.8); }
 }
-.mw-rh-build-btn::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: 1px;
-  height: 1px;
-  background: var(--session-walnut-border);
-  transition: background 0.3s ease;
+@keyframes mwPillBloom {
+  0%   { opacity: 0; transform: translate(-50%, 30%) scale(0.62); }
+  60%  { opacity: 1; transform: translate(-50%, 57%) scale(1.03); }
+  100% { opacity: 1; transform: translate(-50%, 55%) scale(1); }
 }
-.mw-rh-build-btn:hover::after { background: var(--session-walnut-meta-strong); }
-.mw-rh-build-btn:focus-visible {
-  outline: 2px solid var(--session-persona);
-  outline-offset: 3px;
-  border-radius: 2px;
+@keyframes mwSheenPass {
+  from { transform: translateX(-110%); }
+  to   { transform: translateX(110%); }
 }
 
 .mw-rh-error {
@@ -1288,9 +1268,16 @@ textarea.mw-composer-input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .mw-rh-field,
   .mw-rh-bar,
-  .mw-rh-fill,
-  .mw-rh-teach,
-  .mw-rh-clear::after {
+  .mw-rh-fill {
     transition-duration: 0.01ms;
+  }
+  .mw-rh-pill {
+    animation: none;
+    opacity: 1;
+  }
+  .mw-rh-pill-glow,
+  .mw-rh-pill-sheen {
+    animation: none;
+    opacity: 0;
   }
 }

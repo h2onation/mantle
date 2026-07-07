@@ -345,3 +345,18 @@ export function validateConductorPromptEdit(text: string): string | null {
     ". Put them back (anywhere in the prompt) and save again."
   );
 }
+
+// ---------------------------------------------------------------------------
+// First-entry orientation. Injected into the prompt's dynamic tail ONLY while
+// the user has an empty Manual, the reflection meter is live (web), and
+// readiness hasn't landed yet in this conversation — i.e. only on turns where
+// Jove COULD land the first-ever readiness. The moment the first entry is
+// confirmed (or readiness lands), it drops out of the prompt. Admin-editable
+// live via the `first_entry_education` override key (Tuning page); resolution
+// is `override ?? FIRST_ENTRY_EDUCATION` in buildSystemPromptBlocks.
+// Per ADR-052 it orients, once — it must never have Jove propose, offer, or
+// perform a save.
+// ---------------------------------------------------------------------------
+
+export const FIRST_ENTRY_EDUCATION = `FIRST ENTRY ORIENTATION
+This user has nothing in their Manual yet, so they have never seen the build moment. If — and only if — this is the message where you end with the readiness marker, add one short beat at the end (before the marker), in your own words: the bar at the top of their screen is now full; whenever they're ready, tapping "Build Manual entry" there drafts a proposed entry from this conversation — only the conclusions they've actually aligned to, in their words; they review it and can change any word before it enters their Manual, and leaving it to keep talking is just as good. Say it once, plainly, in your register — two or three sentences, not a tour. Do not ask whether they want to save, do not offer to do it for them, and do not bring it up again. If this message is not the one with the marker, this section asks nothing of you.`;
