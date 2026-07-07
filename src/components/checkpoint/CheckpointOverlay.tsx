@@ -28,7 +28,6 @@ interface CheckpointOverlayProps {
   // True while composeReflection() is in flight after a "Build" tap. Drives
   // the building cover so the popup is visible the instant the user taps.
   loading?: boolean;
-  refinementCeilingActive: boolean;
   confirmStatus?: ConfirmStatus;
   errorMessage?: string | null;
   onAction: (action: CheckpointAction, edits?: CheckpointEdits) => void;
@@ -41,7 +40,6 @@ export default function CheckpointOverlay({
   open,
   checkpoint,
   loading = false,
-  refinementCeilingActive,
   confirmStatus = "idle",
   errorMessage,
   onAction,
@@ -147,11 +145,6 @@ export default function CheckpointOverlay({
 
   const handleReject = useCallback(() => {
     onAction("rejected");
-    onClose();
-  }, [onAction, onClose]);
-
-  const handleDefer = useCallback(() => {
-    onAction("deferred");
     onClose();
   }, [onAction, onClose]);
 
@@ -411,56 +404,6 @@ export default function CheckpointOverlay({
                 {errorMessage}
               </p>
             )}
-            {refinementCeilingActive ? (
-              <>
-                <p
-                  style={{
-                    fontFamily: "var(--font-spectral), var(--font-serif), serif",
-                    fontSize: 14,
-                    fontStyle: "italic",
-                    color: "var(--session-ink-mid)",
-                    lineHeight: 1.5,
-                    margin: "0 0 var(--sp-sm) 0",
-                  }}
-                >
-                  Close but not quite is fine. Want me to put it in as it is, or
-                  let it go and we come back to it?
-                </p>
-                <button
-                  onClick={handleConfirm}
-                  style={{
-                    width: "100%",
-                    padding: "15px 20px",
-                    fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
-                    fontSize: 15,
-                    fontWeight: 500,
-                    color: "var(--session-ink)",
-                    background: "var(--session-walnut-border)",
-                    border: "1px solid var(--session-walnut-border)",
-                    borderRadius: 12,
-                    cursor: "pointer",
-                    letterSpacing: "0.2px",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  Add to my Manual as-is
-                </button>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    marginTop: 12,
-                  }}
-                >
-                  <button onClick={handleDefer} style={linkStyle}>
-                    let it go
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
                 <button
                   onClick={handleConfirm}
                   style={{
@@ -521,8 +464,7 @@ export default function CheckpointOverlay({
                     Discard
                   </button>
                 </div>
-              </>
-            )}
+
           </div>
         )}
 

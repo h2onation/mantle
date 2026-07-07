@@ -96,7 +96,7 @@ export interface CheckpointMeta {
   // Number of "Close but not quite" refinements that produced THIS
   // entry. Inherited from the previous checkpoint when that previous
   // checkpoint's status was "refined" (chain unbroken). Reset to 0
-  // when the previous checkpoint was confirmed/rejected/deferred.
+  // when the previous checkpoint was confirmed/rejected.
   // The card UI shows the refinement-ceiling state when this value
   // is >= 2 (i.e. the user has already refined twice and is now
   // looking at the third attempt). Track A Phase 7-Mid.
@@ -565,8 +565,8 @@ export function validateResponseStructure(
 
 /**
  * Insert the canonical system message for a checkpoint action.
- * Used by: confirmCheckpoint (confirmed), checkpoint/confirm/route (rejected/refined/deferred),
- * and message-router (text path rejected/refined; deferred is web-only).
+ * Used by: confirmCheckpoint (confirmed), checkpoint/confirm/route (rejected/refined),
+ * and message-router (text path rejected/refined).
  */
 export async function insertCheckpointActionMessage(
   admin: ReturnType<typeof createAdminClient>,
@@ -636,8 +636,7 @@ export function buildCheckpointMeta(
     changelog: string;
     summary?: string;
     key_words?: string[];
-  } | null,
-  inheritedRefinementCount: number = 0
+  } | null
 ): CheckpointMeta {
   return {
     section: composedEntry?.section ?? null,
@@ -649,7 +648,11 @@ export function buildCheckpointMeta(
     changelog: composedEntry?.changelog || null,
     composed_summary: composedEntry?.summary || null,
     composed_key_words: composedEntry?.key_words || null,
-    refinement_count: inheritedRefinementCount,
+    // Always 0 at creation: the pull model has no checkpoint inheritance.
+    // "refined" bumps it on the (terminal) row in checkpoint/confirm — pure
+    // bookkeeping; nothing gates on it. (The push-era refinement ceiling and
+    // its "deferred" action were removed 2026-07-07 as unreachable.)
+    refinement_count: 0,
   };
 }
 

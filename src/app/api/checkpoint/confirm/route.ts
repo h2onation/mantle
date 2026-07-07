@@ -59,11 +59,7 @@ export async function POST(request: Request) {
     editedName,
   } = (await request.json()) as {
     messageId: string;
-    // "deferred" is the refinement-ceiling "Let it go" path. DB level
-    // it behaves like rejected (status='rejected'), but the system
-    // message is distinct so Jove does not run the POST-REJECTION
-    // fixed line in response. Track A Phase 7-Mid.
-    action: "confirmed" | "rejected" | "refined" | "deferred";
+    action: "confirmed" | "rejected" | "refined";
     conversationId: string;
     // Optional edits from the review overlay. Ignored unless action ===
     // "confirmed". Trimmed and validated downstream.
@@ -178,16 +174,12 @@ export async function POST(request: Request) {
       outcome: wasAlreadyConfirmed ? "idempotent" : "success",
     });
   } else {
-    // For rejected/refined/deferred: update status, increment counter
+    // For rejected/refined: update status, increment counter
     // on refined only, insert distinct system message per action.
     //
     // Status mapping:
     //   refined  → status="refined"   (chain continues)
     //   rejected → status="rejected"  (chain breaks)
-    //   deferred → status="rejected"  (chain breaks; same DB state as
-    //              rejected — only the system message differs so Jove
-    //              skips the POST-REJECTION fixed line. Track A Phase
-    //              7-Mid.)
     //
     // Idempotency: a fast double-tap (or any second call before the
     // overlay closes) would otherwise double-increment refinement_count
@@ -220,7 +212,7 @@ export async function POST(request: Request) {
         ?.refinement_count ?? 0;
     const updatedMeta = {
       ...msg.checkpoint_meta,
-      status: action === "deferred" ? "rejected" : action,
+      status: action,
       refinement_count:
         action === "refined"
           ? currentRefinementCount + 1
@@ -290,7 +282,7 @@ export async function POST(request: Request) {
   // 4. For confirmed actions, load the post-write layer distribution
   //    in one query. Powers BOTH the guest-promptAuth check (count)
   //    AND the Phase 7-High first-vs-subsequent branching below.
-  //    For non-confirmed actions (rejected/refined/deferred), the
+  //    For non-confirmed actions (rejected/refined), the
   //    post-confirm flow is unchanged — Jove responds normally (with
   //    POST-REJECTION fixed line for rejected).
   let totalEntries = 0;
@@ -326,7 +318,7 @@ export async function POST(request: Request) {
   });
 
   // 5a. Track A Phase 7-High — post-confirm flow branching. Only for
-  //     confirmed actions; rejected/refined/deferred fall through to
+  //     confirmed actions; rejected/refined fall through to
   //     a normal callPersona call with no postConfirmMode so Jove
   //     responds per existing POST-REJECTION or natural-exploration
   //     guidance.

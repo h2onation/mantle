@@ -180,14 +180,6 @@ describe("guided intake instrumentation wiring", () => {
     expect(block).toContain("mode: ConversationMode");
   });
 
-  it("trackCheckpointDeferred signature requires mode", () => {
-    const block = events.match(
-      /export function trackCheckpointDeferred[\s\S]*?\n\}/
-    )?.[0];
-    expect(block).toBeDefined();
-    expect(block).toContain("mode: ConversationMode");
-  });
-
   it("trackConversationEnded signature requires mode", () => {
     const block = events.match(
       /export function trackConversationEnded[\s\S]*?\n\}/

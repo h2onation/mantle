@@ -85,14 +85,6 @@ export const CHECKPOINT_ACTIONS = {
     systemMessage: "[User wants to refine the checkpoint]",
     naturalReply: "That's close but not quite right.",
   },
-  // Refinement-ceiling "Let it go" path. DB status maps to "rejected"
-  // (same downstream behavior — entry is closed, nothing written to
-  // manual_entries) but Jove sees this distinct message so the
-  // POST-REJECTION fixed line does not fire.
-  deferred: {
-    systemMessage: "[User let the checkpoint go]",
-    naturalReply: "I'll let that one go for now. We can come back to it.",
-  },
 } as const;
 
 export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;

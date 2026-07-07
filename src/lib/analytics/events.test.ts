@@ -118,18 +118,6 @@ const CASES: Case[] = [
     expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
   },
   {
-    event: "checkpoint_deferred",
-    call: () =>
-      events.trackCheckpointDeferred({
-        conversation_id: "c1",
-        checkpoint_id: "m1",
-        section: "relationships",
-        time_to_decision_ms: 2500,
-        mode: "situation",
-      }),
-    expectedKeys: ["conversation_id", "checkpoint_id", "section", "time_to_decision_ms", "mode"],
-  },
-  {
     event: "manual_viewed",
     call: () =>
       events.trackManualViewed({ entry_count: 5, days_since_last_view: 2 }),

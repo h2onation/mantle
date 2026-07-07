@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import ChatInput from "./ChatInput";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
@@ -213,17 +213,6 @@ function MobileSessionInner({
     }
     prevCheckpointRef.current = activeCheckpoint;
   }, [activeCheckpoint]);
-
-  const refinementCeilingActive = useMemo(
-    () =>
-      activeCheckpoint !== null &&
-      messages.some(
-        (m) =>
-          m.id === activeCheckpoint.messageId &&
-          (m.checkpointMeta?.refinement_count ?? 0) >= 2
-      ),
-    [activeCheckpoint, messages]
-  );
 
   return (
     <main
@@ -479,7 +468,6 @@ function MobileSessionInner({
                           >
                             {checkpointActionState === "refined" && `${PERSONA_NAME} will revisit this`}
                             {checkpointActionState === "rejected" && "Discarded"}
-                            {checkpointActionState === "deferred" && "Set aside"}
                           </span>
                         </div>
                       )}
@@ -731,7 +719,6 @@ function MobileSessionInner({
           open={checkpointOverlayOpen}
           checkpoint={overlayCheckpointRef.current}
           loading={reflectionComposing}
-          refinementCeilingActive={refinementCeilingActive}
           confirmStatus={
             checkpointActionState !== "confirmed"
               ? "idle"

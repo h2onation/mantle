@@ -15,7 +15,6 @@ import {
   trackCheckpointProposed,
   trackCheckpointConfirmed,
   trackCheckpointRejected,
-  trackCheckpointDeferred,
   trackCheckpointRefined,
   type ConversationMode,
 } from "@/lib/analytics/events";
@@ -874,7 +873,7 @@ export function useChat() {
     setIsLoading(true);
     setCheckpointError(null);
 
-    // For non-confirmed actions (rejected/refined/deferred), close the
+    // For non-confirmed actions (rejected/refined), close the
     // visible "pending" state immediately. Without this, the trigger
     // card stays in its compact "Tap to review" form while the network
     // call runs, then snaps to the historical Plate when activeCheckpoint
@@ -1044,7 +1043,6 @@ export function useChat() {
         if (action === "confirmed") trackCheckpointConfirmed(cpProps);
         else if (action === "rejected") trackCheckpointRejected(cpProps);
         else if (action === "refined") trackCheckpointRefined(cpProps);
-        else if (action === "deferred") trackCheckpointDeferred(cpProps);
       }
       checkpointProposedAt.current = null;
 

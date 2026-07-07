@@ -17,7 +17,7 @@ import { checkAnonCheckpointGate } from "@/lib/auth/anon-checkpoint-gate";
 
 /**
  * User-pulled Reflection composition. The client calls this when the user
- * taps "Build this reflection" (or the deferred top strip). It composes the
+ * taps "Build this reflection". It composes the
  * entry on demand by reusing `composeManualEntry` — no Jove turn, no
  * transition line — and writes the SAME `is_checkpoint` message row the
  * Jove-pushed path writes, so the existing `/api/checkpoint/confirm` route,
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
       role: "assistant",
       content: composed.content,
       is_checkpoint: true,
-      checkpoint_meta: buildCheckpointMeta(composed, 0),
+      checkpoint_meta: buildCheckpointMeta(composed),
     })
     .select("id")
     .single();

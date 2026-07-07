@@ -297,7 +297,7 @@ describe("/api/checkpoint/confirm reject/refine/defer idempotency", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messageId: "m1",
-        action: "deferred",
+        action: "rejected",
         conversationId: "c1",
       }),
     });

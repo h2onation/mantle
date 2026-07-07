@@ -96,23 +96,6 @@ export function trackCheckpointRefined(props: {
   posthog.capture("checkpoint_refined", props);
 }
 
-// Track A Phase 7-Mid: refinement-ceiling defer. Distinct from
-// checkpoint_rejected — both close the entry without writing to
-// the Manual, but a defer means the user already explained twice
-// what was off and chose to set it aside (vs. a flat "this is not
-// me"). Tracking separately lets us see how often the ceiling
-// fires in production, which informs whether the "two refinements
-// max" threshold is right.
-export function trackCheckpointDeferred(props: {
-  conversation_id: string;
-  checkpoint_id: string;
-  section: string | null;
-  time_to_decision_ms: number;
-  mode: ConversationMode;
-}) {
-  posthog.capture("checkpoint_deferred", props);
-}
-
 export function trackManualViewed(props: {
   entry_count: number;
   days_since_last_view: number | null;

@@ -98,18 +98,15 @@ describe("mapSystemMessages", () => {
     ]);
   });
 
-  it("maps the refinement-ceiling 'let the checkpoint go' system message to a synthetic user message distinct from rejection", () => {
-    // Track A Phase 7-Mid: the defer path translates to an
-    // acknowledgment the user has chosen to set the entry aside, NOT
-    // a rejection. This distinction matters because the POST-REJECTION
-    // block fires only on "[User rejected the checkpoint]" — the
-    // deferred translation must not look like a rejection.
+  it("drops legacy system messages with no registered translation (e.g. the removed deferred path)", () => {
+    // The refinement-ceiling "deferred" action was removed 2026-07-07
+    // (unreachable in the pull model; zero historical rows in prod). Any
+    // legacy "[User let the checkpoint go]" row would simply be skipped —
+    // unknown system messages never reach the model.
     const result = mapSystemMessages([
       { role: "system", content: "[User let the checkpoint go]" },
     ]);
-    expect(result).toEqual([
-      { role: "user", content: "I'll let that one go for now. We can come back to it." },
-    ]);
+    expect(result).toEqual([]);
   });
 
   it("drops unknown system messages", () => {

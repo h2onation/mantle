@@ -152,24 +152,13 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toMatch(/>\s*Not at all\s*</);
     });
 
-    it("renders the refinement-ceiling inline message in the overlay", () => {
-      const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
-      expect(overlay).toContain("Close but not quite is fine.");
-      expect(overlay).toContain("let it go");
-    });
-
     it("dispatches actions via onAction callback from the overlay", () => {
       const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
       expect(overlay).toMatch(/onAction\("confirmed"/);
       expect(overlay).toMatch(/onAction\("refined"\)/);
       expect(overlay).toMatch(/onAction\("rejected"\)/);
-      expect(overlay).toMatch(/onAction\("deferred"\)/);
     });
 
-    it("computes refinement-ceiling state from refinement_count >= 2", () => {
-      expect(src).toContain("refinement_count");
-      expect(src).toMatch(/>=\s*2/);
-    });
   });
 
   // ─── docs/rules.md marketing language ───────────────────────────────────
