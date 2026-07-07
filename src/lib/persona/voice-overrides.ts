@@ -1,5 +1,8 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
+import {
+  CONDUCTOR_PROMPT,
+  FIRST_ENTRY_EDUCATION,
+} from "@/lib/persona/conductor-prompt";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
@@ -40,6 +43,11 @@ export interface VoiceOverrides {
    *  read. Threaded into composeManualEntry; the entry's structure, schema, and
    *  safety rules stay code-only. */
   composerEntryBar?: string;
+  /** The one-time first-entry orientation Jove speaks when readiness first
+   *  lands for a user with an empty Manual. Injected into the prompt's dynamic
+   *  tail by buildSystemPromptBlocks only on qualifying turns; absent falls
+   *  back to FIRST_ENTRY_EDUCATION (conductor-prompt.ts). */
+  firstEntryEducation?: string;
 }
 
 /**
@@ -76,6 +84,11 @@ export const VOICE_OVERRIDE_FIELDS: Record<
     field: "composerEntryBar",
     label: "Entry voice — the bar (composer)",
     getDefault: () => COMPOSER_ENTRY_BAR,
+  },
+  first_entry_education: {
+    field: "firstEntryEducation",
+    label: "First-entry orientation (Jove's one-time education)",
+    getDefault: () => FIRST_ENTRY_EDUCATION,
   },
 };
 

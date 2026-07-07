@@ -22,9 +22,12 @@ export interface ReflectionSurface {
   fill: number;
   ready: boolean;
   composing: boolean;
-  showEducation: boolean;
+  /** First-ever ready on this device: the pill wears the ember halo until the
+   *  user's first build. (The old education band + GOT IT were removed
+   *  2026-07-07 — the pill itself is the affordance, Jove speaks the one-time
+   *  orientation in conversation.) */
+  firstTime: boolean;
   onBuild: () => void;
-  onDismissEducation: () => void;
 }
 
 interface UseReflectionArgs {
@@ -44,8 +47,8 @@ interface UseReflectionArgs {
 }
 
 // Single source of truth for the reflection surface's UI state. Owns the
-// composing flag and the one-time education (per-device localStorage), derives
-// showEducation once, and exposes onBuild. Both the mobile header and the
+// composing flag and the one-time first-ready flag (per-device localStorage),
+// derives firstTime once, and exposes onBuild. Both the mobile header and the
 // desktop RoomHeader consume this so the treatment is identical and the
 // decision logic is never duplicated. Introduced 2026-07-03 to bring the
 // deep-field reflection header to the desktop shell.
@@ -82,8 +85,10 @@ export function useReflection({
   const meterVisible = fill !== null;
   const displayFill = fill ?? 0;
 
-  // Computed ONCE here; both headers receive the boolean.
-  const showEducation =
+  // Computed ONCE here; both headers receive the boolean. Drives the pill's
+  // first-time ember halo (anonymous users skip it — they convert at first
+  // checkpoint, mirroring the pre-lift behaviour).
+  const firstTime =
     meterVisible && ready && !composing && !introSeen && !isAnonymous;
 
   const onBuild = useCallback(async () => {
@@ -115,8 +120,7 @@ export function useReflection({
     displayFill,
     ready,
     composing,
-    showEducation,
+    firstTime,
     onBuild,
-    onDismissEducation: dismissEducation,
   };
 }

@@ -71,9 +71,8 @@ interface MobileSessionProps {
   // so the mobile header and the desktop RoomHeader share one source. Absent =
   // gate off. reflectionComposing also drives the overlay's building state.
   reflectionComposing?: boolean;
-  showEducation?: boolean;
+  reflectionFirstTime?: boolean;
   onBuild?: () => void;
-  onDismissEducation?: () => void;
   // false when the desktop shell provides its own header. Default true.
   showTopBar?: boolean;
   // When this conversation was opened via "go deeper" on a Manual layer,
@@ -106,9 +105,8 @@ function MobileSessionInner({
   reflectionReady = false,
   composeReflection,
   reflectionComposing = false,
-  showEducation = false,
+  reflectionFirstTime = false,
   onBuild,
-  onDismissEducation,
   showTopBar = true,
   scopedLabel = null,
   draftToRestore = null,
@@ -162,10 +160,9 @@ function MobileSessionInner({
     return Date.now() - parseInt(dismissed, 10) < 24 * 60 * 60 * 1000;
   });
 
-  // (The one-time reflection education state + build orchestration moved to
-  // useReflection in MainApp on 2026-07-03 so the desktop RoomHeader shares
-  // them; MobileSession now receives showEducation / onBuild / onDismissEducation
-  // as props.)
+  // (Reflection state + build orchestration live in useReflection in MainApp
+  // so the desktop RoomHeader shares them; MobileSession receives
+  // reflectionFirstTime / onBuild as props.)
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
@@ -233,10 +230,8 @@ function MobileSessionInner({
           fill={displayFill}
           ready={reflectionReady}
           composing={reflectionComposing}
-          showEducation={showEducation}
+          firstTime={reflectionFirstTime}
           onBuild={onBuild ?? (() => {})}
-          onDismissEducation={onDismissEducation ?? (() => {})}
-          fullCoverTap
           error={checkpointError}
         >
           <TopBar />

@@ -381,6 +381,15 @@ export function buildPromptOptionsFromContext(
     // Admin-editable voice-text overrides; empty {} falls back to all code
     // defaults at each resolution site in system-prompt.ts.
     voiceOverrides: ctx.voiceOverrides,
+    // One-time first-entry orientation: only on turns where Jove could land
+    // the user's FIRST-ever readiness. isFirstCheckpoint ⇔ empty Manual;
+    // reflectionMeterEnabled ⇔ web surface + meter gate; reflectionLanded
+    // false ⇔ readiness hasn't fired yet this conversation (once it lands the
+    // orientation was delivered on that message and the block drops out).
+    firstEntryEducation:
+      ctx.isFirstCheckpoint &&
+      ctx.reflectionMeterEnabled &&
+      !ctx.reflectionLanded,
   };
 }
 

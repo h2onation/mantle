@@ -136,6 +136,32 @@ describe("buildPromptOptionsFromContext — mode field", () => {
     expect(buildPromptOptionsFromContext(makeCtx("situation")).mode).toBe("situation");
   });
 
+  // ── First-entry orientation flag ──────────────────────────────────────
+  // True only on turns where Jove could land the user's FIRST-ever readiness:
+  // empty Manual + live meter + readiness not yet landed this conversation.
+  it("sets firstEntryEducation only for empty-Manual, meter-on, not-yet-landed turns", () => {
+    const base = makeCtx("situation");
+
+    // meter off (text surface / gate off) → never
+    expect(buildPromptOptionsFromContext(base).firstEntryEducation).toBe(false);
+
+    // qualifying turn → true
+    const qualifying = { ...base, reflectionMeterEnabled: true };
+    expect(buildPromptOptionsFromContext(qualifying).firstEntryEducation).toBe(true);
+
+    // readiness already landed this conversation → orientation was delivered
+    expect(
+      buildPromptOptionsFromContext({ ...qualifying, reflectionLanded: true })
+        .firstEntryEducation
+    ).toBe(false);
+
+    // Manual has entries → user has seen the moment; never again
+    expect(
+      buildPromptOptionsFromContext({ ...qualifying, isFirstCheckpoint: false })
+        .firstEntryEducation
+    ).toBe(false);
+  });
+
   // Removed 2026-07-06: the two "rebuilt prompt renders the GUIDED INTAKE
   // Tier-3 block" tests and the "resolves the voice variant" test. The
   // rebuilt/legacy voice worlds (and the Tier-3 GUIDED INTAKE block) were

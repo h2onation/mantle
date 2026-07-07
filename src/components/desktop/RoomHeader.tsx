@@ -24,9 +24,9 @@ interface RoomHeaderProps {
 // brand survives sidebar collapse; the title is a running header that follows
 // the active view, like a book's. On the session view it doubles as the
 // reflection surface (2026-07-03) — wrapped in the shared ReflectionHeader so
-// desktop and mobile read identically, with an explicit "Build reflection"
-// button in the right cluster (desktop has no whole-header tap — it would
-// swallow the controls that live in the row).
+// desktop and mobile read identically: the build pill hangs from the bar in
+// both (the old desktop-only "Build reflection" text button was removed
+// 2026-07-07 when the pill became the one affordance).
 export default function RoomHeader({
   activeView,
   sessionTitle,
@@ -62,8 +62,6 @@ export default function RoomHeader({
   }
 
   const reflectionActive = activeView === "session" && reflection.meterVisible;
-  const showBuild =
-    activeView === "session" && reflection.ready && !reflection.composing;
 
   const headerRow = (
     <header
@@ -167,15 +165,6 @@ export default function RoomHeader({
         }}
       >
         {meta && <span>{meta}</span>}
-        {showBuild && (
-          <button
-            type="button"
-            className="mw-rh-build-btn"
-            onClick={reflection.onBuild}
-          >
-            Build reflection
-          </button>
-        )}
         <BetaFeedbackButton variant="inline" />
       </span>
     </header>
@@ -190,10 +179,8 @@ export default function RoomHeader({
       fill={reflection.fill}
       ready={reflection.ready}
       composing={reflection.composing}
-      showEducation={reflection.showEducation}
+      firstTime={reflection.firstTime}
       onBuild={reflection.onBuild}
-      onDismissEducation={reflection.onDismissEducation}
-      fullCoverTap={false}
     >
       {headerRow}
     </ReflectionHeader>

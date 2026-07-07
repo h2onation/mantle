@@ -606,9 +606,8 @@ export default function MainApp() {
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}
       reflectionComposing={reflection.composing}
-      showEducation={reflection.showEducation}
+      reflectionFirstTime={reflection.firstTime}
       onBuild={reflection.onBuild}
-      onDismissEducation={reflection.onDismissEducation}
       scopedLabel={sessionOrigin === "explore" ? explorationLabel : null}
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
@@ -688,9 +687,8 @@ export default function MainApp() {
             fill: reflection.displayFill,
             ready: reflection.ready,
             composing: reflection.composing,
-            showEducation: reflection.showEducation,
+            firstTime: reflection.firstTime,
             onBuild: reflection.onBuild,
-            onDismissEducation: reflection.onDismissEducation,
           }}
           homeContent={desktopHomeContent}
           sessionContent={sessionContent}

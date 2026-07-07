@@ -19,7 +19,10 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 //
 // Page order = how often you reach for it:
 //   0. What's serving right now — every override key, code vs OVERRIDDEN.
-//   1. THE CONVERSATION — the conductor prompt (`conductor_prompt`).
+//   1. THE CONVERSATION — the conductor prompt (`conductor_prompt`), plus its
+//      one conditional rider: the first-entry orientation
+//      (`first_entry_education`), the one-time education Jove speaks when
+//      readiness first lands for a user with an empty Manual.
 //   2. THE ENTRY — the composer: read-only prompt (rendered from the same
 //      function the live call uses) + the editable entry bar.
 //   3. Copy around the conversation — openers, post-save line, app copy
@@ -89,6 +92,11 @@ export default function TuningPage() {
     { key: string; label: string; enabled: boolean }[]
   >([]);
 
+  // The first-entry orientation — Jove's one-time education rider.
+  const [eduField, setEduField] = useState<VoiceField | null>(null);
+  const [eduDraft, setEduDraft] = useState<string>("");
+  const [eduBusy, setEduBusy] = useState(false);
+
   function load() {
     fetch("/api/admin/persona-voice")
       .then((r) => r.json())
@@ -115,6 +123,16 @@ export default function TuningPage() {
         }
         if (Array.isArray(d?.overrideStatus)) {
           setOverrideStatus(d.overrideStatus);
+        }
+
+        const edu = (d?.fields as VoiceField[] | undefined)?.find(
+          (x) => x.key === "first_entry_education",
+        );
+        if (edu) {
+          setEduField(edu);
+          setEduDraft(
+            edu.enabled && edu.override !== null ? edu.override : edu.default,
+          );
         }
       })
       .catch(() => setError("Could not load the prompt."));
@@ -146,6 +164,31 @@ export default function TuningPage() {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setBarBusy(false);
+    }
+  }
+
+  async function patchEdu(body: Record<string, unknown>) {
+    setEduBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/admin/persona-voice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "first_entry_education", ...body }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d?.error || "Save failed");
+      setNotice(
+        body.reset
+          ? "First-entry orientation reset to the shipped default. Live on the next turn."
+          : "First-entry orientation saved. Live on the next turn.",
+      );
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setEduBusy(false);
     }
   }
 
@@ -647,6 +690,66 @@ export default function TuningPage() {
                 on the main admin page.
               </div>
             </div>
+
+            {/* ── The first-entry orientation — Jove's one-time education ── */}
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              The first-entry orientation
+            </h2>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                color: "var(--session-walnut-meta)",
+                margin: "0 0 18px",
+                maxWidth: 700,
+              }}
+            >
+              The one-time education. When readiness lands for someone whose
+              Manual is still empty, Jove ends that message with a short
+              orientation — what the full bar means, that tapping &ldquo;Build
+              Manual entry&rdquo; drafts a proposed entry from the
+              conversation, and that they approve every word. This block rides
+              in the prompt only on turns where that first landing could
+              happen and drops out the moment it does. It tells Jove what to
+              convey; he phrases it himself. It must never have Jove offer or
+              perform a save.
+            </p>
+            {eduField && (
+              <div
+                style={{
+                  border: "1px solid var(--session-walnut-border)",
+                  background: "var(--session-walnut-surface)",
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                  marginBottom: 18,
+                }}
+              >
+                <OverrideFieldEditor
+                  label={eduField.label}
+                  value={eduDraft}
+                  isEdited={eduField.enabled && eduField.override !== null}
+                  dirty={
+                    eduDraft !==
+                    (eduField.enabled && eduField.override !== null
+                      ? eduField.override
+                      : eduField.default)
+                  }
+                  busy={eduBusy}
+                  rows={10}
+                  onChange={setEduDraft}
+                  onSave={() => patchEdu({ text: eduDraft })}
+                  onReset={() => patchEdu({ reset: true })}
+                />
+              </div>
+            )}
 
             {/* ── The entry — the composer ───────────────────────────── */}
             <h2
