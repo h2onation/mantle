@@ -9,9 +9,13 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *
  * These gates sit at chokepoints where one boolean collapses a whole branch:
  *
- *   personaDeltas      OFF → composeTier2 renders base voice only (the
- *                            neutral "general" voice); the four neurotype
- *                            voice deltas never load.
+ *   personaDeltas      OFF → personaModes clamps to ["general"]. CURRENTLY
+ *                            INERT under the conductor (audited 2026-07-07):
+ *                            nothing downstream reads personaModes — the
+ *                            conductor prompt is persona-blind and extraction
+ *                            never consumed it. The gate is kept per the
+ *                            settled ND-personas decision; toggling it changes
+ *                            no live behavior.
  *   situation          OFF → the Situation entry door renders disabled
  *                            ("Coming soon") and new / fallback conversations
  *                            resolve to the next enabled mode (guided, then

@@ -21,7 +21,7 @@ Read, in this order:
 
 The engine itself, by file:
 - **System prompt and tiers** — `src/lib/persona/system-prompt.ts` (Tier 1 constitutional, Tier 2 voice, Tier 3 mechanics; lower tiers override higher).
-- **Voice and persona deltas** — `src/lib/persona/voice-scaffold.ts` (base) plus `voice-{autistic,adhd,dyslexic,general}.ts` (per-persona signatures). The phantom-baseline forms live in the deltas.
+- **Voice and persona deltas** — the base voice is `CONDUCTOR_PROMPT` in `src/lib/persona/conductor-prompt.ts` (the sole live 1:1 voice; ADR-052). The four `voice-{autistic,adhd,dyslexic,general}.ts` delta files still exist but are DORMANT — imported by nothing since the conductor promotion (settled keep). The phantom-baseline forms live in the deltas.
 - **Alliance signals** — the per-turn monitor (`monitor.ts`, the `monitor_reads` table) was removed under ADR-045; do not review against it, and do not prescribe rebuilding it — the re-entry condition is consumer-first (name what consumes the signal before building any sensor, and prefer detecting inside the main Jove call over a parallel watcher). The surviving alliance/rupture signals live in `src/lib/persona/extraction.ts`: `observation_miss_count` (did Jove's last observation land — pushback, withdrawal, redirect, or being ignored increments it) and `pattern_engaged` (the user genuinely engaged with a named pattern, or named it themselves). Critique whether these two signals actually capture the construct, not just whether the code runs.
 - **Pipeline, extraction, checkpoints, Manual context** — `persona-pipeline.ts`, `extraction.ts`, `detect-checkpoint.ts`, `confirm-checkpoint.ts`, `manual-context.ts`.
 

@@ -11,7 +11,7 @@ import { deriveSummaryFromContent } from "./manual-context";
 const COMPOSE_TRANSCRIPT_WINDOW = 50;
 
 // THE BAR — the editable depth/quality standard for a Manual entry: what makes
-// one "land." Admin-editable via the Voice editor ("Entry voice — the bar");
+// one "land." Admin-editable on the Tuning page ("Entry voice — the bar");
 // resolved override-or-default at the call sites (voice-overrides.ts →
 // composerEntryBar), fed in as `entryBarOverride`, and fails open to this
 // constant. Everything else in the composer prompt below — the output schema,
@@ -123,14 +123,12 @@ TAGS (field: "tags", array of strings, may be empty): a closed set, optional len
 - "strength" — when the pattern is genuinely a capability or asset (not a costly pattern). Valid in any section.
 - "romantic" / "family" / "friends" — ONLY when section is "relationships" AND the entry names which sphere. Omit otherwise.
 
-ACKNOWLEDGMENT (field: "acknowledgment"): one plain sentence, 12-22 words, second person, that quotes the specific moment from the user's last turn(s) and ends with the intent to mark it ("…I want to put that down"). Plain spoken, no therapy voice. If there is no quotable specific, return "".
-
 COMPRESSED (for future reference):
 - summary: one sentence, 20-40 words, third person — "they" for the user, never a gendered pronoun. The mechanism and the bind, the user's charged words kept.
 - key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Depth on the one pattern...", "name": "The title — what they do", "section": "relationships", "tags": ["romantic"], "acknowledgment": "Specific sentence ending with intent to mark.", "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
+{"content": "Depth on the one pattern...", "name": "The title — what they do", "section": "relationships", "tags": ["romantic"], "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
 ("section" is one of the five slugs above; "tags" may be []. )`;
 }
 
@@ -144,14 +142,6 @@ export async function composeManualEntry(
   changelog: string;
   summary: string;
   key_words: string[];
-  /** Specific reflective bubble rendered as a regular Jove chat message
-   *  immediately before the trigger card. Quotes a phrase or moment from
-   *  the user's last 1-2 turns, then signals the intent to mark this.
-   *  Replaces the old generic "A pattern came through in what you said"
-   *  lead-in and the transient "Something is forming…" loading label.
-   *  May be empty when Opus declines to produce a usable line — caller
-   *  should skip emission in that case. */
-  acknowledgment: string;
 } | null> {
   const {
     checkpointText,
@@ -242,7 +232,7 @@ export async function composeManualEntry(
   const reflectionBlock = checkpointText
     ? `${PERSONA_NAME.toUpperCase()}'S CHECKPOINT REFLECTION:\n${checkpointText}`
     : anchorApprovedVersion
-      ? `The user chose to capture the reflection they BUILT WITH ${PERSONA_NAME} in this conversation. A working version of the entry was said aloud during the conversation and refined through the user's own corrections — find it in the transcript above. Take the MOST RECENT version the user approved (their last "yes, that's it" — or their own rewritten version if they wrote one; the user's latest corrections always beat earlier drafts). THE BODY IS THAT APPROVED VERSION, carried near-verbatim: light stitching only where needed for it to stand alone. Never re-author it, never upgrade its register, never reintroduce a phrasing the user corrected away, and do not deepen past what they approved — for the body, faithful reproduction IS the bar. Title, section, tags, summary, and acknowledgment follow the rules above, derived from the approved version and the conversation. If NO working version was ever said aloud (the user pulled early, mid-conversation), ignore the reproduction rule and follow the normal entry rules above — one pattern worked down to whatever depth the conversation actually reached, never a chronological retelling of the session.`
+      ? `The user chose to capture the reflection they BUILT WITH ${PERSONA_NAME} in this conversation. A working version of the entry was said aloud during the conversation and refined through the user's own corrections — find it in the transcript above. Take the MOST RECENT version the user approved (their last "yes, that's it" — or their own rewritten version if they wrote one; the user's latest corrections always beat earlier drafts). THE BODY IS THAT APPROVED VERSION, carried near-verbatim: light stitching only where needed for it to stand alone. Never re-author it, never upgrade its register, never reintroduce a phrasing the user corrected away, and do not deepen past what they approved — for the body, faithful reproduction IS the bar. Title, section, tags, and summary follow the rules above, derived from the approved version and the conversation. If NO working version was ever said aloud (the user pulled early, mid-conversation), ignore the reproduction rule and follow the normal entry rules above — one pattern worked down to whatever depth the conversation actually reached, never a chronological retelling of the session.`
       : `The user chose to capture a reflection from this conversation. Compose the entry from the conversation above and the accumulated understanding — there is no pre-drafted reflection to polish.`;
 
   const userContent = `${languageSection}${manualSection}${depthSection}
@@ -331,14 +321,6 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
         .filter((w: string) => w.length > 0)
     : [];
 
-  // Acknowledgment: trimmed string. Length and shape are governed by the
-  // composer prompt ("12-22 words. One sentence."). Empty string flows
-  // through naturally — the caller skips emission when falsy.
-  const acknowledgment =
-    typeof parsed.acknowledgment === "string"
-      ? parsed.acknowledgment.trim()
-      : "";
-
   // Headline enforcement (2026-06-16). The title is the most-missed output:
   // the in-prompt rules don't bind under load (a real prod entry shipped a
   // feeling-state, scenario-specific title despite the prompt banning both).
@@ -393,7 +375,6 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
     changelog: parsed.changelog || `Created ${sectionName(section)} entry.`,
     summary,
     key_words: keyWords,
-    acknowledgment,
   };
 }
 

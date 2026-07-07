@@ -59,7 +59,7 @@ The cut-list is a **hypothesis, not a verdict** — roughly half of "obviously d
 
 ## Optional deep lenses (flags — don't run by default)
 
-- **`--test-rule <name>`** — empirically settle "is this prompt rule dead weight?" Spawn an agent that runs the prompt *with the rule removed* against representative inputs and checks whether the failure the rule guards against actually reappears. Behaves fine without it → provably dead; failure returns → load-bearing, KEEP. Turns the scaffolding test from opinion into evidence. (Use this before any large voice-scaffold trim.)
+- **`--test-rule <name>`** — empirically settle "is this prompt rule dead weight?" Spawn an agent that runs the prompt *with the rule removed* against representative inputs and checks whether the failure the rule guards against actually reappears. Behaves fine without it → provably dead; failure returns → load-bearing, KEEP. Turns the scaffolding test from opinion into evidence. (Use this before any large conductor-prompt trim.)
 - **`--from-scratch <subsystem>`** — an agent specs the *minimal* version of the subsystem with today's models, ignoring the current code; you diff against reality. The delta is the over-architecture. Catches heaviness that line-by-line scanning misses.
 
 ## Hard rules
@@ -76,7 +76,7 @@ The cut-list is a **hypothesis, not a verdict** — roughly half of "obviously d
 ```bash
 cd /Users/jeffwaters/mywalnut
 PLOC=$(find src/lib/persona -name '*.ts' ! -name '*.test.ts' -print0 | xargs -0 cat | wc -l | tr -d ' ')
-PROMPT_CHARS=$(cat src/lib/persona/system-prompt.ts src/lib/persona/voice-scaffold.ts src/lib/persona/voice-autistic.ts src/lib/persona/voice-adhd.ts src/lib/persona/voice-dyslexic.ts src/lib/persona/voice-general.ts src/lib/persona/extraction.ts src/lib/persona/confirm-checkpoint.ts | wc -c | tr -d ' ')
+PROMPT_CHARS=$(cat src/lib/persona/system-prompt.ts src/lib/persona/conductor-prompt.ts src/lib/persona/voice-autistic.ts src/lib/persona/voice-adhd.ts src/lib/persona/voice-dyslexic.ts src/lib/persona/voice-general.ts src/lib/persona/extraction.ts src/lib/persona/confirm-checkpoint.ts | wc -c | tr -d ' ')
 CALLSITES=$(grep -rEn 'await (anthropicFetch|anthropicStream)\(' src/lib/persona --include='*.ts' | grep -v '\.test\.' | wc -l | tr -d ' ')
 NET_TABLES=$(( $(grep -rhiE 'create table' supabase/migrations --include='*.sql' | wc -l) - $(grep -rhiE 'drop table' supabase/migrations --include='*.sql' | wc -l) ))
 ENVFLAGS=$(grep -rn 'process.env' src/lib/persona --include='*.ts' | grep -v '\.test\.' | wc -l | tr -d ' ')

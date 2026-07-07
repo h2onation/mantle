@@ -62,7 +62,16 @@ export async function GET() {
     "[ ENTRY VOICE — THE BAR: the editable standard below is inserted here ]",
   );
 
-  return Response.json({ fields, composerPrompt });
+  // Override status across ALL keys (including door openers edited elsewhere):
+  // the Tuning page's "is anything masking code right now?" strip. Status
+  // only — no override text (the door openers keep their own edit surface).
+  const overrideStatus = Object.keys(VOICE_OVERRIDE_FIELDS).map((key) => ({
+    key,
+    label: VOICE_OVERRIDE_FIELDS[key].label,
+    enabled: rows.get(key)?.enabled ?? false,
+  }));
+
+  return Response.json({ fields, composerPrompt, overrideStatus });
 }
 
 // Save or reset one core voice field. Admin only.

@@ -5,7 +5,7 @@
 // cached prefix), followed only by Manual context + session context.
 //
 // ADMIN-EDITABLE: the founder can override this whole prompt live (no deploy)
-// from the "Jove's Prompt" admin page, via the `conductor_prompt` key in
+// from the "Tuning" admin page, via the `conductor_prompt` key in
 // persona_voice_overrides (voice-overrides.ts). The code constant below is the
 // permanent floor — Reset always returns to it. A save that drops any
 // CONDUCTOR_REQUIRED_FRAGMENTS line (crisis resources, the two hidden UI

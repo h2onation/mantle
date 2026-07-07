@@ -25,7 +25,7 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: "users", label: "Users" },
   { id: "beta", label: "Beta" },
   { id: "feedback", label: "Feedback" },
-  { id: "tuning", label: "Tuning" },
+  { id: "tuning", label: "Controls" },
   { id: "health", label: "Health" },
 ];
 
@@ -363,7 +363,7 @@ function TuningSection() {
               margin: "0 0 6px",
             }}
           >
-            Tuning
+            Controls
           </h1>
           <p
             style={{
@@ -385,7 +385,7 @@ function TuningSection() {
         <TuningGroup
           kicker="Tune"
           title="Jove's behavior"
-          desc="How Jove sounds, when it saves an entry, and the words a new user reads — the dials and copy you reach for during the soak. Each field shows its shipped default, and Reset restores it instantly."
+          desc="How Jove sounds, how the reflection meter recharges, and the words a new user reads — the dials and copy you reach for during the soak. Each field shows its shipped default, and Reset restores it instantly."
         >
           <VoiceEditorPanel />
           <CheckpointTuningPanel />

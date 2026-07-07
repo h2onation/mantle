@@ -166,7 +166,7 @@ The 1:1 system prompt is three blocks, built by `buildSystemPromptBlocks()` (`sy
 
 That's the whole prompt. There is no tier system, no per-persona voice assembly, no conditional block ladder — all deleted with the rebuilt/legacy voice worlds (2026-07-06). The four ND persona-delta files exist but are dormant (settled keep — do not delete, do not re-wire without a decision).
 
-**Editing the voice**: `/admin/prompt-architecture` ("Jove's Prompt") edits the conductor prompt live via the `conductor_prompt` key in `persona_voice_overrides` — no deploy, next-turn effect, Reset returns to code. Saves that drop a protected line (crisis resources, the two hidden markers) are rejected at the API (`validateConductorPromptEdit`). The small operational strings (openers, post-confirm line, composer entry bar) are separate override keys edited in the admin Voice panel.
+**Editing the voice**: `/admin/prompt-architecture` ("Tuning") is the one tuning surface: it edits the conductor prompt live via the `conductor_prompt` key in `persona_voice_overrides` (no deploy, next-turn effect, Reset returns to code) and holds the composer — its full prompt shown read-only (rendered from `buildComposerSystemPrompt`, the same function the live call uses) with the editable entry bar (`composer_entry_bar`). Conductor saves that drop a protected line (crisis resources, the two hidden markers) are rejected at the API (`validateConductorPromptEdit`). The remaining operational strings (openers, post-confirm line) are edited in the admin Voice panel.
 
 **Group chat is separate**: `buildGroupPrompt()` (facilitator voice, Linq) is self-contained and shares nothing with the 1:1 prompt except the Manual entries it references. Group flows never compress Manual context.
 

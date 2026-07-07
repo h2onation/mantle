@@ -38,7 +38,7 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 
 Jove's entire 1:1 personality is **one document**: `CONDUCTOR_PROMPT` in `src/lib/persona/conductor-prompt.ts`. The system prompt is three blocks, built by `buildSystemPromptBlocks()` in `src/lib/persona/system-prompt.ts`:
 
-1. **The conductor prompt** — the whole voice, method, crisis clause, and the two hidden UI-marker contracts (`---reflection-ready---` lights the reflection bar; `---chips---` renders the post-save paths). Admin-editable live via the `conductor_prompt` override key ("Jove's Prompt" page, `/admin/prompt-architecture`); resolution is `override ?? CONDUCTOR_PROMPT`. Saves that drop a protected line (crisis 988/741741, either marker) are rejected — `CONDUCTOR_REQUIRED_FRAGMENTS` / `validateConductorPromptEdit` in conductor-prompt.ts are the one source of truth for both enforcement and admin display.
+1. **The conductor prompt** — the whole voice, method, crisis clause, and the two hidden UI-marker contracts (`---reflection-ready---` lights the reflection bar; `---chips---` renders the post-save paths). Admin-editable live via the `conductor_prompt` override key ("Tuning" page, `/admin/prompt-architecture`); resolution is `override ?? CONDUCTOR_PROMPT`. Saves that drop a protected line (crisis 988/741741, either marker) are rejected — `CONDUCTOR_REQUIRED_FRAGMENTS` / `validateConductorPromptEdit` in conductor-prompt.ts are the one source of truth for both enforcement and admin display.
 2. **The Manual so far** — older entries compressed (see Manual Context Compression below). Carries the prompt-cache marker.
 3. **Session context** — current-session entries in full + returning-user/session-summary lines. Never cached.
 

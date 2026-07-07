@@ -17,7 +17,7 @@ const NAV_GROUPS: NavItem[][] = [
     { id: "users", label: "Users", href: "/admin?section=users" },
     { id: "beta", label: "Beta", href: "/admin?section=beta" },
     { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
-    { id: "tuning", label: "Tuning", href: "/admin?section=tuning" },
+    { id: "tuning", label: "Controls", href: "/admin?section=tuning" },
     { id: "health", label: "Health", href: "/admin?section=health" },
   ],
   // System tour + reference

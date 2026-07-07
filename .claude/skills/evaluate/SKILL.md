@@ -1,7 +1,7 @@
 # Evaluate Jove Conversation
 
 Read these files first (in order):
-1. src/lib/persona/conductor-prompt.ts — the LIVE 1:1 voice. `CONDUCTOR_PROMPT` is Jove's entire personality (sole voice since 2026-07-02; ADR-052). Note: the founder can override it live via the admin "Jove's Prompt" page — if the transcript behaves differently from the code constant, say so rather than assuming a violation.
+1. src/lib/persona/conductor-prompt.ts — the LIVE 1:1 voice. `CONDUCTOR_PROMPT` is Jove's entire personality (sole voice since 2026-07-02; ADR-052). Note: the founder can override it live via the admin "Tuning" page — if the transcript behaves differently from the code constant, say so rather than assuming a violation.
 2. docs/reference/conductor-scoring.md — the scoring rubric. Apply **Part 1 (core rubric) in full**: number the turns, compute the three mechanical signals, score all six dimensions with turn citations, and produce the Step 3 verdict. Pull in Part 2 expansion modules only when the question at hand needs them (e.g., E1 if judging `---reflection-ready---` timing, E2 if a composed entry is available, E3 if a rupture occurred).
 
 Rules:

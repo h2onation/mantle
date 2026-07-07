@@ -34,12 +34,12 @@ const STAGES: Stage[] = [
     id: 2,
     title: "The prompt gets assembled — and extraction fires alongside it",
     caption:
-      "Jove's personality is ONE document — the conductor prompt (view and edit it on the Jove's Prompt page). Each turn the system ships that document plus two context blocks: the Manual so far (older entries compressed to one line each, this session's entries in full), and session context (returning user, session count, running summary). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory: how deep the conversation is, which phrases are the user's own load-bearing words, what the current thread is. That working memory does two jobs, neither on this turn's reply: it fills the reflection meter (Stage 4) and it briefs the composer at save time (Stage 5).",
+      "Jove's personality is ONE document — the conductor prompt (view and edit it on the Tuning page). Each turn the system ships that document plus two context blocks: the Manual so far (older entries compressed to one line each, this session's entries in full), and session context (returning user, session count, running summary). At the same instant, a separate AI call fires in the background — extraction — which reads the user's message and writes working memory: how deep the conversation is, which phrases are the user's own load-bearing words, what the current thread is. That working memory does two jobs, neither on this turn's reply: it fills the reflection meter (Stage 4) and it briefs the composer at save time (Stage 5).",
     specifics:
       "One background fire-and-forget call: extraction (Sonnet). Its output feeds the meter + the save-time composer — never Jove's own reply.",
     actor: "system",
     deepDives: [
-      { label: "Jove's Prompt (read + edit it live)", href: "/admin/prompt-architecture" },
+      { label: "Tuning (read + edit both prompts live)", href: "/admin/prompt-architecture" },
       { label: "Jove's extraction of user messages", href: "/admin/extraction-map" },
     ],
   },
@@ -117,8 +117,8 @@ const ACTOR_ACCENT: Record<Stage["actor"], { bg: string; border: string; fg: str
 
 const QUICK_LINKS: { label: string; oneLine: string; href: string }[] = [
   {
-    label: "Jove's Prompt",
-    oneLine: "The whole conductor prompt — read it, edit it live, see what ships around it.",
+    label: "Tuning",
+    oneLine: "Both prompts in one place — edit Jove's conductor prompt live, and see the composer's prompt with its editable entry bar.",
     href: "/admin/prompt-architecture",
   },
   {

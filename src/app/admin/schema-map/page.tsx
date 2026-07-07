@@ -639,7 +639,7 @@ const TABLES: Table[] = [
     rowMeans:
       "One overridden voice field (the whole conductor prompt, the two openers, the post-confirm line, the composer's entry bar) — live-tunable from admin without a deploy. A field is overridden only when its row exists AND is enabled.",
     description:
-      "Holds NO user data — global app config, a handful of rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). The conductor_prompt key (Jove's whole prompt, edited on the Jove's Prompt page) is save-guarded: an edit that drops the crisis lines or the hidden UI markers is rejected. The CRISIS_PHRASES pipeline detector, the composer's entry schema, and OTP caps stay code-only.",
+      "Holds NO user data — global app config, a handful of rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). The conductor_prompt key (Jove's whole prompt, edited on the Tuning page) is save-guarded: an edit that drops the crisis lines or the hidden UI markers is rejected. The CRISIS_PHRASES pipeline detector, the composer's entry schema, and OTP caps stay code-only.",
     columns: [
       { name: "key", type: "text (PK)", plain: "Which voice field is overridden.", emphasized: true },
       { name: "text_override", type: "text", plain: "The admin-supplied replacement text." },
@@ -675,17 +675,17 @@ const TABLES: Table[] = [
     name: "checkpoint_tuning",
     families: ["config"],
     access: "backend",
-    oneLine: "Admin-editable thresholds that decide WHEN a checkpoint fires.",
+    oneLine: "One live dial: how fast the reflection meter recharges after a save.",
     rowMeans:
-      "The single typed row of eagerness dials — min scenes, cooldown turns, engagement-failsafe turn, depth floor. Moves eagerness only; the quality gates stay locked in code.",
+      "The single typed row of tuning dials. Under the pull model only cooldown_turns is read — it paces the reflection meter's post-save recharge. The other three dial columns are retired push-model leftovers the code never reads.",
     description:
-      "Holds NO user data — global app config, exactly one row (a boolean-singleton PK guarantees at most one). A column is honored only when non-null and in-range; any null/out-of-range/unreachable case resolves to CHECKPOINT_TUNING_DEFAULTS (the permanent code floor: min_scenes 2, cooldown 5, failsafe 12, depth mechanism). Read once per turn inside loadConversationContext, written only via /api/admin/checkpoint-tuning. No admin value can lower the quality floor.",
+      "Holds NO user data — global app config, exactly one row (a boolean-singleton PK guarantees at most one). The pull model deleted the checkpoint-firing logic (Jove never triggers saves), so the old eagerness dials went with it: min_scenes, failsafe_turn, and depth_floor are unread — any value in them changes nothing. Only cooldown_turns is honored (non-null and in-range; otherwise CHECKPOINT_TUNING_DEFAULTS, cooldown 5). Read once per turn inside loadConversationContext, written only via /api/admin/checkpoint-tuning.",
     columns: [
       { name: "id", type: "boolean (PK, singleton)", plain: "Always true — a check constraint guarantees a single row.", emphasized: true },
-      { name: "min_scenes", type: "integer", plain: "Concrete narrated scenes before a proposal. Null = code default (2)." },
-      { name: "cooldown_turns", type: "integer", plain: "Minimum user turns between checkpoints. Null = code default (5)." },
-      { name: "failsafe_turn", type: "integer", plain: "Fire even if the engagement signal never trips, past this turn. Null = code default (12)." },
-      { name: "depth_floor", type: "text", plain: "How deep the talk must go: surface|behavior|feeling|mechanism|origin. Null = code default (mechanism)." },
+      { name: "cooldown_turns", type: "integer", plain: "User messages after a save before the reflection meter recharges. The ONLY live dial. Null = code default (5).", emphasized: true },
+      { name: "min_scenes", type: "integer", plain: "RETIRED (push model). Unread by code — value has no effect." },
+      { name: "failsafe_turn", type: "integer", plain: "RETIRED (push model). Unread by code — value has no effect." },
+      { name: "depth_floor", type: "text", plain: "RETIRED (push model). Unread by code — value has no effect." },
       { name: "updated_at", type: "timestamptz", plain: "When a dial was last saved." },
       { name: "updated_by", type: "uuid", plain: "Admin user id who saved it. No FK." },
     ],

@@ -508,7 +508,7 @@ function Header() {
           textDecoration: "none",
         }}
       >
-        ↳ See the prompt this feeds around — Jove&rsquo;s Prompt →
+        ↳ See the prompt this feeds around — Tuning →
       </a>
     </div>
   );

@@ -176,9 +176,11 @@ export async function loadConversationContext(
   // profile without setting persona_modes (e.g., the chat-route upsert).
   const resolvedPersonaModes: PersonaMode[] =
     (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
-  // personaDeltas gate OFF → clamp to the neutral "general" voice. (The
-  // conductor prompt reads no persona delta, so this only matters to
-  // downstream consumers of personaModes, e.g. extraction context.)
+  // personaDeltas gate OFF → clamp to the neutral "general" voice. NOTE
+  // (audited 2026-07-07): there are currently NO downstream consumers of
+  // personaModes — buildSystemPromptBlocks never reads it and extraction
+  // doesn't consume it — so this clamp is inert. Kept (with the gate) per
+  // the settled ND-personas decision; delete only with a founder call.
   const personaModes: PersonaMode[] = gates.personaDeltas
     ? resolvedPersonaModes
     : ["general"];

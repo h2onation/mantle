@@ -75,6 +75,11 @@ export default function TuningPage() {
   const [barDraft, setBarDraft] = useState<string>("");
   const [barBusy, setBarBusy] = useState(false);
 
+  // Every override key's live status — the "is anything masking code?" strip.
+  const [overrideStatus, setOverrideStatus] = useState<
+    { key: string; label: string; enabled: boolean }[]
+  >([]);
+
   function load() {
     fetch("/api/admin/persona-voice")
       .then((r) => r.json())
@@ -98,6 +103,9 @@ export default function TuningPage() {
         }
         if (typeof d?.composerPrompt === "string") {
           setComposerPrompt(d.composerPrompt);
+        }
+        if (Array.isArray(d?.overrideStatus)) {
+          setOverrideStatus(d.overrideStatus);
         }
       })
       .catch(() => setError("Could not load the prompt."));
@@ -258,6 +266,62 @@ export default function TuningPage() {
               and the shipped code is always the floor: Reset returns to it
               instantly.
             </p>
+
+            {/* ── Live-driver status: is anything masking shipped code? ── */}
+            {overrideStatus.length > 0 && (
+              <div
+                style={{
+                  border: "1px solid var(--session-walnut-border)",
+                  background: "var(--session-walnut-surface)",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  marginBottom: 28,
+                }}
+              >
+                <div style={{ ...metaLabel, marginBottom: 8 }}>
+                  What&rsquo;s serving right now
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {overrideStatus.map((o) => (
+                    <span
+                      key={o.key}
+                      title={o.label}
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "12px",
+                        padding: "3px 10px",
+                        borderRadius: 999,
+                        border: o.enabled
+                          ? "1px solid var(--session-warning-soft)"
+                          : "1px solid var(--session-walnut-border-soft)",
+                        background: o.enabled
+                          ? "var(--session-warning-soft)"
+                          : "var(--session-walnut-surface-soft)",
+                        color: o.enabled
+                          ? "var(--session-warning)"
+                          : "var(--session-walnut-meta-strong)",
+                      }}
+                    >
+                      {o.key} · {o.enabled ? "OVERRIDDEN" : "shipped code"}
+                    </span>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                    color: "var(--session-walnut-meta-soft)",
+                    marginTop: 8,
+                  }}
+                >
+                  Every text that can override shipped code, in one glance. An
+                  OVERRIDDEN key means an admin edit is serving instead of the
+                  code — code-side changes to that text won&rsquo;t reach users
+                  until it&rsquo;s reset or re-saved.
+                </div>
+              </div>
+            )}
 
             <h2
               style={{
