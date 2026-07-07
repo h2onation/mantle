@@ -4,23 +4,32 @@ import { useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 import OverrideFieldEditor from "@/components/admin/OverrideFieldEditor";
+import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
+import CheckpointTuningPanel from "@/components/admin/CheckpointTuningPanel";
+import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
+import AppCopyPanel from "@/components/admin/AppCopyPanel";
 import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 
 // ---------------------------------------------------------------------------
-// Tuning — the ONE place both prompts are tuned (founder decision 2026-07-07).
+// Tuning — the ONE room where everything that shapes Jove is tuned
+// (founder decisions 2026-07-07: both prompts here; then the old home-page
+// "Controls" section collapsed into this page — operational copy, the meter
+// dial, and the intake doors — so tuning has a single address. The feature
+// gates moved to Health: they're debug kill-switches, not tuning).
 //
-// Two workers, two documents:
-//   1. THE CONVERSATION — the conductor prompt, Jove's whole 1:1 personality,
-//      editable as one document (the `conductor_prompt` override key).
-//   2. THE ENTRY — the composer, a separate model call that writes the entry
-//      when the user pulls a reflection. Its prompt is shown read-only
-//      (rendered from the same function the live call uses, so the display
-//      can never drift); its one editable piece is the entry bar
-//      (`composer_entry_bar`), edited here and nowhere else.
+// Page order = how often you reach for it:
+//   0. What's serving right now — every override key, code vs OVERRIDDEN.
+//   1. THE CONVERSATION — the conductor prompt (`conductor_prompt`).
+//   2. THE ENTRY — the composer: read-only prompt (rendered from the same
+//      function the live call uses) + the editable entry bar.
+//   3. Copy around the conversation — openers, post-save line, app copy
+//      (VoiceEditorPanel + AppCopyPanel, same override system).
+//   4. The reflection meter dial (CheckpointTuningPanel).
+//   5. The intake doors (IntakeDoorsPanel).
 //
-// Data: GET/PATCH /api/admin/persona-voice. Conductor saves that drop a
-// non-negotiable line (crisis resources, the hidden UI markers) are rejected
-// by the API — see CONDUCTOR_REQUIRED_FRAGMENTS in conductor-prompt.ts.
+// Data: GET/PATCH /api/admin/persona-voice (+ each panel's own route).
+// Conductor saves that drop a non-negotiable line are rejected by the API —
+// see CONDUCTOR_REQUIRED_FRAGMENTS in conductor-prompt.ts.
 // ---------------------------------------------------------------------------
 
 interface VoiceField {
@@ -254,18 +263,55 @@ export default function TuningPage() {
                 maxWidth: 700,
               }}
             >
-              Two workers, tuned in this one place. <strong>The
-              conversation</strong>: Jove&rsquo;s prompt, the whole 1:1
-              personality, editable below as one document. <strong>The
+              Everything that shapes Jove, tuned in this one room.{" "}
+              <strong>The conversation</strong>: Jove&rsquo;s prompt, the whole
+              1:1 personality, editable below as one document. <strong>The
               entry</strong>: the composer, a separate model call that writes
               the entry when someone saves a reflection — its prompt is shown
-              further down, with its one editable piece (the entry bar). When
-              something feels off, ask which it was: the conversation felt
-              wrong → tune Jove&rsquo;s prompt; the written entry read wrong →
-              tune the entry bar. Edits are live on the next turn, no deploy,
-              and the shipped code is always the floor: Reset returns to it
-              instantly.
+              with its one editable piece (the entry bar). Below those: the
+              small copy around the conversation, the reflection-meter dial,
+              and the intake doors. When something feels off, ask which it was:
+              the conversation felt wrong → Jove&rsquo;s prompt; the written
+              entry read wrong → the entry bar. Edits are live on the next
+              turn, no deploy, and the shipped code is always the floor: Reset
+              returns to it instantly.
             </p>
+
+            {/* Jump nav — the page is long by design (one room); this is the map. */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginBottom: 24,
+              }}
+            >
+              {[
+                ["#serving", "What's serving"],
+                ["#conversation", "Jove's prompt"],
+                ["#composer", "The entry composer"],
+                ["#copy", "Copy around the conversation"],
+                ["#meter", "Reflection meter"],
+                ["#doors", "Intake doors"],
+              ].map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    border: "1px solid var(--session-walnut-border)",
+                    background: "var(--session-walnut-surface)",
+                    color: "var(--session-walnut-meta-strong)",
+                    textDecoration: "none",
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
 
             {/* ── Live-driver status: is anything masking shipped code? ── */}
             {overrideStatus.length > 0 && (
@@ -278,7 +324,7 @@ export default function TuningPage() {
                   marginBottom: 28,
                 }}
               >
-                <div style={{ ...metaLabel, marginBottom: 8 }}>
+                <div id="serving" style={{ ...metaLabel, marginBottom: 8 }}>
                   What&rsquo;s serving right now
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -324,6 +370,7 @@ export default function TuningPage() {
             )}
 
             <h2
+              id="conversation"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: "19px",
@@ -603,6 +650,7 @@ export default function TuningPage() {
 
             {/* ── The entry — the composer ───────────────────────────── */}
             <h2
+              id="composer"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontSize: "19px",
@@ -685,6 +733,49 @@ export default function TuningPage() {
             >
               {composerPrompt || "Loading…"}
             </pre>
+
+            {/* ── Copy around the conversation ───────────────────────── */}
+            <h2
+              id="copy"
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              Copy around the conversation
+            </h2>
+            <VoiceEditorPanel />
+            <AppCopyPanel />
+
+            {/* ── The reflection meter dial ──────────────────────────── */}
+            <h2
+              id="meter"
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              The reflection meter
+            </h2>
+            <CheckpointTuningPanel />
+
+            {/* ── The intake doors ───────────────────────────────────── */}
+            <h2
+              id="doors"
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              The intake doors
+            </h2>
+            <IntakeDoorsPanel />
           </div>
         </div>
       </div>

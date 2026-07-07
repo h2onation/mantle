@@ -138,17 +138,11 @@ export default function VoiceEditorPanel() {
           margin: "0 0 16px",
         }}
       >
-        Operational copy — the small fixed lines around the conversation. Saving
-        takes effect on the next turn, no deploy. The shipped code is always the
-        floor: Reset returns a field to its default instantly. Jove&rsquo;s whole
-        prompt and the composer&rsquo;s entry bar are tuned on{" "}
-        <a
-          href="/admin/prompt-architecture"
-          style={{ color: "var(--session-persona)", textDecoration: "underline" }}
-        >
-          the Tuning page
-        </a>
-        . Safety surfaces stay locked (below).
+        Operational copy — the small fixed lines around the conversation.
+        Saving takes effect on the next turn, no deploy. The shipped code is
+        always the floor: Reset returns a field to its default instantly.
+        Jove&rsquo;s whole prompt and the composer&rsquo;s entry bar are the
+        sections above. Safety surfaces stay locked (below).
       </p>
 
       {fields === null && !error && (

@@ -9,45 +9,53 @@ interface NavItem {
   indent?: boolean;
 }
 
-// Grouped by visual hierarchy. Hairlines render between groups; indented
+// Grouped by the job being done. Each group renders a tiny label; indented
 // items render as children of the parent above them ("How Jove works").
-const NAV_GROUPS: NavItem[][] = [
-  // Operational
-  [
-    { id: "users", label: "Users", href: "/admin?section=users" },
-    { id: "beta", label: "Beta", href: "/admin?section=beta" },
-    { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
-    { id: "tuning", label: "Controls", href: "/admin?section=tuning" },
-    { id: "health", label: "Health", href: "/admin?section=health" },
-  ],
-  // System tour + reference
-  [
-    { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
-    {
-      id: "prompt-architecture",
-      label: "Tuning",
-      href: "/admin/prompt-architecture",
-      indent: true,
-    },
-    {
-      id: "extraction-map",
-      label: "Jove's extraction of user messages",
-      href: "/admin/extraction-map",
-      indent: true,
-    },
-    {
-      id: "schema-map",
-      label: "Database schema",
-      href: "/admin/schema-map",
-      indent: true,
-    },
-    { id: "docs", label: "Source docs", href: "/admin/docs" },
-  ],
-  // Utility lookups
-  [
-    { id: "skills", label: "Agents & Skills", href: "/admin/skills" },
-    { id: "vendors", label: "Vendors", href: "/admin/vendors" },
-  ],
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  // Daily operations: people and system state.
+  {
+    label: "Operate",
+    items: [
+      { id: "users", label: "Users", href: "/admin?section=users" },
+      { id: "beta", label: "Beta", href: "/admin?section=beta" },
+      { id: "feedback", label: "Feedback", href: "/admin?section=feedback" },
+      { id: "health", label: "Health", href: "/admin?section=health" },
+    ],
+  },
+  // Everything that changes what Jove says or how capture behaves —
+  // one room (the old home "Controls" section collapsed into it 2026-07-07).
+  {
+    label: "Tune",
+    items: [
+      {
+        id: "prompt-architecture",
+        label: "Tuning",
+        href: "/admin/prompt-architecture",
+      },
+    ],
+  },
+  // Read-only understanding: the tour, the maps, the inventories.
+  {
+    label: "Learn",
+    items: [
+      { id: "how-it-works", label: "How Jove works", href: "/admin/how-it-works" },
+      {
+        id: "extraction-map",
+        label: "Jove's extraction of user messages",
+        href: "/admin/extraction-map",
+        indent: true,
+      },
+      {
+        id: "schema-map",
+        label: "Database schema",
+        href: "/admin/schema-map",
+        indent: true,
+      },
+      { id: "docs", label: "Source docs", href: "/admin/docs" },
+      { id: "skills", label: "Agents & Skills", href: "/admin/skills" },
+      { id: "vendors", label: "Vendors", href: "/admin/vendors" },
+    ],
+  },
 ];
 
 export default function AdminNavRail({
@@ -93,7 +101,19 @@ export default function AdminNavRail({
               aria-hidden="true"
             />
           )}
-          {group.map((item) => {
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "var(--session-ink-faded)",
+              padding: "4px 12px 2px",
+            }}
+          >
+            {group.label}
+          </div>
+          {group.items.map((item) => {
             const active = item.id === activeId;
             const badge = badges?.[item.id];
             return (
