@@ -5,6 +5,7 @@ import {
   CONDUCTOR_REQUIRED_FRAGMENTS,
   validateConductorPromptEdit,
 } from "@/lib/persona/conductor-prompt";
+import { CHECKPOINT_ACTIONS } from "@/lib/persona/config";
 
 // Guard tests for the conductor prompt (the LIVE 1:1 voice). These pin the
 // safety layer, the no-Jove-saves contract, the landed markers, and the
@@ -73,6 +74,18 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain(
       "Use it only on the message where you say it's theirs, never earlier"
     );
+  });
+
+  it("v0.7: the after-save trigger quotes the synthetic save reply verbatim (config coupling)", () => {
+    const full = renderConductor();
+    // The ONLY save signal Jove ever receives is the confirm route's
+    // synthetic reply, replayed as a user turn. The prompt must quote it
+    // verbatim — if the config wording ever changes, this fails and forces
+    // the prompt to follow (PR3 hallucinated-save incident, 2026-07-07).
+    expect(full).toContain(CHECKPOINT_ACTIONS.confirmed.naturalReply);
+    // Chat agreement is never a save; the close line always carries the marker.
+    expect(full).toContain("approval and wrapping up are not saves");
+    expect(full).toContain("The line and the marker travel together");
   });
 
   it("Step 4: the post-save turn offers the three paths via the chips marker", () => {
