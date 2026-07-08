@@ -45,8 +45,10 @@ export const DOORS: DoorDef[] = [
     mode: "situation",
     slug: "situation",
     name: "Navigate a situation",
-    // No openerKey — the model opens live; the old fixed SITUATION_OPENER was
-    // never consumed by any runtime path (dead key removed 2026-07-07).
+    // Server-emits SITUATION_OPENER as turn 1 (v0.8.2, 2026-07-08). A fixed
+    // opener beats a model-generated one, which drifted to a broad "what's on
+    // your mind?" that pulled a topic instead of a scene. Admin-editable.
+    openerKey: "situation_opener",
   },
   {
     mode: "guided-intake",

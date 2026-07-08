@@ -7,7 +7,7 @@ import {
   mapSystemMessages,
   detectCrisisInUserMessage,
   selectTranscriptContextForPrompt,
-  shouldEmitUploadOpener,
+  doorOpenerToEmit,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -356,55 +356,51 @@ describe("wrapPastedContent", () => {
   });
 });
 
-// ── shouldEmitUploadOpener ──
-// Predicate gating the upload-mode bootstrap short-circuit: server emits
-// UPLOAD_OPENER verbatim instead of asking the model to produce it. Fires
-// only on the bootstrap call (no prior messages, no user input, mode is
-// upload). See ADR-042 §3 and call-persona.ts step 2a.
+// ── doorOpenerToEmit ──
+// Resolves which fixed door opener (if any) to server-emit on the bootstrap
+// call: returns the openerKey for a door that has one (situation, upload),
+// else null. Server emits that opener verbatim instead of asking the model
+// to produce it. Fires only on the bootstrap call (no prior messages, no
+// user input). See ADR-042 §3 and call-persona.ts step 2a.
 
-describe("shouldEmitUploadOpener", () => {
-  it("fires on fresh upload bootstrap (mode=upload, turnCount=0, message=null)", () => {
-    // turnCount=0 happens if loadConversationContext ever stops injecting
-    // the synthetic [Session started] placeholder. Belt-and-suspenders
-    // coverage: the predicate accepts it.
-    expect(shouldEmitUploadOpener("upload", 0, null)).toBe(true);
+describe("doorOpenerToEmit", () => {
+  it("emits situation_opener on fresh situation bootstrap (v0.8.2)", () => {
+    // The core loop now server-emits its opener too — no more "what's on
+    // your mind?" drift. Both turnCount=0 and =1 are bootstrap.
+    expect(doorOpenerToEmit("situation", 0, null)).toBe("situation_opener");
+    expect(doorOpenerToEmit("situation", 1, null)).toBe("situation_opener");
   });
 
-  it("fires on upload bootstrap when only the [Session started] placeholder is in history (turnCount=1)", () => {
-    // Real-runtime path: persona-pipeline.ts injects a synthetic user
-    // message when the DB has zero rows, bumping turnCount from 0 to 1.
-    // The predicate must accept this — the live audit caught a previous
-    // version that only matched turnCount === 0 and missed every bootstrap.
-    expect(shouldEmitUploadOpener("upload", 1, null)).toBe(true);
+  it("emits upload_opener on fresh upload bootstrap", () => {
+    // turnCount=1 is the real-runtime path (persona-pipeline injects the
+    // synthetic [Session started] placeholder, bumping 0 → 1); turnCount=0
+    // is belt-and-suspenders if that placeholder ever stops.
+    expect(doorOpenerToEmit("upload", 0, null)).toBe("upload_opener");
+    expect(doorOpenerToEmit("upload", 1, null)).toBe("upload_opener");
   });
 
-  it("does NOT fire when mode is situation", () => {
-    expect(shouldEmitUploadOpener("situation", 0, null)).toBe(false);
-    expect(shouldEmitUploadOpener("situation", 1, null)).toBe(false);
+  it("returns null for guided-intake (opener is a model tee-up, no fixed key)", () => {
+    expect(doorOpenerToEmit("guided-intake", 0, null)).toBe(null);
+    expect(doorOpenerToEmit("guided-intake", 1, null)).toBe(null);
   });
 
-  it("does NOT fire when mode is guided-intake", () => {
-    expect(shouldEmitUploadOpener("guided-intake", 0, null)).toBe(false);
-    expect(shouldEmitUploadOpener("guided-intake", 1, null)).toBe(false);
+  it("returns null on the user's paste/reply turn (turnCount >= 2)", () => {
+    expect(doorOpenerToEmit("upload", 2, "paste content here")).toBe(null);
+    expect(doorOpenerToEmit("upload", 2, null)).toBe(null);
+    expect(doorOpenerToEmit("situation", 2, null)).toBe(null);
   });
 
-  it("does NOT fire on the user's paste turn (turnCount >= 2)", () => {
-    expect(shouldEmitUploadOpener("upload", 2, "paste content here")).toBe(false);
-    expect(shouldEmitUploadOpener("upload", 2, null)).toBe(false);
+  it("returns null when the user supplied input on the bootstrap call", () => {
+    // If a caller sends a user message on the bootstrap, run the normal LLM
+    // path rather than dropping the user's intent on the floor.
+    expect(doorOpenerToEmit("situation", 0, "hello")).toBe(null);
+    expect(doorOpenerToEmit("upload", 1, "hello")).toBe(null);
   });
 
-  it("does NOT fire when the user supplied input on the bootstrap call", () => {
-    // Belt-and-suspenders: if some future caller sends mode=upload with a
-    // user message on the bootstrap, we run through the normal LLM path
-    // rather than dropping the user's intent on the floor.
-    expect(shouldEmitUploadOpener("upload", 0, "hello")).toBe(false);
-    expect(shouldEmitUploadOpener("upload", 1, "hello")).toBe(false);
-  });
-
-  it("does NOT fire when mode is missing or unknown", () => {
-    expect(shouldEmitUploadOpener(null, 0, null)).toBe(false);
-    expect(shouldEmitUploadOpener(undefined, 0, null)).toBe(false);
-    expect(shouldEmitUploadOpener("unknown-mode", 0, null)).toBe(false);
+  it("returns null when mode is missing or unknown", () => {
+    expect(doorOpenerToEmit(null, 0, null)).toBe(null);
+    expect(doorOpenerToEmit(undefined, 0, null)).toBe(null);
+    expect(doorOpenerToEmit("unknown-mode", 0, null)).toBe(null);
   });
 });
 
