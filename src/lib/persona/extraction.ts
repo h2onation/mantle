@@ -2,10 +2,20 @@ import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
 import { LAYERS, renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, EXTRACTION_MODEL } from "@/lib/persona/config";
 import { logEvent } from "@/lib/observability/log";
-// DEPTH_LEVELS is the single source of truth for the ordered shallow→deep depth
-// scale, also used by the checkpoint gate's depth-floor comparison. Imported
-// here so the monotonic-depth merge below ranks depth the same way the gate does.
-import { DEPTH_LEVELS } from "@/lib/persona/checkpoint-tuning";
+
+/** The ordered shallow→deep depth scale — the single source of truth for the
+ *  depth vocabulary. Read by the monotonic-depth merge below and by the
+ *  reflection meter's depth→fill curve (REFLECTION_DEPTH_PCT keys). Lived in
+ *  checkpoint-tuning.ts until that module (the last push-era admin dial) was
+ *  removed 2026-07-07. */
+export const DEPTH_LEVELS = [
+  "surface",
+  "behavior",
+  "feeling",
+  "mechanism",
+  "origin",
+] as const;
+export type DepthLevel = (typeof DEPTH_LEVELS)[number];
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

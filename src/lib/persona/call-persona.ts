@@ -811,7 +811,6 @@ export function callPersona({
                     reflectionMeter: resolveReflectionMeter({
                       extraction: previousExtraction,
                       turnsSinceCheckpoint,
-                      cooldownTurns: ctx.checkpointTuning.cooldownTurns,
                       // Prior turns' signal from context; this turn's marker
                       // was parsed above — OR them so the strip appears on
                       // the landed message itself, not one turn late.

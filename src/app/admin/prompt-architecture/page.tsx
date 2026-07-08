@@ -5,7 +5,6 @@ import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 import OverrideFieldEditor from "@/components/admin/OverrideFieldEditor";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
-import CheckpointTuningPanel from "@/components/admin/CheckpointTuningPanel";
 import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
 import AppCopyPanel from "@/components/admin/AppCopyPanel";
 import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
@@ -27,8 +26,9 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 //      function the live call uses) + the editable entry bar.
 //   3. Copy around the conversation — openers, post-save line, app copy
 //      (VoiceEditorPanel + AppCopyPanel, same override system).
-//   4. The reflection meter dial (CheckpointTuningPanel).
-//   5. The intake doors (IntakeDoorsPanel).
+//   4. The intake doors (IntakeDoorsPanel).
+//   (The reflection-meter dial was removed 2026-07-07 — the recharge pace is
+//   a code constant now, REFLECTION_RECHARGE_TURNS in persona-pipeline.ts.)
 //
 // Data: GET/PATCH /api/admin/persona-voice (+ each panel's own route).
 // Conductor saves that drop a non-negotiable line are rejected by the API —
@@ -334,7 +334,6 @@ export default function TuningPage() {
                 ["#conversation", "Jove's prompt"],
                 ["#composer", "The entry composer"],
                 ["#copy", "Copy around the conversation"],
-                ["#meter", "Reflection meter"],
                 ["#doors", "Intake doors"],
               ].map(([href, label]) => (
                 <a
@@ -851,20 +850,6 @@ export default function TuningPage() {
             </h2>
             <VoiceEditorPanel />
             <AppCopyPanel />
-
-            {/* ── The reflection meter dial ──────────────────────────── */}
-            <h2
-              id="meter"
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "19px",
-                color: "var(--session-ink)",
-                margin: "40px 0 12px",
-              }}
-            >
-              The reflection meter
-            </h2>
-            <CheckpointTuningPanel />
 
             {/* ── The intake doors ───────────────────────────────────── */}
             <h2

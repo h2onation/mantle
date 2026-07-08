@@ -22,10 +22,6 @@ import type { ManualEntryForContext } from "@/lib/persona/manual-context";
 import { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction } from "./config";
 import { getFeatureGates } from "./feature-gates";
 import { getVoiceOverrides, type VoiceOverrides } from "./voice-overrides";
-import {
-  getCheckpointTuning,
-  type CheckpointTuning,
-} from "./checkpoint-tuning";
 export { PERSONA_MODEL, PERSONA_MAX_TOKENS, CHECKPOINT_ACTIONS, type CheckpointAction };
 
 const CRISIS_RESOURCES =
@@ -64,11 +60,6 @@ export interface ConversationContext {
    *  enabled override exists, in which case every field falls back to its
    *  code constant at the resolution site. */
   voiceOverrides: VoiceOverrides;
-  /** Admin-editable checkpoint tuning (checkpoint_tuning table), resolved once
-   *  per turn alongside the feature gates. Only `cooldownTurns` is live now —
-   *  it caps the reflection meter's post-save recharge (reflectionMeterFill).
-   *  Falls back to its code default on a missing/invalid value. */
-  checkpointTuning: CheckpointTuning;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
    *  the last checkpoint. Conductor-only readiness source: Jove's own landed
@@ -128,7 +119,6 @@ export async function loadConversationContext(
     profileResult,
     gates,
     voiceOverrides,
-    checkpointTuning,
   ] = await Promise.all([
     admin
       .from("messages")
@@ -173,9 +163,6 @@ export async function loadConversationContext(
     // Admin-editable voice-text overrides — same batch, same fail-open
     // discipline (fails open to {} = all code defaults).
     getVoiceOverrides(admin),
-    // Admin-editable checkpoint-firing thresholds — same batch, fails open to
-    // CHECKPOINT_TUNING_DEFAULTS (the shipped code values) on any error.
-    getCheckpointTuning(admin),
   ]);
 
   // Fallback flipped from ["autistic"] to ["general"] on 2026-05-19 to
@@ -335,7 +322,6 @@ export async function loadConversationContext(
     reflectionMeterEnabled,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
-    checkpointTuning,
     reflectionLanded,
   };
 }
@@ -685,6 +671,14 @@ export function buildCheckpointMeta(
  *  premature pulls produced thin entries. It now barely moves through
  *  storytelling (surface/behavior), stirs at feelings, and does its real
  *  rising only once the WHY is on the table. */
+/** Post-save recharge pacing: how many user messages must pass after a save
+ *  before the bar's visual fill fully recovers (reflectionMeterFill's cooldown
+ *  cap). A feel constant, not a safety valve — it was the last surviving
+ *  admin dial of the push-era checkpoint_tuning table (dial + table removed
+ *  2026-07-07, founder call); the founder's live value of 12 was tuned for
+ *  the deleted push model, so removal restored the shipped default. */
+export const REFLECTION_RECHARGE_TURNS = 5;
+
 const REFLECTION_DEPTH_PCT: Record<string, number> = {
   surface: 0,
   behavior: 8,
@@ -745,11 +739,9 @@ export function reflectionMeterFill(
 export function resolveReflectionMeter(args: {
   extraction: ExtractionState | null;
   turnsSinceCheckpoint: number;
-  cooldownTurns: number;
   reflectionLanded: boolean;
 }): { fill: number; ready: boolean } | null {
-  const { extraction, turnsSinceCheckpoint, cooldownTurns, reflectionLanded } =
-    args;
+  const { extraction, turnsSinceCheckpoint, reflectionLanded } = args;
   if (!extraction) return null;
   if (extraction.clinical_flag?.active && extraction.clinical_flag.level === "crisis") {
     return null;
@@ -758,7 +750,7 @@ export function resolveReflectionMeter(args: {
     extraction.depth,
     turnsSinceCheckpoint,
     /* gatePassed */ false,
-    cooldownTurns
+    REFLECTION_RECHARGE_TURNS
   );
   return { fill: reflectionLanded ? 100 : depthFill, ready: reflectionLanded };
 }
