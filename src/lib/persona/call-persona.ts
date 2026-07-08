@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { doorForMode } from "@/lib/persona/door-intros";
 import { VOICE_OVERRIDE_FIELDS } from "@/lib/persona/voice-overrides";
+import { FIRST_ENTRY_EDUCATION } from "@/lib/persona/conductor-prompt";
 import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
 import { stripTrailingMarker } from "@/lib/persona/ui-markers";
 import { logEvent } from "@/lib/observability/log";
@@ -110,6 +111,25 @@ export function doorOpenerToEmit(
   // verbatim; guided-intake has no openerKey (model tee-up) → null.
   const door = doorForMode(mode as ConversationMode);
   return door?.openerKey ?? null;
+}
+
+/**
+ * Whether to append the fixed first-entry orientation to Jove's landing
+ * message. True exactly once per empty-Manual user: on the FIRST turn where
+ * readiness lands, on the web surface (where the reflection bar exists).
+ * Pure predicate so the gate is unit-testable without the streaming pipeline.
+ *   landedThisTurn  — the ---reflection-ready--- marker fired this turn.
+ *   alreadyLanded   — readiness landed on a PRIOR turn (ctx.reflectionLanded).
+ *   isFirstCheckpoint — the user's Manual is still empty.
+ *   meterEnabled    — the reflection bar is live (web surface + meter gate).
+ */
+export function shouldAppendFirstEntryEducation(
+  landedThisTurn: boolean,
+  alreadyLanded: boolean,
+  isFirstCheckpoint: boolean,
+  meterEnabled: boolean
+): boolean {
+  return landedThisTurn && !alreadyLanded && isFirstCheckpoint && meterEnabled;
 }
 
 /**
@@ -722,6 +742,28 @@ export function callPersona({
             conversationalText = landed.text;
             stripped = true;
           }
+        }
+
+        // 10a. First-entry orientation. The one time readiness lands for a
+        //      user with an empty Manual, append a FIXED sentence explaining
+        //      how to capture — appended by the server, not phrased by the
+        //      model, so it's deterministic and can never misstate the save
+        //      mechanic (the hallucinated-save class, v0.7). Reads as a
+        //      continuation of Jove's landing message. Admin-editable via the
+        //      first_entry_education override key. (v0.8.3.)
+        if (
+          shouldAppendFirstEntryEducation(
+            reflectionLandedThisTurn,
+            ctx.reflectionLanded,
+            ctx.isFirstCheckpoint,
+            ctx.reflectionMeterEnabled
+          )
+        ) {
+          const eduBlock = `\n\n${
+            ctx.voiceOverrides?.firstEntryEducation ?? FIRST_ENTRY_EDUCATION
+          }`;
+          flushSafe(eduBlock);
+          conversationalText += eduBlock;
         }
 
         // 10b. Crisis detection — output validation + logging

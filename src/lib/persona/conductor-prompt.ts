@@ -347,16 +347,18 @@ export function validateConductorPromptEdit(text: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// First-entry orientation. Injected into the prompt's dynamic tail ONLY while
-// the user has an empty Manual, the reflection meter is live (web), and
-// readiness hasn't landed yet in this conversation — i.e. only on turns where
-// Jove COULD land the first-ever readiness. The moment the first entry is
-// confirmed (or readiness lands), it drops out of the prompt. Admin-editable
-// live via the `first_entry_education` override key (Tuning page); resolution
-// is `override ?? FIRST_ENTRY_EDUCATION` in buildSystemPromptBlocks.
-// Per ADR-052 it orients, once — it must never have Jove propose, offer, or
-// perform a save.
+// First-entry orientation. NOT a prompt instruction — a FIXED sentence the
+// SERVER appends verbatim to Jove's landing message the first time readiness
+// lands for a user with an empty Manual (call-persona.ts, at the
+// ---reflection-ready--- detection point). Deterministic: identical every
+// time, fires exactly once, and the model never phrases the save mechanic —
+// which is what a prompt instruction used to do, non-deterministically, and
+// is exactly where a hallucinated-save slip (v0.7) could re-enter. It reads as
+// a continuation of Jove's message. Admin-editable live via the
+// `first_entry_education` override key (Tuning page); resolution is
+// `override ?? FIRST_ENTRY_EDUCATION` at the append site. Must never claim
+// Jove saves — the user builds it from the bar. (v0.8.3, 2026-07-08.)
 // ---------------------------------------------------------------------------
 
-export const FIRST_ENTRY_EDUCATION = `FIRST ENTRY ORIENTATION
-This user has nothing in their Manual yet, so they have never seen the build moment. If — and only if — this is the message where you end with the readiness marker, add one short beat at the end (before the marker), in your own words: the bar at the top of their screen is now full; whenever they're ready, tapping "Build Manual entry" there drafts a proposed entry from this conversation — only the conclusions they've actually aligned to, in their words; they review it and can change any word before it enters their Manual, and leaving it to keep talking is just as good. Say it once, plainly, in your register — two or three sentences, not a tour. Do not ask whether they want to save, do not offer to do it for them, and do not bring it up again. If this message is not the one with the marker, this section asks nothing of you.`;
+export const FIRST_ENTRY_EDUCATION =
+  'The bar at the top of your screen is full now. Tapping "Build Manual entry" there drafts this into an entry in your words — you can change anything before it goes in your Manual, and leaving it to keep talking is just as good.';

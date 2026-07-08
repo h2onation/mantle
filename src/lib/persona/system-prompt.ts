@@ -2,10 +2,7 @@ import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
-import {
-  CONDUCTOR_PROMPT,
-  FIRST_ENTRY_EDUCATION,
-} from "@/lib/persona/conductor-prompt";
+import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
   prepareManualContextBlocks,
@@ -64,12 +61,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  operational copy (openers, post-confirm line, composer bar) resolves at
    *  its own site. See voice-overrides.ts. */
   voiceOverrides?: VoiceOverrides;
-  /** True only on turns where Jove could land the user's FIRST-ever readiness
-   *  (empty Manual + live meter + readiness not yet landed this conversation).
-   *  Appends the one-time first-entry orientation to the dynamic tail so Jove
-   *  explains the build moment as it arrives. Computed in
-   *  buildPromptOptionsFromContext; never true off the web surface. */
-  firstEntryEducation?: boolean;
 }
 
 export interface GroupPromptOptions extends SharedPromptInputs {
@@ -189,14 +180,9 @@ export function buildSystemPromptBlocks(
     sessionSummary,
   });
 
-  // One-time first-entry orientation: rides in the (never-cached) dynamic
-  // tail only on turns where Jove could land the user's first-ever readiness.
-  // Admin-editable via the `first_entry_education` override key.
-  if (options.firstEntryEducation) {
-    const education =
-      options.voiceOverrides?.firstEntryEducation ?? FIRST_ENTRY_EDUCATION;
-    condDynamic += `\n\n${education}\n`;
-  }
+  // (The one-time first-entry orientation is no longer a prompt block — it's a
+  // fixed sentence the server appends to Jove's landing message, deterministic,
+  // in call-persona.ts. See FIRST_ENTRY_EDUCATION. v0.8.3.)
 
   // The founder can override the whole prompt live from the "Jove's Prompt"
   // admin page (guarded at save — crisis lines + UI markers can't be edited

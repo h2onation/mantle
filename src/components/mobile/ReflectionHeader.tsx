@@ -25,8 +25,9 @@ interface ReflectionHeaderProps {
 // blooms and settles → one sheen), then still. It wraps whatever the
 // platform's header row is (`children`) so mobile and desktop share one
 // treatment. Replaced the invisible tap-anywhere overlay + expanding education
-// band + GOT IT + desktop text button (2026-07-07); the one-time education
-// moved into Jove's own voice (FIRST_ENTRY_EDUCATION, conductor-prompt.ts).
+// band + GOT IT + desktop text button (2026-07-07); the one-time education now
+// rides in Jove's landing message as a fixed server-appended sentence
+// (FIRST_ENTRY_EDUCATION, appended in call-persona.ts — v0.8.3).
 export default function ReflectionHeader({
   meterVisible,
   fill,

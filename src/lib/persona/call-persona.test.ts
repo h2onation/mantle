@@ -8,6 +8,7 @@ import {
   detectCrisisInUserMessage,
   selectTranscriptContextForPrompt,
   doorOpenerToEmit,
+  shouldAppendFirstEntryEducation,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -401,6 +402,35 @@ describe("doorOpenerToEmit", () => {
     expect(doorOpenerToEmit(null, 0, null)).toBe(null);
     expect(doorOpenerToEmit(undefined, 0, null)).toBe(null);
     expect(doorOpenerToEmit("unknown-mode", 0, null)).toBe(null);
+  });
+});
+
+// ── shouldAppendFirstEntryEducation ──
+// Gates the fixed first-entry orientation the server appends to Jove's
+// landing message. Fires exactly once per empty-Manual user: the first turn
+// readiness lands, on the web surface. (v0.8.3.)
+
+describe("shouldAppendFirstEntryEducation", () => {
+  it("fires on the first landing for an empty-Manual web user", () => {
+    // landedThisTurn, not alreadyLanded, empty Manual, meter on
+    expect(shouldAppendFirstEntryEducation(true, false, true, true)).toBe(true);
+  });
+
+  it("does NOT fire when readiness didn't land this turn", () => {
+    expect(shouldAppendFirstEntryEducation(false, false, true, true)).toBe(false);
+  });
+
+  it("does NOT fire if readiness already landed earlier this conversation", () => {
+    // Guarantees once-per-conversation: a second landing appends nothing.
+    expect(shouldAppendFirstEntryEducation(true, true, true, true)).toBe(false);
+  });
+
+  it("does NOT fire once the Manual has entries (user has seen the moment)", () => {
+    expect(shouldAppendFirstEntryEducation(true, false, false, true)).toBe(false);
+  });
+
+  it("does NOT fire off the web surface (no reflection bar)", () => {
+    expect(shouldAppendFirstEntryEducation(true, false, true, false)).toBe(false);
   });
 });
 

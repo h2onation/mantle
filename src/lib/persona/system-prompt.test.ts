@@ -116,33 +116,11 @@ describe("buildSystemPrompt (1:1 conductor path)", () => {
     });
   });
 
+  // (The first-entry orientation is no longer injected into the prompt — it's
+  // a fixed sentence the server appends to Jove's landing message; see
+  // shouldAppendFirstEntryEducation in call-persona.test.ts. v0.8.3.)
+
   // ─── Session context (returning users) ──────────────────────────────────────
-  describe("first-entry orientation", () => {
-    it("appends FIRST_ENTRY_EDUCATION to the dynamic tail when flagged", () => {
-      const blocks = buildBlocks({ firstEntryEducation: true });
-      expect(blocks.dynamic).toContain("FIRST ENTRY ORIENTATION");
-      // never in the cached blocks — it must not churn the prompt cache
-      expect(blocks.tier1).not.toContain("FIRST ENTRY ORIENTATION");
-      expect(blocks.staticContext).not.toContain("FIRST ENTRY ORIENTATION");
-    });
-
-    it("renders nothing when the flag is absent or false", () => {
-      expect(buildBlocks().dynamic).not.toContain("FIRST ENTRY ORIENTATION");
-      expect(
-        buildBlocks({ firstEntryEducation: false }).dynamic
-      ).not.toContain("FIRST ENTRY ORIENTATION");
-    });
-
-    it("the admin override wins over the code default", () => {
-      const blocks = buildBlocks({
-        firstEntryEducation: true,
-        voiceOverrides: { firstEntryEducation: "CUSTOM ORIENTATION TEXT" },
-      });
-      expect(blocks.dynamic).toContain("CUSTOM ORIENTATION TEXT");
-      expect(blocks.dynamic).not.toContain("FIRST ENTRY ORIENTATION");
-    });
-  });
-
   describe("session context", () => {
     it("renders SESSION CONTEXT / Returning user when isReturningUser is true", () => {
       const result = build({ isReturningUser: true });

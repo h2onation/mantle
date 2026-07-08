@@ -19,10 +19,10 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 //
 // Page order = how often you reach for it:
 //   0. What's serving right now — every override key, code vs OVERRIDDEN.
-//   1. THE CONVERSATION — the conductor prompt (`conductor_prompt`), plus its
-//      one conditional rider: the first-entry orientation
-//      (`first_entry_education`), the one-time education Jove speaks when
-//      readiness first lands for a user with an empty Manual.
+//   1. THE CONVERSATION — the conductor prompt (`conductor_prompt`), plus the
+//      first-entry orientation (`first_entry_education`): a fixed sentence the
+//      server appends to Jove's landing message the first time readiness lands
+//      for an empty-Manual user (not a prompt block; see call-persona.ts).
 //   2. THE ENTRY — the composer: read-only prompt (rendered from the same
 //      function the live call uses) + the editable entry bar.
 //   3. Copy around the conversation — openers, post-save line, app copy
@@ -713,15 +713,15 @@ export default function TuningPage() {
                 maxWidth: 700,
               }}
             >
-              The one-time education. When readiness lands for someone whose
-              Manual is still empty, Jove ends that message with a short
-              orientation — what the full bar means, that tapping &ldquo;Build
-              Manual entry&rdquo; drafts a proposed entry from the
-              conversation, and that they approve every word. This block rides
-              in the prompt only on turns where that first landing could
-              happen and drops out the moment it does. It tells Jove what to
-              convey; he phrases it himself. It must never have Jove offer or
-              perform a save.
+              The one-time capture explainer. The first time the reflection
+              bar fills for someone whose Manual is still empty, this exact
+              sentence is appended to Jove&rsquo;s landing message — what the
+              full bar means and that tapping &ldquo;Build Manual entry&rdquo;
+              drafts an entry they can change before it saves. It&rsquo;s
+              <strong> fixed text the server adds verbatim</strong>, not
+              something the model phrases — so it&rsquo;s identical every time,
+              fires exactly once, and can never misstate the save mechanic.
+              Edit the exact words here.
             </p>
             {eduField && (
               <div
