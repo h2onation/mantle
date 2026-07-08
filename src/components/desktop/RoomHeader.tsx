@@ -29,7 +29,6 @@ interface RoomHeaderProps {
 // 2026-07-07 when the pill became the one affordance).
 export default function RoomHeader({
   activeView,
-  sessionTitle,
   sessionDate,
   manualEntryCount,
   scopedLabel = null,
@@ -57,7 +56,8 @@ export default function RoomHeader({
       meta = "";
       break;
     default:
-      title = sessionTitle;
+      // Session view: the running title is removed; the centered wordmark stands alone.
+      title = "";
       meta = `Session · ${sessionDate}`;
   }
 
@@ -66,9 +66,11 @@ export default function RoomHeader({
   const headerRow = (
     <header
       style={{
+        position: "relative",
         flex: "0 0 auto",
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: 18,
         height: 56,
         padding: "0 26px",
@@ -76,30 +78,12 @@ export default function RoomHeader({
         zIndex: 10,
       }}
     >
-      <p
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-serif)",
-          fontSize: "21px",
-          fontWeight: 400,
-          letterSpacing: "-0.3px",
-          lineHeight: 1,
-          color: "var(--session-ink)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        mywalnut
-        <span style={{ color: "var(--session-walnut)" }}>.</span>
-      </p>
-
+      {/* Left: the running title for the active view (empty on the session view). */}
       <span
         style={{
-          flex: 1,
           minWidth: 0,
-          padding: "0 12px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
           gap: 8,
           overflow: "hidden",
           whiteSpace: "nowrap",
@@ -135,7 +119,7 @@ export default function RoomHeader({
               {scopedLabel}
             </span>
           </>
-        ) : (
+        ) : title ? (
           <span
             style={{
               fontFamily: "var(--font-serif)",
@@ -148,8 +132,29 @@ export default function RoomHeader({
           >
             {title}
           </span>
-        )}
+        ) : null}
       </span>
+
+      {/* Center: the wordmark, absolutely centered so right-side meta never shifts it. */}
+      <p
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          margin: 0,
+          fontFamily: "var(--font-serif)",
+          fontSize: "21px",
+          fontWeight: 400,
+          letterSpacing: "-0.3px",
+          lineHeight: 1,
+          color: "var(--session-ink)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        mywalnut
+        <span style={{ color: "var(--session-walnut)" }}>.</span>
+      </p>
 
       <span
         style={{
