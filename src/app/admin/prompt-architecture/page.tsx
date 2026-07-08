@@ -335,12 +335,12 @@ export default function TuningPage() {
             >
               {[
                 ["#serving", "What's serving"],
-                ["#scoring", "Session scores"],
                 ["#conversation", "Jove's prompt"],
                 ["#composer", "The entry composer"],
                 ["#copy", "Copy around the conversation"],
                 ["#doors", "Intake doors"],
                 ["#rubric", "Scoring rubric"],
+                ["#scoring", "Session scores"],
               ].map(([href, label]) => (
                 <a
                   key={href}
@@ -416,10 +416,6 @@ export default function TuningPage() {
                 </div>
               </div>
             )}
-
-            {/* ── Session scores — did the last edit move the lines? ──── */}
-            <div id="scoring" />
-            <ScoreTrendPanel />
 
             <h2
               id="conversation"
@@ -897,7 +893,7 @@ export default function TuningPage() {
                 maxWidth: 700,
               }}
             >
-              The quality standard the session scores above are measured
+              The quality standard the session scores below are measured
               against — not part of Jove. Scoring is observational: it never
               feeds back into the conversation. The shipped rubric doc is the
               floor; edits here apply to the next scoring run. An edit changes
@@ -906,6 +902,10 @@ export default function TuningPage() {
               Fold edits that prove out back into the doc, then Reset.
             </p>
             <ScoringRubricPanel />
+
+            {/* ── Session scores — did the last edit move the lines? ──── */}
+            <div id="scoring" />
+            <ScoreTrendPanel />
           </div>
         </div>
       </div>
