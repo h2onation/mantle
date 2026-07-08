@@ -21,6 +21,19 @@ export const COMPOSER_ENTRY_BAR = `THE BAR — what makes an entry land: it name
   Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
   Deeper: "Part of me answers. The other part is busy watching how it'll land, and that part is louder, so it takes over. The pause looks like I don't know the answer. It's the opposite. I know it. I'm just stuck watching their face while I talk, and the more unsure I look, the more they check in, which makes me watch even harder. One time I stopped watching and it cost me, so now I can't stop. So I watch their face to get it right, and that's the same thing that makes me look like I don't know it."`;
 
+/** The composed Manual entry — the shared output shape of both the classic
+ *  composer (composeManualEntry) and the conductor pull path
+ *  (composeEntryAsConductor). Produced by finalizeComposedEntry. */
+export interface ComposedEntry {
+  content: string;
+  name: string;
+  section: string;
+  tags: string[];
+  changelog: string;
+  summary: string;
+  key_words: string[];
+}
+
 interface ComposeManualEntryOptions {
   /** Jove's checkpoint message in the auto-pushed path — the transition line
    *  plus the entry-shaped prose Jove drafted, which the composer polishes.
@@ -95,7 +108,23 @@ interface ComposeManualEntryOptions {
 export function buildComposerSystemPrompt(entryBar: string): string {
   return `You compose Manual entries for a self-authored Manual. You take a checkpoint reflection from a conversationalist called ${PERSONA_NAME} plus the recent conversation, and turn it into one entry that reads as the user describing themselves to themselves — in their own words.
 
-${entryBar}
+${buildEntrySpecBody(entryBar)}`;
+}
+
+/**
+ * The entry-writing spec — THE BAR + the field rules (title / body / section /
+ * tags / compressed summary) + the JSON output schema. This is the one source
+ * of truth for HOW an entry gets written; it's shared by two delivery framings:
+ *   - the classic composer wraps it in a standalone system prompt
+ *     (buildComposerSystemPrompt), where a fresh model reads the transcript from
+ *     outside;
+ *   - the conductor pull path (compose-as-conductor.ts) hands it to Jove as the
+ *     final "write the entry now" instruction, mid-conversation, so the same
+ *     voice that ran the session writes the record from full live context.
+ * Editing this text changes both paths — intended.
+ */
+export function buildEntrySpecBody(entryBar: string): string {
+  return `${entryBar}
 
 name (the TITLE) — THE ARTIFACT. This is the line the user sees every time they open their Manual; in the Manual list the body is collapsed behind it, so the title carries the entry's holdability. It must clear THE BAR above — the DISCOVERY, not a behavior they could have named walking in: the generic "I perform interest to stay close to people I love" fails (anyone could write that); the discovery under it — "I keep debating because going quiet feels like pulling away" — lands. A complete first-person sentence naming what they DO and what drives it — a tendency ("I tend to…") or a trigger ("I [verb] when…"). Picturable and complete: nothing left to decode. About 6–12 words. Never scenario-specific (no names, no "with him" — that lives in the body), never a feeling-state ("I feel alone…"), never an image. A single instance → hedge with "can"/"sometimes".
   Lands: "I tend to stay in things I've outgrown until I'm forced to leave."
@@ -134,15 +163,7 @@ Respond with ONLY valid JSON. No markdown. No backticks.
 
 export async function composeManualEntry(
   options: ComposeManualEntryOptions
-): Promise<{
-  content: string;
-  name: string;
-  section: string;
-  tags: string[];
-  changelog: string;
-  summary: string;
-  key_words: string[];
-} | null> {
+): Promise<ComposedEntry | null> {
   const {
     checkpointText,
     conversationHistory,
@@ -250,7 +271,37 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
     messages: [{ role: "user", content: userContent }],
   });
 
-  const cleaned = extractResponseText(response)
+  return finalizeComposedEntry(extractResponseText(response), {
+    conversationHistory,
+    distinctContexts,
+    // No drafted reflection in the user-pulled path — seed the title retry with
+    // the accumulated understanding (falls back to the user's own words inside
+    // finalize) so a hard-failing headline retries on real material.
+    headlineRetrySeed: checkpointText || depthBrief,
+  });
+}
+
+/**
+ * Parse the model's JSON entry and apply every output guard, then return the
+ * finished ComposedEntry (or null if the JSON is unusable). Shared by both the
+ * classic composer and the conductor pull path so the guards — section homing,
+ * tag closure, universal-tone logging, summary/key-word derivation, and the
+ * headline validate-and-retry — live in ONE place regardless of who wrote the
+ * entry. `headlineRetrySeed` is the material the title-only retry composes from
+ * (the classic path's checkpoint/depth brief); it falls back to the user's own
+ * words when absent (the conductor path passes nothing).
+ */
+export async function finalizeComposedEntry(
+  responseText: string,
+  ctx: {
+    conversationHistory: { role: "user" | "assistant"; content: string }[];
+    distinctContexts?: number | null;
+    headlineRetrySeed?: string;
+  }
+): Promise<ComposedEntry | null> {
+  const { conversationHistory, distinctContexts, headlineRetrySeed } = ctx;
+
+  const cleaned = responseText
     .replace(/```json\s*/g, "")
     .replace(/```\s*/g, "")
     .trim();
@@ -275,7 +326,7 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
       : DEFAULT_SECTION;
   if (rawSection !== section) {
     console.warn(
-      "[composeManualEntry] Composition returned missing/unknown section; defaulting to relationships:",
+      "[finalizeComposedEntry] Composition returned missing/unknown section; defaulting to relationships:",
       rawSection
     );
   }
@@ -304,7 +355,7 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
   );
   if (universalViolations.length > 0) {
     console.warn(
-      "[composeManualEntry] Entry contains universal-tone words not used by user: %s",
+      "[finalizeComposedEntry] Entry contains universal-tone words not used by user: %s",
       universalViolations.join(", ")
     );
   }
@@ -343,11 +394,10 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
     const retried = await recomposeHeadline({
       failingTitle: finalName,
       reasons: headlineCheck.reasons,
-      // No drafted reflection in the user-pulled path — seed the title retry
-      // with the accumulated understanding (or the user's own words) so a
-      // user-pulled entry that hard-fails its headline still retries on real
-      // material rather than an empty string.
-      checkpointText: checkpointText || depthBrief || userMessageText,
+      checkpointText:
+        headlineRetrySeed && headlineRetrySeed.trim()
+          ? headlineRetrySeed
+          : userMessageText,
       userText: userMessageText,
       isSingleExample,
     });
@@ -361,7 +411,7 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
   }
   if (!headlineCheck.ok) {
     console.warn(
-      "[composeManualEntry] Headline failed validation%s: %s",
+      "[finalizeComposedEntry] Headline failed validation%s: %s",
       headlineCheck.hardFail ? " (hard, retry unresolved)" : " (soft, shipped)",
       headlineCheck.reasons.join("; ")
     );

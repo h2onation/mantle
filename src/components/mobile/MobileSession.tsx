@@ -4,13 +4,14 @@ import React from "react";
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import ChatInput from "./ChatInput";
 import PostSaveFork from "./PostSaveFork";
-import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
+import type { ChatMessage, ActiveCheckpoint, EntryCandidate } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { formatLayerEyebrow, sectionName } from "@/lib/manual/layers";
 import { PERSONA_NAME, type CheckpointAction } from "@/lib/persona/config";
 import Bubble from "@/components/shared/Bubble";
 import Plate from "@/components/shared/Plate";
 import CheckpointOverlay from "@/components/checkpoint/CheckpointOverlay";
+import CompareOverlay from "@/components/checkpoint/CompareOverlay";
 import ReflectionHeader from "./ReflectionHeader";
 import TopBar from "@/components/shared/TopBar";
 import type { ReflectionSessionHandle } from "@/lib/hooks/useReflection";
@@ -64,7 +65,16 @@ interface MobileSessionProps {
   reflectionReady?: boolean;
   composeReflection?: () => Promise<
     | { status: "ok"; checkpoint: ActiveCheckpoint }
+    | { status: "compare"; candidates: EntryCandidate[] }
     | { status: "blocked" }
+    | { status: "error" }
+  >;
+  // Compare mode (COMPOSER_MODE=compare) only: materialize the chosen candidate.
+  // Absent off the web surface or when compare mode is off. Test-only.
+  pickReflectionCandidate?: (
+    candidate: EntryCandidate
+  ) => Promise<
+    | { status: "ok"; checkpoint: ActiveCheckpoint }
     | { status: "error" }
   >;
   // Reflection UI state — owned by useReflection (in MainApp) and passed down
@@ -112,6 +122,7 @@ function MobileSessionInner({
   reflectionFill = null,
   reflectionReady = false,
   composeReflection,
+  pickReflectionCandidate,
   reflectionComposing = false,
   reflectionFirstTime = false,
   onBuild,
@@ -127,6 +138,12 @@ function MobileSessionInner({
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
   const overlayCheckpointRef = useRef<ActiveCheckpoint | null>(null);
+  // Compare mode (COMPOSER_MODE=compare) only: the two candidates the user
+  // chooses between, and a local loading flag for the pick → materialize step
+  // (the shared reflectionComposing flag covers the initial two-way compose, but
+  // not the second pick call). Test-only state; removed with the compare A/B.
+  const [compareCandidates, setCompareCandidates] = useState<EntryCandidate[] | null>(null);
+  const [pickLoading, setPickLoading] = useState(false);
 
   // The server computes the capture-progress fill (resets on save, rebuilds).
   // The bar shows the server fill AS-IS. (The old `ready ? 100 : fill` latch
@@ -156,6 +173,11 @@ function MobileSessionInner({
     const result = await composeReflection();
     if (result.status === "ok") {
       overlayCheckpointRef.current = result.checkpoint;
+    } else if (result.status === "compare") {
+      // Compare mode: swap the building overlay for the two-candidate picker.
+      setCheckpointOverlayOpen(false);
+      setCompareCandidates(result.candidates);
+      return "ok";
     } else {
       // "blocked" → the hook set promptAuth (the conversion modal handles it).
       // "error"   → the hook set checkpointError, surfaced under the affordance.
@@ -164,6 +186,28 @@ function MobileSessionInner({
     return result.status;
   }, [composeReflection]);
   useImperativeHandle(ref, () => ({ composeAndOpenOverlay }), [composeAndOpenOverlay]);
+
+  // Compare mode: the user chose a candidate. Close the picker, reopen the
+  // review overlay in its building state, materialize the pick, then fill it in
+  // place — the setPickLoading(false) at the end re-renders so the entry shows.
+  const handlePickCandidate = useCallback(
+    async (candidate: EntryCandidate) => {
+      if (!pickReflectionCandidate) return;
+      setCompareCandidates(null);
+      overlayCheckpointRef.current = null;
+      setCheckpointActionState(null);
+      setPickLoading(true);
+      setCheckpointOverlayOpen(true);
+      const res = await pickReflectionCandidate(candidate);
+      if (res.status === "ok") {
+        overlayCheckpointRef.current = res.checkpoint;
+      } else {
+        setCheckpointOverlayOpen(false);
+      }
+      setPickLoading(false);
+    },
+    [pickReflectionCandidate]
+  );
 
   const [signInBannerDismissed, setSignInBannerDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -728,7 +772,7 @@ function MobileSessionInner({
         <CheckpointOverlay
           open={checkpointOverlayOpen}
           checkpoint={overlayCheckpointRef.current}
-          loading={reflectionComposing}
+          loading={reflectionComposing || pickLoading}
           confirmStatus={
             checkpointActionState !== "confirmed"
               ? "idle"
@@ -755,6 +799,18 @@ function MobileSessionInner({
             // persistent top strip stays visible — nothing to restore here.
             // A confirmed save clears reflectionReady and the strip hides.
           }}
+        />
+      )}
+
+      {/* Compare mode (COMPOSER_MODE=compare) only: the two-candidate picker.
+          Renders between the building overlay and the normal review overlay.
+          Test-only surface — removed with the compare A/B. */}
+      {compareCandidates && (
+        <CompareOverlay
+          open
+          candidates={compareCandidates}
+          onPick={handlePickCandidate}
+          onClose={() => setCompareCandidates(null)}
         />
       )}
     </main>

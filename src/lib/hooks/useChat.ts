@@ -7,7 +7,7 @@ import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parse
 import { firstNameFrom } from "@/lib/utils/name";
 import { LAYERS, sectionName } from "@/lib/manual/layers";
 import type { CheckpointAction } from "@/lib/persona/config";
-import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
+import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext, EntryCandidate } from "@/lib/types";
 import {
   trackConversationStarted,
   trackMessageSent,
@@ -1115,8 +1115,44 @@ export function useChat() {
    * through the existing confirmCheckpoint flow unchanged. Returns a status
    * the caller (MobileSession) uses to open the overlay / surface an error.
    */
+  // Turn a compose/pick response body into an ActiveCheckpoint, latch it as the
+  // active checkpoint (so the overlay's confirm-status wiring and reload-resume
+  // see it), and fire the proposal analytic. Shared by the single-entry compose
+  // path and the compare-mode pick.
+  function activateCheckpointFromBody(body: {
+    messageId: string;
+    checkpoint: {
+      section?: string | null;
+      tags?: string[];
+      name: string | null;
+      composed_content: string;
+    };
+  }): ActiveCheckpoint {
+    const checkpoint: ActiveCheckpoint = {
+      messageId: body.messageId,
+      section: body.checkpoint.section ?? null,
+      tags: body.checkpoint.tags ?? [],
+      name: body.checkpoint.name,
+      content: body.checkpoint.composed_content,
+      composedContent: body.checkpoint.composed_content,
+    };
+    setActiveCheckpoint(checkpoint);
+    checkpointProposedAt.current = Date.now();
+    trackCheckpointProposed({
+      conversation_id: conversationId!,
+      checkpoint_id: body.messageId,
+      section: checkpoint.section,
+      message_number: messages.length + 1,
+      user_turn_count: messages.filter((m) => m.role === "user").length,
+      mode: conversationMode.current,
+    });
+    return checkpoint;
+  }
+
   async function composeReflection(): Promise<
     | { status: "ok"; checkpoint: ActiveCheckpoint }
+    // COMPOSER_MODE=compare: two candidates to choose between (test-only).
+    | { status: "compare"; candidates: EntryCandidate[] }
     | { status: "blocked" }
     | { status: "error" }
   > {
@@ -1138,36 +1174,48 @@ export function useChat() {
         setPromptAuth(true);
         return { status: "blocked" };
       }
+      // Compare mode returns two candidates and writes no row yet — the user
+      // picks one via pickReflectionCandidate.
+      if (body?.compare && Array.isArray(body.candidates) && body.candidates.length > 0) {
+        return { status: "compare", candidates: body.candidates as EntryCandidate[] };
+      }
       if (!res.ok || !body?.checkpoint || !body?.messageId) {
         setCheckpointError("Couldn't build that reflection. Try again.");
         return { status: "error" };
       }
-      const checkpoint: ActiveCheckpoint = {
-        messageId: body.messageId,
-        section: body.checkpoint.section ?? null,
-        tags: body.checkpoint.tags ?? [],
-        name: body.checkpoint.name,
-        content: body.checkpoint.composed_content,
-        composedContent: body.checkpoint.composed_content,
-      };
-      // Also set it as the active checkpoint so the overlay's confirm-status
-      // wiring and reload-resume see it; the caller uses the returned value to
-      // open the overlay immediately without waiting for state to propagate.
-      setActiveCheckpoint(checkpoint);
-      checkpointProposedAt.current = Date.now();
-      // Proposal analytics (time_to_decision_ms pairs with this in the
-      // decision event). Under the pull model "proposed" = the user pulled a
-      // composed reflection into view. Moved here 2026-07-06 from the deleted
-      // SSE checkpoint block.
-      trackCheckpointProposed({
-        conversation_id: conversationId,
-        checkpoint_id: body.messageId,
-        section: checkpoint.section,
-        message_number: messages.length + 1,
-        user_turn_count: messages.filter((m) => m.role === "user").length,
-        mode: conversationMode.current,
+      // The caller uses the returned checkpoint to open the overlay immediately
+      // without waiting for state to propagate.
+      return { status: "ok", checkpoint: activateCheckpointFromBody(body) };
+    } catch {
+      setCheckpointError("Couldn't reach the server. Try again.");
+      return { status: "error" };
+    }
+  }
+
+  // Compare-mode step 2: the user chose a candidate. Echo it back to the compose
+  // route as `pick` to materialize the single pending row, then latch it exactly
+  // like a normal compose so the review overlay + confirm run unchanged.
+  async function pickReflectionCandidate(
+    candidate: EntryCandidate
+  ): Promise<{ status: "ok"; checkpoint: ActiveCheckpoint } | { status: "error" }> {
+    if (!conversationId) return { status: "error" };
+    setCheckpointError(null);
+    try {
+      const res = await fetch("/api/checkpoint/compose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId, pick: candidate.entry }),
       });
-      return { status: "ok", checkpoint };
+      if (res.status === 401) {
+        router.push("/login");
+        return { status: "error" };
+      }
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.checkpoint || !body?.messageId) {
+        setCheckpointError("Couldn't save that reflection. Try again.");
+        return { status: "error" };
+      }
+      return { status: "ok", checkpoint: activateCheckpointFromBody(body) };
     } catch {
       setCheckpointError("Couldn't reach the server. Try again.");
       return { status: "error" };
@@ -1776,6 +1824,10 @@ export function useChat() {
     reflectionFill,
     reflectionReady,
     composeReflection,
+    // Compare mode (COMPOSER_MODE=compare) only: materialize the chosen
+    // candidate. No-op path when compare mode is off (compose never returns
+    // candidates). Test-only.
+    pickReflectionCandidate,
     // Post-save fork (one session = one reflection). `postSaveEntry` is set
     // after a confirmed save; the client renders the three ways forward.
     postSaveEntry,

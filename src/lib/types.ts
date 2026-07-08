@@ -67,6 +67,23 @@ export interface ActiveCheckpoint {
   composedContent?: string | null;
 }
 
+/** A single candidate in COMPOSER_MODE=compare: one composed entry plus which
+ *  composer wrote it. The client renders both, and echoes the chosen `entry`
+ *  back to /api/checkpoint/compose as `pick` to materialize the pending row.
+ *  Test-only scaffolding — removed with the compare A/B. */
+export interface EntryCandidate {
+  label: "classic" | "conductor";
+  entry: {
+    content: string;
+    name: string;
+    section: string;
+    tags: string[];
+    changelog: string;
+    summary: string;
+    key_words: string[];
+  };
+}
+
 export interface ExplorationContext {
   /** Human-readable section name (the five life-area sections). "layer" is the
    *  code identifier for "section" — see CLAUDE.md Terminology. */

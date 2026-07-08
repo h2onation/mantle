@@ -254,6 +254,7 @@ export default function MainApp() {
     reflectionFill,
     reflectionReady,
     composeReflection,
+    pickReflectionCandidate,
     postSaveEntry,
     keepWorkingFromSave,
     dismissPostSaveFork,
@@ -608,6 +609,7 @@ export default function MainApp() {
       reflectionFill={reflectionFill}
       reflectionReady={reflectionReady}
       composeReflection={composeReflection}
+      pickReflectionCandidate={pickReflectionCandidate}
       reflectionComposing={reflection.composing}
       reflectionFirstTime={reflection.firstTime}
       onBuild={reflection.onBuild}
