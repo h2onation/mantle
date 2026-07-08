@@ -28,8 +28,9 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 //   3. Copy around the conversation — openers, post-save line, app copy
 //      (VoiceEditorPanel + AppCopyPanel, same override system).
 //   4. The intake doors (IntakeDoorsPanel).
-//   (The reflection-meter dial was removed 2026-07-07 — the recharge pace is
-//   a code constant now, REFLECTION_RECHARGE_TURNS in persona-pipeline.ts.)
+//   (The reflection-meter dial was removed 2026-07-07; the post-save recharge
+//   it paced was removed entirely 2026-07-08 — the bar is now depth-only and
+//   never recharges, since a session builds toward a single reflection.)
 //
 // Data: GET/PATCH /api/admin/persona-voice (+ each panel's own route).
 // Conductor saves that drop a non-negotiable line are rejected by the API —

@@ -669,14 +669,6 @@ export function buildCheckpointMeta(
  *  premature pulls produced thin entries. It now barely moves through
  *  storytelling (surface/behavior), stirs at feelings, and does its real
  *  rising only once the WHY is on the table. */
-/** Post-save recharge pacing: how many user messages must pass after a save
- *  before the bar's visual fill fully recovers (reflectionMeterFill's cooldown
- *  cap). A feel constant, not a safety valve — it was the last surviving
- *  admin dial of the push-era checkpoint_tuning table (dial + table removed
- *  2026-07-07, founder call); the founder's live value of 12 was tuned for
- *  the deleted push model, so removal restored the shipped default. */
-export const REFLECTION_RECHARGE_TURNS = 5;
-
 const REFLECTION_DEPTH_PCT: Record<string, number> = {
   surface: 0,
   behavior: 8,
@@ -686,35 +678,16 @@ const REFLECTION_DEPTH_PCT: Record<string, number> = {
 };
 
 /**
- * Reflection meter fill (0–100) for the user-pulled model. The bar is a
- * CAPTURE-PROGRESS meter, not a raw depth gauge: "full" means "you can capture
- * a reflection right now." So it must RESET after a save and rebuild.
- *
- * That reset is automatic: the fill is capped by the post-checkpoint cooldown
- * (`turnsSinceCheckpoint / cooldownTurns`), and `turnsSinceCheckpoint` is 0
- * right after a save → fill 0 → it ramps back up over the next few turns. It is
- * ALSO capped by how deep the conversation actually is (the depth rung), so a
- * new shallow thread stays low. When the gate passes (capturable) it is full.
- *
- * Computed server-side because that is the only place with all three inputs
- * (depth, turns-since-checkpoint, the gate). The same value backs the live SSE
- * signal and the on-load restore endpoint, so they can't drift.
+ * Reflection meter fill (0–100), depth-only. The pre-ready bar reflects one
+ * thing — how deep the conversation has gone (the depth rung) — and nothing
+ * else. It does NOT reset or recharge after a save: a session builds toward a
+ * single reflection, so there is no in-session refill to pace (the post-save
+ * cooldown and its admin dial were removed 2026-07-08). Readiness — fill → 100
+ * plus the pull affordance — is Jove's landed marker alone, applied by
+ * resolveReflectionMeter, not this function.
  */
-export function reflectionMeterFill(
-  depth: string | null | undefined,
-  turnsSinceCheckpoint: number,
-  gatePassed: boolean,
-  cooldownTurns: number
-): number {
-  if (gatePassed) return 100;
-  const depthPct = REFLECTION_DEPTH_PCT[depth ?? ""] ?? 0;
-  if (!Number.isFinite(turnsSinceCheckpoint) || cooldownTurns <= 0) {
-    // No prior checkpoint (Infinity) or no cooldown configured → no recharge
-    // cap; the bar is purely depth-driven.
-    return depthPct;
-  }
-  const cooldownCap = Math.min(1, turnsSinceCheckpoint / cooldownTurns) * 100;
-  return Math.round(Math.min(depthPct, cooldownCap));
+export function reflectionMeterFill(depth: string | null | undefined): number {
+  return REFLECTION_DEPTH_PCT[depth ?? ""] ?? 0;
 }
 
 /**
@@ -736,19 +709,13 @@ export function reflectionMeterFill(
  */
 export function resolveReflectionMeter(args: {
   extraction: ExtractionState | null;
-  turnsSinceCheckpoint: number;
   reflectionLanded: boolean;
 }): { fill: number; ready: boolean } | null {
-  const { extraction, turnsSinceCheckpoint, reflectionLanded } = args;
+  const { extraction, reflectionLanded } = args;
   if (!extraction) return null;
   if (extraction.clinical_flag?.active && extraction.clinical_flag.level === "crisis") {
     return null;
   }
-  const depthFill = reflectionMeterFill(
-    extraction.depth,
-    turnsSinceCheckpoint,
-    /* gatePassed */ false,
-    REFLECTION_RECHARGE_TURNS
-  );
+  const depthFill = reflectionMeterFill(extraction.depth);
   return { fill: reflectionLanded ? 100 : depthFill, ready: reflectionLanded };
 }

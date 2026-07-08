@@ -64,7 +64,6 @@ export async function GET(request: Request) {
   // second readiness formula to drift.
   const reflectionMeter = resolveReflectionMeter({
     extraction: ctx.previousExtraction,
-    turnsSinceCheckpoint: ctx.turnsSinceCheckpoint,
     reflectionLanded: ctx.reflectionLanded,
   });
 

@@ -823,7 +823,6 @@ export function callPersona({
                     // never a completion claim.
                     reflectionMeter: resolveReflectionMeter({
                       extraction: previousExtraction,
-                      turnsSinceCheckpoint,
                       // Prior turns' signal from context; this turn's marker
                       // was parsed above — OR them so the strip appears on
                       // the landed message itself, not one turn late.

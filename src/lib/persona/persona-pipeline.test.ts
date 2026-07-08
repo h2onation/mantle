@@ -167,41 +167,29 @@ describe("buildPromptOptionsFromContext — mode field", () => {
   // longer reads voiceVariant.
 });
 
-describe("reflectionMeterFill (capture-progress)", () => {
-  const COOLDOWN = 5;
-
-  it("is full when the gate has passed (capturable)", () => {
-    expect(reflectionMeterFill("mechanism", 10, true, COOLDOWN)).toBe(100);
-    // gate passed wins even with 0 turns / shallow depth
-    expect(reflectionMeterFill("surface", 0, true, COOLDOWN)).toBe(100);
+describe("reflectionMeterFill (depth-only)", () => {
+  it("maps each depth rung to its back-loaded percent", () => {
+    // The bar barely moves through storytelling and does its real rising once
+    // the WHY is on the table (surface 0 → origin 80).
+    expect(reflectionMeterFill("surface")).toBe(0);
+    expect(reflectionMeterFill("behavior")).toBe(8);
+    expect(reflectionMeterFill("feeling")).toBe(28);
+    expect(reflectionMeterFill("mechanism")).toBe(60);
+    expect(reflectionMeterFill("origin")).toBe(80);
   });
 
-  it("RESETS to 0 right after a save (turnsSinceCheckpoint 0), even when deep", () => {
-    expect(reflectionMeterFill("mechanism", 0, false, COOLDOWN)).toBe(0);
+  it("does NOT reset or recharge after a save — fill follows depth only", () => {
+    // The cooldown cap (and its admin dial) were removed 2026-07-08: a session
+    // builds toward one reflection, so there is no post-save refill to pace.
+    // Depth is monotonic, so a deep thread keeps its fill straight through.
+    expect(reflectionMeterFill("mechanism")).toBe(60);
+    expect(reflectionMeterFill("origin")).toBe(80);
   });
 
-  it("ramps back up over the cooldown, capped by depth", () => {
-    // deep thread, mechanism depth = 60 (back-loaded curve); cooldown cap
-    // rises 20/40/60/80/100
-    expect(reflectionMeterFill("mechanism", 1, false, COOLDOWN)).toBe(20);
-    expect(reflectionMeterFill("mechanism", 3, false, COOLDOWN)).toBe(60);
-    // once the cooldown has fully elapsed, the depth cap (60) takes over
-    expect(reflectionMeterFill("mechanism", 5, false, COOLDOWN)).toBe(60);
-    expect(reflectionMeterFill("mechanism", 9, false, COOLDOWN)).toBe(60);
-  });
-
-  it("stays at zero for a new shallow thread regardless of cooldown (back-loaded curve)", () => {
-    expect(reflectionMeterFill("surface", 9, false, COOLDOWN)).toBe(0);
-  });
-
-  it("has no cooldown cap when there is no prior checkpoint (Infinity)", () => {
-    expect(reflectionMeterFill("mechanism", Infinity, false, COOLDOWN)).toBe(60);
-    expect(reflectionMeterFill("surface", Infinity, false, COOLDOWN)).toBe(0);
-  });
-
-  it("returns 0 for unknown/empty depth when not ready", () => {
-    expect(reflectionMeterFill(null, Infinity, false, COOLDOWN)).toBe(0);
-    expect(reflectionMeterFill(undefined, Infinity, false, COOLDOWN)).toBe(0);
+  it("returns 0 for unknown/empty depth", () => {
+    expect(reflectionMeterFill(null)).toBe(0);
+    expect(reflectionMeterFill(undefined)).toBe(0);
+    expect(reflectionMeterFill("")).toBe(0);
   });
 });
 
@@ -217,14 +205,12 @@ describe("resolveReflectionMeter", () => {
     expect(
       resolveReflectionMeter({
         extraction: null,
-        turnsSinceCheckpoint: 5,
         reflectionLanded: true,
       }),
     ).toBeNull();
     expect(
       resolveReflectionMeter({
         extraction: base({ clinical_flag: { active: true, level: "crisis", note: "" } }),
-        turnsSinceCheckpoint: 5,
         reflectionLanded: true,
       }),
     ).toBeNull();
@@ -233,7 +219,6 @@ describe("resolveReflectionMeter", () => {
   it("never claims ready without the landed marker — no ready-at-turn-one on a shallow chat", () => {
     const shallow = resolveReflectionMeter({
       extraction: base({ depth: "surface" }),
-      turnsSinceCheckpoint: Infinity,
       reflectionLanded: false,
     });
     expect(shallow).toEqual({ fill: 0, ready: false });
@@ -247,8 +232,7 @@ describe("resolveReflectionMeter", () => {
     for (const depth of ["feeling", "mechanism", "origin"] as const) {
       const unlanded = resolveReflectionMeter({
         extraction: base({ depth }),
-        turnsSinceCheckpoint: Infinity,
-          reflectionLanded: false,
+        reflectionLanded: false,
       });
       expect(unlanded?.ready).toBe(false);
       expect(unlanded?.fill).toBeLessThanOrEqual(80);
@@ -256,7 +240,6 @@ describe("resolveReflectionMeter", () => {
     // Landed → full bar ⇔ strip visible, regardless of depth.
     const landed = resolveReflectionMeter({
       extraction: base({ depth: "feeling" }),
-      turnsSinceCheckpoint: Infinity,
       reflectionLanded: true,
     });
     expect(landed).toEqual({ fill: 100, ready: true });
