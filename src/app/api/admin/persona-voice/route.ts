@@ -65,11 +65,22 @@ export async function GET() {
   // Override status across ALL keys (including door openers edited elsewhere):
   // the Tuning page's "is anything masking code right now?" strip. Status
   // only — no override text (the door openers keep their own edit surface).
-  const overrideStatus = Object.keys(VOICE_OVERRIDE_FIELDS).map((key) => ({
-    key,
-    label: VOICE_OVERRIDE_FIELDS[key].label,
-    enabled: rows.get(key)?.enabled ?? false,
-  }));
+  // The scoring rubric rides along by name: it lives in the same table but
+  // outside VOICE_OVERRIDE_FIELDS (its default is a file read, node-only —
+  // see /api/admin/scoring-rubric), and an enabled override masks doc edits
+  // the same way the voice keys mask code.
+  const overrideStatus = [
+    ...Object.keys(VOICE_OVERRIDE_FIELDS).map((key) => ({
+      key,
+      label: VOICE_OVERRIDE_FIELDS[key].label,
+      enabled: rows.get(key)?.enabled ?? false,
+    })),
+    {
+      key: "scoring_rubric",
+      label: "Scoring rubric (conversation quality)",
+      enabled: rows.get("scoring_rubric")?.enabled ?? false,
+    },
+  ];
 
   return Response.json({ fields, composerPrompt, overrideStatus });
 }

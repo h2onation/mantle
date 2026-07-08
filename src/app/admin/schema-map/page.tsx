@@ -667,7 +667,7 @@ const TABLES: Table[] = [
     access: "backend",
     oneLine: "Admin-editable replacements for a fixed set of voice-text fields.",
     rowMeans:
-      "One overridden voice field (the whole conductor prompt, the two openers, the post-confirm line, the composer's entry bar) — live-tunable from admin without a deploy. A field is overridden only when its row exists AND is enabled.",
+      "One overridden voice field (the whole conductor prompt, the two openers, the post-confirm line, the composer's entry bar) — live-tunable from admin without a deploy. A field is overridden only when its row exists AND is enabled. The scoring rubric (key scoring_rubric, edited via /api/admin/scoring-rubric) shares the table; its floor is the rubric doc, not a code constant.",
     description:
       "Holds NO user data — global app config, a handful of rows, none seeded (absence of a row = use the code default). The code constants stay the permanent floor. Read once per turn inside loadConversationContext (folded into its parallel DB batch), written only via /api/admin/persona-voice. 'Reset to default' sets enabled=false (non-destructive). The conductor_prompt key (Jove's whole prompt, edited on the Tuning page) is save-guarded: an edit that drops the crisis lines or the hidden UI markers is rejected. The CRISIS_PHRASES pipeline detector, the composer's entry schema, and OTP caps stay code-only.",
     columns: [

@@ -7,6 +7,8 @@ import OverrideFieldEditor from "@/components/admin/OverrideFieldEditor";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
 import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
 import AppCopyPanel from "@/components/admin/AppCopyPanel";
+import ScoreTrendPanel from "@/components/admin/ScoreTrendPanel";
+import ScoringRubricPanel from "@/components/admin/ScoringRubricPanel";
 import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 
 // ---------------------------------------------------------------------------
@@ -333,10 +335,12 @@ export default function TuningPage() {
             >
               {[
                 ["#serving", "What's serving"],
+                ["#scoring", "Session scores"],
                 ["#conversation", "Jove's prompt"],
                 ["#composer", "The entry composer"],
                 ["#copy", "Copy around the conversation"],
                 ["#doors", "Intake doors"],
+                ["#rubric", "Scoring rubric"],
               ].map(([href, label]) => (
                 <a
                   key={href}
@@ -412,6 +416,10 @@ export default function TuningPage() {
                 </div>
               </div>
             )}
+
+            {/* ── Session scores — did the last edit move the lines? ──── */}
+            <div id="scoring" />
+            <ScoreTrendPanel />
 
             <h2
               id="conversation"
@@ -866,6 +874,38 @@ export default function TuningPage() {
               The intake doors
             </h2>
             <IntakeDoorsPanel />
+
+            {/* ── The scoring rubric ─────────────────────────────────── */}
+            <h2
+              id="rubric"
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
+                color: "var(--session-ink)",
+                margin: "40px 0 12px",
+              }}
+            >
+              The scoring rubric
+            </h2>
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                color: "var(--session-walnut-meta)",
+                margin: "0 0 18px",
+                maxWidth: 700,
+              }}
+            >
+              The quality standard the session scores above are measured
+              against — not part of Jove. Scoring is observational: it never
+              feeds back into the conversation. The shipped rubric doc is the
+              floor; edits here apply to the next scoring run. An edit changes
+              the rubric&rsquo;s fingerprint, so scores from before and after
+              stop being comparable — re-score sessions you want on one scale.
+              Fold edits that prove out back into the doc, then Reset.
+            </p>
+            <ScoringRubricPanel />
           </div>
         </div>
       </div>
