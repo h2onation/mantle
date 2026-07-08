@@ -150,6 +150,15 @@ export async function loadConversationContext(
       .select("created_at")
       .eq("conversation_id", conversationId)
       .eq("is_checkpoint", true)
+      // Only a CONFIRMED checkpoint resets the reflection meter. Pulling an
+      // entry plants an is_checkpoint row immediately (compose route), but a
+      // pull the user then discards or reworks ("rejected"/"refined") — or one
+      // still "pending" in the overlay — never became a Manual entry. Counting
+      // it here would reset turnsSinceCheckpoint AND move the reflectionLanded
+      // scope past the landed marker, wiping the user's progress for a save
+      // that never happened. Confirmed saves flip checkpoint_meta.status →
+      // "confirmed" (confirm_checkpoint RPC), so gate on that.
+      .eq("checkpoint_meta->>status", "confirmed")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -271,10 +280,12 @@ export async function loadConversationContext(
     turnsSinceCheckpoint = userMsgsSince;
   }
 
-  // Jove's landed signal since the last checkpoint (conductor readiness).
+  // Jove's landed signal since the last CONFIRMED checkpoint (conductor
+  // readiness — lastCheckpointResult is already filtered to confirmed saves).
   // Same metadata-tag pattern as checkpoint_suppressed above: call-persona
   // tags the row when it strips the ---reflection-ready--- marker. Scoped to
-  // after the last checkpoint so a save resets readiness with no extra state.
+  // after the last confirmed checkpoint so a real save resets readiness — but
+  // a discarded/reworked pull does not — with no extra state.
   const cpTime = lastCheckpointResult.data?.created_at ?? null;
   const reflectionLanded = (historyResult.data || []).some(
     (m: {

@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { loadConversationContext } from "@/lib/persona/persona-pipeline";
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
@@ -203,5 +204,92 @@ describe("DB contract — every code-insert shape is accepted", () => {
       feedback_text: "canary feedback",
     });
     expect(error).toBeNull();
+  });
+});
+
+// Regression guard for the reflection-meter reset fix (persona-pipeline.ts).
+// Only a CONFIRMED checkpoint resets the meter. Pulling an entry plants an
+// is_checkpoint row immediately; if the user then DISCARDS or REWORKS it
+// ("rejected"/"refined") nothing entered the Manual, so that pull must NOT
+// count as "the last checkpoint" — counting it reset turnsSinceCheckpoint and
+// moved the reflectionLanded scope past Jove's landed marker, wiping the
+// user's progress for a save that never happened.
+//
+// The fix is a jsonb filter enforced by Postgres, so it can only be tested
+// against a real database (a mocked client would just be testing the mock).
+// This runs the actual loadConversationContext query path end-to-end.
+describe("reflection meter — only confirmed checkpoints reset it", () => {
+  let convId: string;
+
+  beforeAll(async () => {
+    const { data: conv, error } = await admin
+      .from("conversations")
+      .insert({ user_id: testUserId })
+      .select("id")
+      .single();
+    if (error || !conv) {
+      throw new Error(`Failed to seed meter-test conversation: ${error?.message}`);
+    }
+    convId = conv.id;
+
+    // Timeline (explicit created_at so ordering is deterministic):
+    //   t1  CONFIRMED checkpoint  — the last real save
+    //   t2  user message          — 1st user turn after the save
+    //   t3  assistant + landed    — Jove signals a NEW reflection is ready
+    //   t4  REJECTED pull         — a later is_checkpoint row, never saved
+    //   t5  user message          — 2nd user turn after the save
+    const at = (s: number) => `2026-01-01T00:00:0${s}.000Z`;
+    const rows = [
+      {
+        conversation_id: convId,
+        role: "assistant",
+        content: "confirmed save",
+        is_checkpoint: true,
+        checkpoint_meta: { name: "saved", status: "confirmed" },
+        created_at: at(1),
+      },
+      {
+        conversation_id: convId,
+        role: "user",
+        content: "first turn after save",
+        created_at: at(2),
+      },
+      {
+        conversation_id: convId,
+        role: "assistant",
+        content: "a new reflection landed",
+        metadata: { reflection_landed: true },
+        created_at: at(3),
+      },
+      {
+        conversation_id: convId,
+        role: "assistant",
+        content: "discarded pull",
+        is_checkpoint: true,
+        checkpoint_meta: { name: "discarded", status: "rejected" },
+        created_at: at(4),
+      },
+      {
+        conversation_id: convId,
+        role: "user",
+        content: "second turn after save",
+        created_at: at(5),
+      },
+    ];
+    const { error: insErr } = await admin.from("messages").insert(rows);
+    if (insErr) {
+      throw new Error(`Failed to seed meter-test messages: ${insErr.message}`);
+    }
+  });
+
+  it("ignores a rejected pull when computing the last checkpoint", async () => {
+    const ctx = await loadConversationContext(admin, convId, testUserId);
+
+    // Anchored to the CONFIRMED save (t1), not the later rejected pull (t4):
+    //   both user turns after t1 count → 2 (a regression would count from t4 → 1)
+    expect(ctx.turnsSinceCheckpoint).toBe(2);
+    //   the landed marker at t3 is after t1, so readiness survives
+    //   (a regression scopes past t4 and the marker is lost → false)
+    expect(ctx.reflectionLanded).toBe(true);
   });
 });
