@@ -72,7 +72,7 @@ export interface ActiveCheckpoint {
  *  back to /api/checkpoint/compose as `pick` to materialize the pending row.
  *  Test-only scaffolding — removed with the compare A/B. */
 export interface EntryCandidate {
-  label: "classic" | "conductor";
+  label: "composer" | "conductor";
   entry: {
     content: string;
     name: string;

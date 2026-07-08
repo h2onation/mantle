@@ -11,6 +11,7 @@ import {
   type ComposedEntry,
 } from "@/lib/persona/confirm-checkpoint";
 import { composeEntryAsConductor } from "@/lib/persona/compose-as-conductor";
+import { getComposerMode } from "@/lib/persona/composer-mode";
 import { LAYERS, TAGS, RELATIONSHIP_TAGS } from "@/lib/manual/layers";
 import {
   reflectionComposeHour,
@@ -32,8 +33,10 @@ import { checkAnonCheckpointGate } from "@/lib/auth/anon-checkpoint-gate";
  * so this route has no feature gate of its own — ownership, the anonymous
  * conversion gate, and the rate limiter are the only guards before the Opus call.
  *
- * COMPOSER_MODE (env) selects who writes the entry:
- *   - "classic" (default) — the separate composer re-reads the transcript.
+ * The composer mode (getComposerMode — admin toggle on the Feature gates page,
+ * falling back to the COMPOSER_MODE env var, then the default) selects who
+ * writes the entry:
+ *   - "composer" (default) — the separate composer re-reads the transcript.
  *   - "conductor" — the conductor writes it from full live context.
  *   - "compare" — run BOTH in parallel, return both candidates without writing
  *     a row; the client shows them side by side and calls back with `pick`
@@ -173,7 +176,7 @@ export async function POST(request: Request) {
     "web"
   );
   const ext = ctx.previousExtraction;
-  const mode = resolveComposerMode();
+  const mode = await getComposerMode(admin);
   const entryBarOverride = ctx.voiceOverrides?.composerEntryBar;
   const distinctContexts = ext?.checkpoint_gate?.distinct_contexts ?? null;
 
@@ -187,10 +190,10 @@ export async function POST(request: Request) {
       manual_entry_count: ctx.manualComponents?.length ?? 0,
     });
 
-  // Classic composer — the separate save-time call that re-reads the transcript
+  // Composer mode — the separate save-time call that re-reads the transcript
   // (50-message window) plus the accumulated extraction understanding. This is
   // the control; its inputs are unchanged.
-  const runClassic = () =>
+  const runComposer = () =>
     composeManualEntry({
       conversationHistory: ctx.messages,
       languageBank: ext?.language_bank || [],
@@ -236,13 +239,13 @@ export async function POST(request: Request) {
   // row. The client shows them side by side and POSTs `pick` (above) to
   // materialize the chosen one. 2× Opus per pull — test-only, gone at cleanup.
   if (mode === "compare") {
-    const [classic, conductor] = await Promise.all([
-      safeCompose(runClassic, "classic"),
+    const [composer, conductor] = await Promise.all([
+      safeCompose(runComposer, "composer"),
       safeCompose(runConductor, "conductor"),
     ]);
     logComposeLatency();
     const candidates = [
-      { label: "classic", entry: classic },
+      { label: "composer", entry: composer },
       { label: "conductor", entry: conductor },
     ].filter((c) => c.entry);
     if (candidates.length === 0) {
@@ -255,9 +258,9 @@ export async function POST(request: Request) {
     });
   }
 
-  // Single-entry modes (classic default, or conductor).
+  // Single-entry modes (composer default, or conductor).
   const composed = await safeCompose(
-    mode === "conductor" ? runConductor : runClassic,
+    mode === "conductor" ? runConductor : runComposer,
     mode
   );
   logComposeLatency();
@@ -271,12 +274,6 @@ export async function POST(request: Request) {
   // Write the checkpoint row + return the payload the review overlay opens on;
   // confirm goes through /api/checkpoint/confirm unchanged.
   return respondWithRow(composed);
-}
-
-/** COMPOSER_MODE env resolver — defaults to the shipped classic composer. */
-function resolveComposerMode(): "classic" | "conductor" | "compare" {
-  const m = (process.env.COMPOSER_MODE || "").trim().toLowerCase();
-  return m === "conductor" || m === "compare" ? m : "classic";
 }
 
 /** Coerce a client-supplied compare pick into a valid ComposedEntry, or null if

@@ -57,6 +57,7 @@ function makeCtx(
     extractionEnabled: true,
     voiceOverrides: {},
     reflectionLanded: true,
+    conductorPromptSha: null,
     ...overrides,
   };
 }

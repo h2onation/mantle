@@ -3,6 +3,7 @@
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
+import ComposerModePanel from "@/components/admin/ComposerModePanel";
 
 // Feature gates — the global debug kill-switches, in the Controls group
 // alongside Tuning (moved here from the Health section 2026-07-08: they're
@@ -72,6 +73,7 @@ export default function FeatureGatesPage() {
             </p>
 
             <FeatureGatesPanel />
+            <ComposerModePanel />
           </div>
         </div>
       </div>

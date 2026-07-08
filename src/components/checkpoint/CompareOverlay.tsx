@@ -19,7 +19,7 @@ interface CompareOverlayProps {
 }
 
 const LABELS: Record<EntryCandidate["label"], string> = {
-  classic: "A · Classic composer",
+  composer: "A · Composer",
   conductor: "B · Conductor",
 };
 
