@@ -45,10 +45,10 @@ interface ComposeManualEntryOptions {
    *  softener check is then skipped to preserve prior behavior. */
   distinctContexts?: number | null;
   /** The session's accumulated understanding, carried from the latest
-   *  extraction state. The composer only sees the last 8 messages, so
-   *  without these it writes the entry blind to the depth the whole
-   *  session built — which is the mechanical reason entries read as
-   *  recap. depth is the deepest rung reached (surface → behavior →
+   *  extraction state. The composer reads the last COMPOSE_TRANSCRIPT_WINDOW
+   *  (50) transcript messages verbatim; these fields SUPPLEMENT that raw
+   *  transcript (and carry anything older than the window), they don't
+   *  replace it. depth is the deepest rung reached (surface → behavior →
    *  feeling → mechanism → origin); sageBrief is the running read of
    *  what's underneath; currentThread is what's live right now. All
    *  optional / nullable so legacy callers and thin states degrade
