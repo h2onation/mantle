@@ -18,9 +18,10 @@ interface ReflectionHeaderProps {
 }
 
 // The pull-model reflection surface. As the conversation deepens the bar fills;
-// when an entry is ready the header blooms into the deep field and the build
-// pill condenses onto the bar's edge — the ONE affordance, identical on mobile
-// and desktop. Arrival is a one-shot animation (bloom → glow gathers → pill
+// when an entry is ready the header INVERTS (espresso in light mode, parchment
+// in dark — the wordmark flips with it via the token remap in globals.css) and
+// the build pill condenses onto the bar's edge — the ONE affordance, identical
+// on mobile and desktop. Arrival is a one-shot animation (bloom → glow gathers → pill
 // blooms and settles → one sheen), then still. It wraps whatever the
 // platform's header row is (`children`) so mobile and desktop share one
 // treatment. Replaced the invisible tap-anywhere overlay + expanding education
