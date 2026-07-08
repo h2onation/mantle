@@ -21,6 +21,11 @@ const DOC_SOURCES: DocSource[] = [
   { name: "rules", filename: "rules.md", relative: "docs/rules.md" },
   { name: "state", filename: "state.md", relative: "docs/state.md" },
   { name: "decisions", filename: "decisions.md", relative: "docs/decisions.md" },
+  {
+    name: "scoring",
+    filename: "conductor-scoring.md",
+    relative: "docs/reference/conductor-scoring.md",
+  },
 ];
 
 const MTIMES = docMtimes as Record<string, string>;
