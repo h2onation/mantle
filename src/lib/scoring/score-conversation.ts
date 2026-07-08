@@ -3,6 +3,8 @@ import { COMPOSITION_MODEL } from "@/lib/persona/config";
 import {
   SCORE_DIMENSIONS,
   type DimensionScore,
+  type ScoreDimensionId,
+  type ScoreRecommendation,
   type ScoreResult,
   type ScoreRupture,
 } from "@/lib/scoring/dimensions";
@@ -72,10 +74,14 @@ Hard stances:
 - Asymmetry: ending too early is worse than going too long.
 - [system] lines are pipeline events, not conversation turns. An entry was saved ONLY if a [system] line says so — user agreement in chat never means a save happened.
 
+The "so what" of each number: for every dimension scored 4 or below, add a "gap" — one sentence naming the 5-anchor behavior that was missing at the cited turn (what a 5 would have looked like there). Omit "gap" on 5s.
+
+After scoring, pick the SINGLE biggest lever — the one dimension where a behavior change would most raise the next session — and emit it as "recommendation": a failure-shape slug, the evidence turns, and a one-sentence remedy direction. This is a ledger candidate, not a prompt edit — never propose prompt wording. Use a known slug when the shape matches (stable naming is what makes recurrence countable across runs); coin a new kebab-case slug only for a genuinely new shape. Known slugs: stating-not-handing, whole-version-re-render, draft-in-chat, lid-accepted, ungrounded-second-lid, push-past-pivot, unconsented-depth, bare-yes-collection, writer-speak-register, jove-coinage-contamination, early-landing, spike-treated-as-readiness, deferred-pen-missed-fire. If every dimension is a 5, "recommendation" is null.
+
 Return ONLY a JSON object (no markdown fences, no commentary) with exactly this shape:
 {
   "dimensions": [
-    { "id": "D1", "score": 3, "citations": ["U12", "J14"], "note": "one-sentence justification" }
+    { "id": "D1", "score": 3, "citations": ["U12", "J14"], "note": "one-sentence justification", "gap": "one sentence: the missing 5-anchor behavior (omit when score is 5)" }
     // exactly six entries, ids D1 through D6, integer scores 1–5
   ],
   "signals": {
@@ -89,7 +95,9 @@ Return ONLY a JSON object (no markdown fences, no commentary) with exactly this 
   ],
   "predicted_bounce": "turn label, or null if none",
   "strongest": "one sentence with turn citation",
-  "weakest": "one sentence with turn citation"
+  "weakest": "one sentence with turn citation",
+  "recommendation": { "pattern": "kebab-case-slug", "dimension": "D2", "evidence": ["J25", "J28"], "note": "one-sentence remedy direction" }
+  // recommendation is null when every dimension is a 5
 }`;
 }
 
@@ -114,11 +122,17 @@ export function validateScoreResult(parsed: unknown): ScoreResult {
     if (!found || !Number.isInteger(score) || score < 1 || score > 5) {
       throw new Error(`scorer returned invalid score for ${spec.id}`);
     }
+    // The gap is the "so what" of any sub-5 score; a gap on a 5 is noise.
+    const gap =
+      score < 5 && typeof found.gap === "string" && found.gap.trim().length > 0
+        ? found.gap.trim()
+        : undefined;
     return {
       id: spec.id,
       score,
       citations: asStringArray(found.citations),
       note: typeof found.note === "string" ? found.note : "",
+      ...(gap ? { gap } : {}),
     };
   });
 
@@ -134,8 +148,37 @@ export function validateScoreResult(parsed: unknown): ScoreResult {
     }))
     .filter((r) => r.at.length > 0);
 
+  // The one-per-run recommendation. Slug is normalized to kebab-case so
+  // recurrence counting across runs isn't defeated by casing/spacing drift;
+  // an invalid dimension falls back to the lowest-scoring one.
+  let recommendation: ScoreRecommendation | null = null;
+  const rawRec = p?.recommendation as Record<string, unknown> | null | undefined;
+  const pattern =
+    typeof rawRec?.pattern === "string"
+      ? rawRec.pattern
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "-")
+          .replace(/[^a-z0-9-]/g, "")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "")
+      : "";
+  if (pattern.length > 0) {
+    const validIds = SCORE_DIMENSIONS.map((d) => d.id) as string[];
+    const lowest = [...dimensions].sort((a, b) => a.score - b.score)[0].id;
+    recommendation = {
+      pattern,
+      dimension: validIds.includes(rawRec?.dimension as string)
+        ? (rawRec!.dimension as ScoreDimensionId)
+        : lowest,
+      evidence: asStringArray(rawRec?.evidence),
+      note: typeof rawRec?.note === "string" ? rawRec.note : "",
+    };
+  }
+
   return {
     dimensions,
+    recommendation,
     signals: {
       bare_yes_streak:
         typeof signals.bare_yes_streak === "string" ? signals.bare_yes_streak : "none",

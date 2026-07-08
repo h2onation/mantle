@@ -26,6 +26,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
     predicted_bounce: null,
     strongest: "J3 handed the connection over",
     weakest: "J5 stated a summary",
+    recommendation: null,
     ...overrides,
   };
 }
@@ -98,6 +99,51 @@ describe("validateScoreResult", () => {
       (dims[2] as { score: unknown }).score = bad;
       expect(() => validateScoreResult(validPayload({ dimensions: dims }))).toThrow(/D3/);
     }
+  });
+
+  it("keeps the gap on sub-5 scores and drops it on 5s", () => {
+    const dims = validDimensions(5);
+    dims[1] = { ...dims[1], score: 3, gap: " J4 should have handed it over " } as never;
+    dims[2] = { ...dims[2], gap: "noise on a 5" } as never;
+    const result = validateScoreResult(validPayload({ dimensions: dims }));
+    expect(result.dimensions[1].gap).toBe("J4 should have handed it over");
+    expect(result.dimensions[2].gap).toBeUndefined();
+  });
+
+  it("normalizes the recommendation slug and keeps a valid dimension", () => {
+    const result = validateScoreResult(
+      validPayload({
+        recommendation: {
+          pattern: "  Stating_Not Handing!! ",
+          dimension: "D2",
+          evidence: ["J25", 7, "J28"],
+          note: "hand connections over",
+        },
+      }),
+    );
+    expect(result.recommendation).toEqual({
+      pattern: "stating-not-handing",
+      dimension: "D2",
+      evidence: ["J25", "J28"],
+      note: "hand connections over",
+    });
+  });
+
+  it("falls back to the lowest-scoring dimension on an invalid one, and nulls a pattern-less recommendation", () => {
+    const dims = validDimensions(4);
+    dims[4] = { ...dims[4], score: 2 } as never; // D5 lowest
+    const rec = validateScoreResult(
+      validPayload({
+        dimensions: dims,
+        recommendation: { pattern: "lid-accepted", dimension: "D9", evidence: [], note: "" },
+      }),
+    ).recommendation;
+    expect(rec?.dimension).toBe("D5");
+
+    const nulled = validateScoreResult(
+      validPayload({ recommendation: { pattern: "  !! ", dimension: "D1", evidence: [], note: "x" } }),
+    );
+    expect(nulled.recommendation).toBeNull();
   });
 
   it("defaults malformed optional fields instead of throwing", () => {

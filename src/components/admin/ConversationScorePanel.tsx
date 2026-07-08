@@ -252,6 +252,20 @@ function ScoreDetail({ row }: { row: ConversationScoreRow }) {
                   </span>
                 )}
               </div>
+              {dim.gap && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    color: "var(--session-ink-soft)",
+                    lineHeight: 1.5,
+                    marginTop: 2,
+                  }}
+                >
+                  <span style={{ color: "var(--session-ink-ghost)" }}>Gap → </span>
+                  {dim.gap}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -293,6 +307,35 @@ function ScoreDetail({ row }: { row: ConversationScoreRow }) {
           <Strong>Weakest:</Strong> {result.weakest}
         </div>
       </div>
+
+      {result.recommendation && (
+        <div
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "12px",
+            lineHeight: 1.6,
+            color: "var(--session-ink-soft)",
+            border: "1px solid var(--session-persona-border)",
+            borderRadius: 6,
+            padding: "8px 10px",
+            marginTop: 10,
+          }}
+        >
+          <Strong>Biggest lever:</Strong>{" "}
+          <span style={{ fontFamily: "var(--font-mono)" }}>
+            {result.recommendation.pattern}
+          </span>{" "}
+          ({result.recommendation.dimension}
+          {result.recommendation.evidence.length > 0
+            ? ` · ${result.recommendation.evidence.join(", ")}`
+            : ""}
+          ) — {result.recommendation.note}{" "}
+          <span style={{ color: "var(--session-ink-ghost)" }}>
+            Ledger candidate — the Tuning chart counts recurrence; one sighting
+            never earns a prompt line.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

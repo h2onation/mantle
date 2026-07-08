@@ -127,6 +127,35 @@ export default function ScoreTrendPanel() {
     [promptEdits, domain, toX],
   );
 
+  // Recurrence counter: group each run's single recommendation by its slug.
+  // This is where per-run recommendations become trustworthy — a slug seen
+  // once is an observation; a slug seen in half the sessions has earned a
+  // founder look (promotion into the prompt stays manual, per soak
+  // governance).
+  const patterns = useMemo(() => {
+    const bySlug = new Map<
+      string,
+      { count: number; dimensions: Set<string>; latestNote: string }
+    >();
+    for (const s of sessions) {
+      const rec = s.result.recommendation;
+      if (!rec?.pattern) continue;
+      const entry = bySlug.get(rec.pattern) ?? {
+        count: 0,
+        dimensions: new Set<string>(),
+        latestNote: "",
+      };
+      entry.count += 1;
+      entry.dimensions.add(rec.dimension);
+      entry.latestNote = rec.note; // sessions are time-ordered; last wins
+      bySlug.set(rec.pattern, entry);
+    }
+    return Array.from(bySlug.entries())
+      .map(([slug, e]) => ({ slug, ...e }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [sessions]);
+
   async function armBatch() {
     setBatch({ state: "arming" });
     setBatchNote(null);
@@ -240,6 +269,46 @@ export default function ScoreTrendPanel() {
         <TrendChart sessions={sessions} editMarkers={editMarkers} toX={toX} />
       )}
       {sessions.length > 0 && view === "table" && <TrendTable sessions={sessions} />}
+
+      {patterns.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "var(--session-walnut-meta-soft)",
+              marginBottom: 6,
+            }}
+          >
+            Recurring patterns (each run&rsquo;s biggest lever)
+          </div>
+          {patterns.map((pt) => (
+            <div key={pt.slug} style={{ ...panelText, padding: "3px 0" }} title={pt.latestNote}>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color:
+                    pt.count >= 3
+                      ? "var(--session-warning)"
+                      : "var(--session-walnut-meta-strong)",
+                }}
+              >
+                {pt.slug}
+              </span>{" "}
+              — {pt.count} of {sessions.length} session{sessions.length === 1 ? "" : "s"} ·{" "}
+              {Array.from(pt.dimensions).join(", ")}
+            </div>
+          ))}
+          <div style={{ ...panelText, color: "var(--session-walnut-meta-soft)", marginTop: 4 }}>
+            Recurrence is the promotion signal — a slug seen once is an
+            observation, not a prompt change. Hover a row for the latest remedy
+            note.
+          </div>
+        </div>
+      )}
 
       {sessions.length > 0 && (
         <div style={{ ...panelText, marginTop: 10, color: "var(--session-walnut-meta-soft)" }}>
