@@ -58,10 +58,10 @@ describe("getVoiceOverrides — resolver contract", () => {
   it("ignores an enabled-but-empty override (whitespace only)", async () => {
     const out = await getVoiceOverrides(
       adminStub({
-        data: [{ key: "situation_opener", text_override: "   ", enabled: true }],
+        data: [{ key: "upload_opener", text_override: "   ", enabled: true }],
       }),
     );
-    expect(out.situationOpener).toBeUndefined();
+    expect(out.uploadOpener).toBeUndefined();
   });
 
   it("ignores an unknown key", async () => {
@@ -78,14 +78,12 @@ describe("getVoiceOverrides — resolver contract", () => {
       adminStub({
         data: [
           { key: "conductor_prompt", text_override: "C", enabled: true },
-          { key: "situation_opener", text_override: "S", enabled: true },
           { key: "post_confirm_first_entry", text_override: "P", enabled: true },
         ],
       }),
     );
     expect(out).toEqual({
       conductorPrompt: "C",
-      situationOpener: "S",
       postConfirmFirstEntry: "P",
     });
   });

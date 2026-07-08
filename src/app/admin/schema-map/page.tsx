@@ -619,11 +619,11 @@ const TABLES: Table[] = [
     access: "backend",
     oneLine: "Global on/off switches for ancillary Jove subsystems.",
     rowMeans:
-      "One feature gate — a named subsystem (persona deltas, conversation modes, the checkpoint pipeline) that an admin can disable at runtime so the core voice + extraction loop can be tested in isolation.",
+      "One feature gate — a named subsystem an admin can disable at runtime. Five live keys: situation / guided_intake / upload (each hides its home-screen door), extraction_brief (turns the per-message extraction call off — voice-only mode), and persona_deltas (INERT — nothing reads personaModes downstream; kept per the settled ND-personas decision, toggling it changes nothing).",
     description:
-      "Holds NO user data — global app config, three seeded rows (persona_deltas, conversation_modes, checkpoints), all defaulting ON. Read once per turn inside loadConversationContext (folded into its existing parallel DB batch — no extra round-trip), written only via /api/admin/feature-gates. Debug scaffolding, not a permanent fork: deletion condition is once the core loop is validated in isolation, drop the table and its read sites.",
+      "Holds NO user data — global app config, five seeded rows, all defaulting ON. The door gates are read by /api/onboarding-status (Home door state); extraction_brief is read once per turn inside loadConversationContext (folded into its existing parallel DB batch — no extra round-trip). Written only via /api/admin/feature-gates. Debug scaffolding, not a permanent fork: the stated deletion condition is once the doors are permanent and the extraction loop is settled, drop the table and its read sites.",
     columns: [
-      { name: "key", type: "text (PK)", plain: "Gate name: persona_deltas, conversation_modes, or checkpoints.", emphasized: true },
+      { name: "key", type: "text (PK)", plain: "Gate name: situation, guided_intake, upload, extraction_brief, or persona_deltas.", emphasized: true },
       { name: "enabled", type: "boolean", plain: "Whether the subsystem is on. Default true.", emphasized: true },
       { name: "updated_at", type: "timestamptz", plain: "When the gate was last toggled." },
     ],

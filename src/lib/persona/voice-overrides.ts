@@ -4,7 +4,6 @@ import {
   FIRST_ENTRY_EDUCATION,
 } from "@/lib/persona/conductor-prompt";
 import { POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
-import { SITUATION_OPENER } from "@/lib/persona/situation-copy";
 import { UPLOAD_OPENER } from "@/lib/persona/upload-copy";
 import { COMPOSER_ENTRY_BAR } from "@/lib/persona/confirm-checkpoint";
 
@@ -36,7 +35,6 @@ export interface VoiceOverrides {
    *  Applied as the `tier1` block in buildSystemPromptBlocks; absent falls
    *  back to CONDUCTOR_PROMPT. Guarded at save by validateConductorPromptEdit. */
   conductorPrompt?: string;
-  situationOpener?: string;
   uploadOpener?: string;
   postConfirmFirstEntry?: string;
   /** The composer's editable depth standard (THE BAR) — how an entry should
@@ -64,11 +62,6 @@ export const VOICE_OVERRIDE_FIELDS: Record<
     field: "conductorPrompt",
     label: "Jove's prompt (the conductor — the whole 1:1 voice)",
     getDefault: () => CONDUCTOR_PROMPT,
-  },
-  situation_opener: {
-    field: "situationOpener",
-    label: "Situation opener",
-    getDefault: () => SITUATION_OPENER,
   },
   upload_opener: {
     field: "uploadOpener",
@@ -103,10 +96,11 @@ export function isVoiceOverrideKey(value: unknown): value is VoiceOverrideKey {
  * resolved by the prompt reader (getVoiceOverrides) like any other voice
  * field, but they're EDITED through the per-door "Intake doors" admin panel
  * (grouped with each door's intro copy), not the generic Voice editor — so
- * each key has exactly one edit surface. (Guided-intake is absent: its opener
- * is a model-generated tee-up, not a fixed string.)
+ * each key has exactly one edit surface. (Guided-intake and situation are
+ * absent: their openers are model-generated, not fixed strings — situation's
+ * fixed opener was retired and its dead override key removed 2026-07-07.)
  */
-export const DOOR_OPENER_KEYS = ["situation_opener", "upload_opener"] as const;
+export const DOOR_OPENER_KEYS = ["upload_opener"] as const;
 
 export function isDoorOpenerKey(value: unknown): value is (typeof DOOR_OPENER_KEYS)[number] {
   return typeof value === "string" && (DOOR_OPENER_KEYS as readonly string[]).includes(value);

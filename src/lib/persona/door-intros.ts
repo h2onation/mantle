@@ -45,7 +45,8 @@ export const DOORS: DoorDef[] = [
     mode: "situation",
     slug: "situation",
     name: "Navigate a situation",
-    openerKey: "situation_opener",
+    // No openerKey — the model opens live; the old fixed SITUATION_OPENER was
+    // never consumed by any runtime path (dead key removed 2026-07-07).
   },
   {
     mode: "guided-intake",

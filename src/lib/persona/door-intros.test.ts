@@ -28,9 +28,9 @@ describe("door-intros — DOORS", () => {
     ]);
   });
 
-  it("gives situation and upload a fixed openerKey, guided-intake none", () => {
+  it("gives only upload a fixed openerKey — situation and guided-intake open live", () => {
     const byMode = Object.fromEntries(DOORS.map((d) => [d.mode, d]));
-    expect(byMode.situation.openerKey).toBe("situation_opener");
+    expect(byMode.situation.openerKey).toBeUndefined();
     expect(byMode.upload.openerKey).toBe("upload_opener");
     // Guided-intake's opener is a generated tee-up, not a fixed string.
     expect(byMode["guided-intake"].openerKey).toBeUndefined();
