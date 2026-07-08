@@ -47,6 +47,7 @@ export default function ChatInput({
   const [inputFocused, setInputFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasDisabledRef = useRef(disabled);
+  const lastMicToggleRef = useRef(0);
 
   const voice = useVoiceInput();
 
@@ -177,6 +178,12 @@ export default function ChatInput({
   }
 
   async function handleMicToggle() {
+    // Habitual rapid re-taps (the button used to respond with a lag) must
+    // not instantly stop a recording that just started.
+    const now = Date.now();
+    if (now - lastMicToggleRef.current < 400) return;
+    lastMicToggleRef.current = now;
+
     if (isRecording) {
       const currentTranscript = voice.transcript.trim();
       voice.stopRecording();

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 export type MicPermission = "not-requested" | "granted" | "denied";
-export type RecordingState = "idle" | "recording";
+export type RecordingState = "idle" | "starting" | "recording";
 
 interface UseVoiceInputReturn {
   micPermission: MicPermission;
@@ -34,6 +34,13 @@ export function useVoiceInput(): UseVoiceInputReturn {
   const reconnectAttemptedRef = useRef(false);
   const tempKeyRef = useRef<string | null>(null);
   const isStoppingRef = useRef(false);
+  // Latch: true from the first startRecording tap until stopRecording (or a
+  // setup failure). A second concurrent pipeline transcribes the same audio
+  // twice, so re-entrant starts must be no-ops.
+  const activeRef = useRef(false);
+  // Audio captured before the Deepgram socket opens, flushed once it does —
+  // the first words spoken must not be lost to connection latency.
+  const pendingChunksRef = useRef<Blob[]>([]);
 
   // Pre-check mic permission state on mount
   useEffect(() => {
@@ -85,6 +92,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    pendingChunksRef.current = [];
+    activeRef.current = false;
   }
 
   async function fetchTempKey(): Promise<string | null> {
@@ -130,11 +139,7 @@ export function useVoiceInput(): UseVoiceInputReturn {
         if (isStoppingRef.current) return;
 
         // Attempt one silent reconnect for mid-session drops
-        if (
-          recordingState === "recording" &&
-          !reconnectAttemptedRef.current &&
-          tempKeyRef.current
-        ) {
+        if (activeRef.current && !reconnectAttemptedRef.current && tempKeyRef.current) {
           reconnectAttemptedRef.current = true;
           handleReconnect();
         }
@@ -178,16 +183,9 @@ export function useVoiceInput(): UseVoiceInputReturn {
     try {
       if (!tempKeyRef.current) return;
       const ws = await connectWebSocket(tempKeyRef.current);
+      // ondataavailable reads wsRef, so pointing the ref at the new socket
+      // is all the rewiring a live MediaRecorder needs.
       wsRef.current = ws;
-
-      // Restart sending audio chunks if MediaRecorder is still active
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            ws.send(event.data);
-          }
-        };
-      }
     } catch {
       // Reconnect failed — stop recording and preserve transcript
       stopRecording();
@@ -201,77 +199,10 @@ export function useVoiceInput(): UseVoiceInputReturn {
     setIsInterim(false);
   }, []);
 
-  const startRecording = useCallback(async () => {
-    setError(null);
-
-    // If we already know permission is denied, show helpful message immediately
-    if (micPermission === "denied") {
-      setError("Tap the lock icon in your address bar to enable microphone");
-      return;
-    }
-
-    // Get mic permission (must be direct user gesture on iOS Safari)
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMicPermission("granted");
-    } catch (err: unknown) {
-      const name = err instanceof DOMException ? err.name : "";
-      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        setMicPermission("denied");
-        setError("Tap the lock icon in your address bar to enable microphone");
-      } else {
-        setError("Could not access microphone");
-      }
-      return;
-    }
-
-    streamRef.current = stream;
-
-    // Get temp Deepgram key
-    const key = await fetchTempKey();
-    if (!key) {
-      stream.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      return;
-    }
-    tempKeyRef.current = key;
-
-    // Connect WebSocket
-    let ws: WebSocket;
-    try {
-      ws = await connectWebSocket(key);
-    } catch (err) {
-      console.error("[voice] Deepgram connection failed — API key may be expired or invalid:", err);
-      setError("Could not connect to voice service");
-      stream.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      return;
-    }
-    wsRef.current = ws;
-    isStoppingRef.current = false;
-    reconnectAttemptedRef.current = false;
-
-    // Start MediaRecorder
-    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-    mediaRecorderRef.current = recorder;
-
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-        ws.send(event.data);
-      }
-    };
-
-    recorder.start(MEDIA_RECORDER_TIMESLICE_MS);
-    setRecordingState("recording");
-    finalTranscriptRef.current = "";
-    setTranscript("");
-    setIsInterim(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [micPermission]);
-
   const stopRecording = useCallback(() => {
     isStoppingRef.current = true;
+    activeRef.current = false;
+    pendingChunksRef.current = [];
 
     // Stop MediaRecorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -294,6 +225,106 @@ export function useVoiceInput(): UseVoiceInputReturn {
     setRecordingState("idle");
     tempKeyRef.current = null;
   }, []);
+
+  const startRecording = useCallback(async () => {
+    // A start already in flight (or a live recording) makes this tap a no-op.
+    if (activeRef.current) return;
+    activeRef.current = true;
+    isStoppingRef.current = false;
+    setError(null);
+
+    // If we already know permission is denied, show helpful message immediately
+    if (micPermission === "denied") {
+      setError("Tap the lock icon in your address bar to enable microphone");
+      activeRef.current = false;
+      return;
+    }
+
+    setRecordingState("starting");
+
+    // The two slowest setup steps — mic permission and the Deepgram key
+    // round-trip — run in parallel.
+    const keyPromise = fetchTempKey();
+
+    // Get mic permission (must be direct user gesture on iOS Safari)
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicPermission("granted");
+    } catch (err: unknown) {
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setMicPermission("denied");
+        setError("Tap the lock icon in your address bar to enable microphone");
+      } else {
+        setError("Could not access microphone");
+      }
+      setRecordingState("idle");
+      activeRef.current = false;
+      return;
+    }
+
+    if (isStoppingRef.current) {
+      // User tapped stop while the permission prompt was up
+      stream.getTracks().forEach((t) => t.stop());
+      activeRef.current = false;
+      return;
+    }
+
+    streamRef.current = stream;
+
+    // Capture starts now; chunks buffer in pendingChunksRef until the socket
+    // opens, then the ondataavailable handler flushes them in order.
+    pendingChunksRef.current = [];
+    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+    mediaRecorderRef.current = recorder;
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size === 0) return;
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        for (const chunk of pendingChunksRef.current) ws.send(chunk);
+        pendingChunksRef.current = [];
+        ws.send(event.data);
+      } else {
+        pendingChunksRef.current.push(event.data);
+      }
+    };
+
+    recorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+    finalTranscriptRef.current = "";
+    setTranscript("");
+    setIsInterim(false);
+    setRecordingState("recording");
+
+    const key = await keyPromise;
+    if (isStoppingRef.current) return; // stopRecording already tore everything down
+    if (!key) {
+      // fetchTempKey set the user-facing error
+      stopRecording();
+      return;
+    }
+    tempKeyRef.current = key;
+
+    // Connect WebSocket
+    let ws: WebSocket;
+    try {
+      ws = await connectWebSocket(key);
+    } catch (err) {
+      console.error("[voice] Deepgram connection failed — API key may be expired or invalid:", err);
+      if (isStoppingRef.current) return;
+      setError("Could not connect to voice service");
+      stopRecording();
+      return;
+    }
+    if (isStoppingRef.current) {
+      ws.close();
+      return;
+    }
+    wsRef.current = ws;
+    reconnectAttemptedRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micPermission]);
 
   return {
     micPermission,
