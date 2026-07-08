@@ -266,7 +266,6 @@ Everything that flows into `OneOnOnePromptOptions` and feeds
 | `personaModes` | `profiles.persona_modes` (or override) | Default `["general"]`; multi-select array |
 | `mode` | `conversations.mode` | Default `"situation"`; immutable per conversation |
 | `postConfirmMode` | passed from caller | Track A Phase 7 — `"first-message-2"` / `"subsequent-single"` / `null` |
-| `postRejection` | passed from caller (confirm route, `action === "rejected"`) | Gates the POST-REJECTION block |
 | `explorationContext` | passed from caller (web only, "Explore with Jove") | |
 | `transcriptContext` | `selectTranscriptContextForPrompt(mode, transcriptDetection)` | Suppressed in upload mode |
 
@@ -340,9 +339,8 @@ line 411.
   | `upload` | `mode === "upload" && turnCount <= 2` | Header: `UPLOAD MODE` |
   | `returning-user` | `isReturningUser` | Header: `RETURNING USER` |
   | `returning-user-first-turn-situation` | `isReturningUser && mode === "situation" && turnCount <= 3` | Header: `RETURNING USER — SITUATION OPENER AND EARLY TURNS (situation mode)` |
-  | `checkpoints` | `showCheckpointInstructions` (= `checkpointApproaching && postConfirmMode === null && !postRejection`) | Header: `CHECKPOINTS` |
+  | `checkpoints` | `showCheckpointInstructions` (= `checkpointApproaching && postConfirmMode === null`) | Header: `CHECKPOINTS` |
   | `first-checkpoint` | `isFirstCheckpoint && showCheckpointInstructions` | Header: `FIRST CHECKPOINT (one-time, exact order)` |
-  | `post-rejection` | `postRejection` | Header: `POST-REJECTION (after user rejects)` |
   | `post-confirm` | `postConfirmMode !== null` | Header: `POST-CONFIRM — FIRST LIFETIME ENTRY` (first-message-2 branch) or `POST-CONFIRM — SUBSEQUENT ENTRY` (subsequent-single branch) |
   | `adapting-short-answers` | always (`shouldRender: () => true`) | Headers: `ADAPTING` and `SHORT ANSWERS` |
   | `readiness-gate` | `manualComponentCount >= 3` | Header: `READINESS GATE (when all 5 layers have confirmed entries)` |
