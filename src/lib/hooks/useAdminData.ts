@@ -24,6 +24,7 @@ export interface AdminConversation {
   created_at: string;
   updated_at: string;
   message_count: number;
+  duration_ms: number;
 }
 
 export interface AdminMessage {

@@ -10,12 +10,36 @@ const MONTHS = [
 export function formatAdminDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${formatAdminTime(dateStr)}`;
+}
+
+export function formatAdminTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
   const h = d.getHours();
   const m = d.getMinutes();
   const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 || 12;
   const mm = m < 10 ? `0${m}` : m;
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${h12}:${mm} ${ampm}`;
+  return `${h12}:${mm} ${ampm}`;
+}
+
+export function formatDuration(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) {
+    const rs = s % 60;
+    return rs ? `${m}m ${rs}s` : `${m}m`;
+  }
+  const h = Math.floor(m / 60);
+  if (h < 24) {
+    const rm = m % 60;
+    return rm ? `${h}h ${rm}m` : `${h}h`;
+  }
+  const d = Math.floor(h / 24);
+  const rh = h % 24;
+  return rh ? `${d}d ${rh}h` : `${d}d`;
 }
 
 // ── Shared styles ────────────────────────────────────────────────────

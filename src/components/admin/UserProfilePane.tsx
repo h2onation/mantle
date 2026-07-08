@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { PERSONA_NAME } from "@/lib/persona/config";
 import { renderMarkdown } from "@/lib/utils/format";
 import type { AdminData, AdminMessage } from "@/lib/hooks/useAdminData";
-import { formatAdminDate, adminMetaStyle, adminEmptyStyle } from "./admin-shared";
+import {
+  formatAdminDate,
+  formatAdminTime,
+  formatDuration,
+  adminMetaStyle,
+  adminEmptyStyle,
+} from "./admin-shared";
 import ExtractionPanel, { type ExtractionSnapshot } from "./ExtractionPanel";
 import AdminManualView from "./AdminManualView";
 
@@ -230,7 +236,8 @@ function SessionsList({
           </div>
           <div style={adminMetaStyle}>
             {conv.message_count} message{conv.message_count !== 1 ? "s" : ""} ·{" "}
-            {conv.status} · {formatAdminDate(conv.updated_at)}
+            {formatDuration(conv.duration_ms)} · {conv.status} ·{" "}
+            {formatAdminDate(conv.updated_at)}
           </div>
         </button>
       ))}
@@ -255,6 +262,25 @@ function MessageThread({
   toggleCheckpointMeta: (id: string) => void;
   onBack: () => void;
 }) {
+  const visible = messages.filter((m) => m.role !== "system");
+  const sessionMs =
+    visible.length > 1
+      ? new Date(visible[visible.length - 1].created_at).getTime() -
+        new Date(visible[0].created_at).getTime()
+      : 0;
+
+  // Time marker for a message: clock time, plus the gap since the previous
+  // message when it's a real pause (≥ 60s) rather than reply latency.
+  const timeLabel = (msg: AdminMessage, index: number) => {
+    const gapMs =
+      index > 0
+        ? new Date(msg.created_at).getTime() -
+          new Date(visible[index - 1].created_at).getTime()
+        : 0;
+    const time = formatAdminTime(msg.created_at);
+    return gapMs >= 60_000 ? `${time} · +${formatDuration(gapMs)}` : time;
+  };
+
   return (
     <div>
       <div
@@ -303,8 +329,15 @@ function MessageThread({
         </button>
       </div>
 
-      {messages.map((msg) => {
-        if (msg.role === "system") return null;
+      {visible.length > 0 && (
+        <div style={{ ...adminMetaStyle, marginTop: 0, paddingBottom: 8 }}>
+          {visible.length} message{visible.length !== 1 ? "s" : ""} ·{" "}
+          {formatDuration(sessionMs)} · started{" "}
+          {formatAdminDate(visible[0].created_at)}
+        </div>
+      )}
+
+      {visible.map((msg, index) => {
         const isCheckpoint = msg.is_checkpoint && msg.checkpoint_meta;
         const cpMeta = msg.checkpoint_meta as {
           layer?: number;
@@ -336,7 +369,8 @@ function MessageThread({
                 }}
               >
                 ENTRY · LAYER {cpMeta?.layer ?? ""}
-                {cpMeta?.status ? ` · ${cpMeta.status.toUpperCase()}` : ""}
+                {cpMeta?.status ? ` · ${cpMeta.status.toUpperCase()}` : ""} ·{" "}
+                {timeLabel(msg, index)}
               </div>
               {cpMeta?.name && (
                 <div
@@ -417,17 +451,28 @@ function MessageThread({
                 padding: "8px 0",
               }}
             >
-              <div
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "13px",
-                  color: "var(--session-ink)",
-                  lineHeight: 1.55,
-                  maxWidth: "85%",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {msg.content}
+              <div style={{ maxWidth: "85%" }}>
+                <div
+                  style={{
+                    ...adminMetaStyle,
+                    marginTop: 0,
+                    marginBottom: 4,
+                    textAlign: "right" as const,
+                  }}
+                >
+                  {timeLabel(msg, index)}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "13px",
+                    color: "var(--session-ink)",
+                    lineHeight: 1.55,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {msg.content}
+                </div>
               </div>
             </div>
           );
@@ -453,7 +498,7 @@ function MessageThread({
                 marginBottom: 8,
               }}
             >
-              {PERSONA_NAME.toUpperCase()}
+              {PERSONA_NAME.toUpperCase()} · {timeLabel(msg, index)}
             </div>
             <div
               style={{
