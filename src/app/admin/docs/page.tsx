@@ -28,7 +28,15 @@ interface DocMeta {
   audience: string;
 }
 
-const DOC_ORDER = ["claude", "intent", "system", "rules", "state", "decisions"] as const;
+const DOC_ORDER = [
+  "claude",
+  "intent",
+  "system",
+  "rules",
+  "state",
+  "decisions",
+  "scoring",
+] as const;
 
 const DOC_META: Record<string, DocMeta> = {
   claude: {
@@ -72,6 +80,14 @@ const DOC_META: Record<string, DocMeta> = {
     filename: "decisions.md",
     title: "Decision log",
     oneLine: "Why things are the way they are. ADR-format rationale.",
+    audience: "You + Claude Code agents",
+  },
+  scoring: {
+    name: "scoring",
+    filename: "conductor-scoring.md",
+    title: "Conversation scoring",
+    oneLine:
+      "The quality rubric for 1:1 Jove sessions — six dimensions, mechanical signals, exemplar library. Powers /evaluate and the in-app scorer.",
     audience: "You + Claude Code agents",
   },
 };

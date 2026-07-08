@@ -13,6 +13,7 @@ import {
 } from "./admin-shared";
 import ExtractionPanel, { type ExtractionSnapshot } from "./ExtractionPanel";
 import AdminManualView from "./AdminManualView";
+import ConversationScorePanel from "./ConversationScorePanel";
 
 type ProfileTab = "sessions" | "manual" | "feedback";
 
@@ -169,6 +170,7 @@ export default function UserProfilePane({ data }: { data: AdminData }) {
 
         {tab === "sessions" && selectedConversation && !profileLoading && (
           <MessageThread
+            conversationId={selectedConversation}
             messages={conversationMessages}
             extractionState={extractionState}
             showAllLogs={showAllLogs}
@@ -246,6 +248,7 @@ function SessionsList({
 }
 
 function MessageThread({
+  conversationId,
   messages,
   extractionState,
   showAllLogs,
@@ -254,6 +257,7 @@ function MessageThread({
   toggleCheckpointMeta,
   onBack,
 }: {
+  conversationId: string;
   messages: AdminMessage[];
   extractionState: Record<string, unknown> | null;
   showAllLogs: boolean;
@@ -336,6 +340,8 @@ function MessageThread({
           {formatAdminDate(visible[0].created_at)}
         </div>
       )}
+
+      <ConversationScorePanel conversationId={conversationId} />
 
       {visible.map((msg, index) => {
         const isCheckpoint = msg.is_checkpoint && msg.checkpoint_meta;

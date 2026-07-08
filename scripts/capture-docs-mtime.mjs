@@ -23,6 +23,7 @@ const FILES = [
   "docs/rules.md",
   "docs/state.md",
   "docs/decisions.md",
+  "docs/reference/conductor-scoring.md",
 ];
 
 function lastCommitIso(file) {
