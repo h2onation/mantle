@@ -254,6 +254,9 @@ export default function MainApp() {
     reflectionFill,
     reflectionReady,
     composeReflection,
+    postSaveEntry,
+    keepWorkingFromSave,
+    dismissPostSaveFork,
   } = useChat();
 
   // Reflection surface state — the single source shared by the mobile header
@@ -612,6 +615,13 @@ export default function MainApp() {
       draftToRestore={draftToRestore}
       onDraftRestored={clearDraftToRestore}
       showTopBar={!isDesktop}
+      showPostSaveFork={!!postSaveEntry}
+      onKeepWorking={keepWorkingFromSave}
+      onBringNew={() => handleStartConversation("situation")}
+      onTakeBreak={() => {
+        dismissPostSaveFork();
+        handleNavigateToHome();
+      }}
     />
   );
   const manualContent = (

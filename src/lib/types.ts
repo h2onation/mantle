@@ -4,7 +4,6 @@ export interface ChatMessage {
   content: string;
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
-  chips?: string[];
   // Guided-intake: render the canonical section picker under this (tee-up)
   // message. The sections come from layers.ts (client-canonical), not stored
   // here — this is only the "show it" flag.
@@ -69,9 +68,13 @@ export interface ActiveCheckpoint {
 }
 
 export interface ExplorationContext {
-  layerId: number;
+  /** Human-readable section name (the five life-area sections). "layer" is the
+   *  code identifier for "section" — see CLAUDE.md Terminology. */
   layerName: string;
   type: "entry" | "empty_layer" | "started_layer";
+  /** Set for type "entry": the entry's headline. */
   name?: string;
+  /** For "entry": the entry body. For "empty_layer"/"started_layer": what the
+   *  section covers. */
   content: string;
 }

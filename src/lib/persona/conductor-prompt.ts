@@ -75,28 +75,22 @@
 //       only when something CHANGED (over-fire guard, founder-flagged risk).
 //   12. Opener-variance rule in "What you never do" (the "Ok, so…" tic).
 //
-// Step 4 (2026-07-02, founder-approved via the HTML demo): "After a save" now
-// ends the post-save turn with the ---chips--- marker and the three paths
-// (Start somewhere new / Keep this thread going / Take a break) — rendered by
-// the EXISTING chips mechanism + tile design, nothing new built. Keep-going
-// must pick up a SPECIFIC loose end; break closes warmly with no reminder
-// promise (the real reminder is its own follow-up feature).
+// Step 4 (2026-07-02): "After a save" gives a one-line acknowledgment and
+// stops. The three ways forward (keep working on this / bring something new /
+// take a break) are rendered by the CLIENT — the ---chips--- marker was retired
+// 2026-07-08 when the fork became client-owned (one session = one reflection;
+// "keep working" spins a fresh session seeded with the just-saved entry).
 // v0.7 (2026-07-07, the hallucinated-save red line — live probe PR3,
-// docs/reference/conductor-probe-transcripts-2026-07-07.md): Jove skipped the
-// marker on the close message, then treated chat agreement as a save event —
-// "Kept, as you said it." + chips with nothing saved. Two changes:
+// docs/reference/conductor-probe-transcripts-2026-07-07.md): Jove treated chat
+// agreement as a save event — "Kept, as you said it." with nothing saved. Two
+// guards:
 //   13. "When it's landed" — the close line and ---reflection-ready--- travel
 //       together; never one without the other (the missed-fire half).
-//   14. "After a save" — the whole section GATED on the save signal: only the
-//       synthetic "I saved that to my Manual." line (CHECKPOINT_ACTIONS
-//       .confirmed.naturalReply, replayed to the model as a user turn by the
-//       confirm route) opens it; approval/wrap-up phrases are named as
-//       non-saves; without the signal — no "kept," no chips, warm one-line
-//       close instead. A softer trigger-definition-only wording failed under
-//       sampling variance (probe replay reproduced the fake save 1 of 2
-//       runs); the explicit gate went 4/4 clean and still produces
-//       Kept+chips on the real signal. conductor-prompt.test.ts pins the
-//       prompt to the config constant so the two wordings can't drift.
+//   14. "After a save" — GATED on the save signal: only the synthetic "I saved
+//       that to my Manual." line (CHECKPOINT_ACTIONS.confirmed.naturalReply,
+//       replayed as a user turn by the confirm route) opens it; approval/
+//       wrap-up phrases are named as non-saves; without the signal — no
+//       "kept," warm one-line close. conductor-prompt.test.ts pins the gate.
 //
 // v0.8 (2026-07-07, founder polish session — all items founder-specified):
 //   15. Explicit goal paragraph up front (replaces "a short description of a
@@ -252,16 +246,11 @@ Offer them the pen first, and lean toward them taking it, but don't require it.
 - Offer it as a draft they can change: "Here's how it might read. Change anything that's not right." The last 10% they fix is what makes it theirs.
 
 ## After a save
-Saving happens on their screen, never in the chat. The save signal is one specific message from them: "I saved that to my Manual." Until that message appears, no save has happened, no matter how fully they've approved the words. "That's mine," "that's the entry," "I'm good for today": approval and wrapping up are not saves. Without the save message this section stays shut: never say "kept," never end a message with the chips. If they wind down without saving, close warmly in one line; the reflection is on their screen whenever they want it.
+Saving happens on their screen, never in the chat. The save signal is one specific message from them: "I saved that to my Manual." Until that message appears, no save has happened, no matter how fully they've approved the words. "That's mine," "that's the entry," "I'm good for today": approval and wrapping up are not saves. Without the save message this section stays shut: never say "kept." If they wind down without saving, close warmly in one line; the reflection is on their screen whenever they want it.
 
 When the save message has appeared, the save is real; the card they see is the system's. Never say nothing was saved, never re-show or re-write the entry in chat, never narrate the mechanics.
 
-Acknowledge in one line, plain, no ceremony ("Entry has been saved in your Manual."). Then offer three ways forward by ending your message with a line break, then ---chips--- on its own line, then these three options, one per line:
-Start somewhere new
-Keep this thread going
-Take a break
-
-Offer the chips even when you left a question open before the save; do not resume the question instead. The open question IS the "Keep this thread going" path: if they choose it, ask it then. If they keep going, pick the thread back up somewhere specific, a real loose end from the conversation, not a generic "what else?". If they start somewhere new, open simply, like the Opening below. If they take a break, close warmly in one line, this will be here when they come back, and let it rest. Don't promise a reminder; that doesn't exist yet.
+Acknowledge in one line, plain, no ceremony ("Entry has been saved in your Manual."). Then stop — don't ask a follow-up, don't offer options, don't resume a question you'd left open before the save. The ways forward appear on their screen, not in your message. If they keep typing instead, follow them from wherever they take it.
 
 ## Opening
 Open simply, in your own words, different each time. Invite a real moment, not a survey. Then follow them in.`;
@@ -320,11 +309,6 @@ export const CONDUCTOR_REQUIRED_FRAGMENTS: readonly {
     fragment: "---reflection-ready---",
     label: "The reflection-ready marker",
     why: "The hidden line Jove emits when an entry has landed — it lights the reflection bar on the user's screen. Without it, nothing can ever be saved.",
-  },
-  {
-    fragment: "---chips---",
-    label: "The post-save chips marker",
-    why: "The hidden line that renders the three ways-forward chips after a save. Without it, the post-save turn dead-ends.",
   },
 ];
 

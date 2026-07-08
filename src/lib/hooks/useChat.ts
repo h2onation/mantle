@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
 import { firstNameFrom } from "@/lib/utils/name";
-import { LAYERS } from "@/lib/manual/layers";
+import { LAYERS, sectionName } from "@/lib/manual/layers";
 import type { CheckpointAction } from "@/lib/persona/config";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext } from "@/lib/types";
 import {
@@ -209,6 +209,18 @@ export function useChat() {
   // until a confirmed save clears it.
   const [reflectionFill, setReflectionFill] = useState<number | null>(null);
   const [reflectionReady, setReflectionReady] = useState(false);
+
+  // The just-saved entry, held so the post-save fork ("keep working on this")
+  // can seed a fresh session from it — one session = one reflection, with a
+  // soft seeded continuation. Set on a confirmed save, cleared on the next
+  // send, any reset, or a fork action. It's independent state (not a message
+  // field), so the post-confirm reconcileThread — which replaces `messages`
+  // from the DB — can't wipe it.
+  const [postSaveEntry, setPostSaveEntry] = useState<{
+    section: string | null;
+    name: string | null;
+    content: string;
+  } | null>(null);
 
   // Monotonic fill: within a thread the bar only ever climbs, so a later turn
   // that scores shallower (depth is re-read every turn) never drags it
@@ -422,17 +434,6 @@ export function useChat() {
 
     // (The former checkpoint block is gone — capture is pull-only, so a live
     // stream never proposes. Proposal analytics fire from composeCheckpoint.)
-
-    // Attach chips to the message if the server included them.
-    if (completeEvent.chips && completeEvent.chips.length > 0) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === completeEvent!.messageId
-            ? { ...m, chips: completeEvent!.chips }
-            : m
-        )
-      );
-    }
 
     // Attach guided-intake UI flags (section picker / situation-handoff action).
     if (completeEvent.sections || completeEvent.startSituationOffer) {
@@ -661,15 +662,14 @@ export function useChat() {
   async function sendMessage(text: string, options?: { isChipResponse?: boolean }) {
     if (!text.trim() || isLoading || isStreaming) return;
 
-    // Clear chips + guided-intake UI flags from all messages whenever a new
-    // user message is sent — the picker/action belong to a single turn.
+    // Clear guided-intake UI flags from all messages whenever a new user
+    // message is sent — the picker/action belong to a single turn.
     setMessages((prev) =>
-      prev.some((m) => m.chips || m.showSections || m.offerStartSituation)
+      prev.some((m) => m.showSections || m.offerStartSituation)
         ? prev.map((m) =>
-            m.chips || m.showSections || m.offerStartSituation
+            m.showSections || m.offerStartSituation
               ? {
                   ...m,
-                  chips: undefined,
                   showSections: undefined,
                   offerStartSituation: undefined,
                 }
@@ -677,6 +677,9 @@ export function useChat() {
           )
         : prev
     );
+
+    // If the user types instead of tapping the post-save fork, dismiss it.
+    setPostSaveEntry(null);
 
     // Mark first session as started (persists across sessions)
     if (!firstSessionCompleted) {
@@ -983,6 +986,15 @@ export function useChat() {
           activeCheckpoint.content;
         const finalName =
           edits?.editedName?.trim() || activeCheckpoint.name || null;
+
+        // Hold the saved entry for the post-save fork's "keep working on this"
+        // (seeds a fresh session from it). Survives the reconcileThread below —
+        // it's state, not a message field.
+        setPostSaveEntry({
+          section: activeCheckpoint.section ?? null,
+          name: finalName,
+          content: finalContent,
+        });
 
         // Add to confirmed entries locally (optimistic update). Prefer edited
         // text so the Manual reflects the user's words immediately;
@@ -1382,6 +1394,7 @@ export function useChat() {
     setCheckpointError(null);
     setReflectionReady(false);
     setReflectionFill(null);
+    setPostSaveEntry(null);
   }
 
   async function startNewSession() {
@@ -1676,12 +1689,9 @@ export function useChat() {
       .find((m) => m.role === "assistant");
     if (!lastAssistant) return; // wait for Jove's opener/turn before replying
 
-    const options =
-      lastAssistant.chips && lastAssistant.chips.length > 0
-        ? lastAssistant.chips
-        : lastAssistant.showSections
-          ? LAYERS.map((l) => l.name)
-          : undefined;
+    const options = lastAssistant.showSections
+      ? LAYERS.map((l) => l.name)
+      : undefined;
     const history = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({
@@ -1766,5 +1776,30 @@ export function useChat() {
     reflectionFill,
     reflectionReady,
     composeReflection,
+    // Post-save fork (one session = one reflection). `postSaveEntry` is set
+    // after a confirmed save; the client renders the three ways forward.
+    postSaveEntry,
+    // "Keep working on this" — seed a fresh session with the just-saved entry.
+    keepWorkingFromSave: () => {
+      if (!postSaveEntry) return;
+      void startExploration({
+        type: "entry",
+        layerName: sectionName(postSaveEntry.section),
+        name: postSaveEntry.name ?? undefined,
+        content: postSaveEntry.content,
+      });
+    },
+    // "That's enough for today" — close warmly: dismiss the fork, complete the
+    // conversation. ("Bring something new" uses startConversation directly.)
+    dismissPostSaveFork: () => {
+      if (conversationId) {
+        fetch("/api/conversations/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId }),
+        }).catch(() => {});
+      }
+      setPostSaveEntry(null);
+    },
   };
 }

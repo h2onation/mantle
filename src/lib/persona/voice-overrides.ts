@@ -23,8 +23,8 @@ import { COMPOSER_ENTRY_BAR } from "@/lib/persona/confirm-checkpoint";
  *
  * The conductor prompt itself (Jove's whole 1:1 personality) is editable as
  * ONE document via the `conductor_prompt` key — but a save that drops a
- * non-negotiable line (crisis 988/741741, the ---reflection-ready--- and
- * ---chips--- markers) is rejected at the API by validateConductorPromptEdit
+ * non-negotiable line (crisis 988/741741, the ---reflection-ready--- marker) is
+ * rejected at the API by validateConductorPromptEdit
  * (conductor-prompt.ts). Still code-only: the CRISIS_PHRASES pipeline
  * detector, the composer's entry structure/schema rules, and the OTP caps.
  */

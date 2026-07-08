@@ -74,31 +74,15 @@ describe("guided intake chip wiring", () => {
   const mainApp = read("src/components/MainApp.tsx");
   const useChat = read("src/lib/hooks/useChat.ts");
   const callPersona = read("src/lib/persona/call-persona.ts");
-  const sseParser = read("src/lib/utils/sse-parser.ts");
-  const types = read("src/lib/types.ts");
 
-  it("MessageCompleteEvent declares optional chips field", () => {
-    expect(sseParser).toContain("chips?: string[]");
-  });
-
-  it("ChatMessage declares optional chips field", () => {
-    expect(types).toContain("chips?: string[]");
-  });
-
-  it("call-persona parses ---chips--- delimiter", () => {
-    expect(callPersona).toContain("---chips---");
-  });
-
-  it("call-persona emits chips in message_complete payload", () => {
-    expect(callPersona).toContain("chips: parsedChips");
-  });
+  // The section picker is the live guided-intake selection surface: tapping an
+  // option routes through sendChipResponse (a "chip response" = a tap, not
+  // typed) and is annotated for the model. (The old ---chips--- post-save fork
+  // + QuickReplyChips were retired 2026-07-08 — the post-save fork is now
+  // client-owned; see the reflection-flow redesign.)
 
   it("useChat exports sendChipResponse", () => {
     expect(useChat).toContain("sendChipResponse");
-  });
-
-  it("useChat clears chips from messages on send", () => {
-    expect(useChat).toContain("chips: undefined");
   });
 
   it("useChat passes isChipResponse in fetch body", () => {
@@ -107,10 +91,6 @@ describe("guided intake chip wiring", () => {
 
   it("MobileSession accepts sendChipResponse prop", () => {
     expect(session).toContain("sendChipResponse");
-  });
-
-  it("MobileSession renders QuickReplyChips component", () => {
-    expect(session).toContain("QuickReplyChips");
   });
 
   it("MainApp passes sendChipResponse to MobileSession", () => {
@@ -278,14 +258,15 @@ describe("guided intake section picker + situation handoff wiring", () => {
   });
 
   it("both pickers render the shared SelectionTile (unified, .mw-seltile)", () => {
-    // The first-order section pick and the second-order focus pick must be the
-    // SAME control — both render SelectionTile, styled by one .mw-seltile class
-    // whose radius tracks the Jove bubble.
+    // The section pick and the post-save fork must be the SAME control — both
+    // render SelectionTile, styled by one .mw-seltile class whose radius tracks
+    // the Jove bubble. (QuickReplyChips, the old ---chips--- consumer, was
+    // retired 2026-07-08 with the marker.)
     const tile = read("src/components/mobile/SelectionTile.tsx");
-    const chips = read("src/components/mobile/QuickReplyChips.tsx");
+    const fork = read("src/components/mobile/PostSaveFork.tsx");
     const css = read("src/app/globals.css");
     expect(sectionPicker).toContain("SelectionTile");
-    expect(chips).toContain("SelectionTile");
+    expect(fork).toContain("SelectionTile");
     expect(tile).toContain("mw-seltile");
     expect(css).toContain(".mw-seltile");
     expect(css).toContain("border-radius: var(--session-bubble-radius)");

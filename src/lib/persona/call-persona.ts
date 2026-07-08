@@ -686,24 +686,7 @@ export function callPersona({
         // 10. Conversational text is the full Jove response.
         let conversationalText = fullText;
 
-        // 10a. Chip extraction — strip quick-reply chips before crisis check.
-        // Jove may append a ---chips--- block with tappable options in
-        // guided-intake mode. Parse them out so cleanContent and DB
-        // storage get text-only, and the chip array rides the SSE event.
-        const chipDelimiter = "\n---chips---\n";
-        let parsedChips: string[] = [];
-        const chipIdx = conversationalText.indexOf(chipDelimiter);
-        if (chipIdx !== -1) {
-          const chipBlock = conversationalText.slice(chipIdx + chipDelimiter.length);
-          parsedChips = chipBlock
-            .split("\n")
-            .map((l) => l.trim())
-            .filter((l) => l.length > 0)
-            .slice(0, 6);
-          conversationalText = conversationalText.slice(0, chipIdx);
-        }
-
-        // 10a-ii. Boolean UI markers (guided intake): the section picker
+        // 10a. Boolean UI markers (guided intake): the section picker
         // (tee-up turn) and the live-situation handoff action. Each is its own
         // line at the END of a message and carries no payload — presence is the
         // signal. Tail-anchored via stripTrailingMarker (NOT a bare indexOf) so
@@ -867,7 +850,6 @@ export function callPersona({
                     }),
                   }
                 : {}),
-              ...(parsedChips.length > 0 ? { chips: parsedChips } : {}),
               ...(showSections ? { sections: true } : {}),
               ...(offerStartSituation ? { startSituationOffer: true } : {}),
               ...(promptAuth ? { promptAuth: true } : {}),

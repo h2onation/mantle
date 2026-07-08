@@ -32,7 +32,6 @@ export async function POST(request: Request) {
       message: string | null;
       conversationId: string | null;
       explorationContext?: {
-        layerId: number;
         layerName: string;
         type: "entry" | "empty_layer" | "started_layer";
         name?: string;

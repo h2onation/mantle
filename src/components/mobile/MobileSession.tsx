@@ -3,6 +3,7 @@
 import React from "react";
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import ChatInput from "./ChatInput";
+import PostSaveFork from "./PostSaveFork";
 import type { ChatMessage, ActiveCheckpoint } from "@/lib/types";
 import { renderMarkdown, stripCheckpointFooter } from "@/lib/utils/format";
 import { formatLayerEyebrow, sectionName } from "@/lib/manual/layers";
@@ -14,7 +15,6 @@ import ReflectionHeader from "./ReflectionHeader";
 import TopBar from "@/components/shared/TopBar";
 import type { ReflectionSessionHandle } from "@/lib/hooks/useReflection";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
-import QuickReplyChips from "./QuickReplyChips";
 import SectionPicker from "./SectionPicker";
 import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
@@ -84,6 +84,14 @@ interface MobileSessionProps {
   // via onDraftRestored once consumed.
   draftToRestore?: string | null;
   onDraftRestored?: () => void;
+  // Post-save fork (one session = one reflection). When showPostSaveFork is
+  // true, the client renders three ways forward after a save: keep working on
+  // this (seeds a fresh session with the just-saved entry), bring something
+  // new, or take a break. Driven by useChat state, not a message field.
+  showPostSaveFork?: boolean;
+  onKeepWorking?: () => void;
+  onBringNew?: () => void;
+  onTakeBreak?: () => void;
 }
 
 function MobileSessionInner({
@@ -111,6 +119,10 @@ function MobileSessionInner({
   scopedLabel = null,
   draftToRestore = null,
   onDraftRestored,
+  showPostSaveFork = false,
+  onKeepWorking,
+  onBringNew,
+  onTakeBreak,
 }: MobileSessionProps, ref: React.ForwardedRef<ReflectionSessionHandle>) {
   const [checkpointActionState, setCheckpointActionState] = useState<CheckpointAction | null>(null);
   const [checkpointOverlayOpen, setCheckpointOverlayOpen] = useState(false);
@@ -167,16 +179,16 @@ function MobileSessionInner({
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
   const isDesktop = useIsDesktop();
-  // Quick-reply chips or the section picker are on screen for the latest Jove
-  // turn. Drives the input's "Or type something else…" invitation so it's
-  // clear the options are optional and free text is always available.
+  // The section picker is on screen for the latest Jove turn. Drives the
+  // input's "Or type something else…" invitation so it's clear the options are
+  // optional and free text is always available.
   const lastMessage = messages[messages.length - 1];
   const optionsShowing =
     !!lastMessage &&
     lastMessage.role === "assistant" &&
     !isStreaming &&
     !isLoading &&
-    (((lastMessage.chips?.length ?? 0) > 0) || lastMessage.showSections === true);
+    lastMessage.showSections === true;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -548,13 +560,6 @@ function MobileSessionInner({
               })();
 
               if (!isUser) {
-                const showChipsForMsg =
-                  msg.chips &&
-                  msg.chips.length > 0 &&
-                  i === messages.length - 1 &&
-                  !isStreaming &&
-                  !isLoading;
-
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -576,13 +581,6 @@ function MobileSessionInner({
                         )}
                       </div>
                     </Bubble>
-                    {showChipsForMsg && (
-                      <QuickReplyChips
-                        chips={msg.chips!}
-                        onSelect={sendChipResponse}
-                        disabled={isLoading || isStreaming}
-                      />
-                    )}
                     {msg.showSections &&
                       i === messages.length - 1 &&
                       !isStreaming &&
@@ -685,6 +683,24 @@ function MobileSessionInner({
                 onRetry={retryLastMessage}
               />
             )}
+
+            {/* Post-save fork — the arc is complete (one session = one
+                reflection). Rendered after Jove's "Saved." acknowledgment
+                once the turn settles; state-driven so the post-confirm thread
+                reconcile can't wipe it. */}
+            {showPostSaveFork &&
+              !isLoading &&
+              !isStreaming &&
+              messages[messages.length - 1]?.role === "assistant" && (
+                <div style={{ animation: "checkpointFadeIn 0.6s ease-out both" }}>
+                  <PostSaveFork
+                    onKeepWorking={onKeepWorking ?? (() => {})}
+                    onBringNew={onBringNew ?? (() => {})}
+                    onTakeBreak={onTakeBreak ?? (() => {})}
+                    disabled={isLoading || isStreaming}
+                  />
+                </div>
+              )}
         </div>
       </div>
 

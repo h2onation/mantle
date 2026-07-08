@@ -26,7 +26,6 @@ export default function EmptyLayer({
   const handleTap = canTap
     ? () => {
         onExploreWithPersona!({
-          layerId: layer.id,
           layerName: layer.name,
           type: "empty_layer",
           content: layer.about,

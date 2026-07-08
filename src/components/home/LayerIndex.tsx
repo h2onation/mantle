@@ -159,7 +159,6 @@ export default function LayerIndex({
               role="listitem"
               onClick={() =>
                 onExploreWithPersona({
-                  layerId: layer.id,
                   layerName: layer.name,
                   type: count > 0 ? "started_layer" : "empty_layer",
                   content: layer.about,

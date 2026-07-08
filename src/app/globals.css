@@ -810,8 +810,8 @@ textarea.mw-composer-input:focus-visible {
 
 /* ─── Guided-intake selection tiles ───
    The single, single-tap picker affordance shared by SectionPicker
-   (first-order: title + tagline) and QuickReplyChips (second-order: title
-   only), so the two selection moments are the same control. Lives as a class
+   (with a tagline) and the post-save fork PostSaveFork (title only), so the
+   selection moments are the same control. Lives as a class
    rather than inline styles (cf. ADR-009) because the affordance needs
    :hover / :active / :focus-visible, which inline styles can't express — the
    same reason the desktop mw-dsk-* controls are class-based. Radius tracks the

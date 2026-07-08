@@ -24,9 +24,9 @@ interface SelectionTileProps {
  * One tap selects AND advances — no confirm, no persistent selected state.
  * All visual states live in the `.mw-seltile*` block in globals.css.
  *
- * Shared by SectionPicker (first-order, with a tagline) and QuickReplyChips
- * (second-order focus picks, title only) via SelectionTileGroup below, so
- * the two selection moments are the same control.
+ * Shared by SectionPicker (first-order, with a tagline) and the post-save fork
+ * (PostSaveFork, title only) via SelectionTileGroup below, so the selection
+ * moments are the same control.
  */
 export default function SelectionTile({
   title,

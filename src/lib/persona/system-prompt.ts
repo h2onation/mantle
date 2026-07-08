@@ -139,6 +139,36 @@ function renderSessionContextBlock(opts: {
 }
 
 /**
+ * Exploration seed. When a session is opened FROM a Manual entry or section —
+ * the "Explore with Jove" flow, or the post-save "Keep working on this" fork —
+ * this tells Jove to open from that material instead of a cold opener. Rides
+ * the never-cached dynamic tail. (The original renderer was dropped in the
+ * legacy-voice retirement, which silently unseeded Explore-with-Jove; re-added
+ * 2026-07-08, keyed off the section name — no stale "Layer N" numbering.)
+ */
+function renderExplorationContextBlock(ctx: ExplorationContext): string {
+  let block = `\nEXPLORATION FOCUS\nThe user chose to explore a specific part of their Manual with ${PERSONA_NAME}.\n\n`;
+  if (ctx.type === "entry") {
+    block += `They want to go further on the entry "${ctx.name}" (their ${ctx.layerName} section).\n`;
+    block += `Entry content: ${ctx.content}\n\n`;
+    block +=
+      "Open by picking up from this entry in their own language — don't explain it back. Pull them into a concrete, recent moment connected to it: what set it off last, what it cost, what they'd have wanted instead.\n";
+  } else if (ctx.type === "empty_layer") {
+    block += `They want to start on their ${ctx.layerName} section, which is empty.\n`;
+    block += `What this section covers: ${ctx.content}\n\n`;
+    block +=
+      "Frame what this section is about conversationally, then ask one concrete question that pulls them into a real moment. Draw on what you know from their other confirmed entries.\n";
+  } else {
+    block += `They want to go deeper on their ${ctx.layerName} section, which they've already started.\n`;
+    block += `What this section covers: ${ctx.content}\n\n`;
+    block +=
+      "Their confirmed entries are already above. Open from what's there — pull them into a recent, concrete moment that adds to it. Don't summarize their entries back.\n";
+  }
+  block += "\nGo straight into it — no opener sequence.\n";
+  return block;
+}
+
+/**
  * Build the three-tier cache-aware split. For the 1:1 Jove path. The
  * group-chat path has its own self-contained prompt builder (no caching
  * — group sessions are too short and too varied for the cache window to
@@ -187,6 +217,12 @@ export function buildSystemPromptBlocks(
   // The founder can override the whole prompt live from the "Jove's Prompt"
   // admin page (guarded at save — crisis lines + UI markers can't be edited
   // away). No override → the shipped code constant, byte-identical.
+  // Exploration seed — Jove opens from the entry/section the user came in on
+  // (Explore-with-Jove, or the post-save "Keep working on this" fork).
+  if (options.explorationContext) {
+    condDynamic += "\n" + renderExplorationContextBlock(options.explorationContext);
+  }
+
   const tier1 = options.voiceOverrides?.conductorPrompt ?? CONDUCTOR_PROMPT;
 
   return { tier1, staticContext: condStatic, dynamic: condDynamic };

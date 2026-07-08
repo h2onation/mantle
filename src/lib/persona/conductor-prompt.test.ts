@@ -88,19 +88,18 @@ describe("conductor variant — guard tests", () => {
     expect(full).toContain("The line and the marker travel together");
   });
 
-  it("Step 4: the post-save turn offers the three paths via the chips marker", () => {
+  it("Step 4: the post-save turn acknowledges and stops — the fork is client-owned", () => {
     const full = renderConductor();
-    expect(full).toContain("---chips---");
-    expect(full).toContain("Start somewhere new");
-    expect(full).toContain("Keep this thread going");
-    expect(full).toContain("Take a break");
-    // Keep-going must be specific; break must not fake a reminder.
-    expect(full).toContain("a real loose end from the conversation");
-    expect(full).toContain("Don't promise a reminder");
-    // 2-for-2 live miss (2026-07-02): the model resumed its open question
-    // instead of offering the chips. The clause makes them compatible — the
-    // open question IS the keep-going path.
-    expect(full).toContain("Offer the chips even when you left a question open");
+    // The ---chips--- marker was retired 2026-07-08: the three ways forward are
+    // rendered by the client (PostSaveFork), not emitted by Jove.
+    expect(full).not.toContain("---chips---");
+    expect(full).not.toContain("Keep this thread going");
+    // Jove acknowledges the save in one line, then stops.
+    expect(full).toContain("## After a save");
+    expect(full).toContain("Then stop");
+    // The save-signal gate stays: no save without the "I saved that to my
+    // Manual." message.
+    expect(full).toContain("I saved that to my Manual");
   });
 
   it("contains NO cross-domain / second-instance instruction and no MECHANICS", () => {
@@ -141,20 +140,18 @@ describe("validateConductorPromptEdit — the admin save guard", () => {
     expect(err).toContain("Not saved");
   });
 
-  it("rejects an edit that drops a UI marker and lists EVERY missing line", () => {
-    const gutted = CONDUCTOR_PROMPT.replace("---reflection-ready---", "")
-      .replace("---chips---", "");
+  it("rejects an edit that drops the reflection-ready marker", () => {
+    const gutted = CONDUCTOR_PROMPT.replace("---reflection-ready---", "");
     const err = validateConductorPromptEdit(gutted);
     expect(err).not.toBeNull();
     expect(err).toContain("reflection-ready");
-    expect(err).toContain("chips");
   });
 
   it("accepts a heavy rewrite as long as the protected lines survive", () => {
     const rewrite =
       "You are Jove, totally rewritten.\n" +
       "Crisis: call or text 988, or text HOME to 741741.\n" +
-      "End landed turns with ---reflection-ready--- and post-save turns with ---chips---.";
+      "End landed turns with ---reflection-ready---.";
     expect(validateConductorPromptEdit(rewrite)).toBeNull();
   });
 });
