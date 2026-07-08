@@ -8,8 +8,22 @@ const nextConfig = {
   // in Next.js 15).
   experimental: {
     outputFileTracingIncludes: {
-      "/api/admin/docs": ["./CLAUDE.md", "./docs/*.md"],
-      "/api/admin/docs/[name]": ["./CLAUDE.md", "./docs/*.md"],
+      "/api/admin/docs": [
+        "./CLAUDE.md",
+        "./docs/*.md",
+        "./docs/reference/conductor-scoring.md",
+      ],
+      "/api/admin/docs/[name]": [
+        "./CLAUDE.md",
+        "./docs/*.md",
+        "./docs/reference/conductor-scoring.md",
+      ],
+      // The conversation scorer reads the rubric doc as its code-default
+      // floor (the admin override lives in persona_voice_overrides).
+      "/api/admin/score-conversation": [
+        "./docs/reference/conductor-scoring.md",
+      ],
+      "/api/admin/scoring-rubric": ["./docs/reference/conductor-scoring.md"],
     },
   },
 };

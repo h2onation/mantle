@@ -632,6 +632,36 @@ const TABLES: Table[] = [
       "RLS enabled with NO policies — deny-all to anon/auth clients; server access is service-role only (bypasses RLS). Same convention as persona_voice_overrides.",
   },
   {
+    name: "conversation_scores",
+    families: ["telemetry"],
+    access: "backend",
+    oneLine: "Admin-run rubric scores of 1:1 Jove sessions.",
+    rowMeans:
+      "One scoring run of one conversation against the conductor scoring rubric — six dimension scores with turn citations, the mechanical signals, ruptures, and the strongest/weakest verdict.",
+    description:
+      "Written only by /api/admin/score-conversation (admin-triggered, one Opus call per run). Read by the same route for the per-conversation score panel and the Tuning page's trend chart. Observational only — nothing in the product pipeline reads scores, and they must never feed back into Jove's behavior. rubric_sha fingerprints the exact rubric text used, so runs are comparable only within one rubric version. Deletion condition: if conductor tuning closes and scores stop being consulted, drop this table with the scoring route.",
+    columns: [
+      { name: "id", type: "uuid (PK)", plain: "Unique score-run identifier." },
+      { name: "conversation_id", type: "uuid (FK)", plain: "The scored conversation.", emphasized: true },
+      { name: "user_id", type: "uuid", plain: "The conversation's user. No FK — cleanup rides the conversation cascade." },
+      { name: "rubric_sha", type: "text", plain: "Fingerprint of the rubric text this run used.", emphasized: true },
+      { name: "model", type: "text", plain: "Which model scored it." },
+      { name: "result", type: "jsonb", plain: "The full scorer output — dimensions, signals, ruptures, verdict. Citations quote user phrasing, so this is user data.", emphasized: true },
+      { name: "created_at", type: "timestamptz", plain: "When the scoring run happened." },
+    ],
+    connections: [
+      {
+        to: "conversations",
+        via: "conversation_id",
+        cardinality: "N:1",
+        onDelete: "CASCADE",
+        explanation: "Scores are derived from the transcript; they die with it.",
+      },
+    ],
+    notes:
+      "RLS enabled with NO policies — service-role only. Citations inside result quote user phrasing; treat rows like messages, never log their content.",
+  },
+  {
     name: "persona_voice_overrides",
     families: ["config"],
     access: "backend",

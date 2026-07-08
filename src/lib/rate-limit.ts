@@ -76,6 +76,11 @@ export const reflectionComposeHour = makeLimiter(20, "1 h", "rl:reflection-compo
 // can't flood the table with rewrites.
 export const manualEditHour = makeLimiter(30, "1 h", "rl:manual-edit");
 
+// Admin conversation scoring — one Opus call per run, keyed by admin user id.
+// Generous enough for a batch pass over the beta's sessions in one sitting,
+// tight enough that a stuck client can't burn the Anthropic budget.
+export const adminScoreHour = makeLimiter(60, "1 h", "rl:admin-score");
+
 // Phone OTP — keyed by phone number (not user id) so an attacker cannot bypass
 // by spamming a victim's number from many accounts.
 //   - phoneOtpSendHour:    cap on OTP sends per phone (5/hour)
