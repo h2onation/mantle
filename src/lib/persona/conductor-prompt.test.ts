@@ -49,7 +49,7 @@ describe("conductor variant — guard tests", () => {
     expect(full).not.toContain("I want to put something in your Manual");
     expect(full).not.toContain("followed by the entry exactly as you built it together");
     // The one-time landed acknowledgment replaces the save offer.
-    expect(full).toContain("That's yours now, in your words. Whenever you want it");
+    expect(full).toContain("That's it, in your words. Yours to keep whenever you want");
     // Never-announce discipline survives inside "When it's landed".
     expect(full).toContain("never say you're saving, writing, or putting anything down");
   });
