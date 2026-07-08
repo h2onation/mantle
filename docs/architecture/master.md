@@ -116,8 +116,14 @@ alone — these items do not currently fire:
   (§1, open questions). Each turn recomputes from the 8-message
   window without the prior turn's read as input.
 - **Recognition decay** (Surface posture inside §4 / §6). Nothing
-  prevents re-surfacing the same pattern across turns or sessions,
-  except a single one-line POST-REJECTION prompt instruction.
+  deterministic prevents re-surfacing the same pattern across turns
+  or sessions. The only brake is soft conductor guidance — the "not
+  a yes" line in `conductor-prompt.ts`: on "That's not it," drop the
+  read and re-angle; twice on the same thread, stop reaching for the
+  entry. There is no enforced gate (that would need thread-identity
+  state the code doesn't carry). The old POST-REJECTION prompt block
+  is gone — it died with the tier system (ADR-052); rejected/refined
+  checkpoints now fall through to a normal `callPersona` call.
 
 ---
 
@@ -587,7 +593,7 @@ post-validators in the composer chain.
   as "name the pattern, don't propose to save it"? The decision
   describes the row but not the wire-up.
 - Several existing Tier 3 blocks already encode posture
-  (`post-rejection`, `post-confirm-*`, `guided-intake`). Do those
+  (`post-confirm-*`, `guided-intake`). Do those
   survive the selector, or get folded into rows? The clean answer is
   the selector picks a row, and the row picks the block — but that
   means `TIER_3_BLOCKS` becomes the selector's *output handlers*,
@@ -731,7 +737,7 @@ full assembled prompt — Tier 1's constitutional rules, Tier 2's
 voice scaffold + persona deltas (the *Voice constraints* appendix
 catalogues these), Tier 3's conditional blocks (`first-message`,
 `guided-intake`, `upload`, `returning-user`, `checkpoints`,
-`first-checkpoint`, `post-rejection`, `post-confirm-*`,
+`first-checkpoint`, `post-confirm-*`,
 `adapting-short-answers`, `readiness-gate`, `clinical-and-tail`) —
 plus dynamic context (compressed Manual, session summary, extraction
 brief, transcript detection, exploration focus). The model decides

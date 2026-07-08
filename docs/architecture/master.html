@@ -1469,9 +1469,14 @@
       <div class="nyb-item">
         <span class="label">Recognition decay ·</span>
         <span class="reason">
-          Nothing prevents re-surfacing the same pattern across turns
-          or sessions, except a single POST-REJECTION prompt
-          instruction.
+          Nothing deterministic prevents re-surfacing the same pattern
+          across turns or sessions. The only brake is soft conductor
+          guidance — the "not a yes" line in conductor-prompt.ts: on
+          "That's not it," drop the read and re-angle; twice on the
+          same thread, stop reaching for the entry. There is no
+          enforced gate. The old POST-REJECTION prompt block is gone —
+          it died with the tier system (ADR-052); rejected/refined
+          checkpoints now fall through to a normal callPersona call.
         </span>
       </div>
     </div>
