@@ -485,11 +485,10 @@ function MobileSessionInner({
                 }
 
                 // ── Historical checkpoint: Plate with status label ──
-                // Rejected/discarded checkpoints collapse to title + status
-                // only — no full content. Confirmed and refined show the
-                // full entry so the user can re-read what landed.
-                const isRejected = msg.checkpointMeta?.status === "rejected";
-
+                // Every terminal checkpoint — saved, rework, or discarded —
+                // renders the same way: the full entry above a status label.
+                // Discarded drafts are kept visible (labelled "DISCARDED") so
+                // the user can reflect on what worked or didn't, not erased.
                 return (
                   <div
                     key={msg.id || `msg-${i}`}
@@ -502,14 +501,14 @@ function MobileSessionInner({
                       eyebrow={checkpointSection ? formatLayerEyebrow(checkpointSection) : undefined}
                       heading={msg.checkpointMeta?.name || undefined}
                     >
-                      {!isRejected && renderMarkdown(stripCheckpointFooter(msg.content))}
+                      {renderMarkdown(stripCheckpointFooter(msg.content))}
 
                       {msg.checkpointMeta?.status && msg.checkpointMeta.status !== "pending" && (
                         <div
                           style={{
-                            marginTop: isRejected ? 0 : 16,
-                            paddingTop: isRejected ? 0 : 12,
-                            borderTop: isRejected ? "none" : "1px solid var(--session-hair-soft)",
+                            marginTop: 16,
+                            paddingTop: 12,
+                            borderTop: "1px solid var(--session-hair-soft)",
                           }}
                         >
                           <span
