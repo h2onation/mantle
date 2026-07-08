@@ -124,6 +124,7 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       reflectionMeterEnabled: false,
       extractionEnabled: true,
       voiceOverrides: {},
+      conductorPromptSha: null,
       reflectionLanded: false,
       mode,
     };

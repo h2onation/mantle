@@ -19,6 +19,7 @@ import {
   PERSONA_MAX_TOKENS,
   loadConversationContext,
   buildPromptOptionsFromContext,
+  stampConductorPrompt,
   fireBackgroundExtraction,
   handleCrisisDetection,
   resolveReflectionMeter,
@@ -548,6 +549,15 @@ export function callPersona({
           postConfirmMode,
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
+
+        // Stamp which conductor prompt drove this session (Tuning: score-vs-
+        // prompt trend + revert). First turn only — ctx.conductorPromptSha is
+        // null until stamped, and stampConductorPrompt itself no-ops the update
+        // once set. Fire-and-forget like extraction: observational, must never
+        // block or fail the turn; a later turn re-stamps if this one is cut off.
+        if (ctx.conductorPromptSha === null) {
+          void stampConductorPrompt(admin, convId, promptBlocks.tier1);
+        }
         // Drop empty text blocks — Anthropic rejects them ("system: text content
         // blocks must be non-empty"). The `dynamic` tail can be empty for a fresh
         // conductor turn (no Tier 3, no Manual, no session context); rebuilt/legacy

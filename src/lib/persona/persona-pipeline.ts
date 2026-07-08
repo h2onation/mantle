@@ -60,6 +60,11 @@ export interface ConversationContext {
    *  enabled override exists, in which case every field falls back to its
    *  code constant at the resolution site. */
   voiceOverrides: VoiceOverrides;
+  /** Fingerprint of the conductor prompt this conversation was stamped with, or
+   *  null until the first Jove turn records it. Read by call-persona to decide
+   *  whether it still needs to stamp (see stampConductorPrompt). Purely
+   *  observational — feeds the Tuning score-vs-prompt trend, never Jove. */
+  conductorPromptSha: string | null;
   /** True when Jove has published the landed signal (the ---reflection-ready---
    *  marker, tagged onto the message row as metadata.reflection_landed) since
    *  the last checkpoint. Conductor-only readiness source: Jove's own landed
@@ -132,7 +137,7 @@ export async function loadConversationContext(
       .order("created_at", { ascending: true }),
     admin
       .from("conversations")
-      .select("extraction_state, summary, mode")
+      .select("extraction_state, summary, mode, conductor_prompt_sha")
       .eq("id", conversationId)
       .single(),
     admin
@@ -320,8 +325,61 @@ export async function loadConversationContext(
     reflectionMeterEnabled,
     extractionEnabled: gates.extractionBrief,
     voiceOverrides,
+    conductorPromptSha: extractionResult.data?.conductor_prompt_sha ?? null,
     reflectionLanded,
   };
+}
+
+// ── Conductor-prompt fingerprint (Tuning: score-vs-prompt trend) ────────────
+//
+// Records which conductor prompt a conversation ran on, so scored sessions can
+// be banded by prompt version and any past prompt recovered for revert. See
+// migration 20260708130000. Edge-safe (Web Crypto, not node:crypto — this runs
+// in the edge chat path); the scoring side's rubricSha is node-only and must
+// not be imported here. The two never need to agree byte-for-byte — this sha is
+// produced on the edge and only ever read back by the admin surface.
+
+/** 12-hex-char SHA-256 prefix of the conductor prompt text. Matches the WIDTH
+ *  of rubricSha so the two read alike in the Tuning UI, via a separate
+ *  edge-safe implementation (Web Crypto). */
+async function conductorPromptSha(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const bytes = new Uint8Array(digest);
+  let hex = "";
+  for (let i = 0; i < 6; i++) hex += bytes[i].toString(16).padStart(2, "0");
+  return hex;
+}
+
+/** Stamp the conductor prompt onto a conversation, once, on its first turn.
+ *  Fire-and-forget from call-persona: upsert the prompt text (dedup by sha,
+ *  on-conflict-do-nothing) and set conversations.conductor_prompt_sha only
+ *  while it is still null — so a mid-conversation prompt edit keeps the prompt
+ *  the session STARTED on, and a later turn self-heals a first-turn write that
+ *  got cut off. Never throws into the caller. */
+export async function stampConductorPrompt(
+  admin: ReturnType<typeof createAdminClient>,
+  conversationId: string,
+  conductorPromptText: string
+): Promise<void> {
+  try {
+    const sha = await conductorPromptSha(conductorPromptText);
+    await admin
+      .from("prompt_snapshots")
+      .upsert({ sha, text: conductorPromptText }, { onConflict: "sha", ignoreDuplicates: true });
+    await admin
+      .from("conversations")
+      .update({ conductor_prompt_sha: sha })
+      .eq("id", conversationId)
+      .is("conductor_prompt_sha", null);
+  } catch (err) {
+    // Observational only — never disrupt the turn. Event + id, no content.
+    console.error(
+      "[persona-pipeline] stamp_conductor_prompt failed for conversation=%s: %s",
+      conversationId,
+      err instanceof Error ? err.message : "unknown"
+    );
+  }
 }
 
 // ── Conversation-mode resolution ───────────────────────────────────────────

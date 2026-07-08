@@ -156,7 +156,12 @@ async function trendView(admin: AdminClient) {
   const [scoresRes, editsRes] = await Promise.all([
     admin
       .from("conversation_scores")
-      .select("id, conversation_id, rubric_sha, result, created_at")
+      // conductor_prompt_sha is joined from the conversation (the prompt is a
+      // property of the session, stamped when it ran — not of the scoring run,
+      // which is why it lives there and not on this row, unlike rubric_sha).
+      .select(
+        "id, conversation_id, rubric_sha, result, created_at, conversations(conductor_prompt_sha)",
+      )
       .order("created_at", { ascending: false })
       .limit(200),
     admin
@@ -171,9 +176,20 @@ async function trendView(admin: AdminClient) {
     return Response.json({ error: "Failed to load trend" }, { status: 500 });
   }
 
+  // Flatten the joined conductor_prompt_sha onto each score so the chart can
+  // band the score lines by exact prompt version (null for pre-stamp sessions).
+  // The embedded FK arrives as an object or a single-element array depending on
+  // how PostgREST types the relationship — normalize both.
+  const scores = (scoresRes.data ?? []).map((r: Record<string, unknown>) => {
+    const { conversations, ...rest } = r;
+    const conv = Array.isArray(conversations) ? conversations[0] : conversations;
+    const sha = (conv as { conductor_prompt_sha?: string | null } | null)?.conductor_prompt_sha ?? null;
+    return { ...rest, conductor_prompt_sha: sha };
+  });
+
   return Response.json({
     // Oldest-first for the chart's time axis.
-    scores: (scoresRes.data ?? []).reverse(),
+    scores: scores.reverse(),
     promptEdits: (editsRes.data ?? []).map((r: { created_at: string }) => r.created_at),
   });
 }
