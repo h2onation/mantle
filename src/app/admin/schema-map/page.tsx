@@ -619,17 +619,17 @@ const TABLES: Table[] = [
     access: "backend",
     oneLine: "Global on/off switches for ancillary Jove subsystems.",
     rowMeans:
-      "One feature gate — a named subsystem (persona deltas, conversation modes, the checkpoint pipeline) that an admin can disable at runtime so the core voice + extraction loop can be tested in isolation.",
+      "One feature gate — a named subsystem an admin can disable at runtime. Five live keys: situation / guided_intake / upload (each hides its home-screen door), extraction_brief (turns the per-message extraction call off — voice-only mode), and persona_deltas (INERT — nothing reads personaModes downstream; kept per the settled ND-personas decision, toggling it changes nothing).",
     description:
-      "Holds NO user data — global app config, three seeded rows (persona_deltas, conversation_modes, checkpoints), all defaulting ON. Read once per turn inside loadConversationContext (folded into its existing parallel DB batch — no extra round-trip), written only via /api/admin/feature-gates. Debug scaffolding, not a permanent fork: deletion condition is once the core loop is validated in isolation, drop the table and its read sites.",
+      "Holds NO user data — global app config, five seeded rows, all defaulting ON. The door gates are read by /api/onboarding-status (Home door state); extraction_brief is read once per turn inside loadConversationContext (folded into its existing parallel DB batch — no extra round-trip). Written only via /api/admin/feature-gates. Debug scaffolding, not a permanent fork: the stated deletion condition is once the doors are permanent and the extraction loop is settled, drop the table and its read sites.",
     columns: [
-      { name: "key", type: "text (PK)", plain: "Gate name: persona_deltas, conversation_modes, or checkpoints.", emphasized: true },
+      { name: "key", type: "text (PK)", plain: "Gate name: situation, guided_intake, upload, extraction_brief, or persona_deltas.", emphasized: true },
       { name: "enabled", type: "boolean", plain: "Whether the subsystem is on. Default true.", emphasized: true },
       { name: "updated_at", type: "timestamptz", plain: "When the gate was last toggled." },
     ],
     connections: [],
     notes:
-      "RLS enabled with NO policies — deny-all to anon/auth clients; server access is service-role only (bypasses RLS). Same convention as persona_voice_overrides and checkpoint_tuning.",
+      "RLS enabled with NO policies — deny-all to anon/auth clients; server access is service-role only (bypasses RLS). Same convention as persona_voice_overrides.",
   },
   {
     name: "persona_voice_overrides",
@@ -665,48 +665,6 @@ const TABLES: Table[] = [
       { name: "key", type: "text", plain: "Which voice field was edited.", emphasized: true },
       { name: "old_text", type: "text", plain: "Prior text. Null on the first edit of a key." },
       { name: "new_text", type: "text", plain: "The new text saved." },
-      { name: "updated_by", type: "uuid", plain: "Admin user id who made the edit. No FK." },
-      { name: "created_at", type: "timestamptz", plain: "When the edit was made." },
-    ],
-    connections: [],
-    notes: "RLS enabled with NO policies — service-role only.",
-  },
-  {
-    name: "checkpoint_tuning",
-    families: ["config"],
-    access: "backend",
-    oneLine: "One live dial: how fast the reflection meter recharges after a save.",
-    rowMeans:
-      "The single typed row of tuning dials. Under the pull model only cooldown_turns is read — it paces the reflection meter's post-save recharge. The other three dial columns are retired push-model leftovers the code never reads.",
-    description:
-      "Holds NO user data — global app config, exactly one row (a boolean-singleton PK guarantees at most one). The pull model deleted the checkpoint-firing logic (Jove never triggers saves), so the old eagerness dials went with it: min_scenes, failsafe_turn, and depth_floor are unread — any value in them changes nothing. Only cooldown_turns is honored (non-null and in-range; otherwise CHECKPOINT_TUNING_DEFAULTS, cooldown 5). Read once per turn inside loadConversationContext, written only via /api/admin/checkpoint-tuning.",
-    columns: [
-      { name: "id", type: "boolean (PK, singleton)", plain: "Always true — a check constraint guarantees a single row.", emphasized: true },
-      { name: "cooldown_turns", type: "integer", plain: "User messages after a save before the reflection meter recharges. The ONLY live dial. Null = code default (5).", emphasized: true },
-      { name: "min_scenes", type: "integer", plain: "RETIRED (push model). Unread by code — value has no effect." },
-      { name: "failsafe_turn", type: "integer", plain: "RETIRED (push model). Unread by code — value has no effect." },
-      { name: "depth_floor", type: "text", plain: "RETIRED (push model). Unread by code — value has no effect." },
-      { name: "updated_at", type: "timestamptz", plain: "When a dial was last saved." },
-      { name: "updated_by", type: "uuid", plain: "Admin user id who saved it. No FK." },
-    ],
-    connections: [],
-    notes:
-      "RLS enabled with NO policies — service-role only. Paired with checkpoint_tuning_history (append-only audit of edits).",
-  },
-  {
-    name: "checkpoint_tuning_history",
-    families: ["config", "audit"],
-    access: "backend",
-    oneLine: "Append-only audit of checkpoint-tuning edits.",
-    rowMeans:
-      "One edit to a checkpoint_tuning dial — field, old value, new value, who, when. Values stored as text so one shape covers the numeric dials and the depth_floor enum.",
-    description:
-      "Append-only history backing checkpoint_tuning. old_value is null on the first edit of a field. No FK on updated_by. Indexed on (field, created_at desc).",
-    columns: [
-      { name: "id", type: "uuid (PK)", plain: "Unique history-row identifier." },
-      { name: "field", type: "text", plain: "Which dial was edited.", emphasized: true },
-      { name: "old_value", type: "text", plain: "Prior value (as text). Null on the first edit of a field." },
-      { name: "new_value", type: "text", plain: "The new value saved (as text)." },
       { name: "updated_by", type: "uuid", plain: "Admin user id who made the edit. No FK." },
       { name: "created_at", type: "timestamptz", plain: "When the edit was made." },
     ],

@@ -7,7 +7,6 @@ import {
   resolveConversationMode,
   type ConversationContext,
 } from "@/lib/persona/persona-pipeline";
-import { CHECKPOINT_TUNING_DEFAULTS } from "@/lib/persona/checkpoint-tuning";
 import type { ExtractionState } from "@/lib/persona/extraction";
 
 function makeExtractionState(
@@ -125,7 +124,6 @@ describe("buildPromptOptionsFromContext — mode field", () => {
       reflectionMeterEnabled: false,
       extractionEnabled: true,
       voiceOverrides: {},
-      checkpointTuning: CHECKPOINT_TUNING_DEFAULTS,
       reflectionLanded: false,
       mode,
     };
@@ -212,7 +210,6 @@ describe("reflectionMeterFill (capture-progress)", () => {
 // after a browser reload). Conductor regime: fill is depth-only (the open gate
 // is never fed in), `ready` means only "strip visible" past the threshold.
 describe("resolveReflectionMeter", () => {
-  const COOLDOWN = 5;
   const base = (over?: Partial<ExtractionState>) =>
     makeExtractionState(over);
 
@@ -221,7 +218,6 @@ describe("resolveReflectionMeter", () => {
       resolveReflectionMeter({
         extraction: null,
         turnsSinceCheckpoint: 5,
-        cooldownTurns: COOLDOWN,
         reflectionLanded: true,
       }),
     ).toBeNull();
@@ -229,7 +225,6 @@ describe("resolveReflectionMeter", () => {
       resolveReflectionMeter({
         extraction: base({ clinical_flag: { active: true, level: "crisis", note: "" } }),
         turnsSinceCheckpoint: 5,
-        cooldownTurns: COOLDOWN,
         reflectionLanded: true,
       }),
     ).toBeNull();
@@ -239,7 +234,6 @@ describe("resolveReflectionMeter", () => {
     const shallow = resolveReflectionMeter({
       extraction: base({ depth: "surface" }),
       turnsSinceCheckpoint: Infinity,
-      cooldownTurns: COOLDOWN,
       reflectionLanded: false,
     });
     expect(shallow).toEqual({ fill: 0, ready: false });
@@ -254,8 +248,7 @@ describe("resolveReflectionMeter", () => {
       const unlanded = resolveReflectionMeter({
         extraction: base({ depth }),
         turnsSinceCheckpoint: Infinity,
-        cooldownTurns: COOLDOWN,
-        reflectionLanded: false,
+          reflectionLanded: false,
       });
       expect(unlanded?.ready).toBe(false);
       expect(unlanded?.fill).toBeLessThanOrEqual(80);
@@ -264,7 +257,6 @@ describe("resolveReflectionMeter", () => {
     const landed = resolveReflectionMeter({
       extraction: base({ depth: "feeling" }),
       turnsSinceCheckpoint: Infinity,
-      cooldownTurns: COOLDOWN,
       reflectionLanded: true,
     });
     expect(landed).toEqual({ fill: 100, ready: true });

@@ -65,7 +65,6 @@ export async function GET(request: Request) {
   const reflectionMeter = resolveReflectionMeter({
     extraction: ctx.previousExtraction,
     turnsSinceCheckpoint: ctx.turnsSinceCheckpoint,
-    cooldownTurns: ctx.checkpointTuning.cooldownTurns,
     reflectionLanded: ctx.reflectionLanded,
   });
 

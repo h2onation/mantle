@@ -72,32 +72,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Failed to insert components" }, { status: 500 });
   }
 
-  // Mark populated sections as explored in extraction_state (keyed 1-5 by
-  // section display order, matching the per-section signal map).
-  const { data: activeConv } = await admin
-    .from("conversations")
-    .select("id, extraction_state")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .single();
+  // (The old "mark sections explored in extraction_state" step was removed
+  // 2026-07-07 — it wrote layers[].signal, a field the extraction schema
+  // deleted in the Wave-3 trim; the write had been a silent no-op.)
 
-  if (activeConv?.extraction_state) {
-    const state = activeConv.extraction_state as Record<string, unknown>;
-    const sectionSignals = state.layers as Record<string, Record<string, unknown>> | undefined;
-    if (sectionSignals) {
-      for (const layer of validLayers) {
-        if (sectionSignals[layer]) {
-          sectionSignals[layer].signal = "explored";
-        }
-      }
-      await admin
-        .from("conversations")
-        .update({ extraction_state: state })
-        .eq("id", activeConv.id);
-    }
-  }
 
   return Response.json({ ok: true, count: rows.length });
 }
