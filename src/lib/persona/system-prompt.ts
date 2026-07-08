@@ -56,10 +56,6 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
    *  needed — the trigger card already shows the title and layer, and
    *  the chat-history label already shows where it landed. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
-  /** When true, this turn is the immediate response to a checkpoint
-   *  rejection (set by the confirm route for action === "rejected"). Gates the
-   *  POST-REJECTION block. Mutually exclusive with postConfirmMode. */
-  postRejection?: boolean;
   /** Admin-editable voice-text overrides (persona_voice_overrides table,
    *  resolved once per turn in loadConversationContext). Each present field
    *  replaces its code default at the resolution site (`?? CONSTANT`); absent

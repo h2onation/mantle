@@ -79,11 +79,11 @@ export const CHECKPOINT_ACTIONS = {
   },
   rejected: {
     systemMessage: "[User rejected the checkpoint]",
-    naturalReply: "That checkpoint didn't land right for me.",
+    naturalReply: "That's not it.",
   },
   refined: {
     systemMessage: "[User wants to refine the checkpoint]",
-    naturalReply: "That's close but not quite right.",
+    naturalReply: "That's close, but the words are off.",
   },
 } as const;
 

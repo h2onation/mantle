@@ -457,11 +457,11 @@ export default function CheckpointOverlay({
                   </button>
                   <span style={dotStyle}>·</span>
                   <button onClick={handleRefine} style={linkStyle}>
-                    Jove, let&rsquo;s rework together
+                    Close &mdash; the words are off
                   </button>
                   <span style={dotStyle}>·</span>
                   <button onClick={handleReject} style={linkStyle}>
-                    Discard
+                    That&rsquo;s not it
                   </button>
                 </div>
 

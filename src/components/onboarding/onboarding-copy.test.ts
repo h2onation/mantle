@@ -139,17 +139,20 @@ describe("PR3 onboarding copy pass", () => {
       expect(src).not.toContain("Sign in to keep your progress");
     });
 
-    it("uses the new checkpoint card action labels", () => {
+    it("uses the three-way checkpoint action labels (save / close / far-off)", () => {
       const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
       expect(overlay).toContain("Add to my Manual");
-      expect(overlay).toContain("Jove, let&rsquo;s rework together");
-      expect(overlay).toContain("Discard");
+      expect(overlay).toContain("Close &mdash; the words are off");
+      expect(overlay).toContain("That&rsquo;s not it");
     });
 
     it("does NOT contain the old checkpoint card action labels", () => {
       expect(src).not.toContain("Yes, write to manual");
       expect(src).not.toMatch(/>\s*Not quite\s*</);
       expect(src).not.toMatch(/>\s*Not at all\s*</);
+      const overlay = read("src/components/checkpoint/CheckpointOverlay.tsx");
+      expect(overlay).not.toContain("Jove, let&rsquo;s rework together");
+      expect(overlay).not.toMatch(/>\s*Discard\s*</);
     });
 
     it("dispatches actions via onAction callback from the overlay", () => {

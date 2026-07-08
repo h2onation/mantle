@@ -84,7 +84,7 @@ describe("mapSystemMessages", () => {
     expect(result).toEqual([
       {
         role: "user",
-        content: "That checkpoint didn't land right for me.",
+        content: "That's not it.",
       },
     ]);
   });
@@ -94,7 +94,7 @@ describe("mapSystemMessages", () => {
       { role: "system", content: "[User wants to refine the checkpoint]" },
     ]);
     expect(result).toEqual([
-      { role: "user", content: "That's close but not quite right." },
+      { role: "user", content: "That's close, but the words are off." },
     ]);
   });
 

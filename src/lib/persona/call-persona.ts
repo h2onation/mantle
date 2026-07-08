@@ -236,10 +236,6 @@ interface CallPersonaOptions {
    *  opens with "Saved." and hands the user a continue-or-pivot
    *  choice — no substitutions, no entries summary, no title repeat. */
   postConfirmMode?: "first-message-2" | "subsequent-single" | null;
-  /** When true, this is the immediate turn after a checkpoint rejection.
-   *  Drives the POST-REJECTION block (the pinned "That entry didn't land..."
-   *  line). Set by the confirm route only for action === "rejected". */
-  postRejection?: boolean;
 }
 
 /** Retry-storm dedup window. If the same user content was inserted in
@@ -330,7 +326,6 @@ export function callPersona({
   isChipResponse,
   prependedMessages,
   postConfirmMode = null,
-  postRejection = false,
 }: CallPersonaOptions): ReadableStream {
   const admin = createAdminClient();
   const convId = conversationId;
@@ -531,7 +526,6 @@ export function callPersona({
           explorationContext,
           transcriptContext: transcriptContextForPrompt,
           postConfirmMode,
-          postRejection,
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
         // Drop empty text blocks — Anthropic rejects them ("system: text content

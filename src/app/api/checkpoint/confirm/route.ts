@@ -283,8 +283,8 @@ export async function POST(request: Request) {
   //    in one query. Powers BOTH the guest-promptAuth check (count)
   //    AND the Phase 7-High first-vs-subsequent branching below.
   //    For non-confirmed actions (rejected/refined), the
-  //    post-confirm flow is unchanged — Jove responds normally (with
-  //    POST-REJECTION fixed line for rejected).
+  //    post-confirm flow is unchanged — Jove responds normally to the
+  //    replayed action reply per its conductor guidance.
   let totalEntries = 0;
   if (action === "confirmed") {
     const { count } = await admin
@@ -320,8 +320,8 @@ export async function POST(request: Request) {
   // 5a. Track A Phase 7-High — post-confirm flow branching. Only for
   //     confirmed actions; rejected/refined fall through to
   //     a normal callPersona call with no postConfirmMode so Jove
-  //     responds per existing POST-REJECTION or natural-exploration
-  //     guidance.
+  //     responds per its conductor guidance (re-angle on "that's not it",
+  //     fold the correction on "close, the words are off").
   const personaOptions: Parameters<typeof callPersona>[0] = {
     conversationId,
     userId: user.id,
@@ -356,12 +356,11 @@ export async function POST(request: Request) {
     }
   }
 
-  if (action === "rejected") {
-    // Drives the POST-REJECTION block so Jove delivers the pinned
-    // "That entry didn't land..." line on this turn. Deferred and refined use
-    // distinct system messages and intentionally do not fire it.
-    personaOptions.postRejection = true;
-  }
+  // Rejected/refined actions fall through to a normal callPersona call: Jove
+  // responds to the replayed action reply per its conductor guidance ("That's
+  // not it" → drop the read and re-angle; "close, the words are off" → fold the
+  // correction). No special prompt block — the old POST-REJECTION pinned line
+  // died with the tier system and was never rebuilt.
 
   const stream = callPersona(personaOptions);
 
