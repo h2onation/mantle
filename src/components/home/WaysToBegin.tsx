@@ -40,6 +40,16 @@ export default function WaysToBegin({
   const [hovered, setHovered] = useState<string | null>(null);
   const isDesktop = variant === "desktop";
 
+  // Live doors first, "Coming soon" doors after — so the thing a user can
+  // actually do leads (if only Situation is live, it's the first card). Within
+  // each group the base DOORS order holds. No gates → base order untouched.
+  const orderedDoors = enabledModes
+    ? [
+        ...DOORS.filter((w) => enabledModes[w.mode]),
+        ...DOORS.filter((w) => !enabledModes[w.mode]),
+      ]
+    : DOORS;
+
   return (
     <section aria-label={appCopy.waysToBeginLabel} style={{ marginTop: isDesktop ? 26 : 12 }}>
       <p
@@ -62,7 +72,7 @@ export default function WaysToBegin({
           gap: 12,
         }}
       >
-        {DOORS.map((w) => {
+        {orderedDoors.map((w) => {
           // A door is disabled when its mode's gate is off. Disabled doors are
           // dimmed, non-interactive, and tagged "Coming soon" instead of
           // showing the start cue.

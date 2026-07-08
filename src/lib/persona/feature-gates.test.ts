@@ -26,7 +26,6 @@ describe("getFeatureGates", () => {
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual(DEFAULT_FEATURE_GATES);
     expect(gates).toEqual({
-      personaDeltas: true,
       situation: true,
       guidedIntake: true,
       upload: true,
@@ -49,7 +48,6 @@ describe("getFeatureGates", () => {
     // extraction_brief row present and false; the others have no row → stay at
     // their defaults (all ON).
     expect(gates).toEqual({
-      personaDeltas: true,
       situation: true,
       guidedIntake: true,
       upload: true,
@@ -57,12 +55,11 @@ describe("getFeatureGates", () => {
     });
   });
 
-  it("maps all five keys when all are present", async () => {
+  it("maps all four keys when all are present", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
         data: [
-          { key: "persona_deltas", enabled: false },
           { key: "situation", enabled: false },
           { key: "guided_intake", enabled: false },
           { key: "upload", enabled: false },
@@ -73,7 +70,6 @@ describe("getFeatureGates", () => {
     );
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
-      personaDeltas: false,
       situation: false,
       guidedIntake: false,
       upload: false,
@@ -81,7 +77,7 @@ describe("getFeatureGates", () => {
     });
   });
 
-  it("ignores unknown keys", async () => {
+  it("ignores unknown keys (incl. the removed persona_deltas gate)", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
@@ -94,7 +90,6 @@ describe("getFeatureGates", () => {
     );
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual({
-      personaDeltas: false,
       situation: true,
       guidedIntake: true,
       upload: true,
@@ -114,8 +109,7 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the five known keys", () => {
-    expect(isFeatureGateKey("persona_deltas")).toBe(true);
+  it("accepts the four known keys", () => {
     expect(isFeatureGateKey("situation")).toBe(true);
     expect(isFeatureGateKey("guided_intake")).toBe(true);
     expect(isFeatureGateKey("upload")).toBe(true);
@@ -125,6 +119,8 @@ describe("isFeatureGateKey", () => {
   });
 
   it("rejects unknown keys and non-strings", () => {
+    // persona_deltas was removed 2026-07-08 — it must read as unknown now.
+    expect(isFeatureGateKey("persona_deltas")).toBe(false);
     expect(isFeatureGateKey("personaDeltas")).toBe(false);
     expect(isFeatureGateKey("orphan")).toBe(false);
     expect(isFeatureGateKey(null)).toBe(false);

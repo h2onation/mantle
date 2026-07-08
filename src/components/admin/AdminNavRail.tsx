@@ -22,15 +22,21 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { id: "health", label: "Health", href: "/admin?section=health" },
     ],
   },
-  // Everything that changes what Jove says or how capture behaves —
-  // one room (the old home "Controls" section collapsed into it 2026-07-07).
+  // Everything that changes what Jove says or how capture behaves: the voice
+  // and copy (Tuning) plus the global debug kill-switches (Feature gates, moved
+  // here from Health 2026-07-08). Controls you flip, not dashboards you read.
   {
-    label: "Tune",
+    label: "Controls",
     items: [
       {
         id: "prompt-architecture",
         label: "Tuning",
         href: "/admin/prompt-architecture",
+      },
+      {
+        id: "feature-gates",
+        label: "Feature gates",
+        href: "/admin/feature-gates",
       },
     ],
   },

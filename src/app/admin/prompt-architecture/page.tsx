@@ -14,7 +14,8 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 // (founder decisions 2026-07-07: both prompts here; then the old home-page
 // "Controls" section collapsed into this page — operational copy, the meter
 // dial, and the intake doors — so tuning has a single address. The feature
-// gates moved to Health: they're debug kill-switches, not tuning).
+// gates sit beside this page in the Controls nav group, on their own route:
+// they're debug kill-switches, not tuning).
 //
 // Page order = how often you reach for it:
 //   0. What's serving right now — every override key, code vs OVERRIDDEN.

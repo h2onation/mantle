@@ -12,7 +12,6 @@ import ConfirmHealthPanel from "@/components/admin/ConfirmHealthPanel";
 import ApiErrorsPanel from "@/components/admin/ApiErrorsPanel";
 import ActiveUsersPanel from "@/components/admin/ActiveUsersPanel";
 import FeedbackSection from "@/components/admin/FeedbackSection";
-import FeatureGatesPanel from "@/components/admin/FeatureGatesPanel";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 
 type Section = "users" | "beta" | "feedback" | "health";
@@ -187,9 +186,6 @@ function AdminPageInner() {
               <ApiErrorsPanel />
               <ActiveUsersPanel />
               <SchemaHealthTab />
-              {/* Debug kill-switches live with system state, not tuning:
-                  off strips a subsystem out of the live loop. */}
-              <FeatureGatesPanel />
             </div>
           )}
 

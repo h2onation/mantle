@@ -17,14 +17,6 @@ const GATE_META: {
   desc: string;
 }[] = [
   {
-    key: "persona_deltas",
-    field: "personaDeltas",
-    label: "Persona routing",
-    def: "ON",
-    what: "Adapts Jove's voice to the user's neurotype.",
-    desc: "ON: autistic / ADHD / dyslexic users get their tailored voice. OFF: everyone gets one neutral voice (the neurotype deltas stop loading).",
-  },
-  {
     key: "situation",
     field: "situation",
     label: "Situation mode",

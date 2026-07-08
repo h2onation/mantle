@@ -170,16 +170,14 @@ export async function loadConversationContext(
   // profiles row has a null persona_modes — pre-onboarding signups, legacy
   // rows that pre-date the array migration, or any path that creates a
   // profile without setting persona_modes (e.g., the chat-route upsert).
-  const resolvedPersonaModes: PersonaMode[] =
-    (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
-  // personaDeltas gate OFF → clamp to the neutral "general" voice. NOTE
-  // (audited 2026-07-07): there are currently NO downstream consumers of
+  // NOTE (audited 2026-07-07): there are currently NO downstream consumers of
   // personaModes — buildSystemPromptBlocks never reads it and extraction
-  // doesn't consume it — so this clamp is inert. Kept (with the gate) per
-  // the settled ND-personas decision; delete only with a founder call.
-  const personaModes: PersonaMode[] = gates.personaDeltas
-    ? resolvedPersonaModes
-    : ["general"];
+  // doesn't consume it — so this value is inert. The plumbing (this read, the
+  // profile column, the settings picker) is kept per the settled ND-personas
+  // decision; delete only with a founder call. (The persona_deltas debug gate
+  // that used to clamp this was removed 2026-07-08 — a dead switch.)
+  const personaModes: PersonaMode[] =
+    (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
 
   const rawMode = extractionResult.data?.mode;
   if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {

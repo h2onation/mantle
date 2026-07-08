@@ -9,13 +9,6 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  *
  * These gates sit at chokepoints where one boolean collapses a whole branch:
  *
- *   personaDeltas      OFF → personaModes clamps to ["general"]. CURRENTLY
- *                            INERT under the conductor (audited 2026-07-07):
- *                            nothing downstream reads personaModes — the
- *                            conductor prompt is persona-blind and extraction
- *                            never consumed it. The gate is kept per the
- *                            settled ND-personas decision; toggling it changes
- *                            no live behavior.
  *   situation          OFF → the Situation entry door renders disabled
  *                            ("Coming soon") and new / fallback conversations
  *                            resolve to the next enabled mode (guided, then
@@ -42,7 +35,6 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  * condition (see the migration), not permanent forks.
  */
 export interface FeatureGates {
-  personaDeltas: boolean;
   situation: boolean;
   guidedIntake: boolean;
   upload: boolean;
@@ -50,7 +42,6 @@ export interface FeatureGates {
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
-  personaDeltas: true,
   situation: true,
   guidedIntake: true,
   upload: true,
@@ -63,7 +54,6 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
  * route validates writes against it and the reader maps rows through it.
  */
 export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
-  persona_deltas: "personaDeltas",
   situation: "situation",
   guided_intake: "guidedIntake",
   upload: "upload",
