@@ -19,6 +19,22 @@ export interface DimensionScore {
   score: number; // 1–5
   citations: string[]; // turn labels, e.g. "U18", "J25"
   note: string;
+  /** Scores under 5 only: the 5-anchor behavior that was missing at the
+   *  cited turn — the "so what" of the number. Absent on 5s. */
+  gap?: string;
+}
+
+/** The single biggest lever from one scoring run — a ledger-style candidate
+ *  (stable pattern slug + evidence + remedy direction), NOT a prompt edit.
+ *  Recommendations become trustworthy through recurrence: the Tuning panel
+ *  counts slugs across runs, and promotion into the prompt stays a founder
+ *  decision (soak governance — recurring failures earn lines, one run never
+ *  does). */
+export interface ScoreRecommendation {
+  pattern: string; // kebab-case failure-shape slug, stable across runs
+  dimension: ScoreDimensionId;
+  evidence: string[]; // turn labels
+  note: string; // one-sentence remedy direction
 }
 
 export interface ScoreRupture {
@@ -40,6 +56,8 @@ export interface ScoreResult {
   predicted_bounce: string | null;
   strongest: string;
   weakest: string;
+  /** One per run, or null when there is no meaningful lever (all 5s). */
+  recommendation: ScoreRecommendation | null;
 }
 
 /** Mean of the six dimension scores, one decimal. */
