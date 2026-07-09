@@ -10,7 +10,7 @@ import { doorForMode } from "@/lib/persona/door-intros";
 import { VOICE_OVERRIDE_FIELDS } from "@/lib/persona/voice-overrides";
 import { FIRST_ENTRY_EDUCATION } from "@/lib/persona/conductor-prompt";
 import { buildSystemPromptBlocks, POST_CONFIRM_FIRST_ENTRY_SCAFFOLD } from "@/lib/persona/system-prompt";
-import { stripTrailingMarker } from "@/lib/persona/ui-markers";
+import { stripTrailingMarker, stripDefunctMarkers } from "@/lib/persona/ui-markers";
 import { logEvent } from "@/lib/observability/log";
 import type { ExplorationContext } from "@/lib/types";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
@@ -736,6 +736,16 @@ export function callPersona({
             stripped = true;
           }
         }
+
+        // Defensive net: after the active markers above are stripped, remove any
+        // UI marker the product no longer consumes (a retired token like
+        // ---chips---, or a hallucinated one) so it can never leak to screen as
+        // raw text — regardless of what the live conductor-prompt override
+        // emits. The ---chips--- regression (2026-07-08): the marker was retired
+        // in code but a live override kept emitting it, and with the parser gone
+        // it rendered raw after every save. cleanContent (below) and the stored
+        // row both derive from conversationalText, so this one strip fixes both.
+        conversationalText = stripDefunctMarkers(conversationalText);
 
         // 10a. First-entry orientation. The one time readiness lands for a
         //      user with an empty Manual, append a FIXED sentence explaining

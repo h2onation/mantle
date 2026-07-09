@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { stripTrailingMarker } from "@/lib/persona/ui-markers";
+import {
+  stripTrailingMarker,
+  stripDefunctMarkers,
+  RETIRED_MARKERS,
+} from "@/lib/persona/ui-markers";
 
 const SECTIONS = "---sections---";
 const SITUATION = "---start-situation---";
@@ -62,5 +66,45 @@ describe("stripTrailingMarker", () => {
     expect(sawSections).toBe(true);
     expect(sawSituation).toBe(true);
     expect(text).toBe("Done.");
+  });
+});
+
+describe("stripDefunctMarkers", () => {
+  it("strips a retired ---chips--- marker AND its trailing payload lines", () => {
+    // The exact regression: a stale prompt made Jove emit the retired chips
+    // block after the save acknowledgment; with the parser gone it rendered raw.
+    const input = [
+      "Entry has been saved in your Manual.",
+      "",
+      "---chips---",
+      "Start somewhere new",
+      "Keep this thread going",
+      "Take a break",
+    ].join("\n");
+    expect(stripDefunctMarkers(input)).toBe(
+      "Entry has been saved in your Manual."
+    );
+  });
+
+  it("drops a stray/hallucinated bare marker line without cutting real prose after it", () => {
+    const input = "Here's a thought.\n---mystery---\nAnd here's the rest.";
+    expect(stripDefunctMarkers(input)).toBe(
+      "Here's a thought.\nAnd here's the rest."
+    );
+  });
+
+  it("leaves ordinary prose untouched (no marker present)", () => {
+    const input = "No markers here — just an em dash and a plain reply.";
+    expect(stripDefunctMarkers(input)).toBe(input);
+  });
+
+  it("does not treat inline --- inside a sentence as a marker", () => {
+    const input = "The pattern is self-reinforcing --- it feeds itself.";
+    expect(stripDefunctMarkers(input)).toBe(input);
+  });
+
+  it("keeps ---chips--- in the retired registry (coupling guard)", () => {
+    // If a marker is retired in code, it must be in this list or it leaks.
+    expect(RETIRED_MARKERS).toContain("---chips---");
   });
 });
