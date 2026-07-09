@@ -7,6 +7,7 @@ import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   runExtraction,
+  normalizeDepth,
   type ExtractionState,
 } from "@/lib/persona/extraction";
 import {
@@ -719,13 +720,17 @@ export function buildCheckpointMeta(
  *  creates "I should action this" pressure, and early fill was part of why
  *  premature pulls produced thin entries. It now barely moves through
  *  storytelling (surface/behavior), stirs at feelings, and does its real
- *  rising only once the WHY is on the table. */
+ *  rising only once the WHY is on the table.
+ *  RE-SPACED 2026-07-09 (founder call, L-run eval): "origin" removed from the
+ *  ladder — Jove's prompt forbids excavating origins, so the 80% rung was
+ *  unreachable by design and the bar read as stalled at 60. The ladder now
+ *  tops at mechanism (75); the last quarter is the recognition landing (the
+ *  marker). Legacy states carrying depth:"origin" normalize to mechanism. */
 const REFLECTION_DEPTH_PCT: Record<string, number> = {
   surface: 0,
-  behavior: 8,
-  feeling: 28,
-  mechanism: 60,
-  origin: 80,
+  behavior: 15,
+  feeling: 40,
+  mechanism: 75,
 };
 
 /**
@@ -738,7 +743,7 @@ const REFLECTION_DEPTH_PCT: Record<string, number> = {
  * resolveReflectionMeter, not this function.
  */
 export function reflectionMeterFill(depth: string | null | undefined): number {
-  return REFLECTION_DEPTH_PCT[depth ?? ""] ?? 0;
+  return REFLECTION_DEPTH_PCT[normalizeDepth(depth)] ?? 0;
 }
 
 /**
@@ -753,7 +758,7 @@ export function reflectionMeterFill(depth: string | null | undefined): number {
  * nothing else. Jove JUDGES readiness firsthand, per the landed markers in its
  * prompt; every extraction-side proxy tried before it fired the strip early
  * (the mom-run and Guerneville-run incidents). Pre-ready fill is the depth
- * journey and caps at 80; ready snaps fill to 100 — full bar ⇔ strip visible,
+ * journey and caps at 75; ready snaps fill to 100 — full bar ⇔ strip visible,
  * one story.
  *
  * Returns null to HIDE the meter (crisis, or nothing analyzed yet).

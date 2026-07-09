@@ -13,9 +13,18 @@ export const DEPTH_LEVELS = [
   "behavior",
   "feeling",
   "mechanism",
-  "origin",
 ] as const;
 export type DepthLevel = (typeof DEPTH_LEVELS)[number];
+
+/** "origin" was removed from the ladder 2026-07-09 (founder call, L-run eval):
+ *  Jove's prompt forbids excavating origins ("work only with what the person
+ *  brings"), so the rung was unreachable by design and left the reflection
+ *  meter parked below a step it could never earn. Stored extraction states may
+ *  still carry it; normalize wherever a stored depth is read. */
+const LEGACY_DEPTH_ALIASES: Record<string, DepthLevel> = { origin: "mechanism" };
+export function normalizeDepth(depth: string | null | undefined): string {
+  return LEGACY_DEPTH_ALIASES[depth ?? ""] ?? depth ?? "";
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +53,7 @@ export interface ClinicalFlag {
 
 export interface ExtractionState {
   language_bank: LanguageEntry[];
-  depth: "surface" | "behavior" | "feeling" | "mechanism" | "origin";
+  depth: DepthLevel;
   current_thread: string;
   checkpoint_gate: CheckpointGate;
   clinical_flag: ClinicalFlag;
@@ -133,8 +142,7 @@ Where is the conversation in its vertical descent?
 - surface: what happened (events, facts, the situation)
 - behavior: what they did (actions, choices, what their body did)
 - feeling: what they felt — body sensations, system states, AND emotions if they named them. For autistic users, "what your body did" is often more accessible than "what you felt." Both count as feeling-depth.
-- mechanism: why it works that way (the underlying driver — the need, the sensory load, the system state, the bind)
-- origin: where it comes from (when this started, earliest examples)
+- mechanism: why it works that way (the underlying driver — the need, the sensory load, the system state, the bind). This is the deepest rung: the conversation never digs for where a pattern originally came from.
 
 3. DISTINCT CONTEXTS
 Count the DIFFERENT lived situations the user has WALKED YOU THROUGH AS A SCENE (distinct_contexts). A scene means the user described what happened, when, with whom, and what they did or felt — narrated, not mentioned. Four moments inside one phone call is ONE distinct context. Two friendships described in two scenes is two distinct contexts. This is informational, read at save time so a composed entry's headline doesn't over-claim a recurring pattern from a single scene. It is NOT a gate.
@@ -175,7 +183,7 @@ Respond with ONLY valid JSON. No markdown. No backticks. No explanation.
   "language_bank": [
     { "phrase": "exact user words", "context": "what they were discussing", "charge": "low|medium|high", "layers": [1, 3] }
   ],
-  "depth": "surface|behavior|feeling|mechanism|origin",
+  "depth": "surface|behavior|feeling|mechanism",
   "current_thread": "one sentence: what the conversation is actually about",
   "checkpoint_gate": {
     "distinct_contexts": 0
@@ -340,9 +348,13 @@ export function mergeExtractionState(
   // invalid parsed.depth (indexOf === -1) falls back to prior state, preserving
   // the old `parsed.depth || state.depth` fallback while never regressing.
   const mergedDepth = (() => {
-    const incomingIdx = DEPTH_LEVELS.indexOf(parsed.depth);
-    const prevIdx = DEPTH_LEVELS.indexOf(state.depth);
-    return incomingIdx > prevIdx ? parsed.depth : state.depth;
+    const incoming = normalizeDepth(parsed.depth);
+    const prev = normalizeDepth(state.depth);
+    const incomingIdx = DEPTH_LEVELS.indexOf(incoming as DepthLevel);
+    const prevIdx = DEPTH_LEVELS.indexOf(prev as DepthLevel);
+    // Returns the normalized value, so a stored legacy "origin" self-heals to
+    // "mechanism" on the next extraction write.
+    return (incomingIdx > prevIdx ? incoming : prev) as DepthLevel;
   })();
 
   return {
@@ -384,7 +396,7 @@ export async function runExtraction(
   userContent += "PREVIOUS EXTRACTION STATE:\n";
   userContent += JSON.stringify({
     language_bank: state.language_bank,
-    depth: state.depth,
+    depth: normalizeDepth(state.depth),
     current_thread: state.current_thread,
     checkpoint_gate: state.checkpoint_gate,
   });

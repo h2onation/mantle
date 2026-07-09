@@ -150,20 +150,26 @@ describe("buildPromptOptionsFromContext — mode field", () => {
 describe("reflectionMeterFill (depth-only)", () => {
   it("maps each depth rung to its back-loaded percent", () => {
     // The bar barely moves through storytelling and does its real rising once
-    // the WHY is on the table (surface 0 → origin 80).
+    // the WHY is on the table (surface 0 → mechanism 75; the last quarter is
+    // the landed marker).
     expect(reflectionMeterFill("surface")).toBe(0);
-    expect(reflectionMeterFill("behavior")).toBe(8);
-    expect(reflectionMeterFill("feeling")).toBe(28);
-    expect(reflectionMeterFill("mechanism")).toBe(60);
-    expect(reflectionMeterFill("origin")).toBe(80);
+    expect(reflectionMeterFill("behavior")).toBe(15);
+    expect(reflectionMeterFill("feeling")).toBe(40);
+    expect(reflectionMeterFill("mechanism")).toBe(75);
+  });
+
+  it("normalizes the removed legacy 'origin' rung to mechanism", () => {
+    // "origin" was cut from the ladder 2026-07-09 (Jove never excavates
+    // origins, so the rung was unreachable) — but stored extraction states
+    // may still carry it. It must render as the top rung, never as 0.
+    expect(reflectionMeterFill("origin")).toBe(75);
   });
 
   it("does NOT reset or recharge after a save — fill follows depth only", () => {
     // The cooldown cap (and its admin dial) were removed 2026-07-08: a session
     // builds toward one reflection, so there is no post-save refill to pace.
     // Depth is monotonic, so a deep thread keeps its fill straight through.
-    expect(reflectionMeterFill("mechanism")).toBe(60);
-    expect(reflectionMeterFill("origin")).toBe(80);
+    expect(reflectionMeterFill("mechanism")).toBe(75);
   });
 
   it("returns 0 for unknown/empty depth", () => {
@@ -208,14 +214,14 @@ describe("resolveReflectionMeter", () => {
     // Every extraction-side proxy fired early (depth: mom-run;
     // depth+pattern_engaged: Guerneville run). Ready is Jove's own published
     // landed judgment. Without it, the bar shows the depth journey and caps at
-    // 80 — it can never read full.
-    for (const depth of ["feeling", "mechanism", "origin"] as const) {
+    // 75 — it can never read full.
+    for (const depth of ["feeling", "mechanism"] as const) {
       const unlanded = resolveReflectionMeter({
         extraction: base({ depth }),
         reflectionLanded: false,
       });
       expect(unlanded?.ready).toBe(false);
-      expect(unlanded?.fill).toBeLessThanOrEqual(80);
+      expect(unlanded?.fill).toBeLessThanOrEqual(75);
     }
     // Landed → full bar ⇔ strip visible, regardless of depth.
     const landed = resolveReflectionMeter({

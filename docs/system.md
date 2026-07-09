@@ -98,7 +98,7 @@ Pure functions shared from `call-persona.ts`: `mapSystemMessages()`, `applySlidi
 The extraction layer is a Sonnet call that runs per turn and maintains Jove's working memory. After the July 2026 schema trim it tracks only what the pull model actually reads:
 
 - **Language bank**: The user's exact charged phrases, not paraphrased. Feeds the composer so entries sound like the user.
-- **Depth**: Where the conversation currently sits — surface, behavior, feeling, mechanism, origin. Drives the meter's fill.
+- **Depth**: Where the conversation currently sits — surface, behavior, feeling, mechanism. Drives the meter's fill. (The old fifth rung, "origin," was removed 2026-07-09: Jove never excavates origins, so it was unreachable; legacy states carrying it normalize to mechanism.)
 - **Current thread**: One-sentence summary of what's underneath the surface topic. Briefs the composer.
 - **Distinct contexts** (the one surviving `checkpoint_gate` field): how many separate life contexts the pattern has shown up in. The composer reads it to soften over-claiming headlines.
 - **Clinical flag**: none / caution / crisis. Crisis hides the meter.
@@ -118,7 +118,7 @@ Stored as JSONB in `conversations.extraction_state`. Canonical type is `Extracti
     { phrase: string, context: string, charge: "low" | "medium" | "high",
       layers: number[] }             // layers: legacy numbering, carried not read
   ],
-  depth: "surface" | "behavior" | "feeling" | "mechanism" | "origin",
+  depth: "surface" | "behavior" | "feeling" | "mechanism",  // legacy "origin" normalizes to mechanism
   current_thread: string,            // one-sentence summary of what's underneath
   checkpoint_gate: {
     distinct_contexts: number        // the only surviving gate field — composer input, not a gate

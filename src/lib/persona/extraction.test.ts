@@ -30,6 +30,22 @@ describe("mergeExtractionState — state merge", () => {
     );
     expect(merged.checkpoint_gate.distinct_contexts).toBe(2);
   });
+
+  it("never lets depth regress below the prior high-water mark", () => {
+    const prev = makeState({ depth: "mechanism" });
+    const merged = mergeExtractionState({ depth: "feeling" }, prev);
+    expect(merged.depth).toBe("mechanism");
+  });
+
+  it("self-heals a stored legacy 'origin' depth to mechanism", () => {
+    // "origin" was removed from the ladder 2026-07-09 (Jove never excavates
+    // origins). Old conversations may still carry it — the merge must treat
+    // it as the top rung (never regress to a shallower incoming read, never
+    // fall to surface) and persist the normalized value.
+    const prev = makeState({ depth: "origin" as ExtractionState["depth"] });
+    const merged = mergeExtractionState({ depth: "feeling" }, prev);
+    expect(merged.depth).toBe("mechanism");
+  });
 });
 
 // Layer-type coercion (2026-06-03 doom-loop incident): the model intermittently
