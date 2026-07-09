@@ -48,10 +48,15 @@ describe("conductor variant — guard tests", () => {
     // revert block leaked back into the live template.
     expect(full).not.toContain("I want to put something in your Manual");
     expect(full).not.toContain("followed by the entry exactly as you built it together");
-    // The one-time landed acknowledgment replaces the save offer.
-    expect(full).toContain("That's it, in your words. Yours to keep whenever you want");
-    // Never-announce discipline survives inside "When it's landed".
-    expect(full).toContain("never say you're saving, writing, or putting anything down");
+    // v0.9: the one-time availability offer replaces the save offer — said
+    // once, no lean, entirely theirs to take.
+    expect(full).toContain("say once, plainly, that it's there if they want it");
+    // Never-announce discipline survives inside "Saying it's available".
+    expect(full).toContain("say you're saving, writing, or putting anything down");
+    // v0.9: the never-draft rule — nothing about the reflection in the chat.
+    expect(full).toContain(
+      "You never draft, preview, or describe a reflection inside the conversation"
+    );
   });
 
   it("carries the v0.5 landed markers, after-save rule, and v0.6 cadence/opener guards", () => {
@@ -72,7 +77,7 @@ describe("conductor variant — guard tests", () => {
     // appear under the conductor — miss direction is late/never, by design.
     expect(full).toContain("---reflection-ready---");
     expect(full).toContain(
-      "Use it only on the message where you say it's theirs, never earlier"
+      "Use it only on the message where you say it's available, never earlier"
     );
   });
 
@@ -83,9 +88,21 @@ describe("conductor variant — guard tests", () => {
     // verbatim — if the config wording ever changes, this fails and forces
     // the prompt to follow (PR3 hallucinated-save incident, 2026-07-07).
     expect(full).toContain(CHECKPOINT_ACTIONS.confirmed.naturalReply);
-    // Chat agreement is never a save; the close line always carries the marker.
+    // Chat agreement is never a save; the availability line always carries the
+    // marker (v0.9 wording: "the line and the words travel together").
     expect(full).toContain("approval and wrapping up are not saves");
-    expect(full).toContain("The line and the marker travel together");
+    expect(full).toContain(
+      "never say it's available without ending that message with the marker"
+    );
+  });
+
+  it("v0.9: the conductor prompt carries the entry-writing standard", () => {
+    const full = renderConductor();
+    // Conductor-mode composition reads its writing standard from the prompt
+    // itself (the compose call sends only the machine contract) — if this
+    // section disappears, pulled entries compose with no spec.
+    expect(full).toContain("## Writing the reflection");
+    expect(full).toContain("records a recognition that ALREADY HAPPENED");
   });
 
   it("Step 4: the post-save turn acknowledges and stops — the fork is client-owned", () => {
@@ -151,7 +168,18 @@ describe("validateConductorPromptEdit — the admin save guard", () => {
     const rewrite =
       "You are Jove, totally rewritten.\n" +
       "Crisis: call or text 988, or text HOME to 741741.\n" +
-      "End landed turns with ---reflection-ready---.";
+      "End landed turns with ---reflection-ready---.\n" +
+      "## Writing the reflection\nTheir words, the settled thing.";
     expect(validateConductorPromptEdit(rewrite)).toBeNull();
+  });
+
+  it("rejects an edit that drops the reflection-writing section", () => {
+    const gutted = CONDUCTOR_PROMPT.replace(
+      "## Writing the reflection",
+      "## Writing",
+    );
+    const err = validateConductorPromptEdit(gutted);
+    expect(err).not.toBeNull();
+    expect(err).toContain("reflection-writing");
   });
 });

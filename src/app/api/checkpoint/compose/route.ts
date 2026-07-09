@@ -209,9 +209,10 @@ export async function POST(request: Request) {
     });
   // Conductor composer — the conductor writes the entry itself from full live
   // context. Drops the extraction supplements (redundant when it holds the whole
-  // conversation).
+  // conversation). Its writing standard lives in the conductor prompt, so the
+  // entry-bar override doesn't apply here.
   const runConductor = () =>
-    composeEntryAsConductor(ctx, { entryBarOverride, distinctContexts });
+    composeEntryAsConductor(ctx, { distinctContexts });
 
   // A throw (e.g. Opus returns non-JSON → JSON.parse throws) is treated like a
   // null return: suppressed so the client keeps the meter full and can re-tap.

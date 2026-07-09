@@ -10,16 +10,33 @@ import { deriveSummaryFromContent } from "./manual-context";
 // recentHistory comment below — widened for the user-pulled Reflection model.
 const COMPOSE_TRANSCRIPT_WINDOW = 50;
 
-// THE BAR — the editable depth/quality standard for a Manual entry: what makes
-// one "land." Admin-editable on the Tuning page ("Entry voice — the bar");
-// resolved override-or-default at the call sites (voice-overrides.ts →
-// composerEntryBar), fed in as `entryBarOverride`, and fails open to this
-// constant. Everything else in the composer prompt below — the output schema,
-// section assignment, length rules, and the no-clinical-names safety rule —
-// stays locked in code.
-export const COMPOSER_ENTRY_BAR = `THE BAR — what makes an entry land: it names the mechanism running underneath the user's own behavior so exactly that they feel both seen and a little caught off guard — "how did it see that. I never put it together that way." Not a summary they would nod at; a recognition that reorganizes how they see themselves. If they could have written the line before this conversation, it is not deep enough. Go to the part they could not see from inside.
-  Recap:  "When my manager checks in, my chest gets tight and my mind goes blank."
-  Deeper: "Part of me answers. The other part is busy watching how it'll land, and that part is louder, so it takes over. The pause looks like I don't know the answer. It's the opposite. I know it. I'm just stuck watching their face while I talk, and the more unsure I look, the more they check in, which makes me watch even harder. One time I stopped watching and it cost me, so now I can't stop. So I watch their face to get it right, and that's the same thing that makes me look like I don't know it."`;
+// THE ENTRY SPEC — the editable writing standard for a Manual entry: fidelity
+// to the recognition that already happened in the conversation (v3, 2026-07-09,
+// consolidated after a psychologist + prompt-engineering line-economics review:
+// ~40% shorter, every mechanism stated once — the old "THE BAR / caught off
+// guard" depth target moved to the conversation side; the written record only
+// PRESERVES a recognition, it never manufactures one). Admin-editable on the
+// Tuning page ("Entry voice — the bar"); resolved override-or-default at the
+// call sites (voice-overrides.ts → composerEntryBar), fed in as
+// `entryBarOverride`, and fails open to this constant. Everything else in the
+// composer prompt below — the output schema, section assignment, the
+// first-person/timeless rule, and the no-clinical-names safety rule — stays
+// locked in code, so an admin edit can never drop the safety floor.
+//
+// KNOWING DUPLICATION (A/B scaffolding): this text also lives as the
+// "## Writing the reflection" section of CONDUCTOR_PROMPT (conductor-prompt.ts)
+// — composer mode reads it from HERE, conductor mode reads it from the
+// conductor prompt (the compose call there sends only the machine contract).
+// Change one → change both, or the A/B compares different specs. The loser's
+// copy dies at winner-selection.
+export const COMPOSER_ENTRY_BAR = `The entry records a recognition that ALREADY HAPPENED in the conversation — hold it in their own words so it lands again on reread, don't produce a new one. A line sharper than what they landed is yours, not theirs — cut it back. A piece that never landed stays out: an entry that says less and is entirely theirs beats a complete one they don't recognize.
+
+- The settled thing, not the label they walked in with — where the last exchanges and the first ones disagree, the last ones are true. Stay in their frame; never add a connection they didn't close themselves.
+- The title (the "name" field) is the line they'll reread: one first-person sentence, about 6-12 words, naming what they do and when it fires — picturable, their words. Not a feeling-state ("I feel alone…"), not one scene ("with him"), not a label.
+- Their words verbatim — especially phrases they corrected you into, and body words ("chest tight," "went blank"). A phrase they fought for outranks one you offered; never trade a body word for a smoother one.
+- One pattern, worked all the way down: what they do, when and with whom, what fires it, why they can't stop, what it costs — not a tour of the session. A strength is allowed to just be a strength: say what it's for and where it tips, never bend it into a hidden cost they didn't raise.
+- Commit to the claim; the condition carries the limit. Name the situation — no "sometimes I maybe tend to" blur, and no always / never / everyone unless they used the word. Exception: a single moment isn't a pattern yet — hedge it with "I can…" or "sometimes."
+- Say it, don't write it: plain declarative in their register, no crafted phrasing, no metaphor they'd have to decode back to themselves. The force is precision and their charged words.`;
 
 /** The composed Manual entry — the shared output shape of both the classic
  *  composer (composeManualEntry) and the conductor pull path
@@ -112,9 +129,11 @@ ${buildEntrySpecBody(entryBar)}`;
 }
 
 /**
- * The entry-writing spec — THE BAR + the field rules (title / body / section /
- * tags / compressed summary) + the JSON output schema. This is the one source
- * of truth for HOW an entry gets written; it's shared by two delivery framings:
+ * The entry-writing spec — the editable writing standard (COMPOSER_ENTRY_BAR:
+ * fidelity, title, voice, conditionality) + the LOCKED rules (clinical-name
+ * ban, first-person/timeless, section / tags / compressed summary, JSON output
+ * schema). This is the one source of truth for HOW an entry gets written; it's
+ * shared by two delivery framings:
  *   - the classic composer wraps it in a standalone system prompt
  *     (buildComposerSystemPrompt), where a fresh model reads the transcript from
  *     outside;
@@ -126,16 +145,21 @@ ${buildEntrySpecBody(entryBar)}`;
 export function buildEntrySpecBody(entryBar: string): string {
   return `${entryBar}
 
-name (the TITLE) — THE ARTIFACT. This is the line the user sees every time they open their Manual; in the Manual list the body is collapsed behind it, so the title carries the entry's holdability. It must clear THE BAR above — the DISCOVERY, not a behavior they could have named walking in: the generic "I perform interest to stay close to people I love" fails (anyone could write that); the discovery under it — "I keep debating because going quiet feels like pulling away" — lands. A complete first-person sentence naming what they DO and what drives it — a tendency ("I tend to…") or a trigger ("I [verb] when…"). Picturable and complete: nothing left to decode. About 6–12 words. Never scenario-specific (no names, no "with him" — that lives in the body), never a feeling-state ("I feel alone…"), never an image. A single instance → hedge with "can"/"sometimes".
-  Lands: "I tend to stay in things I've outgrown until I'm forced to leave."
+${buildEntryMachineContract()}`;
+}
 
-content (the body) — earns the title by developing the ONE pattern to the depth of the "Deeper" example above: follow its internal logic — what fires it, what it does, why they can't stop, what it costs. One pattern, fully worked, in their charged words. Go DOWN into it; never walk ACROSS the session (the scene, then the backstory, then the cost), and never add a second pattern to hold. A specific person or scene can ground a line here, never in the title. This is depth, not length — but a flat two-sentence restatement of the title is too thin; earn the recognition the way the example does. If they landed a stance of their own ("I need people to…"), keep it in their words; if not, leave it out. Never invent a takeaway, and never summarize the conversation.
-
-A strength is held to the same bar and gets the same depth. Name the capability and the conditions that bring it out. A strength is allowed to just be a strength — never bend it into a hidden cost the user did not raise.
-
-NON-NEGOTIABLES
-- The user's exact charged words carry in verbatim — their body, sensory, and system words ("buzzing," "too loud," "went offline," "racing," "shut down," "heavy"). Never upgrade their words, or your own connecting sentences, into something more elegant. The whole entry is the user saying this out loud about themselves, to someone they trust. Not a writer composing a passage about them. Not a therapist or a self-help book describing them. If a sentence sounds made to be read instead of said, rewrite it the way they'd actually say it. Plain and a little rough is right. Polished and literary is wrong. No clinical framework names, even to negate one: no "dissociation," "masking," "schema," "attachment style," "dysregulation," "executive dysfunction," "rejection sensitive dysphoria," "sensory overwhelm," "trauma response." Describe the behavior and the body instead.
-- Stay in the user's frame. The entry is about the thing THEY named, not a sharper angle you found. Claim only as wide as their evidence reaches — the body carries the scope.
+/**
+ * The MACHINE CONTRACT half of the entry spec: the code-locked safety rules
+ * (clinical-name ban, first-person/timeless), section assignment, the closed
+ * tag set, the compressed summary/key-words, and the JSON output schema. No
+ * voice/quality guidance lives here — that's the editable standard above it.
+ * Conductor mode sends ONLY this (plus a short mode-flip line) at pull time,
+ * because its writing standard lives in the conductor prompt itself; composer
+ * mode gets it via buildEntrySpecBody.
+ */
+export function buildEntryMachineContract(): string {
+  return `LOCKED RULES (these hold no matter what the writing standard says)
+- No clinical framework names, even to negate one: no "dissociation," "masking," "schema," "attachment style," "dysregulation," "executive dysfunction," "rejection sensitive dysphoria," "sensory overwhelm," "trauma response." Describe the behavior and the body instead.
 - First person. No references to the session or to time. It reads the same six months from now.
 
 SECTION (field: "section"): the entry's one home. Pick the section whose dimensions (shown in the input) best describe what the entry IS AT ITS CORE — its spine, not where the scene happens. Use one of these exact slugs:

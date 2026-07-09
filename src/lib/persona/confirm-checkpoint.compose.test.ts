@@ -107,7 +107,9 @@ describe("composeManualEntry — editable entry-voice (THE BAR)", () => {
 
   it("uses the shipped COMPOSER_ENTRY_BAR by default", async () => {
     await composeManualEntry(baseOpts);
-    expect(lastSystem).toContain("THE BAR — what makes an entry land");
+    expect(lastSystem).toContain(
+      "records a recognition that ALREADY HAPPENED"
+    );
     expect(lastSystem).toContain(COMPOSER_ENTRY_BAR);
   });
 
@@ -118,7 +120,7 @@ describe("composeManualEntry — editable entry-voice (THE BAR)", () => {
     });
     expect(lastSystem).toContain("custom standard: make every line sing");
     expect(lastSystem).not.toContain(
-      "how did it see that. I never put it together that way"
+      "A phrase they fought for outranks a phrase you offered"
     );
   });
 

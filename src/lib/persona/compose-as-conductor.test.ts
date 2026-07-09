@@ -73,13 +73,15 @@ describe("composeEntryAsConductor", () => {
     lastMessages = [];
   });
 
-  it("runs as the conductor — its own voice is the system prompt", async () => {
+  it("runs as the conductor — its own voice (with the writing standard) is the system prompt", async () => {
     await composeEntryAsConductor(makeCtx());
     // The conductor prompt (conductor-prompt.ts) opens with "You are Jove."
     expect(systemText(lastSystem)).toContain("You are Jove.");
+    // v0.9: the entry-writing standard lives IN the conductor prompt.
+    expect(systemText(lastSystem)).toContain("## Writing the reflection");
   });
 
-  it("replays the full conversation and appends the write instruction last", async () => {
+  it("replays the full conversation and appends the mode-flip + machine contract last", async () => {
     await composeEntryAsConductor(makeCtx());
     // Conversation turns are all present, in order, before the instruction.
     expect(lastMessages.length).toBe(4);
@@ -89,10 +91,16 @@ describe("composeEntryAsConductor", () => {
     });
     const final = lastMessages[lastMessages.length - 1];
     expect(final.role).toBe("user");
-    expect(final.content).toContain("write it down as their Manual entry");
+    expect(final.content).toContain('following "Writing the reflection" above');
     expect(final.content).toContain("Output ONLY the JSON");
-    // The shared entry spec rides in the instruction (one source of truth).
-    expect(final.content).toContain("name (the TITLE)");
+    // The machine contract (schema, sections, locked rules) rides in the
+    // instruction; the writing STANDARD does not — the model reads it exactly
+    // once, from its own system prompt (no double-read).
+    expect(final.content).toContain('SECTION (field: "section")');
+    expect(final.content).toContain("No clinical framework names");
+    expect(final.content).not.toContain(
+      "records a recognition that ALREADY HAPPENED"
+    );
   });
 
   it("returns the finalized entry, guards applied", async () => {
@@ -100,13 +108,5 @@ describe("composeEntryAsConductor", () => {
     expect(result).not.toBeNull();
     expect(result?.section).toBe("sensory-burnout");
     expect(result?.name).toContain("I go quiet");
-  });
-
-  it("honors an entry-bar override in the instruction", async () => {
-    await composeEntryAsConductor(makeCtx(), {
-      entryBarOverride: "THE BAR — custom: make every line sing.",
-    });
-    const final = lastMessages[lastMessages.length - 1];
-    expect(final.content).toContain("custom: make every line sing");
   });
 });
