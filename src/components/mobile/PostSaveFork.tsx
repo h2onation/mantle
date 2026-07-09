@@ -15,11 +15,30 @@ interface PostSaveForkProps {
 // thread more deeply" spins a fresh session seeded with the just-saved entry
 // (useChat.keepWorkingFromSave); "Discuss a different situation" starts fresh;
 // "Take a break" closes warmly. Same SelectionTile visual as the section
-// picker, so the selection moments read as one control.
+// picker, so the selection moments read as one control. A quiet Jove-voiced
+// lead line frames the three (client-owned, so it can never drift from the tile
+// labels the way a prompt instruction would); the sublines say what each does.
+const LEAD_LINE = "Where do you want to go from here?";
+
 const ITEMS = [
-  { key: "new", title: "Discuss a different situation", value: "new" },
-  { key: "keep", title: "Explore this thread more deeply", value: "keep" },
-  { key: "break", title: "Take a break", value: "break" },
+  {
+    key: "new",
+    title: "Discuss a different situation",
+    subtitle: "Start fresh on something else",
+    value: "new",
+  },
+  {
+    key: "keep",
+    title: "Explore this thread more deeply",
+    subtitle: "Stay with what we just found",
+    value: "keep",
+  },
+  {
+    key: "break",
+    title: "Take a break",
+    subtitle: "Pick it up whenever you want",
+    value: "break",
+  },
 ];
 
 export default function PostSaveFork({
@@ -29,14 +48,17 @@ export default function PostSaveFork({
   disabled,
 }: PostSaveForkProps) {
   return (
-    <SelectionTileGroup
-      items={ITEMS}
-      disabled={disabled}
-      onSelect={(value) => {
-        if (value === "keep") onKeepWorking();
-        else if (value === "new") onBringNew();
-        else onTakeBreak();
-      }}
-    />
+    <div className="mw-postsave-fork">
+      <p className="mw-postsave-lead">{LEAD_LINE}</p>
+      <SelectionTileGroup
+        items={ITEMS}
+        disabled={disabled}
+        onSelect={(value) => {
+          if (value === "keep") onKeepWorking();
+          else if (value === "new") onBringNew();
+          else onTakeBreak();
+        }}
+      />
+    </div>
   );
 }

@@ -827,6 +827,17 @@ textarea.mw-composer-input:focus-visible {
    (.mw-seltile--printed) while its siblings vanish (.mw-seltile--vanish);
    SelectionTileGroup owns that staging. Relief shadows are theme-tuned:
    light values here, dark overrides at the end of the block. */
+/* Post-save fork: a quiet Jove-voiced lead line above the right-aligned tiles.
+   Left-aligned + serif ink so it reads as Jove's continuation of the "Entry
+   has been saved" message, not a UI label. */
+.mw-postsave-lead {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--session-ink-mid);
+  margin: 4px 0 0;
+  text-align: left;
+}
 .mw-seltile-group {
   display: flex;
   flex-direction: column;
