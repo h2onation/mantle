@@ -186,12 +186,12 @@ const FIELDS: Field[] = [
   // ── Drives the reflection meter (deterministic) ────────────────────────
   {
     path: "depth",
-    type: "enum (5 values)",
+    type: "enum (4 values)",
     job: "meter",
     loadBearing: "load-bearing",
-    summary: "How far down it's gone: surface → behavior → feeling → mechanism → origin.",
+    summary: "How far down it's gone: surface → behavior → feeling → mechanism.",
     represents:
-      "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism → origin. The one note read on both sides: it fills the meter AND tells the composer how far the conversation reached.",
+      "Vertical position of the conversation — where it has descended to. surface → behavior → feeling → mechanism. Mechanism is the deepest rung: Jove never digs for where a pattern originally came from, so the old 'origin' rung was removed 2026-07-09 (legacy states carrying it read as mechanism). The one note read on both sides: it fills the meter AND tells the composer how far the conversation reached.",
     storage: "conversations.extraction_state.depth",
     readers: [
       { where: "persona-pipeline.ts:749 (reflectionMeterFill)", what: "Sets the meter FILL — each depth level maps to a % (REFLECTION_DEPTH_PCT), so a deeper conversation shows a fuller bar. Resolved by resolveReflectionMeter, shared by the live SSE emit (call-persona) and the reload-restore route (checkpoint/meter) so the two can't drift" },
