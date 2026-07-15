@@ -73,7 +73,7 @@ export default function OpengraphImage() {
               opacity: 0.7,
             }}
           />
-          for neurodivergent adults
+          understand how you operate
         </div>
       </div>
     ),

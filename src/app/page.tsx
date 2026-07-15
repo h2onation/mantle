@@ -8,7 +8,7 @@ import ContactForm from "@/components/landing/ContactForm";
 export const metadata: Metadata = {
   title: "mywalnut — understanding yourself, and being understood",
   description:
-    "Mywalnut helps neurodivergent adults put words to how they actually work, strengths as clearly as friction. Through conversation, what you've felt but never named becomes a working manual.",
+    "Mywalnut helps you put words to how you actually work, strengths as clearly as friction. Through conversation, what you've felt but never named becomes a working manual.",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
     siteName: "mywalnut",
     title: "mywalnut — understanding yourself, and being understood",
     description:
-      "Put words to how you actually work, strengths as clearly as friction. Built for late diagnosed autistic adults.",
+      "Put words to how you actually work, strengths as clearly as friction. Through conversation, it becomes a working manual of how you operate.",
   },
   twitter: {
     card: "summary_large_image",
     title: "mywalnut — understanding yourself, and being understood",
     description:
-      "Put words to how you actually work, strengths as clearly as friction. Built for late diagnosed autistic adults.",
+      "Put words to how you actually work, strengths as clearly as friction. Through conversation, it becomes a working manual of how you operate.",
   },
 };
 
@@ -69,8 +69,8 @@ export default function Landing() {
                   understood.
                 </p>
                 <p className="hero-lead reveal">
-                  Mywalnut helps neurodivergent adults put words to how they
-                  actually work, naming strengths as clearly as friction.
+                  Mywalnut helps you put words to how you actually work,
+                  naming strengths as clearly as friction.
                   Through conversation, what you&apos;ve felt but never named
                   becomes a working manual of how you operate — one that sharpens
                   how you understand yourself, and how the people who matter
@@ -103,15 +103,15 @@ export default function Landing() {
                 conversations.
               </p>
               <p className="prose stanza reveal">
-                Masking hides the friction as well as the strengths: the focus
-                that goes deep, the patterns you catch first, the care that
-                doesn&apos;t always show. All of it goes quiet together.
+                Keeping it together on the outside hides the friction as well
+                as the strengths: the focus that goes deep, the patterns you
+                catch first, the care that doesn&apos;t always show. All of it
+                goes quiet together.
               </p>
               <p className="prose stanza reveal">
-                Mywalnut is built for late-diagnosed autistic adults, with extra
-                thoughtfulness for where ADHD and dyslexia overlap. People who
-                have spent years masking and want to understand the more honest
-                layer of themselves.
+                Mywalnut is built for people who have spent years working
+                around that gap and want to understand the more honest layer of
+                themselves.
               </p>
             </div>
           </div>
@@ -243,9 +243,8 @@ export default function Landing() {
               <div className="card reveal">
                 <h3>Grounded, not guesswork</h3>
                 <p>
-                  Mywalnut isn&apos;t therapy. It draws on established approaches
-                  to self-understanding and on research led by neurodivergent
-                  people.
+                  Mywalnut isn&apos;t therapy. It draws on established
+                  approaches to self-understanding, built from your own words.
                 </p>
               </div>
               <div className="card card-wide reveal">

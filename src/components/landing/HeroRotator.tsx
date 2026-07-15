@@ -9,7 +9,7 @@ const WORDS = [
   "creative", "honest", "tender", "deep", "curious", "precise",
   "perceptive", "loyal", "vivid", "original", "kind", "gentle",
   "thoughtful", "sharp", "brave", "bright",
-  "weird", "spicy", "frustrating", "loud", "restless", "literal",
+  "weird", "messy", "frustrating", "loud", "restless", "literal",
   "blunt", "scattered", "intense", "quiet", "stubborn", "wired",
   "prickly", "foggy", "tired", "busy",
 ];
