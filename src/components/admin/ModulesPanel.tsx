@@ -1,0 +1,500 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { Module } from "@/lib/modules";
+
+// Admin CRUD for modules — each row is simultaneously an entry door on Home
+// and a section of the Manual. Data: /api/admin/modules (GET/POST/PATCH/
+// DELETE). The API is the validator (slug format, custom-prompt required
+// fragments, delete-only-while-unreferenced); this panel just reports its
+// plain-language errors.
+
+interface ApiState {
+  modules: Module[];
+  conductorText: string;
+}
+
+type Draft = {
+  name: string;
+  description: string;
+  cue: string;
+  icon: string;
+  introTitle: string;
+  introBody: string;
+  openerText: string;
+  customPrompt: string;
+};
+
+function toDraft(m: Module): Draft {
+  return {
+    name: m.name,
+    description: m.description,
+    cue: m.cue,
+    icon: m.icon,
+    introTitle: m.introTitle ?? "",
+    introBody: m.introBody ?? "",
+    openerText: m.openerText ?? "",
+    customPrompt: m.customPrompt ?? "",
+  };
+}
+
+const label: React.CSSProperties = {
+  fontFamily: "var(--font-sans)",
+  fontSize: "13px",
+  fontWeight: 600,
+  color: "var(--session-ink)",
+  display: "block",
+  margin: "12px 0 4px",
+};
+
+const hint: React.CSSProperties = {
+  fontFamily: "var(--font-sans)",
+  fontSize: "12px",
+  lineHeight: 1.5,
+  color: "var(--session-walnut-meta)",
+  margin: "2px 0 0",
+};
+
+const input: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: "var(--font-sans)",
+  fontSize: "13.5px",
+  color: "var(--session-ink)",
+  background: "var(--session-walnut-surface)",
+  border: "1px solid var(--session-walnut-border)",
+  borderRadius: 8,
+  padding: "8px 10px",
+};
+
+const btn: React.CSSProperties = {
+  fontFamily: "var(--font-sans)",
+  fontSize: "12.5px",
+  fontWeight: 600,
+  padding: "7px 12px",
+  borderRadius: 8,
+  border: "1px solid var(--session-walnut-border)",
+  background: "var(--session-walnut-surface)",
+  color: "var(--session-ink)",
+  cursor: "pointer",
+};
+
+const primaryBtn: React.CSSProperties = {
+  ...btn,
+  background: "var(--session-persona)",
+  borderColor: "var(--session-persona)",
+  color: "var(--session-linen)",
+};
+
+export default function ModulesPanel() {
+  const [state, setState] = useState<ApiState | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [open, setOpen] = useState<string | null>(null);
+  const [newSlug, setNewSlug] = useState("");
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function absorb(data: ApiState) {
+    setState(data);
+    const seed: Record<string, Draft> = {};
+    for (const m of data.modules) seed[m.slug] = toDraft(m);
+    setDrafts(seed);
+  }
+
+  useEffect(() => {
+    fetch("/api/admin/modules")
+      .then((r) => r.json())
+      .then((d) => (d?.modules ? absorb(d) : setError(d?.error || "Could not load modules.")))
+      .catch(() => setError("Could not load modules."));
+  }, []);
+
+  async function call(method: string, payload: object, successMsg: string) {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/admin/modules", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d?.error || "Request failed");
+      absorb({ modules: d.modules, conductorText: state?.conductorText ?? "" });
+      setNotice(successMsg);
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Request failed");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const create = async () => {
+    const ok = await call(
+      "POST",
+      { slug: newSlug.trim(), name: newName.trim() },
+      "Module created. Open it below to shape the door.",
+    );
+    if (ok) {
+      setNewSlug("");
+      setNewName("");
+    }
+  };
+
+  const save = (slug: string) => {
+    const d = drafts[slug];
+    return call(
+      "PATCH",
+      {
+        slug,
+        name: d.name,
+        description: d.description,
+        cue: d.cue,
+        icon: d.icon,
+        intro_title: d.introTitle,
+        intro_body: d.introBody,
+        opener_text: d.openerText,
+        custom_prompt: d.customPrompt,
+      },
+      "Saved. Live on the next session.",
+    );
+  };
+
+  const toggle = (m: Module) =>
+    call(
+      "PATCH",
+      { slug: m.slug, enabled: !m.enabled },
+      m.enabled
+        ? "Disabled — the door hides; its Manual section and entries stay."
+        : "Enabled — the door is live on Home.",
+    );
+
+  const remove = (slug: string) => {
+    if (!window.confirm(`Delete module "${slug}"? Only possible while nothing references it.`)) return;
+    call("DELETE", { slug }, "Deleted.");
+  };
+
+  const move = async (index: number, dir: -1 | 1) => {
+    if (!state) return;
+    const a = state.modules[index];
+    const b = state.modules[index + dir];
+    if (!a || !b) return;
+    setBusy(true);
+    setError(null);
+    try {
+      // Swap sort orders; if equal (fresh rows), assign by position instead.
+      const aOrder = a.sortOrder === b.sortOrder ? index + dir : b.sortOrder;
+      const bOrder = a.sortOrder === b.sortOrder ? index : a.sortOrder;
+      for (const [slug, sort_order] of [
+        [a.slug, aOrder],
+        [b.slug, bOrder],
+      ] as const) {
+        const res = await fetch("/api/admin/modules", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, sort_order }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d?.error || "Reorder failed");
+        absorb({ modules: d.modules, conductorText: state.conductorText });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Reorder failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setField = (slug: string, key: keyof Draft, value: string) =>
+    setDrafts((d) => ({ ...d, [slug]: { ...d[slug], [key]: value } }));
+
+  if (state === null) {
+    return (
+      <p style={{ ...hint, fontSize: "13px" }}>{error ?? "Loading…"}</p>
+    );
+  }
+
+  return (
+    <div>
+      {/* Create */}
+      <div
+        style={{
+          border: "1px solid var(--session-walnut-border)",
+          background: "var(--session-walnut-surface)",
+          borderRadius: 12,
+          padding: "18px 20px",
+          marginBottom: 24,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "13px",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            color: "var(--session-walnut-meta-strong)",
+          }}
+        >
+          New module
+        </span>
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          <input
+            style={{ ...input, maxWidth: 220 }}
+            placeholder="slug (permanent id)"
+            value={newSlug}
+            onChange={(e) => setNewSlug(e.target.value)}
+          />
+          <input
+            style={{ ...input, maxWidth: 300 }}
+            placeholder="Name shown on the card"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <button
+            style={primaryBtn}
+            disabled={busy || !newSlug.trim() || !newName.trim()}
+            onClick={create}
+          >
+            Create
+          </button>
+        </div>
+        <p style={hint}>
+          The slug (lowercase, hyphens ok) is the module&rsquo;s permanent id —
+          it gets stamped on conversations and Manual entries and can&rsquo;t be
+          changed later. Everything else can.
+        </p>
+      </div>
+
+      {/* List */}
+      {state.modules.length === 0 && (
+        <p style={{ ...hint, fontSize: "13px", marginBottom: 16 }}>
+          No modules yet. The Home screen shows nothing to begin from until the
+          first enabled module exists.
+        </p>
+      )}
+
+      {state.modules.map((m, i) => {
+        const d = drafts[m.slug];
+        const isOpen = open === m.slug;
+        const custom = Boolean(m.customPrompt && m.customPrompt.trim());
+        return (
+          <div
+            key={m.slug}
+            style={{
+              border: "1px solid var(--session-walnut-border)",
+              background: "var(--session-walnut-surface)",
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 12,
+              opacity: m.enabled ? 1 : 0.65,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <button
+                style={{ ...btn, padding: "4px 9px" }}
+                onClick={() => setOpen(isOpen ? null : m.slug)}
+                aria-label={isOpen ? "Collapse" : "Expand"}
+              >
+                {isOpen ? "▾" : "▸"}
+              </button>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "var(--session-ink)",
+                }}
+              >
+                {m.name}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11.5px",
+                  color: "var(--session-walnut-meta)",
+                }}
+              >
+                {m.slug}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  border: "1px solid var(--session-walnut-border)",
+                  color: custom
+                    ? "var(--session-warning-text)"
+                    : "var(--session-walnut-meta-strong)",
+                  background: custom
+                    ? "var(--session-warning-surface)"
+                    : "var(--session-walnut-surface-soft)",
+                }}
+              >
+                {custom ? "Custom prompt" : "Shared conductor"}
+              </span>
+              {!m.enabled && (
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "var(--session-walnut-meta)",
+                  }}
+                >
+                  disabled
+                </span>
+              )}
+              <span style={{ flex: 1 }} />
+              <button style={btn} disabled={busy || i === 0} onClick={() => move(i, -1)}>
+                ↑
+              </button>
+              <button
+                style={btn}
+                disabled={busy || i === state.modules.length - 1}
+                onClick={() => move(i, 1)}
+              >
+                ↓
+              </button>
+              <button style={btn} disabled={busy} onClick={() => toggle(m)}>
+                {m.enabled ? "Disable" : "Enable"}
+              </button>
+              <button style={btn} disabled={busy} onClick={() => remove(m.slug)}>
+                Delete
+              </button>
+            </div>
+
+            {isOpen && d && (
+              <div style={{ marginTop: 8 }}>
+                <label style={label}>Name</label>
+                <input
+                  style={input}
+                  value={d.name}
+                  onChange={(e) => setField(m.slug, "name", e.target.value)}
+                />
+
+                <label style={label}>Card description</label>
+                <textarea
+                  style={{ ...input, resize: "vertical" }}
+                  rows={2}
+                  value={d.description}
+                  onChange={(e) => setField(m.slug, "description", e.target.value)}
+                />
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={label}>Button label</label>
+                    <input
+                      style={input}
+                      value={d.cue}
+                      onChange={(e) => setField(m.slug, "cue", e.target.value)}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={label}>Icon key</label>
+                    <input
+                      style={input}
+                      value={d.icon}
+                      onChange={(e) => setField(m.slug, "icon", e.target.value)}
+                    />
+                    <p style={hint}>chat · list · upload (unknown keys fall back to chat)</p>
+                  </div>
+                </div>
+
+                <label style={label}>Intro modal — title (blank = no modal)</label>
+                <input
+                  style={input}
+                  value={d.introTitle}
+                  onChange={(e) => setField(m.slug, "introTitle", e.target.value)}
+                />
+                <label style={label}>Intro modal — body</label>
+                <textarea
+                  style={{ ...input, resize: "vertical" }}
+                  rows={4}
+                  value={d.introBody}
+                  onChange={(e) => setField(m.slug, "introBody", e.target.value)}
+                />
+
+                <label style={label}>Opening message (blank = Jove opens)</label>
+                <textarea
+                  style={{ ...input, resize: "vertical" }}
+                  rows={3}
+                  value={d.openerText}
+                  onChange={(e) => setField(m.slug, "openerText", e.target.value)}
+                />
+                <p style={hint}>
+                  Filled in: the server speaks this exact message first, no model
+                  call. Blank: Jove opens from the prompt.
+                </p>
+
+                <label style={label}>Jove prompt for this module</label>
+                <div style={{ display: "flex", gap: 8, margin: "0 0 6px" }}>
+                  <button
+                    style={btn}
+                    disabled={busy}
+                    onClick={() =>
+                      setField(m.slug, "customPrompt", state.conductorText)
+                    }
+                  >
+                    Start from the current conductor
+                  </button>
+                  <button
+                    style={btn}
+                    disabled={busy || !d.customPrompt}
+                    onClick={() => setField(m.slug, "customPrompt", "")}
+                  >
+                    Clear (use shared conductor)
+                  </button>
+                </div>
+                <textarea
+                  style={{
+                    ...input,
+                    resize: "vertical",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "12px",
+                    lineHeight: 1.55,
+                  }}
+                  rows={d.customPrompt ? 18 : 3}
+                  placeholder="Blank — this module runs the live shared conductor, including your Tuning edits."
+                  value={d.customPrompt}
+                  onChange={(e) => setField(m.slug, "customPrompt", e.target.value)}
+                />
+                <p style={hint}>
+                  A custom prompt is a fork: later Tuning edits to the shared
+                  conductor do NOT flow into it. The crisis lines and the two
+                  reflection markers must survive in any custom prompt — saves
+                  that drop them are rejected.
+                </p>
+
+                <div style={{ marginTop: 14 }}>
+                  <button style={primaryBtn} disabled={busy} onClick={() => save(m.slug)}>
+                    Save module
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {(error || notice) && (
+        <p
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "12.5px",
+            color: error ? "var(--session-error-text)" : "var(--session-persona)",
+            margin: "12px 0 0",
+          }}
+        >
+          {error || notice}
+        </p>
+      )}
+    </div>
+  );
+}
