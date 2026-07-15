@@ -34,6 +34,11 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         href: "/admin/prompt-architecture",
       },
       {
+        id: "modules",
+        label: "Modules",
+        href: "/admin/modules",
+      },
+      {
         id: "feature-gates",
         label: "Feature gates",
         href: "/admin/feature-gates",

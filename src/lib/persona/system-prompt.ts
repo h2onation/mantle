@@ -2,7 +2,7 @@ import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
-import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
+import { resolveModulePrompt } from "@/lib/modules";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
   prepareManualContextBlocks,
@@ -38,10 +38,14 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   explorationContext?: ExplorationContext;
   transcriptContext?: TranscriptDetection | null;
   turnCount: number;
-  /** Conversation mode. "situation" (default) is standard open-ended
-   *  exploration. "guided-intake" runs a more directed path toward
-   *  the first checkpoint. "upload" handles pasted text content. */
+  /** Conversation mode — the slug of the module the conversation started
+   *  inside (legacy rows carry the retired door values). Not read by the
+   *  prompt builder itself; the module's PROMPT arrives via modulePrompt. */
   mode?: ConversationMode;
+  /** The module's custom Jove prompt, when the conversation's module carries
+   *  one. Takes the top of the voice ladder: modulePrompt → admin conductor
+   *  override → code conductor. Null/absent → the shared conductor. */
+  modulePrompt?: string | null;
   personaModes?: PersonaMode[];
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
    *  follow-up (not a normal chat turn). The mode selects which pinned
@@ -223,7 +227,13 @@ export function buildSystemPromptBlocks(
     condDynamic += "\n" + renderExplorationContextBlock(options.explorationContext);
   }
 
-  const tier1 = options.voiceOverrides?.conductorPrompt ?? CONDUCTOR_PROMPT;
+  // The voice ladder: the module's custom prompt (a deliberate per-module
+  // fork, save-guarded by the same required fragments) → the founder's live
+  // conductor override (Tuning page, same guard) → the shipped code constant.
+  const tier1 = resolveModulePrompt(
+    options.modulePrompt,
+    options.voiceOverrides?.conductorPrompt,
+  );
 
   return { tier1, staticContext: condStatic, dynamic: condDynamic };
 }

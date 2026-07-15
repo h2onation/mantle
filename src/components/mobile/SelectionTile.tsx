@@ -16,7 +16,7 @@ interface SelectionTileProps {
 }
 
 /**
- * The unified guided-intake selection tile — "the handoff" treatment. Each
+ * The unified selection tile — "the handoff" treatment (post-save fork). Each
  * tile wears the user's own sent-bubble shape (same radius + top-right tail
  * as Bubble's USER_STYLE) as a blind emboss: unprinted paper relief at rest,
  * Jove's navy blooming from the tail corner on hover, and the user-bubble

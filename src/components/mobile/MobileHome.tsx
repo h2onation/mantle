@@ -3,10 +3,10 @@
 import { useState } from "react";
 import TopBar from "@/components/shared/TopBar";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
-import type { ManualEntry, ExplorationContext } from "@/lib/types";
+import type { ManualEntry } from "@/lib/types";
 import type { ConversationMode } from "@/lib/persona/config";
+import type { HomeModule } from "@/lib/modules";
 import { useHomeModel } from "@/components/home/useHomeModel";
-import LayerIndex from "@/components/home/LayerIndex";
 import WaysToBegin from "@/components/home/WaysToBegin";
 import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import { formatShortDate } from "@/lib/utils/format";
@@ -18,11 +18,10 @@ interface MobileHomeProps {
   entries: ManualEntry[];
   onSelectSession: (id: string) => void;
   onStartConversation: (mode: ConversationMode) => void;
-  onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
-  // Which entry doors are live (per-mode feature gates). A disabled door
-  // renders as "Coming soon". Situation is always true.
-  enabledModes: Record<ConversationMode, boolean>;
+  // The enabled modules, in display order — each is a door in and a Manual
+  // section. Founder-authored rows served by /api/onboarding-status.
+  modules: HomeModule[];
   // Admin-editable onboarding/Home copy. Defaults to the shipped strings.
   appCopy?: AppCopy;
   // false when the desktop shell provides its own header. Default true.
@@ -51,14 +50,13 @@ export default function MobileHome({
   entries,
   onSelectSession,
   onStartConversation,
-  onExploreWithPersona,
   onNavigateToManual,
-  enabledModes,
+  modules,
   appCopy = APP_COPY_DEFAULTS,
   showTopBar = true,
 }: MobileHomeProps) {
   const [showAll, setShowAll] = useState(false);
-  const { greeting, dateLine, heroConv, heroSnippet, layers, startedCount } =
+  const { greeting, dateLine, heroConv, heroSnippet, entryCounts } =
     useHomeModel({ firstName, conversations, activeConversationId, entries });
 
   const others = conversations.filter((c) => c.id !== heroConv?.id);
@@ -156,7 +154,7 @@ export default function MobileHome({
               Continue this thread <span aria-hidden="true">→</span>
             </button>
           </section>
-        ) : startedCount === 0 ? (
+        ) : entries.length === 0 ? (
           <section
             aria-label={appCopy.home.welcomeEyebrow}
             style={{
@@ -183,24 +181,36 @@ export default function MobileHome({
           </section>
         ) : null}
 
-        {/* Begin a new conversation — the same three doors desktop shows,
-            stacked into one column (shared WaysToBegin). */}
+        {/* The single Home list: your modules. Each card is a door in AND a
+            Manual section — the count shows what's accumulated inside. */}
         <WaysToBegin
           variant="mobile"
           onStartConversation={onStartConversation}
-          enabledModes={enabledModes}
-          appCopy={appCopy}
+          modules={modules}
+          entryCounts={entryCounts}
+          label={appCopy.waysToBeginLabel}
         />
 
-        {/* Manual index — quiet menu of go-deeper actions. */}
-        <LayerIndex
-          variant="mobile"
-          layers={layers}
-          startedCount={startedCount}
-          onExploreWithPersona={onExploreWithPersona}
-          onNavigateToManual={onNavigateToManual}
-          appCopy={appCopy}
-        />
+        {/* Read view — the whole Manual, grouped by the same modules. */}
+        <button
+          onClick={onNavigateToManual}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 22,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "1.6px",
+            textTransform: "uppercase",
+            color: "var(--session-walnut)",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          Read your manual <span aria-hidden="true">→</span>
+        </button>
 
         {/* Recent conversations — reachability for older threads. */}
         {recent.length > 0 && (

@@ -44,7 +44,9 @@ export interface ConversationContext {
   conversationId: string;
   turnCount: number;
   personaModes: PersonaMode[];
-  mode: "situation" | "guided-intake" | "upload";
+  /** The conversation's module slug (legacy rows carry the retired door
+   *  values "situation" / "guided-intake" / "upload"). */
+  mode: string;
   /** True when the web reflection meter is active — the user-pulled capture
    *  model. Web-only (surface === "web"); text/SMS has no meter and no capture
    *  path. Read by call-persona.ts to surface the depth + readiness signals to
@@ -185,15 +187,11 @@ export async function loadConversationContext(
   const personaModes: PersonaMode[] =
     (profileResult.data?.persona_modes as PersonaMode[] | null) ?? ["general"];
 
-  const rawMode = extractionResult.data?.mode;
-  if (rawMode && rawMode !== "situation" && rawMode !== "guided-intake" && rawMode !== "upload") {
-    console.warn("[persona-pipeline] unexpected conversation mode: %s, falling back to situation", rawMode);
-  }
-  // The requested mode is honored directly (the conductor has been the live
-  // voice for all users since 2026-07-02, and it always honored the request).
-  // The per-mode feature gates still do their real job elsewhere: they hide
-  // entry doors on the home screen via /api/onboarding-status.
-  const conversationMode = resolveConversationMode(rawMode);
+  // The stored mode IS the module slug (validated against enabled modules at
+  // conversation creation by /api/chat); honored as-is on every later turn.
+  const conversationMode = resolveConversationMode(
+    extractionResult.data?.mode
+  );
 
   // Build conversation history
   let messages = applySlidingWindow(
@@ -385,30 +383,16 @@ export async function stampConductorPrompt(
 
 // ── Conversation-mode resolution ───────────────────────────────────────────
 //
-// The single authority for turning a stored/requested mode string into
-// the mode a turn actually runs in. Used by the main pipeline (above) and
-// unit-tested directly. Rules:
-//   - Use the requested mode if its gate is on.
-//   - Otherwise fall to the first enabled mode, priority situation → guided →
-//     upload (so disabling an optional mode keeps the old "fall to situation"
-//     behavior while situation is on, and a guided-/upload-solo config falls to
-//     whatever IS enabled).
-//   - If every mode gate is off (misconfiguration), situation is the ultimate
-//     hard floor, so a conversation is never left mode-less.
+// Since the modules cutover, `mode` IS the module slug stamped on the row at
+// creation (validated against enabled modules by /api/chat). Legacy rows
+// carry the retired door values ("situation", "guided-intake", "upload").
+// The stored value is honored as-is; only a null/blank (which should never
+// occur — the column is NOT NULL) normalizes to "" so downstream string
+// handling never sees null.
 export function resolveConversationMode(
   rawMode: string | null | undefined
-): "situation" | "guided-intake" | "upload" {
-  // Parse-only: the stored mode is honored directly, unknown values fall back
-  // to situation. The per-mode-gate fallback that used to live here was dead
-  // since the 2026-07-02 conductor promotion (the conductor always honored the
-  // request) and was removed 2026-07-06. The mode gates' live job is hiding
-  // entry doors on the home screen (/api/onboarding-status), not clamping the
-  // server-side mode.
-  return rawMode === "guided-intake"
-    ? "guided-intake"
-    : rawMode === "upload"
-      ? "upload"
-      : "situation";
+): string {
+  return typeof rawMode === "string" ? rawMode : "";
 }
 
 // ── 1b. Build prompt options from context ──────────────────────────────────

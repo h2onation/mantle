@@ -232,20 +232,19 @@ describe("resolveReflectionMeter", () => {
   });
 });
 
-// Parse-only since 2026-07-06: the per-mode-gate fallback was removed (it had
-// been dead since the conductor promotion — the requested mode was always
-// honored). The mode gates' live job is hiding home-screen doors via
-// /api/onboarding-status, not clamping the server-side mode.
+// Passthrough since the modules cutover (2026-07-15): the stored mode IS the
+// module slug, validated against enabled modules at conversation creation by
+// /api/chat. Legacy rows keep the retired door values; there is no default
+// module, so null/undefined normalize to "" rather than a phantom mode.
 describe("resolveConversationMode", () => {
-  it("honors the requested mode", () => {
+  it("honors the stored slug, including legacy door values", () => {
     expect(resolveConversationMode("guided-intake")).toBe("guided-intake");
-    expect(resolveConversationMode("upload")).toBe("upload");
+    expect(resolveConversationMode("burnout-at-work")).toBe("burnout-at-work");
     expect(resolveConversationMode("situation")).toBe("situation");
   });
 
-  it("defaults an absent/unknown raw mode to situation", () => {
-    expect(resolveConversationMode(undefined)).toBe("situation");
-    expect(resolveConversationMode(null)).toBe("situation");
-    expect(resolveConversationMode("nonsense")).toBe("situation");
+  it("normalizes an absent mode to the empty string (never null downstream)", () => {
+    expect(resolveConversationMode(undefined)).toBe("");
+    expect(resolveConversationMode(null)).toBe("");
   });
 });

@@ -10,11 +10,10 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 let manualComponentCount = 0;
-// When set, the conversations.select("mode").eq("id", X).single() chain
-// returns { data: { mode: <this value> } } — simulating a follow-up call
-// reading mode back from an existing conversation row. Null returns
-// { data: null }, which the route treats as "mode unknown, default cap."
-let mockConvModeFromDb: string | null = null;
+// The modules table as the route sees it (via getModule). Keyed by slug.
+// Tests seed "situation" as the default enabled module; the modules cutover
+// made mode an open slug validated against this table for NEW conversations.
+let mockModules: Record<string, { enabled: boolean }> = {};
 // The user_id returned for an existing-conversation read. Defaults to "u1"
 // (the dominant test user) so the ownership guard passes; the IDOR test sets
 // it to a different id to exercise the 404 path.
@@ -25,17 +24,45 @@ vi.mock("@/lib/supabase/admin", () => ({
     const chain: Record<string, unknown> = {};
     let currentTable = "";
     let didInsert = false;
+    let lastEqValue: string | null = null;
     chain.from = (t: string) => {
       currentTable = t;
       didInsert = false;
       return chain;
     };
     chain.select = () => chain;
-    chain.eq = () => {
+    chain.eq = (_col: string, val: string) => {
       if (currentTable === "manual_entries") {
         return Promise.resolve({ count: manualComponentCount, data: null, error: null });
       }
+      lastEqValue = val;
       return chain;
+    };
+    chain.maybeSingle = () => {
+      // getModule path: modules.select(...).eq("slug", slug).maybeSingle()
+      if (currentTable === "modules") {
+        const row = lastEqValue !== null ? mockModules[lastEqValue] : undefined;
+        return Promise.resolve({
+          data: row
+            ? {
+                slug: lastEqValue,
+                name: lastEqValue,
+                description: "",
+                cue: "Begin",
+                icon: "chat",
+                intro_title: null,
+                intro_body: null,
+                opener_text: null,
+                custom_prompt: null,
+                enabled: row.enabled,
+                sort_order: 0,
+                updated_at: null,
+              }
+            : null,
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
     };
     chain.upsert = () => Promise.resolve({ data: null, error: null });
     chain.insert = () => {
@@ -44,13 +71,10 @@ vi.mock("@/lib/supabase/admin", () => ({
     };
     chain.single = () => {
       // Differentiate the insert.select("id").single() path (returns the
-      // inserted conv row) from the select("mode").eq().single() path
-      // (returns mode lookup).
+      // inserted conv row) from the existing-conversation ownership read.
       if (currentTable === "conversations" && !didInsert) {
-        // Existing-conversation read: the route selects user_id (ownership)
-        // and mode (length cap). Return both so the ownership guard runs.
         return Promise.resolve({
-          data: { user_id: mockConvOwnerId, mode: mockConvModeFromDb },
+          data: { user_id: mockConvOwnerId },
           error: null,
         });
       }
@@ -89,6 +113,13 @@ function makeRequest(body: unknown): Request {
   });
 }
 
+// A NEW conversation must name an enabled module; "situation" is the seeded
+// test module (any slug in mockModules works — the value carries no meaning
+// beyond the row).
+function newConv(overrides: Record<string, unknown> = {}) {
+  return { message: "hi", conversationId: null, mode: "situation", ...overrides };
+}
+
 beforeEach(() => {
   mockGetUser.mockReset();
   mockCheckLimits.mockReset();
@@ -105,7 +136,7 @@ beforeEach(() => {
     limit: 200,
   });
   manualComponentCount = 0;
-  mockConvModeFromDb = null;
+  mockModules = { situation: { enabled: true } };
   mockConvOwnerId = "u1";
   mockCallPersona.mockClear();
 });
@@ -115,7 +146,7 @@ beforeEach(() => {
 describe("/api/chat — auth", () => {
   it("returns 401 when no user", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(401);
   });
 });
@@ -127,75 +158,32 @@ describe("/api/chat — message length", () => {
     });
   });
 
-  it("rejects messages over 4000 characters with 400", async () => {
-    const long = "a".repeat(4001);
-    const res = await POST(makeRequest({ message: long, conversationId: null }));
+  // ONE cap for every message since the modules cutover: 16k, sized for
+  // pasted artifacts (pasting works in any conversation now that Upload is
+  // a capability, not a door). The audit S3 lesson stands — the cap must be
+  // pinned by tests or a bump/lowering is a silent regression.
+  it("rejects messages over 16000 characters with 400", async () => {
+    const long = "a".repeat(16001);
+    const res = await POST(makeRequest(newConv({ message: long })));
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/too long/i);
   });
 
-  it("allows messages exactly at 4000 characters", async () => {
-    const ok = "a".repeat(4000);
-    const res = await POST(makeRequest({ message: ok, conversationId: null }));
-    expect(res.status).toBe(200);
-  });
-
-  // Upload mode bumps the cap to MAX_UPLOAD_LENGTH (16000) so users can
-  // paste an email thread or chat history. The audit S3 finding was that
-  // none of this was tested — bumping/lowering either cap would have been
-  // a silent regression. See pre-beta audit S3.
-  it("allows upload-mode messages up to 16000 characters", async () => {
+  it("allows messages exactly at 16000 characters", async () => {
     const ok = "a".repeat(16000);
-    const res = await POST(
-      makeRequest({ message: ok, conversationId: null, mode: "upload" })
-    );
+    const res = await POST(makeRequest(newConv({ message: ok })));
     expect(res.status).toBe(200);
   });
 
-  it("rejects upload-mode messages over 16000 characters with 400", async () => {
+  it("allows an 8000-char paste in an ordinary conversation (no per-mode cap)", async () => {
+    const longish = "a".repeat(8000);
+    const res = await POST(makeRequest(newConv({ message: longish })));
+    expect(res.status).toBe(200);
+  });
+
+  it("applies the same cap on a follow-up turn (no mode read needed)", async () => {
     const long = "a".repeat(16001);
-    const res = await POST(
-      makeRequest({ message: long, conversationId: null, mode: "upload" })
-    );
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toMatch(/upload is too long/i);
-  });
-
-  it("allows upload-mode messages over the 4000 normal cap (e.g. 8000 chars)", async () => {
-    const longish = "a".repeat(8000);
-    const res = await POST(
-      makeRequest({ message: longish, conversationId: null, mode: "upload" })
-    );
-    expect(res.status).toBe(200);
-  });
-
-  it("non-upload modes still reject at 4001 (no leak of upload cap into other modes)", async () => {
-    const long = "a".repeat(4001);
-    const res = await POST(
-      makeRequest({ message: long, conversationId: null, mode: "situation" })
-    );
-    expect(res.status).toBe(400);
-  });
-
-  // Follow-up messages don't carry `mode` in the request body — the
-  // server reads it back from the DB so upload conversations get the
-  // larger cap on subsequent turns too. This was uncovered before the
-  // audit and is the path that breaks if someone "simplifies" the
-  // route by trusting the request-body mode only.
-  it("applies upload cap on a follow-up turn by reading mode from DB", async () => {
-    mockConvModeFromDb = "upload";
-    const longish = "a".repeat(8000);
-    const res = await POST(
-      makeRequest({ message: longish, conversationId: "conv-123" })
-    );
-    expect(res.status).toBe(200);
-  });
-
-  it("applies the normal 4k cap on a follow-up turn when DB mode is not upload", async () => {
-    mockConvModeFromDb = "situation";
-    const long = "a".repeat(4001);
     const res = await POST(
       makeRequest({ message: long, conversationId: "conv-123" })
     );
@@ -217,13 +205,12 @@ describe("/api/chat — X-Conversation-Id header (Fix A)", () => {
   });
 
   it("sets X-Conversation-Id on the response when a new conversation is created", async () => {
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
     expect(res.headers.get("X-Conversation-Id")).toBe("conv-123");
   });
 
   it("sets X-Conversation-Id to the existing id when conversationId is provided", async () => {
-    mockConvModeFromDb = "situation";
     const res = await POST(
       makeRequest({ message: "hi", conversationId: "conv-existing-xyz" })
     );
@@ -246,7 +233,6 @@ describe("/api/chat — conversation ownership (IDOR guard)", () => {
   // 404 before callPersona runs. See flow-review-2026-05-29 finding #1.
   it("returns 404 and never calls callPersona when the conversation belongs to another user", async () => {
     mockConvOwnerId = "someone-else";
-    mockConvModeFromDb = "situation";
     const res = await POST(
       makeRequest({ message: "hi", conversationId: "victim-conv-id" })
     );
@@ -258,7 +244,6 @@ describe("/api/chat — conversation ownership (IDOR guard)", () => {
 
   it("lets the owner through to the stream", async () => {
     mockConvOwnerId = "u1";
-    mockConvModeFromDb = "situation";
     const res = await POST(
       makeRequest({ message: "hi", conversationId: "my-conv-id" })
     );
@@ -276,7 +261,7 @@ describe("/api/chat — authenticated rate limits", () => {
   });
 
   it("uses authenticated limiters (15/min + 100/day) keyed by user id", async () => {
-    await POST(makeRequest({ message: "hi", conversationId: null }));
+    await POST(makeRequest(newConv()));
     expect(mockCheckLimits).toHaveBeenCalledTimes(1);
     const [limiters, key] = mockCheckLimits.mock.calls[0];
     expect(key).toBe("user-auth");
@@ -292,7 +277,7 @@ describe("/api/chat — authenticated rate limits", () => {
       reset: Date.now() + 30_000,
       retryAfterSeconds: 30,
     });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBe("30");
     const body = (await res.json()) as { error: string };
@@ -309,7 +294,7 @@ describe("/api/chat — anonymous user gates", () => {
 
   it("blocks anonymous user with 2+ confirmed entries (signup_required, NOT 429)", async () => {
     manualComponentCount = 2;
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       blocked: boolean;
@@ -325,21 +310,21 @@ describe("/api/chat — anonymous user gates", () => {
 
   it("allows anonymous user with 0 components through to rate limiter", async () => {
     manualComponentCount = 0;
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
     expect(mockCheckLimits).toHaveBeenCalledTimes(1);
   });
 
   it("allows anonymous user with 1 component through to rate limiter", async () => {
     manualComponentCount = 1;
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
     expect(mockCheckLimits).toHaveBeenCalledTimes(1);
   });
 
   it("uses anonymous limiters keyed by user id", async () => {
     manualComponentCount = 0;
-    await POST(makeRequest({ message: "hi", conversationId: null }));
+    await POST(makeRequest(newConv()));
     const [limiters, key] = mockCheckLimits.mock.calls[0];
     expect(key).toBe("user-anon");
     expect((limiters as unknown[]).length).toBe(2);
@@ -354,46 +339,59 @@ describe("/api/chat — anonymous user gates", () => {
       reset: Date.now() + 10_000,
       retryAfterSeconds: 10,
     });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(429);
   });
 });
 
-describe("/api/chat — conversation mode validation", () => {
+describe("/api/chat — module validation (new conversations)", () => {
   beforeEach(() => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: "u1", email: "a@b.com", is_anonymous: false } },
     });
   });
 
-  it("accepts mode 'guided-intake' and returns 200", async () => {
+  it("accepts any enabled module slug", async () => {
+    mockModules = { "burnout-at-work": { enabled: true } };
     const res = await POST(
-      makeRequest({ message: "hi", conversationId: null, mode: "guided-intake" })
+      makeRequest({ message: "hi", conversationId: null, mode: "burnout-at-work" })
     );
     expect(res.status).toBe(200);
   });
 
-  it("accepts mode 'situation' and returns 200", async () => {
-    const res = await POST(
-      makeRequest({ message: "hi", conversationId: null, mode: "situation" })
-    );
-    expect(res.status).toBe(200);
-  });
-
-  it("defaults to 'situation' when mode is omitted", async () => {
+  it("rejects a new conversation with no mode (there is no default module)", async () => {
     const res = await POST(
       makeRequest({ message: "hi", conversationId: null })
     );
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/invalid mode/i);
   });
 
-  it("rejects invalid mode with 400", async () => {
+  it("rejects an unknown module slug with 400", async () => {
     const res = await POST(
       makeRequest({ message: "hi", conversationId: null, mode: "turbo" })
     );
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/invalid mode/i);
+  });
+
+  it("rejects a DISABLED module with 400 (the door is closed)", async () => {
+    mockModules = { retired: { enabled: false } };
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: null, mode: "retired" })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("ignores requestedMode when continuing an existing conversation", async () => {
+    // The row already carries its module; an unknown mode in the body must
+    // not block a follow-up turn.
+    const res = await POST(
+      makeRequest({ message: "hi", conversationId: "conv-123", mode: "turbo" })
+    );
+    expect(res.status).toBe(200);
   });
 });
 
@@ -409,7 +407,7 @@ describe("/api/chat — fail open when Upstash unavailable", () => {
       remaining: 0,
       reset: 0,
     });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
   });
 });
@@ -424,7 +422,7 @@ describe("/api/chat — daily message limit (Postgres-backed)", () => {
       count: 200,
       limit: 200,
     });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(429);
     const body = (await res.json()) as {
       error: string;
@@ -449,9 +447,7 @@ describe("/api/chat — daily message limit (Postgres-backed)", () => {
       count: 999,
       limit: 200,
     });
-    const res = await POST(
-      makeRequest({ message: null, conversationId: null, mode: "guided-intake" })
-    );
+    const res = await POST(makeRequest(newConv({ message: null })));
     expect(res.status).toBe(200);
     // Confirm the helper wasn't consulted in the message:null path
     expect(mockCheckDailyMessageLimit).not.toHaveBeenCalled();
@@ -466,7 +462,7 @@ describe("/api/chat — daily message limit (Postgres-backed)", () => {
       count: 50,
       limit: 200,
     });
-    const res = await POST(makeRequest({ message: "hi", conversationId: null }));
+    const res = await POST(makeRequest(newConv()));
     expect(res.status).toBe(200);
   });
 });

@@ -4,13 +4,6 @@ export interface ChatMessage {
   content: string;
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
-  // Guided-intake: render the canonical section picker under this (tee-up)
-  // message. The sections come from layers.ts (client-canonical), not stored
-  // here — this is only the "show it" flag.
-  showSections?: boolean;
-  // Guided-intake: render the one-tap "take this to its own conversation"
-  // action under this message (set only after the user accepts the handoff).
-  offerStartSituation?: boolean;
   checkpointMeta?: {
     // Section slug chosen by composition — always one of the five life-area
     // sections. Replaces the legacy `layer` number. Nullable only to tolerate
@@ -85,8 +78,10 @@ export interface EntryCandidate {
 }
 
 export interface ExplorationContext {
-  /** Human-readable section name (the five life-area sections). "layer" is the
-   *  code identifier for "section" — see CLAUDE.md Terminology. */
+  /** The module slug the fresh conversation starts inside — required since
+   *  the modules cutover (a conversation cannot exist outside a module). */
+  moduleSlug: string;
+  /** Human-readable section/module name for display. */
   layerName: string;
   type: "entry" | "empty_layer" | "started_layer";
   /** Set for type "entry": the entry's headline. */

@@ -3,9 +3,7 @@ import { validateConductorPromptEdit } from "@/lib/persona/conductor-prompt";
 import { buildComposerSystemPrompt } from "@/lib/persona/confirm-checkpoint";
 import {
   isVoiceOverrideKey,
-  isDoorOpenerKey,
   VOICE_OVERRIDE_FIELDS,
-  DOOR_OPENER_KEYS,
   readOverrideRows,
   saveOverride,
   resetOverride,
@@ -24,12 +22,10 @@ interface VoiceFieldView {
   enabled: boolean;
 }
 
-// The door openers are edited through the per-door "Intake doors" panel
-// (/api/admin/intake-doors), grouped with each door's intro copy. They're
-// excluded here so each key has exactly one edit surface.
-const CORE_VOICE_KEYS = Object.keys(VOICE_OVERRIDE_FIELDS).filter(
-  (key) => !(DOOR_OPENER_KEYS as readonly string[]).includes(key),
-);
+// Every voice-override key is edited here. (The per-door opener keys were
+// retired with the modules cutover — module openers live on the modules
+// table, edited at /admin/modules.)
+const CORE_VOICE_KEYS = Object.keys(VOICE_OVERRIDE_FIELDS);
 
 // Read every editable CORE voice field — code default + current override row
 // state. Admin only. Defaults come from the code constants (the permanent
@@ -99,7 +95,7 @@ export async function PATCH(request: Request) {
     reset?: unknown;
   } | null;
 
-  if (!body || !isVoiceOverrideKey(body.key) || isDoorOpenerKey(body.key)) {
+  if (!body || !isVoiceOverrideKey(body.key)) {
     return Response.json(
       {
         error:

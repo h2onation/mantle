@@ -1,55 +1,64 @@
 import { describe, it, expect } from "vitest";
 import { sectionName, formatLayerEyebrow } from "./layers";
-import { buildLayers } from "@/components/mobile/manual/layer-definitions";
+import { buildModuleGroups } from "@/components/mobile/manual/layer-definitions";
+import type { HomeModule } from "@/lib/modules";
 import type { ManualEntry } from "@/lib/types";
 
 describe("sectionName — display name for a section slug", () => {
-  it("returns the display name for a known slug", () => {
+  it("returns the display name for a legacy five-section slug", () => {
     expect(sectionName("relationships")).toBe("Relationships");
     expect(sectionName("work-money")).toBe("Work and career");
   });
 
-  it("falls back without throwing for null/unknown", () => {
+  it("humanizes an unknown module slug instead of throwing", () => {
+    expect(sectionName("burnout-at-work")).toBe("Burnout at work");
     expect(sectionName(null)).toBe("Section");
-    expect(formatLayerEyebrow("__nope__")).toBe("Suggested Entry");
+    expect(formatLayerEyebrow("burnout-at-work")).toBe("Burnout at work");
   });
 });
 
-describe("buildLayers — every entry homes on one of the five sections", () => {
+const mod = (slug: string, over: Partial<HomeModule> = {}): HomeModule => ({
+  slug,
+  name: slug,
+  description: "about " + slug,
+  cue: "Begin",
+  icon: "chat",
+  introTitle: null,
+  introBody: null,
+  enabled: true,
+  ...over,
+});
+
+describe("buildModuleGroups — the Manual groups by modules", () => {
   const entries: ManualEntry[] = [
-    { id: "r1", section: "relationships", name: "R", content: "...", layer: null },
-    { id: "w1", section: "work-money", name: "W", content: "...", layer: null },
+    { id: "b1", section: "burnout", name: "B", content: "...", layer: null },
+    { id: "r1", section: "retired-mod", name: "R", content: "...", layer: null },
   ];
 
-  it("groups entries by section and produces exactly five sections", () => {
-    const layers = buildLayers(entries);
-    expect(layers).toHaveLength(5);
-    expect(layers.find((l) => l.slug === "relationships")?.entries.map((e) => e.id)).toContain("r1");
-    expect(layers.find((l) => l.slug === "work-money")?.entries.map((e) => e.id)).toContain("w1");
+  it("one group per module, in module order; entries file by section slug", () => {
+    const groups = buildModuleGroups([mod("burnout"), mod("evenings")], entries);
+    expect(groups.map((g) => g.slug)).toEqual(["burnout", "evenings"]);
+    expect(groups[0].entries.map((e) => e.id)).toEqual(["b1"]);
+    expect(groups[1].entries).toEqual([]); // enabled + empty still renders
   });
 
-  it("never produces a sixth (held) group", () => {
-    const layers = buildLayers(entries);
-    const slugs = layers.map((l) => l.slug);
-    expect(slugs).toEqual([
-      "relationships",
-      "work-money",
-      "routines-structure",
-      "sensory-burnout",
-      "interests-flow",
-    ]);
+  it("a DISABLED module renders only while it still holds entries — nothing orphans", () => {
+    const groups = buildModuleGroups(
+      [mod("burnout"), mod("retired-mod", { enabled: false }), mod("retired-empty", { enabled: false })],
+      entries,
+    );
+    expect(groups.map((g) => g.slug)).toEqual(["burnout", "retired-mod"]);
+    expect(groups.find((g) => g.slug === "retired-mod")?.enabled).toBe(false);
   });
 
-  it("drops a stray null/unknown-section entry rather than resurrecting a sixth group", () => {
-    const stray: ManualEntry = { id: "x1", section: null, name: "Stray", content: "...", layer: 2 };
-    const layers = buildLayers([entries[0], stray]);
-    expect(layers).toHaveLength(5);
-    expect(layers.flatMap((l) => l.entries.map((e) => e.id))).not.toContain("x1");
+  it("an entry whose module row is gone simply doesn't render (guard)", () => {
+    const groups = buildModuleGroups([mod("burnout")], entries);
+    expect(groups.flatMap((g) => g.entries.map((e) => e.id))).not.toContain("r1");
   });
 
   it("is pure display — does not mutate the entries it groups", () => {
     const frozen = Object.freeze({ ...entries[0] });
-    expect(() => buildLayers([frozen])).not.toThrow();
-    expect(frozen.section).toBe("relationships");
+    expect(() => buildModuleGroups([mod("burnout")], [frozen])).not.toThrow();
+    expect(frozen.section).toBe("burnout");
   });
 });

@@ -1,19 +1,16 @@
-// GET  /api/door-intros -> { intros: Record<mode, {eyebrow,title,body}>, seen: string[] }
+// GET  /api/door-intros -> { seen: string[] }
 // POST /api/door-intros  { mode } -> { seen: string[] }
 //
-// GET returns the per-door one-time intro copy (admin-editable, code-default
-// floor) alongside the doors THIS user has already dismissed the intro for.
-// The client shows a door's intro only when its mode is absent from `seen`.
-//
-// POST marks a door's intro dismissed: appends the mode to door_intros_seen
-// (idempotent).
+// Which module intros THIS user has already dismissed. The intro COPY rides
+// on the module rows (served with /api/onboarding-status); this route only
+// tracks per-user seen state in profiles.door_intros_seen. `mode` is the
+// module slug. POST is idempotent.
 
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordApiError } from "@/lib/observability/record-api-error";
-import { getDoorIntros } from "@/lib/persona/door-intros";
-import { CONVERSATION_MODES, type ConversationMode } from "@/lib/persona/config";
+import { isValidModuleSlug } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +24,11 @@ export async function GET() {
     const { user } = auth;
     capturedUserId = user.id;
 
-    const [intros, profileRes] = await Promise.all([
-      getDoorIntros(admin),
-      admin
-        .from("profiles")
-        .select("door_intros_seen")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
+    const profileRes = await admin
+      .from("profiles")
+      .select("door_intros_seen")
+      .eq("id", user.id)
+      .maybeSingle();
 
     if (profileRes.error) throw profileRes.error;
 
@@ -42,7 +36,7 @@ export async function GET() {
       ? profileRes.data!.door_intros_seen
       : [];
 
-    return NextResponse.json({ intros, seen });
+    return NextResponse.json({ seen });
   } catch (err) {
     await recordApiError({
       admin,
@@ -68,9 +62,9 @@ export async function POST(req: Request) {
 
     const body = (await req.json().catch(() => null)) as { mode?: unknown } | null;
     const mode = body?.mode;
-    if (!CONVERSATION_MODES.includes(mode as ConversationMode)) {
+    if (!isValidModuleSlug(mode)) {
       return NextResponse.json(
-        { error: "mode must be one of: " + CONVERSATION_MODES.join(", ") },
+        { error: "mode must be a module slug" },
         { status: 400 },
       );
     }

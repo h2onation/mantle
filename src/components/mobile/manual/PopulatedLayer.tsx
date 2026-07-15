@@ -39,7 +39,6 @@ export default function PopulatedLayer({
     <section
       style={{
         ...SECTION_TILE_STYLE,
-        ...(layer.isNew ? { animation: "layerFadeUp 0.5s ease-out both" } : {}),
       }}
     >
       <div

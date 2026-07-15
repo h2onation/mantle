@@ -10,8 +10,12 @@ export default function DevToolsPanel() {
   const [simulating, setSimulating] = useState(false);
   const [simStatus, setSimStatus] = useState<string>("");
   const [simulatedUser, setSimulatedUser] = useState("");
-  const [simIntakeMode, setSimIntakeMode] =
-    useState<ConversationMode>("guided-intake");
+  const [simIntakeMode, setSimIntakeMode] = useState<ConversationMode>("");
+  // The enabled modules, for the intake picker. Admin-only fetch; empty until
+  // it resolves (Run stays disabled with no module to simulate into).
+  const [moduleOptions, setModuleOptions] = useState<
+    { slug: string; name: string }[]
+  >([]);
   const [populateLayers, setPopulateLayers] = useState<Set<number>>(
     new Set([1, 2, 3, 4, 5]),
   );
@@ -31,8 +35,28 @@ export default function DevToolsPanel() {
       window.removeEventListener("dev-tools:live-sim-ended", onEnded);
   }, []);
 
+  // Enabled modules for the intake picker. Mirrors the Modules admin page's
+  // source of truth; falls back to an empty list on any error.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/modules")
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled || !Array.isArray(d?.modules)) return;
+        const enabled = (
+          d.modules as { slug: string; name: string; enabled: boolean }[]
+        ).filter((m) => m.enabled);
+        setModuleOptions(enabled.map((m) => ({ slug: m.slug, name: m.name })));
+        setSimIntakeMode((prev) => prev || (enabled[0]?.slug ?? ""));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleSimulate() {
-    if (!simulatedUser.trim()) return;
+    if (!simulatedUser.trim() || !simIntakeMode) return;
     setSimulating(true);
     setSimStatus("Running live — watch the session view");
     window.dispatchEvent(
@@ -175,6 +199,7 @@ export default function DevToolsPanel() {
 
       <PersonaIntakeControls
         intakeMode={simIntakeMode}
+        intakeOptions={moduleOptions}
         onIntakeModeChange={setSimIntakeMode}
         disabled={simulating}
         showPersona={false}

@@ -50,6 +50,7 @@ const baseOpts = {
     { phrase: "static building up", context: "meetings", charge: "high" },
   ],
   manualComponents: [],
+  section: "sensory-load",
 };
 
 describe("composeManualEntry — user-pulled framing", () => {
@@ -138,6 +139,7 @@ describe("composeManualEntry — editable entry-voice (THE BAR)", () => {
     // stay in code — an override can't reach them.
     expect(lastSystem).toContain("Respond with ONLY valid JSON");
     expect(lastSystem).toContain("No clinical framework names");
-    expect(lastSystem).toContain('SECTION (field: "section")');
+    expect(lastSystem).toContain("you do not pick a section");
+    expect(lastSystem).toContain('TAGS (field: "tags"');
   });
 });

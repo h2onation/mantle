@@ -21,11 +21,13 @@ export default function EmptyLayer({
   onExploreWithPersona,
   readOnly,
 }: EmptyLayerProps) {
-  const canTap = !readOnly && !!onExploreWithPersona;
+  // A disabled module's door is closed — its section renders read-only.
+  const canTap = !readOnly && layer.enabled && !!onExploreWithPersona;
 
   const handleTap = canTap
     ? () => {
         onExploreWithPersona!({
+          moduleSlug: layer.slug,
           layerName: layer.name,
           type: "empty_layer",
           content: layer.about,

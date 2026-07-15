@@ -6,8 +6,7 @@ import {
   findRetryStormDuplicate,
   mapSystemMessages,
   detectCrisisInUserMessage,
-  selectTranscriptContextForPrompt,
-  doorOpenerToEmit,
+  moduleOpenerToEmit,
   shouldAppendFirstEntryEducation,
   wrapPastedContent,
 } from "@/lib/persona/call-persona";
@@ -357,51 +356,40 @@ describe("wrapPastedContent", () => {
   });
 });
 
-// ── doorOpenerToEmit ──
-// Resolves which fixed door opener (if any) to server-emit on the bootstrap
-// call: returns the openerKey for a door that has one (situation, upload),
-// else null. Server emits that opener verbatim instead of asking the model
-// to produce it. Fires only on the bootstrap call (no prior messages, no
-// user input). See ADR-042 §3 and call-persona.ts step 2a.
+// ── moduleOpenerToEmit ──
+// Resolves the module's fixed opener (if any) to server-emit on the
+// bootstrap call. A module with opener text gets it emitted verbatim
+// instead of asking the model to produce it; a module without one lets the
+// model open from the prompt. Fires only on the bootstrap call (no prior
+// messages, no user input). See call-persona.ts step 2a.
 
-describe("doorOpenerToEmit", () => {
-  it("emits situation_opener on fresh situation bootstrap (v0.8.2)", () => {
-    // The core loop now server-emits its opener too — no more "what's on
-    // your mind?" drift. Both turnCount=0 and =1 are bootstrap.
-    expect(doorOpenerToEmit("situation", 0, null)).toBe("situation_opener");
-    expect(doorOpenerToEmit("situation", 1, null)).toBe("situation_opener");
-  });
+describe("moduleOpenerToEmit", () => {
+  const OPENER = "What situation is top of mind for you right now.";
 
-  it("emits upload_opener on fresh upload bootstrap", () => {
+  it("emits the module's opener on a fresh bootstrap", () => {
     // turnCount=1 is the real-runtime path (persona-pipeline injects the
     // synthetic [Session started] placeholder, bumping 0 → 1); turnCount=0
     // is belt-and-suspenders if that placeholder ever stops.
-    expect(doorOpenerToEmit("upload", 0, null)).toBe("upload_opener");
-    expect(doorOpenerToEmit("upload", 1, null)).toBe("upload_opener");
+    expect(moduleOpenerToEmit(OPENER, 0, null)).toBe(OPENER);
+    expect(moduleOpenerToEmit(OPENER, 1, null)).toBe(OPENER);
   });
 
-  it("returns null for guided-intake (opener is a model tee-up, no fixed key)", () => {
-    expect(doorOpenerToEmit("guided-intake", 0, null)).toBe(null);
-    expect(doorOpenerToEmit("guided-intake", 1, null)).toBe(null);
+  it("returns null for a module with no opener (model opens from the prompt)", () => {
+    expect(moduleOpenerToEmit(null, 0, null)).toBe(null);
+    expect(moduleOpenerToEmit(undefined, 1, null)).toBe(null);
+    expect(moduleOpenerToEmit("   ", 1, null)).toBe(null);
   });
 
-  it("returns null on the user's paste/reply turn (turnCount >= 2)", () => {
-    expect(doorOpenerToEmit("upload", 2, "paste content here")).toBe(null);
-    expect(doorOpenerToEmit("upload", 2, null)).toBe(null);
-    expect(doorOpenerToEmit("situation", 2, null)).toBe(null);
+  it("returns null on the user's reply turn (turnCount >= 2)", () => {
+    expect(moduleOpenerToEmit(OPENER, 2, "paste content here")).toBe(null);
+    expect(moduleOpenerToEmit(OPENER, 2, null)).toBe(null);
   });
 
   it("returns null when the user supplied input on the bootstrap call", () => {
     // If a caller sends a user message on the bootstrap, run the normal LLM
     // path rather than dropping the user's intent on the floor.
-    expect(doorOpenerToEmit("situation", 0, "hello")).toBe(null);
-    expect(doorOpenerToEmit("upload", 1, "hello")).toBe(null);
-  });
-
-  it("returns null when mode is missing or unknown", () => {
-    expect(doorOpenerToEmit(null, 0, null)).toBe(null);
-    expect(doorOpenerToEmit(undefined, 0, null)).toBe(null);
-    expect(doorOpenerToEmit("unknown-mode", 0, null)).toBe(null);
+    expect(moduleOpenerToEmit(OPENER, 0, "hello")).toBe(null);
+    expect(moduleOpenerToEmit(OPENER, 1, "hello")).toBe(null);
   });
 });
 
@@ -431,41 +419,6 @@ describe("shouldAppendFirstEntryEducation", () => {
 
   it("does NOT fire off the web surface (no reflection bar)", () => {
     expect(shouldAppendFirstEntryEducation(true, false, true, false)).toBe(false);
-  });
-});
-
-// ── selectTranscriptContextForPrompt ──
-// Upload mode renders its own Tier 3 paste-handling block. If we ALSO
-// pass the regex-detected transcript context to the prompt builder, the
-// generic TRANSCRIPT DETECTED dynamic block fires alongside UPLOAD MODE
-// and the two duplicate guidance with different wrapper sections. The
-// suppression at call-persona.ts step 7b prevents that. See ADR-042 §5–§6
-// and pre-beta audit S4.
-
-describe("selectTranscriptContextForPrompt", () => {
-  const detection = { isTranscript: true, confidence: "high" as const };
-
-  it("suppresses transcript context in upload mode even when detection fires", () => {
-    expect(selectTranscriptContextForPrompt("upload", detection)).toBeNull();
-  });
-
-  it("passes transcript context through in situation mode", () => {
-    expect(selectTranscriptContextForPrompt("situation", detection)).toBe(detection);
-  });
-
-  it("passes transcript context through in guided-intake mode", () => {
-    expect(selectTranscriptContextForPrompt("guided-intake", detection)).toBe(detection);
-  });
-
-  it("passes through null detection unchanged in non-upload modes", () => {
-    expect(selectTranscriptContextForPrompt("situation", null)).toBeNull();
-  });
-
-  it("passes null when mode is missing", () => {
-    // Defensive: a missing/unknown mode should NOT trigger upload-mode
-    // suppression — that's a stricter rule than the live route enforces.
-    expect(selectTranscriptContextForPrompt(null, detection)).toBe(detection);
-    expect(selectTranscriptContextForPrompt(undefined, detection)).toBe(detection);
   });
 });
 

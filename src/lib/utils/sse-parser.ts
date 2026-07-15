@@ -15,12 +15,6 @@ export interface MessageCompleteEvent {
   // events without a separate fetch. Optional for backward compatibility
   // (treated as "situation" when missing).
   mode?: ConversationMode;
-  // Guided-intake section picker trigger (tee-up turn). The five sections come
-  // from layers.ts client-side; this boolean is just the "show it now" signal.
-  sections?: boolean;
-  // Guided-intake live-situation handoff: render the one-tap action that starts
-  // a fresh situation conversation. Set only after the user accepts the offer.
-  startSituationOffer?: boolean;
   // Reflection meter (user-pulled model). One nullable field: { fill, ready }
   // drives the meter. fill (0–100) is a CAPTURE-PROGRESS value computed
   // server-side — it resets after a save (the cooldown) and rebuilds, capped by

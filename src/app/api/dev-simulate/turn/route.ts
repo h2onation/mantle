@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin/verify-admin";
 import { generateSimulatedUserMessage } from "@/lib/persona/simulate-user";
 
 /**
- * One simulated-user turn for the live, client-driven guided-intake simulator.
+ * One simulated-user turn for the live, client-driven module simulator.
  *
  * The client drives the REAL conversation (startConversation → /api/chat, the
  * same paths a user hits), so this route owns no conversation state. It takes

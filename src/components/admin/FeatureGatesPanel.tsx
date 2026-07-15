@@ -17,30 +17,6 @@ const GATE_META: {
   desc: string;
 }[] = [
   {
-    key: "situation",
-    field: "situation",
-    label: "Situation mode",
-    def: "ON",
-    what: "The “Situation” way to start — the user brings a topic and Jove goes deep.",
-    desc: "ON: the Situation door shows on Home and new chats can start here. OFF: the door reads “Coming soon” AND any conversation that would start as Situation falls back to the next enabled mode (Guided, then Upload). ⚠ With this OFF you cannot start a plain Situation chat — a new conversation lands in Guided instead.",
-  },
-  {
-    key: "guided_intake",
-    field: "guidedIntake",
-    label: "Guided intake mode",
-    def: "ON",
-    what: "The “Guided” way to start — Jove leads, the user picks a section and taps through prompts.",
-    desc: "ON: the Guided door shows and its tappable section / focus cards work. OFF: the door reads “Coming soon” and its path falls back to the next enabled mode.",
-  },
-  {
-    key: "upload",
-    field: "upload",
-    label: "Upload mode",
-    def: "ON",
-    what: "The “Upload” way to start — paste a transcript or journal for Jove to work from.",
-    desc: "ON: the Upload door shows on Home. OFF: it reads “Coming soon” and falls back to Situation.",
-  },
-  {
     key: "extraction_brief",
     field: "extractionBrief",
     label: "Extraction analysis",

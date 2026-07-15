@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch, extractResponseText } from "@/lib/anthropic";
-import { LAYERS, TAGS, RELATIONSHIP_TAGS, sectionName } from "@/lib/manual/layers";
+import { sectionName } from "@/lib/manual/layers";
 import { PERSONA_NAME, COMPOSITION_MODEL } from "./config";
 import { deriveSummaryFromContent } from "./manual-context";
 
@@ -67,6 +67,10 @@ interface ComposeManualEntryOptions {
    *  `existingLayerContent` inputs — the classifier no longer pre-picks
    *  these. */
   manualComponents: { section?: string | null; name: string | null; content: string }[];
+  /** The conversation's module slug — the entry's home. Since the modules
+   *  cutover an entry files into the module its conversation started inside;
+   *  the model no longer picks a section. */
+  section: string;
   /** distinct_contexts from the latest extraction state. When 1 or 0 the
    *  entry came from a single situation, so the headline validator will
    *  enforce a "can" / "sometimes" softener — prevents over-claiming a
@@ -162,27 +166,18 @@ export function buildEntryMachineContract(): string {
 - No clinical framework names, even to negate one: no "dissociation," "masking," "schema," "attachment style," "dysregulation," "executive dysfunction," "rejection sensitive dysphoria," "sensory overwhelm," "trauma response." Describe the behavior and the body instead.
 - First person. No references to the session or to time. It reads the same six months from now.
 
-SECTION (field: "section"): the entry's one home. Pick the section whose dimensions (shown in the input) best describe what the entry IS AT ITS CORE — its spine, not where the scene happens. Use one of these exact slugs:
-- "relationships" — how you connect, withdraw, show care; how others read you.
-- "work-money" — how you operate, mask, and hold up at work.
-- "routines-structure" — the systems that hold the day up, and their collapse.
-- "sensory-burnout" — what the body takes in and what it costs (load, overload, shutdown, recovery).
-- "interests-flow" — where you go deep and do your best work.
-Spine over scene: a sensory crash that happens at work is "sensory-burnout" (the body is the subject); a work-performance pattern is "work-money". If an entry holds BOTH the masking AND the crash/cost, the body wins → "sensory-burnout". Prefer a section that already holds related entries so this integrates rather than scatters.
-
-ALWAYS pick exactly one of the five — every entry gets a home, including a self-to-self pattern (self-judgment, self-doubt, self-governance). Home it by its spine: where the pattern bites hardest in life (capability and self-trust → "work-money"; a body freeze/shutdown → "sensory-burnout"; suppressing your wants around people you love → "relationships"). When unsure, pick the closest of the five.
+(The entry's home is fixed by where the conversation started — you do not pick a section.)
 
 TAGS (field: "tags", array of strings, may be empty): a closed set, optional lens. Never invent tags outside it.
-- "strength" — when the pattern is genuinely a capability or asset (not a costly pattern). Valid in any section.
-- "romantic" / "family" / "friends" — ONLY when section is "relationships" AND the entry names which sphere. Omit otherwise.
+- "strength" — when the pattern is genuinely a capability or asset (not a costly pattern).
 
 COMPRESSED (for future reference):
 - summary: one sentence, 20-40 words, third person — "they" for the user, never a gendered pronoun. The mechanism and the bind, the user's charged words kept.
 - key_words: 3-6 short words the user would recognize, including their charged words. No clinical terms.
 
 Respond with ONLY valid JSON. No markdown. No backticks.
-{"content": "Depth on the one pattern...", "name": "The title — what they do", "section": "relationships", "tags": ["romantic"], "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
-("section" is one of the five slugs above; "tags" may be []. )`;
+{"content": "Depth on the one pattern...", "name": "The title — what they do", "tags": ["strength"], "changelog": "One sentence.", "summary": "Third-person summary.", "key_words": ["word1", "word2"]}
+("tags" may be [].)`;
 }
 
 export async function composeManualEntry(
@@ -193,6 +188,7 @@ export async function composeManualEntry(
     conversationHistory,
     languageBank,
     manualComponents,
+    section,
     distinctContexts,
     depth,
     sageBrief,
@@ -217,24 +213,32 @@ export async function composeManualEntry(
       ? `\nUSER'S OWN LANGUAGE (use these exact phrases where they carry weight):\n${chargedLanguage.map((e) => `"${e.phrase}" — re: ${e.context}`).join("\n")}\n`
       : "";
 
-  // Render the full Manual grouped by layer so Opus can both PICK the
-  // right layer for the new entry and integrate with existing entries on
-  // that layer. Empty layers are still listed (so Opus knows the option
-  // exists) but show "(no entries yet)".
-  const layerCatalog = LAYERS.map((l) => {
-    const entries = manualComponents.filter((c) => c.section === l.slug);
-    const entriesText =
-      entries.length === 0
-        ? "(no entries yet)"
-        : entries
-            .map(
-              (c) => `  [entry${c.name ? ` — "${c.name}"` : ""}]\n  ${c.content}`
-            )
-            .join("\n\n");
-    return `${l.name} (${l.dimensions.join(", ")}):\n${entriesText}`;
-  }).join("\n\n");
+  // Render the full Manual grouped by the modules entries already live in,
+  // so the model integrates with what exists. (It no longer picks a home —
+  // the entry files into this conversation's module.)
+  const sectionSlugs = Array.from(
+    new Set(
+      manualComponents
+        .map((c) => c.section)
+        .filter((s): s is string => typeof s === "string" && s.length > 0)
+    )
+  );
+  const layerCatalog =
+    sectionSlugs.length === 0
+      ? "(no entries yet)"
+      : sectionSlugs
+          .map((slug) => {
+            const entries = manualComponents.filter((c) => c.section === slug);
+            const entriesText = entries
+              .map(
+                (c) => `  [entry${c.name ? ` — \"${c.name}\"` : ""}]\n  ${c.content}`
+              )
+              .join("\n\n");
+            return `${slug}:\n${entriesText}`;
+          })
+          .join("\n\n");
 
-  const manualSection = `\nTHE USER'S MANUAL SO FAR:\n${layerCatalog}\n\nPick the section this entry belongs to based on what the entry IS at its core (the dimensions above), and how it relates to entries already in that section. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry on the chosen layer, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
+  const manualSection = `\nTHE USER'S MANUAL SO FAR (grouped by module):\n${layerCatalog}\n\nThis entry files under the \"${section}\" module. Integrate with or deepen existing entries when relevant. If new material contradicts an existing entry, name the tension. When a prior entry genuinely connects to this one, you may draw the connection in the user's own voice — something they can recognize showing up across situations. But the spine of THIS entry stays the pattern from THIS conversation. Do not make a previous entry's frame the backbone of the new one just because the user is returning.\n`;
 
   // Trailing transcript the composer reads literally. Widened from 8 → 50
   // for the user-pulled Reflection model: a reflection can be pulled long
@@ -286,7 +290,7 @@ ${historyText}
 
 ${reflectionBlock}
 
-Compose the manual entry. Pick the section (one of the five), the tags, the headline, the prose. Return the JSON.`;
+Compose the manual entry — the tags, the headline, the prose. Return the JSON.`;
 
   const response = await anthropicFetch({
     model: COMPOSITION_MODEL,
@@ -297,6 +301,7 @@ Compose the manual entry. Pick the section (one of the five), the tags, the head
 
   return finalizeComposedEntry(extractResponseText(response), {
     conversationHistory,
+    section,
     distinctContexts,
     // No drafted reflection in the user-pulled path — seed the title retry with
     // the accumulated understanding (falls back to the user's own words inside
@@ -319,11 +324,15 @@ export async function finalizeComposedEntry(
   responseText: string,
   ctx: {
     conversationHistory: { role: "user" | "assistant"; content: string }[];
+    /** The conversation's module slug — stamped onto the entry as its home.
+     *  Code-assigned since the modules cutover; the model has no say. */
+    section: string;
     distinctContexts?: number | null;
     headlineRetrySeed?: string;
   }
 ): Promise<ComposedEntry | null> {
-  const { conversationHistory, distinctContexts, headlineRetrySeed } = ctx;
+  const { conversationHistory, section, distinctContexts, headlineRetrySeed } =
+    ctx;
 
   const cleaned = responseText
     .replace(/```json\s*/g, "")
@@ -336,33 +345,16 @@ export async function finalizeComposedEntry(
     return null;
   }
 
-  // SECTION: every entry is homed on one of the five life-area sections. The
-  // composition prompt always picks one; if it ever returns an absent/unknown
-  // section we default to "relationships" (the catch-all) rather than dropping
-  // a confirmed entry. Logged so an off-spec rate is visible.
-  const SECTION_SLUGS = LAYERS.map((l) => l.slug);
-  const DEFAULT_SECTION = "relationships";
-  const rawSection =
-    typeof parsed.section === "string" ? parsed.section.trim() : null;
-  const section: string =
-    rawSection && SECTION_SLUGS.includes(rawSection)
-      ? rawSection
-      : DEFAULT_SECTION;
-  if (rawSection !== section) {
-    console.warn(
-      "[finalizeComposedEntry] Composition returned missing/unknown section; defaulting to relationships:",
-      rawSection
-    );
-  }
+  // SECTION: code-assigned — the entry homes on its conversation's module.
+  // (The model used to pick one of five fixed sections; the modules cutover
+  // made the home a fact of where the conversation started, not a judgment.)
 
-  // TAGS: closed set; relationship sub-tags only valid inside relationships.
-  const allowedTags = TAGS as readonly string[];
-  const relTags = RELATIONSHIP_TAGS as readonly string[];
+  // TAGS: closed set — "strength" only. The relationships-scoped sub-tags
+  // (romantic/family/friends) were retired with the fixed sections.
   const tags: string[] = (Array.isArray(parsed.tags) ? parsed.tags : [])
     .filter((t: unknown): t is string => typeof t === "string")
     .map((t: string) => t.trim())
-    .filter((t: string) => allowedTags.includes(t))
-    .filter((t: string) => (relTags.includes(t) ? section === "relationships" : true))
+    .filter((t: string) => t === "strength")
     .filter((t: string, i: number, a: string[]) => a.indexOf(t) === i);
 
   // Universal-tone validator. The composition prompt forbids "always /
