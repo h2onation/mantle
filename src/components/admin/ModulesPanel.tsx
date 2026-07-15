@@ -95,6 +95,15 @@ export default function ModulesPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Staged destructive delete: set when a plain delete came back 409 with the
+  // module's blast radius. The founder must type the slug back to arm the
+  // "delete module + entries" button. Cleared on cancel/success.
+  const [confirmDelete, setConfirmDelete] = useState<{
+    slug: string;
+    conversations: number;
+    entries: number;
+  } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   function absorb(data: ApiState) {
     setState(data);
@@ -173,9 +182,52 @@ export default function ModulesPanel() {
         : "Enabled — the door is live on Home.",
     );
 
-  const remove = (slug: string) => {
-    if (!window.confirm(`Delete module "${slug}"? Only possible while nothing references it.`)) return;
-    call("DELETE", { slug }, "Deleted.");
+  const remove = async (slug: string) => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setConfirmDelete(null);
+    setConfirmText("");
+    try {
+      const res = await fetch("/api/admin/modules", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        absorb({ modules: d.modules, conductorText: state?.conductorText ?? "" });
+        setNotice("Deleted.");
+      } else if (res.status === 409 && d?.requiresForce) {
+        // Referenced module — stage the strong confirm with the real counts.
+        setConfirmDelete({
+          slug,
+          conversations: d.conversations ?? 0,
+          entries: d.entries ?? 0,
+        });
+      } else {
+        setError(d?.error || "Request failed");
+      }
+    } catch {
+      setError("Request failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const forceRemove = async () => {
+    if (!confirmDelete || confirmText !== confirmDelete.slug) return;
+    const { slug, entries } = confirmDelete;
+    setConfirmDelete(null);
+    setConfirmText("");
+    const ok = await call(
+      "DELETE",
+      { slug, deleteEntries: true },
+      entries > 0
+        ? `Deleted "${slug}" and its ${entries === 1 ? "1 entry" : `${entries} entries`} — permanently.`
+        : `Deleted "${slug}".`,
+    );
+    if (!ok) setError((prev) => prev ?? "Delete failed — nothing was removed.");
   };
 
   const move = async (index: number, dir: -1 | 1) => {
@@ -482,6 +534,103 @@ export default function ModulesPanel() {
           </div>
         );
       })}
+
+      {confirmDelete && (
+        <div
+          style={{
+            border: "1px solid var(--session-warning-text)",
+            background: "var(--session-warning-surface)",
+            borderRadius: 12,
+            padding: "16px 18px",
+            marginTop: 16,
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13.5px",
+              fontWeight: 700,
+              color: "var(--session-warning-text)",
+              margin: 0,
+            }}
+          >
+            Delete “{confirmDelete.slug}” and everything filed under it?
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "13px",
+              lineHeight: 1.55,
+              color: "var(--session-ink)",
+              margin: "8px 0 0",
+            }}
+          >
+            This module has{" "}
+            <strong>
+              {confirmDelete.conversations}{" "}
+              {confirmDelete.conversations === 1 ? "conversation" : "conversations"}
+            </strong>{" "}
+            and{" "}
+            <strong>
+              {confirmDelete.entries}{" "}
+              {confirmDelete.entries === 1 ? "Manual entry" : "Manual entries"}
+            </strong>{" "}
+            attached. Deleting it <strong>permanently deletes those entries for
+            every user</strong> — this cannot be undone. Conversations keep
+            their history but lose their door. If you want the gentle version,
+            Cancel and use Disable instead.
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12.5px",
+              color: "var(--session-walnut-meta)",
+              margin: "12px 0 4px",
+            }}
+          >
+            Type the slug to confirm:
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              style={{ ...input, maxWidth: 220 }}
+              placeholder={confirmDelete.slug}
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+            />
+            <button
+              style={{
+                ...btn,
+                borderColor: "var(--session-error-text)",
+                color:
+                  confirmText === confirmDelete.slug
+                    ? "var(--session-linen)"
+                    : "var(--session-error-text)",
+                background:
+                  confirmText === confirmDelete.slug
+                    ? "var(--session-error-text)"
+                    : "transparent",
+              }}
+              disabled={busy || confirmText !== confirmDelete.slug}
+              onClick={forceRemove}
+            >
+              Delete module
+              {confirmDelete.entries > 0
+                ? ` + ${confirmDelete.entries} ${confirmDelete.entries === 1 ? "entry" : "entries"}`
+                : ""}
+            </button>
+            <button
+              style={btn}
+              disabled={busy}
+              onClick={() => {
+                setConfirmDelete(null);
+                setConfirmText("");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {(error || notice) && (
         <p
