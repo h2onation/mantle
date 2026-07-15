@@ -78,7 +78,8 @@ beforeAll(async () => {
 
   const { data: conv, error: convErr } = await admin
     .from("conversations")
-    .insert({ user_id: userId })
+    // mode = module slug; NOT NULL, no default since the modules cutover.
+    .insert({ user_id: userId, mode: "e2e-test-module" })
     .select("id")
     .single();
   if (convErr || !conv) throw new Error(`seed conv: ${convErr?.message}`);

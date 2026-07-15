@@ -64,7 +64,9 @@ beforeAll(async () => {
   // Seed a conversation for child-record inserts.
   const { data: conv, error: convErr } = await admin
     .from("conversations")
-    .insert({ user_id: testUserId })
+    // mode is the conversation's module slug — NOT NULL with no default
+    // since the modules cutover (ADR-053), so seeds name one explicitly.
+    .insert({ user_id: testUserId, mode: "e2e-test-module" })
     .select("id")
     .single();
   if (convErr || !conv) {
