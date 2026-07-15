@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LineIcon, IC_CHAT, IC_LIST, IC_UPLOAD } from "@/components/home/LineIcon";
+import { LineIcon, moduleIconPath } from "@/components/home/LineIcon";
 import type { HomeModule } from "@/lib/modules";
 
 // The "ways to begin" module cards, shared by MobileHome and DesktopHome.
@@ -16,29 +16,27 @@ import type { HomeModule } from "@/lib/modules";
 interface WaysToBeginProps {
   modules: HomeModule[];
   onStartConversation: (slug: string) => void;
+  // Confirmed-entry count per module slug — each card shows what has
+  // accumulated inside its module (door and Manual section are one thing).
+  entryCounts?: Record<string, number>;
   // Section label above the cards. Admin-editable app copy.
   label: string;
   variant?: "mobile" | "desktop";
 }
 
-// Icon keys a module row can carry. Unknown keys fall back to the chat glyph
-// so a typo in admin can never break the card.
-const ICONS: Record<string, string> = {
-  chat: IC_CHAT,
-  list: IC_LIST,
-  upload: IC_UPLOAD,
-};
-
 export default function WaysToBegin({
   modules,
   onStartConversation,
+  entryCounts,
   label,
   variant = "mobile",
 }: WaysToBeginProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const isDesktop = variant === "desktop";
 
-  if (modules.length === 0) return null;
+  // Only enabled modules are doors; disabled ones still show in the Manual.
+  const doors = modules.filter((m) => m.enabled);
+  if (doors.length === 0) return null;
 
   return (
     <section aria-label={label} style={{ marginTop: isDesktop ? 26 : 12 }}>
@@ -59,13 +57,14 @@ export default function WaysToBegin({
           marginTop: 12,
           display: "grid",
           gridTemplateColumns: isDesktop
-            ? `repeat(${Math.min(modules.length, 3)}, 1fr)`
+            ? `repeat(${Math.min(doors.length, 3)}, 1fr)`
             : "1fr",
           gap: 12,
         }}
       >
-        {modules.map((m) => {
+        {doors.map((m) => {
           const isHovered = hovered === m.slug;
+          const count = entryCounts?.[m.slug] ?? 0;
           return (
             <button
               key={m.slug}
@@ -109,7 +108,7 @@ export default function WaysToBegin({
                   color: "var(--session-walnut)",
                 }}
               >
-                <LineIcon d={ICONS[m.icon] ?? IC_CHAT} size={isDesktop ? 18 : 17} />
+                <LineIcon d={moduleIconPath(m.icon)} size={isDesktop ? 18 : 17} />
               </span>
               <span
                 style={{
@@ -148,6 +147,20 @@ export default function WaysToBegin({
                 >
                   {m.description}
                 </span>
+                {count > 0 && (
+                  <span
+                    style={{
+                      marginTop: isDesktop ? 6 : 3,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 9.5,
+                      letterSpacing: "1px",
+                      textTransform: "uppercase",
+                      color: "var(--session-walnut-meta)",
+                    }}
+                  >
+                    {count === 1 ? "1 entry" : `${count} entries`}
+                  </span>
+                )}
               </span>
               <span
                 aria-hidden={isDesktop ? undefined : true}

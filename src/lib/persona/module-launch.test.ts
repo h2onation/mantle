@@ -18,7 +18,9 @@ describe("module launch wiring", () => {
   const useChat = read("src/lib/hooks/useChat.ts");
 
   it("WaysToBegin renders modules and launches by slug", () => {
-    expect(waysToBegin).toContain("modules.map");
+    // Enabled modules render as doors; disabled ones only appear in the Manual.
+    expect(waysToBegin).toContain("modules.filter((m) => m.enabled)");
+    expect(waysToBegin).toContain("doors.map");
     expect(waysToBegin).toContain("onStartConversation(m.slug)");
     // The hardcoded door registry is gone.
     expect(waysToBegin).not.toContain('"guided-intake"');

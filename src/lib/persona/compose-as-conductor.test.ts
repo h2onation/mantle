@@ -96,7 +96,10 @@ describe("composeEntryAsConductor", () => {
     // The machine contract (schema, sections, locked rules) rides in the
     // instruction; the writing STANDARD does not — the model reads it exactly
     // once, from its own system prompt (no double-read).
-    expect(final.content).toContain('SECTION (field: "section")');
+    // Section is code-assigned (the conversation's module) since the modules
+    // cutover — the contract tells the model it does NOT pick a home.
+    expect(final.content).toContain("you do not pick a section");
+    expect(final.content).toContain('TAGS (field: "tags"');
     expect(final.content).toContain("No clinical framework names");
     expect(final.content).not.toContain(
       "records a recognition that ALREADY HAPPENED"
@@ -106,7 +109,9 @@ describe("composeEntryAsConductor", () => {
   it("returns the finalized entry, guards applied", async () => {
     const result = await composeEntryAsConductor(makeCtx());
     expect(result).not.toBeNull();
-    expect(result?.section).toBe("sensory-burnout");
+    // Code-assigned home: the ctx's module slug wins even though the model's
+    // JSON claimed section "sensory-burnout".
+    expect(result?.section).toBe("situation");
     expect(result?.name).toContain("I go quiet");
   });
 });

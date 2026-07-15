@@ -80,6 +80,8 @@ export async function composeEntryAsConductor(
 
   return finalizeComposedEntry(extractResponseText(response), {
     conversationHistory: ctx.messages,
+    // The entry homes on this conversation's module.
+    section: ctx.mode,
     distinctContexts: opts.distinctContexts ?? null,
   });
 }

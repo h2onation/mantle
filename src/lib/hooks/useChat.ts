@@ -1485,6 +1485,9 @@ export function useChat() {
         body: JSON.stringify({
           message: null,
           conversationId: null,
+          // A conversation cannot exist outside a module — the exploration
+          // starts inside the module its context names.
+          mode: context.moduleSlug,
           explorationContext: context,
         }),
       });
@@ -1798,6 +1801,8 @@ export function useChat() {
       if (!postSaveEntry) return;
       void startExploration({
         type: "entry",
+        // The fresh session opens inside the module the entry lives in.
+        moduleSlug: postSaveEntry.section ?? "",
         layerName: sectionName(postSaveEntry.section),
         name: postSaveEntry.name ?? undefined,
         content: postSaveEntry.content,

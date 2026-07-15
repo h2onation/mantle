@@ -1,7 +1,7 @@
 "use client";
 
 import { type Layer } from "./layer-definitions";
-import LayerIcon from "./LayerIcon";
+import { LineIcon, moduleIconPath } from "@/components/home/LineIcon";
 
 interface LayerHeaderProps {
   layer: Layer;
@@ -49,7 +49,7 @@ export default function LayerHeader({
           color: isEmpty ? "var(--session-walnut)" : "var(--session-persona)",
         }}
       >
-        <LayerIcon layerId={layer.id} size={18} />
+        <LineIcon d={moduleIconPath(layer.icon)} size={18} />
       </span>
 
       {/* Name + tagline. */}

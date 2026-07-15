@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry } from "@/lib/types";
-import { buildLayers, type Layer } from "@/components/mobile/manual/layer-definitions";
 
 // The single source of truth for everything the Home surfaces derive from the
 // raw session/manual data. Both MobileHome and DesktopHome consume this — the
@@ -23,8 +22,9 @@ export interface HomeModel {
   /** The conversation to offer "pick up where you left off", or null. */
   heroConv: ConversationSummaryItem | null;
   heroSnippet: string;
-  layers: Layer[];
-  startedCount: number;
+  /** Confirmed-entry count per module slug — the count badge on Home's
+   *  module cards. */
+  entryCounts: Record<string, number>;
 }
 
 // Pure helpers — exported so they can be unit-tested without rendering.
@@ -73,8 +73,13 @@ export function useHomeModel({
   const heroSnippet =
     heroConv?.title || heroConv?.preview || "Pick up where you left off.";
 
-  const layers = useMemo(() => buildLayers(entries), [entries]);
-  const startedCount = layers.filter((l) => l.entries.length > 0).length;
+  const entryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of entries) {
+      if (e.section) counts[e.section] = (counts[e.section] ?? 0) + 1;
+    }
+    return counts;
+  }, [entries]);
 
   const now = new Date();
   return {
@@ -83,7 +88,6 @@ export function useHomeModel({
     dateLine: dateLineFor(now),
     heroConv,
     heroSnippet,
-    layers,
-    startedCount,
+    entryCounts,
   };
 }

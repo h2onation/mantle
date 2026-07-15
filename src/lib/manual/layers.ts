@@ -136,7 +136,15 @@ const SECTION_BY_SLUG: Record<string, LayerDefinition> = Object.fromEntries(
  *  guard, not a live state. */
 export function sectionName(slug: string | null | undefined): string {
   if (!slug) return "Section";
-  return SECTION_BY_SLUG[slug]?.name ?? slug;
+  return SECTION_BY_SLUG[slug]?.name ?? humanizeSlug(slug);
+}
+
+/** "burnout-at-work" → "Burnout at work". Display fallback for module slugs
+ *  in surfaces that don't carry the modules list (labels, eyebrows). Exact
+ *  module names render wherever module data is present (Home, Manual). */
+export function humanizeSlug(slug: string): string {
+  const words = slug.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** Lookup table for `Layer N (Name)` rendering. Imported by every consumer.
@@ -160,8 +168,8 @@ export const LAYER_ORDINAL: Record<number, string> = {
  * section is missing/unknown (e.g. a parked self-pattern checkpoint).
  */
 export function formatLayerEyebrow(section: string | null | undefined): string {
-  if (!section || !SECTION_BY_SLUG[section]) return "Suggested Entry";
-  return SECTION_BY_SLUG[section].name;
+  if (!section) return "Suggested Entry";
+  return SECTION_BY_SLUG[section]?.name ?? humanizeSlug(section);
 }
 
 /**

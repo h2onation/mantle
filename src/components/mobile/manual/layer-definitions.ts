@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ManualEntry } from "@/lib/types";
-import { LAYERS } from "@/lib/manual/layers";
+import type { HomeModule } from "@/lib/modules";
 
 // Shared white-tile shell for a section on the Manual page — the same
 // material Home uses for its cards (cream-bright fill, hairline border, soft
@@ -24,26 +24,19 @@ export interface Entry {
 }
 
 export interface Layer {
-  id: number;
-  /** Section slug — one of the five life-area sections. */
+  /** Module slug — the group's identity (and conversations' mode). */
   slug: string;
   name: string;
   about: string;
+  /** Short line under the name in section headers (the module description). */
   tagline: string;
+  /** Module icon key (see MODULE_ICONS) — same glyph as the Home card. */
+  icon: string;
   entries: Entry[];
-  isNew?: boolean;
+  /** False when the module is disabled: its section still renders (entries
+   *  never orphan) but it is not tappable as a door. */
+  enabled: boolean;
 }
-
-// Adapter from the canonical LAYERS definition (src/lib/manual/layers.ts) to
-// the shape this UI expects. LAYERS is the source of truth — never hardcode
-// section names here.
-const LAYER_DEFINITIONS: Omit<Layer, "entries">[] = LAYERS.map((l) => ({
-  id: l.id,
-  slug: l.slug,
-  name: l.name,
-  about: l.description,
-  tagline: l.tagline,
-}));
 
 function toEntry(e: ManualEntry, groupKey: string): Entry {
   return {
@@ -54,15 +47,29 @@ function toEntry(e: ManualEntry, groupKey: string): Entry {
   };
 }
 
-export function buildLayers(entries: ManualEntry[]): Layer[] {
-  // Group by SECTION (the structural key). Every entry is homed on one of the
-  // five life-area sections; the frozen `layer` integer is not used here. An
-  // entry with no matching section simply doesn't render (a guard — composition
-  // always assigns one of the five, so this should never happen).
-  return LAYER_DEFINITIONS.map((def) => ({
-    ...def,
-    entries: entries
-      .filter((e) => e.section === def.slug)
-      .map((e) => toEntry(e, def.slug)),
-  }));
+/**
+ * Group Manual entries by module (an entry's `section` is the slug of the
+ * module its conversation started inside). One group per module, in module
+ * display order. Enabled modules always render (even empty — the section
+ * exists the moment the door does); disabled modules render only while they
+ * still hold entries, so nothing ever orphans but retired empty modules
+ * don't clutter the Manual.
+ */
+export function buildModuleGroups(
+  modules: HomeModule[],
+  entries: ManualEntry[],
+): Layer[] {
+  return modules
+    .map((m) => ({
+      slug: m.slug,
+      name: m.name,
+      about: m.description,
+      tagline: m.description,
+      icon: m.icon,
+      enabled: m.enabled,
+      entries: entries
+        .filter((e) => e.section === m.slug)
+        .map((e) => toEntry(e, m.slug)),
+    }))
+    .filter((g) => g.enabled || g.entries.length > 0);
 }

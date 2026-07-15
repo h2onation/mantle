@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useCallback, useMemo } from "react";
-import { buildLayers, SECTION_TILE_STYLE } from "./manual/layer-definitions";
+import { buildModuleGroups, SECTION_TILE_STYLE } from "./manual/layer-definitions";
+import type { HomeModule } from "@/lib/modules";
 import EmptyLayer from "./manual/EmptyLayer";
 import PopulatedLayer from "./manual/PopulatedLayer";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
@@ -18,6 +19,8 @@ import TopBar from "@/components/shared/TopBar";
 
 interface MobileManualProps {
   entries: ManualEntry[];
+  /** All modules (enabled + disabled) — the Manual's grouping structure. */
+  modules: HomeModule[];
   firstName: string;
   onExploreWithPersona?: (context: ExplorationContext) => void;
   onUpdateEntry?: (
@@ -31,9 +34,9 @@ interface MobileManualProps {
   isDesktop?: boolean;
 }
 
-export default function MobileManual({ entries, firstName, onExploreWithPersona, onUpdateEntry, showTopBar = true, isDesktop = false }: MobileManualProps) {
+export default function MobileManual({ entries, modules, firstName, onExploreWithPersona, onUpdateEntry, showTopBar = true, isDesktop = false }: MobileManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const layers = useMemo(() => buildLayers(entries), [entries]);
+  const layers = useMemo(() => buildModuleGroups(modules, entries), [modules, entries]);
   const isEmpty = layers.every((l) => l.entries.length === 0);
   const totalEntries = entries.length;
   const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
@@ -152,13 +155,13 @@ export default function MobileManual({ entries, firstName, onExploreWithPersona,
           {layers.map((layer) =>
             layer.entries.length > 0 ? (
               <PopulatedLayer
-                key={layer.id}
+                key={layer.slug}
                 layer={layer}
                 onUpdateEntry={onUpdateEntry}
               />
             ) : (
               <EmptyLayer
-                key={layer.id}
+                key={layer.slug}
                 layer={layer}
                 onExploreWithPersona={onExploreWithPersona}
               />

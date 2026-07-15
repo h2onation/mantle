@@ -57,6 +57,8 @@ export interface HomeModule {
   icon: string;
   introTitle: string | null;
   introBody: string | null;
+  /** Disabled modules hide as doors but their Manual section stays visible. */
+  enabled: boolean;
 }
 
 export function toHomeModule(m: Module): HomeModule {
@@ -68,6 +70,7 @@ export function toHomeModule(m: Module): HomeModule {
     icon: m.icon,
     introTitle: m.introTitle,
     introBody: m.introBody,
+    enabled: m.enabled,
   };
 }
 

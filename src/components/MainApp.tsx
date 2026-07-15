@@ -613,6 +613,7 @@ export default function MainApp() {
   const manualContent = (
     <MobileManual
       entries={confirmedEntries}
+      modules={modules}
       firstName={firstName}
       onExploreWithPersona={handleExploreWithPersona}
       onUpdateEntry={updateEntry}
@@ -642,7 +643,6 @@ export default function MainApp() {
       entries={confirmedEntries}
       onSelectSession={handleSelectSession}
       onStartConversation={handleStartConversation}
-      onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       modules={modules}
       appCopy={appCopy}
@@ -657,7 +657,6 @@ export default function MainApp() {
       entries={confirmedEntries}
       onSelectSession={handleSelectSession}
       onStartConversation={handleStartConversation}
-      onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
       modules={modules}
       appCopy={appCopy}

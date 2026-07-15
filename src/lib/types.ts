@@ -78,8 +78,10 @@ export interface EntryCandidate {
 }
 
 export interface ExplorationContext {
-  /** Human-readable section name (the five life-area sections). "layer" is the
-   *  code identifier for "section" — see CLAUDE.md Terminology. */
+  /** The module slug the fresh conversation starts inside — required since
+   *  the modules cutover (a conversation cannot exist outside a module). */
+  moduleSlug: string;
+  /** Human-readable section/module name for display. */
   layerName: string;
   type: "entry" | "empty_layer" | "started_layer";
   /** Set for type "entry": the entry's headline. */

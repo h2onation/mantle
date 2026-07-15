@@ -198,6 +198,8 @@ export async function POST(request: Request) {
       conversationHistory: ctx.messages,
       languageBank: ext?.language_bank || [],
       manualComponents: ctx.manualComponents || [],
+      // The entry homes on this conversation's module.
+      section: ctx.mode,
       distinctContexts,
       depth: ext?.depth ?? null,
       sageBrief: ext?.sage_brief ?? null,

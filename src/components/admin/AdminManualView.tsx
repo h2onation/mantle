@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ManualEntry } from "@/lib/types";
-import { buildLayers } from "@/components/mobile/manual/layer-definitions";
+import { buildModuleGroups } from "@/components/mobile/manual/layer-definitions";
+import type { HomeModule } from "@/lib/modules";
 import PopulatedLayer from "@/components/mobile/manual/PopulatedLayer";
 import EmptyLayer from "@/components/mobile/manual/EmptyLayer";
 
@@ -10,7 +12,23 @@ export default function AdminManualView({
 }: {
   entries: ManualEntry[];
 }) {
-  const layers = buildLayers(entries);
+  // The grouping structure — the modules table, fetched once (admin-only
+  // surface; the same source /admin/modules edits).
+  const [modules, setModules] = useState<HomeModule[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/modules")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && Array.isArray(d?.modules)) setModules(d.modules);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const layers = buildModuleGroups(modules, entries);
   const populatedLayers = layers.filter((l) => l.entries.length > 0);
   const emptyLayers = layers.filter((l) => l.entries.length === 0);
   const isEmpty = populatedLayers.length === 0;
@@ -45,7 +63,7 @@ export default function AdminManualView({
       }}
     >
       {populatedLayers.map((layer) => (
-        <PopulatedLayer key={layer.id} layer={layer} readOnly />
+        <PopulatedLayer key={layer.slug} layer={layer} readOnly />
       ))}
       {emptyLayers.length > 0 && (
         <>
@@ -62,7 +80,7 @@ export default function AdminManualView({
             UPCOMING
           </div>
           {emptyLayers.map((layer) => (
-            <EmptyLayer key={layer.id} layer={layer} readOnly />
+            <EmptyLayer key={layer.slug} layer={layer} readOnly />
           ))}
         </>
       )}
