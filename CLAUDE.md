@@ -36,9 +36,9 @@ Full reference specs (human reading, not for agent loading) live in `docs/refere
 
 > **THE CONDUCTOR IS THE SOLE VOICE (promoted 2026-07-02; old worlds deleted 2026-07-06 — ADR-052).** There is no tier system, no voice switch, no per-persona prompt assembly. If any doc or memory describes tiers, `composeTier2`, `LIVE_VOICE_VARIANT`, or a "rebuilt/legacy" voice, it is stale — the code wins.
 
-Jove's entire 1:1 personality is **one document**: `CONDUCTOR_PROMPT` in `src/lib/persona/conductor-prompt.ts`. The system prompt is three blocks, built by `buildSystemPromptBlocks()` in `src/lib/persona/system-prompt.ts`:
+Jove's default 1:1 personality is **one document**: `CONDUCTOR_PROMPT` in `src/lib/persona/conductor-prompt.ts`. The system prompt is three blocks, built by `buildSystemPromptBlocks()` in `src/lib/persona/system-prompt.ts`:
 
-1. **The conductor prompt** — the whole voice, method, crisis clause, and the two hidden UI-marker contracts (`---reflection-ready---` lights the reflection bar; `---chips---` renders the post-save paths). Admin-editable live via the `conductor_prompt` override key ("Tuning" page, `/admin/prompt-architecture`); resolution is `override ?? CONDUCTOR_PROMPT`. Saves that drop a protected line (crisis 988/741741, either marker) are rejected — `CONDUCTOR_REQUIRED_FRAGMENTS` / `validateConductorPromptEdit` in conductor-prompt.ts are the one source of truth for both enforcement and admin display.
+1. **The voice** — resolved per conversation by the module voice ladder (`resolveModulePrompt` in `src/lib/modules.ts`): the conversation's **module custom prompt** when set → the admin `conductor_prompt` override ("Tuning" page) → `CONDUCTOR_PROMPT`. A module with a blank prompt runs the shared conductor — ONE default voice (ADR-053 amends ADR-052; a custom module prompt is a deliberate, labeled fork edited at `/admin/modules`). EVERY prompt on the ladder is save-guarded by the same protected lines (crisis 988/741741, the `---reflection-ready---` marker, the reflection-writing section) — `CONDUCTOR_REQUIRED_FRAGMENTS` / `validateConductorPromptEdit` in conductor-prompt.ts are the one source of truth for enforcement and admin display.
 2. **The Manual so far** — older entries compressed (see Manual Context Compression below). Carries the prompt-cache marker.
 3. **Session context** — current-session entries in full + returning-user/session-summary lines. Never cached.
 
@@ -71,11 +71,12 @@ Rules when touching this:
 Canonical nouns. Use consistently in prompt text, code comments, UI copy, and docs.
 
 - **Manual** — the user's self-authored document.
-- **Section** — one of the five life-area sections of the manual (Relationships / Work and career / Routines and structure / Sensory and burnout / Interests and flow). NOTE: the CODE identifier is still `layer` / `LAYERS` (src/lib/manual/layers.ts) — a deliberate, documented divergence. "Layer" in code == "Section" in product.
-- **Entry** — a single confirmed piece of content on a section.
-- **Checkpoint** — the moment Jove proposes an entry for confirmation.
+- **Module** — the unified unit (ADR-053): a founder-authored row (`modules` table, `/admin/modules`) that is simultaneously an entry door on Home AND a section of the Manual. `conversations.mode` and `manual_entries.section` both store the module slug.
+- **Section** — the Manual-side face of a module ("section" stays the user-facing noun inside the Manual; "module" is the admin/internal noun). The five fixed life-area sections are gone (ADR-053). NOTE: legacy code identifiers `layer` / `LAYERS` (src/lib/manual/layers.ts) survive only as frozen provenance + legacy display fallbacks.
+- **Entry** — a single confirmed piece of content, homed on the module its conversation started inside.
+- **Checkpoint** — the moment an entry is composed for confirmation (the user pulls).
 
-The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "card." ("Section" is now the live user-facing noun for the five structural groups — never use "layer" for them in user-facing copy.)
+The DB table is `manual_entries`. All surface area (prompts, UI, docs, comments) uses "entry," never "component," "thread," or "card." Never use "layer" in user-facing copy.
 
 ## Hard Rules
 

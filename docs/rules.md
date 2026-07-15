@@ -182,7 +182,9 @@ Full token list lives in `globals.css`. Agent reads the file for exact values. D
 
 Do not reintroduce any of the following. These were deliberately removed.
 
-Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Sound / audio · Ambient particles · Resonant content (URL detection + fetch; replaced by Upload mode)
+Calibration / calibration_ratings · PromptCards · Old onboarding (OnboardingOverlay / useOnboarding) · Synthetic first message · Gate UI · Advisor mode (collapsed into Jove situation mode) · SessionTimer · Entry Sequence UI · Insights page · Reactive orb · Session hub idle state · Sound / audio · Ambient particles · Resonant content (URL detection + fetch; replaced by Upload mode) · Guided-intake door + section picker (`---sections---` / `---start-situation---` markers, SectionPicker, chip-response path; modules replaced it — ADR-053) · Upload door (pasting is a capability in any conversation; the door + dual message cap are gone) · Per-mode door feature gates (a module's `enabled` flag is the only door switch) · The five fixed Manual sections as code (`LAYERS`-driven grouping; the Manual groups by modules now)
+
+**Shelved, NOT dead (do not delete, do not re-wire without a founder call):** the "Bring a situation" open entrance (`situation-copy.ts`, dormant) — a planned future product on top of the module structure. See ADR-053.
 
 (Removed from this list 2026-06-10 with founder sign-off: "Desktop layout" — superseded by the desktop shell initiative; the entry referred to a pre-vitrine layout that no longer exists. "Theme toggle" — stale; a theme toggle has been live in the DesktopVitrine colophon and ships in the desktop sidebar.)
 

@@ -89,13 +89,11 @@ Jove does this across time. Not one hour a week from memory. Every conversation,
 
 ### Layer 1: Input
 
-Three on-ramps, two interview styles. Users arrive at Jove in different states of readiness — sometimes carrying something live, sometimes needing to be led, sometimes with an artifact they want read. Each entry point meets that state with the right opening posture. After the entry phase, every conversation runs on one of two interview styles: reflective exploration (Jove follows the user and deepens) or structured intake (Jove leads with direct, systematic questions). All three feed the same Manual.
+**Modules — founder-authored doors that are also the Manual's sections (2026-07-15, ADR-053).** The ways into a conversation are no longer fixed in code. Each module, created live in admin, is simultaneously an entry door on Home and a section of the Manual: the user starts a conversation inside a module, and everything they confirm files under it. A module carries its own card copy, optional one-time intro, optional fixed opening message, and optionally its own full Jove prompt (blank = the shared conductor voice). This makes entry points an experimentation surface — new doors ship as rows, not releases — and makes the Manual's table of contents mirror the doors the user actually walks through.
 
-**Situation.** The core loop. The user brings something specific — a conflict, a recurring dynamic, a reaction they don't understand, a win they can't explain. Jove explores it through conversation, deepening into texture until patterns surface. This is reflective exploration in its purest form, and it's what brings people in.
+Pasting an artifact (a text thread, an email chain, a journal entry) works inside any conversation — Jove recognizes pasted material, reads it whole, and asks what made the user want to share it. It is a capability of every module, not a separate door.
 
-**Guided intake.** The user wants Jove to lead. Maybe nothing's live on their mind, maybe they don't know what to bring, maybe they prefer being asked direct questions to talking unprompted. Jove runs a structured intake — the user picks one section of their Manual and Jove keeps them in it, working a single real moment to depth rather than sweeping for coverage, with the explicit goal of finding the first piece of material the Manual can hold. The interview style is more direct than situation mode; the rhythm is question-driven, not user-driven.
-
-**Upload.** The user has an artifact — a text thread, email, journal entry, notes. They paste it; Jove reads it; the conversation explores what made them want to share it and what the artifact reveals. The entry experience is anchored to the content (locked opener inviting paste, format-aware reading, framing question). After the entry phase, the conversation runs on reflective exploration with the artifact as enriched context.
+**Shelved for a future product:** the open "bring a situation" entrance — arriving with something live *precisely because you can't yet see what it's about*. That entrance returns as its own product on top of the module structure, drawing on the accumulated Manual. Until then, every conversation starts inside a module.
 
 ### Layer 2: Engine (Jove)
 
@@ -135,17 +133,9 @@ The test: Jove can name any pattern it observes. It cannot label that pattern wi
 
 Everything Jove observes and the user validates flows into the Manual. The Manual is not a conversation summary. It is a structured behavioral document that accumulates over time.
 
-**Five sections:**
+**Sections = modules.** The Manual's sections are the founder-authored modules (ADR-053) — the same units that appear on Home as ways to begin. An entry's home is a fact, not a judgment: it files under the module its conversation started inside. Each entry may also carry the one closed tag, `strength`, when the pattern is a capability rather than a cost.
 
-- Relationships
-- Work and career
-- Routines and structure
-- Sensory and burnout
-- Interests and flow
-
-Each entry has exactly one section (its home) plus an optional closed tag set: `strength` (any section), `romantic`/`family`/`friends` (only inside Relationships). Every entry homes on one of the five — including self-to-self patterns (inner critic, self-judgment), which are filed by their spine rather than held apart.
-
-The sections were re-scoped (pattern-type → life-area) in the structure migration. A sixth "inner-world" section was once deferred for self-to-self patterns; that was **abandoned** (ADR-051) — there are five sections, full stop.
+(The five fixed life-area sections — Relationships / Work and career / Routines and structure / Sensory and burnout / Interests and flow — were the structure from 2026-06-24 to 2026-07-15; ADR-050/051 record that era. A sixth "inner-world" section was abandoned earlier still. The lesson that survives: every entry always has a home, and nothing ever orphans — a disabled module keeps its section visible while entries remain.)
 
 **Entry anatomy.** Each entry is one confirmed piece of content. Written in the user's voice. Natural language, not structured fields.
 
