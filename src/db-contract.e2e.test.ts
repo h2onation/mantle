@@ -226,7 +226,8 @@ describe("reflection meter — only confirmed checkpoints reset it", () => {
   beforeAll(async () => {
     const { data: conv, error } = await admin
       .from("conversations")
-      .insert({ user_id: testUserId })
+      // mode = module slug; NOT NULL, no default since the modules cutover.
+      .insert({ user_id: testUserId, mode: "e2e-test-module" })
       .select("id")
       .single();
     if (error || !conv) {
