@@ -205,7 +205,10 @@ async function getOrCreateConversation(
 
   const { data: created, error } = await admin
     .from("conversations")
-    .insert({ user_id: userId, status: "active" })
+    // mode lost its DEFAULT in the modules cutover (ADR-053). Text has no
+    // module picker; carry the frozen legacy slug until the text-capture
+    // rebuild decides how text names a module.
+    .insert({ user_id: userId, status: "active", mode: "situation" })
     .select("id")
     .single();
 

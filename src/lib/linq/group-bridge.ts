@@ -341,6 +341,10 @@ async function getOrCreateGroupConversation(
     .insert({
       user_id: groupState.owner_user_id,
       status: "active",
+      // conversations.mode lost its DEFAULT in the modules cutover (ADR-053);
+      // group chats aren't module conversations, so they carry a fixed
+      // channel slug. getModule("group") → null → shared conductor paths.
+      mode: "group",
       linq_group_chat_id: groupState.id,
     })
     .select("id")

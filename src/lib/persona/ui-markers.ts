@@ -1,10 +1,13 @@
 /**
- * Trailing boolean UI markers for guided intake.
+ * Trailing boolean UI markers.
  *
  * Jove appends a marker on its own line at the END of a message to drive a
- * client-side affordance — `---sections---` (section picker, tee-up turn) and
- * `---start-situation---` (the live-situation handoff action). Unlike the chip
- * delimiter, these carry no payload: presence is the whole signal.
+ * client-side affordance. One marker is live today: `---reflection-ready---`
+ * (the landed signal that lights the reflection bar). The retired guided-
+ * intake markers (`---sections---` / `---start-situation---`, modules
+ * cutover 2026-07-15) have no parser — stripDefunctMarkers below is the
+ * floor that keeps any of them off screen. Markers carry no payload:
+ * presence is the whole signal.
  *
  * Matching is TAIL-ANCHORED on purpose. A bare `indexOf` would let the model
  * truncate a message mid-sentence if it ever wrote one of these tokens in prose

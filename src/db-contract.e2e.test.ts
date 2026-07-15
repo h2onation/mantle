@@ -140,6 +140,62 @@ describe("DB contract — every code-insert shape is accepted", () => {
     expect(error).toBeNull();
   });
 
+  it("manual_entries: module-world shape (section slug + strength tag)", async () => {
+    // The confirm path since the modules cutover (ADR-053): section is the
+    // conversation's module slug, tags are the closed {strength} set. Guards
+    // manual_entries_section_format + manual_entries_tags_closed.
+    const { error } = await admin.from("manual_entries").insert({
+      user_id: testUserId,
+      layer: null,
+      section: "e2e-test-module",
+      tags: ["strength"],
+      name: "Module canary",
+      content: "Module canary content.",
+      summary: "Module canary summary.",
+      key_words: ["canary"],
+    });
+    expect(error).toBeNull();
+  });
+
+  it("manual_entries: rejects a tag outside the closed {strength} set", async () => {
+    const { error } = await admin.from("manual_entries").insert({
+      user_id: testUserId,
+      layer: null,
+      section: "e2e-test-module",
+      tags: ["romantic"], // retired with the fixed sections — CHECK must reject
+      name: "Bad tag canary",
+      content: "x",
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("modules (admin/modules route): full admin write shape", async () => {
+    // Mirrors the POST insert in src/app/api/admin/modules/route.ts. If this
+    // fails, the modules table has drifted from the admin CRUD's shape.
+    const { error } = await admin.from("modules").insert({
+      slug: "e2e-canary-module",
+      name: "E2E canary",
+      description: "Canary module.",
+      cue: "Begin",
+      icon: "chat",
+      intro_title: null,
+      intro_body: null,
+      opener_text: "Canary opener.",
+      custom_prompt: null,
+      enabled: true,
+      sort_order: 99,
+      updated_by: testUserId,
+    });
+    expect(error).toBeNull();
+    // Slug format CHECK must reject uppercase/spaces.
+    const { error: badSlug } = await admin.from("modules").insert({
+      slug: "Bad Slug",
+      name: "x",
+    });
+    expect(badSlug).not.toBeNull();
+    await admin.from("modules").delete().eq("slug", "e2e-canary-module");
+  });
+
   it("messages (call-persona.ts / route): assistant streaming write", async () => {
     const { error } = await admin.from("messages").insert({
       conversation_id: testConversationId,

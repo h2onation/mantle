@@ -25,17 +25,9 @@ function rowsFor(key: string): number {
 // Where each group's copy appears and who sees it. Rendered in the collapsed
 // group header so the founder knows what a section controls before expanding.
 const GROUP_INFO: Record<string, { where: string; when: string }> = {
-  "Entry doors": {
-    where: "The three “ways to begin” cards on the Home screen.",
-    when: "Every logged-in user, on Home. A door whose mode is switched off in Feature gates shows “Coming soon” instead of this copy.",
-  },
   Home: {
     where: "The welcome card at the top of Home, just above the “ways to begin” cards.",
     when: "Only a brand-new user — nothing to resume and no Manual entries yet. Once they have a saved conversation it’s replaced by the “Pick up where you left off” card.",
-  },
-  "Manual menu": {
-    where: "The “Your manual” block on Home — the heading and subheading above the five section rows.",
-    when: "Every logged-in user, on Home. Mobile and desktop show slightly different subheadings (both editable below).",
   },
   "Seed screen": {
     where: "The full-screen “What this is, and isn’t” consent screen.",

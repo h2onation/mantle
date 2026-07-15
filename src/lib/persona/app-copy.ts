@@ -25,7 +25,6 @@ import type { OverrideRow } from "@/lib/persona/voice-overrides";
 export interface AppCopy {
   waysToBeginLabel: string;
   home: { welcomeEyebrow: string; welcomeBody: string };
-  manual: { heading: string; subMobile: string; subDesktop: string };
   seed: {
     eyebrow: string;
     heading: string;
@@ -40,7 +39,6 @@ export interface AppCopy {
 /** The admin-panel section a field belongs to (drives the section order too). */
 export const APP_COPY_GROUPS = [
   "Home",
-  "Manual menu",
   "Seed screen",
 ] as const;
 
@@ -73,26 +71,7 @@ export const APP_COPY_FIELDS: Record<
     group: "Home",
     label: "Welcome tile — body",
     getDefault: () =>
-      "Start a conversation below — what you confirm becomes your Manual, the five sections of how you operate. Nothing’s saved unless you say so.",
-  },
-
-  // ── Manual index (LayerIndex) ──
-  manual_index_heading: {
-    group: "Manual menu",
-    label: "Heading",
-    getDefault: () => "Your manual",
-  },
-  manual_index_sub_mobile: {
-    group: "Manual menu",
-    label: "Subheading (mobile)",
-    getDefault: () =>
-      "Five sections of how you operate. Tap one to go deeper with Jove.",
-  },
-  manual_index_sub_desktop: {
-    group: "Manual menu",
-    label: "Subheading (desktop)",
-    getDefault: () =>
-      "Five sections of how you operate. Open one to go deeper with Jove — or read the whole thing.",
+      "Start a conversation below — what you confirm becomes your Manual, a document about how you operate. Nothing’s saved unless you say so.",
   },
 
   // ── Seed / consent screen (SeedScreen) ──
@@ -163,11 +142,6 @@ export function resolveAppCopy(rows: Map<string, OverrideRow>): AppCopy {
     home: {
       welcomeEyebrow: r("home_welcome_eyebrow"),
       welcomeBody: r("home_welcome_body"),
-    },
-    manual: {
-      heading: r("manual_index_heading"),
-      subMobile: r("manual_index_sub_mobile"),
-      subDesktop: r("manual_index_sub_desktop"),
     },
     seed: {
       eyebrow: r("seed_eyebrow"),

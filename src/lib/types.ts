@@ -5,9 +5,9 @@ export interface ChatMessage {
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
   checkpointMeta?: {
-    // Section slug chosen by composition — always one of the five life-area
-    // sections. Replaces the legacy `layer` number. Nullable only to tolerate
-    // in-flight checkpoint_meta written before parking was removed.
+    // The entry's module slug — code-assigned from the conversation's module
+    // since the modules cutover. Replaces the legacy `layer` number. Nullable
+    // only to tolerate historical checkpoint_meta rows.
     section: string | null;
     // Closed tag set applied by composition (strength / romantic / family / friends).
     tags?: string[];

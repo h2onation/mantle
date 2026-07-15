@@ -153,14 +153,6 @@ export const LAYER_NAMES: Record<number, string> = Object.fromEntries(
   LAYERS.map((l) => [l.id, l.name])
 );
 
-/** Roman-numeral-as-word ordinal per section. */
-export const LAYER_ORDINAL: Record<number, string> = {
-  1: "One",
-  2: "Two",
-  3: "Three",
-  4: "Four",
-  5: "Five",
-};
 
 /**
  * Canonical eyebrow string for any checkpoint-shaped surface. Takes a section
@@ -187,25 +179,4 @@ export function renderManualEntryFull(entry: {
   return `Section: ${label}${headline}:\n${entry.content}\n`;
 }
 
-/**
- * Per-section empty-state copy for the Manual page. Two beats render inside the
- * Plate when a section has no confirmed entries:
- *   • STATUS — one italic sentence naming the absence AND what the section is for.
- *   • INVITE — one italic line in Jove's voice. Opens a door.
- * Keyed by display-order id (1-5).
- */
-export const LAYER_EMPTY_STATUS: Record<number, string> = {
-  1: "Nothing about how you connect with people yet.",
-  2: "Nothing about how you operate at work yet.",
-  3: "Nothing about the systems that hold your day up yet.",
-  4: "Nothing about what your body takes in yet.",
-  5: "Nothing about where you go deep yet.",
-};
 
-export const LAYER_EMPTY_INVITE: Record<number, string> = {
-  1: "Pick someone you're close to. What does showing up there look like?",
-  2: "Tell me about a moment at work the pressure changed how you operate.",
-  3: "Start anywhere — even one small thing that holds your day together.",
-  4: "Tell me about a recent moment your system was working harder than it looked.",
-  5: "What activates the version of you most people don't get to see?",
-};

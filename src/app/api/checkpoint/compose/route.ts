@@ -12,7 +12,6 @@ import {
 } from "@/lib/persona/confirm-checkpoint";
 import { composeEntryAsConductor } from "@/lib/persona/compose-as-conductor";
 import { getComposerMode } from "@/lib/persona/composer-mode";
-import { LAYERS, TAGS, RELATIONSHIP_TAGS } from "@/lib/manual/layers";
 import {
   reflectionComposeHour,
   checkLimit,
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
   //    id from a missing one — matches the chat route.
   const { data: conv, error: convErr } = await admin
     .from("conversations")
-    .select("user_id")
+    .select("user_id, mode")
     .eq("id", conversationId)
     .single();
   if (convErr || !conv || conv.user_id !== user.id) {
@@ -122,7 +121,7 @@ export async function POST(request: Request) {
   // user authors their own Manual anyway (they can edit any word in the overlay
   // before confirm), so we only sanitize the structural fields.
   if (pick) {
-    const entry = sanitizePickedEntry(pick);
+    const entry = sanitizePickedEntry(pick, conv.mode);
     if (!entry) {
       return Response.json({ error: "invalid_pick" }, { status: 400 });
     }
@@ -281,22 +280,19 @@ export async function POST(request: Request) {
 
 /** Coerce a client-supplied compare pick into a valid ComposedEntry, or null if
  *  it has no usable body. Only the structural fields (section slug, closed tag
- *  set) are sanitized — the prose is the user's to author. */
+ *  set) are sanitized — the prose is the user's to author. Section is NEVER
+ *  taken from the client: since the modules cutover it is a fact of the
+ *  conversation (its module slug), same as the non-compare paths. Tags are
+ *  the closed {strength} set (DB CHECK enforces the same). */
 function sanitizePickedEntry(
-  pick: Partial<ComposedEntry>
+  pick: Partial<ComposedEntry>,
+  conversationMode: string
 ): ComposedEntry | null {
   if (typeof pick.content !== "string" || !pick.content.trim()) return null;
-  const sectionSlugs = LAYERS.map((l) => l.slug);
-  const section =
-    typeof pick.section === "string" && sectionSlugs.includes(pick.section)
-      ? pick.section
-      : "relationships";
-  const allowed = TAGS as readonly string[];
-  const relTags = RELATIONSHIP_TAGS as readonly string[];
+  const section = conversationMode;
   const tags = (Array.isArray(pick.tags) ? pick.tags : [])
     .filter((t): t is string => typeof t === "string")
-    .filter((t) => allowed.includes(t))
-    .filter((t) => (relTags.includes(t) ? section === "relationships" : true));
+    .filter((t) => t === "strength");
   return {
     content: pick.content,
     name:

@@ -40,9 +40,9 @@ export default function MobileManual({ entries, modules, firstName, onExploreWit
   const isEmpty = layers.every((l) => l.entries.length === 0);
   const totalEntries = entries.length;
   const totalLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
-  // Masthead meta line — mirrors Home's "N of 5 started" count gesture, in the
-  // same mono register. Every entry is homed on one of the five sections, so a
-  // non-empty manual always has at least one started section.
+  // Masthead meta line, in the mono register. Every entry is homed on its
+  // conversation's module, so a non-empty manual always has at least one
+  // started section.
   const startedSections = layers.filter((l) => l.entries.length > 0).length;
   const metaLine = isEmpty
     ? "Nothing saved yet"
