@@ -7,44 +7,24 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  * read once per turn inside loadConversationContext and written only via
  * /api/admin/feature-gates.
  *
- * These gates sit at chokepoints where one boolean collapses a whole branch:
+ * One gate remains after the modules cutover (the three per-mode door gates
+ * were deleted 2026-07-15 — a module's own `enabled` flag is the only door
+ * switch now, edited at /admin/modules):
  *
- *   situation          OFF → the Situation entry door renders disabled
- *                            ("Coming soon") and new / fallback conversations
- *                            resolve to the next enabled mode (guided, then
- *                            upload). Situation remains the engine's ULTIMATE
- *                            hard floor: if every mode gate is off, conversations
- *                            still run "situation" so they're never mode-less.
- *                            Default ON — turning it off enables a guided-solo
- *                            (or upload-solo) configuration.
- *   guidedIntake       OFF → the Guided entry path falls back to the first
- *                            enabled mode: the guided-intake Tier 3 block +
- *                            section-picker handoff never fire, and the Home
- *                            "Guided" door renders disabled ("Coming soon").
- *   upload             OFF → the Upload entry path falls back to the first
- *                            enabled mode: the upload server short-circuit +
- *                            transcript-wrap behavior never fire, and the Home
- *                            "Upload" door renders disabled ("Coming soon").
  *   extractionBrief    OFF → voice-only: the background Sonnet extraction call
  *                            is skipped, so nothing is analyzed and the save-time
  *                            composer gets no accumulated understanding.
  *
- * These debug gates default ON, and the read fails open to ON on any error or
- * missing row, so production behaves exactly as it does today when the table is
- * absent or unreachable. They are debug scaffolding with a documented deletion
- * condition (see the migration), not permanent forks.
+ * The gate defaults ON, and the read fails open to ON on any error or missing
+ * row, so production behaves exactly as it does today when the table is
+ * absent or unreachable. Debug scaffolding with a documented deletion
+ * condition (see the migration), not a permanent fork.
  */
 export interface FeatureGates {
-  situation: boolean;
-  guidedIntake: boolean;
-  upload: boolean;
   extractionBrief: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
-  situation: true,
-  guidedIntake: true,
-  upload: true,
   extractionBrief: true,
 };
 
@@ -54,9 +34,6 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
  * route validates writes against it and the reader maps rows through it.
  */
 export const FEATURE_GATE_KEYS: Record<string, keyof FeatureGates> = {
-  situation: "situation",
-  guided_intake: "guidedIntake",
-  upload: "upload",
   extraction_brief: "extractionBrief",
 };
 

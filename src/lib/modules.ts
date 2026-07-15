@@ -44,6 +44,33 @@ export interface Module {
   updatedAt: string | null;
 }
 
+/**
+ * The slice of a module the client needs: Home cards + the one-time intro
+ * modal. Deliberately excludes opener_text and custom_prompt — prompt
+ * material never ships to the browser.
+ */
+export interface HomeModule {
+  slug: string;
+  name: string;
+  description: string;
+  cue: string;
+  icon: string;
+  introTitle: string | null;
+  introBody: string | null;
+}
+
+export function toHomeModule(m: Module): HomeModule {
+  return {
+    slug: m.slug,
+    name: m.name,
+    description: m.description,
+    cue: m.cue,
+    icon: m.icon,
+    introTitle: m.introTitle,
+    introBody: m.introBody,
+  };
+}
+
 /** Mirrors the modules_slug_format CHECK constraint — keep the two in sync. */
 export const MODULE_SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 

@@ -203,14 +203,14 @@ const TABLES: Table[] = [
     rowMeans:
       "A single conversation session between the user and Jove. Created when the user starts a new chat, lives across many message turns.",
     description:
-      "Each conversation accumulates messages and a working-memory blob. extraction_state is the JSONB the background call rewrites every turn — see the Extraction map for the field-by-field breakdown. summary is the AI-generated session recap used to orient Jove when the user returns. mode controls which entry path the conversation is on: situation (default), guided-intake, or upload.",
+      "Each conversation accumulates messages and a working-memory blob. extraction_state is the JSONB the background call rewrites every turn — see the Extraction map for the field-by-field breakdown. summary is the AI-generated session recap used to orient Jove when the user returns. mode is the slug of the MODULE the conversation started inside (see the modules table; legacy rows carry the retired door values situation / guided-intake / upload).",
     columns: [
       { name: "id", type: "uuid", plain: "Unique conversation identifier." },
       { name: "user_id", type: "uuid", plain: "Which user owns this conversation.", emphasized: true },
       { name: "status", type: "text", plain: "'active' or 'completed'. Set to completed when the user wraps the session." },
       { name: "summary", type: "text", plain: "AI-generated multi-sentence summary of the session. Read by Jove on the user's next session for context.", emphasized: true },
       { name: "extraction_state", type: "jsonb", plain: "The case file the extractor rewrites every turn — where Jove's working memory lives. Mapped field-by-field in the Extraction map.", emphasized: true },
-      { name: "mode", type: "text", plain: "'situation' (default open exploration), 'guided-intake' (directed path), or 'upload' (pasted content). Drives which prompt block loads.", emphasized: true },
+      { name: "mode", type: "text", plain: "The module slug the conversation started inside — validated against enabled modules at creation, stamped on every entry saved from it. Legacy rows carry the retired door values (situation / guided-intake / upload).", emphasized: true },
       { name: "channel", type: "text", plain: "'web' (default) or 'sms'. Tracks which surface the conversation came through." },
       { name: "processing_sms", type: "boolean", plain: "True while an SMS turn is mid-flight. Guards against double-processing concurrent inbound texts." },
       { name: "calibration_ratings", type: "text", plain: "Dead column — never read or written. Documented in system.md as safe to ignore. Left in place, not yet dropped.", emphasized: true },
@@ -252,7 +252,7 @@ const TABLES: Table[] = [
       { name: "is_checkpoint", type: "boolean", plain: "True on the system message written when the user pulled and confirmed/rejected an entry (capture is user-pulled; Jove never proposes).", emphasized: true },
       { name: "checkpoint_meta", type: "jsonb", plain: "When is_checkpoint is true: composed_content, composed_name, layer, refinement_count, status (pending/confirmed/rejected/refined).", emphasized: true },
       { name: "extraction_snapshot", type: "jsonb", plain: "Frozen copy of the conversation's working memory at this turn. Lets you replay history.", emphasized: true },
-      { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. Carries the checkpoint-suppressed marker, guided-intake chip taps, etc." },
+      { name: "metadata", type: "jsonb", plain: "Extensible per-message flags. Carries the checkpoint-suppressed marker and other per-message flags (legacy rows: chip taps from the retired guided intake)." },
       { name: "channel", type: "text", plain: "'web' or 'sms'. Tracks the message's origin surface." },
       { name: "processing_text", type: "text", plain: "Legacy column — transient 'thinking…' text. Still selected by the admin message viewer." },
       { name: "sender_phone", type: "text", plain: "Legacy column — the phone number an SMS message came from." },

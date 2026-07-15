@@ -33,18 +33,18 @@ describe("app-copy resolver", () => {
 
   it("a disabled row falls back to the code default", () => {
     const m = new Map<string, OverrideRow>([
-      ["door_guided_title", row({ text_override: "Custom", enabled: false })],
+      ["ways_to_begin_label", row({ text_override: "Custom", enabled: false })],
     ]);
-    expect(resolveAppCopy(m).doors["guided-intake"].title).toBe(
-      APP_COPY_FIELDS.door_guided_title.getDefault(),
+    expect(resolveAppCopy(m).waysToBeginLabel).toBe(
+      APP_COPY_FIELDS.ways_to_begin_label.getDefault(),
     );
   });
 
   it("an enabled but blank row falls back to the code default", () => {
     const m = new Map<string, OverrideRow>([
-      ["door_guided_title", row({ text_override: "   ", enabled: true })],
+      ["ways_to_begin_label", row({ text_override: "   ", enabled: true })],
     ]);
-    expect(resolveAppCopy(m).doors["guided-intake"].title).toBe("Guided");
+    expect(resolveAppCopy(m).waysToBeginLabel).toBe("Ways to begin");
   });
 
   it("an enabled, non-blank row overrides the default", () => {
@@ -66,20 +66,14 @@ describe("app-copy resolver", () => {
   });
 
   it("isAppCopyKey accepts registered keys and rejects everything else", () => {
-    expect(isAppCopyKey("door_guided_title")).toBe(true);
+    expect(isAppCopyKey("ways_to_begin_label")).toBe(true);
     expect(isAppCopyKey("seed_body1")).toBe(true);
+    // Door copy keys were retired with the modules cutover (per-module copy
+    // lives on the modules table now).
+    expect(isAppCopyKey("door_guided_title")).toBe(false);
     // A voice-override key is NOT an app-copy key (separate registries).
     expect(isAppCopyKey("rebuilt_character")).toBe(false);
     expect(isAppCopyKey("nope")).toBe(false);
     expect(isAppCopyKey(123)).toBe(false);
-  });
-
-  it("default entry-door copy carries no clinical framing", () => {
-    const doorText = Object.values(APP_COPY_DEFAULTS.doors)
-      .flatMap((d) => [d.title, d.desc, d.cue])
-      .join(" ");
-    expect(doorText).not.toMatch(
-      /\btherapy\b|\bdiagnos|\bassessment\b|\bdisorder\b/i,
-    );
   });
 });

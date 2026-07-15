@@ -19,7 +19,7 @@ import MobileHome from "@/components/mobile/MobileHome";
 import SWUpdatePrompt from "@/components/shared/SWUpdatePrompt";
 import PostLoginOnboarding from "@/components/onboarding/PostLoginOnboarding";
 import DoorIntroModal from "@/components/modals/DoorIntroModal";
-import type { DoorIntro } from "@/lib/persona/door-intros";
+import type { HomeModule } from "@/lib/modules";
 import { APP_COPY_DEFAULTS, type AppCopy } from "@/lib/persona/app-copy";
 import { useServiceWorker } from "@/lib/hooks/useServiceWorker";
 import { trackManualViewed, trackModal1Shown } from "@/lib/analytics/events";
@@ -42,15 +42,6 @@ const RESTORABLE_VIEWS: MobileView[] = [
   "crisis",
 ];
 
-// Default when no gates are passed (e.g. a test render): every entry door live.
-// The real value comes from the /app server component, which reads the per-mode
-// feature gates and hands it down so disabled doors render as "Coming soon".
-const ALL_MODES_ENABLED: Record<ConversationMode, boolean> = {
-  situation: true,
-  "guided-intake": true,
-  upload: true,
-};
-
 type ExplorationPhase = "transitioning" | "loading" | "revealing" | null;
 type OnboardingStatus = "loading" | "needed" | "complete";
 
@@ -61,12 +52,12 @@ function sleep(ms: number) {
 export default function MainApp() {
   const isDesktop = useIsDesktop();
   const [activeView, setActiveView] = useState<MobileView>("session");
-  // Which entry doors are live (per-mode conversation gates). Fetched on mount
-  // from /api/onboarding-status (NOT read at server-render time — that value
-  // gets frozen by the browser/Router cache and never reflects an admin gate
-  // flip). Defaults to all-ON until the fetch resolves; fails open to all-ON.
-  const [enabledModes, setEnabledModes] =
-    useState<Record<ConversationMode, boolean>>(ALL_MODES_ENABLED);
+  // The enabled modules — each a door in and a Manual section. Fetched on
+  // mount from /api/onboarding-status (NOT read at server-render time — that
+  // value gets frozen by the browser/Router cache and never reflects a live
+  // admin edit). Empty until the fetch resolves; an empty module set is a
+  // real state (Home shows no ways to begin).
+  const [modules, setModules] = useState<HomeModule[]>([]);
   // Admin-editable onboarding/Home copy, fetched with the onboarding status
   // (same call). Defaults to the shipped copy until the fetch resolves and on
   // any error — so the screens always have text.
@@ -82,15 +73,15 @@ export default function MainApp() {
     signupAtMs: number | null;
     isAnonymous: boolean;
   } | null>(null);
-  // Per-door one-time intro. doorIntros/doorIntrosSeen load once from
-  // /api/door-intros; pendingIntroMode is the door whose intro is currently
-  // open (set when a first-time door is tapped, cleared on dismiss → the
-  // conversation starts). Suppressed for anonymous-auth users.
-  const [doorIntros, setDoorIntros] =
-    useState<Record<ConversationMode, DoorIntro> | null>(null);
+  // Per-module one-time intro. The intro COPY rides on each module row
+  // (introTitle/introBody in the modules payload); /api/door-intros only
+  // supplies which slugs this user has already seen. pendingIntroModule is
+  // the module whose intro is currently open (set when a first-time module
+  // with intro copy is tapped, cleared on dismiss → the conversation
+  // starts). Suppressed for anonymous-auth users.
   const [doorIntrosSeen, setDoorIntrosSeen] = useState<string[] | null>(null);
-  const [pendingIntroMode, setPendingIntroMode] =
-    useState<ConversationMode | null>(null);
+  const [pendingIntroModule, setPendingIntroModule] =
+    useState<HomeModule | null>(null);
   const { updateAvailable, applyUpdate } = useServiceWorker();
 
   // One-time migration: rename mantle_* localStorage keys to mw_*
@@ -147,7 +138,7 @@ export default function MainApp() {
         const data = await res.json();
         if (cancelled) return;
         setOnboardingStatus(data.completed ? "complete" : "needed");
-        if (data.enabledModes) setEnabledModes(data.enabledModes);
+        if (Array.isArray(data.modules)) setModules(data.modules);
         if (data.appCopy) setAppCopy(data.appCopy);
       } catch (err) {
         console.error("[MainApp] onboarding-status fetch failed:", err);
@@ -194,21 +185,18 @@ export default function MainApp() {
     };
   }, []);
 
-  // Per-door intro copy + which doors this user has already seen. Drives the
-  // one-time "how this works" card shown the first time each door is opened.
-  // Fail-open (leave null) so a fetch hiccup just means no intro this session.
+  // Which module intros this user has already seen. Drives the one-time
+  // "how this works" card shown the first time each module (with intro copy)
+  // is opened. Fail-open (leave null) so a fetch hiccup just means no intro
+  // this session.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/door-intros");
         if (!res.ok) return;
-        const data = (await res.json()) as {
-          intros?: Record<ConversationMode, DoorIntro>;
-          seen?: string[];
-        };
+        const data = (await res.json()) as { seen?: string[] };
         if (cancelled) return;
-        setDoorIntros(data.intros ?? null);
         setDoorIntrosSeen(Array.isArray(data.seen) ? data.seen : []);
       } catch {
         // fail-open
@@ -239,7 +227,6 @@ export default function MainApp() {
     promptAuth,
     resetPromptAuth,
     sendMessage,
-    sendChipResponse,
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,
@@ -402,7 +389,7 @@ export default function MainApp() {
   // Bridge events from the DevToolsPanel (hosted in the desktop sidebar and the
   // admin settings view) into the app: populate refreshes the manual + navigates
   // to it; run-live-simulation switches to the session and drives a fake user
-  // through the real guided-intake path. Window events keep the panel
+  // through the real module path. Window events keep the panel
   // location-independent.
   useEffect(() => {
     function onPopulate() {
@@ -449,22 +436,21 @@ export default function MainApp() {
     []
   );
 
-  // Home's conversation starters — "Bring a situation" (primary) plus the
-  // secondary Guided intake / Upload links. Starts a fresh conversation in
-  // the chosen mode and drops the user into it. Generalizes the old
-  // situation-only handler so all three entry modes stay reachable from
-  // Home: Guided + Upload were otherwise orphaned for returning users once
-  // the drawer's entry-cards path was retired in the front-door redesign.
+  // Home's conversation starters — the module cards. Starts a fresh
+  // conversation inside the chosen module and drops the user into it.
   const handleStartConversation = useCallback(
-    (mode: ConversationMode) => {
-      // First time this user opens this door (and not anonymous): show its
-      // one-time "how this works" intro, then start the conversation when they
-      // dismiss it. Otherwise go straight in.
+    (slug: string) => {
+      // First time this user opens this module (and not anonymous), when the
+      // module carries intro copy: show its one-time "how this works" intro,
+      // then start the conversation when they dismiss it. Otherwise go
+      // straight in.
+      const mod = modules.find((m) => m.slug === slug) ?? null;
       if (
         !modalState?.isAnonymous &&
-        doorIntros &&
+        mod?.introTitle &&
+        mod?.introBody &&
         doorIntrosSeen &&
-        !doorIntrosSeen.includes(mode)
+        !doorIntrosSeen.includes(slug)
       ) {
         if (doorIntrosSeen.length === 0) {
           trackModal1Shown({
@@ -473,33 +459,33 @@ export default function MainApp() {
               : 0,
           });
         }
-        setPendingIntroMode(mode);
+        setPendingIntroModule(mod);
         return;
       }
       setActiveView("session");
-      void startConversation(mode);
+      void startConversation(slug);
     },
-    [startConversation, doorIntros, doorIntrosSeen, modalState]
+    [startConversation, modules, doorIntrosSeen, modalState]
   );
 
-  // "Got it" on a door's intro (any dismiss path — Got it / Escape /
+  // "Got it" on a module's intro (any dismiss path — Got it / Escape /
   // backdrop): mark it seen (optimistic + persist), then start the
   // conversation. useChat's in-flight guard covers double-fires.
   const handleDoorIntroDismiss = useCallback(() => {
-    const mode = pendingIntroMode;
-    setPendingIntroMode(null);
-    if (!mode) return;
+    const mod = pendingIntroModule;
+    setPendingIntroModule(null);
+    if (!mod) return;
     setDoorIntrosSeen((prev) =>
-      prev ? (prev.includes(mode) ? prev : [...prev, mode]) : [mode]
+      prev ? (prev.includes(mod.slug) ? prev : [...prev, mod.slug]) : [mod.slug]
     );
     fetch("/api/door-intros", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode }),
+      body: JSON.stringify({ mode: mod.slug }),
     }).catch(() => {});
     setActiveView("session");
-    void startConversation(mode);
-  }, [pendingIntroMode, startConversation]);
+    void startConversation(mod.slug);
+  }, [pendingIntroModule, startConversation]);
 
   // Desktop sidebar is always visible, so keep its session list fresh
   // the way opening the drawer does on mobile. refreshConversations is
@@ -600,8 +586,6 @@ export default function MainApp() {
       checkpointError={checkpointError}
       errorMessage={errorMessage}
       sendMessage={sendMessage}
-      sendChipResponse={sendChipResponse}
-      onStartSituation={() => handleStartConversation("situation")}
       retryLastMessage={retryLastMessage}
       confirmCheckpoint={confirmCheckpoint}
       isGuest={isGuest}
@@ -660,7 +644,7 @@ export default function MainApp() {
       onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
-      enabledModes={enabledModes}
+      modules={modules}
       appCopy={appCopy}
       showTopBar={!isDesktop}
     />
@@ -675,7 +659,7 @@ export default function MainApp() {
       onStartConversation={handleStartConversation}
       onExploreWithPersona={handleExploreWithPersona}
       onNavigateToManual={handleNavigateToManual}
-      enabledModes={enabledModes}
+      modules={modules}
       appCopy={appCopy}
     />
   );
@@ -816,12 +800,12 @@ export default function MainApp() {
       )}
 
       {/* One-time "how this works" intro, shown the first time a door opens. */}
-      {pendingIntroMode && doorIntros && (
+      {pendingIntroModule?.introTitle && pendingIntroModule.introBody && (
         <DoorIntroModal
           open
-          eyebrow={doorIntros[pendingIntroMode].eyebrow}
-          title={doorIntros[pendingIntroMode].title}
-          body={doorIntros[pendingIntroMode].body}
+          eyebrow="BEFORE YOU BEGIN"
+          title={pendingIntroModule.introTitle}
+          body={pendingIntroModule.introBody}
           onDismiss={handleDoorIntroDismiss}
         />
       )}

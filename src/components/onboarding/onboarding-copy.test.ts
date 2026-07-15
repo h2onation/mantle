@@ -92,24 +92,18 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/components/mobile/MobileSession.tsx");
     const mobileHome = read("src/components/mobile/MobileHome.tsx");
     const desktopHome = read("src/components/desktop/DesktopHome.tsx");
-    // The three "ways to begin" doors: launch wiring (icon + mode) lives in the
-    // shared WaysToBegin; the door COPY is admin-editable and lives in the
-    // app-copy registry. Both Home views render WaysToBegin.
+    // The "ways to begin" module cards: modules are founder-authored rows
+    // (the modules table); WaysToBegin renders whatever enabled modules the
+    // server sends. Both Home views render WaysToBegin.
     const waysToBegin = read("src/components/home/WaysToBegin.tsx");
-    const appCopy = read("src/lib/persona/app-copy.ts");
 
-    it("Home surfaces the three ways to begin (the retired entry-cards' modes)", () => {
-      expect(appCopy).toContain("Bring a situation");
-      expect(appCopy).toContain("Guided");
-      expect(appCopy).toContain("Upload");
-      expect(appCopy).toContain("Bring something you");
+    it("Home renders the module cards on both platforms", () => {
       expect(mobileHome).toContain("<WaysToBegin");
       expect(desktopHome).toContain("<WaysToBegin");
     });
 
-    it("Home starts a situation via the bootstrap (Jove speaks first)", () => {
-      expect(waysToBegin).toContain('"situation"');
-      expect(waysToBegin).toContain("onStartConversation(w.mode)");
+    it("Home starts a module conversation via the bootstrap (no canned user message)", () => {
+      expect(waysToBegin).toContain("onStartConversation(m.slug)");
       // The canned message string from before the bootstrap pattern must
       // be gone — no more inverse-engineered intent on turn 1.
       expect(waysToBegin).not.toContain("I have a situation I want to work through");

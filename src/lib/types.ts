@@ -4,13 +4,6 @@ export interface ChatMessage {
   content: string;
   channel?: "text" | "web" | null;
   isCheckpoint?: boolean;
-  // Guided-intake: render the canonical section picker under this (tee-up)
-  // message. The sections come from layers.ts (client-canonical), not stored
-  // here — this is only the "show it" flag.
-  showSections?: boolean;
-  // Guided-intake: render the one-tap "take this to its own conversation"
-  // action under this message (set only after the user accepts the handoff).
-  offerStartSituation?: boolean;
   checkpointMeta?: {
     // Section slug chosen by composition — always one of the five life-area
     // sections. Replaces the legacy `layer` number. Nullable only to tolerate

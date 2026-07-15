@@ -94,11 +94,11 @@ export type CheckpointAction = keyof typeof CHECKPOINT_ACTIONS;
 // was promoted for all users 2026-07-02 and the rebuilt/legacy rollback
 // worlds were retired, so there is nothing left to switch between.
 
-// Conversation mode: which entry path the user took into a session. Centralized
-// here so the runtime tuple (used for input validation in /api/chat) and the
-// derived type (used in BuildPromptOptions and downstream consumers) stay in
-// sync — previously declared as four near-identical inline literals across
-// system-prompt.ts, chat/route.ts, prompt-architecture/route.ts, and
-// prompt-sections.ts.
-export const CONVERSATION_MODES = ["situation", "guided-intake", "upload"] as const;
-export type ConversationMode = (typeof CONVERSATION_MODES)[number];
+// Conversation mode: the slug of the MODULE the conversation started inside
+// (2026-07-15, modules cutover). Modes are no longer a fixed code tuple —
+// modules are founder-authored rows in the `modules` table, so the type is an
+// open string. Validation happens where it matters: /api/chat checks the
+// requested slug against enabled modules at conversation creation, and the
+// column keeps a slug-format guarantee via isValidModuleSlug. Legacy rows
+// carry the retired door values ("situation", "guided-intake", "upload").
+export type ConversationMode = string;

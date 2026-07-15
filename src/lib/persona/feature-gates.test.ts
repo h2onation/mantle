@@ -25,12 +25,7 @@ describe("getFeatureGates", () => {
     );
     const gates = await getFeatureGates(mock as never);
     expect(gates).toEqual(DEFAULT_FEATURE_GATES);
-    expect(gates).toEqual({
-      situation: true,
-      guidedIntake: true,
-      upload: true,
-      extractionBrief: true,
-    });
+    expect(gates).toEqual({ extractionBrief: true });
   });
 
   it("fails open to all-ON when data is null", async () => {
@@ -45,43 +40,19 @@ describe("getFeatureGates", () => {
       { data: [{ key: "extraction_brief", enabled: false }], error: null },
     );
     const gates = await getFeatureGates(mock as never);
-    // extraction_brief row present and false; the others have no row → stay at
-    // their defaults (all ON).
-    expect(gates).toEqual({
-      situation: true,
-      guidedIntake: true,
-      upload: true,
-      extractionBrief: false,
-    });
+    expect(gates).toEqual({ extractionBrief: false });
   });
 
-  it("maps all four keys when all are present", async () => {
+  it("ignores unknown keys (incl. the removed door + persona_deltas gates)", async () => {
     (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
       "feature_gates",
       {
         data: [
+          // The three door gates were deleted in the modules cutover — a
+          // straggler row must read as unknown, not resurrect a gate.
           { key: "situation", enabled: false },
           { key: "guided_intake", enabled: false },
           { key: "upload", enabled: false },
-          { key: "extraction_brief", enabled: false },
-        ],
-        error: null,
-      },
-    );
-    const gates = await getFeatureGates(mock as never);
-    expect(gates).toEqual({
-      situation: false,
-      guidedIntake: false,
-      upload: false,
-      extractionBrief: false,
-    });
-  });
-
-  it("ignores unknown keys (incl. the removed persona_deltas gate)", async () => {
-    (mock as { _setResponse: (t: string, r: unknown) => void })._setResponse(
-      "feature_gates",
-      {
-        data: [
           { key: "persona_deltas", enabled: false },
           { key: "some_orphan_flag", enabled: false },
         ],
@@ -89,12 +60,7 @@ describe("getFeatureGates", () => {
       },
     );
     const gates = await getFeatureGates(mock as never);
-    expect(gates).toEqual({
-      situation: true,
-      guidedIntake: true,
-      upload: true,
-      extractionBrief: true,
-    });
+    expect(gates).toEqual({ extractionBrief: true });
   });
 
   it("fails open when the client throws", async () => {
@@ -109,11 +75,12 @@ describe("getFeatureGates", () => {
 });
 
 describe("isFeatureGateKey", () => {
-  it("accepts the four known keys", () => {
-    expect(isFeatureGateKey("situation")).toBe(true);
-    expect(isFeatureGateKey("guided_intake")).toBe(true);
-    expect(isFeatureGateKey("upload")).toBe(true);
+  it("accepts the one live key and rejects the retired door gates", () => {
     expect(isFeatureGateKey("extraction_brief")).toBe(true);
+    // Door gates deleted 2026-07-15 (modules cutover).
+    expect(isFeatureGateKey("situation")).toBe(false);
+    expect(isFeatureGateKey("guided_intake")).toBe(false);
+    expect(isFeatureGateKey("upload")).toBe(false);
     expect(isFeatureGateKey("checkpoints")).toBe(false);
     expect(isFeatureGateKey("reflection_meter")).toBe(false);
   });

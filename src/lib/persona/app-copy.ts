@@ -3,8 +3,9 @@ import type { OverrideRow } from "@/lib/persona/voice-overrides";
 
 /**
  * App copy — admin-editable, user-facing UI strings for the onboarding and
- * Home surfaces: the "ways to begin" entry doors, the Home welcome tile, the
- * Manual index headings, and the post-login consent (Seed) screen. Stored as
+ * Home surfaces: the Home welcome tile, the Manual index headings, and the
+ * post-login consent (Seed) screen. (Per-module door copy moved to the
+ * modules table in the modules cutover.) Stored as
  * rows in the shared `persona_voice_overrides` table and resolved
  * override-or-default exactly like the door intros. The code defaults below are
  * the permanent floor — a missing/disabled row or a DB error falls back to
@@ -21,18 +22,7 @@ import type { OverrideRow } from "@/lib/persona/voice-overrides";
  * the client falls back to these same defaults until that object arrives.
  */
 
-export interface DoorCopy {
-  title: string;
-  desc: string;
-  cue: string;
-}
-
 export interface AppCopy {
-  doors: {
-    "guided-intake": DoorCopy;
-    situation: DoorCopy;
-    upload: DoorCopy;
-  };
   waysToBeginLabel: string;
   home: { welcomeEyebrow: string; welcomeBody: string };
   manual: { heading: string; subMobile: string; subDesktop: string };
@@ -49,7 +39,6 @@ export interface AppCopy {
 
 /** The admin-panel section a field belongs to (drives the section order too). */
 export const APP_COPY_GROUPS = [
-  "Entry doors",
   "Home",
   "Manual menu",
   "Seed screen",
@@ -66,56 +55,11 @@ export const APP_COPY_FIELDS: Record<
   string,
   { label: string; group: (typeof APP_COPY_GROUPS)[number]; getDefault: () => string }
 > = {
-  // ── Entry doors (WaysToBegin) ──
-  door_guided_title: {
-    group: "Entry doors",
-    label: "Guided door — title",
-    getDefault: () => "Guided",
-  },
-  door_guided_desc: {
-    group: "Entry doors",
-    label: "Guided door — description",
-    getDefault: () => "Walk through it step by step with Jove.",
-  },
-  door_guided_cue: {
-    group: "Entry doors",
-    label: "Guided door — button",
-    getDefault: () => "Begin",
-  },
-  door_situation_title: {
-    group: "Entry doors",
-    label: "Situation door — title",
-    getDefault: () => "Bring a situation",
-  },
-  door_situation_desc: {
-    group: "Entry doors",
-    label: "Situation door — description",
-    getDefault: () =>
-      "A reaction that surprised you, a conflict that keeps repeating.",
-  },
-  door_situation_cue: {
-    group: "Entry doors",
-    label: "Situation door — button",
-    getDefault: () => "Start",
-  },
-  door_upload_title: {
-    group: "Entry doors",
-    label: "Upload door — title",
-    getDefault: () => "Upload",
-  },
-  door_upload_desc: {
-    group: "Entry doors",
-    label: "Upload door — description",
-    getDefault: () => "Bring something you’ve already written.",
-  },
-  door_upload_cue: {
-    group: "Entry doors",
-    label: "Upload door — button",
-    getDefault: () => "Add",
-  },
+  // The label above the Home module list. (Per-module card copy lives on the
+  // modules table, edited at /admin/modules — not here.)
   ways_to_begin_label: {
-    group: "Entry doors",
-    label: "Section label",
+    group: "Home",
+    label: "Ways-to-begin label",
     getDefault: () => "Ways to begin",
   },
 
@@ -215,23 +159,6 @@ export function resolveAppCopy(rows: Map<string, OverrideRow>): AppCopy {
     return APP_COPY_FIELDS[key].getDefault();
   };
   return {
-    doors: {
-      "guided-intake": {
-        title: r("door_guided_title"),
-        desc: r("door_guided_desc"),
-        cue: r("door_guided_cue"),
-      },
-      situation: {
-        title: r("door_situation_title"),
-        desc: r("door_situation_desc"),
-        cue: r("door_situation_cue"),
-      },
-      upload: {
-        title: r("door_upload_title"),
-        desc: r("door_upload_desc"),
-        cue: r("door_upload_cue"),
-      },
-    },
     waysToBeginLabel: r("ways_to_begin_label"),
     home: {
       welcomeEyebrow: r("home_welcome_eyebrow"),

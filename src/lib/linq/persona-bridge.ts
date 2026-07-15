@@ -6,7 +6,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropicFetch } from "@/lib/anthropic";
 import { buildSystemPrompt } from "@/lib/persona/system-prompt";
 import { detectTranscript } from "@/lib/utils/transcript-detection";
-import { selectTranscriptContextForPrompt } from "@/lib/persona/call-persona";
 import { markLatency, type LatencyCollector } from "@/lib/messaging/latency";
 import {
   PERSONA_MODEL,
@@ -90,10 +89,8 @@ export async function processTextMessage(
   //    (analytical stance + do-not-profile-others) the in-app prompt carries —
   //    otherwise a pasted conversation is treated as an ordinary message over
   //    SMS. See ADR-042 and docs/audits/prompt-injector-2026-06-01.md.
-  const transcriptContext = selectTranscriptContextForPrompt(
-    ctx.mode,
-    messageText !== null ? detectTranscript(messageText) : null,
-  );
+  const transcriptContext =
+    messageText !== null ? detectTranscript(messageText) : null;
   const systemPrompt = buildSystemPrompt({
     ...buildPromptOptionsFromContext(ctx),
     transcriptContext,

@@ -5,7 +5,6 @@ import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import AdminNavRail from "@/components/admin/AdminNavRail";
 import OverrideFieldEditor from "@/components/admin/OverrideFieldEditor";
 import VoiceEditorPanel from "@/components/admin/VoiceEditorPanel";
-import IntakeDoorsPanel from "@/components/admin/IntakeDoorsPanel";
 import AppCopyPanel from "@/components/admin/AppCopyPanel";
 import ScoreTrendPanel from "@/components/admin/ScoreTrendPanel";
 import ScoringRubricPanel from "@/components/admin/ScoringRubricPanel";
@@ -15,7 +14,8 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 // Tuning — the ONE room where everything that shapes Jove is tuned
 // (founder decisions 2026-07-07: both prompts here; then the old home-page
 // "Controls" section collapsed into this page — operational copy, the meter
-// dial, and the intake doors — so tuning has a single address. The feature
+// dial — so tuning has a single address. (Modules, each carrying its own
+// door + optional prompt, are edited at /admin/modules.) The feature
 // gates sit beside this page in the Controls nav group, on their own route:
 // they're debug kill-switches, not tuning).
 //
@@ -29,7 +29,7 @@ import { CONDUCTOR_REQUIRED_FRAGMENTS } from "@/lib/persona/conductor-prompt";
 //      function the live call uses) + the editable entry bar.
 //   3. Copy around the conversation — openers, post-save line, app copy
 //      (VoiceEditorPanel + AppCopyPanel, same override system).
-//   4. The intake doors (IntakeDoorsPanel).
+//   4. (Retired: the intake doors — modules are edited at /admin/modules.)
 //   (The reflection-meter dial was removed 2026-07-07; the post-save recharge
 //   it paced was removed entirely 2026-07-08 — the bar is now depth-only and
 //   never recharges, since a session builds toward a single reflection.)
@@ -317,7 +317,7 @@ export default function TuningPage() {
               the entry when someone saves a reflection — its prompt is shown
               with its one editable piece (the entry bar). Below those: the
               small copy around the conversation, the reflection-meter dial,
-              and the intake doors. When something feels off, ask which it was:
+              and the copy around it. When something feels off, ask which it was:
               the conversation felt wrong → Jove&rsquo;s prompt; the written
               entry read wrong → the entry bar. Edits are live on the next
               turn, no deploy, and the shipped code is always the floor: Reset
@@ -338,7 +338,6 @@ export default function TuningPage() {
                 ["#conversation", "Jove's prompt"],
                 ["#composer", "The entry composer"],
                 ["#copy", "Copy around the conversation"],
-                ["#doors", "Intake doors"],
                 ["#rubric", "Scoring rubric"],
                 ["#scoring", "Session scores"],
               ].map(([href, label]) => (
@@ -856,20 +855,6 @@ export default function TuningPage() {
             </h2>
             <VoiceEditorPanel />
             <AppCopyPanel />
-
-            {/* ── The intake doors ───────────────────────────────────── */}
-            <h2
-              id="doors"
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "19px",
-                color: "var(--session-ink)",
-                margin: "40px 0 12px",
-              }}
-            >
-              The intake doors
-            </h2>
-            <IntakeDoorsPanel />
 
             {/* ── The scoring rubric ─────────────────────────────────── */}
             <h2

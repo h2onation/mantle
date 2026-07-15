@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseSSEStream, type MessageCompleteEvent } from "@/lib/utils/sse-parser";
 import { firstNameFrom } from "@/lib/utils/name";
-import { LAYERS, sectionName } from "@/lib/manual/layers";
+import { sectionName } from "@/lib/manual/layers";
 import type { CheckpointAction } from "@/lib/persona/config";
 import type { ChatMessage, ManualEntry, ActiveCheckpoint, ExplorationContext, EntryCandidate } from "@/lib/types";
 import {
@@ -245,11 +245,11 @@ export function useChat() {
   // Set when a conversation is created so conversation_ended can report
   // a duration without querying the DB.
   const conversationStartedAt = useRef<number | null>(null);
-  // Mirrors the active conversation's mode so checkpoint and
-  // conversation_ended events can attach it without a DB read. Updated
-  // on every message_complete (server is authoritative). Defaults to
-  // "situation" for any conversation that hasn't reported a mode yet.
-  const conversationMode = useRef<ConversationMode>("situation");
+  // Mirrors the active conversation's mode (its module slug) so checkpoint
+  // and conversation_ended events can attach it without a DB read. Updated
+  // on every message_complete (server is authoritative). Empty until a
+  // conversation reports one.
+  const conversationMode = useRef<ConversationMode>("");
   // Synchronous re-entry guard shared by the three start paths. Closes the
   // same-tick double-start window the isLoading/isStreaming state checks can't
   // (state isn't visible in-tick). Lazily initialized so the same guard
@@ -261,7 +261,7 @@ export function useChat() {
   const supabase = createClient();
 
   // Live (client-driven) simulator state. A fake user drives the REAL app —
-  // startConversation + sendMessage/sendChipResponse, the same paths a person
+  // startConversation + sendMessage, the same paths a person
   // hits — so the section picker, focus chips, and taps all render live. The
   // turn loop runs as an effect-driven state machine (below) reading fresh
   // render state, not refs, so there are no stale-closure races between turns.
@@ -434,21 +434,6 @@ export function useChat() {
 
     // (The former checkpoint block is gone — capture is pull-only, so a live
     // stream never proposes. Proposal analytics fire from composeCheckpoint.)
-
-    // Attach guided-intake UI flags (section picker / situation-handoff action).
-    if (completeEvent.sections || completeEvent.startSituationOffer) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === completeEvent!.messageId
-            ? {
-                ...m,
-                showSections: completeEvent!.sections,
-                offerStartSituation: completeEvent!.startSituationOffer,
-              }
-            : m
-        )
-      );
-    }
 
     if (completeEvent.processingText) {
       setProcessingText(completeEvent.processingText);
@@ -659,24 +644,8 @@ export function useChat() {
     } catch {}
   }, [conversationId]);
 
-  async function sendMessage(text: string, options?: { isChipResponse?: boolean }) {
+  async function sendMessage(text: string) {
     if (!text.trim() || isLoading || isStreaming) return;
-
-    // Clear guided-intake UI flags from all messages whenever a new user
-    // message is sent — the picker/action belong to a single turn.
-    setMessages((prev) =>
-      prev.some((m) => m.showSections || m.offerStartSituation)
-        ? prev.map((m) =>
-            m.showSections || m.offerStartSituation
-              ? {
-                  ...m,
-                  showSections: undefined,
-                  offerStartSituation: undefined,
-                }
-              : m
-          )
-        : prev
-    );
 
     // If the user types instead of tapping the post-save fork, dismiss it.
     setPostSaveEntry(null);
@@ -709,7 +678,6 @@ export function useChat() {
         body: JSON.stringify({
           message: text,
           conversationId,
-          ...(options?.isChipResponse ? { isChipResponse: true } : {}),
         }),
       });
 
@@ -1585,7 +1553,7 @@ export function useChat() {
    * back. Entry point fires into analytics derived from the mode. See
    * ADR-042 §1.
    *
-   * All three modes (situation, guided-intake, upload) bootstrap through
+   * Every module bootstraps through
    * this single path. Situation joined the bootstrap pattern after Phase 1;
    * before that it routed through sendMessage with a canned user string,
    * which forced the model to inverse-engineer intent on turn 1.
@@ -1596,7 +1564,7 @@ export function useChat() {
 
     // Complete the current conversation fire-and-forget (don't block on it),
     // then reset — the same reset-then-start shape startExploration uses.
-    // This lets a returning user begin a fresh situation / guided-intake /
+    // This lets a returning user begin a fresh module conversation /
     // upload conversation straight from Home, over an auto-resumed thread.
     // The old `messages.length > 0` early-return made every Home start a
     // silent no-op for anyone with a loaded conversation; the in-flight
@@ -1737,9 +1705,6 @@ export function useChat() {
       .find((m) => m.role === "assistant");
     if (!lastAssistant) return; // wait for Jove's opener/turn before replying
 
-    const options = lastAssistant.showSections
-      ? LAYERS.map((l) => l.name)
-      : undefined;
     const history = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({
@@ -1756,7 +1721,6 @@ export function useChat() {
           body: JSON.stringify({
             simulatedUserDescription: description,
             history,
-            ...(options ? { availableOptions: options } : {}),
           }),
         });
         if (!res.ok) throw new Error(`turn endpoint ${res.status}`);
@@ -1766,7 +1730,7 @@ export function useChat() {
           stopSim();
           return;
         }
-        await sendMessage(message, options ? { isChipResponse: true } : undefined);
+        await sendMessage(message);
       } catch (err) {
         console.error("[useChat] live simulation turn failed:", err);
         stopSim();
@@ -1774,7 +1738,7 @@ export function useChat() {
         setSimBusy(false);
       }
     })();
-    // sendMessage/sendChipResponse are stable closures; messages drives re-runs.
+    // sendMessage is a stable closure; messages drives re-runs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simActive, simBusy, isLoading, isStreaming, conversationId, activeCheckpoint, reflectionReady, messages, stopSim]);
 
@@ -1803,8 +1767,6 @@ export function useChat() {
     promptAuth,
     resetPromptAuth: () => setPromptAuth(false),
     sendMessage,
-    sendChipResponse: (text: string) =>
-      sendMessage(text, { isChipResponse: true }),
     retryLastMessage,
     confirmCheckpoint,
     switchConversation,

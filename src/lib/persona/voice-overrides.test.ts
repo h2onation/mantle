@@ -58,10 +58,10 @@ describe("getVoiceOverrides — resolver contract", () => {
   it("ignores an enabled-but-empty override (whitespace only)", async () => {
     const out = await getVoiceOverrides(
       adminStub({
-        data: [{ key: "upload_opener", text_override: "   ", enabled: true }],
+        data: [{ key: "composer_entry_bar", text_override: "   ", enabled: true }],
       }),
     );
-    expect(out.uploadOpener).toBeUndefined();
+    expect(out.composerEntryBar).toBeUndefined();
   });
 
   it("ignores an unknown key", async () => {

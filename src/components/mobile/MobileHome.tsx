@@ -5,6 +5,7 @@ import TopBar from "@/components/shared/TopBar";
 import type { ConversationSummaryItem } from "@/lib/hooks/useChat";
 import type { ManualEntry, ExplorationContext } from "@/lib/types";
 import type { ConversationMode } from "@/lib/persona/config";
+import type { HomeModule } from "@/lib/modules";
 import { useHomeModel } from "@/components/home/useHomeModel";
 import LayerIndex from "@/components/home/LayerIndex";
 import WaysToBegin from "@/components/home/WaysToBegin";
@@ -20,9 +21,9 @@ interface MobileHomeProps {
   onStartConversation: (mode: ConversationMode) => void;
   onExploreWithPersona: (context: ExplorationContext) => void;
   onNavigateToManual: () => void;
-  // Which entry doors are live (per-mode feature gates). A disabled door
-  // renders as "Coming soon". Situation is always true.
-  enabledModes: Record<ConversationMode, boolean>;
+  // The enabled modules, in display order — each is a door in and a Manual
+  // section. Founder-authored rows served by /api/onboarding-status.
+  modules: HomeModule[];
   // Admin-editable onboarding/Home copy. Defaults to the shipped strings.
   appCopy?: AppCopy;
   // false when the desktop shell provides its own header. Default true.
@@ -53,7 +54,7 @@ export default function MobileHome({
   onStartConversation,
   onExploreWithPersona,
   onNavigateToManual,
-  enabledModes,
+  modules,
   appCopy = APP_COPY_DEFAULTS,
   showTopBar = true,
 }: MobileHomeProps) {
@@ -188,8 +189,8 @@ export default function MobileHome({
         <WaysToBegin
           variant="mobile"
           onStartConversation={onStartConversation}
-          enabledModes={enabledModes}
-          appCopy={appCopy}
+          modules={modules}
+          label={appCopy.waysToBeginLabel}
         />
 
         {/* Manual index — quiet menu of go-deeper actions. */}

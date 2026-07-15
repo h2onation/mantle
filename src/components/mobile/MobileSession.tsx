@@ -16,7 +16,6 @@ import ReflectionHeader from "./ReflectionHeader";
 import TopBar from "@/components/shared/TopBar";
 import type { ReflectionSessionHandle } from "@/lib/hooks/useReflection";
 import ConnectionErrorPlate from "@/components/shared/ConnectionErrorPlate";
-import SectionPicker from "./SectionPicker";
 import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
 /** First sentence of a checkpoint's entry, for the inline-preview teaser.
@@ -45,10 +44,6 @@ interface MobileSessionProps {
   checkpointError: string | null;
   errorMessage: string | null;
   sendMessage: (text: string) => void;
-  sendChipResponse: (text: string) => void;
-  // Guided-intake live-situation handoff: start a fresh situation conversation.
-  // Wired to startConversation("situation") in MainApp.
-  onStartSituation: () => void;
   retryLastMessage: () => void;
   confirmCheckpoint: (
     action: CheckpointAction,
@@ -113,8 +108,6 @@ function MobileSessionInner({
   checkpointError,
   errorMessage,
   sendMessage,
-  sendChipResponse,
-  onStartSituation,
   retryLastMessage,
   confirmCheckpoint,
   isGuest,
@@ -223,16 +216,6 @@ function MobileSessionInner({
   const prevCheckpointRef = useRef<ActiveCheckpoint | null>(null);
 
   const isDesktop = useIsDesktop();
-  // The section picker is on screen for the latest Jove turn. Drives the
-  // input's "Or type something else…" invitation so it's clear the options are
-  // optional and free text is always available.
-  const lastMessage = messages[messages.length - 1];
-  const optionsShowing =
-    !!lastMessage &&
-    lastMessage.role === "assistant" &&
-    !isStreaming &&
-    !isLoading &&
-    lastMessage.showSections === true;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -625,39 +608,6 @@ function MobileSessionInner({
                         )}
                       </div>
                     </Bubble>
-                    {msg.showSections &&
-                      i === messages.length - 1 &&
-                      !isStreaming &&
-                      !isLoading && (
-                        <SectionPicker
-                          onSelect={sendChipResponse}
-                          disabled={isLoading || isStreaming}
-                        />
-                      )}
-                    {msg.offerStartSituation &&
-                      i === messages.length - 1 &&
-                      !isStreaming &&
-                      !isLoading && (
-                        <button
-                          onClick={onStartSituation}
-                          disabled={isLoading || isStreaming}
-                          style={{
-                            marginTop: "12px",
-                            fontFamily: "var(--font-serif)",
-                            fontSize: "15px",
-                            fontStyle: "italic",
-                            color: "var(--session-cream-bright)",
-                            backgroundColor: "var(--session-persona)",
-                            border: "none",
-                            borderRadius: "8px",
-                            padding: "10px 16px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          Take this to its own conversation
-                        </button>
-                      )}
                   </div>
                 );
               }
@@ -764,7 +714,6 @@ function MobileSessionInner({
         sendLocked={isLoading || isStreaming}
         draftToRestore={draftToRestore}
         onDraftRestored={onDraftRestored}
-        placeholder={optionsShowing ? "Or type something else…" : undefined}
         focusOnEnable={isDesktop === true}
       />
 

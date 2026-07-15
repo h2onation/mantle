@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callPersona } from "@/lib/persona/call-persona";
 import { recordApiError } from "@/lib/observability/record-api-error";
-import { CONVERSATION_MODES } from "@/lib/persona/config";
+import { getModule } from "@/lib/modules";
 import {
   chatAuthMinute,
   chatAuthDay,
@@ -16,8 +16,12 @@ import {
 import { checkDailyMessageLimit } from "@/lib/usage";
 import { checkAnonCheckpointGate } from "@/lib/auth/anon-checkpoint-gate";
 
-const MAX_MESSAGE_LENGTH = 4000;
-const MAX_UPLOAD_LENGTH = 16000;
+// One cap for every message. 16k covers pasted artifacts (text threads,
+// email chains, journal entries — pasting works in any conversation since
+// the Upload door was retired for the modules cutover); the per-day message
+// limit and rate limiters bound abuse, so a mode-based dual cap earned
+// nothing but branching.
+const MAX_MESSAGE_LENGTH = 16000;
 
 export async function POST(request: Request) {
   let capturedUserId: string | null = null;
@@ -28,7 +32,7 @@ export async function POST(request: Request) {
     const { user } = auth;
     capturedUserId = user.id;
 
-    const { message, conversationId, explorationContext, mode: requestedMode, isChipResponse } = (await request.json()) as {
+    const { message, conversationId, explorationContext, mode: requestedMode } = (await request.json()) as {
       message: string | null;
       conversationId: string | null;
       explorationContext?: {
@@ -38,20 +42,24 @@ export async function POST(request: Request) {
         content: string;
       };
       mode?: string;
-      isChipResponse?: boolean;
     };
 
-    if (
-      requestedMode !== undefined &&
-      !(CONVERSATION_MODES as readonly string[]).includes(requestedMode)
-    ) {
-      return Response.json(
-        { error: "Invalid mode. Must be 'situation', 'guided-intake', or 'upload'." },
-        { status: 400 }
-      );
-    }
-
     const admin = createAdminClient();
+
+    // A NEW conversation must start inside an enabled module — the mode IS
+    // the module slug, stamped on the row and on every entry saved from the
+    // conversation. No fallback: with no valid module there is nothing to
+    // file entries under. (Continuing an existing conversation ignores
+    // requestedMode; the row already carries its module.)
+    if (!conversationId) {
+      const mod = requestedMode ? await getModule(admin, requestedMode) : null;
+      if (!mod || !mod.enabled) {
+        return Response.json(
+          { error: "Invalid mode. Must be the slug of an enabled module." },
+          { status: 400 }
+        );
+      }
+    }
 
     // 1a. Ownership + mode. When continuing an existing conversation, verify
     // it belongs to the authenticated user BEFORE anything reads from or
@@ -60,14 +68,12 @@ export async function POST(request: Request) {
     // another user's conversationId and read their transcript into Jove's
     // context or write into their conversation. Sibling routes
     // (checkpoint/confirm, session/summary) already scope by user_id; this
-    // route did not. The same query also reads `mode` so upload conversations
-    // keep the larger message cap on follow-up turns. Returns 404 (not 403)
-    // so a probing user can't distinguish a foreign id from a missing one.
-    let effectiveMode = requestedMode;
+    // route did not. Returns 404 (not 403) so a probing user can't
+    // distinguish a foreign id from a missing one.
     if (conversationId) {
       const { data: convRow, error: convReadError } = await admin
         .from("conversations")
-        .select("user_id, mode")
+        .select("user_id")
         .eq("id", conversationId)
         .single();
       if (convReadError || !convRow || convRow.user_id !== user.id) {
@@ -76,16 +82,12 @@ export async function POST(request: Request) {
           { status: 404 }
         );
       }
-      if (!effectiveMode && convRow.mode === "upload") effectiveMode = "upload";
     }
-    const isUpload = effectiveMode === "upload";
-    const maxLen = isUpload ? MAX_UPLOAD_LENGTH : MAX_MESSAGE_LENGTH;
-    if (typeof message === "string" && message.length > maxLen) {
+    if (typeof message === "string" && message.length > MAX_MESSAGE_LENGTH) {
       return Response.json(
         {
-          error: isUpload
-            ? "Upload is too long. Please keep uploads under 16,000 characters."
-            : "Message is too long. Please keep messages under 4,000 characters.",
+          error:
+            "Message is too long. Please keep messages under 16,000 characters.",
         },
         { status: 400 }
       );
@@ -110,10 +112,9 @@ export async function POST(request: Request) {
     // 1d. Per-user daily message cap (Postgres-backed). Counts authored
     // user messages on the current UTC day so a single user can't
     // runaway-spend Anthropic tokens. Skipped when `message === null` —
-    // those calls are server-triggered openers (guided / upload first
-    // turn) or post-confirm emissions, neither of which add to the
-    // user's typed volume. See src/lib/usage.ts for the layered
-    // relationship with Upstash.
+    // those calls are server-triggered module openers or post-confirm
+    // emissions, neither of which add to the user's typed volume. See
+    // src/lib/usage.ts for the layered relationship with Upstash.
     if (message !== null) {
       const dailyCheck = await checkDailyMessageLimit(admin, user.id);
       if (!dailyCheck.allowed) {
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
 
       const { data: conv, error: convError } = await admin
         .from("conversations")
-        .insert({ user_id: user.id, mode: requestedMode || "situation" })
+        .insert({ user_id: user.id, mode: requestedMode })
         .select("id")
         .single();
 
@@ -169,7 +170,6 @@ export async function POST(request: Request) {
       userId: user.id,
       message,
       explorationContext,
-      isChipResponse: isChipResponse === true,
     });
 
     // X-Conversation-Id is set so the client can capture the conversation

@@ -5,10 +5,7 @@ import {
   PERSONA_MODES,
   togglePersonaMode,
 } from "@/lib/persona/persona-mode-toggle";
-import {
-  CONVERSATION_MODES,
-  type ConversationMode,
-} from "@/lib/persona/config";
+import type { ConversationMode } from "@/lib/persona/config";
 
 const PERSONA_LABELS: Record<PersonaMode, string> = {
   autistic: "Autistic",
@@ -17,15 +14,12 @@ const PERSONA_LABELS: Record<PersonaMode, string> = {
   general: "General",
 };
 
-const INTAKE_LABELS: Record<ConversationMode, string> = {
-  situation: "Situation",
-  "guided-intake": "Guided intake",
-  upload: "Upload",
-};
-
 interface Props {
   personaModes?: PersonaMode[];
   intakeMode: ConversationMode;
+  // The enabled modules (slug + display name), fetched by the hosting panel.
+  // The picker renders one chip per module; empty = no modules to pick.
+  intakeOptions: { slug: string; name: string }[];
   onPersonaModesChange?: (next: PersonaMode[]) => void;
   onIntakeModeChange: (next: ConversationMode) => void;
   disabled?: boolean;
@@ -64,6 +58,7 @@ function chip(active: boolean, disabled: boolean): React.CSSProperties {
 export default function PersonaIntakeControls({
   personaModes,
   intakeMode,
+  intakeOptions,
   onPersonaModesChange,
   onIntakeModeChange,
   disabled = false,
@@ -117,18 +112,18 @@ export default function PersonaIntakeControls({
       >
         <span style={labelStyle}>Intake</span>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {CONVERSATION_MODES.map((mode) => {
-            const active = intakeMode === mode;
+          {intakeOptions.map((opt) => {
+            const active = intakeMode === opt.slug;
             return (
               <button
-                key={mode}
+                key={opt.slug}
                 type="button"
-                onClick={() => !disabled && onIntakeModeChange(mode)}
+                onClick={() => !disabled && onIntakeModeChange(opt.slug)}
                 disabled={disabled}
                 style={chip(active, disabled)}
                 aria-pressed={active}
               >
-                {INTAKE_LABELS[mode]}
+                {opt.name}
               </button>
             );
           })}
