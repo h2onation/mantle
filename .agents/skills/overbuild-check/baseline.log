@@ -1,3 +1,0 @@
-# overbuild-check ratchet meter — append-only, one line per run (see SKILL.md Appendix).
-# Seeded right after the 2026-06-04 overbuild cleanup = a clean low-water mark.
-2026-06-04 loc=6393 prompt_chars=201777 call_sites=6 net_tables=15 env_flags=6
