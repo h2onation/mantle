@@ -3,6 +3,7 @@
 import type { MobileView } from "@/components/layout/MobileLayout";
 import type { ReflectionSurface } from "@/lib/hooks/useReflection";
 import BetaFeedbackButton from "@/components/shared/BetaFeedbackButton";
+import { BRAND } from "@/lib/brand";
 import ReflectionHeader from "@/components/mobile/ReflectionHeader";
 
 interface RoomHeaderProps {
@@ -152,7 +153,7 @@ export default function RoomHeader({
           whiteSpace: "nowrap",
         }}
       >
-        mywalnut
+        {BRAND.name}
         <span style={{ color: "var(--session-walnut)" }}>.</span>
       </p>
 

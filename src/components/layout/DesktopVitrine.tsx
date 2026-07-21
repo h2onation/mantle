@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_VERSION } from "@/lib/version";
+import { BRAND } from "@/lib/brand";
 import { useTheme, type ThemeChoice } from "@/lib/hooks/useTheme";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { PERSONA_NAME } from "@/lib/persona/config";
@@ -68,7 +69,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
           at narrow desktop, top-left corner at wide desktop. */}
       <header
         className="mw-desktop-paratext mw-masthead"
-        aria-label="mywalnut"
+        aria-label={BRAND.name}
       >
         <p
           style={{
@@ -81,7 +82,7 @@ export default function DesktopVitrine({ children }: DesktopVitrineProps) {
             color: "var(--session-paratext)",
           }}
         >
-          mywalnut<span style={{ color: "var(--session-paratext-spine)" }}>.</span>
+          {BRAND.name}<span style={{ color: "var(--session-paratext-spine)" }}>.</span>
         </p>
       </header>
 

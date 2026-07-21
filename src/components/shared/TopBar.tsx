@@ -1,5 +1,7 @@
 "use client";
 
+import { BRAND } from "@/lib/brand";
+
 interface TopBarProps {
   onBack?: () => void;
 }
@@ -64,7 +66,7 @@ export default function TopBar({ onBack }: TopBarProps) {
           lineHeight: 1,
         }}
       >
-        mywalnut
+        {BRAND.name}
         <span style={{ color: "var(--session-walnut)" }}>.</span>
       </span>
 

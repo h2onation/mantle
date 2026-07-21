@@ -1,11 +1,12 @@
 import { ImageResponse } from "next/og";
+import { BRAND } from "@/lib/brand";
 
 // Social share card for the landing. Generated at request time by Next's
 // file-convention OG route — no binary asset to maintain. Brand palette
 // (linen ground, espresso ink, walnut accent). Default font (Satori has no
 // system serif); kept simple and robust over loading the brand serif.
 export const runtime = "edge";
-export const alt = "mywalnut — a clearer picture of how you actually operate";
+export const alt = `${BRAND.name} — a clearer picture of how you actually operate`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -36,7 +37,7 @@ export default function OpengraphImage() {
             color: "#1F140A",
           }}
         >
-          mywalnut
+          {BRAND.name}
           <span style={{ color: "#5C3A1E" }}>.</span>
         </div>
         <div
