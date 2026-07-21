@@ -85,7 +85,7 @@ const OUTSIDE_SHEET: { item: string; note: string }[] = [
 ];
 
 const LEFT_ALONE =
-  "Deliberately untouched because users never see them: localStorage keys (mywalnut.theme), CSS token names (--session-walnut-*), log-salt fallback, analytics keys, code comments, the legacy /narrative preview pages.";
+  "Deliberately untouched because users never see them: localStorage keys (mywalnut.theme), CSS token names (--session-walnut-*), log-salt fallback, analytics keys, code comments.";
 
 export default function BrandPage() {
   const isAdmin = useIsAdmin();

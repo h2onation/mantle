@@ -15,10 +15,9 @@
  *   3. Update the static brand copy in public/offline.html (not templated).
  *   4. Review legal copy in src/app/{terms,privacy,sms}/page.tsx
  *      — some references may need legal re-approval.
- *   5. Review user-facing brand copy in public/narrative/*.html (marketing pages).
- *   6. Re-render pitch-video assets (see pitch-video/README).
- *   7. Anthropic prompt cache will invalidate on next request.
- *   8. A few tests in system-prompt.test.ts and generate-summary.test.ts
+ *   5. Re-render pitch-video assets (see pitch-video/README).
+ *   6. Anthropic prompt cache will invalidate on next request.
+ *   7. A few tests in system-prompt.test.ts and generate-summary.test.ts
  *      assert the literal current name — expected to fail and prompt
  *      conscious review; update their assertions to use PERSONA_NAME.
  */

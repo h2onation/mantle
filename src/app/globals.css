@@ -10,8 +10,9 @@
      and re-binds the same --session-* token names to V3 Embossed
      linen values. Both modes share the walnut spine (#5C3A1E in
      light, rgb(170,120,82) in dark) — only the surrounding tone
-     shifts. Source of truth for dark: src/app/demo/glass/page.tsx.
-     Source of truth for light: src/app/demo/linen/page.tsx (V3). */
+     shifts. The original design mockups (src/app/demo/glass and
+     /linen, "V3 Embossed" for light) were deleted 2026-07-21 in
+     rebrand prep — recover from git history if needed. */
 
   /* Surface — cool graphite ground */
   --session-linen:       #0A0B10;
@@ -80,7 +81,8 @@
 
   /* Surface gradients — walnut + slate radial blends.
      Each surface has a distinct gradient that places walnut warmth
-     in a different corner. Source: demo/glass/page.tsx. */
+     in a different corner. Source: the deleted glass demo mockup
+     (git history: src/app/demo/glass/page.tsx). */
   --session-bg-welcome:
     radial-gradient(ellipse 120% 70% at 30% 25%, rgba(60, 68, 82, 0.92), transparent 65%),
     radial-gradient(ellipse 100% 70% at 60% 100%, rgba(36, 42, 55, 0.85), transparent 70%),
@@ -222,7 +224,8 @@
    ground; lift comes from shadow + border, not fill contrast.
    Walnut spine (#5C3A1E) is the same hue identity as dark — only the
    surrounding tone shifts. Espresso ink for AAA contrast on linen.
-   Source: src/app/demo/linen/page.tsx (Version 03 — Embossed linen). */
+   Source: the deleted linen demo mockup, Version 03 — Embossed linen
+   (git history: src/app/demo/linen/page.tsx). */
 [data-theme="light"] {
   /* Surface — cool greige stone, with paper + parchment variants.
      Paper surfaces are bright stone-white, barely lifted off the ground;
