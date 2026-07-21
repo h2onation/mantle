@@ -66,10 +66,11 @@ export default function ModulesPage() {
             >
               A module is a door and a Manual section in one: it appears on Home
               as a way to begin, and entries confirmed inside it file under its
-              name in the Manual. Each module can carry its own opening message
-              and its own Jove prompt — leave the prompt blank and it runs the
-              shared conductor from the Tuning page. Disabling a module hides
-              the door but keeps its section and entries visible.
+              name in the Manual. Every module speaks the one shared voice from
+              the Tuning page; a module&apos;s brief adds steering on top of it —
+              never in place of it. Each module can also carry its own opening
+              message. Disabling a module hides the door but keeps its section
+              and entries visible.
             </p>
 
             <ModulesPanel />
