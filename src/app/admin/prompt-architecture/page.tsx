@@ -53,7 +53,7 @@ const ASSEMBLY_BLOCKS: { title: string; body: string }[] = [
   {
     title: "1 · This prompt",
     body:
-      "The document below, verbatim. Jove's entire personality and method. Identical every turn, so the API caches it — an edit here re-primes the cache on the following turn.",
+      "The document below, verbatim. Jove's entire personality and method. If the conversation's module has a brief (Modules page), it rides here too, appended as a labeled focus section — steering on top of this voice, never in place of it. Identical every turn, so the API caches it — an edit here re-primes the cache on the following turn.",
   },
   {
     title: "2 · The Manual so far",
@@ -318,7 +318,8 @@ export default function TuningPage() {
               with its one editable piece (the entry bar). Below those: the
               small copy around the conversation, the reflection-meter dial,
               and the copy around it. When something feels off, ask which it was:
-              the conversation felt wrong → Jove&rsquo;s prompt; the written
+              the conversation felt wrong → Jove&rsquo;s prompt (or one
+              module&rsquo;s brief, on the Modules page); the written
               entry read wrong → the entry bar. Edits are live on the next
               turn, no deploy, and the shipped code is always the floor: Reset
               returns to it instantly.
