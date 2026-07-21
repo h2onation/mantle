@@ -53,7 +53,7 @@ vi.mock("@/lib/supabase/admin", () => ({
                 intro_title: null,
                 intro_body: null,
                 opener_text: null,
-                custom_prompt: null,
+                brief: null,
                 enabled: row.enabled,
                 sort_order: 0,
                 updated_at: null,

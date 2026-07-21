@@ -2,22 +2,18 @@ import { requireAdmin } from "@/lib/admin/verify-admin";
 import {
   getModules,
   isValidModuleSlug,
-  validateModulePrompt,
+  validateModuleBrief,
 } from "@/lib/modules";
-import { getVoiceOverrides } from "@/lib/persona/voice-overrides";
-import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Admin CRUD for modules — the unified door + Manual-section rows.
-// GET returns every module plus the live conductor text (override ?? code)
-// so the editor's "start from the current conductor" button copies what is
-// actually serving today, not a stale code default.
+// Admin CRUD for modules — the unified door + Manual-section rows. The voice
+// is never per-module (ADR-054): a module carries a BRIEF that composes with
+// the shared conductor, not a prompt of its own.
 
 const MAX_TEXT = 200; // name / cue / icon caps — card copy, not prose
-const MAX_PROSE = 4000; // description / intro / opener caps
-const MAX_PROMPT = 60000; // custom prompt cap — same order as the conductor
+const MAX_PROSE = 4000; // description / intro / opener / brief caps
 
 // Fields an admin may write, with per-field coercion. Empty strings on the
 // nullable prose fields coerce to null ("not set") so a cleared textarea
@@ -30,7 +26,7 @@ type ModuleWrite = {
   intro_title?: string | null;
   intro_body?: string | null;
   opener_text?: string | null;
-  custom_prompt?: string | null;
+  brief?: string | null;
   enabled?: boolean;
   sort_order?: number;
 };
@@ -76,13 +72,13 @@ function coerceWrite(body: Record<string, unknown>): ModuleWrite | string {
     if (v !== undefined) out[key] = v && v.trim() ? v : null;
   }
 
-  const prompt = text("custom_prompt", MAX_PROMPT);
-  if (Array.isArray(prompt)) return prompt[0];
-  if (prompt !== undefined) {
-    const normalized = prompt && prompt.trim() ? prompt : null;
-    const invalid = validateModulePrompt(normalized);
+  const brief = text("brief", MAX_PROSE);
+  if (Array.isArray(brief)) return brief[0];
+  if (brief !== undefined) {
+    const normalized = brief && brief.trim() ? brief : null;
+    const invalid = validateModuleBrief(normalized);
     if (invalid) return invalid;
-    out.custom_prompt = normalized;
+    out.brief = normalized;
   }
 
   if (body.enabled !== undefined) {
@@ -108,14 +104,7 @@ export async function GET() {
   if (auth instanceof Response) return auth;
   const { admin } = auth;
 
-  const [modules, overrides] = await Promise.all([
-    getModules(admin),
-    getVoiceOverrides(admin),
-  ]);
-  return Response.json({
-    modules,
-    conductorText: overrides.conductorPrompt ?? CONDUCTOR_PROMPT,
-  });
+  return Response.json({ modules: await getModules(admin) });
 }
 
 // Create a module. Body: { slug, name, ...optional fields }.

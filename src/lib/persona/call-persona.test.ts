@@ -539,7 +539,10 @@ describe("call-persona — prompt-cache wiring", () => {
 
   it("constructs an array-form system with exactly one cache_control marker", () => {
     expect(src).toMatch(/const systemBlocks:\s*SystemBlock\[\]\s*=/);
-    expect(src).toMatch(/\{\s*type:\s*"text",\s*text:\s*promptBlocks\.tier1\s*\}/);
+    // Block 1 is tier1Text: the resolved conductor plus the optional module
+    // brief (ADR-054) — constant within a conversation, so it belongs in the
+    // cached prefix.
+    expect(src).toMatch(/\{\s*type:\s*"text",\s*text:\s*tier1Text\s*\}/);
     expect(src).toMatch(
       /text:\s*promptBlocks\.staticContext,\s*\n\s*cache_control:\s*\{\s*type:\s*"ephemeral"\s*\}/
     );
@@ -547,6 +550,16 @@ describe("call-persona — prompt-cache wiring", () => {
     // uses one on the largest stable prefix.
     const markerCount = (src.match(/cache_control:\s*\{\s*type:\s*"ephemeral"/g) || []).length;
     expect(markerCount).toBe(1);
+  });
+
+  it("stamps the conductor SHA from the PURE tier1, before the module brief is appended", () => {
+    // The Tuning score trend groups by conductor_prompt_sha. Stamping the
+    // brief-augmented text would fragment the trend into per-module buckets
+    // (ADR-054). The stamp must read promptBlocks.tier1, never tier1Text.
+    expect(src).toMatch(/stampConductorPrompt\(admin,\s*convId,\s*promptBlocks\.tier1\)/);
+    expect(src).not.toMatch(/stampConductorPrompt\([^)]*tier1Text/);
+    // And the brief rides tier1Text under the ADR-054 heading.
+    expect(src).toContain("## This conversation's focus");
   });
 
   it("drops empty text blocks (Anthropic rejects empty system blocks)", () => {

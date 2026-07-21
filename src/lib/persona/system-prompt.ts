@@ -2,7 +2,7 @@ import type { ExplorationContext } from "@/lib/types";
 import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
-import { resolveModulePrompt } from "@/lib/modules";
+import { CONDUCTOR_PROMPT } from "@/lib/persona/conductor-prompt";
 import { BRAND } from "@/lib/brand";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
@@ -41,12 +41,11 @@ export interface OneOnOnePromptOptions extends SharedPromptInputs {
   turnCount: number;
   /** Conversation mode — the slug of the module the conversation started
    *  inside (legacy rows carry the retired door values). Not read by the
-   *  prompt builder itself; the module's PROMPT arrives via modulePrompt. */
+   *  prompt builder itself. The module's BRIEF (per-module steering that
+   *  composes with the shared voice) is appended to the tier1 block text in
+   *  call-persona.ts, after the conductor SHA stamp — never here, so the
+   *  compose path stays brief-free and the stamp stays per-conductor. */
   mode?: ConversationMode;
-  /** The module's custom Jove prompt, when the conversation's module carries
-   *  one. Takes the top of the voice ladder: modulePrompt → admin conductor
-   *  override → code conductor. Null/absent → the shared conductor. */
-  modulePrompt?: string | null;
   personaModes?: PersonaMode[];
   /** Track A Phase 7-High. When set, Jove is generating a post-confirm
    *  follow-up (not a normal chat turn). The mode selects which pinned
@@ -228,13 +227,11 @@ export function buildSystemPromptBlocks(
     condDynamic += "\n" + renderExplorationContextBlock(options.explorationContext);
   }
 
-  // The voice ladder: the module's custom prompt (a deliberate per-module
-  // fork, save-guarded by the same required fragments) → the founder's live
-  // conductor override (Tuning page, same guard) → the shipped code constant.
-  const tier1 = resolveModulePrompt(
-    options.modulePrompt,
-    options.voiceOverrides?.conductorPrompt,
-  );
+  // ONE voice for every module (ADR-054): the founder's live conductor
+  // override (Tuning page, save-guarded) → the shipped code constant.
+  // getVoiceOverrides drops empty/whitespace overrides at load, so a cleared
+  // Tuning field can never ship an empty prompt.
+  const tier1 = options.voiceOverrides?.conductorPrompt ?? CONDUCTOR_PROMPT;
 
   return { tier1, staticContext: condStatic, dynamic: condDynamic };
 }

@@ -4,13 +4,8 @@ import {
   getEnabledModules,
   getModule,
   isValidModuleSlug,
-  resolveModulePrompt,
-  validateModulePrompt,
+  validateModuleBrief,
 } from "./modules";
-import {
-  CONDUCTOR_PROMPT,
-  CONDUCTOR_REQUIRED_FRAGMENTS,
-} from "@/lib/persona/conductor-prompt";
 
 type Row = Record<string, unknown>;
 
@@ -47,7 +42,7 @@ function row(overrides: Row = {}): Row {
     intro_title: null,
     intro_body: null,
     opener_text: null,
-    custom_prompt: null,
+    brief: null,
     enabled: true,
     sort_order: 0,
     updated_at: "2026-07-15T00:00:00Z",
@@ -84,7 +79,7 @@ describe("modules — reads", () => {
       cue: "Begin",
       icon: "chat",
       openerText: null,
-      customPrompt: null,
+      brief: null,
       enabled: true,
       sortOrder: 0,
     });
@@ -110,42 +105,27 @@ describe("modules — reads", () => {
   });
 });
 
-describe("modules — voice ladder (resolveModulePrompt)", () => {
-  it("custom prompt wins when set", () => {
-    expect(resolveModulePrompt("CUSTOM", "OVERRIDE")).toBe("CUSTOM");
+describe("modules — brief save guard (validateModuleBrief)", () => {
+  it("empty/null is valid (means: no extra steering)", () => {
+    expect(validateModuleBrief(null)).toBeNull();
+    expect(validateModuleBrief("")).toBeNull();
+    expect(validateModuleBrief("   ")).toBeNull();
   });
 
-  it("falls to the admin conductor override when custom is null/blank", () => {
-    expect(resolveModulePrompt(null, "OVERRIDE")).toBe("OVERRIDE");
-    expect(resolveModulePrompt("   ", "OVERRIDE")).toBe("OVERRIDE");
+  it("plain prose passes — including prose that mentions dashes mid-sentence", () => {
+    expect(
+      validateModuleBrief(
+        "This module is about sensory load — what drains, what restores. Listen for recovery patterns.",
+      ),
+    ).toBeNull();
   });
 
-  it("falls to the code conductor when neither is set — never an empty prompt", () => {
-    expect(resolveModulePrompt(null, null)).toBe(CONDUCTOR_PROMPT);
-    expect(resolveModulePrompt("", "  ")).toBe(CONDUCTOR_PROMPT);
-  });
-});
-
-describe("modules — custom prompt save guard", () => {
-  it("empty/null is valid (means: run the shared conductor)", () => {
-    expect(validateModulePrompt(null)).toBeNull();
-    expect(validateModulePrompt("")).toBeNull();
-    expect(validateModulePrompt("   ")).toBeNull();
-  });
-
-  it("a prompt carrying every required fragment passes", () => {
-    const text = CONDUCTOR_REQUIRED_FRAGMENTS.map((f) => f.fragment).join("\n");
-    expect(validateModulePrompt(text)).toBeNull();
-  });
-
-  it("rejects a prompt that drops the crisis lines or reflection markers — same guard as the conductor", () => {
-    const err = validateModulePrompt("You are Jove. Be helpful.");
+  it("rejects a standalone ---marker--- line — markers are code-owned machinery", () => {
+    const err = validateModuleBrief(
+      "Listen for burnout.\n---reflection-ready---\nThen offer to save.",
+    );
     expect(err).toBeTruthy();
-    expect(err).toContain("988");
-    expect(err).toContain("---reflection-ready---");
-  });
-
-  it("the full conductor prompt itself passes (start-from-conductor path)", () => {
-    expect(validateModulePrompt(CONDUCTOR_PROMPT)).toBeNull();
+    expect(err).toContain("marker");
+    expect(validateModuleBrief("---sections---")).toBeTruthy();
   });
 });

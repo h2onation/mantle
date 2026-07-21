@@ -181,7 +181,7 @@ describe("DB contract — every code-insert shape is accepted", () => {
       intro_title: null,
       intro_body: null,
       opener_text: "Canary opener.",
-      custom_prompt: null,
+      brief: null,
       enabled: true,
       sort_order: 99,
       updated_by: testUserId,
