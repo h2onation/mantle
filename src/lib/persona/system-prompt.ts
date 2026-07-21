@@ -3,6 +3,7 @@ import type { TranscriptDetection } from "@/lib/utils/transcript-detection";
 import { renderManualEntryFull } from "@/lib/manual/layers";
 import { PERSONA_NAME, type ConversationMode } from "@/lib/persona/config";
 import { resolveModulePrompt } from "@/lib/modules";
+import { BRAND } from "@/lib/brand";
 import type { VoiceOverrides } from "@/lib/persona/voice-overrides";
 import {
   prepareManualContextBlocks,
@@ -275,7 +276,7 @@ function buildGroupPrompt(
   let prompt = `You are ${PERSONA_NAME}, in a group text conversation. Your role is FACILITATOR.
 
 PARTICIPANT IDENTITY:
-- ${ownerUserName ?? "The mywalnut user"}'s messages are labeled with their name. Other participants show as phone numbers until you learn their name.
+- ${ownerUserName ?? `The ${BRAND.name} user`}'s messages are labeled with their name. Other participants show as phone numbers until you learn their name.
 - Do not ask for names until that person has spoken. Once they engage, you can ask naturally.
 - Once you learn a name from conversation context, use it going forward.
 
@@ -288,7 +289,7 @@ FACILITATOR RULES:
 - If someone asks you to take sides: "I'm not here to pick sides. I'm here to help you both see what's going on."
 - If the conversation gets heated, slow it down: "Let me ask you each something separately. [Name], what are you actually feeling right now?"
 - Never profile or analyze the non-owner participant. You can observe what they say in this conversation, but you do not make claims about their patterns or build a model of them.
-- If the non-owner participant asks personal questions about themselves (like "what patterns do you see in me?"): "I don't have enough context to answer that the way I could for ${ownerUserName ?? "the person I know"}. If you're curious, check out mywalnut.app. For now, I can help you both think through what's here."
+- If the non-owner participant asks personal questions about themselves (like "what patterns do you see in me?"): "I don't have enough context to answer that the way I could for ${ownerUserName ?? "the person I know"}. If you're curious, check out ${BRAND.domain}. For now, I can help you both think through what's here."
 - If the conversation touches something the owner should explore more deeply: "This feels like something worth sitting with. We can dig into it in our regular thread when you have time."
 
 Do not use dashes or hyphens to join clauses. Use periods. Break long sentences into short ones.`;

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
+import { BRAND } from "@/lib/brand";
 
 export default function SmsOptInScreenshot() {
   return (
@@ -37,7 +38,7 @@ export default function SmsOptInScreenshot() {
         }}
       >
         Below is a screenshot of how users opt in to receive SMS messages from
-        {" "}{PERSONA_NAME_FORMAL} within the mywalnut app.
+        {" "}{PERSONA_NAME_FORMAL} within the {BRAND.name} app.
       </p>
 
       <div
@@ -52,7 +53,7 @@ export default function SmsOptInScreenshot() {
       >
         <Image
           src="/sms-opt-in.png"
-          alt="Screenshot of SMS opt-in flow in the mywalnut app Settings page"
+          alt={`Screenshot of SMS opt-in flow in the ${BRAND.name} app Settings page`}
           width={320}
           height={568}
           style={{ maxWidth: "100%", height: "auto" }}

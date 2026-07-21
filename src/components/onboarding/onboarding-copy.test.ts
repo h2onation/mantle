@@ -179,7 +179,9 @@ describe("PR3 onboarding copy pass", () => {
     const src = read("src/app/terms/page.tsx");
 
     it("uses new product description", () => {
-      expect(src).toContain("mywalnut is a self-understanding platform.");
+      // Brand name is interpolated from BRAND.name; assert the source keeps
+      // both the brand token and the copy that follows it.
+      expect(src).toContain("{BRAND.name} is a self-understanding platform.");
       expect(src).toContain("legal accommodation document");
     });
   });

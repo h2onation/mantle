@@ -78,6 +78,10 @@ const OUTSIDE_SHEET: { item: string; note: string }[] = [
     item: "Theme colors",
     note: "globals.css design tokens — restyled with the new brand's palette, a design pass, not a string swap",
   },
+  {
+    item: "Landing + waitlist wordmark art",
+    note: "The hero splits the name around the word rotator (my·walnut) and the waitlist styles it as “my walnut” — design elements, not strings; the new brand's landing replaces both pages wholesale",
+  },
 ];
 
 const LEFT_ALONE =

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: `SMS Messages from ${PERSONA_NAME_FORMAL} — mywalnut`,
-  description: `Personalized behavioral insights and conversation prompts from ${PERSONA_NAME_FORMAL}, your AI guide on mywalnut.`,
+  title: `SMS Messages from ${PERSONA_NAME_FORMAL} — ${BRAND.name}`,
+  description: `Personalized behavioral insights and conversation prompts from ${PERSONA_NAME_FORMAL}, your AI guide on ${BRAND.name}.`,
 };
 
 export default function SmsPage() {
@@ -42,7 +43,7 @@ export default function SmsPage() {
             margin: "0 0 32px 0",
           }}
         >
-          Program name: {PERSONA_NAME_FORMAL} by mywalnut
+          Program name: {PERSONA_NAME_FORMAL} by {BRAND.name}
         </p>
 
         <h2
@@ -73,10 +74,10 @@ export default function SmsPage() {
         <p>
           Create an account at{" "}
           <a
-            href="https://mywalnut.app"
+            href={BRAND.url}
             style={{ color: "var(--session-persona)", textDecoration: "none" }}
           >
-            mywalnut.app
+            {BRAND.domain}
           </a>
           , go to Settings, enter your phone number, and complete SMS
           verification.

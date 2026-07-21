@@ -19,6 +19,7 @@ import { processGroupMessage, saveGroupMessage, prefetchGroupContext } from "@/l
 import { evaluateGate, mentionsPersona } from "@/lib/linq/group-gate";
 import { sendMessage, getChatInfo } from "@/lib/linq/sender";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
+import { BRAND } from "@/lib/brand";
 
 export const runtime = "nodejs";
 
@@ -249,7 +250,7 @@ async function handleParticipantRemoved(event: LinqWebhookEvent): Promise<void> 
       console.log("[linq] owner_user_left chat_id=%s user=%s", chatId, groupState.owner_user_id);
       await sendMessage(
         chatId,
-        "Take care! If you're curious about having conversations like this for yourself, check out mywalnut.app"
+        `Take care! If you're curious about having conversations like this for yourself, check out ${BRAND.domain}`
       );
       await updateGroupState(chatId, { is_active: false });
       return;

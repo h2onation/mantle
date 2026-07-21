@@ -22,13 +22,14 @@ import {
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 import { firstNameOrNull } from "@/lib/utils/name";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
+import { BRAND } from "@/lib/brand";
 
 const INTRO_NO_ACCOUNTS =
-  `This is ${PERSONA_NAME_FORMAL} by mywalnut. I don't have any connected accounts in this group. ` +
-  "If you have a mywalnut account, connect your number at mywalnut.app";
+  `This is ${PERSONA_NAME_FORMAL} by ${BRAND.name}. I don't have any connected accounts in this group. ` +
+  `If you have a ${BRAND.name} account, connect your number at ${BRAND.domain}`;
 
 const INTRO_MULTI_USER =
-  `Hey, I'm ${PERSONA_NAME_FORMAL}. I know some of you from mywalnut, but in a group I keep ` +
+  `Hey, I'm ${PERSONA_NAME_FORMAL}. I know some of you from ${BRAND.name}, but in a group I keep ` +
   "things neutral and don't draw on what I know about anyone individually.";
 
 const INTRO_SETUP_FAILED =
@@ -203,8 +204,8 @@ async function sendIntroduction(
   const firstName = firstNameOrNull(profile?.display_name as string | null);
 
   const introText = firstName
-    ? `Hey, I'm ${PERSONA_NAME_FORMAL} by mywalnut. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
-    : `Hey, I'm ${PERSONA_NAME_FORMAL} by mywalnut. I'll use what I know to ask better questions, but I won't share details from private conversations.`;
+    ? `Hey, I'm ${PERSONA_NAME_FORMAL} by ${BRAND.name}. I'll use what I know about ${firstName}'s patterns to ask better questions, but I won't share details from private conversations.`
+    : `Hey, I'm ${PERSONA_NAME_FORMAL} by ${BRAND.name}. I'll use what I know to ask better questions, but I won't share details from private conversations.`;
 
   const result = await sendMessage(linqChatId, introText);
 

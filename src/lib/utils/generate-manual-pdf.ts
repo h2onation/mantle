@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { Layer } from "@/components/mobile/manual/layer-definitions";
+import { BRAND } from "@/lib/brand";
 
 const PAGE_WIDTH = 210; // A4 mm
 const PAGE_HEIGHT = 297;
@@ -47,7 +48,7 @@ export function generateManualPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(160, 155, 145);
-  doc.text("mywalnut", MARGIN_LEFT, y);
+  doc.text(BRAND.name, MARGIN_LEFT, y);
   y += 10;
 
   // Header
@@ -124,7 +125,7 @@ export function generateManualPdf(
   doc.setFontSize(8);
   doc.setTextColor(160, 155, 145);
   doc.text(
-    "Built with mywalnut \u2014 mywalnut.app",
+    `Built with ${BRAND.name} \u2014 ${BRAND.domain}`,
     PAGE_WIDTH / 2,
     footerY + 6,
     { align: "center" }

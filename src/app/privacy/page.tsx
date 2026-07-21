@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — mywalnut",
+  title: `Privacy Policy — ${BRAND.name}`,
 };
 
 export default function PrivacyPolicy() {
@@ -40,9 +41,9 @@ export default function PrivacyPolicy() {
         </p>
 
         <p>
-          mywalnut, Inc. (&ldquo;mywalnut,&rdquo; &ldquo;we,&rdquo;
+          {BRAND.legalEntity} (&ldquo;{BRAND.name},&rdquo; &ldquo;we,&rdquo;
           &ldquo;us,&rdquo; &ldquo;our&rdquo;) operates the {PERSONA_NAME_FORMAL}{" "}
-          conversational platform at mywalnut.app. This policy describes how we
+          conversational platform at {BRAND.domain}. This policy describes how we
           collect, use, and protect your information.
         </p>
 
@@ -78,7 +79,7 @@ export default function PrivacyPolicy() {
         </p>
         <p>
           <strong>Usage data:</strong> basic analytics such as session frequency
-          and feature usage. We do not track your activity outside of mywalnut.
+          and feature usage. We do not track your activity outside of {BRAND.name}.
         </p>
 
         <h2
@@ -279,7 +280,7 @@ export default function PrivacyPolicy() {
         </h2>
         <p>
           You may request access to, correction of, or deletion of your personal
-          data by contacting us at hello@mywalnut.app. We will respond
+          data by contacting us at {BRAND.supportEmail}. We will respond
           within 30 days.
         </p>
 
@@ -330,7 +331,7 @@ export default function PrivacyPolicy() {
           information; the right to opt out of sale or sharing (we do not sell
           or share); and the right not to be discriminated against for
           exercising these rights. To exercise any of these rights, contact us
-          at hello@mywalnut.app. We will verify your request by matching
+          at {BRAND.supportEmail}. We will verify your request by matching
           identifiers you provide (such as your account email) against the
           information we have on file.
         </p>
@@ -346,14 +347,14 @@ export default function PrivacyPolicy() {
           International Users
         </h2>
         <p>
-          mywalnut is operated from the United States. If you access the
+          {BRAND.name} is operated from the United States. If you access the
           service from outside the United States, your information will be
           transferred to and processed in the United States, where data
-          protection laws may differ from those in your jurisdiction. By using
-          mywalnut, you consent to this transfer. If you are located in the
+          protection laws may differ from those in your jurisdiction. By using{" "}
+          {BRAND.name}, you consent to this transfer. If you are located in the
           European Economic Area, the United Kingdom, or another jurisdiction
           with comprehensive data protection laws, you may have additional
-          rights under local law; contact us at hello@mywalnut.app to
+          rights under local law; contact us at {BRAND.supportEmail} to
           exercise them.
         </p>
 
@@ -368,8 +369,8 @@ export default function PrivacyPolicy() {
           Changes
         </h2>
         <p>
-          We may update this policy from time to time. Continued use of mywalnut
-          after changes constitutes acceptance.
+          We may update this policy from time to time. Continued use of{" "}
+          {BRAND.name} after changes constitutes acceptance.
         </p>
 
         <h2
@@ -382,7 +383,7 @@ export default function PrivacyPolicy() {
         >
           Contact
         </h2>
-        <p>hello@mywalnut.app</p>
+        <p>{BRAND.supportEmail}</p>
 
         <div
           style={{
@@ -392,14 +393,14 @@ export default function PrivacyPolicy() {
           }}
         >
           <a
-            href="https://mywalnut.app"
+            href={BRAND.url}
             style={{
               color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}
           >
-            mywalnut.app
+            {BRAND.domain}
           </a>
         </div>
       </div>
