@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // is never per-module (ADR-054): a module carries a BRIEF that composes with
 // the shared conductor, not a prompt of its own.
 
-const MAX_TEXT = 200; // name / cue / icon caps — card copy, not prose
+const MAX_TEXT = 200; // name / cue caps — card copy, not prose
 const MAX_PROSE = 4000; // description / intro / opener / brief caps
 
 // Fields an admin may write, with per-field coercion. Empty strings on the
@@ -22,7 +22,6 @@ type ModuleWrite = {
   name?: string;
   description?: string;
   cue?: string;
-  icon?: string;
   intro_title?: string | null;
   intro_body?: string | null;
   opener_text?: string | null;
@@ -57,10 +56,6 @@ function coerceWrite(body: Record<string, unknown>): ModuleWrite | string {
   const cue = text("cue", MAX_TEXT);
   if (Array.isArray(cue)) return cue[0];
   if (cue !== undefined) out.cue = cue?.trim() || "Begin";
-
-  const icon = text("icon", MAX_TEXT);
-  if (Array.isArray(icon)) return icon[0];
-  if (icon !== undefined) out.icon = icon?.trim() || "chat";
 
   for (const key of [
     "intro_title",

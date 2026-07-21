@@ -22,7 +22,6 @@ const mod = (slug: string, over: Partial<HomeModule> = {}): HomeModule => ({
   name: slug,
   description: "about " + slug,
   cue: "Begin",
-  icon: "chat",
   introTitle: null,
   introBody: null,
   enabled: true,

@@ -49,7 +49,6 @@ vi.mock("@/lib/supabase/admin", () => ({
                 name: lastEqValue,
                 description: "",
                 cue: "Begin",
-                icon: "chat",
                 intro_title: null,
                 intro_body: null,
                 opener_text: null,

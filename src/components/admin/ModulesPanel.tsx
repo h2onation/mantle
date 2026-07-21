@@ -18,7 +18,6 @@ type Draft = {
   name: string;
   description: string;
   cue: string;
-  icon: string;
   introTitle: string;
   introBody: string;
   openerText: string;
@@ -30,7 +29,6 @@ function toDraft(m: Module): Draft {
     name: m.name,
     description: m.description,
     cue: m.cue,
-    icon: m.icon,
     introTitle: m.introTitle ?? "",
     introBody: m.introBody ?? "",
     openerText: m.openerText ?? "",
@@ -163,7 +161,6 @@ export default function ModulesPanel() {
         name: d.name,
         description: d.description,
         cue: d.cue,
-        icon: d.icon,
         intro_title: d.introTitle,
         intro_body: d.introBody,
         opener_text: d.openerText,
@@ -437,25 +434,12 @@ export default function ModulesPanel() {
                   onChange={(e) => setField(m.slug, "description", e.target.value)}
                 />
 
-                <div style={{ display: "flex", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={label}>Button label</label>
-                    <input
-                      style={input}
-                      value={d.cue}
-                      onChange={(e) => setField(m.slug, "cue", e.target.value)}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={label}>Icon key</label>
-                    <input
-                      style={input}
-                      value={d.icon}
-                      onChange={(e) => setField(m.slug, "icon", e.target.value)}
-                    />
-                    <p style={hint}>chat · list · upload (unknown keys fall back to chat)</p>
-                  </div>
-                </div>
+                <label style={label}>Button label</label>
+                <input
+                  style={input}
+                  value={d.cue}
+                  onChange={(e) => setField(m.slug, "cue", e.target.value)}
+                />
 
                 <label style={label}>Intro modal — title (blank = no modal)</label>
                 <input

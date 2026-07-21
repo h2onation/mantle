@@ -30,8 +30,6 @@ export interface Layer {
   about: string;
   /** Short line under the name in section headers (the module description). */
   tagline: string;
-  /** Module icon key (see MODULE_ICONS) — same glyph as the Home card. */
-  icon: string;
   entries: Entry[];
   /** False when the module is disabled: its section still renders (entries
    *  never orphan) but it is not tappable as a door. */
@@ -65,7 +63,6 @@ export function buildModuleGroups(
       name: m.name,
       about: m.description,
       tagline: m.description,
-      icon: m.icon,
       enabled: m.enabled,
       entries: entries
         .filter((e) => e.section === m.slug)

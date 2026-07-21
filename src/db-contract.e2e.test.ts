@@ -177,7 +177,6 @@ describe("DB contract — every code-insert shape is accepted", () => {
       name: "E2E canary",
       description: "Canary module.",
       cue: "Begin",
-      icon: "chat",
       intro_title: null,
       intro_body: null,
       opener_text: "Canary opener.",
