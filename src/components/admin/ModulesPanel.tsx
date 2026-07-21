@@ -5,13 +5,13 @@ import type { Module } from "@/lib/modules";
 
 // Admin CRUD for modules — each row is simultaneously an entry door on Home
 // and a section of the Manual. Data: /api/admin/modules (GET/POST/PATCH/
-// DELETE). The API is the validator (slug format, custom-prompt required
-// fragments, delete-only-while-unreferenced); this panel just reports its
-// plain-language errors.
+// DELETE). The API is the validator (slug format, brief marker check,
+// delete-only-while-unreferenced); this panel just reports its plain-language
+// errors. The voice is never per-module (ADR-054): a module's BRIEF composes
+// with the shared conductor, so Tuning edits reach every module.
 
 interface ApiState {
   modules: Module[];
-  conductorText: string;
 }
 
 type Draft = {
@@ -22,7 +22,7 @@ type Draft = {
   introTitle: string;
   introBody: string;
   openerText: string;
-  customPrompt: string;
+  brief: string;
 };
 
 function toDraft(m: Module): Draft {
@@ -34,7 +34,7 @@ function toDraft(m: Module): Draft {
     introTitle: m.introTitle ?? "",
     introBody: m.introBody ?? "",
     openerText: m.openerText ?? "",
-    customPrompt: m.customPrompt ?? "",
+    brief: m.brief ?? "",
   };
 }
 
@@ -131,7 +131,7 @@ export default function ModulesPanel() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Request failed");
-      absorb({ modules: d.modules, conductorText: state?.conductorText ?? "" });
+      absorb({ modules: d.modules });
       setNotice(successMsg);
       return true;
     } catch (e) {
@@ -167,7 +167,7 @@ export default function ModulesPanel() {
         intro_title: d.introTitle,
         intro_body: d.introBody,
         opener_text: d.openerText,
-        custom_prompt: d.customPrompt,
+        brief: d.brief,
       },
       "Saved. Live on the next session.",
     );
@@ -196,7 +196,7 @@ export default function ModulesPanel() {
       });
       const d = await res.json();
       if (res.ok) {
-        absorb({ modules: d.modules, conductorText: state?.conductorText ?? "" });
+        absorb({ modules: d.modules });
         setNotice("Deleted.");
       } else if (res.status === 409 && d?.requiresForce) {
         // Referenced module — stage the strong confirm with the real counts.
@@ -252,7 +252,7 @@ export default function ModulesPanel() {
         });
         const d = await res.json();
         if (!res.ok) throw new Error(d?.error || "Reorder failed");
-        absorb({ modules: d.modules, conductorText: state.conductorText });
+        absorb({ modules: d.modules });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Reorder failed");
@@ -333,7 +333,7 @@ export default function ModulesPanel() {
       {state.modules.map((m, i) => {
         const d = drafts[m.slug];
         const isOpen = open === m.slug;
-        const custom = Boolean(m.customPrompt && m.customPrompt.trim());
+        const hasBrief = Boolean(m.brief && m.brief.trim());
         return (
           <div
             key={m.slug}
@@ -373,24 +373,22 @@ export default function ModulesPanel() {
               >
                 {m.slug}
               </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  border: "1px solid var(--session-walnut-border)",
-                  color: custom
-                    ? "var(--session-warning-text)"
-                    : "var(--session-walnut-meta-strong)",
-                  background: custom
-                    ? "var(--session-warning-surface)"
-                    : "var(--session-walnut-surface-soft)",
-                }}
-              >
-                {custom ? "Custom prompt" : "Shared conductor"}
-              </span>
+              {hasBrief && (
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    border: "1px solid var(--session-walnut-border)",
+                    color: "var(--session-walnut-meta-strong)",
+                    background: "var(--session-walnut-surface-soft)",
+                  }}
+                >
+                  Brief
+                </span>
+              )}
               {!m.enabled && (
                 <span
                   style={{
@@ -485,43 +483,19 @@ export default function ModulesPanel() {
                   call. Blank: Jove opens from the prompt.
                 </p>
 
-                <label style={label}>Jove prompt for this module</label>
-                <div style={{ display: "flex", gap: 8, margin: "0 0 6px" }}>
-                  <button
-                    style={btn}
-                    disabled={busy}
-                    onClick={() =>
-                      setField(m.slug, "customPrompt", state.conductorText)
-                    }
-                  >
-                    Start from the current conductor
-                  </button>
-                  <button
-                    style={btn}
-                    disabled={busy || !d.customPrompt}
-                    onClick={() => setField(m.slug, "customPrompt", "")}
-                  >
-                    Clear (use shared conductor)
-                  </button>
-                </div>
+                <label style={label}>Module brief (blank = no extra steering)</label>
                 <textarea
-                  style={{
-                    ...input,
-                    resize: "vertical",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "12px",
-                    lineHeight: 1.55,
-                  }}
-                  rows={d.customPrompt ? 18 : 3}
-                  placeholder="Blank — this module runs the live shared conductor, including your Tuning edits."
-                  value={d.customPrompt}
-                  onChange={(e) => setField(m.slug, "customPrompt", e.target.value)}
+                  style={{ ...input, resize: "vertical" }}
+                  rows={4}
+                  placeholder="A few sentences: what this module is about, what to listen for, how to open."
+                  value={d.brief}
+                  onChange={(e) => setField(m.slug, "brief", e.target.value)}
                 />
                 <p style={hint}>
-                  A custom prompt is a fork: later Tuning edits to the shared
-                  conductor do NOT flow into it. The crisis lines and the two
-                  reflection markers must survive in any custom prompt — saves
-                  that drop them are rejected.
+                  Composes with the shared voice — Jove reads this alongside the
+                  conductor, so your Tuning edits still reach every module.
+                  Written as if the user could read it: no operational
+                  meta-commentary, no clinical framework names.
                 </p>
 
                 <div style={{ marginTop: 14 }}>

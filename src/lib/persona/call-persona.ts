@@ -512,8 +512,6 @@ export function callPersona({
           explorationContext,
           transcriptContext: transcriptDetection,
           postConfirmMode,
-          // The module's custom Jove prompt (or null → the shared conductor).
-          modulePrompt: conversationModule?.customPrompt ?? null,
         };
         const promptBlocks = buildSystemPromptBlocks(promptOptions);
 
@@ -522,9 +520,23 @@ export function callPersona({
         // null until stamped, and stampConductorPrompt itself no-ops the update
         // once set. Fire-and-forget like extraction: observational, must never
         // block or fail the turn; a later turn re-stamps if this one is cut off.
+        // Stamped BEFORE the module brief is appended so the SHA identifies
+        // the conductor alone — the Tuning score trend groups by conductor
+        // version, not by module.
         if (ctx.conductorPromptSha === null) {
           void stampConductorPrompt(admin, convId, promptBlocks.tier1);
         }
+
+        // Module brief (ADR-054): per-module steering that COMPOSES with the
+        // shared voice — appended as a labeled section, chat path only. The
+        // compose/checkpoint path never sees it: the entry is written from
+        // the transcript, which already embodies wherever the brief steered
+        // the conversation. Constant within a conversation, so it lives in
+        // the cached prefix (block 1), not the per-turn dynamic tail.
+        const moduleBrief = conversationModule?.brief?.trim();
+        const tier1Text = moduleBrief
+          ? `${promptBlocks.tier1}\n\n## This conversation's focus\n${moduleBrief}`
+          : promptBlocks.tier1;
         // Drop empty text blocks — Anthropic rejects them ("system: text content
         // blocks must be non-empty"). The `dynamic` tail can be empty for a fresh
         // conductor turn (no Tier 3, no Manual, no session context); rebuilt/legacy
@@ -533,7 +545,7 @@ export function callPersona({
         // cache boundary is preserved.
         const systemBlocks: SystemBlock[] = (
           [
-            { type: "text", text: promptBlocks.tier1 },
+            { type: "text", text: tier1Text },
             {
               type: "text",
               text: promptBlocks.staticContext,

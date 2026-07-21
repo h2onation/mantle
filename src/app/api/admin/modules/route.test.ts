@@ -1,8 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  CONDUCTOR_PROMPT,
-  CONDUCTOR_REQUIRED_FRAGMENTS,
-} from "@/lib/persona/conductor-prompt";
 
 const mockVerifyAdmin = vi.fn();
 vi.mock("@/lib/admin/verify-admin", () => ({
@@ -15,9 +11,8 @@ vi.mock("@/lib/admin/verify-admin", () => ({
   },
 }));
 
-// Table-aware fake: modules list/insert/update/delete, reference counts for
-// conversations/manual_entries, and the persona_voice_overrides read that
-// getVoiceOverrides makes for conductorText.
+// Table-aware fake: modules list/insert/update/delete and reference counts
+// for conversations/manual_entries.
 let moduleRows: Array<Record<string, unknown>> = [];
 let insertCalls: Array<Record<string, unknown>> = [];
 let insertError: { code?: string; message: string } | null = null;
@@ -76,11 +71,6 @@ vi.mock("@/lib/supabase/admin", () => ({
           }),
         };
       }
-      if (table === "persona_voice_overrides") {
-        return {
-          select: async () => ({ data: [], error: null }),
-        };
-      }
       throw new Error(`Unexpected table: ${table}`);
     },
   }),
@@ -109,11 +99,6 @@ function req(method: string, body: unknown): Request {
   });
 }
 
-// A custom prompt that satisfies every required fragment.
-const SAFE_PROMPT =
-  "You are Jove.\n" +
-  CONDUCTOR_REQUIRED_FRAGMENTS.map((f) => f.fragment).join("\n");
-
 describe("auth", () => {
   it("all verbs return 403 when not admin", async () => {
     mockVerifyAdmin.mockResolvedValue({ userId: "", isAdmin: false });
@@ -125,12 +110,11 @@ describe("auth", () => {
 });
 
 describe("GET", () => {
-  it("returns modules and the live conductor text (code default with no override)", async () => {
+  it("returns the module list", async () => {
     const res = await GET();
     const d = await res.json();
     expect(res.status).toBe(200);
     expect(d.modules).toEqual([]);
-    expect(d.conductorText).toBe(CONDUCTOR_PROMPT);
   });
 });
 
@@ -147,12 +131,16 @@ describe("POST — create", () => {
     expect(res.status).toBe(400);
   });
 
-  it("rejects a custom prompt that drops the crisis/reflection fragments", async () => {
+  it("rejects a brief carrying a standalone ---marker--- line", async () => {
     const res = await POST(
-      req("POST", { slug: "burnout", name: "Burnout", custom_prompt: "Just vibes." }),
+      req("POST", {
+        slug: "burnout",
+        name: "Burnout",
+        brief: "Listen closely.\n---reflection-ready---",
+      }),
     );
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toContain("988");
+    expect((await res.json()).error).toContain("marker");
     expect(insertCalls).toHaveLength(0);
   });
 
@@ -162,7 +150,7 @@ describe("POST — create", () => {
         slug: "burnout",
         name: "  Burnout at work  ",
         opener_text: "   ",
-        custom_prompt: SAFE_PROMPT,
+        brief: "What drains, what restores. Listen for recovery patterns.",
       }),
     );
     expect(res.status).toBe(200);
@@ -171,7 +159,7 @@ describe("POST — create", () => {
       slug: "burnout",
       name: "Burnout at work",
       opener_text: null, // blank coerces to "not set"
-      custom_prompt: SAFE_PROMPT,
+      brief: "What drains, what restores. Listen for recovery patterns.",
       updated_by: "admin-1",
     });
   });
@@ -187,21 +175,21 @@ describe("POST — create", () => {
 describe("PATCH — update", () => {
   it("nulls blank prose fields and never writes the slug as a field", async () => {
     const res = await PATCH(
-      req("PATCH", { slug: "burnout", opener_text: "", custom_prompt: "  " }),
+      req("PATCH", { slug: "burnout", opener_text: "", brief: "  " }),
     );
     expect(res.status).toBe(200);
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0]).toMatchObject({
       opener_text: null,
-      custom_prompt: null,
+      brief: null,
       __slug: "burnout",
     });
     expect("slug" in updateCalls[0]).toBe(false);
   });
 
-  it("applies the same custom-prompt guard on update", async () => {
+  it("applies the same brief marker guard on update", async () => {
     const res = await PATCH(
-      req("PATCH", { slug: "burnout", custom_prompt: "no fragments here" }),
+      req("PATCH", { slug: "burnout", brief: "---sections---" }),
     );
     expect(res.status).toBe(400);
     expect(updateCalls).toHaveLength(0);

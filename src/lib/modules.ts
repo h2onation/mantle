@@ -1,8 +1,4 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import {
-  CONDUCTOR_PROMPT,
-  validateConductorPromptEdit,
-} from "@/lib/persona/conductor-prompt";
 
 /**
  * Modules — the unified door + Manual-section abstraction.
@@ -16,14 +12,15 @@ import {
  *   - card copy (name / description / cue / icon) for the Home list
  *   - optional one-time intro modal copy
  *   - optional fixed opener (server-emitted first message, no model call)
- *   - optional full custom Jove prompt — see resolveModulePrompt below
+ *   - optional brief — a few founder-written sentences of steering that
+ *     COMPOSE with the shared conductor voice (appended as a labeled
+ *     system-prompt section in call-persona.ts). The voice itself is never
+ *     per-module: every conversation runs the one conductor (admin Tuning
+ *     override → code constant), so Tuning edits reach every module and the
+ *     crisis/marker machinery is structurally always present. (The full
+ *     per-module prompt fork shipped by ADR-053 was removed by ADR-054 —
+ *     it was half-wired and forked away from Tuning edits.)
  *   - enabled flag + sort order
- *
- * Voice resolution is a strict ladder: module custom prompt → admin conductor
- * override → code conductor. A module with no custom prompt runs the live
- * shared conductor, so the default remains ONE voice (ADR-052's spirit);
- * a custom prompt is a deliberate per-module fork, save-guarded by the same
- * required fragments as the conductor (crisis lines + reflection markers).
  *
  * Reads are service-role only (RLS with no policies, like feature_gates);
  * every user-facing surface gets module data through a server route.
@@ -38,7 +35,7 @@ export interface Module {
   introTitle: string | null;
   introBody: string | null;
   openerText: string | null;
-  customPrompt: string | null;
+  brief: string | null;
   enabled: boolean;
   sortOrder: number;
   updatedAt: string | null;
@@ -46,8 +43,8 @@ export interface Module {
 
 /**
  * The slice of a module the client needs: Home cards + the one-time intro
- * modal. Deliberately excludes opener_text and custom_prompt — prompt
- * material never ships to the browser.
+ * modal. Deliberately excludes opener_text and brief — prompt material
+ * never ships to the browser.
  */
 export interface HomeModule {
   slug: string;
@@ -90,7 +87,7 @@ interface ModuleRow {
   intro_title: string | null;
   intro_body: string | null;
   opener_text: string | null;
-  custom_prompt: string | null;
+  brief: string | null;
   enabled: boolean;
   sort_order: number;
   updated_at: string | null;
@@ -106,7 +103,7 @@ function rowToModule(row: ModuleRow): Module {
     introTitle: row.intro_title,
     introBody: row.intro_body,
     openerText: row.opener_text,
-    customPrompt: row.custom_prompt,
+    brief: row.brief,
     enabled: row.enabled,
     sortOrder: row.sort_order ?? 0,
     updatedAt: row.updated_at,
@@ -125,7 +122,7 @@ export async function getModules(
     const { data, error } = await admin
       .from("modules")
       .select(
-        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, custom_prompt, enabled, sort_order, updated_at",
+        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
       )
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
@@ -154,7 +151,7 @@ export async function getModule(
     const { data, error } = await admin
       .from("modules")
       .select(
-        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, custom_prompt, enabled, sort_order, updated_at",
+        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
       )
       .eq("slug", slug)
       .maybeSingle();
@@ -166,33 +163,26 @@ export async function getModule(
 }
 
 /**
- * The voice ladder: module custom prompt → admin conductor override → code
- * conductor. Blank/whitespace custom prompts are treated as "not set" so a
- * cleared admin field can never ship an empty system prompt.
+ * Standalone UI-marker line, e.g. `---reflection-ready---`. A module brief may
+ * never contain one: markers are code-owned machine contract (ui-markers.ts),
+ * and a brief that ships one would instruct Jove to emit UI machinery. Same
+ * shape as the stray-marker regex in ui-markers.ts.
  */
-export function resolveModulePrompt(
-  customPrompt: string | null | undefined,
-  conductorOverride: string | null | undefined,
-): string {
-  if (typeof customPrompt === "string" && customPrompt.trim()) {
-    return customPrompt;
-  }
-  if (typeof conductorOverride === "string" && conductorOverride.trim()) {
-    return conductorOverride;
-  }
-  return CONDUCTOR_PROMPT;
-}
+const MARKER_LINE_PATTERN = /^\s*---[a-z][a-z-]*---\s*$/m;
 
 /**
- * Validate a module's custom prompt before save. Empty/null is always valid
- * (it means "run the shared conductor"). A non-empty prompt must pass the
- * SAME required-fragment guard as the conductor itself — the crisis lines and
- * the reflection markers can never be edited away, on any module.
+ * Validate a module brief before save. Empty/null is always valid (no
+ * steering — the module runs on card copy + opener alone). The brief composes
+ * with the conductor, so no required-fragment guard applies (the crisis lines
+ * and markers always arrive with the voice and cannot be edited away here).
  * Returns null when safe, or a plain-language error.
  */
-export function validateModulePrompt(
-  customPrompt: string | null | undefined,
+export function validateModuleBrief(
+  brief: string | null | undefined,
 ): string | null {
-  if (customPrompt == null || !customPrompt.trim()) return null;
-  return validateConductorPromptEdit(customPrompt);
+  if (brief == null || !brief.trim()) return null;
+  if (MARKER_LINE_PATTERN.test(brief)) {
+    return "The brief can't contain a ---marker--- line — markers are reserved for the app's own machinery.";
+  }
+  return null;
 }
