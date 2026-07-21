@@ -1,26 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 import "./landing.css";
 import HeroRotator from "@/components/landing/HeroRotator";
 import RevealInit from "@/components/landing/RevealInit";
 import ContactForm from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = {
-  title: "mywalnut — understanding yourself, and being understood",
-  description:
-    "Mywalnut helps you put words to how you actually work, strengths as clearly as friction. Through conversation, what you've felt but never named becomes a working manual.",
+  title: `${BRAND.name} — understanding yourself, and being understood`,
+  description: `${BRAND.nameCap} helps you put words to how you actually work, strengths as clearly as friction. Through conversation, what you've felt but never named becomes a working manual.`,
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    url: "https://mywalnut.app/",
-    siteName: "mywalnut",
-    title: "mywalnut — understanding yourself, and being understood",
+    url: `${BRAND.url}/`,
+    siteName: BRAND.name,
+    title: `${BRAND.name} — understanding yourself, and being understood`,
     description:
       "Put words to how you actually work, strengths as clearly as friction. Through conversation, it becomes a working manual of how you operate.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "mywalnut — understanding yourself, and being understood",
+    title: `${BRAND.name} — understanding yourself, and being understood`,
     description:
       "Put words to how you actually work, strengths as clearly as friction. Through conversation, it becomes a working manual of how you operate.",
   },
@@ -38,7 +38,7 @@ export default function Landing() {
       <header className="site-head">
         <div className="container">
           <span className="wordmark">
-            mywalnut<span className="dot">.</span>
+            {BRAND.name}<span className="dot">.</span>
           </span>
           <nav className="nav">
             {/* Link (not <a>) so Next prefetches /login while the visitor
@@ -69,7 +69,7 @@ export default function Landing() {
                   understood.
                 </p>
                 <p className="hero-lead reveal">
-                  Mywalnut helps you put words to how you actually work,
+                  {BRAND.nameCap} helps you put words to how you actually work,
                   naming strengths as clearly as friction.
                   Through conversation, what you&apos;ve felt but never named
                   becomes a working manual of how you operate — one that sharpens
@@ -109,7 +109,7 @@ export default function Landing() {
                 goes quiet together.
               </p>
               <p className="prose stanza reveal">
-                Mywalnut is built for people who have spent years working
+                {BRAND.nameCap} is built for people who have spent years working
                 around that gap and want to understand the more honest layer of
                 themselves.
               </p>
@@ -130,7 +130,7 @@ export default function Landing() {
                 <p className="step-body">
                   A conflict that keeps repeating. A reaction that surprised you.
                   A strength you can&apos;t quite name. Start the conversation.
-                  Paste in a text thread or journal. Or let Jove, Mywalnut&apos;s
+                  Paste in a text thread or journal. Or let Jove, {BRAND.nameCap}&apos;s
                   AI conversational partner, guide you.
                 </p>
               </div>
@@ -243,14 +243,14 @@ export default function Landing() {
               <div className="card reveal">
                 <h3>Grounded, not guesswork</h3>
                 <p>
-                  Mywalnut isn&apos;t therapy. It draws on established
+                  {BRAND.nameCap} isn&apos;t therapy. It draws on established
                   approaches to self-understanding, built from your own words.
                 </p>
               </div>
               <div className="card card-wide reveal">
                 <h3>Meets you where it&apos;s easiest</h3>
                 <p>
-                  Use Mywalnut on mobile, on desktop, or by text. Start wherever
+                  Use {BRAND.nameCap} on mobile, on desktop, or by text. Start wherever
                   and whenever works for you.
                 </p>
               </div>
@@ -296,14 +296,14 @@ export default function Landing() {
       <footer>
         <div className="container">
           <p className="foot-id">
-            <span>mywalnut,&nbsp;Inc.</span>
+            <span>{BRAND.legalEntity}</span>
             <span className="sep">·</span>
-            <span>mywalnut.app</span>
+            <span>{BRAND.domain}</span>
             <span className="sep">·</span>
-            <a href="mailto:hello@mywalnut.app">hello@mywalnut.app</a>
+            <a href={`mailto:${BRAND.supportEmail}`}>{BRAND.supportEmail}</a>
           </p>
           <p className="foot-legal">
-            Mywalnut is a tool for self-understanding and is not therapy, a
+            {BRAND.nameCap} is a tool for self-understanding and is not therapy, a
             diagnostic tool, or a clinical service.
             <br />
             If you&apos;re in crisis, call 988 or text HOME to 741741.

@@ -10,11 +10,12 @@ import {
   rateLimitedResponse,
 } from "@/lib/rate-limit";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
+import { BRAND } from "@/lib/brand";
 
 export const runtime = "nodejs";
 
 const INITIAL_GREETING =
-  `Hey, it's ${PERSONA_NAME_FORMAL} by mywalnut. You're connected. Text me anytime something's on your mind. ` +
+  `Hey, it's ${PERSONA_NAME_FORMAL} by ${BRAND.name}. You're connected. Text me anytime something's on your mind. ` +
   "I remember everything from our conversations in the app too. " +
   "If something needs more space, I'll let you know. " +
   "Msg frequency varies. Msg & data rates may apply. Reply HELP for info. Reply STOP to disconnect.";

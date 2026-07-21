@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_VERSION } from "@/lib/version";
+import { BRAND } from "@/lib/brand";
 
 interface AuthShellProps {
   // Returns to the marketing landing — same destination the mobile
@@ -47,7 +48,7 @@ export default function AuthShell({ onBack, children }: AuthShellProps) {
             color: "var(--session-ink)",
           }}
         >
-          mywalnut
+          {BRAND.name}
           <span style={{ color: "var(--session-walnut)" }}>.</span>
         </p>
         <button
@@ -72,7 +73,7 @@ export default function AuthShell({ onBack, children }: AuthShellProps) {
             e.currentTarget.style.borderBottomColor = "transparent";
           }}
         >
-          ‹ mywalnut.com
+          ‹ {BRAND.domain}
         </button>
       </header>
 

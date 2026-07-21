@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import { PERSONA_NAME_FORMAL } from "@/lib/persona/config";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — mywalnut",
+  title: `Terms of Service — ${BRAND.name}`,
 };
 
 export default function TermsOfService() {
@@ -40,10 +41,10 @@ export default function TermsOfService() {
         </p>
 
         <p>
-          These terms govern your use of mywalnut and the {PERSONA_NAME_FORMAL}{" "}
-          conversational platform at mywalnut.app, operated by mywalnut, Inc.
-          (&ldquo;mywalnut,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
-          &ldquo;our&rdquo;).
+          These terms govern your use of {BRAND.name} and the {PERSONA_NAME_FORMAL}{" "}
+          conversational platform at {BRAND.domain}, operated by{" "}
+          {BRAND.legalEntity} (&ldquo;{BRAND.name},&rdquo; &ldquo;we,&rdquo;
+          &ldquo;us,&rdquo; &ldquo;our&rdquo;).
         </p>
 
         <h2
@@ -57,7 +58,7 @@ export default function TermsOfService() {
           Beta Service
         </h2>
         <p>
-          mywalnut is currently in beta. Features may change, break, or be
+          {BRAND.name} is currently in beta. Features may change, break, or be
           removed without notice. We may reset, archive, or migrate data
           between beta phases — we will give you reasonable notice before doing
           so. The service is provided to beta participants on an &ldquo;as is&rdquo;
@@ -72,10 +73,10 @@ export default function TermsOfService() {
             margin: "32px 0 12px 0",
           }}
         >
-          What mywalnut Is
+          What {BRAND.name} Is
         </h2>
         <p>
-          mywalnut is a self-understanding platform. It is not a mental health
+          {BRAND.name} is a self-understanding platform. It is not a mental health
           service, clinical tool, or diagnostic instrument. {PERSONA_NAME_FORMAL} does not
           diagnose, assess, or treat any condition. The manual is a
           self-authored document. It is not clinical documentation and should
@@ -90,10 +91,10 @@ export default function TermsOfService() {
             margin: "32px 0 12px 0",
           }}
         >
-          What mywalnut Is Not
+          What {BRAND.name} Is Not
         </h2>
         <p>
-          mywalnut is not therapy, counseling, or a mental health service. {PERSONA_NAME_FORMAL} is
+          {BRAND.name} is not therapy, counseling, or a mental health service. {PERSONA_NAME_FORMAL} is
           not a therapist, counselor, or medical professional. {PERSONA_NAME_FORMAL} does not
           diagnose conditions, prescribe treatments, or provide clinical
           interventions. If you are experiencing a mental health crisis, contact
@@ -118,7 +119,7 @@ export default function TermsOfService() {
           Accounts
         </h2>
         <p>
-          You must be at least 18 years old to use mywalnut. You are responsible
+          You must be at least 18 years old to use {BRAND.name}. You are responsible
           for maintaining the security of your account credentials. One account
           per person.
         </p>
@@ -134,12 +135,12 @@ export default function TermsOfService() {
           Children Under 18
         </h2>
         <p>
-          mywalnut is not directed to children under 18 and we do not knowingly
+          {BRAND.name} is not directed to children under 18 and we do not knowingly
           collect personal information from anyone under 18. If we learn that
           we have collected information from a person under 18, we will delete
           it. If you are a parent or guardian and believe your child has
-          provided us with personal information, contact us at
-          hello@mywalnut.app.
+          provided us with personal information, contact us at{" "}
+          {BRAND.supportEmail}.
         </p>
 
         <h2
@@ -154,7 +155,7 @@ export default function TermsOfService() {
         </h2>
         <p>
           By linking your phone number and texting {PERSONA_NAME_FORMAL}, you consent to receive
-          MMS messages from mywalnut. Messages are conversational responses
+          MMS messages from {BRAND.name}. Messages are conversational responses
           initiated by you.
         </p>
         <ul style={{ paddingLeft: 20, margin: "0 0 16px 0" }}>
@@ -165,8 +166,8 @@ export default function TermsOfService() {
             at any time.
           </li>
           <li>
-            For help: text HELP (or INFO, SUPPORT) or email
-            hello@mywalnut.app.
+            For help: text HELP (or INFO, SUPPORT) or email{" "}
+            {BRAND.supportEmail}.
           </li>
         </ul>
 
@@ -237,7 +238,7 @@ export default function TermsOfService() {
           Disclaimer of Warranties
         </h2>
         <p>
-          mywalnut is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo;
+          {BRAND.name} is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo;
           without warranties of any kind, whether express or implied, including
           but not limited to implied warranties of merchantability, fitness for
           a particular purpose, or non-infringement. We do not warrant that the
@@ -258,8 +259,8 @@ export default function TermsOfService() {
           Limitation of Liability
         </h2>
         <p>
-          To the maximum extent permitted by applicable law, in no event shall
-          mywalnut, Inc., its officers, directors, employees, agents, or
+          To the maximum extent permitted by applicable law, in no event shall{" "}
+          {BRAND.legalEntity}, its officers, directors, employees, agents, or
           affiliates be liable for any indirect, incidental, special,
           consequential, or punitive damages, including loss of profits, data,
           use, or goodwill, arising out of or related to your use of the
@@ -282,7 +283,7 @@ export default function TermsOfService() {
           Indemnification
         </h2>
         <p>
-          You agree to indemnify and hold harmless mywalnut, Inc., its
+          You agree to indemnify and hold harmless {BRAND.legalEntity}, its
           officers, directors, employees, agents, and affiliates from any
           claims, damages, losses, or expenses (including reasonable
           attorneys&apos; fees) arising out of or related to: (a) your use of
@@ -302,7 +303,7 @@ export default function TermsOfService() {
           Acceptable Use
         </h2>
         <p>
-          You agree not to: (a) use mywalnut to harm, harass, defame, or
+          You agree not to: (a) use {BRAND.name} to harm, harass, defame, or
           impersonate others; (b) attempt to manipulate {PERSONA_NAME_FORMAL} into producing
           harmful, illegal, or deceptive content; (c) invite others to group
           conversations without their knowledge or against their wishes;
@@ -326,7 +327,7 @@ export default function TermsOfService() {
           Privacy
         </h2>
         <p>
-          Your use of mywalnut is also governed by our{" "}
+          Your use of {BRAND.name} is also governed by our{" "}
           <a
             href="/privacy"
             style={{ color: "var(--session-persona)", textDecoration: "none" }}
@@ -397,7 +398,7 @@ export default function TermsOfService() {
         >
           Contact
         </h2>
-        <p>hello@mywalnut.app</p>
+        <p>{BRAND.supportEmail}</p>
 
         <div
           style={{
@@ -407,14 +408,14 @@ export default function TermsOfService() {
           }}
         >
           <a
-            href="https://mywalnut.app"
+            href={BRAND.url}
             style={{
               color: "var(--session-persona)",
               textDecoration: "none",
               fontSize: 13,
             }}
           >
-            mywalnut.app
+            {BRAND.domain}
           </a>
         </div>
       </div>

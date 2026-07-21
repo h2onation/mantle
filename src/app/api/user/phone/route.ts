@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/messaging/send";
 import { normalizePhone } from "@/lib/utils/normalize-phone";
 import { generateOtp, hashOtp, otpExpiryFromNow } from "@/lib/phone-otp";
+import { BRAND } from "@/lib/brand";
 import {
   phoneOtpSendHour,
   checkLimit,
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
   //    arrived. So: send, bail on failure, persist only on success.
   const sendResult = await sendMessage({
     to: phone,
-    content: `Your mywalnut verification code is: ${otp}. This code expires in 10 minutes.`,
+    content: `Your ${BRAND.name} verification code is: ${otp}. This code expires in 10 minutes.`,
     ownerUserId: user.id,
     contentKind: "otp",
   });

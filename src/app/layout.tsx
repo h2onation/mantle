@@ -3,6 +3,7 @@ import { Newsreader, Source_Serif_4, Fraunces, Plus_Jakarta_Sans, JetBrains_Mono
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { PostHogProvider } from "@/components/PostHogProvider";
+import { BRAND } from "@/lib/brand";
 import ThemeInit from "@/components/ThemeInit";
 import PersonaDyslexicFontInit from "@/components/PersonaDyslexicFontInit";
 
@@ -75,14 +76,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mywalnut.app"),
-  title: "mywalnut",
-  description: "Understand how you operate.",
-  manifest: "/manifest.webmanifest",
+  metadataBase: new URL(BRAND.url),
+  title: BRAND.name,
+  description: BRAND.tagline,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "mywalnut",
+    title: BRAND.name,
   },
   icons: {
     icon: [

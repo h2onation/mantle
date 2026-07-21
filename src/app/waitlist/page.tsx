@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { BRAND } from "@/lib/brand";
 import WaitlistForm from "@/components/shared/WaitlistForm";
 
 // Wrapped in Suspense because useSearchParams forces the page into a
@@ -99,8 +100,8 @@ function WaitlistContent({ notAllowlisted }: { notAllowlisted: boolean }) {
           }}
         >
           {notAllowlisted
-            ? "mywalnut is invite-only right now. Drop your email and we'll reach out when there's a spot."
-            : "mywalnut is in early access. Drop your email and we'll reach out when there's a spot."}
+            ? `${BRAND.name} is invite-only right now. Drop your email and we'll reach out when there's a spot.`
+            : `${BRAND.name} is in early access. Drop your email and we'll reach out when there's a spot.`}
         </p>
 
         <WaitlistForm />

@@ -62,6 +62,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         href: "/admin/schema-map",
         indent: true,
       },
+      { id: "brand", label: "Brand", href: "/admin/brand" },
       { id: "docs", label: "Source docs", href: "/admin/docs" },
       { id: "skills", label: "Agents & Skills", href: "/admin/skills" },
       { id: "vendors", label: "Vendors", href: "/admin/vendors" },

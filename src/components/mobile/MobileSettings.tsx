@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import ConfirmationModal from "@/components/shared/ConfirmationModal";
+import { BRAND } from "@/lib/brand";
 import SettingsRow from "@/components/shared/SettingsRow";
 import PersonaModePicker from "@/components/mobile/settings/PersonaModePicker";
 import TopBar from "@/components/shared/TopBar";
@@ -463,7 +464,7 @@ export default function MobileSettings({
                   }}
                 >
                   By entering your phone number, you agree to receive text messages
-                  from {PERSONA_NAME_FORMAL} by mywalnut. Message frequency varies. Msg &amp; data rates
+                  from {PERSONA_NAME_FORMAL} by {BRAND.name}. Message frequency varies. Msg &amp; data rates
                   may apply. Reply STOP to opt out. See our{" "}
                   <a
                     href="/privacy"
@@ -667,7 +668,7 @@ export default function MobileSettings({
                 </p>
                 <a
                   href="/persona-contact.vcf"
-                  download={`${PERSONA_NAME_FORMAL} (mywalnut).vcf`}
+                  download={`${PERSONA_NAME_FORMAL} (${BRAND.name}).vcf`}
                   style={{
                     display: "block",
                     width: "100%",
