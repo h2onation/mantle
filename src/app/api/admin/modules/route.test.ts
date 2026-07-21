@@ -24,6 +24,7 @@ let insertError: { code?: string; message: string } | null = null;
 let updateCalls: Array<Record<string, unknown>> = [];
 let updateMatches: number = 1;
 let deleteCalls: string[] = [];
+let entryDeleteCalls: string[] = [];
 let refCounts: Record<string, number> = { conversations: 0, manual_entries: 0 };
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -67,6 +68,12 @@ vi.mock("@/lib/supabase/admin", () => ({
           select: () => ({
             eq: async () => ({ count: refCounts[table], error: null }),
           }),
+          delete: () => ({
+            eq: async (_col: string, slug: string) => {
+              entryDeleteCalls.push(`${table}:${slug}`);
+              return { error: null };
+            },
+          }),
         };
       }
       if (table === "persona_voice_overrides") {
@@ -90,6 +97,7 @@ beforeEach(() => {
   updateCalls = [];
   updateMatches = 1;
   deleteCalls = [];
+  entryDeleteCalls = [];
   refCounts = { conversations: 0, manual_entries: 0 };
 });
 
@@ -211,18 +219,49 @@ describe("PATCH — update", () => {
   });
 });
 
-describe("DELETE — only while unreferenced", () => {
+describe("DELETE — plain (only while unreferenced)", () => {
   it("deletes a module nothing points at", async () => {
     const res = await DELETE(req("DELETE", { slug: "typo-module" }));
     expect(res.status).toBe(200);
     expect(deleteCalls).toEqual(["typo-module"]);
+    expect(entryDeleteCalls).toHaveLength(0);
   });
 
-  it("409s when conversations or entries reference the slug", async () => {
-    refCounts = { conversations: 2, manual_entries: 1 };
+  it("409s with the blast radius when references exist", async () => {
+    refCounts = { conversations: 2, manual_entries: 3 };
     const res = await DELETE(req("DELETE", { slug: "burnout" }));
     expect(res.status).toBe(409);
-    expect((await res.json()).error).toContain("disable");
+    const body = await res.json();
+    expect(body.requiresForce).toBe(true);
+    expect(body.conversations).toBe(2);
+    expect(body.entries).toBe(3);
     expect(deleteCalls).toHaveLength(0);
+    expect(entryDeleteCalls).toHaveLength(0);
+  });
+});
+
+describe("DELETE — deleteEntries (the founder-confirmed destructive path)", () => {
+  it("deletes the module's entries, then the module; conversations untouched", async () => {
+    refCounts = { conversations: 2, manual_entries: 3 };
+    const res = await DELETE(
+      req("DELETE", { slug: "burnout", deleteEntries: true })
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.deletedEntries).toBe(3);
+    // Entries delete targets manual_entries only — never conversations.
+    expect(entryDeleteCalls).toEqual(["manual_entries:burnout"]);
+    expect(deleteCalls).toEqual(["burnout"]);
+  });
+
+  it("skips the entries delete when the module has none (conversations-only refs)", async () => {
+    refCounts = { conversations: 5, manual_entries: 0 };
+    const res = await DELETE(
+      req("DELETE", { slug: "burnout", deleteEntries: true })
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).deletedEntries).toBe(0);
+    expect(entryDeleteCalls).toHaveLength(0);
+    expect(deleteCalls).toEqual(["burnout"]);
   });
 });

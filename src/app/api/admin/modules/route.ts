@@ -213,9 +213,16 @@ export async function PATCH(request: Request) {
   return Response.json({ modules: await getModules(admin) });
 }
 
-// Delete a module — allowed ONLY while nothing references it. Once a
-// conversation or Manual entry carries the slug, the module can only be
-// disabled, so no user's history ever points at a missing module.
+// Delete a module. Two tiers:
+//   - Plain delete: allowed only while NOTHING references the slug. If
+//     references exist, responds 409 WITH the counts so the admin panel can
+//     stage the strong confirm.
+//   - deleteEntries: true — the founder confirmed the destructive path:
+//     permanently deletes the module's Manual entries (every user's), then
+//     the module row. Conversations are NEVER deleted — history is kept;
+//     they lose their door and fall back to the shared conductor. This is
+//     the "experiment is trash" cleanup; the gentle alternative stays
+//     `enabled: false` (door hides, section + entries remain).
 export async function DELETE(request: Request) {
   const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
@@ -229,6 +236,7 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Body must include a valid slug" }, { status: 400 });
   }
   const slug = body.slug;
+  const deleteEntries = body.deleteEntries === true;
 
   const [convs, entries] = await Promise.all([
     admin
@@ -247,13 +255,39 @@ export async function DELETE(request: Request) {
       { status: 500 },
     );
   }
-  const refs = (convs.count ?? 0) + (entries.count ?? 0);
-  if (refs > 0) {
+  const convCount = convs.count ?? 0;
+  const entryCount = entries.count ?? 0;
+
+  if ((convCount > 0 || entryCount > 0) && !deleteEntries) {
+    // Counts ride along so the panel can render the typed-slug confirm with
+    // the real blast radius.
     return Response.json(
       {
-        error: `"${slug}" has ${refs} conversation(s)/entrie(s) attached — disable it instead of deleting.`,
+        error: `"${slug}" has ${convCount} conversation(s) and ${entryCount} entrie(s) attached.`,
+        requiresForce: true,
+        conversations: convCount,
+        entries: entryCount,
       },
       { status: 409 },
+    );
+  }
+
+  if (deleteEntries && entryCount > 0) {
+    const { error: entriesError } = await admin
+      .from("manual_entries")
+      .delete()
+      .eq("section", slug);
+    if (entriesError) {
+      return Response.json(
+        { error: "Failed to delete the module's entries — module left in place" },
+        { status: 500 },
+      );
+    }
+    // Counts only — never entry content (CLAUDE.md security rules).
+    console.log(
+      "[admin/modules] force-delete removed %d entrie(s) under module %s",
+      entryCount,
+      slug,
     );
   }
 
@@ -262,5 +296,8 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Failed to delete module" }, { status: 500 });
   }
 
-  return Response.json({ modules: await getModules(admin) });
+  return Response.json({
+    modules: await getModules(admin),
+    deletedEntries: deleteEntries ? entryCount : 0,
+  });
 }
