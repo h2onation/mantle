@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LineIcon, moduleIconPath } from "@/components/home/LineIcon";
+import { LineIcon, IC_CHAT } from "@/components/home/LineIcon";
 import type { HomeModule } from "@/lib/modules";
 
 // The "ways to begin" module cards, shared by MobileHome and DesktopHome.
@@ -108,7 +108,7 @@ export default function WaysToBegin({
                   color: "var(--session-walnut)",
                 }}
               >
-                <LineIcon d={moduleIconPath(m.icon)} size={isDesktop ? 18 : 17} />
+                <LineIcon d={IC_CHAT} size={isDesktop ? 18 : 17} />
               </span>
               <span
                 style={{

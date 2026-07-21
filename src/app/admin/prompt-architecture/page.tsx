@@ -320,7 +320,10 @@ export default function TuningPage() {
               and the copy around it. When something feels off, ask which it was:
               the conversation felt wrong → Jove&rsquo;s prompt (or one
               module&rsquo;s brief, on the Modules page); the written
-              entry read wrong → the entry bar. Edits are live on the next
+              entry read wrong → the entry bar. This document is the
+              default for every module: a module&rsquo;s opening message
+              replaces only Jove&rsquo;s first turn, and its brief adds
+              steering on top — neither ever replaces the voice. Edits are live on the next
               turn, no deploy, and the shipped code is always the floor: Reset
               returns to it instantly.
             </p>

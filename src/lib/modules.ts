@@ -9,7 +9,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
  * adds a door AND grows the Manual's table of contents.
  *
  * Each module carries everything that makes a door:
- *   - card copy (name / description / cue / icon) for the Home list
+ *   - card copy (name / description / cue) for the Home list
  *   - optional one-time intro modal copy
  *   - optional fixed opener (server-emitted first message, no model call)
  *   - optional brief — a few founder-written sentences of steering that
@@ -31,7 +31,6 @@ export interface Module {
   name: string;
   description: string;
   cue: string;
-  icon: string;
   introTitle: string | null;
   introBody: string | null;
   openerText: string | null;
@@ -51,7 +50,6 @@ export interface HomeModule {
   name: string;
   description: string;
   cue: string;
-  icon: string;
   introTitle: string | null;
   introBody: string | null;
   /** Disabled modules hide as doors but their Manual section stays visible. */
@@ -64,7 +62,6 @@ export function toHomeModule(m: Module): HomeModule {
     name: m.name,
     description: m.description,
     cue: m.cue,
-    icon: m.icon,
     introTitle: m.introTitle,
     introBody: m.introBody,
     enabled: m.enabled,
@@ -83,7 +80,6 @@ interface ModuleRow {
   name: string;
   description: string;
   cue: string;
-  icon: string;
   intro_title: string | null;
   intro_body: string | null;
   opener_text: string | null;
@@ -99,7 +95,6 @@ function rowToModule(row: ModuleRow): Module {
     name: row.name,
     description: row.description ?? "",
     cue: row.cue ?? "Begin",
-    icon: row.icon ?? "chat",
     introTitle: row.intro_title,
     introBody: row.intro_body,
     openerText: row.opener_text,
@@ -122,7 +117,7 @@ export async function getModules(
     const { data, error } = await admin
       .from("modules")
       .select(
-        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
+        "slug, name, description, cue, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
       )
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
@@ -151,7 +146,7 @@ export async function getModule(
     const { data, error } = await admin
       .from("modules")
       .select(
-        "slug, name, description, cue, icon, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
+        "slug, name, description, cue, intro_title, intro_body, opener_text, brief, enabled, sort_order, updated_at",
       )
       .eq("slug", slug)
       .maybeSingle();
